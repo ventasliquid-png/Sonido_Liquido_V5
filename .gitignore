@@ -1,0 +1,14 @@
+# Entornos virtuales y dependencias
+/venv/
+/node_modules/
+
+# Archivos de credenciales y secretos
+.google_credentials
+*.json
+
+# Archivos de sistema y logs
+.DS_Store
+npm-debug.log*
+
+# Archivos de instalador local
+instalador*.ps1
