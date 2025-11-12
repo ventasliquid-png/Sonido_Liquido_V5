@@ -1,6 +1,6 @@
 # Entornos virtuales y dependencias
-/venv/
-/node_modules/
+backend/venv/
+frontend/node_modules/
 
 # Archivos de credenciales y secretos
 .google_credentials
@@ -11,4 +11,5 @@
 npm-debug.log*
 
 # Archivos de instalador local
+instalador*.bat
 instalador*.ps1
