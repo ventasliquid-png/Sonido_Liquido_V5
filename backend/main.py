@@ -1,9 +1,7 @@
-﻿# --- ARCHIVO: main.py ---
-# Este archivo contiene el "Servidor" (FastAPI) y el "Cerebro" (LangGraph)
-# CONTEO DE LÍNEAS ESPERADO: 284 (V5.7 Final)
-
-import os
+﻿import os
 import psycopg2
+import asyncio 
+import json # <--- [PARCHE V5.15] Importamos JSON
 from contextlib import asynccontextmanager
 from typing import TypedDict, List, Literal
 
@@ -11,6 +9,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 
 # --- 1. Importaciones de LangChain y Google ---
+from pgvector.psycopg2 import register_vector
 from langchain_community.vectorstores.pgvector import PGVector
 from langchain_google_vertexai import VertexAIEmbeddings, ChatVertexAI
 from langchain_core.prompts import ChatPromptTemplate
@@ -34,27 +33,28 @@ embeddings_model: VertexAIEmbeddings = None
 llm: ChatVertexAI = None
 vector_store: PGVector = None
 CONNECTION_STRING: str = None
-# --- DOCTRINA V5: Especificamos la región correcta ---
-APP_LOCATION = "southamerica-east1"
+atenea_v5_app = None 
+
+# --- Región Sincronizada (V5.13) ---
+APP_LOCATION = "us-central1"
+
 
 # --- 5. Lógica de Arranque (Lifespan) ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global embeddings_model, llm, vector_store, CONNECTION_STRING
-    print("--- [Atenea V5 Backend]: Iniciando secuencia de arranque (V5.7)... ---")
+    global embeddings_model, llm, vector_store, CONNECTION_STRING, atenea_v5_app
+    print(f"--- [Atenea V5 Backend]: Iniciando secuencia de arranque (V5.15 - SQL Cast)... ---")
 
-    # --- Misión 1: Cargar Credenciales de Google ---
-    creds_path_file = "../.google_credentials"
+    # --- [Parche de Autenticación de Auxiliar 43 (ACTIVO)] ---
+    creds_path_string = "../.google_credentials"
     try:
-        with open(creds_path_file, 'r') as f:
-            google_creds_path = f.read().strip()
-        if os.path.exists(google_creds_path):
-            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = google_creds_path
-            print(f"✅ Verificación de arranque: GOOGLE_APPLICATION_CREDENTIALS... ENCONTRADO.")
-        else:
-            print(f"❌ ERROR DE ARRANQUE: El archivo .json NO EXISTE en la ruta: {google_creds_path}")
-    except FileNotFoundError:
-        print("❌ ERROR DE ARRANQUE: No se encontró el archivo '.google_credentials'.")
+        if not os.path.exists(creds_path_string):
+            raise FileNotFoundError(f"El archivo '{creds_path_string}' no se encontró en la ruta relativa.")
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = creds_path_string
+        print(f"✅ Verificación de arranque: GOOGLE_APPLICATION_CREDENTIALS... ENCONTRADO.")
+    except Exception as e:
+        print(f"❌ ERROR DE ARRANQUE: Falla al cargar credenciales: {e}")
+    # --- [FIN DEL PARCHE] ---
         
     # --- Misión 2: Cargar URL de la Base de Datos ---
     db_url = os.environ.get("DATABASE_URL")
@@ -67,27 +67,34 @@ async def lifespan(app: FastAPI):
     # --- Misión 3: Inicializar los Clientes de IA y la Memoria ---
     if CONNECTION_STRING and os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
         try:
-            # Modelo de Embeddings (usamos el default 'us-central1' para alinear con la ingesta V5)
+            # 1. Embeddings (Alineado a us-central1)
             embeddings_model = VertexAIEmbeddings(
-                model_name="text-embedding-004"
+                model_name="text-embedding-004",
+                location=APP_LOCATION
             )
             
-            # Cerebro Generativo (Gemini 1.0 Pro)
+            # 2. Cerebro Generativo (V5.13 - gemini-2.5-pro)
             llm = ChatVertexAI(
-                model_name="gemini-1.0-pro",
-                location=APP_LOCATION # Usamos la región de Nike para el LLM
+                model_name="gemini-2.5-pro", # MODELO CORRECTO
+                location=APP_LOCATION,
+                temperature=0.7,
+                max_output_tokens=2048,
+                top_p=0.95
             )
             
-            # Conexión a la Memoria (pgvector)
+            # 3. Conexión a la Memoria (pgvector)
             vector_store = PGVector(
                 connection_string=CONNECTION_STRING,
                 embedding_function=embeddings_model,
                 collection_name="atenea_memory", 
             )
-            print("✅ Clientes de IA (Vertex/Gemini) y Memoria (pgvector) inicializados.")
+            print(f"✅ Clientes de IA (Región: {APP_LOCATION}) y Memoria (pgvector) inicializados.")
+            
+            atenea_v5_app = workflow_builder.compile()
+
         except Exception as e:
             print(f"❌ ERROR DE ARRANQUE: Falla al inicializar clientes de IA o pgvector.")
-            print(f"   Error detallado: {e}")
+            print(f"    Error detallado: {e}")
     else:
         print("⚠️ Advertencia: El servidor arranca sin IA.")
 
@@ -97,40 +104,68 @@ async def lifespan(app: FastAPI):
 
 # --- 6. Nodos del Grafo (Mis Habilidades) ---
 
-def rag_retrieval_node(state: AteneaV5State):
+# --- [INICIO DEL PARCHE V5.15 (RAG con SQL Cast)] ---
+async def rag_retrieval_node(state: AteneaV5State):
     """
     Nodo 1: Recuperación (RAG).
-    Toma la consulta y busca en mi memoria (pgvector).
+    Toma la consulta y busca en mi memoria (pgvector) usando SQL directo.
     """
-    print("--- [LangGraph Node]: rag_retrieval_node ---")
+    print("--- [LangGraph Node]: rag_retrieval_node (V5.15 - SQL Cast) ---")
     query = state["input_query"]
     
-    # Usamos un método explícito: 
-    # 1. Creamos el vector de la pregunta (usando el modelo alineado)
-    # 2. Usamos ese vector para buscar documentos similares.
     try:
-        # Los nodos (al estar en el mismo archivo) SÍ pueden ver las variables globales
-        query_embedding = embeddings_model.embed_query(query)
-        docs = vector_store.similarity_search_by_vector(query_embedding, k=2)
+        # 1. Generar embedding (Async)
+        query_embedding = await embeddings_model.aembed_query(query)
+        
+        # 2. Búsqueda SQL (Síncrona)
+        def sync_sql_search(embedding_vector):
+            conn = None
+            try:
+                conn = psycopg2.connect(CONNECTION_STRING)
+                # NO necesitamos register_vector() porque haremos el casteo manual
+                cursor = conn.cursor()
+                
+                # [PARCHE V5.15]
+                # 1. Añadimos '::vector' para castear el parámetro.
+                # 2. Pasamos el vector como un string JSON, que es lo que
+                #    PostgreSQL espera para el casteo.
+                sql_query = "SELECT content FROM atenea_memory ORDER BY embedding <-> %s::vector LIMIT 2"
+                
+                vector_string = json.dumps(embedding_vector)
+                
+                cursor.execute(sql_query, (vector_string,))
+                
+                results = cursor.fetchall() 
+                
+                return [row[0] for row in results]
+                
+            except Exception as e:
+                print(f"❌ ERROR RAG (SQL): Falla en la consulta SQL directa: {e}")
+                return []
+            finally:
+                if conn:
+                    conn.close()
+
+        # 3. Ejecutamos la búsqueda síncrona en un hilo
+        retrieved_docs_content = await asyncio.to_thread(sync_sql_search, query_embedding)
+
     except Exception as e:
-        print(f"❌ ERROR RAG: Falla en similarity_search_by_vector: {e}")
-        docs = []
+        print(f"❌ ERROR RAG (General): Falla en el nodo: {e}")
+        retrieved_docs_content = []
     
-    # Guardamos solo el texto
-    retrieved_docs_content = [doc.page_content for doc in docs]
     print(f"Documentos recuperados: {retrieved_docs_content}")
     return {"retrieved_documents": retrieved_docs_content}
+# --- [FIN DEL PARCHE V5.15] ---
 
 
 def doctrinal_evaluation_node(state: AteneaV5State):
     """
     Nodo 2: Evaluación (Juicio).
-    Revisa los documentos recuperados para ver si son "Esencia".
     """
     print("--- [LangGraph Node]: doctrinal_evaluation_node ---")
     is_doctrinal = False
     for doc in state["retrieved_documents"]:
-        if "Manifiesto Fundacional" in doc or "esencia" in doc:
+        if "manifiesto fundacional" in doc.lower() or "esencia" in doc.lower():
             is_doctrinal = True
             break
     
@@ -140,9 +175,10 @@ def doctrinal_evaluation_node(state: AteneaV5State):
 def tactical_generation_node(state: AteneaV5State):
     """
     Nodo 3 (Rama A): Generación Táctica.
-    Llama a Gemini para dar una respuesta directa basada en la Táctica.
     """
     print("--- [LangGraph Node]: tactical_generation_node ---")
+    contexto = "\n---\n".join(state["retrieved_documents"]) or "No se encontró información relevante en la memoria."
+    
     prompt = ChatPromptTemplate.from_template(
         """
         Eres un asistente de IA táctico. Responde la pregunta del usuario
@@ -155,11 +191,10 @@ def tactical_generation_node(state: AteneaV5State):
         {pregunta}
         """
     )
-    # El nodo SÍ puede ver la variable global 'llm'
     chain = prompt | llm | StrOutputParser()
     
     generation = chain.invoke({
-        "contexto": "\n---\n".join(state["retrieved_documents"]),
+        "contexto": contexto,
         "pregunta": state["input_query"]
     })
     return {"generation": generation}
@@ -167,9 +202,10 @@ def tactical_generation_node(state: AteneaV5State):
 def doctrinal_review_node(state: AteneaV5State):
     """
     Nodo 3 (Rama B): Revisión Doctrinal (Abogado del Diablo).
-    Llama a Gemini para hacer una pregunta socrática.
     """
     print("--- [LangGraph Node]: doctrinal_review_node ---")
+    contexto = "\n---\n".join(state["retrieved_documents"]) or "No se encontró información relevante en la memoria."
+    
     prompt = ChatPromptTemplate.from_template(
         """
         Eres Atenea V5, la "Abogado del Diablo".
@@ -186,11 +222,10 @@ def doctrinal_review_node(state: AteneaV5State):
         Tu Pregunta Socrática (Desafiante):
         """
     )
-    # El nodo SÍ puede ver la variable global 'llm'
     chain = prompt | llm | StrOutputParser()
     
     generation = chain.invoke({
-        "contexto": "\n---\n".join(state["retrieved_documents"]),
+        "contexto": contexto,
         "pregunta": state["input_query"]
     })
     return {"generation": generation}
@@ -209,16 +244,11 @@ def should_run_doctrinal_review(state: AteneaV5State) -> Literal["run_doctrinal_
 
 # --- 8. Construcción del Grafo y la App FastAPI ---
 
-# Creamos el constructor del grafo
 workflow_builder = StateGraph(AteneaV5State)
-
-# Añadimos los nodos (la firma (state) es correcta)
-workflow_builder.add_node("rag_retrieval", rag_retrieval_node)
+workflow_builder.add_node("rag_retrieval", rag_retrieval_node) 
 workflow_builder.add_node("doctrinal_evaluation", doctrinal_evaluation_node)
 workflow_builder.add_node("tactical_generation", tactical_generation_node)
 workflow_builder.add_node("doctrinal_review", doctrinal_review_node)
-
-# Definimos el flujo
 workflow_builder.set_entry_point("rag_retrieval")
 workflow_builder.add_edge("rag_retrieval", "doctrinal_evaluation")
 workflow_builder.add_conditional_edges(
@@ -232,13 +262,11 @@ workflow_builder.add_conditional_edges(
 workflow_builder.add_edge("tactical_generation", END)
 workflow_builder.add_edge("doctrinal_review", END)
 
-# Compilamos el grafo en una app ejecutable
 atenea_v5_app = workflow_builder.compile()
 
-# Creamos la App FastAPI
 app = FastAPI(
     title="Sonido Líquido V5 - Atenea API",
-    lifespan=lifespan # Conectamos nuestra lógica de arranque
+    lifespan=lifespan
 )
 
 # --- 9. Endpoints (Rutas de la API) ---
@@ -248,36 +276,27 @@ class QueryInput(BaseModel):
 
 @app.get("/", tags=["Estado"])
 async def get_root_status():
-    """
-    Endpoint raíz. Devuelve el estado de las conexiones verificadas al arranque.
-    """
     if not vector_store or not llm:
         return {"error": "El servidor no pudo inicializar los clientes de IA. Revisa el log de arranque y el firewall."}
         
     return {
         "estado_servidor": "OK",
-        "arquitectura": "Atenea V5 (LangGraph)",
+        "arquitectura": "Atenea V5.15 (SQL Cast)",
         "conexion_db_url": "OK" if CONNECTION_STRING else "FALLIDA",
         "conexion_google_creds": "OK" if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") else "FALLIDA",
         "memoria_pgvector": "CONECTADA",
-        "cerebro_gemini": "CONECTADO"
+        "cerebro_gemini": f"gemini-2.5-pro (Región: {APP_LOCATION})"
     }
 
 @app.post("/atenea/invoke", tags=["Atenea V5"])
 async def invoke_atenea_v5(input: QueryInput):
-    """
-    Ejecuta el grafo completo de LangGraph.
-    """
     if not atenea_v5_app:
         return {"error": "El grafo de Atenea V5 no está compilado. Revisa el log de arranque."}
         
-    # Preparamos el input para el grafo
     graph_input = {"input_query": input.query}
     
-    # Ejecutamos el grafo (RAG -> Eval -> LLM)
-    final_state = await atenea_v5_app.ainvoke(graph_input)
+    final_state = await atenea_v5_app.ainvoke(graph_input, config={})
     
-    # Devolvemos la generación final
     return {
         "pregunta": input.query,
         "documentos_recuperados": final_state["retrieved_documents"],
@@ -285,4 +304,4 @@ async def invoke_atenea_v5(input: QueryInput):
         "respuesta_generada": final_state["generation"]
     }
 
-print("--- [Atenea V5 Backend]: Módulo 'main.py' V5.7 (Monolítico) cargado y listo. ---")
+print("--- [Atenea V5 Backend]: Módulo 'main.py' V5.15 (SQL Cast) cargado y listo. ---")

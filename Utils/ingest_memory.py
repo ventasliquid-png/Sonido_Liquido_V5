@@ -13,8 +13,9 @@ if not db_url:
     print("Error: Falta la variable de entorno DATABASE_URL.")
     sys.exit(1)
 
-# --- DOCTRINA V5: Especificamos la región correcta ---
-APP_LOCATION = "southamerica-east1"
+# --- [PARCHE V5.13 (Región)] ---
+# Alineamos la ingesta con la región de la consola: us-central1
+APP_LOCATION = "us-central1"
 
 # --- 2. Documentos Fundacionales ---
 DOCUMENTO_ESENCIA = """
@@ -43,7 +44,7 @@ def setup_database_and_index():
     try:
         embeddings_model = VertexAIEmbeddings(
             model_name="text-embedding-004",
-            location=APP_LOCATION  # <-- EL ARREGLO
+            location=APP_LOCATION
         )
         VECTOR_DIMENSION = 768
     except Exception as e:
@@ -68,10 +69,12 @@ def setup_database_and_index():
         print("Asegurando la extensión 'vector' y la tabla 'atenea_memory'...")
         cursor.execute("CREATE EXTENSION IF NOT EXISTS vector;")
         cursor.execute("DROP TABLE IF EXISTS atenea_memory;") # Borra vectores rotos
+        
+        # Corrección de sintaxis V5.2 (NOT NULL)
         cursor.execute(f"""
         CREATE TABLE atenea_memory (
             id SERIAL PRIMARY KEY,
-            content TEXT NOTNULL,
+            content TEXT NOT NULL, 
             doc_type VARCHAR(50),
             embedding VECTOR({VECTOR_DIMENSION})
         );
@@ -97,7 +100,7 @@ def setup_database_and_index():
         # 7. Guardar cambios
         conn.commit()
         print("\n--- ¡ÉXITO! ---")
-        print("La Esencia y la Táctica (V5) han sido indexadas en pgvector.")
+        print(f"La Esencia y la Táctica (V5) han sido indexadas en pgvector (Región: {APP_LOCATION}).")
 
     except (Exception, psycopg2.Error) as error:
         print(f"Error al conectar o indexar en PostgreSQL: {error}")
@@ -110,18 +113,19 @@ def setup_database_and_index():
 
 # --- 4. Ejecutar el Script de Ingesta ---
 if __name__ == "__main__":
-    print("Iniciando script de ingesta (Google Vertex AI V5 - southamerica-east1)...")
+    print(f"Iniciando script de ingesta (Google Vertex AI V5 - {APP_LOCATION})...")
     
-    # Dependencias (ya deberían estar)
-    required = {'psycopg2-binary', 'pgvector', 'langchain-google-vertexai'}
-    
-    # Autenticación (ya debería funcionar)
+    # [Parche de Autenticación V5.1 (ACTIVO)]
     try:
-        with open('.google_credentials', 'r') as f:
-            cred_path = f.read().strip()
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = cred_path
-    except Exception:
-        print("Error: No se encontró '.google_credentials'. Ejecuta el instalador V8 primero.")
+        cred_path_string = ".google_credentials"
+        if not os.path.exists(cred_path_string):
+            raise FileNotFoundError(f"El archivo '{cred_path_string}' no se encontró en el directorio actual.")
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = cred_path_string
+        
+    except Exception as e:
+        print(f"Error fatal de autenticación: {e}")
+        print("Asegúrate de que '.google_credentials' (la clave V5) esté en la raíz del proyecto.")
         sys.exit(1)
+    # --- [FIN DEL PARCHE] ---
 
     setup_database_and_index()
