@@ -1,12 +1,15 @@
 ﻿import os
 import psycopg2
 import asyncio 
-import json # <--- [PARCHE V5.15] Importamos JSON
+import json # Necesario para la serialización del vector en el RAG
 from contextlib import asynccontextmanager
 from typing import TypedDict, List, Literal
 
 from fastapi import FastAPI
 from pydantic import BaseModel
+# --- [INICIO PARCHE V5.16 (CORS)] ---
+from fastapi.middleware.cors import CORSMiddleware
+# --- [FIN PARCHE V5.16] ---
 
 # --- 1. Importaciones de LangChain y Google ---
 from pgvector.psycopg2 import register_vector
@@ -43,7 +46,7 @@ APP_LOCATION = "us-central1"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global embeddings_model, llm, vector_store, CONNECTION_STRING, atenea_v5_app
-    print(f"--- [Atenea V5 Backend]: Iniciando secuencia de arranque (V5.15 - SQL Cast)... ---")
+    print(f"--- [Atenea V5 Backend]: Iniciando secuencia de arranque (V5.16 - CORS & SQL)... ---")
 
     # --- [Parche de Autenticación de Auxiliar 43 (ACTIVO)] ---
     creds_path_string = "../.google_credentials"
@@ -105,6 +108,7 @@ async def lifespan(app: FastAPI):
 # --- 6. Nodos del Grafo (Mis Habilidades) ---
 
 # --- [INICIO DEL PARCHE V5.15 (RAG con SQL Cast)] ---
+# El parche final que corrige el error de tipo SQL.
 async def rag_retrieval_node(state: AteneaV5State):
     """
     Nodo 1: Recuperación (RAG).
@@ -122,20 +126,18 @@ async def rag_retrieval_node(state: AteneaV5State):
             conn = None
             try:
                 conn = psycopg2.connect(CONNECTION_STRING)
-                # NO necesitamos register_vector() porque haremos el casteo manual
+                register_vector(conn)
                 cursor = conn.cursor()
                 
-                # [PARCHE V5.15]
-                # 1. Añadimos '::vector' para castear el parámetro.
-                # 2. Pasamos el vector como un string JSON, que es lo que
-                #    PostgreSQL espera para el casteo.
+                # Ejecutamos la búsqueda con casteo explícito
                 sql_query = "SELECT content FROM atenea_memory ORDER BY embedding <-> %s::vector LIMIT 2"
                 
+                # Convertimos la lista de Python a string JSON para el casteo
                 vector_string = json.dumps(embedding_vector)
                 
                 cursor.execute(sql_query, (vector_string,))
                 
-                results = cursor.fetchall() 
+                results = cursor.fetchall()
                 
                 return [row[0] for row in results]
                 
@@ -269,6 +271,22 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# --- [INICIO PARCHE V5.16 (CORS)] ---
+origins = [
+    "http://localhost:5173",  # Permitimos la conexión desde el servidor Vite
+    "http://127.0.0.1:5173", # Para ambas IPs locales
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+# --- [FIN PARCHE V5.16] ---
+
+
 # --- 9. Endpoints (Rutas de la API) ---
 
 class QueryInput(BaseModel):
@@ -281,7 +299,7 @@ async def get_root_status():
         
     return {
         "estado_servidor": "OK",
-        "arquitectura": "Atenea V5.15 (SQL Cast)",
+        "arquitectura": "Atenea V5.16 (CORS)",
         "conexion_db_url": "OK" if CONNECTION_STRING else "FALLIDA",
         "conexion_google_creds": "OK" if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") else "FALLIDA",
         "memoria_pgvector": "CONECTADA",
@@ -304,4 +322,4 @@ async def invoke_atenea_v5(input: QueryInput):
         "respuesta_generada": final_state["generation"]
     }
 
-print("--- [Atenea V5 Backend]: Módulo 'main.py' V5.15 (SQL Cast) cargado y listo. ---")
+print("--- [Atenea V5 Backend]: Módulo 'main.py' V5.16 (CORS) cargado y listo. ---")
