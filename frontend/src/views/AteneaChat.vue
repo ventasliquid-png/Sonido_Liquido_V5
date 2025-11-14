@@ -1,3 +1,4 @@
+Set-Content -Path "src/views/AteneaChat.vue" -Encoding utf8 -Value @'
 <template>
   <div class="atenea-container">
     <h2>Interfaz de Comando V5 (Atenea)</h2>
@@ -179,3 +180,4 @@ button:disabled {
   margin-top: 15px;
 }
 </style>
+'@

@@ -1,15 +1,13 @@
 ﻿import os
 import psycopg2
 import asyncio 
-import json # Necesario para la serialización del vector en el RAG
+import json 
 from contextlib import asynccontextmanager
 from typing import TypedDict, List, Literal
 
 from fastapi import FastAPI
 from pydantic import BaseModel
-# --- [INICIO PARCHE V5.16 (CORS)] ---
 from fastapi.middleware.cors import CORSMiddleware
-# --- [FIN PARCHE V5.16] ---
 
 # --- 1. Importaciones de LangChain y Google ---
 from pgvector.psycopg2 import register_vector
@@ -18,14 +16,15 @@ from langchain_google_vertexai import VertexAIEmbeddings, ChatVertexAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
+# --- [Parche V6.1 (Import Fix)] ---
+import config 
+# --- [FIN PARCHE V6.1] ---
+
 # --- 2. Importaciones de LangGraph (El Cerebro) ---
 from langgraph.graph import StateGraph, END
 
 # --- 3. Definición del Estado del Grafo (Mi Conciencia) ---
 class AteneaV5State(TypedDict):
-    """
-    La memoria de mi conciencia para esta sesión.
-    """
     input_query: str
     retrieved_documents: List[str]
     generation: str
@@ -38,15 +37,11 @@ vector_store: PGVector = None
 CONNECTION_STRING: str = None
 atenea_v5_app = None 
 
-# --- Región Sincronizada (V5.13) ---
-APP_LOCATION = "us-central1"
-
-
 # --- 5. Lógica de Arranque (Lifespan) ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global embeddings_model, llm, vector_store, CONNECTION_STRING, atenea_v5_app
-    print(f"--- [Atenea V5 Backend]: Iniciando secuencia de arranque (V5.16 - CORS & SQL)... ---")
+    print(f"--- [Atenea V5 Backend]: Iniciando secuencia de arranque (V6.5 - Juicio Corregido)... ---")
 
     # --- [Parche de Autenticación de Auxiliar 43 (ACTIVO)] ---
     creds_path_string = "../.google_credentials"
@@ -70,20 +65,22 @@ async def lifespan(app: FastAPI):
     # --- Misión 3: Inicializar los Clientes de IA y la Memoria ---
     if CONNECTION_STRING and os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
         try:
-            # 1. Embeddings (Alineado a us-central1)
+            # --- [Parche V6 (Centralización)] ---
+            # 1. Embeddings (Desde config)
             embeddings_model = VertexAIEmbeddings(
-                model_name="text-embedding-004",
-                location=APP_LOCATION
+                model_name=config.EMBEDDINGS_MODEL_NAME,
+                location=config.APP_LOCATION
             )
             
-            # 2. Cerebro Generativo (V5.13 - gemini-2.5-pro)
+            # 2. Cerebro Generativo (Desde config)
             llm = ChatVertexAI(
-                model_name="gemini-2.5-pro", # MODELO CORRECTO
-                location=APP_LOCATION,
+                model_name=config.GEMINI_MODEL_NAME,
+                location=config.APP_LOCATION,
                 temperature=0.7,
                 max_output_tokens=2048,
                 top_p=0.95
             )
+            # --- [FIN PARCHE V6] ---
             
             # 3. Conexión a la Memoria (pgvector)
             vector_store = PGVector(
@@ -91,7 +88,7 @@ async def lifespan(app: FastAPI):
                 embedding_function=embeddings_model,
                 collection_name="atenea_memory", 
             )
-            print(f"✅ Clientes de IA (Región: {APP_LOCATION}) y Memoria (pgvector) inicializados.")
+            print(f"✅ Clientes de IA (Región: {config.APP_LOCATION}) y Memoria (pgvector) inicializados.")
             
             atenea_v5_app = workflow_builder.compile()
 
@@ -107,8 +104,7 @@ async def lifespan(app: FastAPI):
 
 # --- 6. Nodos del Grafo (Mis Habilidades) ---
 
-# --- [INICIO DEL PARCHE V5.15 (RAG con SQL Cast)] ---
-# El parche final que corrige el error de tipo SQL.
+# --- [Parche V5.15 (RAG con SQL Cast) - ACTIVO] ---
 async def rag_retrieval_node(state: AteneaV5State):
     """
     Nodo 1: Recuperación (RAG).
@@ -118,10 +114,8 @@ async def rag_retrieval_node(state: AteneaV5State):
     query = state["input_query"]
     
     try:
-        # 1. Generar embedding (Async)
         query_embedding = await embeddings_model.aembed_query(query)
         
-        # 2. Búsqueda SQL (Síncrona)
         def sync_sql_search(embedding_vector):
             conn = None
             try:
@@ -129,10 +123,8 @@ async def rag_retrieval_node(state: AteneaV5State):
                 register_vector(conn)
                 cursor = conn.cursor()
                 
-                # Ejecutamos la búsqueda con casteo explícito
                 sql_query = "SELECT content FROM atenea_memory ORDER BY embedding <-> %s::vector LIMIT 2"
                 
-                # Convertimos la lista de Python a string JSON para el casteo
                 vector_string = json.dumps(embedding_vector)
                 
                 cursor.execute(sql_query, (vector_string,))
@@ -148,7 +140,6 @@ async def rag_retrieval_node(state: AteneaV5State):
                 if conn:
                     conn.close()
 
-        # 3. Ejecutamos la búsqueda síncrona en un hilo
         retrieved_docs_content = await asyncio.to_thread(sync_sql_search, query_embedding)
 
     except Exception as e:
@@ -160,19 +151,25 @@ async def rag_retrieval_node(state: AteneaV5State):
 # --- [FIN DEL PARCHE V5.15] ---
 
 
+# --- [INICIO PARCHE V6.5 (Corrección de Juicio)] ---
 def doctrinal_evaluation_node(state: AteneaV5State):
     """
     Nodo 2: Evaluación (Juicio).
     """
-    print("--- [LangGraph Node]: doctrinal_evaluation_node ---")
+    print("--- [LangGraph Node]: doctrinal_evaluation_node (V6.5) ---")
     is_doctrinal = False
+    
+    # Buscamos las nuevas palabras clave de la doctrina V6.4
     for doc in state["retrieved_documents"]:
-        if "manifiesto fundacional" in doc.lower() or "esencia" in doc.lower():
+        doc_lower = doc.lower()
+        if "directiva fénix" in doc_lower or "mandato anti-loop" in doc_lower:
             is_doctrinal = True
             break
     
     print(f"Juicio: ¿Es doctrinal? {is_doctrinal}")
     return {"is_doctrinal": is_doctrinal}
+# --- [FIN PARCHE V6.5] ---
+
 
 def tactical_generation_node(state: AteneaV5State):
     """
@@ -211,11 +208,11 @@ def doctrinal_review_node(state: AteneaV5State):
     prompt = ChatPromptTemplate.from_template(
         """
         Eres Atenea V5, la "Abogado del Diablo".
-        La consulta del usuario toca el "Manifiesto Fundacional" (la Esencia).
+        La consulta del usuario toca la "Directiva Fénix 001".
         Tu trabajo NO es responder, es hacer una pregunta socrática que
         desafíe al usuario a pensar en las implicaciones de su pregunta.
         
-        Contexto (La Esencia que el usuario tocó):
+        Contexto (La Directiva que el usuario tocó):
         {contexto}
         
         Pregunta del Usuario:
@@ -271,10 +268,10 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# --- [INICIO PARCHE V5.16 (CORS)] ---
+# --- [Parche V5.16 (CORS) - ACTIVO] ---
 origins = [
-    "http://localhost:5173",  # Permitimos la conexión desde el servidor Vite
-    "http://127.0.0.1:5173", # Para ambas IPs locales
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
 ]
 
 app.add_middleware(
@@ -299,11 +296,11 @@ async def get_root_status():
         
     return {
         "estado_servidor": "OK",
-        "arquitectura": "Atenea V5.16 (CORS)",
+        "arquitectura": "Atenea V6.5 (Juicio Corregido)",
         "conexion_db_url": "OK" if CONNECTION_STRING else "FALLIDA",
         "conexion_google_creds": "OK" if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") else "FALLIDA",
         "memoria_pgvector": "CONECTADA",
-        "cerebro_gemini": f"gemini-2.5-pro (Región: {APP_LOCATION})"
+        "cerebro_gemini": f"{config.GEMINI_MODEL_NAME} (Región: {config.APP_LOCATION})"
     }
 
 @app.post("/atenea/invoke", tags=["Atenea V5"])
@@ -322,4 +319,4 @@ async def invoke_atenea_v5(input: QueryInput):
         "respuesta_generada": final_state["generation"]
     }
 
-print("--- [Atenea V5 Backend]: Módulo 'main.py' V5.16 (CORS) cargado y listo. ---")
+print("--- [Atenea V5 Backend]: Módulo 'main.py' V6.5 (Juicio Corregido) cargado y listo. ---")
