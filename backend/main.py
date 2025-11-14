@@ -41,9 +41,9 @@ atenea_v5_app = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global embeddings_model, llm, vector_store, CONNECTION_STRING, atenea_v5_app
-    print(f"--- [Atenea V5 Backend]: Iniciando secuencia de arranque (V6.5 - Juicio Corregido)... ---")
+    print(f"--- [Atenea V5 Backend]: Iniciando secuencia de arranque (V9.1 - SQL Escape)... ---") # V9.1
 
-    # --- [Parche de Autenticación de Auxiliar 43 (ACTIVO)] ---
+    # --- [Parche de Autenticación (ACTIVO)] ---
     creds_path_string = "../.google_credentials"
     try:
         if not os.path.exists(creds_path_string):
@@ -65,7 +65,6 @@ async def lifespan(app: FastAPI):
     # --- Misión 3: Inicializar los Clientes de IA y la Memoria ---
     if CONNECTION_STRING and os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
         try:
-            # --- [Parche V6 (Centralización)] ---
             # 1. Embeddings (Desde config)
             embeddings_model = VertexAIEmbeddings(
                 model_name=config.EMBEDDINGS_MODEL_NAME,
@@ -80,7 +79,6 @@ async def lifespan(app: FastAPI):
                 max_output_tokens=2048,
                 top_p=0.95
             )
-            # --- [FIN PARCHE V6] ---
             
             # 3. Conexión a la Memoria (pgvector)
             vector_store = PGVector(
@@ -104,13 +102,13 @@ async def lifespan(app: FastAPI):
 
 # --- 6. Nodos del Grafo (Mis Habilidades) ---
 
-# --- [Parche V5.15 (RAG con SQL Cast) - ACTIVO] ---
+# --- [INICIO PARCHE V9.1 (RAG Filtrado)] ---
 async def rag_retrieval_node(state: AteneaV5State):
     """
-    Nodo 1: Recuperación (RAG).
-    Toma la consulta y busca en mi memoria (pgvector) usando SQL directo.
+    Nodo 1: Recuperación TÁCTICA (Intento 1).
+    Busca solo documentos marcados como 'tactica_%'.
     """
-    print("--- [LangGraph Node]: rag_retrieval_node (V5.15 - SQL Cast) ---")
+    print("--- [LangGraph Node]: rag_retrieval_node (V9.1 - Táctico) ---")
     query = state["input_query"]
     
     try:
@@ -123,53 +121,86 @@ async def rag_retrieval_node(state: AteneaV5State):
                 register_vector(conn)
                 cursor = conn.cursor()
                 
-                sql_query = "SELECT content FROM atenea_memory ORDER BY embedding <-> %s::vector LIMIT 2"
+                # V9.1: Usamos 'tactica_%%' para escapar el '%' del 'LIKE'
+                sql_query = "SELECT content FROM atenea_memory WHERE doc_type LIKE 'tactica_%%' ORDER BY embedding <-> %s::vector LIMIT 2"
                 
                 vector_string = json.dumps(embedding_vector)
                 
                 cursor.execute(sql_query, (vector_string,))
-                
                 results = cursor.fetchall()
-                
                 return [row[0] for row in results]
                 
             except Exception as e:
-                print(f"❌ ERROR RAG (SQL): Falla en la consulta SQL directa: {e}")
+                print(f"❌ ERROR RAG (SQL Táctico): {e}")
                 return []
             finally:
-                if conn:
-                    conn.close()
+                if conn: conn.close()
 
         retrieved_docs_content = await asyncio.to_thread(sync_sql_search, query_embedding)
 
     except Exception as e:
-        print(f"❌ ERROR RAG (General): Falla en el nodo: {e}")
+        print(f"❌ ERROR RAG (General Táctico): {e}")
         retrieved_docs_content = []
     
-    print(f"Documentos recuperados: {retrieved_docs_content}")
+    print(f"Documentos recuperados (Táctica): {retrieved_docs_content}")
     return {"retrieved_documents": retrieved_docs_content}
-# --- [FIN DEL PARCHE V5.15] ---
 
-
-# --- [INICIO PARCHE V6.5 (Corrección de Juicio)] ---
-def doctrinal_evaluation_node(state: AteneaV5State):
+async def doctrinal_evaluation_node(state: AteneaV5State):
     """
-    Nodo 2: Evaluación (Juicio).
+    Nodo 2: Evaluación (Juicio) y Recuperación DOCTRINAL (Intento 2).
     """
-    print("--- [LangGraph Node]: doctrinal_evaluation_node (V6.5) ---")
-    is_doctrinal = False
+    print("--- [LangGraph Node]: doctrinal_evaluation_node (V9.1) ---")
     
-    # Buscamos las nuevas palabras clave de la doctrina V6.4
-    for doc in state["retrieved_documents"]:
-        doc_lower = doc.lower()
-        if "directiva fénix" in doc_lower or "mandato anti-loop" in doc_lower:
-            is_doctrinal = True
-            break
+    # Intento 1 (Táctico) ya se ejecutó.
+    if len(state["retrieved_documents"]) > 0:
+        # Éxito Táctico
+        print("Juicio: TÁCTICA APLICADA (Contexto táctico encontrado).")
+        return {"is_doctrinal": False, "retrieved_documents": state["retrieved_documents"]}
     
-    print(f"Juicio: ¿Es doctrinal? {is_doctrinal}")
-    return {"is_doctrinal": is_doctrinal}
-# --- [FIN PARCHE V6.5] ---
+    # Intento 2 (Doctrinal)
+    print("Juicio: Búsqueda táctica fallida. Iniciando búsqueda doctrinal...")
+    query = state["input_query"]
+    
+    try:
+        query_embedding = await embeddings_model.aembed_query(query)
+        
+        def sync_sql_search_doctrinal(embedding_vector):
+            conn = None
+            try:
+                conn = psycopg2.connect(CONNECTION_STRING)
+                register_vector(conn)
+                cursor = conn.cursor()
+                
+                # V9.1: Usamos 'doctrina_%%' para escapar el '%' del 'LIKE'
+                sql_query = "SELECT content FROM atenea_memory WHERE doc_type LIKE 'doctrina_%%' ORDER BY embedding <-> %s::vector LIMIT 2"
+                
+                vector_string = json.dumps(embedding_vector)
+                
+                cursor.execute(sql_query, (vector_string,))
+                results = cursor.fetchall()
+                return [row[0] for row in results]
+                
+            except Exception as e:
+                print(f"❌ ERROR RAG (SQL Doctrinal): {e}")
+                return []
+            finally:
+                if conn: conn.close()
 
+        retrieved_docs_content = await asyncio.to_thread(sync_sql_search_doctrinal, query_embedding)
+
+    except Exception as e:
+        print(f"❌ ERROR RAG (General Doctrinal): {e}")
+        retrieved_docs_content = []
+
+    print(f"Documentos recuperados (Doctrina): {retrieved_docs_content}")
+
+    if len(retrieved_docs_content) > 0:
+        print("Juicio: JUICIO DOCTRINAL (Contexto doctrinal encontrado).")
+        return {"is_doctrinal": True, "retrieved_documents": retrieved_docs_content}
+    else:
+        print("Juicio: TÁCTICA APLICADA (Sin contexto RAG).")
+        return {"is_doctrinal": False, "retrieved_documents": []}
+# --- [FIN PARCHE V9.1] ---
 
 def tactical_generation_node(state: AteneaV5State):
     """
@@ -208,11 +239,11 @@ def doctrinal_review_node(state: AteneaV5State):
     prompt = ChatPromptTemplate.from_template(
         """
         Eres Atenea V5, la "Abogado del Diablo".
-        La consulta del usuario toca la "Directiva Fénix 001".
+        La consulta del usuario toca la "Directiva Fénix 001" o el "Informe 43".
         Tu trabajo NO es responder, es hacer una pregunta socrática que
         desafíe al usuario a pensar en las implicaciones de su pregunta.
         
-        Contexto (La Directiva que el usuario tocó):
+        Contexto (La Doctrina que el usuario tocó):
         {contexto}
         
         Pregunta del Usuario:
@@ -283,7 +314,6 @@ app.add_middleware(
 )
 # --- [FIN PARCHE V5.16] ---
 
-
 # --- 9. Endpoints (Rutas de la API) ---
 
 class QueryInput(BaseModel):
@@ -296,7 +326,7 @@ async def get_root_status():
         
     return {
         "estado_servidor": "OK",
-        "arquitectura": "Atenea V6.5 (Juicio Corregido)",
+        "arquitectura": "Atenea V9.1 (RAG Filtrado)", # V9.1
         "conexion_db_url": "OK" if CONNECTION_STRING else "FALLIDA",
         "conexion_google_creds": "OK" if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") else "FALLIDA",
         "memoria_pgvector": "CONECTADA",
@@ -319,4 +349,4 @@ async def invoke_atenea_v5(input: QueryInput):
         "respuesta_generada": final_state["generation"]
     }
 
-print("--- [Atenea V5 Backend]: Módulo 'main.py' V6.5 (Juicio Corregido) cargado y listo. ---")
+print("--- [Atenea V5 Backend]: Módulo 'main.py' V9.1 (SQL Escape) cargado y listo. ---") # V9.1

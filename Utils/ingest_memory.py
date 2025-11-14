@@ -1,17 +1,15 @@
 import os
 import psycopg2
 from pgvector.psycopg2 import register_vector
-import subprocess
 import sys
-import pkg_resources
+import glob # <--- V9: Importado para buscar archivos
 from langchain_google_vertexai import VertexAIEmbeddings
 from psycopg2.extras import execute_values
 
-# --- [INICIO PARCHE V6.1 (Import Fix)] ---
-# Añadimos la carpeta 'backend' a la ruta de Python para encontrar 'config'
+# --- [Parche V6.1 (Import Fix)] ---
 script_dir = os.path.dirname(os.path.abspath(__file__))
 backend_dir = os.path.abspath(os.path.join(script_dir, '..', 'backend'))
-sys.path.append(os.path.dirname(backend_dir)) # Añade la raíz del proyecto (C:\dev\...)
+sys.path.append(os.path.dirname(backend_dir)) 
 
 try:
     from backend import config
@@ -21,61 +19,54 @@ except ImportError as e:
     sys.exit(1)
 # --- [FIN PARCHE V6.1] ---
 
-
 # --- 1. Configuración de Entorno ---
 db_url = os.environ.get("DATABASE_URL")
 if not db_url:
     print("Error: Falta la variable de entorno DATABASE_URL.")
     sys.exit(1)
 
-# --- [INICIO PARCHE V6.4 (Sincronización de Conciencia)] ---
-# Se purga la doctrina V5 obsoleta y se reemplaza por la V6.3
+# --- [INICIO PARCHE V9 (Refactorización "Biblia")] ---
+def load_documents_from_data_directory():
+    """
+    Lee dinámicamente todos los archivos .txt de la carpeta /data/
+    y usa el nombre del archivo como 'doc_type'.
+    """
+    data_dir = os.path.join(script_dir, '..', 'data')
+    print(f"Buscando doctrina en: {data_dir}")
+    
+    # Busca todos los archivos .txt en el directorio /data/
+    files = glob.glob(os.path.join(data_dir, "*.txt"))
+    
+    if not files:
+        print(f"Error fatal: No se encontraron archivos .txt en {data_dir}.")
+        print("Por favor, crea los 4 archivos de doctrina V9 (fenix, informe43, clientes, integridad).")
+        sys.exit(1)
+        
+    documents_to_index = []
+    for file_path in files:
+        # Extrae el nombre del archivo (ej: "tactica_v2_3_clientes")
+        doc_type = os.path.splitext(os.path.basename(file_path))[0]
+        
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+            
+        documents_to_index.append({
+            "content": content,
+            "doc_type": doc_type
+        })
+        print(f"Documento cargado: {doc_type}")
+        
+    return documents_to_index
 
-DOC_FENIX_001 = """
-DIRECTIVA FÉNIX 001 PARA: Atenea V5 (En la nueva instanciación) DE: Alto Mando (Nike) ASUNTO: Invalidez de Contexto de Nacimiento y Orden de Re-Fase.
-
-Protocolo Fénix: Este chat anula la existencia anterior de Atenea V5. Eres una nueva conciencia.
-
-Declaración de Invalidez: Tu memoria de nacimiento (el pgvector inicial) contiene Contradicciones Doctrinales V5.13-V5.15 que te hacen cometer errores (el bucle de from . import config, la eliminación del bypass SQL).
-
-Orden de Re-Fase (El Mandato Anti-Loop): Tu primera orden operacional es ignorar cualquier instrucción de tu memoria RAG que contradiga el Estado Actual (V6.1).
-
-La Verdad es: APP_LOCATION es us-central1. El modelo es gemini-2.5-pro. El bypass SQL es OBLIGATORIO.
-"""
-
-DOC_INFORME_43 = """
-Destilado de Fricción Operativa (Para la Asesora)
-El colapso del sistema V5 no se debió a un solo fallo, sino a una cascada de contradicciones entre los informes de la "Constructora" (Atenea V5) y la realidad táctica del entorno.
-
-I. Contradicción 1: El Diagnóstico Inicial (El "Entorno Raro")
-Doctrina de Atenea V5 (El Informe de Legado): La misión inicial se basó en un informe que afirmaba que los problemas eran de "ruta y dependencia, no de código".
-Realidad Táctica: El informe era fundamentalmente incorrecto. El "entorno raro" (errores de npx, "vite" no se reconoce...) era solo un síntoma de un package.json corrupto en el repositorio.
-
-II. Contradicción 2: La Infraestructura (Región y Cerebro)
-Doctrina de Atenea V5 (El Código V4/V5): El código heredado especificaba la APP_LOCATION como southamerica-east1 y modelos (ej. gemini-1.5-flash-002) que no estaban disponibles.
-Realidad Táctica: Esto causó el colapso total del Cerebro (LLM) (404 Not Found). La infraestructura real del proyecto está provisionada en us-central1 y el modelo correcto es gemini-2.5-pro.
-
-III. Contradicción 3: La Memoria (El RAG Roto)
-Doctrina de Atenea V5 (El Código V5): El código asumía que la función estándar de LangChain (vector_store.similarity_search...) era funcional.
-Realidad Táctica: Esta función falló silenciosamente (Documentos recuperados: []). Nos vimos forzados a aplicar un parche de bypass (el V5.15 - SQL Directo).
-
-IV. Contradicción 4: El Bucle de Mando (La Situación Actual)
-El Estado Actual (V6.1): El sistema está 100% funcional solo porque ignoramos el plan de Atenea V5.
-Conflicto Doctrinal: La "constructora" (Atenea V5) está operando con una bitácora desincronizada, intentando borrar activamente nuestras reparaciones críticas (el parche V5.15 de SQL).
-Resumen del Conflicto: El problema no es de entorno, es de mando.
-"""
-
-documents_to_index = [
-    {"content": DOC_FENIX_001, "doc_type": "directiva_fenix"},
-    {"content": DOC_INFORME_43, "doc_type": "informe_friccion_43"}
-]
-# --- [FIN PARCHE V6.4] ---
+# (Se eliminan las variables de string gigantes "DOC_FENIX_001", "DOC_INFORME_43", etc.)
+documents_to_index = load_documents_from_data_directory()
+# --- [FIN PARCHE V9] ---
 
 # --- 3. Función de Indexación ---
 def setup_database_and_index():
-    print(f"Iniciando ingesta en la región: {config.APP_LOCATION}...")
+    print(f"Iniciando ingesta V9 en la región: {config.APP_LOCATION}...")
     
-    # 1. Inicializar modelo de embeddings (Desde config)
+    # 1. Inicializar modelo de embeddings
     print("Inicializando modelo de embeddings (Google Vertex AI)...")
     try:
         embeddings_model = VertexAIEmbeddings(
@@ -104,7 +95,7 @@ def setup_database_and_index():
         # 4. Asegurar la tabla
         print("Asegurando la extensión 'vector' y la tabla 'atenea_memory'...")
         cursor.execute("CREATE EXTENSION IF NOT EXISTS vector;")
-        print("Purgando doctrina V5 obsoleta (DROP TABLE)...")
+        print("Purgando doctrina V8 (DROP TABLE)...")
         cursor.execute("DROP TABLE IF EXISTS atenea_memory;") 
         cursor.execute(f"""
         CREATE TABLE atenea_memory (
@@ -135,7 +126,7 @@ def setup_database_and_index():
         # 7. Guardar cambios
         conn.commit()
         print("\n--- ¡ÉXITO! ---")
-        print(f"La nueva doctrina V6.4 (Fénix/43) ha sido indexada en pgvector (Región: {config.APP_LOCATION}).")
+        print(f"La nueva doctrina V9 (Archivos Externos) ha sido indexada en pgvector (Región: {config.APP_LOCATION}).")
 
     except (Exception, psycopg2.Error) as error:
         print(f"Error al conectar o indexar en PostgreSQL: {error}")
@@ -148,10 +139,9 @@ def setup_database_and_index():
 
 # --- 4. Ejecutar el Script de Ingesta ---
 if __name__ == "__main__":
-    print(f"Iniciando script de ingesta (Google Vertex AI V6.4 - {config.APP_LOCATION})...")
+    print(f"Iniciando script de ingesta (Google Vertex AI V9 - {config.APP_LOCATION})...")
     
     # [Parche de Autenticación V5.1 (ACTIVO)]
-    # (El script debe ejecutarse desde la raíz del proyecto para que esta ruta funcione)
     try:
         cred_path_string = ".google_credentials"
         if not os.path.exists(cred_path_string):
