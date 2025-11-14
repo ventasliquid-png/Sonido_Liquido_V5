@@ -13,3 +13,4 @@ npm-debug.log*
 # Archivos de instalador local
 instalador*.bat
 instalador*.ps1
+.google_credentials
