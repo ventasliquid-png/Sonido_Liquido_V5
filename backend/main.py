@@ -16,9 +16,16 @@ from langchain_google_vertexai import VertexAIEmbeddings, ChatVertexAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
-# --- [Parche V6.1 (Import Fix)] ---
+# --- Importaciones V6.1 ---
 import config 
-# --- [FIN PARCHE V6.1] ---
+
+# --- [INICIO PARCHE V10.7 (Auth Final/Directa)] ---
+# Archivos ORM devueltos a la raíz del backend/ para su importación directa
+from database import engine, Base 
+import models_auth 
+from service_auth import get_usuario_by_username, get_password_hash 
+from routers import auth as auth_router # <--- IMPORTACIÓN FINAL DEL ROUTER
+# --- [FIN PARCHE V10.7] ---
 
 # --- 2. Importaciones de LangGraph (El Cerebro) ---
 from langgraph.graph import StateGraph, END
@@ -41,14 +48,24 @@ atenea_v5_app = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global embeddings_model, llm, vector_store, CONNECTION_STRING, atenea_v5_app
-    print(f"--- [Atenea V5 Backend]: Iniciando secuencia de arranque (V9.1 - SQL Escape)... ---") # V9.1
+    print(f"--- [Atenea V5 Backend]: Iniciando secuencia de arranque (V10.8)... ---")
+
+    # --- [INICIO PARCHE V10.1 (ORM)] ---
+    # NUEVA MISIÓN V10: CREAR TABLAS ORM
+    try:
+        print("--- [V10]: Sincronizando modelos ORM (SQLAlchemy)... ---")
+        Base.metadata.create_all(bind=engine)
+        print("--- [V10]: Tablas ORM sincronizadas. ---")
+    except Exception as e:
+        print(f"❌ ERROR DE ARRANQUE V10: Falla al sincronizar tablas ORM: {e}")
+    # --- [FIN PARCHE V10.1] ---
 
     # --- [Parche de Autenticación (ACTIVO)] ---
-    creds_path_string = "../.google_credentials"
+    creds_path_file = "../.google_credentials"
     try:
-        if not os.path.exists(creds_path_string):
-            raise FileNotFoundError(f"El archivo '{creds_path_string}' no se encontró en la ruta relativa.")
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = creds_path_string
+        if not os.path.exists(creds_path_file):
+            raise FileNotFoundError(f"El archivo '{creds_path_file}' no se encontró en la ruta relativa.")
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = creds_path_file
         print(f"✅ Verificación de arranque: GOOGLE_APPLICATION_CREDENTIALS... ENCONTRADO.")
     except Exception as e:
         print(f"❌ ERROR DE ARRANQUE: Falla al cargar credenciales: {e}")
@@ -91,7 +108,7 @@ async def lifespan(app: FastAPI):
             atenea_v5_app = workflow_builder.compile()
 
         except Exception as e:
-            print(f"❌ ERROR DE ARRANQUE: Falla al inicializar clientes de IA o pgvector.")
+            print(f"❌ ERROR DE ARRANQUE V10: Falla al inicializar clientes de IA o pgvector.")
             print(f"    Error detallado: {e}")
     else:
         print("⚠️ Advertencia: El servidor arranca sin IA.")
@@ -101,8 +118,8 @@ async def lifespan(app: FastAPI):
     print("--- [Atenea V5 Backend]: Servidor apagado. ---")
 
 # --- 6. Nodos del Grafo (Mis Habilidades) ---
+# ... (El código de los nodos RAG V9.1, Juicio, Táctico y Doctrinal permanece sin cambios)...
 
-# --- [INICIO PARCHE V9.1 (RAG Filtrado)] ---
 async def rag_retrieval_node(state: AteneaV5State):
     """
     Nodo 1: Recuperación TÁCTICA (Intento 1).
@@ -153,7 +170,6 @@ async def doctrinal_evaluation_node(state: AteneaV5State):
     
     # Intento 1 (Táctico) ya se ejecutó.
     if len(state["retrieved_documents"]) > 0:
-        # Éxito Táctico
         print("Juicio: TÁCTICA APLICADA (Contexto táctico encontrado).")
         return {"is_doctrinal": False, "retrieved_documents": state["retrieved_documents"]}
     
@@ -312,7 +328,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# --- [FIN PARCHE V5.16] ---
+
+# --- [INICIO PARCHE V10.8 (Inclusión del Router)] ---
+app.include_router(auth_router.router) 
+# --- [FIN PARCHE V10.8] ---
+
 
 # --- 9. Endpoints (Rutas de la API) ---
 
@@ -326,7 +346,7 @@ async def get_root_status():
         
     return {
         "estado_servidor": "OK",
-        "arquitectura": "Atenea V9.1 (RAG Filtrado)", # V9.1
+        "arquitectura": "Atenea V10.8 (Auth Final)", # V10.8
         "conexion_db_url": "OK" if CONNECTION_STRING else "FALLIDA",
         "conexion_google_creds": "OK" if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") else "FALLIDA",
         "memoria_pgvector": "CONECTADA",
@@ -349,4 +369,4 @@ async def invoke_atenea_v5(input: QueryInput):
         "respuesta_generada": final_state["generation"]
     }
 
-print("--- [Atenea V5 Backend]: Módulo 'main.py' V9.1 (SQL Escape) cargado y listo. ---") # V9.1
+print("--- [Atenea V5 Backend]: Módulo 'main.py' V10.8 (Auth Final) cargado y listo. ---") # V10.8
