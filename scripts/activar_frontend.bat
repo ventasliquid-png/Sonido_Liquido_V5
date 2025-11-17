@@ -7,10 +7,11 @@ REM Navega al directorio raíz del proyecto
 cd /d "%%~dp0\.."
 
 ECHO Ubicado en la raiz del proyecto.
-Entrando a la carpeta del frontend...
+ECHO Entrando a la carpeta del frontend...
 cd frontend
 
 ECHO Iniciando servidor de desarrollo de Vite...
-npm run dev
+REM [PARCHE V11.1]: Usamos NPX para evitar la falla de resolucion de ruta de NPM.
+npx vite
 
 pause
