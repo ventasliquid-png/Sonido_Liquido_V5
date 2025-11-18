@@ -26,7 +26,7 @@ async function registrarUsuario() {
 
   try {
     // 1. Llamar a la API (FastAPI backend)
-    const response = await axios.post('http://127.0.0.1:8000/auth/register', {
+    const response = await axios.post('http://127.0.0.1:8000/auth/register/', {
       username: username.value,
       email: email.value,
       password: password.value,

@@ -14,7 +14,7 @@ from typing import Optional, List
 
 # --- [INICIO REFACTOR V10.10] ---
 from core.database import get_db
-from auth.dependencies import get_current_active_user
+from auth.dependencies import get_current_active_user, get_current_user
 from auth import models as auth_models
 from rubros import models
 from rubros import service
@@ -63,7 +63,7 @@ def get_rubro(rubro_id: int, db: Session = Depends(get_db)):
 def create_rubro(
     rubro: RubroCreate,
     db: Session = Depends(get_db),
-    current_user: auth_models.Usuario = Depends(get_current_active_user)
+    current_user: auth_models.Usuario = Depends(get_current_user)
 ):
     """
     Crea un nuevo rubro.

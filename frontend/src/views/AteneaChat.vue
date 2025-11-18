@@ -53,7 +53,7 @@ const loading = ref(false);
 const error = ref(null);
 
 // Endpoint de la API (Backend FastAPI)
-const API_URL = 'http://127.0.0.1:8000/atenea/invoke';
+const API_URL = 'http://127.0.0.1:8000/atenea/invoke/';
 
 // Lógica de Invocación del Cerebro
 const invokeAtenea = async () => {

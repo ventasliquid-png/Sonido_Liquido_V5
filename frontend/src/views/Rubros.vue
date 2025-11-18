@@ -12,7 +12,7 @@ const searchQuery = ref('')
 const filtroEstado = ref('activos') // 'activos', 'inactivos', 'todos'
 
 // Modal de Alta/Edición
-const showModal = ref(false)
+const mostrarVentanaAlta = ref(false)
 const modoEdicion = ref(false)
 const rubroEditando = ref(null)
 const formData = ref({
@@ -27,7 +27,37 @@ const lazaroRubroId = ref(null)
 
 // Referencias para atajos de teclado
 const searchInputRef = ref(null)
-const codigoInputRef = ref(null)
+const inputCodigoRef = ref(null)
+
+function resetRubro() {
+  modoEdicion.value = false
+  rubroEditando.value = null
+  formData.value = {
+    codigo: '',
+    descripcion: '',
+    padre_id: null
+  }
+}
+
+function focusSearchInput() {
+  if (searchInputRef.value) {
+    searchInputRef.value.focus()
+  }
+}
+
+function focusCodigoInput() {
+  if (inputCodigoRef.value) {
+    inputCodigoRef.value.focus()
+  }
+}
+
+function puedeGuardar() {
+  return Boolean(
+    formData.value.codigo &&
+    formData.value.descripcion &&
+    formData.value.codigo.length <= 3
+  )
+}
 
 // --- COMPUTED ---
 const rubrosFiltrados = computed(() => {
@@ -146,12 +176,8 @@ function editarRubro(rubro) {
     descripcion: rubro.descripcion,
     padre_id: rubro.padre_id
   }
-  showModal.value = true
-  nextTick(() => {
-    if (codigoInputRef.value) {
-      codigoInputRef.value.focus()
-    }
-  })
+  mostrarVentanaAlta.value = true
+  nextTick(focusCodigoInput)
 }
 
 function clonarRubro(rubro) {
@@ -162,40 +188,20 @@ function clonarRubro(rubro) {
     descripcion: rubro.descripcion,
     padre_id: rubro.padre_id
   }
-  showModal.value = true
-  nextTick(() => {
-    if (codigoInputRef.value) {
-      codigoInputRef.value.focus()
-    }
-  })
+  mostrarVentanaAlta.value = true
+  nextTick(focusCodigoInput)
 }
 
 function abrirModalAlta() {
-  modoEdicion.value = false
-  rubroEditando.value = null
-  formData.value = {
-    codigo: '',
-    descripcion: '',
-    padre_id: null
-  }
-  showModal.value = true
-  nextTick(() => {
-    if (codigoInputRef.value) {
-      codigoInputRef.value.focus()
-    }
-  })
+  resetRubro()
+  mostrarVentanaAlta.value = true
+  nextTick(focusCodigoInput)
 }
 
 function cerrarModal() {
-  showModal.value = false
+  mostrarVentanaAlta.value = false
   showLazaroDialog.value = false
-  modoEdicion.value = false
-  rubroEditando.value = null
-  formData.value = {
-    codigo: '',
-    descripcion: '',
-    padre_id: null
-  }
+  resetRubro()
   error.value = null
 }
 
@@ -204,33 +210,34 @@ function handleKeydown(event) {
   // F3: Foco en Buscador
   if (event.key === 'F3') {
     event.preventDefault()
-    if (searchInputRef.value) {
-      searchInputRef.value.focus()
-    }
+    focusSearchInput()
   }
   
-  // F4: Abrir Modal de Alta
+  // F4: Abrir Modal o Guardar
   if (event.key === 'F4') {
     event.preventDefault()
-    if (!showModal.value) {
+    if (!mostrarVentanaAlta.value) {
       abrirModalAlta()
+    } else if (puedeGuardar()) {
+      guardarRubro()
     }
   }
   
   // F7: Clonar (solo en edición)
-  if (event.key === 'F7' && showModal.value && modoEdicion.value && rubroEditando.value) {
+  if (event.key === 'F7' && mostrarVentanaAlta.value && modoEdicion.value && rubroEditando.value) {
     event.preventDefault()
     clonarRubro(rubroEditando.value)
   }
   
   // F10: Guardar
-  if (event.key === 'F10' && showModal.value) {
+  if (event.key === 'F10' && mostrarVentanaAlta.value) {
     event.preventDefault()
     guardarRubro()
   }
   
   // ESC: Cerrar modal
-  if (event.key === 'Escape' && showModal.value) {
+  if (event.key === 'Escape' && mostrarVentanaAlta.value) {
+    event.preventDefault()
     cerrarModal()
   }
 }
@@ -251,10 +258,17 @@ watch(filtroEstado, () => {
   cargarRubros()
 })
 
+watch(mostrarVentanaAlta, (isOpen) => {
+  if (isOpen) {
+    nextTick(focusCodigoInput)
+  }
+})
+
 // --- LIFECYCLE ---
 onMounted(() => {
   cargarRubros()
   window.addEventListener('keydown', handleKeydown)
+  nextTick(focusSearchInput)
 })
 
 onUnmounted(() => {
@@ -280,20 +294,26 @@ function onCodigoInput(event) {
 
     <!-- Barra de Búsqueda y Filtros -->
     <div class="rubros-toolbar">
-      <div class="search-container">
-        <label for="search-input">Buscador:</label>
-        <input
-          id="search-input"
-          ref="searchInputRef"
-          v-model="searchQuery"
-          type="text"
-          placeholder="Buscar por código o descripción..."
-          class="search-input"
-        />
-        <span class="shortcut-hint">[F3]</span>
+      <div class="search-column">
+        <div class="search-container">
+          <label for="search-input">Buscador:</label>
+          <input
+            id="search-input"
+            ref="searchInputRef"
+            v-model="searchQuery"
+            type="text"
+            placeholder="Buscar por código o descripción..."
+            class="search-input"
+          />
+          <span class="shortcut-hint">[F3]</span>
+        </div>
+        <button @click="abrirModalAlta" class="btn-primary btn-nuevo">
+          ➕ Nuevo Rubro
+          <span class="shortcut-hint">[F4]</span>
+        </button>
       </div>
 
-      <div class="filters-container">
+      <div class="filters-container centered">
         <label>Estado:</label>
         <div class="radio-group">
           <label>
@@ -310,11 +330,6 @@ function onCodigoInput(event) {
           </label>
         </div>
       </div>
-
-      <button @click="abrirModalAlta" class="btn-primary">
-        ➕ Nuevo Rubro
-        <span class="shortcut-hint">[F4]</span>
-      </button>
     </div>
 
     <!-- Mensaje de Error -->
@@ -360,77 +375,81 @@ function onCodigoInput(event) {
     </div>
 
     <!-- Modal de Alta/Edición -->
-    <div v-if="showModal" class="modal-overlay" @click.self="cerrarModal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2>{{ modoEdicion ? 'Editar Rubro' : 'Nuevo Rubro' }}</h2>
-          <button @click="cerrarModal" class="btn-close">✕</button>
+    <div v-if="mostrarVentanaAlta" class="modal-backdrop" @click.self="cerrarModal">
+      <div class="modal-dialog">
+        <div class="modal-card">
+          <div class="modal-header">
+            <h2>{{ modoEdicion ? 'Editar Rubro' : 'Nuevo Rubro' }}</h2>
+            <button @click="cerrarModal" class="btn-close">✕</button>
+          </div>
+
+          <form @submit.prevent="guardarRubro" class="modal-form">
+            <div class="form-group">
+              <label for="codigo">Código (3 caracteres, mayúsculas):</label>
+              <input
+                id="codigo"
+                ref="inputCodigoRef"
+                :value="formData.codigo"
+                @input="onCodigoInput"
+                type="text"
+                maxlength="3"
+                :disabled="modoEdicion"
+                required
+                class="form-input"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="descripcion">Descripción (máx. 30 caracteres):</label>
+              <input
+                id="descripcion"
+                v-model="formData.descripcion"
+                type="text"
+                maxlength="30"
+                required
+                class="form-input"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="padre_id">Rubro Padre (opcional):</label>
+              <input
+                id="padre_id"
+                v-model.number="formData.padre_id"
+                type="number"
+                placeholder="ID del rubro padre"
+                class="form-input"
+              />
+            </div>
+
+            <div class="modal-actions">
+              <button type="button" @click="cerrarModal" class="btn-secondary">Cancelar</button>
+              <button type="submit" :disabled="loading" class="btn-primary">
+                {{ loading ? 'Guardando...' : 'Guardar [F10]' }}
+              </button>
+            </div>
+          </form>
         </div>
-
-        <form @submit.prevent="guardarRubro" class="modal-form">
-          <div class="form-group">
-            <label for="codigo">Código (3 caracteres, mayúsculas):</label>
-            <input
-              id="codigo"
-              ref="codigoInputRef"
-              :value="formData.codigo"
-              @input="onCodigoInput"
-              type="text"
-              maxlength="3"
-              :disabled="modoEdicion"
-              required
-              class="form-input"
-            />
-          </div>
-
-          <div class="form-group">
-            <label for="descripcion">Descripción (máx. 30 caracteres):</label>
-            <input
-              id="descripcion"
-              v-model="formData.descripcion"
-              type="text"
-              maxlength="30"
-              required
-              class="form-input"
-            />
-          </div>
-
-          <div class="form-group">
-            <label for="padre_id">Rubro Padre (opcional):</label>
-            <input
-              id="padre_id"
-              v-model.number="formData.padre_id"
-              type="number"
-              placeholder="ID del rubro padre"
-              class="form-input"
-            />
-          </div>
-
-          <div class="modal-actions">
-            <button type="button" @click="cerrarModal" class="btn-secondary">Cancelar</button>
-            <button type="submit" :disabled="loading" class="btn-primary">
-              {{ loading ? 'Guardando...' : 'Guardar [F10]' }}
-            </button>
-          </div>
-        </form>
       </div>
     </div>
 
     <!-- Diálogo Protocolo Lázaro -->
-    <div v-if="showLazaroDialog" class="modal-overlay" @click.self="showLazaroDialog = false">
-      <div class="modal-content lazaro-dialog">
-        <div class="modal-header">
-          <h2>⚠️ Código Inactivo Encontrado</h2>
-        </div>
-        <div class="lazaro-content">
-          <p>El código <strong>{{ formData.codigo }}</strong> ya existe pero está inactivo.</p>
-          <p>¿Desea reactivarlo con los datos ingresados?</p>
-        </div>
-        <div class="modal-actions">
-          <button @click="showLazaroDialog = false" class="btn-secondary">Cancelar</button>
-          <button @click="reactivarRubroLazaro" :disabled="loading" class="btn-primary">
-            {{ loading ? 'Reactivando...' : 'Sí, Reactivar' }}
-          </button>
+    <div v-if="showLazaroDialog" class="modal-backdrop" @click.self="showLazaroDialog = false">
+      <div class="modal-dialog">
+        <div class="modal-card lazaro-dialog">
+          <div class="modal-header">
+            <h2>⚠️ Código Inactivo Encontrado</h2>
+          </div>
+          <div class="lazaro-content">
+            <p>El código <strong>{{ formData.codigo }}</strong> ya existe pero está inactivo.</p>
+            <p>¿Desea reactivarlo con los datos ingresados?</p>
+          </div>
+          <div class="modal-actions">
+            <button @click="showLazaroDialog = false" class="btn-secondary">Cancelar</button>
+            <button @click="reactivarRubroLazaro" :disabled="loading" class="btn-primary">
+              {{ loading ? 'Reactivando...' : 'Sí, Reactivar' }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -464,13 +483,21 @@ function onCodigoInput(event) {
 .rubros-toolbar {
   display: flex;
   gap: 1.5rem;
-  align-items: flex-end;
+  align-items: flex-start;
   margin-bottom: 1.5rem;
   flex-wrap: wrap;
   background: white;
   padding: 1.5rem;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.search-column {
+  flex: 1;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .search-container {
@@ -532,6 +559,19 @@ function onCodigoInput(event) {
   }
 }
 
+.filters-container.centered {
+  flex: 1;
+  min-width: 240px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  .radio-group {
+    justify-content: center;
+  }
+}
+
 .btn-primary {
   padding: 0.75rem 1.5rem;
   background: #0ea5e9;
@@ -552,6 +592,15 @@ function onCodigoInput(event) {
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+}
+
+.btn-nuevo {
+  background: #16a34a;
+  justify-content: center;
+
+  &:hover {
+    background: #15803d;
   }
 }
 
@@ -668,7 +717,7 @@ function onCodigoInput(event) {
 }
 
 /* Modal */
-.modal-overlay {
+.modal-backdrop {
   position: fixed;
   top: 0;
   left: 0;
@@ -681,11 +730,14 @@ function onCodigoInput(event) {
   z-index: 1000;
 }
 
-.modal-content {
+.modal-dialog {
+  width: 90%;
+  max-width: 520px;
+}
+
+.modal-card {
   background: white;
   border-radius: 8px;
-  width: 90%;
-  max-width: 500px;
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
