@@ -1,11 +1,26 @@
 import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue' // La clave es que el archivo existe
+import vue from '@vitejs/plugin-vue'
+import path from 'path' // Importar 'path' de Node
 
-// [V5.22: Sintaxis Estándar, Mínima]
+// https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [vue()], // Usamos la función de Vue directamente
+  plugins: [vue()],
+
+  // --- [INICIO PARCHE V10.E (Filtrado de Ruido)] ---
   server: {
-    host: '0.0.0.0',
-    port: 5173,
-  }
+    watch: {
+      // Ignorar directorios que generan "ruido" en la consola
+      ignored: [
+        '**/node_modules/**',
+        '**/.git/**',
+        '**/dist/**',
+        
+        // Ignorar explícitamente las carpetas de AppData que causan ruido.
+        // Usamos path.resolve para crear una ruta absoluta que el watcher entienda.
+        path.resolve("C:/Users/USUARIO/AppData/Local/Microsoft/Edge/**"),
+        path.resolve("C:/Users/USUARIO/AppData/Local/Google/Chrome/**")
+      ],
+    },
+  },
+  // --- [FIN PARCHE V10.E] ---
 })

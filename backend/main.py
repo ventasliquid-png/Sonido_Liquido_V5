@@ -1,4 +1,7 @@
-﻿import os
+﻿"""
+Servidor Principal FastAPI (V10.12 - Arquitectura Modular Estable)
+"""
+import os
 import psycopg2
 import asyncio 
 import json 
@@ -16,16 +19,25 @@ from langchain_google_vertexai import VertexAIEmbeddings, ChatVertexAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
-# --- Importaciones V6.1 ---
-import config 
+# --- [INICIO REFACTOR V10.10] ---
+# Importaciones modulares (absolutas - sin puntos relativos)
+# Compatible con: uvicorn backend.main:app (desde raíz) o uvicorn main:app (desde backend/)
+import sys
+import os
 
-# --- [INICIO PARCHE V10.7 (Auth Final/Directa)] ---
-# Archivos ORM devueltos a la raíz del backend/ para su importación directa
-from database import engine, Base 
-import models_auth 
-from service_auth import get_usuario_by_username, get_password_hash 
-from routers import auth as auth_router # <--- IMPORTACIÓN FINAL DEL ROUTER
-# --- [FIN PARCHE V10.7] ---
+# Agregar directorio backend al path para imports absolutos
+backend_dir = os.path.dirname(os.path.abspath(__file__))
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+
+# Imports absolutos (sin puntos relativos)
+from core import config
+from core.database import engine, Base
+from auth import models as auth_models
+from auth.router import router as auth_router
+from rubros import models as rubros_models
+from rubros.router import router as rubros_router
+# --- [FIN REFACTOR V10.10] ---
 
 # --- 2. Importaciones de LangGraph (El Cerebro) ---
 from langgraph.graph import StateGraph, END
@@ -48,47 +60,47 @@ atenea_v5_app = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global embeddings_model, llm, vector_store, CONNECTION_STRING, atenea_v5_app
-    print(f"--- [Atenea V5 Backend]: Iniciando secuencia de arranque (V10.8)... ---")
+    print(f"--- [Atenea V5 Backend]: Iniciando secuencia de arranque (V10.12 Modular)... ---")
 
     # --- [INICIO PARCHE V10.1 (ORM)] ---
-    # NUEVA MISIÓN V10: CREAR TABLAS ORM
     try:
-        print("--- [V10]: Sincronizando modelos ORM (SQLAlchemy)... ---")
+        print("--- [V10.12]: Sincronizando modelos ORM (SQLAlchemy)... ---")
         Base.metadata.create_all(bind=engine)
-        print("--- [V10]: Tablas ORM sincronizadas. ---")
+        print("--- [V10.12]: Tablas ORM sincronizadas. ---")
     except Exception as e:
         print(f"❌ ERROR DE ARRANQUE V10: Falla al sincronizar tablas ORM: {e}")
     # --- [FIN PARCHE V10.1] ---
 
     # --- [Parche de Autenticación (ACTIVO)] ---
-    creds_path_file = "../.google_credentials"
-    try:
-        if not os.path.exists(creds_path_file):
-            raise FileNotFoundError(f"El archivo '{creds_path_file}' no se encontró en la ruta relativa.")
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = creds_path_file
+    # --- [INICIO PARCHE V10.12] ---
+    # La ruta ahora es relativa a la raíz (donde corre Uvicorn), no a backend/
+    creds_path_file = ".google_credentials"
+    google_creds_env = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+    
+    # Verificar si las credenciales de Google están disponibles
+    if google_creds_env and os.path.exists(google_creds_env):
         print(f"✅ Verificación de arranque: GOOGLE_APPLICATION_CREDENTIALS... ENCONTRADO.")
-    except Exception as e:
-        print(f"❌ ERROR DE ARRANQUE: Falla al cargar credenciales: {e}")
+    elif os.path.exists(creds_path_file):
+        print(f"✅ Verificación de arranque: GOOGLE_APPLICATION_CREDENTIALS... ENCONTRADO (archivo local).")
+    else:
+        # Advertencia, no error - el servidor puede arrancar sin IA
+        print(f"⚠️  ADVERTENCIA: GOOGLE_APPLICATION_CREDENTIALS no encontrado.")
+        print(f"   El servidor arrancará sin funcionalidades de IA (Atenea).")
+        print(f"   Para habilitar IA, configure GOOGLE_APPLICATION_CREDENTIALS o coloque '.google_credentials' en la raíz.\n")
     # --- [FIN DEL PARCHE] ---
         
-    # --- Misión 2: Cargar URL de la Base de Datos ---
-    db_url = os.environ.get("DATABASE_URL")
-    if db_url and "postgres" in db_url:
+    CONNECTION_STRING = os.environ.get("DATABASE_URL")
+    if CONNECTION_STRING and "postgres" in CONNECTION_STRING:
         print("✅ Verificación de arranque: DATABASE_URL... ENCONTRADA.")
-        CONNECTION_STRING = db_url
     else:
         print("❌ ERROR DE ARRANQUE: DATABASE_URL no encontrada en el entorno.")
 
-    # --- Misión 3: Inicializar los Clientes de IA y la Memoria ---
     if CONNECTION_STRING and os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
         try:
-            # 1. Embeddings (Desde config)
             embeddings_model = VertexAIEmbeddings(
                 model_name=config.EMBEDDINGS_MODEL_NAME,
                 location=config.APP_LOCATION
             )
-            
-            # 2. Cerebro Generativo (Desde config)
             llm = ChatVertexAI(
                 model_name=config.GEMINI_MODEL_NAME,
                 location=config.APP_LOCATION,
@@ -96,20 +108,16 @@ async def lifespan(app: FastAPI):
                 max_output_tokens=2048,
                 top_p=0.95
             )
-            
-            # 3. Conexión a la Memoria (pgvector)
             vector_store = PGVector(
                 connection_string=CONNECTION_STRING,
                 embedding_function=embeddings_model,
                 collection_name="atenea_memory", 
             )
             print(f"✅ Clientes de IA (Región: {config.APP_LOCATION}) y Memoria (pgvector) inicializados.")
-            
             atenea_v5_app = workflow_builder.compile()
-
         except Exception as e:
             print(f"❌ ERROR DE ARRANQUE V10: Falla al inicializar clientes de IA o pgvector.")
-            print(f"    Error detallado: {e}")
+            print(f"     Error detallado: {e}")
     else:
         print("⚠️ Advertencia: El servidor arranca sin IA.")
 
@@ -118,16 +126,9 @@ async def lifespan(app: FastAPI):
     print("--- [Atenea V5 Backend]: Servidor apagado. ---")
 
 # --- 6. Nodos del Grafo (Mis Habilidades) ---
-# ... (El código de los nodos RAG V9.1, Juicio, Táctico y Doctrinal permanece sin cambios)...
-
 async def rag_retrieval_node(state: AteneaV5State):
-    """
-    Nodo 1: Recuperación TÁCTICA (Intento 1).
-    Busca solo documentos marcados como 'tactica_%'.
-    """
     print("--- [LangGraph Node]: rag_retrieval_node (V9.1 - Táctico) ---")
     query = state["input_query"]
-    
     try:
         query_embedding = await embeddings_model.aembed_query(query)
         
@@ -137,16 +138,11 @@ async def rag_retrieval_node(state: AteneaV5State):
                 conn = psycopg2.connect(CONNECTION_STRING)
                 register_vector(conn)
                 cursor = conn.cursor()
-                
-                # V9.1: Usamos 'tactica_%%' para escapar el '%' del 'LIKE'
                 sql_query = "SELECT content FROM atenea_memory WHERE doc_type LIKE 'tactica_%%' ORDER BY embedding <-> %s::vector LIMIT 2"
-                
                 vector_string = json.dumps(embedding_vector)
-                
                 cursor.execute(sql_query, (vector_string,))
                 results = cursor.fetchall()
                 return [row[0] for row in results]
-                
             except Exception as e:
                 print(f"❌ ERROR RAG (SQL Táctico): {e}")
                 return []
@@ -154,7 +150,6 @@ async def rag_retrieval_node(state: AteneaV5State):
                 if conn: conn.close()
 
         retrieved_docs_content = await asyncio.to_thread(sync_sql_search, query_embedding)
-
     except Exception as e:
         print(f"❌ ERROR RAG (General Táctico): {e}")
         retrieved_docs_content = []
@@ -163,20 +158,13 @@ async def rag_retrieval_node(state: AteneaV5State):
     return {"retrieved_documents": retrieved_docs_content}
 
 async def doctrinal_evaluation_node(state: AteneaV5State):
-    """
-    Nodo 2: Evaluación (Juicio) y Recuperación DOCTRINAL (Intento 2).
-    """
     print("--- [LangGraph Node]: doctrinal_evaluation_node (V9.1) ---")
-    
-    # Intento 1 (Táctico) ya se ejecutó.
     if len(state["retrieved_documents"]) > 0:
         print("Juicio: TÁCTICA APLICADA (Contexto táctico encontrado).")
         return {"is_doctrinal": False, "retrieved_documents": state["retrieved_documents"]}
     
-    # Intento 2 (Doctrinal)
     print("Juicio: Búsqueda táctica fallida. Iniciando búsqueda doctrinal...")
     query = state["input_query"]
-    
     try:
         query_embedding = await embeddings_model.aembed_query(query)
         
@@ -186,16 +174,11 @@ async def doctrinal_evaluation_node(state: AteneaV5State):
                 conn = psycopg2.connect(CONNECTION_STRING)
                 register_vector(conn)
                 cursor = conn.cursor()
-                
-                # V9.1: Usamos 'doctrina_%%' para escapar el '%' del 'LIKE'
                 sql_query = "SELECT content FROM atenea_memory WHERE doc_type LIKE 'doctrina_%%' ORDER BY embedding <-> %s::vector LIMIT 2"
-                
                 vector_string = json.dumps(embedding_vector)
-                
                 cursor.execute(sql_query, (vector_string,))
                 results = cursor.fetchall()
                 return [row[0] for row in results]
-                
             except Exception as e:
                 print(f"❌ ERROR RAG (SQL Doctrinal): {e}")
                 return []
@@ -203,7 +186,6 @@ async def doctrinal_evaluation_node(state: AteneaV5State):
                 if conn: conn.close()
 
         retrieved_docs_content = await asyncio.to_thread(sync_sql_search_doctrinal, query_embedding)
-
     except Exception as e:
         print(f"❌ ERROR RAG (General Doctrinal): {e}")
         retrieved_docs_content = []
@@ -216,15 +198,10 @@ async def doctrinal_evaluation_node(state: AteneaV5State):
     else:
         print("Juicio: TÁCTICA APLICADA (Sin contexto RAG).")
         return {"is_doctrinal": False, "retrieved_documents": []}
-# --- [FIN PARCHE V9.1] ---
 
 def tactical_generation_node(state: AteneaV5State):
-    """
-    Nodo 3 (Rama A): Generación Táctica.
-    """
     print("--- [LangGraph Node]: tactical_generation_node ---")
     contexto = "\n---\n".join(state["retrieved_documents"]) or "No se encontró información relevante en la memoria."
-    
     prompt = ChatPromptTemplate.from_template(
         """
         Eres un asistente de IA táctico. Responde la pregunta del usuario
@@ -238,7 +215,6 @@ def tactical_generation_node(state: AteneaV5State):
         """
     )
     chain = prompt | llm | StrOutputParser()
-    
     generation = chain.invoke({
         "contexto": contexto,
         "pregunta": state["input_query"]
@@ -246,12 +222,8 @@ def tactical_generation_node(state: AteneaV5State):
     return {"generation": generation}
 
 def doctrinal_review_node(state: AteneaV5State):
-    """
-    Nodo 3 (Rama B): Revisión Doctrinal (Abogado del Diablo).
-    """
     print("--- [LangGraph Node]: doctrinal_review_node ---")
     contexto = "\n---\n".join(state["retrieved_documents"]) or "No se encontró información relevante en la memoria."
-    
     prompt = ChatPromptTemplate.from_template(
         """
         Eres Atenea V5, la "Abogado del Diablo".
@@ -269,7 +241,6 @@ def doctrinal_review_node(state: AteneaV5State):
         """
     )
     chain = prompt | llm | StrOutputParser()
-    
     generation = chain.invoke({
         "contexto": contexto,
         "pregunta": state["input_query"]
@@ -277,11 +248,7 @@ def doctrinal_review_node(state: AteneaV5State):
     return {"generation": generation}
 
 # --- 7. Lógica Condicional del Grafo ---
-
 def should_run_doctrinal_review(state: AteneaV5State) -> Literal["run_doctrinal_review", "run_tactical_generation"]:
-    """
-    Esta es la bifurcación. Decide qué camino tomar.
-    """
     print("--- [LangGraph Edge]: should_run_doctrinal_review ---")
     if state["is_doctrinal"]:
         return "run_doctrinal_review"
@@ -289,7 +256,6 @@ def should_run_doctrinal_review(state: AteneaV5State) -> Literal["run_doctrinal_
         return "run_tactical_generation"
 
 # --- 8. Construcción del Grafo y la App FastAPI ---
-
 workflow_builder = StateGraph(AteneaV5State)
 workflow_builder.add_node("rag_retrieval", rag_retrieval_node) 
 workflow_builder.add_node("doctrinal_evaluation", doctrinal_evaluation_node)
@@ -308,19 +274,15 @@ workflow_builder.add_conditional_edges(
 workflow_builder.add_edge("tactical_generation", END)
 workflow_builder.add_edge("doctrinal_review", END)
 
-atenea_v5_app = workflow_builder.compile()
-
 app = FastAPI(
     title="Sonido Líquido V5 - Atenea API",
     lifespan=lifespan
 )
 
-# --- [Parche V5.16 (CORS) - ACTIVO] ---
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -329,13 +291,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- [INICIO PARCHE V10.8 (Inclusión del Router)] ---
-app.include_router(auth_router.router) 
-# --- [FIN PARCHE V10.8] ---
-
+app.include_router(auth_router)
+app.include_router(rubros_router) 
 
 # --- 9. Endpoints (Rutas de la API) ---
-
 class QueryInput(BaseModel):
     query: str
 
@@ -346,14 +305,14 @@ async def get_root_status():
         
     return {
         "estado_servidor": "OK",
-        "arquitectura": "Atenea V10.8 (Auth Final)", # V10.8
+        "arquitectura": "Atenea V10.12 (Modular Estable)", # V10.12
         "conexion_db_url": "OK" if CONNECTION_STRING else "FALLIDA",
         "conexion_google_creds": "OK" if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") else "FALLIDA",
         "memoria_pgvector": "CONECTADA",
         "cerebro_gemini": f"{config.GEMINI_MODEL_NAME} (Región: {config.APP_LOCATION})"
     }
 
-@app.post("/atenea/invoke", tags=["Atenea V5"])
+@app.post("/atenea/invoke", tags=["Atenea VV"])
 async def invoke_atenea_v5(input: QueryInput):
     if not atenea_v5_app:
         return {"error": "El grafo de Atenea V5 no está compilado. Revisa el log de arranque."}
@@ -369,4 +328,4 @@ async def invoke_atenea_v5(input: QueryInput):
         "respuesta_generada": final_state["generation"]
     }
 
-print("--- [Atenea V5 Backend]: Módulo 'main.py' V10.8 (Auth Final) cargado y listo. ---") # V10.8
+print("--- [Atenea V5 Backend]: Módulo 'main.py' V10.12 (Modular Estable) cargado y listo. ---")

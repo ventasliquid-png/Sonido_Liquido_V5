@@ -1,0 +1,38 @@
+﻿/* --- frontend/src/styles/main.scss --- */
+/*
+ * DOCTRINA CROMÁTICA V1 (DEOU)
+ * Definida por Atenea, Aprobada por Alto Mando.
+ */
+:root {
+  /* --- 1. Paleta de Chasis (Base) --- */
+  --color-fondo: #1a1a2e;
+  --color-contenedor: #1f2937;
+  --color-texto-general: #f0f0f0;
+  --color-borde: #2d3748;
+
+  /* --- 2. Paleta Funcional (Acción) --- */
+  --color-exito: #059669;  /* Verde */
+  --color-error: #dc2626;  /* Rojo */
+  --color-alerta: #f59e0b;  /* Ámbar */
+  --color-info: #3b82f6;   /* Azul */
+
+  /* --- 3. Paleta Modular (Contexto) --- */
+
+  /* Módulo: Guardián (Auth) */
+  --color-auth-acento: #0d9488; /* Teal (Verde Azulado) */
+
+  /* Módulo: Rubro (Próximo) */
+  --color-rubro-acento: #FFBF00; /* Ámbar */
+}
+
+/* --- Estilos Globales Base --- */
+body {
+  margin: 0;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
+    Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  background-color: var(--color-fondo);
+  color: var(--color-texto-general);
+}

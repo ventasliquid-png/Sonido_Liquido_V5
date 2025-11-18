@@ -1,21 +1,26 @@
 <script setup>
-import AteneaChat from './views/AteneaChat.vue'
+// 1. Eliminamos AteneaChat (temporalmente)
+// import AteneaChat from './views/AteneaChat.vue'
+
+// 2. Importamos el componente de Rubros
+import Rubros from './views/Rubros.vue'
 </script>
 
 <template>
-  <div id="main-interface">
-    <AteneaChat />
-  </div>
+  <main class="app-container">
+    <!-- 3. Mostramos el componente de Rubros -->
+    <Rubros />
+    
+    <!-- <AteneaChat /> -->
+  </main>
 </template>
 
-<style>
-/* Estilos globales básicos */
-body {
-  margin: 0;
-  background-color: #282A36;
-  color: #F8F8F2;
-}
-#main-interface {
+<style scoped>
+.app-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
   min-height: 100vh;
+  padding-top: 2rem;
 }
 </style>

@@ -1,9 +1,14 @@
-# --- backend/models_auth.py (V10.4) ---
+﻿"""
+Módulo Auth (V10.10): Modelos ORM (SQLAlchemy).
+Define las tablas 'roles' y 'usuarios'.
+"""
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
 
-# Importamos la Base de nuestro archivo database.py (CORREGIDO: Importación directa)
-from database import Base
+# --- [INICIO REFACTOR V10.10] ---
+# Importamos la Base desde el módulo 'core' (import absoluto)
+from core.database import Base
+# --- [FIN REFACTOR V10.10] ---
 
 class Rol(Base):
     __tablename__ = "roles"
@@ -13,6 +18,7 @@ class Rol(Base):
     description = Column(String)
 
     # Relación inversa: Un rol puede tener muchos usuarios
+    # [CORRECCIÓN V1D: Corregido typo 'back_pop_ulates' a 'back_populates']
     usuarios = relationship("Usuario", back_populates="rol")
 
 class Usuario(Base):
@@ -30,4 +36,4 @@ class Usuario(Base):
     # Relación: Un usuario pertenece a un rol
     rol = relationship("Rol", back_populates="usuarios")
 
-print("--- [Atenea V10.4]: Modelos 'Usuario' y 'Rol' definidos. ---")
+print("--- [Atenea V10.10]: Auth/Models ('Usuario', 'Rol') definidos. ---")
