@@ -9,7 +9,7 @@ const error = ref(null)
 
 // Filtros y búsqueda
 const searchQuery = ref('')
-const filtroEstado = ref('activos') // 'activos', 'inactivos', 'todos'
+const filtroEstado = ref('todos') // 'activos', 'inactivos', 'todos'
 
 // Modal de Alta/Edición
 const mostrarVentanaAlta = ref(false)
@@ -61,8 +61,12 @@ function puedeGuardar() {
 
 // --- COMPUTED ---
 const rubrosFiltrados = computed(() => {
-  // La búsqueda y filtrado se hace en el backend, pero mantenemos computed por si acaso
-  return rubros.value
+  if (!rubros.value) return []
+  
+  const activo = filtroActivo.value
+  if (activo === null) return rubros.value
+  
+  return rubros.value.filter(r => r.activo === activo)
 })
 
 const filtroActivo = computed(() => {
@@ -285,16 +289,15 @@ function onCodigoInput(event) {
 </script>
 
 <template>
-  <div class="rubros-container">
-    <!-- Header -->
-    <div class="rubros-header">
-      <h1>Gestión de Rubros</h1>
-      <p class="subtitulo">Módulo de administración de rubros y subrubros</p>
-    </div>
+  <div class="rubros-master-layout">
+    <!-- ZONA SUPERIOR (ESPACIO DE TRABAJO) -->
+    <div class="workspace-zone">
+      <div class="rubros-header">
+        <h1>Gestión de Rubros</h1>
+        <p class="subtitulo">Módulo de administración de rubros y subrubros</p>
+      </div>
 
-    <!-- Barra de Búsqueda y Filtros -->
-    <div class="rubros-toolbar">
-      <div class="search-column">
+      <div class="rubros-toolbar">
         <div class="search-container">
           <label for="search-input">Buscador:</label>
           <input
@@ -313,64 +316,70 @@ function onCodigoInput(event) {
         </button>
       </div>
 
-      <div class="filters-container centered">
-        <label>Estado:</label>
-        <div class="radio-group">
-          <label>
-            <input type="radio" v-model="filtroEstado" value="activos" />
-            <span>Activos</span>
-          </label>
-          <label>
-            <input type="radio" v-model="filtroEstado" value="inactivos" />
-            <span>Inactivos</span>
-          </label>
-          <label>
-            <input type="radio" v-model="filtroEstado" value="todos" />
-            <span>Todos</span>
-          </label>
-        </div>
+      <div v-if="error" class="mensaje-error">
+        {{ error }}
       </div>
     </div>
 
-    <!-- Mensaje de Error -->
-    <div v-if="error" class="mensaje-error">
-      {{ error }}
-    </div>
+    <!-- EL DIVISOR (LA LÍNEA AZUL) -->
+    <div class="layout-divider"></div>
 
-    <!-- Tabla de Rubros -->
-    <div class="rubros-table-container">
-      <table class="rubros-table" v-if="!loading && rubros.length > 0">
-        <thead>
-          <tr>
-            <th>Código</th>
-            <th>Descripción</th>
-            <th>Estado</th>
-            <th>Padre</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="rubro in rubrosFiltrados" :key="rubro.id">
-            <td><strong>{{ rubro.codigo }}</strong></td>
-            <td>{{ rubro.descripcion }}</td>
-            <td>
-              <span :class="rubro.activo ? 'badge-activo' : 'badge-inactivo'">
-                {{ rubro.activo ? 'Activo' : 'Inactivo' }}
-              </span>
-            </td>
-            <td>{{ rubro.padre_id || '-' }}</td>
-            <td class="acciones">
-              <button @click="editarRubro(rubro)" class="btn-small btn-edit">✏️ Editar</button>
-              <button @click="clonarRubro(rubro)" class="btn-small btn-clone">📋 Clonar [F7]</button>
-              <button @click="eliminarRubro(rubro)" class="btn-small btn-delete">🗑️ Eliminar</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <!-- ZONA INFERIOR (GRILLA Y FILTROS) -->
+    <div class="data-zone">
+      <!-- Izquierda (La Grilla) -->
+      <div class="grid-container">
+        <table class="rubros-table" v-if="!loading && rubros.length > 0">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Descripción</th>
+              <th>Estado</th>
+              <th>Padre</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="rubro in rubrosFiltrados" :key="rubro.id">
+              <td><strong>{{ rubro.codigo }}</strong></td>
+              <td>{{ rubro.descripcion }}</td>
+              <td>
+                <span :class="rubro.activo ? 'badge-activo' : 'badge-inactivo'">
+                  {{ rubro.activo ? 'Activo' : 'Inactivo' }}
+                </span>
+              </td>
+              <td>{{ rubro.padre_id || '-' }}</td>
+              <td class="acciones">
+                <button @click="editarRubro(rubro)" class="btn-small btn-edit">✏️ Editar</button>
+                <button @click="clonarRubro(rubro)" class="btn-small btn-clone">📋 Clonar [F7]</button>
+                <button @click="eliminarRubro(rubro)" class="btn-small btn-delete">🗑️ Eliminar</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
 
-      <div v-if="loading" class="loading">Cargando...</div>
-      <div v-if="!loading && rubros.length === 0" class="empty-state">
-        No se encontraron rubros.
+        <div v-if="loading" class="loading">Cargando...</div>
+        <div v-if="!loading && rubros.length === 0" class="empty-state">
+          No se encontraron rubros.
+        </div>
+      </div>
+
+      <!-- Derecha (Los Filtros) -->
+      <div class="filters-sidebar">
+        <h3>Estado</h3>
+        <div class="radio-group-vertical">
+          <label class="radio-item" :class="{ 'selected': filtroEstado === 'todos' }">
+            <input type="radio" v-model="filtroEstado" value="todos" />
+            <span>Todos</span>
+          </label>
+          <label class="radio-item" :class="{ 'selected': filtroEstado === 'activos' }">
+            <input type="radio" v-model="filtroEstado" value="activos" />
+            <span>Activos</span>
+          </label>
+          <label class="radio-item" :class="{ 'selected': filtroEstado === 'inactivos' }">
+            <input type="radio" v-model="filtroEstado" value="inactivos" />
+            <span>Inactivos</span>
+          </label>
+        </div>
       </div>
     </div>
 
@@ -457,12 +466,24 @@ function onCodigoInput(event) {
 </template>
 
 <style scoped lang="scss">
-/* Fondo celeste suave para diferenciar el módulo */
-.rubros-container {
-  min-height: 100vh;
+/* ESTRUCTURA GLOBAL */
+.rubros-master-layout {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Evita scroll en el body */
   background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
-  padding: 2rem;
   color: #1e293b;
+}
+
+/* ZONA SUPERIOR (ESPACIO DE TRABAJO) */
+.workspace-zone {
+  flex: 1; /* Ocupa el espacio restante (aprox 60-70%) */
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  /* Centrado opcional o distribución */
+  justify-content: flex-start; 
 }
 
 .rubros-header {
@@ -475,108 +496,58 @@ function onCodigoInput(event) {
   }
   
   .subtitulo {
-    color: #475569;
-    font-size: 0.9rem;
+    background: #0ea5e9;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 6px;
+    display: inline-block;
+    font-weight: 500;
   }
 }
 
 .rubros-toolbar {
   display: flex;
-  gap: 1.5rem;
-  align-items: flex-start;
-  margin-bottom: 1.5rem;
+  gap: 1rem;
+  align-items: flex-end;
+  margin-bottom: 1rem;
   flex-wrap: wrap;
-  background: white;
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.search-column {
-  flex: 1;
-  min-width: 280px;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
 }
 
 .search-container {
-  flex: 1;
-  min-width: 250px;
-  
-  label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-    color: #334155;
-  }
-  
-  .search-input {
-    width: 100%;
-    padding: 0.75rem;
-    border: 2px solid #cbd5e1;
-    border-radius: 6px;
-    font-size: 1rem;
-    transition: border-color 0.2s;
-    
-    &:focus {
-      outline: none;
-      border-color: #0ea5e9;
-      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
-    }
-  }
-  
-  .shortcut-hint {
-    font-size: 0.75rem;
-    color: #64748b;
-    margin-left: 0.5rem;
-  }
-}
-
-.filters-container {
-  label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-    color: #334155;
-  }
-  
-  .radio-group {
-    display: flex;
-    gap: 1rem;
-    
-    label {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      cursor: pointer;
-      margin: 0;
-      
-      input[type="radio"] {
-        cursor: pointer;
-      }
-    }
-  }
-}
-
-.filters-container.centered {
-  flex: 1;
-  min-width: 240px;
-  text-align: center;
   display: flex;
   flex-direction: column;
-  align-items: center;
-
-  .radio-group {
-    justify-content: center;
+  gap: 0.25rem;
+  
+  label {
+    font-weight: 600;
+    color: #334155;
   }
+}
+
+.search-input {
+  padding: 0.75rem;
+  border: 2px solid #cbd5e1;
+  border-radius: 6px;
+  width: 300px;
+  font-size: 1rem;
+  
+  &:focus {
+    outline: none;
+    border-color: #0ea5e9;
+  }
+}
+
+.shortcut-hint {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-left: 0.5rem;
 }
 
 .btn-primary {
-  padding: 0.75rem 1.5rem;
   background: #0ea5e9;
   color: white;
   border: none;
+  padding: 0.75rem 1.5rem;
   border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
@@ -613,11 +584,26 @@ function onCodigoInput(event) {
   border: 1px solid #fca5a5;
 }
 
-.rubros-table-container {
+/* EL DIVISOR */
+.layout-divider {
+  border-bottom: 2px solid #0000ff; /* Azul institucional fuerte */
+  width: 100%;
+}
+
+/* ZONA INFERIOR (GRILLA Y FILTROS) */
+.data-zone {
+  height: 35vh; /* Altura fija solicitada */
+  display: flex;
+  flex-direction: row;
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
+}
+
+/* Izquierda: Grilla */
+.grid-container {
+  flex: 1; /* Ocupa todo el ancho disponible */
+  overflow-y: auto; /* Scroll interno */
+  padding: 1rem;
+  border-right: 1px solid #e2e8f0;
 }
 
 .rubros-table {
@@ -627,6 +613,9 @@ function onCodigoInput(event) {
   thead {
     background: #0ea5e9;
     color: white;
+    position: sticky;
+    top: 0;
+    z-index: 10;
     
     th {
       padding: 1rem;
@@ -650,6 +639,51 @@ function onCodigoInput(event) {
   }
 }
 
+/* Derecha: Filtros */
+.filters-sidebar {
+  width: 200px; /* Ancho fijo para la barra lateral */
+  padding: 1rem;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  
+  h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #334155;
+    border-bottom: 2px solid #cbd5e1;
+    padding-bottom: 0.5rem;
+  }
+}
+
+.radio-group-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.radio-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: background 0.2s;
+  
+  &:hover {
+    background: #e2e8f0;
+  }
+  
+  &.selected {
+    background: #e0f2fe;
+    color: #0284c7;
+    font-weight: 600;
+  }
+}
+
+/* Badges y Botones Pequeños */
 .badge-activo {
   background: #d1fae5;
   color: #065f46;
@@ -716,7 +750,7 @@ function onCodigoInput(event) {
   color: #64748b;
 }
 
-/* Modal */
+/* Modal Styles (Reused) */
 .modal-backdrop {
   position: fixed;
   top: 0;
@@ -837,4 +871,3 @@ function onCodigoInput(event) {
   }
 }
 </style>
-

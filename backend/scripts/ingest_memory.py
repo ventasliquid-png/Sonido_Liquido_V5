@@ -1,20 +1,5 @@
 import os
 import psycopg2
-from pgvector.psycopg2 import register_vector
-import sys
-import glob # <--- V9: Importado para buscar archivos
-from langchain_google_vertexai import VertexAIEmbeddings
-from psycopg2.extras import execute_values
-
-# --- [Parche V6.1 (Import Fix)] ---
-script_dir = os.path.dirname(os.path.abspath(__file__))
-backend_dir = os.path.abspath(os.path.join(script_dir, '..', 'backend'))
-sys.path.append(os.path.dirname(backend_dir)) 
-
-try:
-    from backend import config
-except ImportError as e:
-    print(f"Error: No se pudo importar 'backend.config'. Detalle: {e}")
     print(f"Asegúrate de que 'backend/config.py' exista.")
     sys.exit(1)
 # --- [FIN PARCHE V6.1] ---
