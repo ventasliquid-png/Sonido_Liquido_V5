@@ -6,7 +6,6 @@
  * que inyecta automáticamente el token Bearer en cada petición.
  */
 import api from './api'
-import { useAuthStore } from '../stores/authStore'
 
 const API_BASE_URL = '/rubros'
 
@@ -46,12 +45,7 @@ export async function getRubroById(id) {
  */
 export async function createRubro(rubroData) {
   try {
-    const authStore = useAuthStore()
-    const rawToken = authStore?.authToken
-    const token = typeof rawToken === 'string' ? rawToken : rawToken?.value
-    const headers = token ? { Authorization: `Bearer ${token}` } : {}
-
-    const response = await api.post(`${API_BASE_URL}/`, rubroData, { headers })
+    const response = await api.post(API_BASE_URL, rubroData)
     return { success: true, data: response.data }
   } catch (error) {
     // Protocolo Lázaro: Si el código está inactivo, retornamos info especial
@@ -74,7 +68,7 @@ export async function createRubro(rubroData) {
  */
 export async function updateRubro(id, rubroData) {
   try {
-    const response = await api.patch(`${API_BASE_URL}/${id}/`, rubroData)
+    const response = await api.patch(`${API_BASE_URL}/${id}`, rubroData)
     return response.data
   } catch (error) {
     throw handleApiError(error)
@@ -86,7 +80,7 @@ export async function updateRubro(id, rubroData) {
  */
 export async function reactivateRubro(id, rubroData = null) {
   try {
-    const response = await api.patch(`${API_BASE_URL}/${id}/reactivate/`, rubroData || {})
+    const response = await api.patch(`${API_BASE_URL}/${id}/reactivate`, rubroData || {})
     return response.data
   } catch (error) {
     throw handleApiError(error)
@@ -99,8 +93,7 @@ export async function reactivateRubro(id, rubroData = null) {
 export async function deleteRubro(id, forcePhysical = false) {
   try {
     const params = forcePhysical ? '?force_physical=true' : ''
-    const url = `${API_BASE_URL}/${id}/`
-    await api.delete(`${url}${params}`)
+    await api.delete(`${API_BASE_URL}/${id}${params}`)
     return { success: true }
   } catch (error) {
     throw handleApiError(error)

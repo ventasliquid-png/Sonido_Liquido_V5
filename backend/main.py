@@ -37,6 +37,7 @@ from auth import models as auth_models
 from auth.router import router as auth_router
 from rubros import models as rubros_models
 from rubros.router import router as rubros_router
+from clientes import models as clientes_models
 # --- [FIN REFACTOR V10.10] ---
 
 # --- 2. Importaciones de LangGraph (El Cerebro) ---
