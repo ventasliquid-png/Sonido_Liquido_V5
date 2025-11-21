@@ -4,7 +4,7 @@ Contiene las funciones de consulta ORM y validaciones de integridad.
 """
 from sqlalchemy.orm import Session
 from typing import Optional, List, Tuple
-from rubros import models
+from backend.rubros import models
 
 def get_rubro_by_codigo(db: Session, codigo: str) -> Optional[models.Rubro]:
     """Obtiene un rubro por su código (case-insensitive, pero normalizado a mayúsculas)."""

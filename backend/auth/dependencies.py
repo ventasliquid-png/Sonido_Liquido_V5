@@ -20,8 +20,8 @@ from typing import Optional
 
 from jose import JWTError, jwt
 
-from auth import models
-from auth import service
+from backend.auth import models
+from backend.auth import service
 from core.database import get_db
 from core.config import SECRET_KEY, ALGORITHM
 

@@ -13,18 +13,12 @@ from datetime import timedelta
 # --- [FIN FASE 10.E] ---
 
 # --- [INICIO REFACTOR V10.10] ---
-from core.database import get_db
-from auth import models
-from auth import service
+from backend.core.database import get_db
+from backend.auth import models
+from backend.auth import service
+from backend.auth.schemas import UsuarioCreate, UsuarioOut, Token
+from backend.core.config import ACCESS_TOKEN_EXPIRE_MINUTES
 # --- [FIN REFACTOR V10.10] ---
-
-# --- [INICIO FASE 10.E (SEGURIDAD)] ---
-# Importamos los schemas y servicios de token actualizados
-from auth.schemas import UsuarioCreate, UsuarioOut, Token
-from core.config import ACCESS_TOKEN_EXPIRE_MINUTES
-# --- [FIN FASE 10.E] ---
-
-
 router = APIRouter(
     prefix="/auth",
     tags=["AuthN / AuthZ (V10.E)"] # Etiqueta actualizada

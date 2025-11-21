@@ -33,12 +33,12 @@ if backend_dir not in sys.path:
 # Imports absolutos (sin puntos relativos)
 from core import config
 from core.database import engine, Base
-from auth import models as auth_models
-from auth.router import router as auth_router
-from rubros import models as rubros_models
-from rubros.router import router as rubros_router
-from clientes import models as clientes_models
-from clientes.router import router as clientes_router
+from backend.auth import models as auth_models
+from backend.auth.router import router as auth_router
+from backend.rubros import models as rubros_models
+from backend.rubros.router import router as rubros_router
+from backend.clientes import models as clientes_models
+from backend.clientes.router import router as clientes_router
 # --- [FIN REFACTOR V10.10] ---
 
 # --- 2. Importaciones de LangGraph (El Cerebro) ---

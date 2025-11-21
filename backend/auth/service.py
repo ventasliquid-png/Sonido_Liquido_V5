@@ -12,7 +12,7 @@ from jose import JWTError, jwt # <--- Añadido en V10.E
 from typing import Optional
 
 # --- [INICIO REFACTOR V10.10] ---
-from auth import models
+from backend.auth import models
 # --- [FIN REFACTOR V10.10] ---
 
 # --- [INICIO FASE 10.E (SEGURIDAD)] ---

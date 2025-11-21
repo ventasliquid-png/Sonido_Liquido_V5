@@ -14,11 +14,11 @@ from typing import Optional, List
 
 # --- [INICIO REFACTOR V10.10] ---
 from core.database import get_db
-from auth.dependencies import get_current_active_user, get_current_user
-from auth import models as auth_models
-from rubros import models
-from rubros import service
-from rubros.schemas import RubroCreate, RubroUpdate, RubroOut, RubroLazaroResponse
+from backend.auth.dependencies import get_current_active_user, get_current_user
+from backend.auth import models as auth_models
+from backend.rubros import models
+from backend.rubros import service
+from backend.rubros.schemas import RubroCreate, RubroUpdate, RubroOut, RubroLazaroResponse
 # --- [FIN REFACTOR V10.10] ---
 
 router = APIRouter(
