@@ -37,6 +37,8 @@ from auth import models as auth_models
 from auth.router import router as auth_router
 from rubros import models as rubros_models
 from rubros.router import router as rubros_router
+from clientes import models as clientes_models
+from clientes.router import router as clientes_router
 # --- [FIN REFACTOR V10.10] ---
 
 # --- 2. Importaciones de LangGraph (El Cerebro) ---
@@ -293,6 +295,7 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(rubros_router) 
+app.include_router(clientes_router) 
 
 # --- 9. Endpoints (Rutas de la API) ---
 class QueryInput(BaseModel):
