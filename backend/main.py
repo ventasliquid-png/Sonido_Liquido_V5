@@ -29,17 +29,19 @@ import os
 backend_dir = os.path.dirname(os.path.abspath(__file__))
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
+# --- [FIN REFACTOR V10.10] ---
 
-# Imports absolutos (sin puntos relativos)
+# Imports Core
 from core import config
 from core.database import engine, Base
-from backend.auth import models as auth_models
+
+# Imports de Routers
 from backend.auth.router import router as auth_router
-from backend.rubros import models as rubros_models
 from backend.rubros.router import router as rubros_router
-from backend.clientes import models as clientes_models
 from backend.clientes.router import router as clientes_router
-# --- [FIN REFACTOR V10.10] ---
+from backend.maestros.router import router as maestros_router
+from backend.logistica.router import router as logistica_router
+from backend.agenda.router import router as agenda_router
 
 # --- 2. Importaciones de LangGraph (El Cerebro) ---
 from langgraph.graph import StateGraph, END
@@ -295,7 +297,10 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(rubros_router) 
-app.include_router(clientes_router) 
+app.include_router(clientes_router)
+app.include_router(maestros_router)
+app.include_router(logistica_router)
+app.include_router(agenda_router) 
 
 # --- 9. Endpoints (Rutas de la API) ---
 class QueryInput(BaseModel):
@@ -332,3 +337,4 @@ async def invoke_atenea_v5(input: QueryInput):
     }
 
 print("--- [Atenea V5 Backend]: Módulo 'main.py' V10.12 (Modular Estable) cargado y listo. ---")
+# Reload trigger for V5.1 schema update

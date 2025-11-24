@@ -130,3 +130,82 @@ Se realizaron correcciones críticas en el Backend para estabilizar la arquitect
     1.  Hacer `git pull`.
     2.  Asegurar que no haya procesos python corriendo (`taskkill /F /IM python.exe` en PowerShell).
     3.  Levantar servidor: `uvicorn backend.main:app --reload`.
+
+---
+
+## [2025-11-22] - [UBICACIÓN: CA]
+**Operador:** Comandante
+**Agente Activo:** Gy (Antigravity)
+
+### 1. Resumen de Sesión
+Sesión crítica de re-ingeniería y estabilización. Se ejecutó el protocolo "Tierra Quemada" para limpiar la base de datos y eliminar deuda técnica (tabla `Contacto` legacy). Se implementó la Fase 5 de la arquitectura (API Routers & Services) para los módulos `Maestros`, `Logistica`, `Agenda` y `Clientes`. Finalmente, se resolvió un conflicto de dependencias ("Dependency Hell") entre `google-generativeai` y `grpcio`.
+
+### 2. Cambios Técnicos Realizados
+*   **[backend/scripts/scorched_earth.py]:** Script de reinicio total de DB (Drop Schema Cascade + Seed Data).
+*   **[backend/clientes]:** Eliminado modelo `Contacto`. Refactorizado para usar `VinculoComercial`.
+*   **[backend/maestros]:** Implementados Router, Service y Schemas (Read-Only).
+*   **[backend/logistica]:** Implementados Router, Service y Schemas (CRUD Empresas y Nodos).
+*   **[backend/agenda]:** Implementados Router, Service y Schemas (Personas y Vínculos).
+*   **[backend/main.py]:** Registro de todos los nuevos routers.
+*   **[backend/requirements.txt]:** **FIX CRÍTICO**. Pinning de versiones estables:
+    *   `protobuf==4.25.3`
+    *   `grpcio==1.62.1`
+    *   `google-generativeai>=0.5.0`
+
+### 3. Estado Actual (El "Punto de Guardado")
+*   **Rama actual en Git:** `main`
+*   **Base de Datos:** Reiniciada y sembrada con datos de prueba (Fases 1-4).
+*   **Backend:** Operativo en puerto 8000. Endpoints listos para consumo.
+*   **Próximo paso inmediato:** Integración con Frontend (Vistas de Logística y Agenda).
+
+### 4. Cierre de Sesión [CA] (Casa)
+*   **Hora:** 22:50 (Aprox)
+*   **Estado Git:** ⚠️ Cambios pendientes de commit (Re-ingeniería Backend + Fix Deps).
+*   **Instrucción para Operador:**
+    1.  Ejecutar `git add .`
+    2.  Ejecutar `git commit -m "Feat: Fase 5 API Completa + Fix Dependencies"`
+    3.  Ejecutar `git push origin main`
+*   **Misión para [OF] (Oficina):**
+    1.  Hacer `git pull`.
+    2.  **IMPORTANTE:** Ejecutar `pip install -r backend/requirements.txt --force-reinstall` para alinear versiones de `protobuf`/`grpcio`.
+    3.  Verificar que el backend levante sin errores.
+
+---
+
+## [2025-11-23] - [UBICACIÓN: CA]
+**Operador:** Comandante
+**Agente Activo:** Gy (Antigravity)
+
+### 1. Informe de Incidente: "La Tormenta Perfecta"
+Se registró y resolvió un bloqueo crítico de servicio que afectó la estabilidad del Backend.
+
+#### A. Conflicto de Dependencias ("Dependency Hell")
+*   **Síntoma:** Bucles infinitos de instalación y corte de servicio por exceso de uso.
+*   **Causa:** Incompatibilidad entre `google-generativeai` (requiere `protobuf<6.0.0`) y `grpcio` (instalaba versiones más nuevas).
+*   **Solución:** Pinning estricto en `requirements.txt`:
+    *   `protobuf==4.25.3`
+    *   `grpcio==1.62.1`
+
+#### B. Fallo de Autenticación (Error 500)
+*   **Síntoma:** Imposibilidad de login con usuario `admin`.
+*   **Causa:** La librería `passlib` presentó incompatibilidades con la versión instalada de `bcrypt`, generando hashes inválidos (>72 bytes).
+*   **Solución:**
+    *   Refactorización de `backend/auth/service.py` para usar `bcrypt` puro (sin `passlib`).
+    *   Reset de contraseña de admin mediante script temporal.
+
+#### C. Código "Dormido" (Deuda Técnica)
+*   **Síntoma:** Errores 500 en ABM de Clientes (`POST` y `GET`).
+*   **Causa:** Lógica comentada en `ClienteService` (creación de domicilios) y falta de secuencia DB para `codigo_interno`.
+*   **Solución:**
+    *   Restauración de `Sequence` en `models.py`.
+    *   Descomentado y corrección de relaciones en `models.py` (`domicilios`, `vinculos`).
+    *   Corrección de mapeo de campos en `ClienteService` y `schemas.py`.
+
+### 2. Estado Actual (Post-Incidente)
+*   **Backend:** 🟢 ESTABLE y OPERATIVO.
+*   **Tests:** `test_clientes_api.py` ✅ PASADO (Auth + CRUD Completo).
+*   **Limpieza:** Scripts temporales de reparación eliminados.
+
+### 3. Próximo Paso
+*   Inicio de fase de diseño Frontend: **Módulo Rubros**.
+

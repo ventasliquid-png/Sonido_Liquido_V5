@@ -5,7 +5,7 @@ Contiene las funciones de hashing y las consultas ORM puras.
 --- [ACTUALIZADO A V10.E (SEGURIDAD)] ---
 Añadidas funciones 'authenticate_user' y 'create_access_token'.
 """
-from passlib.context import CryptContext
+
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone # <--- Añadido en V10.E
 from jose import JWTError, jwt # <--- Añadido en V10.E
@@ -21,16 +21,21 @@ from core.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 # --- [FIN FASE 10.E] ---
 
 
-# Definición del contexto para el hashing de contraseñas
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+import bcrypt
 
-# --- Funciones de Hashing (Existentes) ---
+# --- Funciones de Hashing (Refactorizado V10.E) ---
 
 def get_password_hash(password):
-    return pwd_context.hash(password)
+    # Generar salt y hash
+    pwd_bytes = password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(pwd_bytes, salt)
+    return hashed.decode('utf-8')
 
 def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+    pwd_bytes = plain_password.encode('utf-8')
+    hash_bytes = hashed_password.encode('utf-8')
+    return bcrypt.checkpw(pwd_bytes, hash_bytes)
 
 # --- Funciones de Consulta ORM (Existentes) ---
 

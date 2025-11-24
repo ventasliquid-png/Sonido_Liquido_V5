@@ -3,26 +3,7 @@ from uuid import UUID
 from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field
 
-# --- Contacto Schemas ---
-class ContactoBase(BaseModel):
-    nombre: str
-    email: Optional[EmailStr] = None
-    telefono: Optional[str] = None
 
-class ContactoCreate(ContactoBase):
-    pass
-
-class ContactoUpdate(BaseModel):
-    nombre: Optional[str] = None
-    email: Optional[EmailStr] = None
-    telefono: Optional[str] = None
-
-class ContactoResponse(ContactoBase):
-    id: UUID
-    cliente_id: UUID
-
-    class Config:
-        from_attributes = True
 
 # --- Domicilio Schemas ---
 class DomicilioBase(BaseModel):
@@ -48,9 +29,17 @@ class DomicilioUpdate(BaseModel):
     transporte_id: Optional[UUID] = None
     zona_id: Optional[UUID] = None
 
-class DomicilioResponse(DomicilioBase):
+class DomicilioResponse(BaseModel):
     id: UUID
     cliente_id: UUID
+    alias: Optional[str] = None
+    calle: Optional[str] = None
+    numero: Optional[str] = None
+    localidad: Optional[str] = None
+    provincia_id: Optional[str] = None
+    es_fiscal: bool = False
+    es_entrega: bool = False
+    transporte_habitual_nodo_id: Optional[UUID] = None
 
     class Config:
         from_attributes = True
@@ -62,10 +51,15 @@ class ClienteBase(BaseModel):
     condicion_iva_id: Optional[UUID] = None
     lista_precios_id: Optional[UUID] = None
     activo: bool = True
+    
+    # Nuevos campos V5.1
+    legacy_id_bas: Optional[str] = None
+    whatsapp_empresa: Optional[str] = None
+    web_portal_pagos: Optional[str] = None
+    datos_acceso_pagos: Optional[str] = None
 
 class ClienteCreate(ClienteBase):
     domicilios: List[DomicilioCreate] = []
-    contactos: List[ContactoCreate] = []
 
 class ClienteUpdate(BaseModel):
     razon_social: Optional[str] = None
@@ -73,14 +67,21 @@ class ClienteUpdate(BaseModel):
     condicion_iva_id: Optional[UUID] = None
     lista_precios_id: Optional[UUID] = None
     activo: Optional[bool] = None
+    legacy_id_bas: Optional[str] = None
+    whatsapp_empresa: Optional[str] = None
+    web_portal_pagos: Optional[str] = None
+    datos_acceso_pagos: Optional[str] = None
+
+from backend.agenda.schemas import VinculoComercialResponse
 
 class ClienteResponse(ClienteBase):
     id: UUID
+    codigo_interno: int
     saldo_actual: float
     created_at: datetime
     updated_at: datetime
     domicilios: List[DomicilioResponse] = []
-    contactos: List[ContactoResponse] = []
+    vinculos: List[VinculoComercialResponse] = []
 
     class Config:
         from_attributes = True
