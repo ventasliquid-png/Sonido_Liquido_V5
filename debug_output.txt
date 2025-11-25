@@ -1,0 +1,9 @@
+Connecting to postgresql://postgres:e@34.95.172.190:5432/postgres...
+
+--- All UBA/Odontologia Clients ---
+Count: 4 | UBA Fc de Psicología [AUDIT] | ACTIVE (ID: 22269f6d-cdab-4d1b-97df-c85932f9af4c)
+Count: 0 | UBA Facultad de Odontología | ACTIVE (ID: 74b4e9c6-a80b-4fb3-8563-32eb3425b94f)
+Count: 0 | UBA Facultad de Psicología | ACTIVE (ID: 8bc077c5-cfb7-4849-8e7c-c46c897dc801)
+Count: 0 | UBA Fac.de Odontología | ACTIVE (ID: e13565e8-7a43-40bd-bbaa-c95283a4544a)
+-----------------------------------
+

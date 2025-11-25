@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sonido Líquido V5 - Maestro Clientes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Configuración de Fuente e Interfaz */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; }
+        
+        /* Scrollbar personalizada sutil */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Clases de utilidad personalizadas */
+        .brand-bg { background-color: #54cb9b; }
+        .brand-text { color: #54cb9b; }
+        .brand-border { border-color: #54cb9b; }
+        
+        /* Animación para el Speed Dial */
+        #speed-dial-section {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+            max-height: 500px; /* Altura arbitraria suficiente */
+            opacity: 1;
+        }
+        
+        #speed-dial-section.collapsed {
+            max-height: 0;
+            opacity: 0;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Estilo Tabla Densa */
+        .table-dense th, .table-dense td {
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- 1. HEADER SUPERIOR (Marca) -->
+    <header class="brand-bg text-white shadow-md z-20 shrink-0">
+        <div class="px-6 py-2 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-layer-group text-xl"></i>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">MAESTRO DE CLIENTES</h1>
+                    <p class="text-xs text-white/80 font-light">Sonido Líquido V5</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4 text-sm">
+                <span class="opacity-80"><i class="fa-solid fa-user-circle mr-1"></i> Admin</span>
+                <span class="bg-white/20 px-2 py-1 rounded text-xs">v5.2.1</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- 2. TOOLBAR (Buscador y Acciones) -->
+    <div class="bg-white border-b border-slate-200 shadow-sm z-10 shrink-0 px-6 py-4 flex flex-col md:flex-row gap-4 items-center justify-between">
+        
+        <!-- Input Buscador (Protagonista) -->
+        <div class="relative w-full md:max-w-2xl group">
+            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <i class="fa-solid fa-search text-slate-400 group-focus-within:brand-text transition-colors"></i>
+            </div>
+            <input type="text" 
+                   id="searchInput" 
+                   class="block w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#54cb9b]/30 focus:border-[#54cb9b] transition-all shadow-inner text-lg" 
+                   placeholder="🔍 Buscar por Razón Social, CUIT o Fantasía... (Escribe para filtrar)" 
+                   autocomplete="off">
+            <!-- Loader simulado (oculto por defecto) -->
+            <div id="searchLoader" class="absolute inset-y-0 right-0 pr-4 flex items-center hidden">
+                <i class="fa-solid fa-circle-notch fa-spin brand-text"></i>
+            </div>
+        </div>
+
+        <!-- Filtros y Botones -->
+        <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+            <!-- Tabs Visuales -->
+            <div class="flex bg-slate-100 p-1 rounded-lg">
+                <button class="px-4 py-1.5 rounded-md text-sm font-medium bg-white text-slate-700 shadow-sm brand-text">Todos</button>
+                <button class="px-4 py-1.5 rounded-md text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-200 transition">Activos</button>
+                <button class="px-4 py-1.5 rounded-md text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-200 transition">Inactivos</button>
+            </div>
+
+            <!-- Botón Acción Principal -->
+            <button class="brand-bg hover:bg-emerald-600 text-white px-5 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 font-medium active:scale-95">
+                <i class="fa-solid fa-plus"></i>
+                <span class="hidden lg:inline">[F4] Nuevo Cliente</span>
+                <span class="lg:hidden">Nuevo</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- CONTENEDOR PRINCIPAL SCROLLABLE -->
+    <main class="flex-1 overflow-y-auto relative bg-slate-100">
+        
+        <!-- ZONA 1: SPEED DIAL (Recientes / Frecuentes) -->
+        <!-- ID usado para ocultar con JS -->
+        <section id="speed-dial-section" class="bg-slate-50 border-b border-slate-200 px-6 py-6">
+            <div class="flex justify-between items-end mb-4">
+                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Recientes / Frecuentes
+                </h2>
+                <button class="text-xs brand-text hover:underline">Gestionar Accesos Rápidos</button>
+            </div>
+
+            <!-- Grid de Tarjetas -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                
+                <!-- Tarjeta 1 -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-[#54cb9b] hover:shadow-md cursor-pointer transition-all group relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full brand-bg"></div>
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="font-bold text-slate-700 truncate pr-2 group-hover:brand-text">Lácteos de Poblet</div>
+                        <span class="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold">ALD</span>
+                    </div>
+                    <div class="text-xs text-slate-500 mb-2 truncate">Av. 44 Nro 1200, La Plata</div>
+                    <div class="flex justify-between items-end mt-2 border-t border-slate-50 pt-2">
+                        <div class="text-xs font-semibold text-slate-400">Saldo:</div>
+                        <div class="text-sm font-bold text-slate-700">$ 452.100,00</div>
+                    </div>
+                </div>
+
+                <!-- Tarjeta 2 (Con Deuda) -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-red-400 hover:shadow-md cursor-pointer transition-all group relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="font-bold text-slate-700 truncate pr-2">Kiosco "El Paso"</div>
+                        <span class="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-bold">MOR</span>
+                    </div>
+                    <div class="text-xs text-slate-500 mb-2 truncate">Calle 12 esq 54</div>
+                    <div class="flex justify-between items-end mt-2 border-t border-slate-50 pt-2">
+                        <div class="text-xs font-semibold text-slate-400">Saldo:</div>
+                        <div class="text-sm font-bold text-red-600">$ -12.500,50</div>
+                    </div>
+                </div>
+
+                <!-- Tarjeta 3 -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-[#54cb9b] hover:shadow-md cursor-pointer transition-all group relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full brand-bg"></div>
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="font-bold text-slate-700 truncate pr-2 group-hover:brand-text">Nestlé Argentina</div>
+                        <span class="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold">PRO</span>
+                    </div>
+                    <div class="text-xs text-slate-500 mb-2 truncate">Parque Industrial Pilar</div>
+                    <div class="flex justify-between items-end mt-2 border-t border-slate-50 pt-2">
+                        <div class="text-xs font-semibold text-slate-400">Saldo:</div>
+                        <div class="text-sm font-bold text-slate-700">$ 0,00</div>
+                    </div>
+                </div>
+
+                <!-- Tarjeta 4 -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-[#54cb9b] hover:shadow-md cursor-pointer transition-all group relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full brand-bg"></div>
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="font-bold text-slate-700 truncate pr-2 group-hover:brand-text">Gelato S.R.L.</div>
+                        <span class="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold">ALD</span>
+                    </div>
+                    <div class="text-xs text-slate-500 mb-2 truncate">Diag 74 e/ 48 y 49</div>
+                    <div class="flex justify-between items-end mt-2 border-t border-slate-50 pt-2">
+                        <div class="text-xs font-semibold text-slate-400">Saldo:</div>
+                        <div class="text-sm font-bold text-green-600">$ 1.200,00</div>
+                    </div>
+                </div>
+
+                <!-- Tarjeta 5 -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-[#54cb9b] hover:shadow-md cursor-pointer transition-all group relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full brand-bg"></div>
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="font-bold text-slate-700 truncate pr-2 group-hover:brand-text">Panadería La Familia</div>
+                        <span class="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold">ALD</span>
+                    </div>
+                    <div class="text-xs text-slate-500 mb-2 truncate">Los Hornos, Calle 137</div>
+                    <div class="flex justify-between items-end mt-2 border-t border-slate-50 pt-2">
+                        <div class="text-xs font-semibold text-slate-400">Saldo:</div>
+                        <div class="text-sm font-bold text-slate-700">$ 54.000,00</div>
+                    </div>
+                </div>
+
+                 <!-- Tarjeta 6 (Alerta) -->
+                 <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-yellow-400 hover:shadow-md cursor-pointer transition-all group relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-yellow-400"></div>
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="font-bold text-slate-700 truncate pr-2">MaxiConsumo</div>
+                        <span class="text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded font-bold">REV</span>
+                    </div>
+                    <div class="text-xs text-slate-500 mb-2 truncate">Camino Centenario</div>
+                    <div class="flex justify-between items-end mt-2 border-t border-slate-50 pt-2">
+                        <div class="text-xs font-semibold text-slate-400">Saldo:</div>
+                        <div class="text-sm font-bold text-yellow-600">$ 980.550,00</div>
+                    </div>
+                </div>
+
+                <!-- Tarjeta 7 -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-[#54cb9b] hover:shadow-md cursor-pointer transition-all group relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full brand-bg"></div>
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="font-bold text-slate-700 truncate pr-2 group-hover:brand-text">Club Estudiantes</div>
+                        <span class="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold">ALD</span>
+                    </div>
+                    <div class="text-xs text-slate-500 mb-2 truncate">Sede Social</div>
+                    <div class="flex justify-between items-end mt-2 border-t border-slate-50 pt-2">
+                        <div class="text-xs font-semibold text-slate-400">Saldo:</div>
+                        <div class="text-sm font-bold text-slate-700">$ 15.000,00</div>
+                    </div>
+                </div>
+
+                <!-- Tarjeta 8 -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-[#54cb9b] hover:shadow-md cursor-pointer transition-all group relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full brand-bg"></div>
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="font-bold text-slate-700 truncate pr-2 group-hover:brand-text">Buffet Facultad</div>
+                        <span class="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold">ALD</span>
+                    </div>
+                    <div class="text-xs text-slate-500 mb-2 truncate">Calle 47 y 1</div>
+                    <div class="flex justify-between items-end mt-2 border-t border-slate-50 pt-2">
+                        <div class="text-xs font-semibold text-slate-400">Saldo:</div>
+                        <div class="text-sm font-bold text-slate-700">$ 4.250,00</div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ZONA 2: PADRÓN GENERAL (Data Grid) -->
+        <section class="p-6">
+            <h2 id="gridTitle" class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <i class="fa-solid fa-list"></i> Padrón General
+            </h2>
+            
+            <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left table-dense">
+                        <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200 sticky top-0">
+                            <tr>
+                                <th class="px-4 py-3 w-16 text-center">ID</th>
+                                <th class="px-4 py-3">Razón Social / Nombre</th>
+                                <th class="px-4 py-3">Fantasía</th>
+                                <th class="px-4 py-3">CUIT</th>
+                                <th class="px-4 py-3">Localidad</th>
+                                <th class="px-4 py-3 text-right">Saldo</th>
+                                <th class="px-4 py-3 text-center">Est.</th>
+                                <th class="px-4 py-3 text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="clientsTableBody" class="divide-y divide-slate-100">
+                            <!-- JS llenará esto si fuera dinámico, aquí pongo hardcode para visualización -->
+                            
+                            <!-- Fila 1 -->
+                            <tr class="hover:bg-slate-50 group transition-colors client-row">
+                                <td class="px-4 py-2 text-center text-slate-400 font-mono text-xs">1024</td>
+                                <td class="px-4 py-2 font-medium text-slate-700 group-hover:brand-text">Distribuidora Sur S.A.</td>
+                                <td class="px-4 py-2 text-slate-500">DistriSur</td>
+                                <td class="px-4 py-2 text-slate-500 font-mono text-xs">30-71223344-9</td>
+                                <td class="px-4 py-2 text-slate-500">Berisso</td>
+                                <td class="px-4 py-2 text-right font-medium text-slate-700">$ 1.500.200,00</td>
+                                <td class="px-4 py-2 text-center"><span class="w-2 h-2 rounded-full bg-green-500 inline-block" title="Activo"></span></td>
+                                <td class="px-4 py-2 text-center text-slate-400">
+                                    <button class="hover:text-slate-600 px-2"><i class="fa-solid fa-pen"></i></button>
+                                    <button class="hover:brand-text px-2"><i class="fa-solid fa-eye"></i></button>
+                                </td>
+                            </tr>
+                            
+                            <!-- Fila 2 -->
+                            <tr class="hover:bg-slate-50 group transition-colors client-row">
+                                <td class="px-4 py-2 text-center text-slate-400 font-mono text-xs">1025</td>
+                                <td class="px-4 py-2 font-medium text-slate-700 group-hover:brand-text">Roberto Gomez</td>
+                                <td class="px-4 py-2 text-slate-500">Kiosco Bob</td>
+                                <td class="px-4 py-2 text-slate-500 font-mono text-xs">20-22334455-1</td>
+                                <td class="px-4 py-2 text-slate-500">La Plata</td>
+                                <td class="px-4 py-2 text-right font-medium text-red-500">$ -2.400,00</td>
+                                <td class="px-4 py-2 text-center"><span class="w-2 h-2 rounded-full bg-red-500 inline-block" title="Deuda"></span></td>
+                                <td class="px-4 py-2 text-center text-slate-400">
+                                    <button class="hover:text-slate-600 px-2"><i class="fa-solid fa-pen"></i></button>
+                                    <button class="hover:brand-text px-2"><i class="fa-solid fa-eye"></i></button>
+                                </td>
+                            </tr>
+
+                             <!-- Fila 3 -->
+                             <tr class="hover:bg-slate-50 group transition-colors client-row">
+                                <td class="px-4 py-2 text-center text-slate-400 font-mono text-xs">1026</td>
+                                <td class="px-4 py-2 font-medium text-slate-700 group-hover:brand-text">Ferretería Industrial La Tuerca</td>
+                                <td class="px-4 py-2 text-slate-500">La Tuerca</td>
+                                <td class="px-4 py-2 text-slate-500 font-mono text-xs">30-66554433-2</td>
+                                <td class="px-4 py-2 text-slate-500">Ensenada</td>
+                                <td class="px-4 py-2 text-right font-medium text-slate-700">$ 45.300,00</td>
+                                <td class="px-4 py-2 text-center"><span class="w-2 h-2 rounded-full bg-green-500 inline-block"></span></td>
+                                <td class="px-4 py-2 text-center text-slate-400">
+                                    <button class="hover:text-slate-600 px-2"><i class="fa-solid fa-pen"></i></button>
+                                    <button class="hover:brand-text px-2"><i class="fa-solid fa-eye"></i></button>
+                                </td>
+                            </tr>
+
+                            <!-- Más filas para rellenar visualmente -->
+                            <tr class="hover:bg-slate-50 group transition-colors client-row">
+                                <td class="px-4 py-2 text-center text-slate-400 font-mono text-xs">1027</td>
+                                <td class="px-4 py-2 font-medium text-slate-700 group-hover:brand-text">Gimnasio PowerFit</td>
+                                <td class="px-4 py-2 text-slate-500">PowerFit</td>
+                                <td class="px-4 py-2 text-slate-500 font-mono text-xs">30-99887766-1</td>
+                                <td class="px-4 py-2 text-slate-500">City Bell</td>
+                                <td class="px-4 py-2 text-right font-medium text-slate-700">$ 0,00</td>
+                                <td class="px-4 py-2 text-center"><span class="w-2 h-2 rounded-full bg-gray-400 inline-block" title="Inactivo"></span></td>
+                                <td class="px-4 py-2 text-center text-slate-400">
+                                    <button class="hover:text-slate-600 px-2"><i class="fa-solid fa-pen"></i></button>
+                                    <button class="hover:brand-text px-2"><i class="fa-solid fa-eye"></i></button>
+                                </td>
+                            </tr>
+
+                             <!-- Generación de filas genéricas para scroll -->
+                             <script>
+                                // Pequeño script inline solo para renderizar filas demo extra y no ensuciar el HTML
+                                for(let i=1028; i<1040; i++) {
+                                    document.write(`
+                                    <tr class="hover:bg-slate-50 group transition-colors client-row">
+                                        <td class="px-4 py-2 text-center text-slate-400 font-mono text-xs">${i}</td>
+                                        <td class="px-4 py-2 font-medium text-slate-700 group-hover:brand-text">Cliente Genérico S.A. ${i}</td>
+                                        <td class="px-4 py-2 text-slate-500">Fantasía ${i}</td>
+                                        <td class="px-4 py-2 text-slate-500 font-mono text-xs">30-${i}2233-1</td>
+                                        <td class="px-4 py-2 text-slate-500">La Plata</td>
+                                        <td class="px-4 py-2 text-right font-medium text-slate-700">$ ${(Math.random()*100000).toFixed(2)}</td>
+                                        <td class="px-4 py-2 text-center"><span class="w-2 h-2 rounded-full bg-green-500 inline-block"></span></td>
+                                        <td class="px-4 py-2 text-center text-slate-400">
+                                            <button class="hover:text-slate-600 px-2"><i class="fa-solid fa-pen"></i></button>
+                                            <button class="hover:brand-text px-2"><i class="fa-solid fa-eye"></i></button>
+                                        </td>
+                                    </tr>
+                                    `);
+                                }
+                             </script>
+
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Paginador Footer Tabla -->
+                <div class="bg-slate-50 px-4 py-2 border-t border-slate-200 flex justify-between items-center text-xs text-slate-500">
+                    <span>Mostrando 15 de 2.450 clientes</span>
+                    <div class="flex gap-2">
+                        <button class="px-2 py-1 rounded hover:bg-slate-200 disabled:opacity-50"><i class="fa-solid fa-chevron-left"></i></button>
+                        <button class="px-2 py-1 rounded hover:bg-slate-200"><i class="fa-solid fa-chevron-right"></i></button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Espacio extra al final para scroll cómodo -->
+        <div class="h-10"></div>
+    </main>
+    
+    <!-- FOOTER INFO SISTEMA (Solicitado anteriormente) -->
+    <footer class="bg-slate-800 text-slate-400 text-xs py-1 px-4 flex justify-between border-t border-slate-700 shrink-0 z-20">
+        <span>Sonido Líquido V5 &copy; 2025</span>
+        <span class="flex items-center gap-2">
+            <i class="fa-solid fa-user-gear text-slate-500"></i>
+            Supervisor de Producción
+        </span>
+    </footer>
+
+    <!-- LÓGICA DE INTERACCIÓN -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchInput = document.getElementById('searchInput');
+            const speedDialSection = document.getElementById('speed-dial-section');
+            const gridTitle = document.getElementById('gridTitle');
+            const rows = document.querySelectorAll('.client-row');
+            const loader = document.getElementById('searchLoader');
+
+            // Función principal de interacción
+            searchInput.addEventListener('keyup', (e) => {
+                const query = e.target.value.toLowerCase().trim();
+                
+                // 1. Lógica del Speed Dial (Concepto "WhatsApp")
+                if (query.length > 0) {
+                    // Si hay texto, colapsamos el speed dial para dar foco a la grilla
+                    speedDialSection.classList.add('collapsed');
+                    // Cambiamos el título de la grilla para dar feedback
+                    gridTitle.innerHTML = `<i class="fa-solid fa-search brand-text"></i> Resultados de búsqueda: "${e.target.value}"`;
+                    loader.classList.remove('hidden'); // Simular carga breve
+                    
+                    // Simulación visual de "pensando" (solo estético)
+                    setTimeout(() => loader.classList.add('hidden'), 300);
+
+                } else {
+                    // Si borra todo, vuelve el estado inicial
+                    speedDialSection.classList.remove('collapsed');
+                    gridTitle.innerHTML = `<i class="fa-solid fa-list"></i> Padrón General`;
+                    loader.classList.add('hidden');
+                }
+
+                // 2. Filtrado simple de tabla (Frontend search simulation)
+                rows.forEach(row => {
+                    const text = row.innerText.toLowerCase();
+                    if(text.includes(query)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+
+            // Focus inicial en el buscador para rapidez operativa
+            searchInput.focus();
+        });
+    </script>
+</body>
+</html>

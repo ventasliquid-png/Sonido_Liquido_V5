@@ -209,3 +209,70 @@ Se registró y resolvió un bloqueo crítico de servicio que afectó la estabili
 ### 3. Próximo Paso
 *   Inicio de fase de diseño Frontend: **Módulo Rubros**.
 
+
+---
+
+## [2025-11-23] - [UBICACIÓN: CA] - SESIÓN NOCTURNA
+**Operador:** Comandante
+**Agente Activo:** Gy (Antigravity)
+
+### 1. Resumen de Sesión
+Se abordó y resolvió un bloqueo crítico en el Frontend relacionado con `tailwindcss` v4 (Bleeding Edge). Se ejecutó un downgrade estratégico a la versión estable v3.4.1 para garantizar la estabilidad del despliegue. Adicionalmente, se implementó un cambio de diseño visual a "Light Mode" (Fondo Slate-50 / Texto Gray-900) por orden directa del Comandante, abandonando el esquema "Dark Mode" anterior.
+
+### 2. Cambios Técnicos Realizados
+*   **[frontend/package.json]:** Downgrade de `tailwindcss` (v4 -> v3.4.1). Eliminado `@tailwindcss/postcss`.
+*   **[frontend/postcss.config.js]:** Revertido a configuración estándar CommonJS para v3.
+*   **[frontend/src/styles/main.scss]:**
+    *   Reemplazado `@import "tailwindcss"` por directivas `@tailwind`.
+    *   Actualizadas variables globales CSS para esquema Light Mode (`--color-fondo`, `--color-texto-general`, etc.).
+*   **[frontend/src/views/Clientes/ClienteList.vue]:** Refactorización completa de estilos para eliminar clases "hardcoded" oscuras y adoptar el nuevo esquema visual claro.
+
+### 3. Estado Actual (El "Punto de Guardado")
+*   **Frontend:** 🟢 OPERATIVO. Servidor Vite levanta sin errores en puerto 5173.
+*   **UI:** Esquema "Light Mode" activo y verificado.
+*   **Backend:** Sin cambios en esta sesión (sigue estable).
+
+### 4. Cierre de Sesión [CA] (Casa)
+*   **Hora:** 00:15 (Aprox)
+*   **Estado Git:** ⚠️ Cambios pendientes de commit (Fix Frontend + Light Mode).
+*   **Instrucción para Operador:**
+    1.  Ejecutar `git add .`
+    2.  Ejecutar `git commit -m "Fix: Downgrade Tailwind v3 + UI Light Mode"`
+    3.  Ejecutar `git push origin main`
+*   **Misión para [OF] (Oficina):**
+    1.  Hacer `git pull`.
+    2.  Ejecutar `npm install` en `frontend/` para sincronizar dependencias (downgrade).
+    3.  Verificar visualización en monitores de oficina.
+
+---
+
+## [2025-11-24] - [UBICACIÓN: CA] - SESIÓN NOCTURNA (CIERRE)
+**Operador:** Comandante
+**Agente Activo:** Gy (Antigravity)
+
+### 1. Estado Actual (CA)
+*   **Backend:** Estabilizado (Dependencias arregladas).
+*   **Frontend:** Fase 1 Operativa (Light Mode, Diseño Híbrido Speed Dial + Tabla).
+*   **Base de Datos:** Restricción CUIT eliminada. Campo `requiere_auditoria` agregado.
+
+### 2. Nuevas Reglas de Negocio (Doctrina)
+*   **Smart CUIT:** Se permite duplicidad. Si existe, no bloquea, pero marca `requiere_auditoria=True` (Libertad Vigilada).
+*   **Borrado Físico:** RESTRINGIDO. Solo si no tiene historia. Si tiene historia, el backend debe bloquear (409 Conflict).
+*   **Interfaz:** Se aprobó el modelo Híbrido (Tarjetas que se ocultan al buscar).
+
+### 3. Próximos Pasos (Para el Nodo OF)
+*   Iniciar Módulo **PRODUCTOS**.
+*   Implementar la herramienta de "Auditoría/Aprobación" para los duplicados.
+*   **Recordatorio Futuro:** El módulo de Facturación requerirá lógica de "Talonarios Finitos" y control de rangos CAI.
+
+### 4. Cierre de Sesión [CA]
+*   **Hora:** 22:55 (Aprox)
+*   **Estado Git:** ⚠️ Cambios pendientes de commit (Ranking Uso + Smart CUIT).
+*   **Instrucción para Operador:**
+    1.  Ejecutar `git add .`
+    2.  Ejecutar `git commit -m "Feat: Smart CUIT, Ranking Uso y Auditoría"`
+    3.  Ejecutar `git push origin main`
+*   **Misión para [OF] (Oficina):**
+    1.  Hacer `git pull`.
+    2.  **IMPORTANTE:** Ejecutar `python add_audit_column.py` y `python add_usage_counter.py` si no se tiene Alembic configurado allá.
+    3.  Verificar funcionamiento de Speed Dial.

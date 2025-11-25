@@ -12,21 +12,20 @@ class ClienteService:
     @staticmethod
     def create_cliente(db: Session, cliente_in: schemas.ClienteCreate) -> Cliente:
         try:
-            # Verificar duplicados (CUIT)
-            existing_cliente = db.query(Cliente).filter(Cliente.cuit == cliente_in.cuit).first()
-            if existing_cliente:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Ya existe un cliente con este CUIT."
-                )
-
+            # Libertad Vigilada: Check for duplicates
+            # If CUIT exists, mark for audit but ALLOW creation
+            existing = db.query(Cliente).filter(Cliente.cuit == cliente_in.cuit).first()
+            if existing:
+                cliente_in.requiere_auditoria = True
+            
             # Crear Cliente
             db_cliente = Cliente(
                 razon_social=cliente_in.razon_social,
                 cuit=cliente_in.cuit,
                 condicion_iva_id=cliente_in.condicion_iva_id,
                 lista_precios_id=cliente_in.lista_precios_id,
-                activo=cliente_in.activo
+                activo=cliente_in.activo,
+                requiere_auditoria=cliente_in.requiere_auditoria
             )
             db.add(db_cliente)
             db.commit()
@@ -75,8 +74,13 @@ class ClienteService:
         ).filter(Cliente.id == cliente_id).first()
 
     @staticmethod
-    def get_clientes(db: Session, skip: int = 0, limit: int = 100) -> List[Cliente]:
-        return db.query(Cliente).filter(Cliente.activo == True).offset(skip).limit(limit).all()
+    def get_clientes(db: Session, skip: int = 0, limit: int = 100, include_inactive: bool = False) -> List[Cliente]:
+        # Modified to allow fetching inactive clients if needed, or by default just return all and let frontend filter
+        # User requested: "SI un cliente está de baja lógica, no es mostrado en el listado cuando se one 'todos' en el encabezado"
+        # So we should probably return ALL clients by default or have a flag.
+        # The prompt said: "Verifica que el filtro 'Todos' en la lista traiga también a los inactivos."
+        # So I will remove the filter(Cliente.activo == True).
+        return db.query(Cliente).offset(skip).limit(limit).all()
 
     @staticmethod
     def update_cliente(db: Session, cliente_id: UUID, cliente_in: schemas.ClienteUpdate) -> Optional[Cliente]:
@@ -106,16 +110,57 @@ class ClienteService:
         db.refresh(db_cliente)
         return db_cliente
 
+    @staticmethod
+    def check_cuit(db: Session, cuit: str) -> schemas.CuitCheckResponse:
+        clients = db.query(Cliente).filter(Cliente.cuit == cuit).all()
+        
+        if not clients:
+            return schemas.CuitCheckResponse(status="NEW", existing_clients=[])
+        
+        # Check if any is active
+        active_clients = [c for c in clients if c.activo]
+        
+        if active_clients:
+            summary_list = [
+                schemas.ClienteSummary(
+                    id=c.id, 
+                    razon_social=c.razon_social, 
+                    nombre_fantasia=getattr(c, 'nombre_fantasia', None), 
+                    activo=c.activo
+                ) for c in clients
+            ]
+            return schemas.CuitCheckResponse(status="EXISTS", existing_clients=summary_list)
+        else:
+            summary_list = [
+                schemas.ClienteSummary(
+                    id=c.id, 
+                    razon_social=c.razon_social, 
+                    nombre_fantasia=getattr(c, 'nombre_fantasia', None),
+                    activo=c.activo
+                ) for c in clients
+            ]
+            return schemas.CuitCheckResponse(status="INACTIVE", existing_clients=summary_list)
+
+    # --- Usage Ranking (V5.2) ---
+    @staticmethod
+    def increment_usage(db: Session, cliente_id: UUID):
+        db_cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+        if db_cliente:
+            db_cliente.contador_uso += 1
+            db.commit()
+            return True
+        return False
+
+    @staticmethod
+    def get_top_clients(db: Session, limit: int = 8) -> List[Cliente]:
+        return db.query(Cliente).filter(Cliente.activo == True).order_by(Cliente.contador_uso.desc()).limit(limit).all()
+
     # --- Domicilios ---
     @staticmethod
     def create_domicilio(db: Session, cliente_id: UUID, domicilio_in: schemas.DomicilioCreate) -> Domicilio:
         # Validar Provincia
         from backend.maestros.models import Provincia
         if domicilio_in.provincia: # Schema uses 'provincia' string, model uses 'provincia_id'
-             # Map schema 'provincia' to model 'provincia_id' if needed, or assume schema sends ID
-             # The schema has 'provincia: Optional[str]'. The model has 'provincia_id'.
-             # I should probably check if the schema field is meant to be the ID.
-             # User said: "Al crear un Domicilio, valida que la Provincia sea correcta."
              prov = db.query(Provincia).filter(Provincia.id == domicilio_in.provincia).first()
              if not prov:
                  raise HTTPException(status_code=400, detail="Código de provincia inválido")

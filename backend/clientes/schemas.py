@@ -51,6 +51,7 @@ class ClienteBase(BaseModel):
     condicion_iva_id: Optional[UUID] = None
     lista_precios_id: Optional[UUID] = None
     activo: bool = True
+    requiere_auditoria: bool = False
     
     # Nuevos campos V5.1
     legacy_id_bas: Optional[str] = None
@@ -67,6 +68,7 @@ class ClienteUpdate(BaseModel):
     condicion_iva_id: Optional[UUID] = None
     lista_precios_id: Optional[UUID] = None
     activo: Optional[bool] = None
+    requiere_auditoria: Optional[bool] = None
     legacy_id_bas: Optional[str] = None
     whatsapp_empresa: Optional[str] = None
     web_portal_pagos: Optional[str] = None
@@ -76,8 +78,9 @@ from backend.agenda.schemas import VinculoComercialResponse
 
 class ClienteResponse(ClienteBase):
     id: UUID
-    codigo_interno: int
-    saldo_actual: float
+    codigo_interno: Optional[int] = None
+    saldo_actual: float = 0.0
+    contador_uso: int = 0
     created_at: datetime
     updated_at: datetime
     domicilios: List[DomicilioResponse] = []
@@ -85,3 +88,16 @@ class ClienteResponse(ClienteBase):
 
     class Config:
         from_attributes = True
+
+class ClienteSummary(BaseModel):
+    id: UUID
+    razon_social: str
+    nombre_fantasia: Optional[str] = None
+    activo: bool
+
+    class Config:
+        from_attributes = True
+
+class CuitCheckResponse(BaseModel):
+    status: str # NEW, EXISTS, INACTIVE
+    existing_clients: List[ClienteSummary] = []

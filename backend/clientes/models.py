@@ -18,9 +18,8 @@ class Cliente(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     razon_social = Column(String, nullable=False, index=True)
-    cuit = Column(String, unique=True, nullable=False, index=True)
+    cuit = Column(String, unique=False, nullable=False, index=True)
     
-    # Identificadores
     # Identificadores
     codigo_interno = Column(Integer, Sequence("clientes_codigo_interno_seq", start=1000), nullable=True)
     legacy_id_bas = Column(String, nullable=True) # ID del sistema BAS anterior
@@ -40,7 +39,11 @@ class Cliente(Base):
     
     # Protocolo Lázaro
     activo = Column(Boolean, default=True, nullable=False)
+    requiere_auditoria = Column(Boolean, default=False)
     
+    # Ranking de Uso (V5.2)
+    contador_uso = Column(Integer, default=0)
+
     # Auditoría
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))

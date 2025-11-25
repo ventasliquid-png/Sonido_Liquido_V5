@@ -1,35 +1,23 @@
 import api from './api';
 
 export default {
-    getAll(params) {
-        return api.get('/clientes/', { params });
-    },
-    getById(id) {
-        return api.get(`/clientes/${id}`);
-    },
-    create(data) {
-        return api.post('/clientes/', data);
-    },
-    update(id, data) {
-        return api.put(`/clientes/${id}`, data);
-    },
-    delete(id) {
-        return api.delete(`/clientes/${id}`);
-    },
-    // Sub-recursos
-    createDomicilio(clienteId, data) {
-        return api.post(`/clientes/${clienteId}/domicilios`, data);
-    },
-    updateDomicilio(clienteId, domicilioId, data) {
-        return api.put(`/clientes/${clienteId}/domicilios/${domicilioId}`, data);
-    },
-    deleteDomicilio(clienteId, domicilioId) {
-        return api.delete(`/clientes/${clienteId}/domicilios/${domicilioId}`);
-    },
-    createVinculo(clienteId, data) {
-        return api.post(`/clientes/${clienteId}/vinculos`, data);
-    },
-    deleteVinculo(clienteId, vinculoId) {
-        return api.delete(`/clientes/${clienteId}/vinculos/${vinculoId}`);
-    }
+    getAll: (params) => api.get('/clientes/', { params }),
+    getById: (id) => api.get(`/clientes/${id}`),
+    checkCuit: (cuit) => api.get(`/clientes/check-cuit/${cuit}`),
+    create: (data) => api.post('/clientes/', data),
+    update: (id, data) => api.put(`/clientes/${id}`, data),
+    delete: (id) => api.delete(`/clientes/${id}`),
+
+    // Domicilios
+    createDomicilio: (clienteId, data) => api.post(`/clientes/${clienteId}/domicilios`, data),
+    updateDomicilio: (clienteId, domicilioId, data) => api.put(`/clientes/${clienteId}/domicilios/${domicilioId}`, data),
+    deleteDomicilio: (clienteId, domicilioId) => api.delete(`/clientes/${clienteId}/domicilios/${domicilioId}`),
+
+    // Vinculos
+    createVinculo: (clienteId, data) => api.post(`/clientes/${clienteId}/vinculos`, data),
+    deleteVinculo: (clienteId, vinculoId) => api.delete(`/clientes/${clienteId}/vinculos/${vinculoId}`),
+
+    // Usage Ranking (V5.2)
+    getTopClients: () => api.get('/clientes/top'),
+    incrementUsage: (id) => api.post(`/clientes/${id}/interaction`)
 };
