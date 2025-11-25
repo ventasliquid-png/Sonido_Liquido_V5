@@ -22,6 +22,7 @@ class Persona(Base):
     linkedin = Column(String, nullable=True)
     
     observaciones = Column(Text, nullable=True) # Gustos, cumpleaños
+    activo = Column(Boolean, default=True)
 
     def __repr__(self):
         return f"<Persona(nombre='{self.nombre_completo}')>"

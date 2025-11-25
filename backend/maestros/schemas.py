@@ -2,6 +2,7 @@
 from typing import Optional
 from uuid import UUID
 from pydantic import BaseModel
+from decimal import Decimal
 
 class ProvinciaResponse(BaseModel):
     id: str
@@ -21,9 +22,67 @@ class CondicionIvaResponse(BaseModel):
     class Config:
         from_attributes = True
 
-class ListaPreciosResponse(BaseModel):
-    id: UUID
+# --- Lista Precios ---
+class ListaPreciosBase(BaseModel):
     nombre: str
-    activo: bool
+    coeficiente: Decimal = 1.0
+    tipo: str = 'PRESUPUESTO' # 'FISCAL', 'PRESUPUESTO'
+    activo: bool = True
+
+class ListaPreciosCreate(ListaPreciosBase):
+    pass
+
+class ListaPreciosUpdate(BaseModel):
+    nombre: Optional[str] = None
+    coeficiente: Optional[Decimal] = None
+    tipo: Optional[str] = None
+    activo: Optional[bool] = None
+
+class ListaPreciosResponse(ListaPreciosBase):
+    id: UUID
+    class Config:
+        from_attributes = True
+
+# --- Ramo ---
+class RamoBase(BaseModel):
+    nombre: str
+    descripcion: Optional[str] = None
+    activo: bool = True
+
+class RamoCreate(RamoBase):
+    pass
+
+class RamoUpdate(BaseModel):
+    nombre: Optional[str] = None
+    descripcion: Optional[str] = None
+    activo: Optional[bool] = None
+
+class RamoResponse(RamoBase):
+    id: UUID
+    class Config:
+        from_attributes = True
+
+# --- Vendedor ---
+class VendedorBase(BaseModel):
+    nombre: str
+    email: Optional[str] = None
+    telefono: Optional[str] = None
+    comision_porcentaje: Decimal = 0
+    cbu_alias: Optional[str] = None
+    activo: bool = True
+
+class VendedorCreate(VendedorBase):
+    pass
+
+class VendedorUpdate(BaseModel):
+    nombre: Optional[str] = None
+    email: Optional[str] = None
+    telefono: Optional[str] = None
+    comision_porcentaje: Optional[Decimal] = None
+    cbu_alias: Optional[str] = None
+    activo: Optional[bool] = None
+
+class VendedorResponse(VendedorBase):
+    id: UUID
     class Config:
         from_attributes = True

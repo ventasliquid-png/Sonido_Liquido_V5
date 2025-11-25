@@ -111,6 +111,33 @@ class ClienteService:
         return db_cliente
 
     @staticmethod
+    def approve_cliente(db: Session, cliente_id: UUID) -> Optional[Cliente]:
+        db_cliente = ClienteService.get_cliente(db, cliente_id)
+        if not db_cliente:
+            return None
+        
+        db_cliente.requiere_auditoria = False
+        db.add(db_cliente)
+        db.commit()
+        db.refresh(db_cliente)
+        return db_cliente
+
+    @staticmethod
+    def hard_delete_cliente(db: Session, cliente_id: UUID) -> Optional[Cliente]:
+        """Hard delete. Raises IntegrityError if it has related records."""
+        db_cliente = ClienteService.get_cliente(db, cliente_id)
+        if not db_cliente:
+            return None
+        
+        try:
+            db.delete(db_cliente)
+            db.commit()
+            return db_cliente
+        except IntegrityError as e:
+            db.rollback()
+            raise e
+
+    @staticmethod
     def check_cuit(db: Session, cuit: str) -> schemas.CuitCheckResponse:
         clients = db.query(Cliente).filter(Cliente.cuit == cuit).all()
         

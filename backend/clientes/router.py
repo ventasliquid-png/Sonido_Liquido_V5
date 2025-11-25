@@ -59,6 +59,27 @@ def delete_cliente(cliente_id: UUID, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
     return db_cliente
 
+@router.put("/{cliente_id}/aprobar", response_model=ClienteResponse)
+def approve_cliente(cliente_id: UUID, db: Session = Depends(get_db)):
+    db_cliente = ClienteService.approve_cliente(db, cliente_id)
+    if db_cliente is None:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    return db_cliente
+
+@router.delete("/{cliente_id}/hard", response_model=ClienteResponse)
+def hard_delete_cliente(cliente_id: UUID, db: Session = Depends(get_db)):
+    from sqlalchemy.exc import IntegrityError
+    try:
+        db_cliente = ClienteService.hard_delete_cliente(db, cliente_id)
+        if db_cliente is None:
+            raise HTTPException(status_code=404, detail="Cliente no encontrado")
+        return db_cliente
+    except IntegrityError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, 
+            detail="No se puede eliminar el cliente porque tiene registros asociados (historial)."
+        )
+
 # --- Domicilios ---
 from backend.clientes.schemas import DomicilioCreate, DomicilioUpdate, DomicilioResponse
 

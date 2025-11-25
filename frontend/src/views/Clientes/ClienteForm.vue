@@ -31,7 +31,9 @@ const formData = ref({
     datos_acceso_pagos: '',
     activo: true,
     lista_precios_id: null,
-    limite_credito: 0
+    lista_precios_id: null,
+    limite_credito: 0,
+    requiere_auditoria: false
 });
 
 const conflictModal = ref({
@@ -160,7 +162,10 @@ watch(() => props.show, async (newVal) => {
                 datos_acceso_pagos: '',
                 activo: true,
                 lista_precios_id: null,
-                limite_credito: 0
+                activo: true,
+                lista_precios_id: null,
+                limite_credito: 0,
+                requiere_auditoria: false
             };
         }
     }
@@ -263,13 +268,47 @@ const handleSave = async (force = false) => {
 };
 
 const handleDelete = async () => {
+    // Baja Lógica
     if (!confirm('¿Está seguro de dar de BAJA a este cliente? Esta acción es lógica y no borrará historial.')) return;
     try {
         await store.deleteCliente(props.clienteId);
         emit('saved', props.clienteId); // Refresh list
         emit('close');
     } catch (error) {
-        alert('Error al dar de baja: ' + error.message);
+        console.error('Error deleting cliente:', error);
+        alert('Error al dar de baja al cliente.');
+    }
+};
+
+const handleValidate = async () => {
+    if (!confirm('¿Confirmar validación de este cliente?')) return;
+    try {
+        await store.approveCliente(props.clienteId);
+        alert('Cliente validado exitosamente.');
+        emit('saved', props.clienteId);
+    } catch (error) {
+        console.error('Error validando cliente:', error);
+        alert('Error al validar cliente.');
+    }
+};
+
+const handleHardDelete = async () => {
+    if (!confirm('🔥 ATENCIÓN: ¿Está seguro de ELIMINAR FÍSICAMENTE este registro?\n\nEsta acción es IRREVERSIBLE y solo funcionará si el cliente NO tiene historial.')) return;
+    
+    if (!confirm('Confirme nuevamente: ¿ELIMINAR DEFINITIVAMENTE?')) return;
+
+    try {
+        await store.hardDeleteCliente(props.clienteId);
+        alert('Cliente eliminado físicamente.');
+        emit('saved', props.clienteId);
+        emit('close');
+    } catch (error) {
+        console.error('Error eliminando cliente:', error);
+        if (error.response && error.response.status === 409) {
+            alert('⛔ NO SE PUEDE ELIMINAR: El cliente tiene historial (ventas, movimientos, etc).\n\nDebe usar la BAJA LÓGICA (Botón "BAJA").');
+        } else {
+            alert('Error al eliminar cliente: ' + (error.response?.data?.detail || error.message));
+        }
     }
 };
 
@@ -320,8 +359,18 @@ onUnmounted(() => {
                         v-if="!isNew"
                         @click="handleDelete"
                         class="px-4 py-1.5 rounded bg-red-100 text-red-700 border border-red-200 font-bold text-xs hover:bg-red-200 transition-colors flex items-center gap-2"
+                        title="Baja Lógica (Recomendado)"
                     >
                         BAJA
+                    </button>
+
+                    <button 
+                        v-if="!isNew"
+                        @click="handleHardDelete"
+                        class="px-2 py-1.5 rounded bg-white text-red-500 border border-red-200 font-bold text-xs hover:bg-red-50 transition-colors flex items-center gap-2"
+                        title="Eliminar Físicamente (Solo sin historial)"
+                    >
+                        🗑️
                     </button>
 
                     <button 
@@ -330,6 +379,32 @@ onUnmounted(() => {
                         :class="isNew ? 'bg-[#54cb9b] hover:bg-[#45b085]' : 'bg-violet-600 hover:bg-violet-700'"
                     >
                         <span class="bg-white/20 px-1 rounded text-[10px]">F10</span> {{ isNew ? 'GUARDAR' : 'MODIFICAR' }}
+                    </button>
+                </div>
+            </div>
+
+            <!-- AUDITOR MODE ALERT BAR -->
+            <div v-if="formData.requiere_auditoria" class="bg-amber-100 border-b border-amber-200 px-6 py-2 flex justify-between items-center animate-pulse-slow">
+                <div class="flex items-center gap-2 text-amber-800">
+                    <span class="text-xl">⚠️</span>
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-wider">Registro en Revisión (CUIT Duplicado)</p>
+                        <p class="text-[10px] opacity-80">Este cliente requiere validación por un supervisor.</p>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button 
+                        @click="handleHardDelete"
+                        class="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded shadow-sm flex items-center gap-1 transition-colors"
+                        title="Eliminar Físicamente (Solo si no tiene historia)"
+                    >
+                        <span>🔥</span> ELIMINAR
+                    </button>
+                    <button 
+                        @click="handleValidate"
+                        class="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded shadow-sm flex items-center gap-1 transition-colors"
+                    >
+                        <span>✅</span> VALIDAR
                     </button>
                 </div>
             </div>

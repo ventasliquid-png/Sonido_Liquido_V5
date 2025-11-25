@@ -76,9 +76,50 @@ export const useClientesStore = defineStore('clientes', () => {
         loading.value = true;
         try {
             await clientesService.delete(id);
-            clientes.value = clientes.value.filter(c => c.id !== id);
+            const index = clientes.value.findIndex(c => c.id === id);
+            if (index !== -1) {
+                clientes.value[index].activo = false;
+            }
+            if (currentCliente.value && currentCliente.value.id === id) {
+                currentCliente.value.activo = false;
+            }
         } catch (err) {
-            error.value = err.message || 'Error al eliminar cliente';
+            error.value = err.message || 'Error al dar de baja al cliente';
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function hardDeleteCliente(id) {
+        loading.value = true;
+        try {
+            await clientesService.hardDelete(id);
+            clientes.value = clientes.value.filter(c => c.id !== id);
+            if (currentCliente.value && currentCliente.value.id === id) {
+                currentCliente.value = null;
+            }
+        } catch (err) {
+            error.value = err.message || 'Error al eliminar cliente físicamente';
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function approveCliente(id) {
+        loading.value = true;
+        try {
+            await clientesService.approve(id);
+            const index = clientes.value.findIndex(c => c.id === id);
+            if (index !== -1) {
+                clientes.value[index].requiere_auditoria = false;
+            }
+            if (currentCliente.value && currentCliente.value.id === id) {
+                currentCliente.value.requiere_auditoria = false;
+            }
+        } catch (err) {
+            error.value = err.message || 'Error al validar cliente';
             throw err;
         } finally {
             loading.value = false;
@@ -94,6 +135,8 @@ export const useClientesStore = defineStore('clientes', () => {
         fetchClienteById,
         createCliente,
         updateCliente,
-        deleteCliente
+        deleteCliente,
+        hardDeleteCliente,
+        approveCliente
     };
 });

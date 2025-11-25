@@ -1,7 +1,7 @@
 # Archivo: backend/maestros/models.py
 # Módulo Maestros (V5) - Tablas Base
 import uuid
-from sqlalchemy import Column, String, Boolean, Integer
+from sqlalchemy import Column, String, Boolean, Integer, Numeric, Enum
 from sqlalchemy.dialects.postgresql import UUID
 from core.database import Base
 
@@ -38,10 +38,44 @@ class ListaPrecios(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     nombre = Column(String, nullable=False, unique=True) # Ej: Lista Mayorista
+    coeficiente = Column(Numeric(10, 4), default=1.0) # Ej: 0.9000 (10% desc)
+    tipo = Column(Enum('FISCAL', 'PRESUPUESTO', name='tipo_lista_enum'), default='PRESUPUESTO')
     activo = Column(Boolean, default=True)
 
     def __repr__(self):
-        return f"<ListaPrecios(nombre='{self.nombre}')>"
+        return f"<ListaPrecios(nombre='{self.nombre}', coef={self.coeficiente})>"
+
+class Ramo(Base):
+    """
+    Tabla 'ramos' (Maestro).
+    Segmentación de clientes (Ej: Gastronomía, Salud, Educación).
+    """
+    __tablename__ = "ramos"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    nombre = Column(String, nullable=False, unique=True)
+    descripcion = Column(String, nullable=True)
+    activo = Column(Boolean, default=True)
+
+    def __repr__(self):
+        return f"<Ramo(nombre='{self.nombre}')>"
+
+class Vendedor(Base):
+    """
+    Tabla 'vendedores' (Fuerza de Venta).
+    """
+    __tablename__ = "vendedores"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    nombre = Column(String, nullable=False)
+    email = Column(String, nullable=True)
+    telefono = Column(String, nullable=True)
+    comision_porcentaje = Column(Numeric(5, 2), default=0) # Ej: 3.50
+    cbu_alias = Column(String, nullable=True)
+    activo = Column(Boolean, default=True)
+
+    def __repr__(self):
+        return f"<Vendedor(nombre='{self.nombre}')>"
 
 class TipoContacto(Base):
     """
