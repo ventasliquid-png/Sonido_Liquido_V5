@@ -52,6 +52,7 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '../services/api';
+import { useAuthStore } from '../stores/authStore';
 
 const router = useRouter();
 const username = ref('');
@@ -75,7 +76,11 @@ const handleLogin = async () => {
         });
 
         const token = response.data.access_token;
-        localStorage.setItem('token', token);
+        
+        // Use AuthStore
+        const authStore = useAuthStore();
+        authStore.setToken(token);
+        // Optionally fetch user details here if needed
         
         // Redirect to home
         router.push('/');

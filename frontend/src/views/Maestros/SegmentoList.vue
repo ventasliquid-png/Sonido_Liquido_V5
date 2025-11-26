@@ -83,37 +83,19 @@
         </div>
 
         <!-- Modal -->
-        <div v-if="showModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-            <div class="relative mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-                <div class="mt-3">
-                    <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">{{ isEditing ? 'Editar Segmento' : 'Nuevo Segmento' }}</h3>
-                    <form @submit.prevent="handleSave">
-                        <div class="mb-4">
-                            <label class="block text-gray-700 text-sm font-bold mb-2">Nombre</label>
-                            <input v-model="form.nombre" type="text" required class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
-                        </div>
-                        <div class="mb-4">
-                            <label class="block text-gray-700 text-sm font-bold mb-2">Descripción</label>
-                            <input v-model="form.descripcion" type="text" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
-                        </div>
-                        <div class="mb-4 flex items-center">
-                            <input v-model="form.activo" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                            <label class="ml-2 block text-gray-900 text-sm">Activo</label>
-                        </div>
-                        <div class="flex justify-end gap-2 mt-4">
-                            <button type="button" @click="closeModal" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">Cancelar</button>
-                            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Guardar</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
+        <SegmentoForm 
+            :show="showModal" 
+            :id="editingId" 
+            @close="closeModal" 
+            @saved="handleSaved"
+        />
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted, reactive, computed } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useMaestrosStore } from '../../stores/maestros';
+import SegmentoForm from './SegmentoForm.vue';
 
 const props = defineProps({
     isStacked: {
@@ -126,15 +108,8 @@ const emit = defineEmits(['close', 'select']);
 
 const store = useMaestrosStore();
 const showModal = ref(false);
-const isEditing = ref(false);
 const editingId = ref(null);
 const filterState = ref('todos');
-
-const form = reactive({
-    nombre: '',
-    descripcion: '',
-    activo: true
-});
 
 onMounted(() => {
     store.fetchSegmentos('all');
@@ -148,38 +123,17 @@ const filteredSegmentos = computed(() => {
 });
 
 const openModal = (segmento = null) => {
-    if (segmento) {
-        isEditing.value = true;
-        editingId.value = segmento.id;
-        form.nombre = segmento.nombre;
-        form.descripcion = segmento.descripcion;
-        form.activo = segmento.activo;
-    } else {
-        isEditing.value = false;
-        editingId.value = null;
-        form.nombre = '';
-        form.descripcion = '';
-        form.activo = true;
-    }
+    editingId.value = segmento ? segmento.id : null;
     showModal.value = true;
 };
 
 const closeModal = () => {
     showModal.value = false;
+    editingId.value = null;
 };
 
-const handleSave = async () => {
-    try {
-        if (isEditing.value) {
-            await store.updateSegmento(editingId.value, form);
-        } else {
-            await store.createSegmento(form);
-        }
-        closeModal();
-    } catch (error) {
-        alert('Error al guardar el segmento.');
-        console.error(error);
-    }
+const handleSaved = async () => {
+    await store.fetchSegmentos('all');
 };
 
 const handleDelete = async (segmento) => {
@@ -192,15 +146,4 @@ const handleDelete = async (segmento) => {
         console.error(error);
     }
 };
-
-// Keyboard Shortcuts
-import { useKeyboardShortcuts } from '../../composables/useKeyboardShortcuts';
-
-useKeyboardShortcuts({
-    'F10': () => {
-        if (showModal.value) {
-            handleSave();
-        }
-    }
-});
 </script>

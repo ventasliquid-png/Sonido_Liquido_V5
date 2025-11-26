@@ -6,7 +6,7 @@ import { ref, computed } from 'vue'
  * Utiliza Pinia y la Composition API (setup-style).
  */
 export const useAuthStore = defineStore('auth', () => {
-  
+
   // --- 1. ESTADO (State) ---
   // Usamos ref() para definir las propiedades reactivas del estado
   const token = ref(null)
@@ -20,7 +20,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   // --- 3. ACCIONES (Actions) ---
   // Funciones que modifican el estado
-  
+
   /**
    * Almacena el token y marca al usuario como autenticado.
    * @param {string} newToken - El token JWT recibido del backend.
@@ -28,7 +28,7 @@ export const useAuthStore = defineStore('auth', () => {
   function setToken(newToken) {
     token.value = newToken
     isAuthenticated.value = true
-    // (En el futuro, aquí guardaremos el token en localStorage)
+    localStorage.setItem('token', newToken)
   }
 
   /**
@@ -37,6 +37,7 @@ export const useAuthStore = defineStore('auth', () => {
    */
   function setUser(dataUsuario) {
     usuario.value = dataUsuario
+    localStorage.setItem('usuario', JSON.stringify(dataUsuario))
   }
 
   /**
@@ -46,7 +47,8 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = null
     isAuthenticated.value = false
     usuario.value = null
-    // (En el futuro, aquí limpiaremos localStorage)
+    localStorage.removeItem('token')
+    localStorage.removeItem('usuario')
   }
 
   // Exponemos el estado, getters y acciones

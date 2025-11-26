@@ -9,6 +9,18 @@ class LogisticaService:
     # --- EmpresaTransporte ---
     @staticmethod
     def create_empresa(db: Session, empresa_in: schemas.EmpresaTransporteCreate) -> models.EmpresaTransporte:
+        # Check for existing empresa with same name (case insensitive)
+        existing = db.query(models.EmpresaTransporte).filter(
+            models.EmpresaTransporte.nombre.ilike(empresa_in.nombre)
+        ).first()
+        
+        if existing:
+            status_msg = "activa" if existing.activo else "inactiva"
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Ya existe una empresa de transporte con el nombre '{existing.nombre}' ({status_msg})."
+            )
+
         db_empresa = models.EmpresaTransporte(**empresa_in.model_dump())
         db.add(db_empresa)
         db.commit()

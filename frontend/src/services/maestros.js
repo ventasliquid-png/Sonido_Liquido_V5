@@ -43,5 +43,16 @@ export default {
     },
     updateVendedor(id, data) {
         return api.put(`/maestros/vendedores/${id}`, data);
+    },
+
+    // --- Transportes (Logística) ---
+    getTransportes(params = {}) {
+        return api.get('/logistica/empresas', { params });
+    },
+    createTransporte(data) {
+        return api.post('/logistica/empresas', data);
+    },
+    updateTransporte(id, data) {
+        return api.put(`/logistica/empresas/${id}`, data);
     }
 };

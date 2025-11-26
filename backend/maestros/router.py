@@ -12,6 +12,15 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
+# --- Read Only Maestros ---
+@router.get("/provincias", response_model=List[schemas.ProvinciaResponse])
+def read_provincias(db: Session = Depends(get_db)):
+    return service.MaestrosService.get_provincias(db)
+
+@router.get("/condiciones-iva", response_model=List[schemas.CondicionIvaResponse])
+def read_condiciones_iva(db: Session = Depends(get_db)):
+    return service.MaestrosService.get_condiciones_iva(db)
+
 # --- Listas de Precios ---
 @router.get("/listas-precios", response_model=List[schemas.ListaPreciosResponse])
 def read_listas_precios(status: str = Query("active", enum=["active", "inactive", "all"]), db: Session = Depends(get_db)):

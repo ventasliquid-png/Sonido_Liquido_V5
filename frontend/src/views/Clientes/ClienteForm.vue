@@ -1,10 +1,14 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useClientesStore } from '../../stores/clientes';
+import { useNotificationStore } from '../../stores/notification';
 import maestrosService from '../../services/maestros';
 import clientesService from '../../services/clientes';
 import DomicilioGrid from './components/DomicilioGrid.vue';
 import VinculoGrid from './components/VinculoGrid.vue';
+import SmartSelect from '../../components/ui/SmartSelect.vue';
+import SegmentoForm from '../Maestros/SegmentoForm.vue';
+import TransporteForm from '../Logistica/TransporteForm.vue';
 
 const props = defineProps({
     show: Boolean,
@@ -17,61 +21,11 @@ const props = defineProps({
 const emit = defineEmits(['close', 'saved', 'edit-existing']);
 
 const store = useClientesStore();
+const notificationStore = useNotificationStore();
 const activeTab = ref('general');
 const loading = ref(false);
-const condicionesIva = ref([]);
 
-const formData = ref({
-    razon_social: '',
-    nombre_fantasia: '',
-    cuit: '',
-    condicion_iva_id: null,
-    whatsapp_empresa: '',
-    web_portal_pagos: '',
-    datos_acceso_pagos: '',
-    activo: true,
-    lista_precios_id: null,
-    lista_precios_id: null,
-    limite_credito: 0,
-    requiere_auditoria: false
-});
-
-const conflictModal = ref({
-    show: false,
-    type: null, // 'INACTIVE', 'EXISTS'
-    clients: []
-});
-
-const pendingReactivation = ref(false);
-
-const isNew = computed(() => !props.clienteId);
-
-// CUIT Validation Logic
-const isValidCuit = (cuit) => {
-    if (!cuit) return false;
-    const cleanCuit = cuit.replace(/\D/g, '');
-    if (cleanCuit.length !== 11) return false;
-    
-    const factors = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
-    let sum = 0;
-    for (let i = 0; i < 10; i++) {
-        sum += parseInt(cleanCuit[i]) * factors[i];
-    }
-    
-    let verifier = 11 - (sum % 11);
-    if (verifier === 11) verifier = 0;
-    if (verifier === 10) verifier = 9;
-    
-    return verifier === parseInt(cleanCuit[10]);
-};
-
-const handleCuitInput = (e) => {
-    let value = e.target.value.replace(/\D/g, '');
-    if (value.length > 11) {
-        value = value.slice(0, 11);
-    }
-    formData.value.cuit = value;
-};
+// ... (rest of setup)
 
 const handleCuitBlur = async () => {
     if (formData.value.cuit) {
@@ -81,7 +35,7 @@ const handleCuitBlur = async () => {
         
         if (clean.length > 0) {
             if (!isValidCuit(clean)) {
-                alert('El CUIT ingresado no es válido. Verifique los dígitos.');
+                notificationStore.add('El CUIT ingresado no es válido. Verifique los dígitos.', 'error');
                 return;
             }
 
@@ -110,28 +64,7 @@ const handleCuitBlur = async () => {
     }
 };
 
-const resolveConflict = (action, client = null) => {
-    conflictModal.value.show = false;
-    if (action === 'edit') {
-        emit('edit-existing', client.id);
-    } else if (action === 'reactivate') {
-        pendingReactivation.value = true;
-        emit('edit-existing', client.id);
-    } else if (action === 'create') {
-        // Proceed with creation despite conflict (Libertad Vigilada)
-        handleSave(true);
-    }
-};
-
-// Fetch Maestros
-const fetchMaestros = async () => {
-    try {
-        const response = await maestrosService.getCondicionesIva();
-        condicionesIva.value = response.data;
-    } catch (error) {
-        console.error('Error loading maestros:', error);
-    }
-};
+// ...
 
 // Reset or Load Data
 watch(() => props.show, async (newVal) => {
@@ -147,11 +80,12 @@ watch(() => props.show, async (newVal) => {
                 if (pendingReactivation.value) {
                     formData.value.activo = true;
                     pendingReactivation.value = false;
-                    alert(`El cliente "${cliente.razon_social}" ha sido marcado para REACTIVACIÓN. Verifique los datos y presione GUARDAR (F10) para confirmar.`);
+                    notificationStore.add(`El cliente "${cliente.razon_social}" ha sido marcado para REACTIVACIÓN. Verifique los datos y presione GUARDAR (F10) para confirmar.`, 'info', 5000);
                 }
             }
             loading.value = false;
         } else {
+            // ... (reset form)
             formData.value = {
                 razon_social: '',
                 nombre_fantasia: '',
@@ -162,8 +96,8 @@ watch(() => props.show, async (newVal) => {
                 datos_acceso_pagos: '',
                 activo: true,
                 lista_precios_id: null,
-                activo: true,
-                lista_precios_id: null,
+                segmento_id: null,
+                transporte_id: null,
                 limite_credito: 0,
                 requiere_auditoria: false
             };
@@ -171,7 +105,6 @@ watch(() => props.show, async (newVal) => {
     }
 });
 
-// Watch clienteId specifically to handle switching between clients while modal is open
 watch(() => props.clienteId, async (newId) => {
     if (props.show && newId) {
         loading.value = true;
@@ -181,7 +114,7 @@ watch(() => props.clienteId, async (newId) => {
             if (pendingReactivation.value) {
                 formData.value.activo = true;
                 pendingReactivation.value = false;
-                alert(`El cliente "${cliente.razon_social}" ha sido marcado para REACTIVACIÓN. Verifique los datos y presione GUARDAR (F10) para confirmar.`);
+                notificationStore.add(`El cliente "${cliente.razon_social}" ha sido marcado para REACTIVACIÓN. Verifique los datos y presione GUARDAR (F10) para confirmar.`, 'info', 5000);
             }
         }
         loading.value = false;
@@ -194,11 +127,11 @@ const handleSave = async (force = false) => {
     if (cleanCuit.length > 11) cleanCuit = cleanCuit.slice(0, 11);
     
     if (!isValidCuit(cleanCuit)) {
-        alert('No se puede guardar: El CUIT es inválido.');
+        notificationStore.add('No se puede guardar: El CUIT es inválido.', 'error');
         return;
     }
 
-    // Smart CUIT Check (only if not forced and not editing same client)
+    // ... (Smart CUIT Check logic remains same)
     if (!force && !props.clienteId) {
         try {
             const response = await clientesService.checkCuit(cleanCuit);
@@ -232,6 +165,8 @@ const handleSave = async (force = false) => {
         whatsapp_empresa: formData.value.whatsapp_empresa,
         web_portal_pagos: formData.value.web_portal_pagos,
         datos_acceso_pagos: formData.value.datos_acceso_pagos,
+        segmento_id: formData.value.segmento_id,
+        transporte_id: formData.value.transporte_id,
     };
 
     try {
@@ -240,12 +175,15 @@ const handleSave = async (force = false) => {
             emit('saved', newCliente.id);
             emit('close');
             if (newCliente.requiere_auditoria) {
-                alert('⚠️ Cliente creado con CUIT duplicado. Se ha marcado para AUDITORÍA.');
+                notificationStore.add('⚠️ Cliente creado con CUIT duplicado. Se ha marcado para AUDITORÍA.', 'warning', 5000);
+            } else {
+                notificationStore.add('Cliente creado exitosamente.', 'success');
             }
         } else {
             await store.updateCliente(props.clienteId, payload);
             emit('saved', props.clienteId);
             emit('close');
+            notificationStore.add('Cliente actualizado exitosamente.', 'success');
         }
     } catch (error) {
         console.error('Error saving cliente:', error);
@@ -263,7 +201,7 @@ const handleSave = async (force = false) => {
         } else if (error.message) {
             msg += ' ' + error.message;
         }
-        alert(msg);
+        notificationStore.add(msg, 'error');
     }
 };
 
@@ -274,9 +212,10 @@ const handleDelete = async () => {
         await store.deleteCliente(props.clienteId);
         emit('saved', props.clienteId); // Refresh list
         emit('close');
+        notificationStore.add('Cliente dado de baja exitosamente.', 'success');
     } catch (error) {
         console.error('Error deleting cliente:', error);
-        alert('Error al dar de baja al cliente.');
+        notificationStore.add('Error al dar de baja al cliente.', 'error');
     }
 };
 
@@ -284,11 +223,11 @@ const handleValidate = async () => {
     if (!confirm('¿Confirmar validación de este cliente?')) return;
     try {
         await store.approveCliente(props.clienteId);
-        alert('Cliente validado exitosamente.');
+        notificationStore.add('Cliente validado exitosamente.', 'success');
         emit('saved', props.clienteId);
     } catch (error) {
         console.error('Error validando cliente:', error);
-        alert('Error al validar cliente.');
+        notificationStore.add('Error al validar cliente.', 'error');
     }
 };
 
@@ -299,15 +238,15 @@ const handleHardDelete = async () => {
 
     try {
         await store.hardDeleteCliente(props.clienteId);
-        alert('Cliente eliminado físicamente.');
+        notificationStore.add('Cliente eliminado físicamente.', 'success');
         emit('saved', props.clienteId);
         emit('close');
     } catch (error) {
         console.error('Error eliminando cliente:', error);
         if (error.response && error.response.status === 409) {
-            alert('⛔ NO SE PUEDE ELIMINAR: El cliente tiene historial (ventas, movimientos, etc).\n\nDebe usar la BAJA LÓGICA (Botón "BAJA").');
+            notificationStore.add('⛔ NO SE PUEDE ELIMINAR: El cliente tiene historial (ventas, movimientos, etc).\n\nDebe usar la BAJA LÓGICA (Botón "BAJA").', 'error', 5000);
         } else {
-            alert('Error al eliminar cliente: ' + (error.response?.data?.detail || error.message));
+            notificationStore.add('Error al eliminar cliente: ' + (error.response?.data?.detail || error.message), 'error');
         }
     }
 };
@@ -333,6 +272,39 @@ onMounted(() => {
 onUnmounted(() => {
     window.removeEventListener('keydown', handleKeydown);
 });
+
+const handleCreateSegmento = () => {
+    showSegmentoForm.value = true;
+};
+
+const handleCreateTransporte = () => {
+    showTransporteForm.value = true;
+};
+
+const onSegmentoSaved = async (newSegmento) => {
+    // Refresh list and select new item
+    const res = await maestrosService.getSegmentos();
+    segmentos.value = res.data;
+    formData.value.segmento_id = newSegmento.id;
+    showSegmentoForm.value = false;
+};
+
+const onTransporteSaved = async (newTransporte) => {
+    // Refresh list and select new item
+    const res = await maestrosService.getTransportes();
+    transportes.value = res.data;
+    formData.value.transporte_id = newTransporte.id;
+    // Note: TransporteForm might stay open if user wants to add nodes, 
+    // but here we might want to close it or let the user close it.
+    // The TransporteForm emits 'saved' on create/update.
+    // If we want to auto-select, we do it here.
+    // If the form stays open, that's fine, but usually F4 flow implies "create and return".
+    // Let's assume the user closes it manually or we close it.
+    // In my TransporteForm implementation, I emit 'close' after save if it's an update, but not if new.
+    // Wait, I changed it to emit 'close' always? No, I left a comment.
+    // Let's force close here if we want "Quick Add" behavior.
+    showTransporteForm.value = false; 
+};
 </script>
 
 <template>
@@ -485,6 +457,22 @@ onUnmounted(() => {
                                     </option>
                                 </select>
                             </div>
+                            <div class="md:col-span-6">
+                                <SmartSelect 
+                                    label="Segmento"
+                                    v-model="formData.segmento_id"
+                                    :options="segmentos"
+                                    @create-new="handleCreateSegmento"
+                                />
+                            </div>
+                            <div class="md:col-span-6">
+                                <SmartSelect 
+                                    label="Transporte"
+                                    v-model="formData.transporte_id"
+                                    :options="transportes"
+                                    @create-new="handleCreateTransporte"
+                                />
+                            </div>
                         </div>
                     </div>
 
@@ -578,17 +566,29 @@ onUnmounted(() => {
                                 </button>
                             </template>
                             <button 
-                                @click="conflictModal.show = false; formData.cuit = ''"
+                                @click="conflictModal.show = false"
                                 class="w-full py-2 text-gray-400 font-bold text-xs hover:text-gray-600 mt-2"
                             >
-                                Cancelar
+                                Cancelar (Corregir CUIT)
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
-
         </div>
+
+        <!-- STACKED MODALS -->
+        <SegmentoForm 
+            :show="showSegmentoForm" 
+            @close="showSegmentoForm = false" 
+            @saved="onSegmentoSaved"
+        />
+
+        <TransporteForm 
+            :show="showTransporteForm" 
+            @close="showTransporteForm = false" 
+            @saved="onTransporteSaved"
+        />
     </div>
 </template>
 

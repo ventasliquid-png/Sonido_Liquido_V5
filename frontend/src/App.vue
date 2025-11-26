@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import ToastNotification from './components/ui/ToastNotification.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -28,6 +29,7 @@ const logout = () => {
 
 <template>
   <div class="flex h-screen w-screen overflow-hidden bg-slate-100">
+      <ToastNotification />
       <!-- SIDEBAR -->
       <aside v-if="!isLoginPage" class="w-16 md:w-64 bg-slate-900 text-white flex flex-col transition-all duration-300">
           <div class="h-16 flex items-center justify-center md:justify-start md:px-6 border-b border-slate-800">
