@@ -20,8 +20,13 @@ class MaestrosService:
 
     # --- Listas de Precios ---
     @staticmethod
-    def get_listas_precios(db: Session) -> List[models.ListaPrecios]:
-        return db.query(models.ListaPrecios).filter(models.ListaPrecios.activo == True).all()
+    def get_listas_precios(db: Session, status: str = "active") -> List[models.ListaPrecios]:
+        query = db.query(models.ListaPrecios)
+        if status == "active":
+            query = query.filter(models.ListaPrecios.activo == True)
+        elif status == "inactive":
+            query = query.filter(models.ListaPrecios.activo == False)
+        return query.all()
 
     @staticmethod
     def get_lista_precios(db: Session, id: UUID) -> Optional[models.ListaPrecios]:
@@ -50,42 +55,52 @@ class MaestrosService:
         db.refresh(db_lista)
         return db_lista
 
-    # --- Ramos ---
+    # --- Segmentos ---
     @staticmethod
-    def get_ramos(db: Session) -> List[models.Ramo]:
-        return db.query(models.Ramo).filter(models.Ramo.activo == True).all()
+    def get_segmentos(db: Session, status: str = "active") -> List[models.Segmento]:
+        query = db.query(models.Segmento)
+        if status == "active":
+            query = query.filter(models.Segmento.activo == True)
+        elif status == "inactive":
+            query = query.filter(models.Segmento.activo == False)
+        return query.all()
 
     @staticmethod
-    def get_ramo(db: Session, id: UUID) -> Optional[models.Ramo]:
-        return db.query(models.Ramo).filter(models.Ramo.id == id).first()
+    def get_segmento(db: Session, id: UUID) -> Optional[models.Segmento]:
+        return db.query(models.Segmento).filter(models.Segmento.id == id).first()
 
     @staticmethod
-    def create_ramo(db: Session, ramo: schemas.RamoCreate) -> models.Ramo:
-        db_ramo = models.Ramo(**ramo.model_dump())
-        db.add(db_ramo)
+    def create_segmento(db: Session, segmento: schemas.SegmentoCreate) -> models.Segmento:
+        db_segmento = models.Segmento(**segmento.model_dump())
+        db.add(db_segmento)
         db.commit()
-        db.refresh(db_ramo)
-        return db_ramo
+        db.refresh(db_segmento)
+        return db_segmento
 
     @staticmethod
-    def update_ramo(db: Session, id: UUID, ramo: schemas.RamoUpdate) -> Optional[models.Ramo]:
-        db_ramo = MaestrosService.get_ramo(db, id)
-        if not db_ramo:
+    def update_segmento(db: Session, id: UUID, segmento: schemas.SegmentoUpdate) -> Optional[models.Segmento]:
+        db_segmento = MaestrosService.get_segmento(db, id)
+        if not db_segmento:
             return None
         
-        update_data = ramo.model_dump(exclude_unset=True)
+        update_data = segmento.model_dump(exclude_unset=True)
         for key, value in update_data.items():
-            setattr(db_ramo, key, value)
+            setattr(db_segmento, key, value)
         
-        db.add(db_ramo)
+        db.add(db_segmento)
         db.commit()
-        db.refresh(db_ramo)
-        return db_ramo
+        db.refresh(db_segmento)
+        return db_segmento
 
     # --- Vendedores ---
     @staticmethod
-    def get_vendedores(db: Session) -> List[models.Vendedor]:
-        return db.query(models.Vendedor).filter(models.Vendedor.activo == True).all()
+    def get_vendedores(db: Session, status: str = "active") -> List[models.Vendedor]:
+        query = db.query(models.Vendedor)
+        if status == "active":
+            query = query.filter(models.Vendedor.activo == True)
+        elif status == "inactive":
+            query = query.filter(models.Vendedor.activo == False)
+        return query.all()
 
     @staticmethod
     def get_vendedor(db: Session, id: UUID) -> Optional[models.Vendedor]:

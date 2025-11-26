@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import ClienteList from '../views/Clientes/ClienteList.vue';
 import TransporteList from '../views/Logistica/TransporteList.vue';
-import RamoList from '../views/Maestros/RamoList.vue';
+import SegmentoList from '../views/Maestros/SegmentoList.vue';
 import VendedorList from '../views/Maestros/VendedorList.vue';
 import ListaPreciosList from '../views/Maestros/ListaPreciosList.vue';
 import Login from '../views/Login.vue';
@@ -29,9 +29,9 @@ const routes = [
         component: TransporteList
     },
     {
-        path: '/ramos',
-        name: 'Ramos',
-        component: RamoList
+        path: '/segmentos',
+        name: 'Segmentos',
+        component: SegmentoList
     },
     {
         path: '/vendedores',

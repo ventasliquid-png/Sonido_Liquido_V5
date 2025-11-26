@@ -13,6 +13,36 @@
             </div>
         </div>
 
+        <!-- Toolbar -->
+        <div class="bg-white p-3 shadow-sm rounded-lg mb-4 flex justify-between items-center gap-4 border border-gray-200">
+            <span class="text-xs text-gray-400 font-mono pl-2">
+                {{ store.personas.length }} Registros (Mostrando)
+            </span>
+            <div class="flex bg-gray-100 p-1 rounded-md border border-gray-200">
+                <button 
+                    @click="filterState = 'all'"
+                    class="px-4 py-1.5 text-xs font-bold rounded transition-all"
+                    :class="filterState === 'all' ? 'bg-white text-gray-800 shadow-sm ring-1 ring-gray-200' : 'text-gray-500 hover:text-gray-700'"
+                >
+                    TODOS
+                </button>
+                <button 
+                    @click="filterState = 'active'"
+                    class="px-4 py-1.5 text-xs font-bold rounded transition-all"
+                    :class="filterState === 'active' ? 'bg-[#54cb9b] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+                >
+                    ACTIVOS
+                </button>
+                <button 
+                    @click="filterState = 'inactive'"
+                    class="px-4 py-1.5 text-xs font-bold rounded transition-all"
+                    :class="filterState === 'inactive' ? 'bg-gray-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+                >
+                    INACTIVOS
+                </button>
+            </div>
+        </div>
+
         <!-- Table -->
         <div class="bg-white rounded-lg shadow overflow-hidden border border-gray-200">
             <table class="min-w-full divide-y divide-gray-200">
@@ -22,6 +52,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contacto Personal</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Redes</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Observaciones</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                     </tr>
                 </thead>
@@ -37,6 +68,14 @@
                             <span v-else>-</span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ persona.observaciones || '-' }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span :class="[
+                                'px-2 inline-flex text-xs leading-5 font-semibold rounded-full',
+                                persona.activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            ]">
+                                {{ persona.activo ? 'Activo' : 'Inactivo' }}
+                            </span>
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <button @click="openModal(persona)" class="text-blue-600 hover:text-blue-900 mr-3">Editar</button>
                             <button @click="handleDelete(persona)" class="text-red-400 hover:text-red-600" title="Dar de Baja">
@@ -45,7 +84,7 @@
                         </td>
                     </tr>
                     <tr v-if="store.personas.length === 0">
-                        <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">
                             No hay personas registradas.
                         </td>
                     </tr>
@@ -79,6 +118,10 @@
                             <label class="block text-gray-700 text-sm font-bold mb-2">Observaciones</label>
                             <textarea v-model="form.observaciones" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"></textarea>
                         </div>
+                        <div class="mb-4 flex items-center">
+                            <input v-model="form.activo" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                            <label class="ml-2 block text-gray-900 text-sm">Activo</label>
+                        </div>
                         <div class="flex justify-end gap-2 mt-4">
                             <button type="button" @click="closeModal" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">Cancelar</button>
                             <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Guardar</button>
@@ -91,7 +134,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue';
+import { ref, onMounted, reactive, watch } from 'vue';
 import { useAgendaStore } from '../../stores/agenda';
 
 const props = defineProps({
@@ -107,17 +150,23 @@ const store = useAgendaStore();
 const showModal = ref(false);
 const isEditing = ref(false);
 const editingId = ref(null);
+const filterState = ref('active'); // Server-side filter: 'active', 'inactive', 'all'
 
 const form = reactive({
     nombre_completo: '',
     celular_personal: '',
     email_personal: '',
     linkedin: '',
-    observaciones: ''
+    observaciones: '',
+    activo: true
 });
 
 onMounted(() => {
-    store.fetchPersonas();
+    store.fetchPersonas({ status: filterState.value });
+});
+
+watch(filterState, (newVal) => {
+    store.fetchPersonas({ status: newVal });
 });
 
 const openModal = (persona = null) => {
@@ -129,6 +178,7 @@ const openModal = (persona = null) => {
         form.email_personal = persona.email_personal;
         form.linkedin = persona.linkedin;
         form.observaciones = persona.observaciones;
+        form.activo = persona.activo;
     } else {
         isEditing.value = false;
         editingId.value = null;
@@ -137,6 +187,7 @@ const openModal = (persona = null) => {
         form.email_personal = '';
         form.linkedin = '';
         form.observaciones = '';
+        form.activo = true;
     }
     showModal.value = true;
 };
@@ -163,7 +214,7 @@ const handleDelete = async (persona) => {
     if (!confirm(`¿Está seguro de dar de baja a ${persona.nombre_completo}?`)) return;
     try {
         await store.updatePersona(persona.id, { ...persona, activo: false });
-        await store.fetchPersonas();
+        await store.fetchPersonas({ status: filterState.value });
     } catch (error) {
         alert('Error al dar de baja.');
         console.error(error);

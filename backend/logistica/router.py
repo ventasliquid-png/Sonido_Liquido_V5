@@ -14,9 +14,14 @@ router = APIRouter(
 )
 
 # --- Empresas ---
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+
+# ...
+
+# --- Empresas ---
 @router.get("/empresas", response_model=List[schemas.EmpresaTransporteResponse])
-def read_empresas(db: Session = Depends(get_db)):
-    return service.LogisticaService.get_empresas(db)
+def read_empresas(status: str = Query("active", enum=["active", "inactive", "all"]), db: Session = Depends(get_db)):
+    return service.LogisticaService.get_empresas(db, status)
 
 @router.post("/empresas", response_model=schemas.EmpresaTransporteResponse, status_code=status.HTTP_201_CREATED)
 def create_empresa(empresa: schemas.EmpresaTransporteCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):

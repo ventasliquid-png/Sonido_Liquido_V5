@@ -7,6 +7,7 @@ const store = useLogisticaStore();
 const showModal = ref(false);
 const isNew = ref(true);
 const provincias = ref([]);
+const filterState = ref('todos'); // 'todos', 'activos', 'inactivos'
 
 const formData = ref({
     id: null,
@@ -32,9 +33,16 @@ const nodoFormData = ref({
 });
 
 onMounted(async () => {
-    await store.fetchEmpresas();
+    await store.fetchEmpresas('all'); // Fetch ALL for client-side filtering
     const provResponse = await maestrosService.getProvincias();
     provincias.value = provResponse.data;
+});
+
+const filteredEmpresas = computed(() => {
+    if (filterState.value === 'todos') return store.empresas;
+    if (filterState.value === 'activos') return store.empresas.filter(e => e.activo);
+    if (filterState.value === 'inactivos') return store.empresas.filter(e => !e.activo);
+    return store.empresas;
 });
 
 const openNew = () => {
@@ -78,8 +86,8 @@ const handleSaveEmpresa = async () => {
             alert('Empresa actualizada.');
         }
         showModal.value = false;
-        // Refresh list
-        await store.fetchEmpresas();
+        // Refresh list (keep 'all' to maintain filter context)
+        await store.fetchEmpresas('all');
     } catch (error) {
         alert('Error al guardar empresa: ' + error.message);
     }
@@ -91,7 +99,7 @@ const handleDeleteEmpresa = async (empresa) => {
     try {
         await store.updateEmpresa(empresa.id, { ...empresa, activo: false });
         alert('Empresa dada de baja.');
-        await store.fetchEmpresas();
+        await store.fetchEmpresas('all');
     } catch (error) {
         alert('Error al dar de baja: ' + error.message);
     }
@@ -175,6 +183,36 @@ useKeyboardShortcuts({
             </button>
         </div>
 
+        <!-- TOOLBAR -->
+        <div class="bg-white px-6 py-3 shadow-sm z-10 flex justify-between items-center gap-4 border-b border-gray-200">
+            <span class="text-xs text-gray-400 font-mono pl-2">
+                {{ filteredEmpresas.length }} Registros
+            </span>
+            <div class="flex bg-gray-100 p-1 rounded-md border border-gray-200">
+                <button 
+                    @click="filterState = 'todos'"
+                    class="px-4 py-1.5 text-xs font-bold rounded transition-all"
+                    :class="filterState === 'todos' ? 'bg-white text-gray-800 shadow-sm ring-1 ring-gray-200' : 'text-gray-500 hover:text-gray-700'"
+                >
+                    TODOS
+                </button>
+                <button 
+                    @click="filterState = 'activos'"
+                    class="px-4 py-1.5 text-xs font-bold rounded transition-all"
+                    :class="filterState === 'activos' ? 'bg-[#54cb9b] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+                >
+                    ACTIVOS
+                </button>
+                <button 
+                    @click="filterState = 'inactivos'"
+                    class="px-4 py-1.5 text-xs font-bold rounded transition-all"
+                    :class="filterState === 'inactivos' ? 'bg-gray-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+                >
+                    INACTIVOS
+                </button>
+            </div>
+        </div>
+
         <!-- LIST -->
         <div class="flex-1 p-6 overflow-auto">
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -189,7 +227,12 @@ useKeyboardShortcuts({
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
-                        <tr v-for="empresa in store.empresas" :key="empresa.id" class="hover:bg-slate-50">
+                        <tr v-if="filteredEmpresas.length === 0">
+                            <td colspan="5" class="px-6 py-10 text-center text-sm text-gray-500 italic">
+                                No se encontraron resultados.
+                            </td>
+                        </tr>
+                        <tr v-for="empresa in filteredEmpresas" :key="empresa.id" class="hover:bg-slate-50">
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ empresa.nombre }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600 hover:underline">
                                 <a v-if="empresa.web_tracking" :href="empresa.web_tracking" target="_blank">{{ empresa.web_tracking }}</a>

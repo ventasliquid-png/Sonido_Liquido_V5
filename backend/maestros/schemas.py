@@ -43,21 +43,21 @@ class ListaPreciosResponse(ListaPreciosBase):
     class Config:
         from_attributes = True
 
-# --- Ramo ---
-class RamoBase(BaseModel):
+# --- Segmento ---
+class SegmentoBase(BaseModel):
     nombre: str
     descripcion: Optional[str] = None
     activo: bool = True
 
-class RamoCreate(RamoBase):
+class SegmentoCreate(SegmentoBase):
     pass
 
-class RamoUpdate(BaseModel):
+class SegmentoUpdate(BaseModel):
     nombre: Optional[str] = None
     descripcion: Optional[str] = None
     activo: Optional[bool] = None
 
-class RamoResponse(RamoBase):
+class SegmentoResponse(SegmentoBase):
     id: UUID
     class Config:
         from_attributes = True

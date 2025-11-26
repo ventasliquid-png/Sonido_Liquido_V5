@@ -24,8 +24,13 @@ class AgendaService:
         return db_persona
 
     @staticmethod
-    def get_personas(db: Session, skip: int = 0, limit: int = 100) -> List[models.Persona]:
-        return db.query(models.Persona).offset(skip).limit(limit).all()
+    def get_personas(db: Session, skip: int = 0, limit: int = 100, status: str = "active") -> List[models.Persona]:
+        query = db.query(models.Persona)
+        if status == "active":
+            query = query.filter(models.Persona.activo == True)
+        elif status == "inactive":
+            query = query.filter(models.Persona.activo == False)
+        return query.offset(skip).limit(limit).all()
 
     @staticmethod
     def get_persona(db: Session, persona_id: UUID) -> Optional[models.Persona]:

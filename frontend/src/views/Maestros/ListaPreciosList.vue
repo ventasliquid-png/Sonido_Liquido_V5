@@ -13,6 +13,36 @@
             </div>
         </div>
 
+        <!-- Toolbar -->
+        <div class="bg-white p-3 shadow-sm rounded-lg mb-4 flex justify-between items-center gap-4 border border-gray-200">
+            <span class="text-xs text-gray-400 font-mono pl-2">
+                {{ filteredListas.length }} Registros
+            </span>
+            <div class="flex bg-gray-100 p-1 rounded-md border border-gray-200">
+                <button 
+                    @click="filterState = 'todos'"
+                    class="px-4 py-1.5 text-xs font-bold rounded transition-all"
+                    :class="filterState === 'todos' ? 'bg-white text-gray-800 shadow-sm ring-1 ring-gray-200' : 'text-gray-500 hover:text-gray-700'"
+                >
+                    TODOS
+                </button>
+                <button 
+                    @click="filterState = 'activos'"
+                    class="px-4 py-1.5 text-xs font-bold rounded transition-all"
+                    :class="filterState === 'activos' ? 'bg-[#54cb9b] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+                >
+                    ACTIVOS
+                </button>
+                <button 
+                    @click="filterState = 'inactivos'"
+                    class="px-4 py-1.5 text-xs font-bold rounded transition-all"
+                    :class="filterState === 'inactivos' ? 'bg-gray-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+                >
+                    INACTIVOS
+                </button>
+            </div>
+        </div>
+
         <!-- Table -->
         <div class="bg-white rounded-lg shadow overflow-hidden border border-gray-200">
             <table class="min-w-full divide-y divide-gray-200">
@@ -26,7 +56,12 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    <tr v-for="lista in store.listasPrecios" :key="lista.id" class="hover:bg-gray-50">
+                    <tr v-if="filteredListas.length === 0">
+                        <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+                            No se encontraron resultados.
+                        </td>
+                    </tr>
+                    <tr v-for="lista in filteredListas" :key="lista.id" class="hover:bg-gray-50">
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ lista.nombre }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ lista.coeficiente }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -50,11 +85,6 @@
                             <button @click="handleDelete(lista)" class="text-red-400 hover:text-red-600" title="Dar de Baja">
                                 🗑️
                             </button>
-                        </td>
-                    </tr>
-                    <tr v-if="store.listasPrecios.length === 0">
-                        <td colspan="5" class="px-6 py-4 text-center text-gray-500">
-                            No hay listas de precios registradas.
                         </td>
                     </tr>
                 </tbody>
@@ -99,7 +129,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue';
+import { ref, onMounted, reactive, computed } from 'vue';
 import { useMaestrosStore } from '../../stores/maestros';
 
 const props = defineProps({
@@ -115,6 +145,7 @@ const store = useMaestrosStore();
 const showModal = ref(false);
 const isEditing = ref(false);
 const editingId = ref(null);
+const filterState = ref('todos');
 
 const form = reactive({
     nombre: '',
@@ -124,7 +155,14 @@ const form = reactive({
 });
 
 onMounted(() => {
-    store.fetchListasPrecios();
+    store.fetchListasPrecios('all');
+});
+
+const filteredListas = computed(() => {
+    if (filterState.value === 'todos') return store.listasPrecios;
+    if (filterState.value === 'activos') return store.listasPrecios.filter(l => l.activo);
+    if (filterState.value === 'inactivos') return store.listasPrecios.filter(l => !l.activo);
+    return store.listasPrecios;
 });
 
 const openModal = (lista = null) => {
@@ -168,7 +206,7 @@ const handleDelete = async (lista) => {
     if (!confirm(`¿Está seguro de dar de baja a ${lista.nombre}?`)) return;
     try {
         await store.updateListaPrecios(lista.id, { ...lista, activo: false });
-        await store.fetchListasPrecios();
+        await store.fetchListasPrecios('all');
     } catch (error) {
         alert('Error al dar de baja.');
         console.error(error);

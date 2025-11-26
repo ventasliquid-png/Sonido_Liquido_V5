@@ -32,3 +32,10 @@
     *   `Papelera`: Botón de baja lógica en listados.
 *   **Refactor Técnico:** Creación de composable `useKeyboardShortcuts` para manejo centralizado de eventos.
 *   **Base de Datos:** Migración para agregar campo `activo` a la tabla `personas`.
+
+### [2025-11-25] Refactorización Ramo -> Segmento
+*   **Cambio Semántico:** Se renombró la entidad "Ramo" a "Segmento" en todo el sistema (Base de Datos, Backend, Frontend, Documentación) para evitar ambigüedades con el concepto de "Rubro" de productos.
+*   **Corrección de Bugs:**
+    *   Solución a crash del Backend por error en Router de Maestros.
+    *   Corrección en módulo Agenda (Personas): Se visualizaban como "Inactivos" por falta del campo `activo` en el schema de respuesta de la API.
+*   **UI Standard:** Alineación de filtros "Todos/Activos/Inactivos" a la derecha en todos los listados para consistencia con el módulo Clientes.

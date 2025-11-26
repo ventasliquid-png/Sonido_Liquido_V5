@@ -8,7 +8,7 @@ const route = useRoute();
 const menuItems = [
     { name: 'Clientes', path: '/clientes', icon: '👥' },
     { name: 'Transportes', path: '/transportes', icon: '🚚' },
-    { name: 'Ramos', path: '/ramos', icon: '🏷️' },
+    { name: 'Segmentos', path: '/segmentos', icon: '🏷️' },
     { name: 'Vendedores', path: '/vendedores', icon: '💼' },
     { name: 'Listas Precios', path: '/listas-precios', icon: '💲' },
     { name: 'Agenda', path: '/agenda', icon: '📒' },

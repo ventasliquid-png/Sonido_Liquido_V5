@@ -1,7 +1,7 @@
 # backend/maestros/router.py
 from typing import List
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from core.database import get_db
 from backend.maestros import schemas, service
@@ -12,23 +12,10 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-# --- Read Only ---
-@router.get("/provincias", response_model=List[schemas.ProvinciaResponse])
-def read_provincias(db: Session = Depends(get_db)):
-    return service.MaestrosService.get_provincias(db)
-
-@router.get("/tipos-contacto", response_model=List[schemas.TipoContactoResponse])
-def read_tipos_contacto(db: Session = Depends(get_db)):
-    return service.MaestrosService.get_tipos_contacto(db)
-
-@router.get("/condiciones-iva", response_model=List[schemas.CondicionIvaResponse])
-def read_condiciones_iva(db: Session = Depends(get_db)):
-    return service.MaestrosService.get_condiciones_iva(db)
-
 # --- Listas de Precios ---
 @router.get("/listas-precios", response_model=List[schemas.ListaPreciosResponse])
-def read_listas_precios(db: Session = Depends(get_db)):
-    return service.MaestrosService.get_listas_precios(db)
+def read_listas_precios(status: str = Query("active", enum=["active", "inactive", "all"]), db: Session = Depends(get_db)):
+    return service.MaestrosService.get_listas_precios(db, status)
 
 @router.post("/listas-precios", response_model=schemas.ListaPreciosResponse, status_code=status.HTTP_201_CREATED)
 def create_lista_precios(lista: schemas.ListaPreciosCreate, db: Session = Depends(get_db)):
@@ -41,26 +28,26 @@ def update_lista_precios(id: UUID, lista: schemas.ListaPreciosUpdate, db: Sessio
         raise HTTPException(status_code=404, detail="Lista de precios no encontrada")
     return db_lista
 
-# --- Ramos ---
-@router.get("/ramos", response_model=List[schemas.RamoResponse])
-def read_ramos(db: Session = Depends(get_db)):
-    return service.MaestrosService.get_ramos(db)
+# --- Segmentos ---
+@router.get("/segmentos", response_model=List[schemas.SegmentoResponse])
+def read_segmentos(status: str = Query("active", enum=["active", "inactive", "all"]), db: Session = Depends(get_db)):
+    return service.MaestrosService.get_segmentos(db, status)
 
-@router.post("/ramos", response_model=schemas.RamoResponse, status_code=status.HTTP_201_CREATED)
-def create_ramo(ramo: schemas.RamoCreate, db: Session = Depends(get_db)):
-    return service.MaestrosService.create_ramo(db, ramo)
+@router.post("/segmentos", response_model=schemas.SegmentoResponse, status_code=status.HTTP_201_CREATED)
+def create_segmento(segmento: schemas.SegmentoCreate, db: Session = Depends(get_db)):
+    return service.MaestrosService.create_segmento(db, segmento)
 
-@router.put("/ramos/{id}", response_model=schemas.RamoResponse)
-def update_ramo(id: UUID, ramo: schemas.RamoUpdate, db: Session = Depends(get_db)):
-    db_ramo = service.MaestrosService.update_ramo(db, id, ramo)
-    if db_ramo is None:
-        raise HTTPException(status_code=404, detail="Ramo no encontrado")
-    return db_ramo
+@router.put("/segmentos/{id}", response_model=schemas.SegmentoResponse)
+def update_segmento(id: UUID, segmento: schemas.SegmentoUpdate, db: Session = Depends(get_db)):
+    db_segmento = service.MaestrosService.update_segmento(db, id, segmento)
+    if db_segmento is None:
+        raise HTTPException(status_code=404, detail="Segmento no encontrado")
+    return db_segmento
 
 # --- Vendedores ---
 @router.get("/vendedores", response_model=List[schemas.VendedorResponse])
-def read_vendedores(db: Session = Depends(get_db)):
-    return service.MaestrosService.get_vendedores(db)
+def read_vendedores(status: str = Query("active", enum=["active", "inactive", "all"]), db: Session = Depends(get_db)):
+    return service.MaestrosService.get_vendedores(db, status)
 
 @router.post("/vendedores", response_model=schemas.VendedorResponse, status_code=status.HTTP_201_CREATED)
 def create_vendedor(vendedor: schemas.VendedorCreate, db: Session = Depends(get_db)):

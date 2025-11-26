@@ -3,7 +3,7 @@ import maestrosService from '../services/maestros';
 
 export const useMaestrosStore = defineStore('maestros', {
     state: () => ({
-        ramos: [],
+        segmentos: [],
         vendedores: [],
         listasPrecios: [],
         provincias: [],
@@ -18,7 +18,7 @@ export const useMaestrosStore = defineStore('maestros', {
             this.loading = true;
             try {
                 await Promise.all([
-                    this.fetchRamos(),
+                    this.fetchSegmentos(),
                     this.fetchVendedores(),
                     this.fetchListasPrecios(),
                     this.fetchProvincias(),
@@ -32,36 +32,36 @@ export const useMaestrosStore = defineStore('maestros', {
             }
         },
 
-        // --- Ramos ---
-        async fetchRamos() {
+        // --- Segmentos ---
+        async fetchSegmentos(filter = 'active') {
             try {
-                const response = await maestrosService.getRamos();
-                this.ramos = response.data;
+                const response = await maestrosService.getSegmentos({ status: filter });
+                this.segmentos = response.data;
             } catch (error) {
-                console.error('Error fetching ramos:', error);
+                console.error('Error fetching segmentos:', error);
             }
         },
-        async createRamo(data) {
+        async createSegmento(data) {
             try {
-                await maestrosService.createRamo(data);
-                await this.fetchRamos();
+                await maestrosService.createSegmento(data);
+                await this.fetchSegmentos();
             } catch (error) {
                 throw error;
             }
         },
-        async updateRamo(id, data) {
+        async updateSegmento(id, data) {
             try {
-                await maestrosService.updateRamo(id, data);
-                await this.fetchRamos();
+                await maestrosService.updateSegmento(id, data);
+                await this.fetchSegmentos();
             } catch (error) {
                 throw error;
             }
         },
 
         // --- Vendedores ---
-        async fetchVendedores() {
+        async fetchVendedores(filter = 'active') {
             try {
-                const response = await maestrosService.getVendedores();
+                const response = await maestrosService.getVendedores({ status: filter });
                 this.vendedores = response.data;
             } catch (error) {
                 console.error('Error fetching vendedores:', error);
@@ -85,9 +85,9 @@ export const useMaestrosStore = defineStore('maestros', {
         },
 
         // --- Listas de Precios ---
-        async fetchListasPrecios() {
+        async fetchListasPrecios(filter = 'active') {
             try {
-                const response = await maestrosService.getListasPrecios();
+                const response = await maestrosService.getListasPrecios({ status: filter });
                 this.listasPrecios = response.data;
             } catch (error) {
                 console.error('Error fetching listas precios:', error);

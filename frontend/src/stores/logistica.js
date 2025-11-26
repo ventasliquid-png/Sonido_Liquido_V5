@@ -8,10 +8,10 @@ export const useLogisticaStore = defineStore('logistica', () => {
     const loading = ref(false);
     const error = ref(null);
 
-    async function fetchEmpresas() {
+    async function fetchEmpresas(filter = 'active') {
         loading.value = true;
         try {
-            const response = await logisticaService.getEmpresas();
+            const response = await logisticaService.getEmpresas({ status: filter });
             empresas.value = response.data;
         } catch (err) {
             error.value = err.message || 'Error al cargar empresas';

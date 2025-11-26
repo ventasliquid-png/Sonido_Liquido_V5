@@ -2,13 +2,43 @@
     <div :class="['p-6', isStacked ? 'bg-white' : '']">
         <!-- Header -->
         <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold text-gray-900">Maestro de Ramos</h1>
+            <h1 class="text-2xl font-bold text-gray-900">Maestro de Segmentos</h1>
             <div class="flex gap-2">
                 <button v-if="isStacked" @click="$emit('close')" class="px-4 py-2 text-gray-600 hover:text-gray-800">
                     Volver
                 </button>
                 <button @click="openModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
-                    <span class="text-xl">+</span> NUEVO RAMO
+                    <span class="text-xl">+</span> NUEVO SEGMENTO
+                </button>
+            </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="bg-white p-3 shadow-sm rounded-lg mb-4 flex justify-between items-center gap-4 border border-gray-200">
+            <span class="text-xs text-gray-400 font-mono pl-2">
+                {{ filteredSegmentos.length }} Registros
+            </span>
+            <div class="flex bg-gray-100 p-1 rounded-md border border-gray-200">
+                <button 
+                    @click="filterState = 'todos'"
+                    class="px-4 py-1.5 text-xs font-bold rounded transition-all"
+                    :class="filterState === 'todos' ? 'bg-white text-gray-800 shadow-sm ring-1 ring-gray-200' : 'text-gray-500 hover:text-gray-700'"
+                >
+                    TODOS
+                </button>
+                <button 
+                    @click="filterState = 'activos'"
+                    class="px-4 py-1.5 text-xs font-bold rounded transition-all"
+                    :class="filterState === 'activos' ? 'bg-[#54cb9b] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+                >
+                    ACTIVOS
+                </button>
+                <button 
+                    @click="filterState = 'inactivos'"
+                    class="px-4 py-1.5 text-xs font-bold rounded transition-all"
+                    :class="filterState === 'inactivos' ? 'bg-gray-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+                >
+                    INACTIVOS
                 </button>
             </div>
         </div>
@@ -25,27 +55,27 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    <tr v-for="ramo in store.ramos" :key="ramo.id" class="hover:bg-gray-50">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ ramo.nombre }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ ramo.descripcion || '-' }}</td>
+                    <tr v-if="filteredSegmentos.length === 0">
+                        <td colspan="4" class="px-6 py-4 text-center text-gray-500">
+                            No se encontraron resultados.
+                        </td>
+                    </tr>
+                    <tr v-for="segmento in filteredSegmentos" :key="segmento.id" class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ segmento.nombre }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ segmento.descripcion || '-' }}</td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span :class="[
                                 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full',
-                                ramo.activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                segmento.activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                             ]">
-                                {{ ramo.activo ? 'Activo' : 'Inactivo' }}
+                                {{ segmento.activo ? 'Activo' : 'Inactivo' }}
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <button @click="openModal(ramo)" class="text-blue-600 hover:text-blue-900 mr-3">Editar</button>
-                            <button @click="handleDelete(ramo)" class="text-red-400 hover:text-red-600" title="Dar de Baja">
+                            <button @click="openModal(segmento)" class="text-blue-600 hover:text-blue-900 mr-3">Editar</button>
+                            <button @click="handleDelete(segmento)" class="text-red-400 hover:text-red-600" title="Dar de Baja">
                                 🗑️
                             </button>
-                        </td>
-                    </tr>
-                    <tr v-if="store.ramos.length === 0">
-                        <td colspan="4" class="px-6 py-4 text-center text-gray-500">
-                            No hay ramos registrados.
                         </td>
                     </tr>
                 </tbody>
@@ -56,7 +86,7 @@
         <div v-if="showModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
             <div class="relative mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
                 <div class="mt-3">
-                    <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">{{ isEditing ? 'Editar Ramo' : 'Nuevo Ramo' }}</h3>
+                    <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">{{ isEditing ? 'Editar Segmento' : 'Nuevo Segmento' }}</h3>
                     <form @submit.prevent="handleSave">
                         <div class="mb-4">
                             <label class="block text-gray-700 text-sm font-bold mb-2">Nombre</label>
@@ -82,7 +112,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue';
+import { ref, onMounted, reactive, computed } from 'vue';
 import { useMaestrosStore } from '../../stores/maestros';
 
 const props = defineProps({
@@ -98,6 +128,7 @@ const store = useMaestrosStore();
 const showModal = ref(false);
 const isEditing = ref(false);
 const editingId = ref(null);
+const filterState = ref('todos');
 
 const form = reactive({
     nombre: '',
@@ -106,16 +137,23 @@ const form = reactive({
 });
 
 onMounted(() => {
-    store.fetchRamos();
+    store.fetchSegmentos('all');
 });
 
-const openModal = (ramo = null) => {
-    if (ramo) {
+const filteredSegmentos = computed(() => {
+    if (filterState.value === 'todos') return store.segmentos;
+    if (filterState.value === 'activos') return store.segmentos.filter(s => s.activo);
+    if (filterState.value === 'inactivos') return store.segmentos.filter(s => !s.activo);
+    return store.segmentos;
+});
+
+const openModal = (segmento = null) => {
+    if (segmento) {
         isEditing.value = true;
-        editingId.value = ramo.id;
-        form.nombre = ramo.nombre;
-        form.descripcion = ramo.descripcion;
-        form.activo = ramo.activo;
+        editingId.value = segmento.id;
+        form.nombre = segmento.nombre;
+        form.descripcion = segmento.descripcion;
+        form.activo = segmento.activo;
     } else {
         isEditing.value = false;
         editingId.value = null;
@@ -133,22 +171,22 @@ const closeModal = () => {
 const handleSave = async () => {
     try {
         if (isEditing.value) {
-            await store.updateRamo(editingId.value, form);
+            await store.updateSegmento(editingId.value, form);
         } else {
-            await store.createRamo(form);
+            await store.createSegmento(form);
         }
         closeModal();
     } catch (error) {
-        alert('Error al guardar el ramo.');
+        alert('Error al guardar el segmento.');
         console.error(error);
     }
 };
 
-const handleDelete = async (ramo) => {
-    if (!confirm(`¿Está seguro de dar de baja a ${ramo.nombre}?`)) return;
+const handleDelete = async (segmento) => {
+    if (!confirm(`¿Está seguro de dar de baja a ${segmento.nombre}?`)) return;
     try {
-        await store.updateRamo(ramo.id, { ...ramo, activo: false });
-        await store.fetchRamos();
+        await store.updateSegmento(segmento.id, { ...segmento, activo: false });
+        await store.fetchSegmentos('all');
     } catch (error) {
         alert('Error al dar de baja.');
         console.error(error);

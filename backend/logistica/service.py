@@ -16,8 +16,14 @@ class LogisticaService:
         return db_empresa
 
     @staticmethod
-    def get_empresas(db: Session) -> List[models.EmpresaTransporte]:
-        return db.query(models.EmpresaTransporte).filter(models.EmpresaTransporte.activo == True).all()
+    def get_empresas(db: Session, status: str = "active") -> List[models.EmpresaTransporte]:
+        query = db.query(models.EmpresaTransporte)
+        if status == "active":
+            query = query.filter(models.EmpresaTransporte.activo == True)
+        elif status == "inactive":
+            query = query.filter(models.EmpresaTransporte.activo == False)
+        # If "all", no filter applied
+        return query.all()
 
     @staticmethod
     def get_empresa(db: Session, empresa_id: UUID) -> Optional[models.EmpresaTransporte]:

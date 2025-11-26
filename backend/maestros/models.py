@@ -45,12 +45,12 @@ class ListaPrecios(Base):
     def __repr__(self):
         return f"<ListaPrecios(nombre='{self.nombre}', coef={self.coeficiente})>"
 
-class Ramo(Base):
+class Segmento(Base):
     """
-    Tabla 'ramos' (Maestro).
+    Tabla 'segmentos' (Maestro).
     Segmentación de clientes (Ej: Gastronomía, Salud, Educación).
     """
-    __tablename__ = "ramos"
+    __tablename__ = "segmentos"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     nombre = Column(String, nullable=False, unique=True)
@@ -58,7 +58,7 @@ class Ramo(Base):
     activo = Column(Boolean, default=True)
 
     def __repr__(self):
-        return f"<Ramo(nombre='{self.nombre}')>"
+        return f"<Segmento(nombre='{self.nombre}')>"
 
 class Vendedor(Base):
     """

@@ -10,6 +10,7 @@ class PersonaBase(BaseModel):
     email_personal: Optional[EmailStr] = None
     linkedin: Optional[str] = None
     observaciones: Optional[str] = None
+    activo: bool = True
 
 class PersonaCreate(PersonaBase):
     pass
@@ -20,6 +21,7 @@ class PersonaUpdate(BaseModel):
     email_personal: Optional[EmailStr] = None
     linkedin: Optional[str] = None
     observaciones: Optional[str] = None
+    activo: Optional[bool] = None
 
 class PersonaResponse(PersonaBase):
     id: UUID

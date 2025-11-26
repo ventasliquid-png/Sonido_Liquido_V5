@@ -13,8 +13,8 @@ export default {
     },
 
     // --- Listas de Precios ---
-    getListasPrecios() {
-        return api.get('/maestros/listas-precios');
+    getListasPrecios(params = {}) {
+        return api.get('/maestros/listas-precios', { params });
     },
     createListaPrecios(data) {
         return api.post('/maestros/listas-precios', data);
@@ -23,20 +23,20 @@ export default {
         return api.put(`/maestros/listas-precios/${id}`, data);
     },
 
-    // --- Ramos ---
-    getRamos() {
-        return api.get('/maestros/ramos');
+    // --- Segmentos ---
+    getSegmentos(params = {}) {
+        return api.get('/maestros/segmentos', { params });
     },
-    createRamo(data) {
-        return api.post('/maestros/ramos', data);
+    createSegmento(data) {
+        return api.post('/maestros/segmentos', data);
     },
-    updateRamo(id, data) {
-        return api.put(`/maestros/ramos/${id}`, data);
+    updateSegmento(id, data) {
+        return api.put(`/maestros/segmentos/${id}`, data);
     },
 
     // --- Vendedores ---
-    getVendedores() {
-        return api.get('/maestros/vendedores');
+    getVendedores(params = {}) {
+        return api.get('/maestros/vendedores', { params });
     },
     createVendedor(data) {
         return api.post('/maestros/vendedores', data);

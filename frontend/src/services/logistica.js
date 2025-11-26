@@ -2,7 +2,7 @@ import api from './api';
 
 export default {
     // Empresas
-    getEmpresas: () => api.get('/logistica/empresas'),
+    getEmpresas: (params = {}) => api.get('/logistica/empresas', { params }),
     getEmpresaById: (id) => api.get(`/logistica/empresas/${id}`),
     createEmpresa: (data) => api.post('/logistica/empresas', data),
     updateEmpresa: (id, data) => api.put(`/logistica/empresas/${id}`, data),

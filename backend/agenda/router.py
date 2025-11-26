@@ -15,8 +15,8 @@ router = APIRouter(
 
 # --- Personas ---
 @router.get("/personas", response_model=List[schemas.PersonaResponse])
-def read_personas(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return service.AgendaService.get_personas(db, skip=skip, limit=limit)
+def read_personas(skip: int = 0, limit: int = 100, status: str = Query("active", enum=["active", "inactive", "all"]), db: Session = Depends(get_db)):
+    return service.AgendaService.get_personas(db, skip=skip, limit=limit, status=status)
 
 @router.get("/personas/search", response_model=List[schemas.PersonaResponse])
 def search_personas(q: str = Query(..., min_length=3), db: Session = Depends(get_db)):
