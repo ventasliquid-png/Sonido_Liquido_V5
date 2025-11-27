@@ -14,3 +14,4 @@ npm-debug.log*
 instalador*.bat
 instalador*.ps1
 .google_credentials
+.gy_identity

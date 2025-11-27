@@ -18,6 +18,58 @@
 
 ---
 
+## Protocolo de Continuidad (Caja Negra)
+
+Este protocolo define cómo los agentes (Gy OF, Gy CA, y otros) mantienen una memoria compartida y persistente del contexto de trabajo, permitiendo alternancia entre equipos sin pérdida de información.
+
+### 1. Identidad del Agente
+Cada entorno de trabajo debe tener un archivo **local** (no versionado) llamado `.gy_identity` en la raíz del proyecto.
+*   Contenido: Un código único de 2-3 letras.
+    *   `OF`: Oficina (PC Principal)
+    *   `CA`: Casa (PC Secundaria)
+    *   `NB`: Notebook / Viaje
+*   **Importante:** Este archivo debe estar en `.gitignore`.
+
+### 2. Archivo de Memoria (`MEMORIA_SESIONES.md`)
+Este archivo actúa como la "Caja Negra" del proyecto. Es un log acumulativo de las sesiones de trabajo.
+*   **Ubicación:** Raíz del proyecto.
+*   **Formato:** Markdown cronológico inverso (Sesión más reciente arriba).
+*   **Contenido:** Resúmenes de alto nivel, decisiones tomadas, y estado de tareas críticas.
+
+### 3. Gestión de Sesiones (Script `session_manager.py`)
+Se utiliza el script `scripts/session_manager.py` para automatizar la apertura y cierre de sesiones, aplicando una lógica de "Poda Inteligente" para no saturar el archivo.
+
+**Lógica de Retención:**
+1.  **Cadena Actual:** Mantiene TODAS las sesiones continuas del agente actual (ej: Si Gy OF trabaja lunes, martes y miércoles, se guardan las 3).
+2.  **Última del Otro:** Mantiene la última sesión registrada por un agente distinto (ej: La última de Gy CA del domingo).
+3.  **Eslabón de Enlace:** Mantiene la última sesión propia *anterior* a la intervención del otro agente (para dar contexto de qué estaba haciendo yo antes de que el otro tocara el código).
+
+### 4. Procedimiento Estándar
+
+#### A. Inicio de Sesión
+Al comenzar a trabajar, el agente debe ejecutar:
+```bash
+python scripts/session_manager.py start
+```
+*   Esto inserta un bloque "EN CURSO" en `MEMORIA_SESIONES.md`.
+*   El agente debe leer este archivo para obtener contexto inmediato.
+
+#### B. Cierre de Sesión
+Al finalizar (antes de hacer commit/push o cerrar), el agente debe ejecutar:
+```bash
+python scripts/session_manager.py end "Resumen de lo hecho..."
+```
+*   **Resumen:** Debe ser conciso pero técnico. Mencionar archivos clave tocados y bugs resueltos.
+*   El script se encargará de cerrar el bloque, poner la fecha de fin, y podar las sesiones antiguas según la lógica de retención.
+
+#### C. Configuración de Nuevo Agente (Ej: Viaje)
+Si se clona el repo en una nueva máquina:
+1.  Crear archivo `.gy_identity` con el código del nuevo agente (ej: `NB`).
+2.  Ejecutar `python scripts/session_manager.py start`.
+3.  El sistema reconocerá al nuevo agente y comenzará a trackear sus sesiones, manteniendo la referencia a OF y CA según corresponda.
+
+---
+
 ## Historial de Cambios Relevantes
 
 ### [2025-11-25] Operación Constelación (Maestros Satélites)
@@ -63,3 +115,15 @@
     *   Corrección de "Race Condition" que borraba el valor seleccionado al cargar la lista asincrónicamente o al hacer click fuera prematuramente.
 *   **Base de Datos:**
     *   Script de migración (`fix_legacy_transportes.py`) para asignar "RETIRO EN LOCAL" a todos los domicilios legados que no tenían transporte asignado.
+
+### [2025-11-27] Pulido de Clientes y Domicilios
+*   **Corrección de Bugs Críticos:**
+    *   **Crash Frontend:** Solucionado `ReferenceError: onUnmounted` en `DomicilioGrid`.
+    *   **Error de Guardado:** Se eliminó el campo `zona_id` del payload de Domicilios ya que no existía en el modelo, permitiendo guardar direcciones con "S/N".
+*   **UX Domicilios:**
+    *   **Dashboard:** Visualización en tiempo real de domicilios en la pestaña "General" (sin recarga).
+    *   **Lógica de Transporte:**
+        *   **Auto-relleno:** Al crear un nuevo destino, copia el transporte del Domicilio Fiscal.
+        *   **Fallback:** Si se deja vacío, asigna automáticamente "Retiro en Local" (o el primero disponible) al guardar.
+        *   **F10:** Se corrigió la captura de tecla para que F10 guarde el modal de domicilio si está abierto.
+    *   **Visualización:** Se filtró el Domicilio Fiscal de la lista de entregas para evitar duplicados y conteo erróneo.

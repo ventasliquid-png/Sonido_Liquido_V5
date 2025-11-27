@@ -112,7 +112,16 @@ class ClienteService:
             if default_dom:
                 default_dom.transporte_id = transporte_id
                 db.add(default_dom)
-            # If no domicile exists, we could create one, but for now we assume existing clients have one.
+            else:
+                # If no domicile exists, create a default one
+                new_dom = Domicilio(
+                    cliente_id=db_cliente.id,
+                    transporte_id=transporte_id,
+                    es_fiscal=True,
+                    es_entrega=True,
+                    alias="Domicilio Principal"
+                )
+                db.add(new_dom)
 
         db.add(db_cliente)
         db.commit()
@@ -244,14 +253,18 @@ class ClienteService:
     def create_domicilio(db: Session, cliente_id: UUID, domicilio_in: schemas.DomicilioCreate) -> Domicilio:
         # Validar Provincia
         from backend.maestros.models import Provincia
-        if domicilio_in.provincia: # Schema uses 'provincia' string, model uses 'provincia_id'
-             prov = db.query(Provincia).filter(Provincia.id == domicilio_in.provincia).first()
+        prov_id = domicilio_in.provincia
+        if prov_id == "":
+            prov_id = None
+            
+        if prov_id: 
+             prov = db.query(Provincia).filter(Provincia.id == prov_id).first()
              if not prov:
                  raise HTTPException(status_code=400, detail="Código de provincia inválido")
 
         db_domicilio = Domicilio(
-            **domicilio_in.model_dump(exclude={'provincia'}), # Exclude to map manually
-            provincia_id=domicilio_in.provincia,
+            **domicilio_in.model_dump(exclude={'provincia', 'zona_id'}), # Exclude zona_id as it's not in model
+            provincia_id=prov_id,
             cliente_id=cliente_id
         )
         db.add(db_domicilio)
@@ -266,8 +279,14 @@ class ClienteService:
             return None
         
         update_data = domicilio_in.model_dump(exclude_unset=True)
+        
+        # Remove fields not in model
+        if 'zona_id' in update_data:
+            update_data.pop('zona_id')
+            
         if 'provincia' in update_data:
-             update_data['provincia_id'] = update_data.pop('provincia')
+             val = update_data.pop('provincia')
+             update_data['provincia_id'] = val if val != "" else None
 
         for key, value in update_data.items():
             setattr(db_domicilio, key, value)

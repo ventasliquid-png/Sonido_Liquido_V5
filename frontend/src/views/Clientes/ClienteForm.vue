@@ -65,6 +65,34 @@ const conflictModal = ref({
     clients: []
 });
 
+// Domicile Dashboard Logic
+const domicilios = ref([]); // Store full list for dashboard
+
+const domicilioFiscal = computed(() => {
+    return domicilios.value.find(d => d.es_fiscal);
+});
+
+const domiciliosEntrega = computed(() => {
+    return domicilios.value.filter(d => d.es_entrega && !d.es_fiscal);
+});
+
+const isFiscalSameAsEntrega = computed(() => {
+    const fiscal = domicilioFiscal.value;
+    const entregas = domiciliosEntrega.value;
+    // If there are no specific delivery addresses, and fiscal is delivery, then it's same.
+    if (entregas.length === 0 && fiscal?.es_entrega) return true;
+    return false;
+});
+
+const handleDomicilioChange = async () => {
+    if (props.clienteId) {
+        const res = await clientesService.getById(props.clienteId);
+        if (res.data && res.data.domicilios) {
+            domicilios.value = res.data.domicilios;
+        }
+    }
+};
+
 // Computed
 const isNew = computed(() => !props.clienteId);
 
@@ -169,6 +197,7 @@ watch(() => props.show, async (newVal) => {
                     calle: '', numero: '', piso: '', depto: '', localidad: '', cp: '', provincia: ''
                 };
                 originalCuit.value = cliente.cuit; 
+                domicilios.value = cliente.domicilios || []; // Load for dashboard 
                 
                 // Extract transporte_id from default domicile
                 if (cliente.domicilios && cliente.domicilios.length > 0) {
@@ -218,6 +247,7 @@ watch(() => props.clienteId, async (newId) => {
         if (cliente) {
             formData.value = { ...cliente, calle: '', numero: '', piso: '', depto: '', localidad: '', cp: '', provincia: '' };
             originalCuit.value = cliente.cuit;
+            domicilios.value = cliente.domicilios || [];
             
             // Extract transporte_id from default domicile
             if (cliente.domicilios && cliente.domicilios.length > 0) {
@@ -376,6 +406,9 @@ const close = () => {
 
 const handleKeydown = (e) => {
     if (showTransporteForm.value || showSegmentoForm.value || conflictModal.value.show) return;
+    // Check if DomicilioGrid modal is open
+    if (domicileGridRef.value && domicileGridRef.value.isFormOpen) return;
+    
     if (!props.show) return;
     if (e.key === 'Escape') close();
     if (e.key === 'F10') {
@@ -412,6 +445,22 @@ const onTransporteSaved = async (newTransporte) => {
     transportes.value = res.data;
     formData.value.transporte_id = newTransporte.id;
     showTransporteForm.value = false; 
+};
+
+const domicileGridRef = ref(null);
+
+const handleEditDomicilio = (domicilio, createFiscal = false) => {
+    activeTab.value = 'logistica';
+    // Wait for v-show to make it visible (though it's always mounted now, we might need a tick)
+    setTimeout(() => {
+        if (domicileGridRef.value) {
+            if (createFiscal) {
+                domicileGridRef.value.openForm({ es_fiscal: true, es_entrega: true });
+            } else if (domicilio) {
+                domicileGridRef.value.openForm(domicilio);
+            }
+        }
+    }, 100);
 };
 </script>
 
@@ -528,139 +577,163 @@ const onTransporteSaved = async (newTransporte) => {
 
             <!-- CONTENT -->
             <div class="flex-1 overflow-y-auto p-6 bg-slate-50 relative">
-                <div v-if="loading" class="absolute inset-0 flex items-center justify-center bg-white/50 z-10">
-                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#54cb9b]"></div>
-                </div>
-
+                
                 <!-- TAB: GENERAL -->
-                <div v-if="activeTab === 'general'" class="max-w-4xl mx-auto">
-                    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6">
-                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">Datos de Identificación</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
-                            <div class="md:col-span-8">
-                                <label class="block text-xs font-bold text-gray-600 mb-1">Razón Social <span class="text-red-500">*</span></label>
-                                <input v-model="formData.razon_social" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none" />
+                <div v-show="activeTab === 'general'" class="max-w-7xl mx-auto">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        
+                        <!-- LEFT COLUMN (FORMS) -->
+                        <div class="lg:col-span-2 space-y-6">
+                            <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                                <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">Datos Principales</h3>
+                                <div class="grid grid-cols-12 gap-4">
+                                    <div class="col-span-12 md:col-span-8">
+                                        <label class="block text-xs font-bold text-gray-600 mb-1">Razón Social *</label>
+                                        <input v-model="formData.razon_social" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none" placeholder="Nombre legal de la empresa" />
+                                    </div>
+                                    <div class="col-span-12 md:col-span-4">
+                                        <label class="block text-xs font-bold text-gray-600 mb-1">CUIT *</label>
+                                        <input 
+                                            v-model="formData.cuit" 
+                                            @input="handleCuitInput"
+                                            @blur="handleCuitBlur"
+                                            type="text" 
+                                            class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none font-mono" 
+                                            placeholder="Solo números"
+                                            maxlength="11"
+                                        />
+                                    </div>
+                                    <div class="col-span-12 md:col-span-6">
+                                        <label class="block text-xs font-bold text-gray-600 mb-1">Nombre de Fantasía</label>
+                                        <input v-model="formData.nombre_fantasia" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none" />
+                                    </div>
+                                    <div class="col-span-12 md:col-span-6">
+                                        <label class="block text-xs font-bold text-gray-600 mb-1">Condición IVA</label>
+                                        <select v-model="formData.condicion_iva_id" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none bg-white">
+                                            <option :value="null">Seleccionar...</option>
+                                            <option v-for="c in condicionesIva" :key="c.id" :value="c.id">{{ c.nombre }}</option>
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="md:col-span-4">
-                                <label class="block text-xs font-bold text-gray-600 mb-1">CUIT <span class="text-red-500">*</span></label>
-                                <input 
-                                    v-model="formData.cuit" 
-                                    @input="handleCuitInput"
-                                    @blur="handleCuitBlur"
-                                    type="text" 
-                                    placeholder="Sin guiones"
-                                    class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none font-mono" 
-                                />
-                            </div>
-                            <div class="md:col-span-6">
-                                <label class="block text-xs font-bold text-gray-600 mb-1">Nombre Fantasía</label>
-                                <input v-model="formData.nombre_fantasia" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none" />
-                            </div>
-                            <div class="md:col-span-6">
-                                <label class="block text-xs font-bold text-gray-600 mb-1">Condición IVA</label>
-                                <select v-model="formData.condicion_iva_id" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none bg-white">
-                                    <option :value="null">Seleccionar...</option>
-                                    <option v-for="cond in condicionesIva" :key="cond.id" :value="cond.id">
-                                        {{ cond.nombre }}
-                                    </option>
-                                </select>
-                            </div>
-                            <div class="md:col-span-6">
-                                <SmartSelect 
-                                    label="Segmento"
-                                    v-model="formData.segmento_id"
-                                    :options="segmentos"
-                                    @create-new="handleCreateSegmento"
-                                />
-                            </div>
-                            <div class="md:col-span-6">
-                                <SmartSelect 
-                                    label="Transporte (Predeterminado)"
-                                    v-model="formData.transporte_id"
-                                    :options="transportes"
-                                    :required="true"
-                                    @create-new="handleCreateTransporte"
-                                />
+
+                            <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                                <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">Gestión y Contacto</h3>
+                                <div class="grid grid-cols-12 gap-4">
+                                    <div class="col-span-12 md:col-span-6">
+                                        <SmartSelect 
+                                            label="Segmento / Ramo"
+                                            v-model="formData.segmento_id"
+                                            :options="segmentos"
+                                            @create-new="handleCreateSegmento"
+                                        />
+                                    </div>
+                                    <div class="col-span-12 md:col-span-6">
+                                        <label class="block text-xs font-bold text-gray-600 mb-1">WhatsApp Empresa</label>
+                                        <input v-model="formData.whatsapp_empresa" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none" placeholder="+54 9 ..." />
+                                    </div>
+                                    <div class="col-span-12">
+                                        <label class="block text-xs font-bold text-gray-600 mb-1">Web / Portal de Pagos</label>
+                                        <input v-model="formData.web_portal_pagos" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none" placeholder="https://..." />
+                                    </div>
+                                    <div class="col-span-12">
+                                        <label class="block text-xs font-bold text-gray-600 mb-1">Datos de Acceso (Usuario/Pass)</label>
+                                        <textarea v-model="formData.datos_acceso_pagos" rows="2" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none" placeholder="Información interna para cobranzas..."></textarea>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- NEW ADDRESS SECTION IN TAB 1 -->
-                    <div v-if="isNew" class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6 border-l-4 border-l-[#54cb9b]">
-                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">Domicilio Legal y Entrega</h3>
-                        <div class="grid grid-cols-12 gap-4">
-                            <div class="col-span-8">
-                                <label class="block text-xs font-bold text-gray-600 mb-1">Calle</label>
-                                <input v-model="formData.calle" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none" />
-                            </div>
-                            <div class="col-span-4">
-                                <label class="block text-xs font-bold text-gray-600 mb-1">Número</label>
-                                <input v-model="formData.numero" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none" />
-                            </div>
-                            <div class="col-span-3">
-                                <label class="block text-xs font-bold text-gray-600 mb-1">Piso</label>
-                                <input v-model="formData.piso" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none" />
-                            </div>
-                            <div class="col-span-3">
-                                <label class="block text-xs font-bold text-gray-600 mb-1">Depto</label>
-                                <input v-model="formData.depto" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none" />
-                            </div>
-                            <div class="col-span-6">
-                                <label class="block text-xs font-bold text-gray-600 mb-1">CP</label>
-                                <input v-model="formData.cp" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none" />
-                            </div>
-                            <div class="col-span-6">
-                                <label class="block text-xs font-bold text-gray-600 mb-1">Localidad</label>
-                                <input v-model="formData.localidad" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none" />
-                            </div>
-                            <div class="col-span-6">
-                                <label class="block text-xs font-bold text-gray-600 mb-1">Provincia</label>
-                                <select v-model="formData.provincia" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none bg-white">
-                                    <option value="">Seleccionar...</option>
-                                    <option v-for="p in provincias" :key="p.id" :value="p.id">{{ p.nombre }}</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
+                        <!-- RIGHT COLUMN (DOMICILE DASHBOARD) -->
+                        <div class="lg:col-span-1 space-y-6">
+                            <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 h-full flex flex-col">
+                                <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-2">
+                                    <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider">Logística</h3>
+                                    <button @click="activeTab = 'logistica'" class="text-xs text-[#54cb9b] font-bold hover:underline">VER DETALLE</button>
+                                </div>
+                                
+                                <div class="space-y-4 flex-1 overflow-y-auto pr-1">
+                                    <!-- Fiscal Address Card -->
+                                    <div 
+                                        class="p-3 rounded border transition-colors cursor-pointer group relative"
+                                        :class="domicilioFiscal ? 'bg-blue-50 border-blue-100 hover:border-blue-300' : 'bg-red-50 border-red-100'"
+                                        @dblclick="handleEditDomicilio(domicilioFiscal, !domicilioFiscal)"
+                                        title="Doble click para editar"
+                                    >
+                                        <div class="flex justify-between items-start mb-1">
+                                            <span class="text-[10px] font-bold uppercase tracking-wider" :class="domicilioFiscal ? 'text-blue-600' : 'text-red-600'">
+                                                {{ domicilioFiscal ? 'Domicilio Fiscal' : 'Falta Domicilio Fiscal' }}
+                                            </span>
+                                            <span v-if="domicilioFiscal" class="text-xs opacity-0 group-hover:opacity-100 transition-opacity text-blue-400">✎</span>
+                                        </div>
+                                        
+                                        <div v-if="domicilioFiscal">
+                                            <p class="text-sm font-bold text-gray-800">{{ domicilioFiscal.calle }} {{ domicilioFiscal.numero }}</p>
+                                            <p class="text-xs text-gray-600">{{ domicilioFiscal.localidad }}</p>
+                                            <p class="text-[10px] text-gray-400 mt-1">{{ provincias.find(p => p.id === domicilioFiscal.provincia_id)?.nombre }}</p>
+                                        </div>
+                                        <div v-else class="flex flex-col gap-2">
+                                            <p class="text-xs text-red-500 font-bold">REQUERIDO</p>
+                                            <button 
+                                                @click.stop="handleEditDomicilio(null, true)"
+                                                class="text-[10px] bg-red-100 text-red-600 px-2 py-1 rounded font-bold hover:bg-red-200 transition-colors text-center"
+                                            >
+                                                + AGREGAR AHORA
+                                            </button>
+                                        </div>
+                                    </div>
 
-                    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">Gestión y Contacto</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-bold text-gray-600 mb-1">WhatsApp Empresa</label>
-                                <input v-model="formData.whatsapp_empresa" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none" />
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-gray-600 mb-1">Web / Portal Pagos</label>
-                                <input v-model="formData.web_portal_pagos" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none" />
-                            </div>
-                            <div class="md:col-span-2">
-                                <label class="block text-xs font-bold text-gray-600 mb-1">Datos de Acceso (Interno)</label>
-                                <textarea v-model="formData.datos_acceso_pagos" rows="2" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none font-mono text-xs"></textarea>
-                            </div>
-                            <div class="flex items-center mt-2">
-                                <label class="flex items-center gap-2 cursor-pointer">
-                                    <input v-model="formData.activo" type="checkbox" class="form-checkbox h-4 w-4 text-[#54cb9b] rounded border-gray-300 focus:ring-[#54cb9b]">
-                                    <span class="text-sm font-bold text-gray-700">Cliente Activo</span>
-                                </label>
+                                    <!-- Delivery Address Summary -->
+                                    <div class="p-3 bg-green-50 rounded border border-green-100 hover:border-green-300 transition-colors cursor-pointer group" @dblclick="activeTab = 'logistica'">
+                                        <div class="flex justify-between items-start mb-1">
+                                            <span class="text-[10px] font-bold text-green-600 uppercase tracking-wider">Entrega</span>
+                                            <span class="text-xs opacity-0 group-hover:opacity-100 transition-opacity text-green-400">✎</span>
+                                        </div>
+                                        
+                                        <div v-if="domiciliosEntrega.length === 0">
+                                            <p class="text-xs text-gray-500 italic">No hay domicilios de entrega específicos.</p>
+                                            <p v-if="domicilioFiscal?.es_entrega" class="text-[10px] text-green-600 mt-1 font-bold">✓ Se usa el Fiscal</p>
+                                        </div>
+                                        <div v-else-if="isFiscalSameAsEntrega">
+                                            <p class="text-sm font-bold text-gray-800">Igual al Fiscal</p>
+                                            <p class="text-xs text-gray-500">Misma dirección de facturación y entrega.</p>
+                                        </div>
+                                        <div v-else>
+                                            <p class="text-sm font-bold text-gray-800">{{ domiciliosEntrega.length }} Sucursal(es)</p>
+                                            <p class="text-xs text-gray-500">Múltiples puntos de entrega definidos.</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- TAB: LOGÍSTICA -->
-                <div v-if="activeTab === 'logistica'" class="h-full">
-                    <DomicilioGrid :clienteId="clienteId" />
+                <div v-show="activeTab === 'logistica'" class="h-full">
+                    <DomicilioGrid 
+                        ref="domicileGridRef"
+                        :cliente-id="props.clienteId" 
+                        @change="handleDomicilioChange"
+                    />
                 </div>
 
                 <!-- TAB: AGENDA -->
-                <div v-if="activeTab === 'agenda'" class="h-full">
-                    <VinculoGrid :clienteId="clienteId" />
+                <div v-show="activeTab === 'agenda'" class="h-full">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+                        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 h-full flex flex-col">
+                            <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">Contactos</h3>
+                            <div class="flex-1 overflow-hidden">
+                                <VinculoGrid :cliente-id="props.clienteId" />
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                            <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">Próximamente</h3>
+                            <p class="text-gray-400 text-sm italic">Gestión de eventos y recordatorios en desarrollo.</p>
+                        </div>
+                    </div>
                 </div>
 
-            </div>
-
-            <!-- CONFLICT MODAL OVERLAY -->
             <div v-if="conflictModal.show" class="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                 <div class="bg-white w-full max-w-md rounded-lg shadow-2xl overflow-hidden animate-scale-in border border-gray-200">
                     <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
@@ -736,6 +809,7 @@ const onTransporteSaved = async (newTransporte) => {
             @close="showTransporteForm = false" 
             @saved="onTransporteSaved"
         />
+    </div>
     </div>
 </template>
 
