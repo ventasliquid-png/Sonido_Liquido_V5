@@ -82,11 +82,15 @@ class Domicilio(Base):
     
     # Logística
     transporte_habitual_nodo_id = Column(UUID(as_uuid=True), ForeignKey("nodos_transporte.id"), nullable=True)
+    transporte_id = Column(UUID(as_uuid=True), ForeignKey("empresas_transporte.id"), nullable=True)
+    intermediario_id = Column(UUID(as_uuid=True), ForeignKey("empresas_transporte.id"), nullable=True)
     
     # Relaciones
     cliente = relationship("Cliente", back_populates="domicilios")
     provincia = relationship("backend.maestros.models.Provincia")
     transporte_habitual_nodo = relationship("backend.logistica.models.NodoTransporte")
+    transporte = relationship("backend.logistica.models.EmpresaTransporte", foreign_keys=[transporte_id])
+    intermediario = relationship("backend.logistica.models.EmpresaTransporte", foreign_keys=[intermediario_id])
 
     def __repr__(self):
         return f"<Domicilio(alias='{self.alias}', calle='{self.calle}')>"

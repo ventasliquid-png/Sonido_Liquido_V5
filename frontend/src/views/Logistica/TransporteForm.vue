@@ -18,8 +18,63 @@ const store = useLogisticaStore();
 const notificationStore = useNotificationStore();
 const isNew = ref(true);
 const provincias = ref([]);
+const showNodoForm = ref(false);
+const nodosList = ref([]);
 
-// ... (rest of setup)
+const formData = ref({
+    nombre: '',
+    web_tracking: '',
+    telefono_reclamos: '',
+    activo: true,
+    requiere_carga_web: false
+});
+
+const nodoFormData = ref({
+    id: null,
+    nombre_nodo: '',
+    direccion_completa: '',
+    provincia_id: '',
+    es_punto_despacho: false,
+    es_punto_retiro: false,
+    horario_operativo: '',
+    contacto_operativo: ''
+});
+
+// Load Data
+watch(() => props.show, async (newVal) => {
+    if (newVal) {
+        // Load Provincias
+        try {
+            const res = await maestrosService.getProvincias();
+            provincias.value = res.data;
+        } catch (error) {
+            console.error("Error loading provincias:", error);
+        }
+
+        if (props.id) {
+            isNew.value = false;
+            try {
+                const empresa = await store.fetchEmpresaById(props.id);
+                formData.value = { ...empresa };
+                await store.fetchNodos(props.id);
+                nodosList.value = [...store.nodos];
+            } catch (error) {
+                console.error("Error loading empresa:", error);
+                notificationStore.add('Error al cargar datos de la empresa', 'error');
+            }
+        } else {
+            isNew.value = true;
+            formData.value = {
+                nombre: '',
+                web_tracking: '',
+                telefono_reclamos: '',
+                activo: true,
+                requiere_carga_web: false
+            };
+            nodosList.value = [];
+        }
+    }
+});
 
 const handleSaveEmpresa = async () => {
     if (!formData.value.nombre) {
@@ -144,7 +199,7 @@ onUnmounted(() => {
     <div v-if="show" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
         <div class="bg-white w-full max-w-4xl h-[90vh] rounded-lg shadow-2xl flex flex-col overflow-hidden animate-scale-in relative">
             <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-                <h2 class="text-lg font-bold text-gray-800">{{ isNew ? 'Nueva Empresa' : 'Editar Empresa' }}</h2>
+                <h2 class="text-lg font-bold text-gray-800">{{ isNew ? 'NUEVA EMPRESA DE TRANSPORTE' : 'EDITAR EMPRESA DE TRANSPORTE' }}</h2>
                 <button @click="close" class="text-gray-500 hover:text-gray-700 font-bold">✕</button>
             </div>
             

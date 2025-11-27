@@ -49,3 +49,17 @@
     *   Se reemplazaron las alertas nativas (`alert()`) por un sistema de notificaciones no bloqueantes (Toast) con feedback visual (✅ Éxito, ❌ Error).
     *   Integrado globalmente en `App.vue` y aplicado en `ClienteForm` y `TransporteForm`.
 *   **Branding:** Se configuró correctamente el favicon de la aplicación.
+
+### [2025-11-26] Optimización de Alta de Clientes (Speed Refactor)
+*   **Backend:**
+    *   Se agregaron columnas `transporte_id` e `intermediario_id` a la tabla `domicilios` (vinculadas a `empresas_transporte`).
+    *   Se actualizó `ClienteService` para propagar el transporte seleccionado en la ficha del cliente hacia su domicilio predeterminado (Fiscal/Entrega).
+*   **Frontend (ClienteForm):**
+    *   **Tab 1 (General):** Integración de campos de domicilio legal para alta rápida. Creación automática de domicilio Fiscal/Entrega al guardar.
+    *   **Transporte:** Campo obligatorio (con asterisco rojo). Se preselecciona "RETIRO EN LOCAL" si no hay otro.
+    *   **Persistencia:** Solucionado bug donde el transporte no se guardaba/recuperaba correctamente en clientes existentes.
+*   **SmartSelect:**
+    *   Soporte para propiedad `required` (asterisco rojo).
+    *   Corrección de "Race Condition" que borraba el valor seleccionado al cargar la lista asincrónicamente o al hacer click fuera prematuramente.
+*   **Base de Datos:**
+    *   Script de migración (`fix_legacy_transportes.py`) para asignar "RETIRO EN LOCAL" a todos los domicilios legados que no tenían transporte asignado.

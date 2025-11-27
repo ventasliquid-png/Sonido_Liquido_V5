@@ -16,8 +16,12 @@ router = APIRouter(
 )
 
 @router.get("/check-cuit/{cuit}", response_model=schemas.CuitCheckResponse)
-def check_cuit(cuit: str, db: Session = Depends(get_db)):
-    return ClienteService.check_cuit(db, cuit)
+def check_cuit(cuit: str, exclude_id: UUID = None, db: Session = Depends(get_db)):
+    return ClienteService.check_cuit(db, cuit, exclude_id)
+
+@router.get("/{cliente_id}/transportes-habituales")
+def get_transportes_habituales(cliente_id: UUID, db: Session = Depends(get_db)):
+    return ClienteService.get_transportes_habituales(db, cliente_id)
 
 @router.post("/", response_model=ClienteResponse, status_code=status.HTTP_201_CREATED)
 def create_cliente(cliente: ClienteCreate, db: Session = Depends(get_db)):

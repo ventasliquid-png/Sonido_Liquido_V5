@@ -25,7 +25,98 @@ const notificationStore = useNotificationStore();
 const activeTab = ref('general');
 const loading = ref(false);
 
-// ... (rest of setup)
+// State
+const formData = ref({
+    razon_social: '',
+    nombre_fantasia: '',
+    cuit: '',
+    condicion_iva_id: null,
+    whatsapp_empresa: '',
+    web_portal_pagos: '',
+    datos_acceso_pagos: '',
+    activo: true,
+    lista_precios_id: null,
+    segmento_id: null,
+    transporte_id: null,
+    limite_credito: 0,
+    requiere_auditoria: false,
+    
+    // Address Fields (Tab 1)
+    calle: '',
+    numero: '',
+    piso: '',
+    depto: '',
+    localidad: '',
+    cp: '',
+    provincia: ''
+});
+
+const segmentos = ref([]);
+const transportes = ref([]);
+const condicionesIva = ref([]);
+const provincias = ref([]);
+const pendingReactivation = ref(false);
+const showSegmentoForm = ref(false);
+const showTransporteForm = ref(false);
+
+const conflictModal = ref({
+    show: false,
+    type: '',
+    clients: []
+});
+
+// Computed
+const isNew = computed(() => !props.clienteId);
+
+// Methods
+const fetchMaestros = async () => {
+    try {
+        const [segRes, transRes, ivaRes, provRes] = await Promise.all([
+            maestrosService.getSegmentos(),
+            maestrosService.getTransportes(),
+            maestrosService.getCondicionesIva(),
+            maestrosService.getProvincias()
+        ]);
+        segmentos.value = segRes.data;
+        transportes.value = transRes.data;
+        condicionesIva.value = ivaRes.data;
+        provincias.value = provRes.data;
+    } catch (error) {
+        console.error('Error fetching maestros:', error);
+        notificationStore.add('Error al cargar listas maestras.', 'error');
+    }
+};
+
+const isValidCuit = (cuit) => {
+    if (!cuit || cuit.length !== 11) return false;
+    const multipliers = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+    let total = 0;
+    for (let i = 0; i < 10; i++) {
+        total += parseInt(cuit[i]) * multipliers[i];
+    }
+    const mod = total % 11;
+    const digit = mod === 0 ? 0 : mod === 1 ? 9 : 11 - mod;
+    return digit === parseInt(cuit[10]);
+};
+
+const handleCuitInput = (e) => {
+    // Allow only numbers
+    formData.value.cuit = e.target.value.replace(/\D/g, '');
+};
+
+const resolveConflict = (action, client = null) => {
+    conflictModal.value.show = false;
+    if (action === 'reactivate' && client) {
+        emit('edit-existing', client.id);
+        pendingReactivation.value = true; 
+    } else if (action === 'edit' && client) {
+        emit('edit-existing', client.id);
+    } else if (action === 'create') {
+        handleSave(true);
+    }
+};
+
+const originalCuit = ref('');
 
 const handleCuitBlur = async () => {
     if (formData.value.cuit) {
@@ -33,59 +124,68 @@ const handleCuitBlur = async () => {
         if (clean.length > 11) clean = clean.slice(0, 11);
         formData.value.cuit = clean;
         
-        if (clean.length > 0) {
-            if (!isValidCuit(clean)) {
-                notificationStore.add('El CUIT ingresado no es válido. Verifique los dígitos.', 'error');
-                return;
-            }
+        if (clean.length === 0) return;
+        if (!isNew.value && clean === originalCuit.value) return;
 
-            // Smart CUIT Check
-            try {
-                const response = await clientesService.checkCuit(clean);
-                const { status, existing_clients } = response.data;
+        if (!isValidCuit(clean)) {
+            notificationStore.add('El CUIT ingresado no es válido. Verifique los dígitos.', 'error');
+            return;
+        }
 
-                if (status === 'NEW') return;
+        // Smart CUIT Check
+        try {
+            const response = await clientesService.checkCuit(clean, props.clienteId);
+            const { status, existing_clients } = response.data;
 
-                // Filter out current client if editing
-                const otherClients = existing_clients.filter(c => c.id !== props.clienteId);
-                
-                if (otherClients.length === 0) return; // Only self found
+            if (status === 'NEW') return;
 
-                conflictModal.value = {
-                    show: true,
-                    type: status, // INACTIVE or EXISTS
-                    clients: otherClients
-                };
+            const otherClients = existing_clients.filter(c => c.id !== props.clienteId);
+            
+            if (otherClients.length === 0) return;
 
-            } catch (error) {
-                console.error("Error checking CUIT:", error);
-            }
+            conflictModal.value = {
+                show: true,
+                type: status, 
+                clients: otherClients
+            };
+
+        } catch (error) {
+            console.error("Error checking CUIT:", error);
         }
     }
 };
 
-// ...
-
-// Reset or Load Data
 watch(() => props.show, async (newVal) => {
     if (newVal) {
         activeTab.value = 'general';
-        await fetchMaestros(); // Ensure maestros are loaded
+        await fetchMaestros(); 
         
         if (props.clienteId) {
             loading.value = true;
             const cliente = await store.fetchClienteById(props.clienteId);
             if (cliente) {
-                formData.value = { ...cliente };
+                formData.value = { 
+                    ...cliente,
+                    calle: '', numero: '', piso: '', depto: '', localidad: '', cp: '', provincia: ''
+                };
+                originalCuit.value = cliente.cuit; 
+                
+                // Extract transporte_id from default domicile
+                if (cliente.domicilios && cliente.domicilios.length > 0) {
+                    const defaultDom = cliente.domicilios.find(d => d.es_entrega) || cliente.domicilios.find(d => d.es_fiscal) || cliente.domicilios[0];
+                    if (defaultDom) {
+                        formData.value.transporte_id = defaultDom.transporte_id;
+                    }
+                }
+
                 if (pendingReactivation.value) {
                     formData.value.activo = true;
                     pendingReactivation.value = false;
-                    notificationStore.add(`El cliente "${cliente.razon_social}" ha sido marcado para REACTIVACIÓN. Verifique los datos y presione GUARDAR (F10) para confirmar.`, 'info', 5000);
+                    notificationStore.add(`El cliente "${cliente.razon_social}" ha sido marcado para REACTIVACIÓN.`, 'info', 5000);
                 }
             }
             loading.value = false;
         } else {
-            // ... (reset form)
             formData.value = {
                 razon_social: '',
                 nombre_fantasia: '',
@@ -99,22 +199,37 @@ watch(() => props.show, async (newVal) => {
                 segmento_id: null,
                 transporte_id: null,
                 limite_credito: 0,
-                requiere_auditoria: false
+                requiere_auditoria: false,
+                calle: '', numero: '', piso: '', depto: '', localidad: '', cp: '', provincia: ''
             };
+            
+            // Pre-select default transport (Retiro en Local)
+            if (transportes.value.length > 0) {
+                const retiro = transportes.value.find(t => t.nombre.toLowerCase().includes('retiro'));
+                formData.value.transporte_id = retiro ? retiro.id : transportes.value[0].id;
+            }
         }
     }
 });
-
 watch(() => props.clienteId, async (newId) => {
     if (props.show && newId) {
         loading.value = true;
         const cliente = await store.fetchClienteById(newId);
         if (cliente) {
-            formData.value = { ...cliente };
+            formData.value = { ...cliente, calle: '', numero: '', piso: '', depto: '', localidad: '', cp: '', provincia: '' };
+            originalCuit.value = cliente.cuit;
+            
+            // Extract transporte_id from default domicile
+            if (cliente.domicilios && cliente.domicilios.length > 0) {
+                const defaultDom = cliente.domicilios.find(d => d.es_entrega) || cliente.domicilios.find(d => d.es_fiscal) || cliente.domicilios[0];
+                if (defaultDom) {
+                    formData.value.transporte_id = defaultDom.transporte_id;
+                }
+            }
+
             if (pendingReactivation.value) {
                 formData.value.activo = true;
                 pendingReactivation.value = false;
-                notificationStore.add(`El cliente "${cliente.razon_social}" ha sido marcado para REACTIVACIÓN. Verifique los datos y presione GUARDAR (F10) para confirmar.`, 'info', 5000);
             }
         }
         loading.value = false;
@@ -122,7 +237,6 @@ watch(() => props.clienteId, async (newId) => {
 });
 
 const handleSave = async (force = false) => {
-    // Pre-save validation
     let cleanCuit = formData.value.cuit.replace(/\D/g, '');
     if (cleanCuit.length > 11) cleanCuit = cleanCuit.slice(0, 11);
     
@@ -131,23 +245,20 @@ const handleSave = async (force = false) => {
         return;
     }
 
-    // ... (Smart CUIT Check logic remains same)
     if (!force && !props.clienteId) {
         try {
-            const response = await clientesService.checkCuit(cleanCuit);
+            const response = await clientesService.checkCuit(cleanCuit, props.clienteId);
             const { status, existing_clients } = response.data;
 
             if (status !== 'NEW') {
-                // Filter out current client if editing (redundant check for new, but safe)
                 const otherClients = existing_clients.filter(c => c.id !== props.clienteId);
-                
                 if (otherClients.length > 0) {
                     conflictModal.value = {
                         show: true,
-                        type: status, // INACTIVE or EXISTS
+                        type: status,
                         clients: otherClients
                     };
-                    return; // Stop save to show modal
+                    return; 
                 }
             }
         } catch (error) {
@@ -155,7 +266,12 @@ const handleSave = async (force = false) => {
         }
     }
     
-    // Prepare Payload (Sanitization)
+    let selectedTransport = formData.value.transporte_id;
+    if (!selectedTransport && transportes.value.length > 0) {
+        // Default to first transport (usually Retiro en Local if seeded first)
+        selectedTransport = transportes.value[0].id;
+    }
+
     const payload = {
         razon_social: formData.value.razon_social,
         cuit: cleanCuit,
@@ -166,8 +282,23 @@ const handleSave = async (force = false) => {
         web_portal_pagos: formData.value.web_portal_pagos,
         datos_acceso_pagos: formData.value.datos_acceso_pagos,
         segmento_id: formData.value.segmento_id,
-        transporte_id: formData.value.transporte_id,
+        transporte_id: selectedTransport, 
     };
+
+    if (isNew.value) {
+        payload.domicilios = [{
+            calle: formData.value.calle,
+            numero: formData.value.numero,
+            piso: formData.value.piso,
+            depto: formData.value.depto,
+            localidad: formData.value.localidad,
+            cp: formData.value.cp,
+            provincia: formData.value.provincia,
+            es_fiscal: true,
+            es_entrega: true, 
+            transporte_id: selectedTransport
+        }];
+    }
 
     try {
         if (isNew.value) {
@@ -189,28 +320,17 @@ const handleSave = async (force = false) => {
         console.error('Error saving cliente:', error);
         let msg = 'Error al guardar.';
         if (error.response && error.response.data) {
-            if (error.response.data.detail) {
-                if (typeof error.response.data.detail === 'string') {
-                    msg += ' ' + error.response.data.detail;
-                } else if (Array.isArray(error.response.data.detail)) {
-                    msg += '\n' + error.response.data.detail.map(e => `- ${e.loc.join('.')}: ${e.msg}`).join('\n');
-                } else {
-                    msg += ' ' + JSON.stringify(error.response.data.detail);
-                }
-            }
-        } else if (error.message) {
-            msg += ' ' + error.message;
+             msg += ' ' + JSON.stringify(error.response.data.detail || error.response.data);
         }
         notificationStore.add(msg, 'error');
     }
 };
 
 const handleDelete = async () => {
-    // Baja Lógica
     if (!confirm('¿Está seguro de dar de BAJA a este cliente? Esta acción es lógica y no borrará historial.')) return;
     try {
         await store.deleteCliente(props.clienteId);
-        emit('saved', props.clienteId); // Refresh list
+        emit('saved', props.clienteId); 
         emit('close');
         notificationStore.add('Cliente dado de baja exitosamente.', 'success');
     } catch (error) {
@@ -233,7 +353,6 @@ const handleValidate = async () => {
 
 const handleHardDelete = async () => {
     if (!confirm('🔥 ATENCIÓN: ¿Está seguro de ELIMINAR FÍSICAMENTE este registro?\n\nEsta acción es IRREVERSIBLE y solo funcionará si el cliente NO tiene historial.')) return;
-    
     if (!confirm('Confirme nuevamente: ¿ELIMINAR DEFINITIVAMENTE?')) return;
 
     try {
@@ -244,9 +363,9 @@ const handleHardDelete = async () => {
     } catch (error) {
         console.error('Error eliminando cliente:', error);
         if (error.response && error.response.status === 409) {
-            notificationStore.add('⛔ NO SE PUEDE ELIMINAR: El cliente tiene historial (ventas, movimientos, etc).\n\nDebe usar la BAJA LÓGICA (Botón "BAJA").', 'error', 5000);
+            notificationStore.add('⛔ NO SE PUEDE ELIMINAR: El cliente tiene historial.', 'error', 5000);
         } else {
-            notificationStore.add('Error al eliminar cliente: ' + (error.response?.data?.detail || error.message), 'error');
+            notificationStore.add('Error al eliminar cliente.', 'error');
         }
     }
 };
@@ -255,8 +374,8 @@ const close = () => {
     emit('close');
 };
 
-// Keyboard Shortcuts
 const handleKeydown = (e) => {
+    if (showTransporteForm.value || showSegmentoForm.value || conflictModal.value.show) return;
     if (!props.show) return;
     if (e.key === 'Escape') close();
     if (e.key === 'F10') {
@@ -282,7 +401,6 @@ const handleCreateTransporte = () => {
 };
 
 const onSegmentoSaved = async (newSegmento) => {
-    // Refresh list and select new item
     const res = await maestrosService.getSegmentos();
     segmentos.value = res.data;
     formData.value.segmento_id = newSegmento.id;
@@ -290,19 +408,9 @@ const onSegmentoSaved = async (newSegmento) => {
 };
 
 const onTransporteSaved = async (newTransporte) => {
-    // Refresh list and select new item
     const res = await maestrosService.getTransportes();
     transportes.value = res.data;
     formData.value.transporte_id = newTransporte.id;
-    // Note: TransporteForm might stay open if user wants to add nodes, 
-    // but here we might want to close it or let the user close it.
-    // The TransporteForm emits 'saved' on create/update.
-    // If we want to auto-select, we do it here.
-    // If the form stays open, that's fine, but usually F4 flow implies "create and return".
-    // Let's assume the user closes it manually or we close it.
-    // In my TransporteForm implementation, I emit 'close' after save if it's an update, but not if new.
-    // Wait, I changed it to emit 'close' always? No, I left a comment.
-    // Let's force close here if we want "Quick Add" behavior.
     showTransporteForm.value = false; 
 };
 </script>
@@ -467,11 +575,50 @@ const onTransporteSaved = async (newTransporte) => {
                             </div>
                             <div class="md:col-span-6">
                                 <SmartSelect 
-                                    label="Transporte"
+                                    label="Transporte (Predeterminado)"
                                     v-model="formData.transporte_id"
                                     :options="transportes"
+                                    :required="true"
                                     @create-new="handleCreateTransporte"
                                 />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- NEW ADDRESS SECTION IN TAB 1 -->
+                    <div v-if="isNew" class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6 border-l-4 border-l-[#54cb9b]">
+                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">Domicilio Legal y Entrega</h3>
+                        <div class="grid grid-cols-12 gap-4">
+                            <div class="col-span-8">
+                                <label class="block text-xs font-bold text-gray-600 mb-1">Calle</label>
+                                <input v-model="formData.calle" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none" />
+                            </div>
+                            <div class="col-span-4">
+                                <label class="block text-xs font-bold text-gray-600 mb-1">Número</label>
+                                <input v-model="formData.numero" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none" />
+                            </div>
+                            <div class="col-span-3">
+                                <label class="block text-xs font-bold text-gray-600 mb-1">Piso</label>
+                                <input v-model="formData.piso" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none" />
+                            </div>
+                            <div class="col-span-3">
+                                <label class="block text-xs font-bold text-gray-600 mb-1">Depto</label>
+                                <input v-model="formData.depto" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none" />
+                            </div>
+                            <div class="col-span-6">
+                                <label class="block text-xs font-bold text-gray-600 mb-1">CP</label>
+                                <input v-model="formData.cp" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none" />
+                            </div>
+                            <div class="col-span-6">
+                                <label class="block text-xs font-bold text-gray-600 mb-1">Localidad</label>
+                                <input v-model="formData.localidad" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none" />
+                            </div>
+                            <div class="col-span-6">
+                                <label class="block text-xs font-bold text-gray-600 mb-1">Provincia</label>
+                                <select v-model="formData.provincia" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none bg-white">
+                                    <option value="">Seleccionar...</option>
+                                    <option v-for="p in provincias" :key="p.id" :value="p.id">{{ p.nombre }}</option>
+                                </select>
                             </div>
                         </div>
                     </div>

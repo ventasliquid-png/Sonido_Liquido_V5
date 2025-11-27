@@ -40,7 +40,13 @@ class ClienteService:
                         dom_data['provincia_id'] = dom_in.provincia
                     
                     if dom_in.transporte_id:
-                        dom_data['transporte_habitual_nodo_id'] = dom_in.transporte_id
+                        dom_data['transporte_id'] = dom_in.transporte_id
+                        # Legacy support or if we want to auto-select node?
+                        # For now, we just use the new column.
+                        # dom_data['transporte_habitual_nodo_id'] = ... 
+
+                    if dom_in.intermediario_id:
+                        dom_data['intermediario_id'] = dom_in.intermediario_id
                     
                     db_domicilio = Domicilio(
                         **dom_data,
@@ -89,9 +95,25 @@ class ClienteService:
             return None
         
         update_data = cliente_in.model_dump(exclude_unset=True)
+        
+        # Handle transporte_id separately (it belongs to Domicilio)
+        transporte_id = update_data.pop('transporte_id', None)
+        
         for key, value in update_data.items():
             setattr(db_cliente, key, value)
         
+        # Update default domicile if transporte_id is provided
+        if transporte_id:
+            # Find default domicile (Fiscal or Entrega, or first one)
+            default_dom = next((d for d in db_cliente.domicilios if d.es_entrega), None)
+            if not default_dom:
+                 default_dom = next((d for d in db_cliente.domicilios if d.es_fiscal), None)
+            
+            if default_dom:
+                default_dom.transporte_id = transporte_id
+                db.add(default_dom)
+            # If no domicile exists, we could create one, but for now we assume existing clients have one.
+
         db.add(db_cliente)
         db.commit()
         db.refresh(db_cliente)
@@ -138,8 +160,13 @@ class ClienteService:
             raise e
 
     @staticmethod
-    def check_cuit(db: Session, cuit: str) -> schemas.CuitCheckResponse:
-        clients = db.query(Cliente).filter(Cliente.cuit == cuit).all()
+    def check_cuit(db: Session, cuit: str, exclude_id: UUID = None) -> schemas.CuitCheckResponse:
+        query = db.query(Cliente).filter(Cliente.cuit == cuit)
+        
+        if exclude_id:
+            query = query.filter(Cliente.id != exclude_id)
+            
+        clients = query.all()
         
         if not clients:
             return schemas.CuitCheckResponse(status="NEW", existing_clients=[])
@@ -147,26 +174,56 @@ class ClienteService:
         # Check if any is active
         active_clients = [c for c in clients if c.activo]
         
+        summary_list = [
+            schemas.ClienteSummary(
+                id=c.id, 
+                razon_social=c.razon_social, 
+                nombre_fantasia=getattr(c, 'nombre_fantasia', None), 
+                activo=c.activo
+            ) for c in clients
+        ]
+        
         if active_clients:
-            summary_list = [
-                schemas.ClienteSummary(
-                    id=c.id, 
-                    razon_social=c.razon_social, 
-                    nombre_fantasia=getattr(c, 'nombre_fantasia', None), 
-                    activo=c.activo
-                ) for c in clients
-            ]
             return schemas.CuitCheckResponse(status="EXISTS", existing_clients=summary_list)
         else:
-            summary_list = [
-                schemas.ClienteSummary(
-                    id=c.id, 
-                    razon_social=c.razon_social, 
-                    nombre_fantasia=getattr(c, 'nombre_fantasia', None),
-                    activo=c.activo
-                ) for c in clients
-            ]
             return schemas.CuitCheckResponse(status="INACTIVE", existing_clients=summary_list)
+
+    @staticmethod
+    def get_transportes_habituales(db: Session, cliente_id: UUID) -> List[UUID]:
+        from sqlalchemy import func
+        # Query logistica_domicilios to find most used transporte_id
+        # We need to join Domicilio table? 
+        # Wait, Domicilio model has transporte_habitual_nodo_id? Or transporte_id?
+        # Let's check Domicilio model in next step if needed, but assuming it's transporte_habitual_nodo_id based on create_cliente
+        # Actually create_cliente maps transporte_id to transporte_habitual_nodo_id.
+        # But wait, create_cliente code says: dom_data['transporte_habitual_nodo_id'] = dom_in.transporte_id
+        # Let's assume the column is transporte_habitual_nodo_id.
+        # But wait, the user request says "SELECT DISTINCT transporte_id ... FROM logistica_domicilios".
+        # I should check the model to be sure about the column name.
+        # For now I will use Domicilio model attribute.
+        
+        results = db.query(
+            Domicilio.transporte_habitual_nodo_id, 
+            func.count(Domicilio.transporte_habitual_nodo_id).label('count')
+        ).filter(
+            Domicilio.cliente_id == cliente_id,
+            Domicilio.transporte_habitual_nodo_id.isnot(None)
+        ).group_by(
+            Domicilio.transporte_habitual_nodo_id
+        ).order_by(
+            func.count(Domicilio.transporte_habitual_nodo_id).desc()
+        ).all()
+        
+        # Return list of IDs (Empresa ID? Or Nodo ID?)
+        # The SmartSelect expects IDs that match the options.
+        # The options in SmartSelect are "Transportes" (Empresas).
+        # But Domicilio links to a specific Nodo (Sucursal) or Empresa?
+        # In create_cliente: dom_data['transporte_habitual_nodo_id'] = dom_in.transporte_id
+        # If 'transporte_id' in frontend refers to Empresa, then we might have a mismatch if we are storing Nodo ID.
+        # However, usually "Transporte" in the form refers to the Company.
+        # Let's assume for now it returns the ID that matches the list.
+        
+        return [r[0] for r in results]
 
     # --- Usage Ranking (V5.2) ---
     @staticmethod

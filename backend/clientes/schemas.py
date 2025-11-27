@@ -14,6 +14,7 @@ class DomicilioBase(BaseModel):
     es_fiscal: bool = False
     es_entrega: bool = False
     transporte_id: Optional[UUID] = None
+    intermediario_id: Optional[UUID] = None
     zona_id: Optional[UUID] = None
 
 class DomicilioCreate(DomicilioBase):
@@ -27,6 +28,7 @@ class DomicilioUpdate(BaseModel):
     es_fiscal: Optional[bool] = None
     es_entrega: Optional[bool] = None
     transporte_id: Optional[UUID] = None
+    intermediario_id: Optional[UUID] = None
     zona_id: Optional[UUID] = None
 
 class DomicilioResponse(BaseModel):
@@ -40,6 +42,8 @@ class DomicilioResponse(BaseModel):
     es_fiscal: bool = False
     es_entrega: bool = False
     transporte_habitual_nodo_id: Optional[UUID] = None
+    transporte_id: Optional[UUID] = None
+    intermediario_id: Optional[UUID] = None
 
     class Config:
         from_attributes = True
@@ -73,6 +77,7 @@ class ClienteUpdate(BaseModel):
     whatsapp_empresa: Optional[str] = None
     web_portal_pagos: Optional[str] = None
     datos_acceso_pagos: Optional[str] = None
+    transporte_id: Optional[UUID] = None
 
 from backend.agenda.schemas import VinculoComercialResponse
 
