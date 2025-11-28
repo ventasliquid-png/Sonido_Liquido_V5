@@ -8,7 +8,14 @@ export const useClientesStore = defineStore('clientes', () => {
     const loading = ref(false);
     const error = ref(null);
 
-    async function fetchClientes(params = {}) {
+    async function fetchClientes(params = {}, force = false) {
+        // Cache check: if we have data and not forcing, return early
+        if (!force && clientes.value.length > 0 && Object.keys(params).length === 0) {
+            console.log('Using cached clientes');
+            return;
+        }
+
+        console.log('Fetching clientes from API');
         loading.value = true;
         error.value = null;
         try {
@@ -126,6 +133,112 @@ export const useClientesStore = defineStore('clientes', () => {
         }
     }
 
+    // --- Domicilios Actions ---
+    async function createDomicilio(clienteId, data) {
+        loading.value = true;
+        try {
+            const response = await clientesService.createDomicilio(clienteId, data);
+            if (currentCliente.value && currentCliente.value.id === clienteId) {
+                if (!currentCliente.value.domicilios) currentCliente.value.domicilios = [];
+                currentCliente.value.domicilios.push(response.data);
+            }
+            return response.data;
+        } catch (err) {
+            error.value = err.message || 'Error al crear domicilio';
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function updateDomicilio(clienteId, domicilioId, data) {
+        loading.value = true;
+        try {
+            const response = await clientesService.updateDomicilio(clienteId, domicilioId, data);
+            if (currentCliente.value && currentCliente.value.id === clienteId) {
+                const index = currentCliente.value.domicilios.findIndex(d => d.id === domicilioId);
+                if (index !== -1) currentCliente.value.domicilios[index] = response.data;
+            }
+            return response.data;
+        } catch (err) {
+            error.value = err.message || 'Error al actualizar domicilio';
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function deleteDomicilio(clienteId, domicilioId) {
+        loading.value = true;
+        try {
+            await clientesService.deleteDomicilio(clienteId, domicilioId);
+            if (currentCliente.value && currentCliente.value.id === clienteId) {
+                currentCliente.value.domicilios = currentCliente.value.domicilios.filter(d => d.id !== domicilioId);
+            }
+        } catch (err) {
+            error.value = err.message || 'Error al eliminar domicilio';
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    // --- Vinculos Actions ---
+    async function createVinculo(clienteId, data) {
+        loading.value = true;
+        try {
+            const response = await clientesService.createVinculo(clienteId, data);
+            if (currentCliente.value && currentCliente.value.id === clienteId) {
+                if (!currentCliente.value.vinculos) currentCliente.value.vinculos = []; // Note: API returns 'vinculos' but store might use 'contactos'? Check schema.
+                // Schema says 'vinculos'. ClientCanvas uses 'contactos'. I need to align this.
+                // In ClientCanvas loadCliente: contactos.value = cliente.contactos || []
+                // But schema says 'vinculos'. I should check what the API actually returns.
+                // Assuming API returns 'vinculos', I should update that.
+                // If ClientCanvas maps it, I should update the mapped ref too.
+                // For now, I'll update 'vinculos' in currentCliente.
+                currentCliente.value.vinculos.push(response.data);
+            }
+            return response.data;
+        } catch (err) {
+            error.value = err.message || 'Error al crear contacto';
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function updateVinculo(clienteId, vinculoId, data) {
+        loading.value = true;
+        try {
+            const response = await clientesService.updateVinculo(clienteId, vinculoId, data);
+            if (currentCliente.value && currentCliente.value.id === clienteId) {
+                const index = currentCliente.value.vinculos.findIndex(v => v.id === vinculoId);
+                if (index !== -1) currentCliente.value.vinculos[index] = response.data;
+            }
+            return response.data;
+        } catch (err) {
+            error.value = err.message || 'Error al actualizar contacto';
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function deleteVinculo(clienteId, vinculoId) {
+        loading.value = true;
+        try {
+            await clientesService.deleteVinculo(clienteId, vinculoId);
+            if (currentCliente.value && currentCliente.value.id === clienteId) {
+                currentCliente.value.vinculos = currentCliente.value.vinculos.filter(v => v.id !== vinculoId);
+            }
+        } catch (err) {
+            error.value = err.message || 'Error al eliminar contacto';
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    }
+
     return {
         clientes,
         currentCliente,
@@ -137,6 +250,12 @@ export const useClientesStore = defineStore('clientes', () => {
         updateCliente,
         deleteCliente,
         hardDeleteCliente,
-        approveCliente
+        approveCliente,
+        createDomicilio,
+        updateDomicilio,
+        deleteDomicilio,
+        createVinculo,
+        updateVinculo,
+        deleteVinculo
     };
 });

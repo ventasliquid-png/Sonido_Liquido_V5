@@ -1,4 +1,10 @@
 
+## Sesión Gy OF - 2025-11-28 10:01 (EN CURSO)
+**Inicio:** 2025-11-28 10:01
+**Estado:** Abierta
+
+
+
 ## Sesión Gy CA - 2025-11-27 20:36 (CERRADA 22:55)
 **Inicio:** 2025-11-27 20:36
 **Estado:** Cerrada

@@ -27,21 +27,6 @@ Para resolver el problema de la "pérdida de contexto" entre sesiones o cambios 
     *   `python scripts/session_manager.py start`: Abre una nueva sesión y marca el inicio.
     *   `python scripts/session_manager.py end "Resumen..."`: Cierra la sesión, guarda el resumen y **limpia** el archivo.
 *   **Inteligencia ("Poda"):** Para que el archivo no se haga infinito, el script usa una lógica inteligente:
-    *   Mantiene todas *tus* sesiones recientes consecutivas.
-    *   Mantiene la *última* sesión del "otro" lugar (ej: si estás en OF, guarda la última de CA).
-    *   Mantiene tu última sesión *antes* de que el otro interviniera (para que recuerdes qué hacías antes de irte).
-
----
-
-## 2. Resumen de Mejoras Técnicas (Módulo Clientes)
-
-Además del sistema de memoria, hoy dejamos el módulo de Clientes y Domicilios funcionando al 100%:
-
-### Domicilios y Logística
-*   **Dashboard en Tiempo Real:** Ahora, al agregar una sucursal en la pestaña "Logística", la pestaña "General" se actualiza al instante para mostrarla.
-*   **Conteo Inteligente:** El sistema ya no cuenta doble si el Domicilio Fiscal es también de entrega.
-*   **Transporte Automático:**
-    *   **Al Crear:** Si el cliente ya tiene un transporte en su domicilio fiscal, el sistema lo pre-carga en los nuevos destinos.
     *   **Al Guardar:** Si dejas el transporte vacío, el sistema es "inteligente" y te asigna "Retiro en Local" (o el primero disponible) automáticamente, evitando errores bloqueantes.
 *   **Tecla F10:** Se arregló el "cableado" para que F10 guarde la ventanita de domicilio si está abierta, en lugar de intentar guardar todo el cliente.
 

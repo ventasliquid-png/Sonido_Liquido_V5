@@ -51,6 +51,7 @@ class DomicilioResponse(BaseModel):
 # --- Cliente Schemas ---
 class ClienteBase(BaseModel):
     razon_social: str
+    nombre_fantasia: Optional[str] = None
     cuit: str
     condicion_iva_id: Optional[UUID] = None
     lista_precios_id: Optional[UUID] = None
@@ -62,13 +63,16 @@ class ClienteBase(BaseModel):
     legacy_id_bas: Optional[str] = None
     whatsapp_empresa: Optional[str] = None
     web_portal_pagos: Optional[str] = None
+    web_portal_pagos: Optional[str] = None
     datos_acceso_pagos: Optional[str] = None
+    observaciones: Optional[str] = None
 
 class ClienteCreate(ClienteBase):
     domicilios: List[DomicilioCreate] = []
 
 class ClienteUpdate(BaseModel):
     razon_social: Optional[str] = None
+    nombre_fantasia: Optional[str] = None
     cuit: Optional[str] = None
     condicion_iva_id: Optional[UUID] = None
     lista_precios_id: Optional[UUID] = None
@@ -78,7 +82,9 @@ class ClienteUpdate(BaseModel):
     legacy_id_bas: Optional[str] = None
     whatsapp_empresa: Optional[str] = None
     web_portal_pagos: Optional[str] = None
+    web_portal_pagos: Optional[str] = None
     datos_acceso_pagos: Optional[str] = None
+    observaciones: Optional[str] = None
     transporte_id: Optional[UUID] = None
 
 from backend.agenda.schemas import VinculoComercialResponse
@@ -92,6 +98,18 @@ class ClienteResponse(ClienteBase):
     updated_at: datetime
     domicilios: List[DomicilioResponse] = []
     vinculos: List[VinculoComercialResponse] = []
+
+    class Config:
+        from_attributes = True
+
+class ClienteListResponse(ClienteBase):
+    id: UUID
+    codigo_interno: Optional[int] = None
+    saldo_actual: Optional[float] = 0.0
+    contador_uso: Optional[int] = 0
+    created_at: datetime
+    updated_at: datetime
+    # Exclude nested lists for performance
 
     class Config:
         from_attributes = True

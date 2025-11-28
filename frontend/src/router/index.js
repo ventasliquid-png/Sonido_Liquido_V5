@@ -5,6 +5,8 @@ import SegmentoList from '../views/Maestros/SegmentoList.vue';
 import VendedorList from '../views/Maestros/VendedorList.vue';
 import ListaPreciosList from '../views/Maestros/ListaPreciosList.vue';
 import Login from '../views/Login.vue';
+import HaweLayout from '../layouts/HaweLayout.vue';
+import HaweView from '../views/HaweView.vue';
 
 const routes = [
     {
@@ -47,6 +49,22 @@ const routes = [
         path: '/agenda',
         name: 'Agenda',
         component: () => import('../views/Agenda/PersonaList.vue')
+    },
+    {
+        path: '/hawe',
+        component: HaweLayout,
+        children: [
+            {
+                path: '',
+                name: 'HaweHome',
+                component: HaweView
+            },
+            {
+                path: 'cliente/:id',
+                name: 'HaweClientCanvas',
+                component: () => import('../views/Hawe/ClientCanvas.vue')
+            }
+        ]
     }
 ];
 

@@ -33,7 +33,11 @@ export const useMaestrosStore = defineStore('maestros', {
         },
 
         // --- Segmentos ---
-        async fetchSegmentos(filter = 'active') {
+        async fetchSegmentos(filter = 'active', force = false) {
+            // Cache check
+            if (!force && this.segmentos.length > 0 && filter === 'active') {
+                return;
+            }
             try {
                 const response = await maestrosService.getSegmentos({ status: filter });
                 this.segmentos = response.data;

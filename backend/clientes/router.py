@@ -27,7 +27,7 @@ def get_transportes_habituales(cliente_id: UUID, db: Session = Depends(get_db)):
 def create_cliente(cliente: ClienteCreate, db: Session = Depends(get_db)):
     return ClienteService.create_cliente(db, cliente)
 
-@router.get("/", response_model=List[ClienteResponse])
+@router.get("/", response_model=List[schemas.ClienteListResponse])
 def read_clientes(skip: int = 0, limit: int = 1000, db: Session = Depends(get_db)):
     return ClienteService.get_clientes(db, skip=skip, limit=limit)
 

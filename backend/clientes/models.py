@@ -18,6 +18,7 @@ class Cliente(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     razon_social = Column(String, nullable=False, index=True)
+    nombre_fantasia = Column(String, nullable=True)
     cuit = Column(String, unique=False, nullable=False, index=True)
     
     # Identificadores
@@ -28,6 +29,7 @@ class Cliente(Base):
     whatsapp_empresa = Column(String, nullable=True)
     web_portal_pagos = Column(String, nullable=True)
     datos_acceso_pagos = Column(Text, nullable=True)
+    observaciones = Column(Text, nullable=True)
     
     # Referencias a otras tablas
     condicion_iva_id = Column(UUID(as_uuid=True), ForeignKey("condiciones_iva.id"), nullable=True)
