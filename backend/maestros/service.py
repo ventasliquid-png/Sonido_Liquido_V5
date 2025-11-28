@@ -15,6 +15,14 @@ class MaestrosService:
         return db.query(models.TipoContacto).all()
 
     @staticmethod
+    def create_tipo_contacto(db: Session, tipo: schemas.TipoContactoCreate) -> models.TipoContacto:
+        db_tipo = models.TipoContacto(id=tipo.id, nombre=tipo.nombre)
+        db.add(db_tipo)
+        db.commit()
+        db.refresh(db_tipo)
+        return db_tipo
+
+    @staticmethod
     def get_condiciones_iva(db: Session) -> List[models.CondicionIva]:
         return db.query(models.CondicionIva).all()
 

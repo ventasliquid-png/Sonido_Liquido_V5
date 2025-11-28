@@ -127,3 +127,16 @@ Si se clona el repo en una nueva máquina:
         *   **Fallback:** Si se deja vacío, asigna automáticamente "Retiro en Local" (o el primero disponible) al guardar.
         *   **F10:** Se corrigió la captura de tecla para que F10 guarde el modal de domicilio si está abierto.
     *   **Visualización:** Se filtró el Domicilio Fiscal de la lista de entregas para evitar duplicados y conteo erróneo.
+
+### [2025-11-27] Agenda y UX Avanzada (Sesión Nocturna)
+*   **Módulo Agenda:**
+    *   **Fix "Desconocido":** Se corrigió el schema del backend para incluir datos de la persona en la respuesta del vínculo.
+    *   **Edición:** Se implementó la funcionalidad completa de edición de contactos (PUT) con botón dedicado.
+    *   **Roles al Vuelo:** Implementación de creación de "Tipos de Contacto" directamente desde el formulario (F4).
+*   **UX Premium:**
+    *   **CopyTooltip:** Componente estilo "Gmail" para Email y WhatsApp. Al pasar el mouse, muestra el dato completo y permite copiarlo con un clic.
+    *   **WhatsApp Input:** Campo inteligente con prefijo automático (+54 9) y limpieza de basura.
+*   **Correcciones:**
+    *   **Fix 422:** Sanitización de payloads para evitar errores de validación con campos vacíos.
+    *   **Fix Top Clients:** Se blindó el schema de `ClienteResponse` para tolerar valores nulos en `saldo` y `contador_uso`, recuperando la lista de frecuentes.
+    *   **Fix Import:** Corrección de referencia circular/errónea en `backend/clientes/router.py`.

@@ -462,6 +462,18 @@ const handleEditDomicilio = (domicilio, createFiscal = false) => {
         }
     }, 100);
 };
+
+const handleWhatsappFocus = () => {
+    if (!formData.value.whatsapp_empresa) {
+        formData.value.whatsapp_empresa = '+54 9 ';
+    }
+};
+
+const handleWhatsappBlur = () => {
+    if (formData.value.whatsapp_empresa === '+54 9 ') {
+        formData.value.whatsapp_empresa = '';
+    }
+};
 </script>
 
 <template>
@@ -630,7 +642,14 @@ const handleEditDomicilio = (domicilio, createFiscal = false) => {
                                     </div>
                                     <div class="col-span-12 md:col-span-6">
                                         <label class="block text-xs font-bold text-gray-600 mb-1">WhatsApp Empresa</label>
-                                        <input v-model="formData.whatsapp_empresa" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none" placeholder="+54 9 ..." />
+                                        <input 
+                                            v-model="formData.whatsapp_empresa" 
+                                            @focus="handleWhatsappFocus"
+                                            @blur="handleWhatsappBlur"
+                                            type="text" 
+                                            class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none" 
+                                            placeholder="+54 9 ..." 
+                                        />
                                     </div>
                                     <div class="col-span-12">
                                         <label class="block text-xs font-bold text-gray-600 mb-1">Web / Portal de Pagos</label>
@@ -683,24 +702,44 @@ const handleEditDomicilio = (domicilio, createFiscal = false) => {
                                         </div>
                                     </div>
 
-                                    <!-- Delivery Address Summary -->
-                                    <div class="p-3 bg-green-50 rounded border border-green-100 hover:border-green-300 transition-colors cursor-pointer group" @dblclick="activeTab = 'logistica'">
-                                        <div class="flex justify-between items-start mb-1">
-                                            <span class="text-[10px] font-bold text-green-600 uppercase tracking-wider">Entrega</span>
-                                            <span class="text-xs opacity-0 group-hover:opacity-100 transition-opacity text-green-400">✎</span>
+                                    <!-- Delivery Address List -->
+                                    <div class="mt-4">
+                                        <div class="flex justify-between items-center mb-2">
+                                            <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                                Entrega <span class="text-gray-400 font-normal">({{ domiciliosEntrega.length }} sucursales de entrega)</span>
+                                            </h4>
                                         </div>
-                                        
-                                        <div v-if="domiciliosEntrega.length === 0">
-                                            <p class="text-xs text-gray-500 italic">No hay domicilios de entrega específicos.</p>
-                                            <p v-if="domicilioFiscal?.es_entrega" class="text-[10px] text-green-600 mt-1 font-bold">✓ Se usa el Fiscal</p>
-                                        </div>
-                                        <div v-else-if="isFiscalSameAsEntrega">
-                                            <p class="text-sm font-bold text-gray-800">Igual al Fiscal</p>
-                                            <p class="text-xs text-gray-500">Misma dirección de facturación y entrega.</p>
-                                        </div>
-                                        <div v-else>
-                                            <p class="text-sm font-bold text-gray-800">{{ domiciliosEntrega.length }} Sucursal(es)</p>
-                                            <p class="text-xs text-gray-500">Múltiples puntos de entrega definidos.</p>
+
+                                        <div class="space-y-2">
+                                            <div v-if="domiciliosEntrega.length === 0" class="p-3 bg-gray-50 rounded border border-gray-100 text-center">
+                                                <p class="text-xs text-gray-400 italic">No hay sucursales adicionales.</p>
+                                                <p v-if="domicilioFiscal?.es_entrega" class="text-[10px] text-green-600 mt-1 font-bold">✓ Se usa el Fiscal para entregas</p>
+                                            </div>
+
+                                            <div 
+                                                v-for="(dom, index) in domiciliosEntrega.slice(0, 5)" 
+                                                :key="dom.id || index"
+                                                class="p-2 bg-green-50 rounded border border-green-100 hover:border-green-300 transition-colors cursor-pointer group relative"
+                                                @dblclick="handleEditDomicilio(dom)"
+                                                title="Doble click para editar"
+                                            >
+                                                <div class="flex justify-between items-start">
+                                                    <div>
+                                                        <p class="text-xs font-bold text-gray-800">{{ dom.calle }} {{ dom.numero }}</p>
+                                                        <p class="text-[10px] text-gray-600">{{ dom.localidad }}</p>
+                                                    </div>
+                                                    <span class="text-xs opacity-0 group-hover:opacity-100 transition-opacity text-green-400">✎</span>
+                                                </div>
+                                                <div class="mt-1 flex gap-1">
+                                                    <span v-if="dom.transporte_id" class="text-[9px] bg-white px-1 rounded border border-green-200 text-green-700 truncate max-w-[120px]">
+                                                        🚚 {{ transportes.find(t => t.id === dom.transporte_id)?.nombre || 'Transporte' }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            
+                                            <div v-if="domiciliosEntrega.length > 5" class="text-center pt-1">
+                                                <span class="text-[10px] text-gray-400 italic">+ {{ domiciliosEntrega.length - 5 }} más... ver en Logística</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

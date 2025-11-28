@@ -32,6 +32,7 @@ class Cliente(Base):
     # Referencias a otras tablas
     condicion_iva_id = Column(UUID(as_uuid=True), ForeignKey("condiciones_iva.id"), nullable=True)
     lista_precios_id = Column(UUID(as_uuid=True), ForeignKey("listas_precios.id"), nullable=True)
+    segmento_id = Column(UUID(as_uuid=True), ForeignKey("segmentos.id"), nullable=True)
     vendedor_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True) # Account Manager
     
     # Datos financieros
@@ -53,6 +54,7 @@ class Cliente(Base):
     vinculos = relationship("backend.agenda.models.VinculoComercial", back_populates="cliente")
     condicion_iva = relationship("backend.maestros.models.CondicionIva")
     lista_precios = relationship("backend.maestros.models.ListaPrecios")
+    segmento = relationship("backend.maestros.models.Segmento")
     vendedor = relationship("backend.auth.models.Usuario")
 
     def __repr__(self):

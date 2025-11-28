@@ -16,6 +16,10 @@ class TipoContactoResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class TipoContactoCreate(BaseModel):
+    id: str
+    nombre: str
+
 class CondicionIvaResponse(BaseModel):
     id: UUID
     nombre: str

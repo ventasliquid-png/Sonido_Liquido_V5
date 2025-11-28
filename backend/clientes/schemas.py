@@ -54,6 +54,7 @@ class ClienteBase(BaseModel):
     cuit: str
     condicion_iva_id: Optional[UUID] = None
     lista_precios_id: Optional[UUID] = None
+    segmento_id: Optional[UUID] = None
     activo: bool = True
     requiere_auditoria: bool = False
     
@@ -71,6 +72,7 @@ class ClienteUpdate(BaseModel):
     cuit: Optional[str] = None
     condicion_iva_id: Optional[UUID] = None
     lista_precios_id: Optional[UUID] = None
+    segmento_id: Optional[UUID] = None
     activo: Optional[bool] = None
     requiere_auditoria: Optional[bool] = None
     legacy_id_bas: Optional[str] = None
@@ -84,8 +86,8 @@ from backend.agenda.schemas import VinculoComercialResponse
 class ClienteResponse(ClienteBase):
     id: UUID
     codigo_interno: Optional[int] = None
-    saldo_actual: float = 0.0
-    contador_uso: int = 0
+    saldo_actual: Optional[float] = 0.0
+    contador_uso: Optional[int] = 0
     created_at: datetime
     updated_at: datetime
     domicilios: List[DomicilioResponse] = []

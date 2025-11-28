@@ -50,6 +50,7 @@ class VinculoComercialUpdate(BaseModel):
 
 class VinculoComercialResponse(VinculoComercialBase):
     id: UUID
-    # Include nested objects if needed, but for now keep it flat or use separate schema
+    persona: Optional[PersonaResponse] = None
+    
     class Config:
         from_attributes = True

@@ -11,6 +11,9 @@ export default {
     getTiposContacto() {
         return api.get('/maestros/tipos-contacto');
     },
+    createTipoContacto(data) {
+        return api.post('/maestros/tipos-contacto', data);
+    },
 
     // --- Listas de Precios ---
     getListasPrecios(params = {}) {

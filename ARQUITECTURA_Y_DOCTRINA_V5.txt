@@ -44,3 +44,13 @@ El objetivo principal es la velocidad operativa y la reducción de clics.
 ---
 Generado: 2025-11-26
 Estado: V5.0.1 (Stable)
+
+5. ROADMAP DE EXPERIENCIA DE USUARIO (UX)
+-----------------------------------------
+*   **Navegación Contextual ("Tablas Voladoras"):**
+    *   El sistema evolucionará hacia una navegación orientada a objetos, reduciendo la dependencia de menús laterales.
+    *   **Implementación:** Menús de Clic Derecho (Context Menus) sobre las grillas.
+    *   **Ejemplos:**
+        *   Click derecho en Cliente -> Opción "Nuevo Pedido" (Abre modal de venta pre-cargado).
+        *   Click derecho en Agenda -> Opción "WhatsApp" o "Agendar Reunión".
+    *   **Meta:** "Donde pongo el ojo, pongo la acción".

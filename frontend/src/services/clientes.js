@@ -21,8 +21,15 @@ export default {
     deleteDomicilio: (clienteId, domicilioId) => api.delete(`/clientes/${clienteId}/domicilios/${domicilioId}`),
 
     // Vinculos
-    createVinculo: (clienteId, data) => api.post(`/clientes/${clienteId}/vinculos`, data),
-    deleteVinculo: (clienteId, vinculoId) => api.delete(`/clientes/${clienteId}/vinculos/${vinculoId}`),
+    createVinculo(clienteId, data) {
+        return api.post(`/clientes/${clienteId}/vinculos`, data);
+    },
+    updateVinculo(clienteId, vinculoId, data) {
+        return api.put(`/clientes/${clienteId}/vinculos/${vinculoId}`, data);
+    },
+    deleteVinculo(clienteId, vinculoId) {
+        return api.delete(`/clientes/${clienteId}/vinculos/${vinculoId}`);
+    },
 
     // Usage Ranking (V5.2)
     getTopClients: () => api.get('/clientes/top'),

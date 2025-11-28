@@ -21,6 +21,14 @@ def read_provincias(db: Session = Depends(get_db)):
 def read_condiciones_iva(db: Session = Depends(get_db)):
     return service.MaestrosService.get_condiciones_iva(db)
 
+@router.get("/tipos-contacto", response_model=List[schemas.TipoContactoResponse])
+def read_tipos_contacto(db: Session = Depends(get_db)):
+    return service.MaestrosService.get_tipos_contacto(db)
+
+@router.post("/tipos-contacto", response_model=schemas.TipoContactoResponse, status_code=status.HTTP_201_CREATED)
+def create_tipo_contacto(tipo: schemas.TipoContactoCreate, db: Session = Depends(get_db)):
+    return service.MaestrosService.create_tipo_contacto(db, tipo)
+
 # --- Listas de Precios ---
 @router.get("/listas-precios", response_model=List[schemas.ListaPreciosResponse])
 def read_listas_precios(status: str = Query("active", enum=["active", "inactive", "all"]), db: Session = Depends(get_db)):
