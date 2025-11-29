@@ -20,7 +20,10 @@ export const useClientesStore = defineStore('clientes', () => {
         error.value = null;
         try {
             const response = await clientesService.getAll(params);
-            clientes.value = response.data;
+            // Default sort: Alphabetical by razon_social
+            clientes.value = response.data.sort((a, b) =>
+                a.razon_social.localeCompare(b.razon_social)
+            );
         } catch (err) {
             error.value = err.message || 'Error al cargar clientes';
             console.error(err);

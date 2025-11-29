@@ -1,7 +1,12 @@
 <template>
   <div
-    class="ficha-card group relative flex flex-col overflow-hidden rounded-xl border border-white/10 bg-white/10 p-4 transition-all duration-300 hover:border-cyan-400/50 hover:bg-white/20 hover:shadow-lg hover:shadow-cyan-500/20 cursor-pointer"
-    :class="{ 'ring-2 ring-cyan-400 bg-white/20': selected }"
+    class="ficha-card group relative flex flex-col rounded-xl border border-white/10 bg-white/10 p-4 transition-all duration-300 hover:border-cyan-400/50 hover:bg-white/20 hover:shadow-lg hover:shadow-cyan-500/20 cursor-pointer"
+    :class="[
+        { 'ring-2 ring-cyan-400 bg-white/20': selected },
+        isExpanded ? 'absolute z-50 scale-110 bg-[#0f344e] shadow-2xl shadow-black/50 h-auto min-h-[160px]' : 'overflow-hidden h-[140px]'
+    ]"
+    @mouseenter="handleMouseEnter"
+    @mouseleave="handleMouseLeave"
   >
     <!-- Status Indicator -->
     <div
@@ -15,7 +20,7 @@
     ></div>
 
     <!-- Icon / Thumbnail -->
-    <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-gray-800 text-2xl text-gray-400 group-hover:text-cyan-400 transition-colors">
+    <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-gray-800 text-2xl text-gray-400 group-hover:text-cyan-400 transition-colors shrink-0">
       <slot name="icon">
         <i class="fas fa-cube"></i>
       </slot>
@@ -23,8 +28,13 @@
 
     <!-- Content -->
     <div class="flex flex-col">
-      <h3 class="font-outfit text-lg font-semibold text-gray-100 group-hover:text-white truncate">{{ title }}</h3>
-      <p class="text-sm text-gray-500 font-mono truncate">{{ subtitle }}</p>
+      <h3 class="font-outfit text-lg font-semibold text-gray-100 group-hover:text-white" :class="{ 'truncate': !isExpanded, 'whitespace-normal': isExpanded }">{{ title }}</h3>
+      <p class="text-sm text-gray-500 font-mono" :class="{ 'truncate': !isExpanded }">{{ subtitle }}</p>
+      
+      <!-- Extra content shown only when expanded -->
+      <div v-if="isExpanded" class="mt-3 pt-3 border-t border-white/10 text-xs text-white/60 animate-fade-in">
+          <p>Click para ver detalle</p>
+      </div>
     </div>
 
     <!-- Hover Actions (Optional) -->
@@ -37,7 +47,9 @@
 </template>
 
 <script setup>
-defineProps({
+import { ref } from 'vue'
+
+const props = defineProps({
   title: {
     type: String,
     required: true
@@ -55,6 +67,23 @@ defineProps({
     default: false
   }
 })
+
+const emit = defineEmits(['select'])
+
+const isExpanded = ref(false)
+let hoverTimeout = null
+
+const handleMouseEnter = () => {
+  hoverTimeout = setTimeout(() => {
+    isExpanded.value = true
+    emit('select') // Auto-select on expansion
+  }, 1000)
+}
+
+const handleMouseLeave = () => {
+  if (hoverTimeout) clearTimeout(hoverTimeout)
+  isExpanded.value = false
+}
 </script>
 
 <style scoped>

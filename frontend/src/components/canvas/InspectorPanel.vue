@@ -72,12 +72,8 @@
       <p class="text-sm">Selecciona un elemento para ver sus propiedades</p>
     </div>
     
-    <!-- Footer Actions -->
-    <div v-if="item" class="border-t border-gray-800 p-4">
-        <button class="w-full rounded-lg bg-cyan-600 py-2 text-sm font-bold text-white transition-colors hover:bg-cyan-500 shadow-[0_0_15px_rgba(8,145,178,0.4)]">
-            <i class="fas fa-external-link-alt mr-2"></i> Abrir Ficha Completa
-        </button>
-    </div>
+    <!-- Footer Actions (Removed as per user request for simplicity) -->
+    <!-- <div v-if="item" class="border-t border-gray-800 p-4">...</div> -->
   </div>
 </template>
 
@@ -88,4 +84,6 @@ defineProps({
     default: null
   }
 })
+
+defineEmits(['open'])
 </script>

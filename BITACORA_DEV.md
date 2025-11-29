@@ -92,19 +92,6 @@ Si se clona el repo en una nueva máquina:
     *   Corrección en módulo Agenda (Personas): Se visualizaban como "Inactivos" por falta del campo `activo` en el schema de respuesta de la API.
 *   **UI Standard:** Alineación de filtros "Todos/Activos/Inactivos" a la derecha en todos los listados para consistencia con el módulo Clientes.
 
-### [2025-11-26] Correcciones UX y Estabilidad
-*   **Fix 404 Maestros:** Se implementaron los endpoints faltantes en el backend para `/maestros/condiciones-iva` y `/maestros/provincias`, y se corrigió la ruta de transportes en el frontend.
-*   **SmartSelect & F4:**
-    *   Se simplificó el componente `SmartSelect` para mejorar la estabilidad del foco.
-    *   Se agregó la opción especial **"➕ Nuevo (F4)"** dentro del desplegable para garantizar el acceso a la creación rápida incluso si el navegador bloquea la tecla F4 nativa.
-*   **Sistema de Notificaciones (Toast):**
-    *   Se reemplazaron las alertas nativas (`alert()`) por un sistema de notificaciones no bloqueantes (Toast) con feedback visual (✅ Éxito, ❌ Error).
-    *   Integrado globalmente en `App.vue` y aplicado en `ClienteForm` y `TransporteForm`.
-*   **Branding:** Se configuró correctamente el favicon de la aplicación.
-
-### [2025-11-26] Optimización de Alta de Clientes (Speed Refactor)
-*   **Backend:**
-    *   Se agregaron columnas `transporte_id` e `intermediario_id` a la tabla `domicilios` (vinculadas a `empresas_transporte`).
     *   Se actualizó `ClienteService` para propagar el transporte seleccionado en la ficha del cliente hacia su domicilio predeterminado (Fiscal/Entrega).
 *   **Frontend (ClienteForm):**
     *   **Tab 1 (General):** Integración de campos de domicilio legal para alta rápida. Creación automática de domicilio Fiscal/Entrega al guardar.

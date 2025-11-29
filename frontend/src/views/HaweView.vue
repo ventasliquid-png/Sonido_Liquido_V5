@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-screen w-full bg-[#0a0a0a] text-gray-200 overflow-hidden font-sans">
+  <div class="flex h-screen w-full bg-[var(--hawe-bg-main)] text-gray-200 overflow-hidden font-sans">
     <!-- Left Sidebar (Navigation) -->
     <aside class="flex w-64 flex-col border-r border-white/10 bg-black/20">
       <!-- Logo Area -->
@@ -127,22 +127,33 @@
           <div class="h-6 w-px bg-white/10"></div>
           
           <!-- Sort Menu -->
-          <div class="relative group">
-            <button class="text-white/70 hover:text-white transition-colors" title="Ordenar">
+          <div class="relative">
+            <button 
+                @click="showSortMenu = !showSortMenu" 
+                class="text-white/70 hover:text-white transition-colors flex items-center gap-2" 
+                title="Ordenar"
+            >
                 <i class="fas fa-sort-amount-down"></i>
+                <span class="text-xs font-mono text-cyan-400" v-if="sortBy === 'usage'">POPULARIDAD</span>
+                <span class="text-xs font-mono text-cyan-400" v-else-if="sortBy === 'alpha_asc'">A-Z</span>
+                <span class="text-xs font-mono text-cyan-400" v-else-if="sortBy === 'alpha_desc'">Z-A</span>
+                <span class="text-xs font-mono text-cyan-400" v-else-if="sortBy === 'id_asc'">ANTIGUEDAD</span>
+                <span class="text-xs font-mono text-cyan-400" v-else-if="sortBy === 'id_desc'">RECIENTES</span>
             </button>
+            
             <!-- Dropdown -->
-            <div class="absolute right-0 mt-2 w-48 bg-[#0a253a] border border-white/10 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                <div class="py-1">
-                    <button @click="sortBy = 'alpha_asc'" class="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'alpha_asc' }">A-Z Alfabético</button>
-                    <button @click="sortBy = 'alpha_desc'" class="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'alpha_desc' }">Z-A Alfabético</button>
+            <div v-if="showSortMenu" class="absolute right-0 mt-2 w-48 bg-[#0a253a] border border-white/10 rounded-lg shadow-xl z-50">
+                <!-- Click outside overlay -->
+                <div class="fixed inset-0 z-40" @click="showSortMenu = false"></div>
+                
+                <div class="relative z-50 py-1">
+                    <button @click="sortBy = 'usage'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'usage' }">Más Usados (Popularidad)</button>
                     <div class="border-t border-white/10 my-1"></div>
-                    <button @click="sortBy = 'id_asc'" class="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'id_asc' }">Más Antiguos</button>
-                    <button @click="sortBy = 'id_desc'" class="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'id_desc' }">Más Recientes</button>
+                    <button @click="sortBy = 'alpha_asc'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'alpha_asc' }">A-Z Alfabético</button>
+                    <button @click="sortBy = 'alpha_desc'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'alpha_desc' }">Z-A Alfabético</button>
                     <div class="border-t border-white/10 my-1"></div>
-                    <button @click="sortBy = 'usage'" class="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'usage' }">Más Usados</button>
-                    <button @click="sortBy = 'movement_desc'" class="block w-full text-left px-4 py-2 text-sm text-white/50 cursor-not-allowed" title="Próximamente">Mayor Movimiento</button>
-                    <button @click="sortBy = 'abc'" class="block w-full text-left px-4 py-2 text-sm text-white/50 cursor-not-allowed" title="Próximamente">ABC Compras</button>
+                    <button @click="sortBy = 'id_asc'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'id_asc' }">Más Antiguos</button>
+                    <button @click="sortBy = 'id_desc'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'id_desc' }">Más Recientes</button>
                 </div>
             </div>
           </div>
@@ -162,6 +173,7 @@
             :status="cliente.activo ? 'active' : 'inactive'"
             :selected="selectedId === cliente.id"
             @click="selectCliente(cliente)"
+            @select="selectCliente(cliente)"
             @dblclick="openCanvas(cliente)"
           >
             <template #icon>
@@ -174,7 +186,7 @@
 
     <!-- Right Inspector Panel -->
     <aside class="w-80 border-l border-gray-800 bg-gray-900/50">
-        <InspectorPanel :item="selectedCliente" />
+        <InspectorPanel :item="selectedCliente" @open="openCanvas(selectedCliente)" />
     </aside>
   </div>
 </template>
@@ -198,10 +210,12 @@ const selectedCliente = ref(null)
 const selectedSegmento = ref(null)
 const searchQuery = ref('')
 const filterStatus = ref('active') // Default to active
-const sortBy = ref('alpha_asc') // Default sort
+const sortBy = ref('usage') // Default to usage (Popularity)
+const showSortMenu = ref(false)
 
 onMounted(async () => {
   console.log('HaweView mounted')
+  window.addEventListener('keydown', handleKeydown)
   try {
       await Promise.all([
           clienteStore.fetchClientes(),
@@ -244,8 +258,8 @@ const filteredClientes = computed(() => {
                 return a.razon_social.localeCompare(b.razon_social)
             case 'alpha_desc':
                 return b.razon_social.localeCompare(a.razon_social)
-            case 'id_asc': // Oldest created (assuming ID correlates or we use created_at if available, using ID for now as proxy)
-                return String(a.id).localeCompare(String(b.id)) // UUIDs aren't strictly time-ordered, but it's a stable sort. Ideally use created_at.
+            case 'id_asc':
+                return String(a.id).localeCompare(String(b.id))
             case 'id_desc':
                 return String(b.id).localeCompare(String(a.id))
             case 'usage':
@@ -262,14 +276,30 @@ const getSegmentoName = (id) => {
 }
 
 const selectCliente = (cliente) => {
-  selectedId.value = cliente.id
-  selectedCliente.value = cliente
+    selectedId.value = cliente.id
+    selectedCliente.value = cliente
 }
 
-const openCanvas = (cliente) => {
-    console.log('Opening canvas for', cliente.razon_social)
+const openCanvas = async (cliente) => {
+    try {
+        await clienteStore.incrementUsage(cliente.id)
+    } catch (e) {
+        console.error('Failed to increment usage', e)
+    }
     router.push({ name: 'HaweClientCanvas', params: { id: cliente.id } })
 }
+
+const handleKeydown = (e) => {
+    if ((e.code === 'Space' || e.code === 'Enter') && selectedCliente.value) {
+        e.preventDefault()
+        openCanvas(selectedCliente.value)
+    }
+}
+
+import { onUnmounted } from 'vue'
+onUnmounted(() => {
+    window.removeEventListener('keydown', handleKeydown)
+})
 </script>
 
 <style>

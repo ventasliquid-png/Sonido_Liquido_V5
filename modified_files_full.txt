@@ -1,0 +1,3 @@
+C:\dev\Sonido_Liquido_V5\frontend\package-lock.json
+C:\dev\Sonido_Liquido_V5\frontend\node_modules\.package-lock.json
+C:\dev\Sonido_Liquido_V5\frontend\node_modules\.vue-global-types\vue_99_0.d.ts

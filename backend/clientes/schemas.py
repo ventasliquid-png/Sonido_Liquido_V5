@@ -63,7 +63,6 @@ class ClienteBase(BaseModel):
     legacy_id_bas: Optional[str] = None
     whatsapp_empresa: Optional[str] = None
     web_portal_pagos: Optional[str] = None
-    web_portal_pagos: Optional[str] = None
     datos_acceso_pagos: Optional[str] = None
     observaciones: Optional[str] = None
 
@@ -81,7 +80,6 @@ class ClienteUpdate(BaseModel):
     requiere_auditoria: Optional[bool] = None
     legacy_id_bas: Optional[str] = None
     whatsapp_empresa: Optional[str] = None
-    web_portal_pagos: Optional[str] = None
     web_portal_pagos: Optional[str] = None
     datos_acceso_pagos: Optional[str] = None
     observaciones: Optional[str] = None

@@ -18,7 +18,7 @@ const routes = [
     {
         path: '/',
         name: 'Home',
-        redirect: '/clientes'
+        redirect: '/hawe'
     },
     {
         path: '/clientes',
@@ -63,6 +63,11 @@ const routes = [
                 path: 'cliente/:id',
                 name: 'HaweClientCanvas',
                 component: () => import('../views/Hawe/ClientCanvas.vue')
+            },
+            {
+                path: 'transportes',
+                name: 'HaweTransportes',
+                component: () => import('../views/Hawe/HaweTransportesView.vue')
             }
         ]
     }
