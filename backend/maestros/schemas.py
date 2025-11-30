@@ -4,25 +4,45 @@ from uuid import UUID
 from pydantic import BaseModel
 from decimal import Decimal
 
-class ProvinciaResponse(BaseModel):
+class ProvinciaBase(BaseModel):
     id: str
     nombre: str
+
+class ProvinciaCreate(ProvinciaBase):
+    pass
+
+class ProvinciaUpdate(BaseModel):
+    nombre: Optional[str] = None
+
+class ProvinciaResponse(ProvinciaBase):
     class Config:
         from_attributes = True
 
-class TipoContactoResponse(BaseModel):
+class TipoContactoBase(BaseModel):
     id: str
     nombre: str
+
+class TipoContactoCreate(TipoContactoBase):
+    pass
+
+class TipoContactoUpdate(BaseModel):
+    nombre: Optional[str] = None
+
+class TipoContactoResponse(TipoContactoBase):
     class Config:
         from_attributes = True
 
-class TipoContactoCreate(BaseModel):
-    id: str
+class CondicionIvaBase(BaseModel):
     nombre: str
 
-class CondicionIvaResponse(BaseModel):
+class CondicionIvaCreate(CondicionIvaBase):
+    pass
+
+class CondicionIvaUpdate(BaseModel):
+    nombre: Optional[str] = None
+
+class CondicionIvaResponse(CondicionIvaBase):
     id: UUID
-    nombre: str
     class Config:
         from_attributes = True
 

@@ -10,16 +10,26 @@
 
       <!-- Nav Links -->
       <nav class="flex-1 space-y-1 p-4 overflow-y-auto">
-        <a href="#" class="flex items-center rounded-lg bg-white/10 px-4 py-3 text-sm font-medium text-white shadow-md shadow-black/10 border-l-2 border-cyan-400">
+        <a 
+            href="#" 
+            class="flex items-center rounded-lg bg-white/10 px-4 py-3 text-sm font-medium text-white shadow-md shadow-black/10 border-l-2 border-cyan-400"
+            @contextmenu.prevent="handleGlobalClientsContextMenu($event)"
+        >
           <i class="fas fa-users w-6 text-cyan-400"></i>
           Clientes
         </a>
         
         <!-- Filters Submenu (Only for Clientes) -->
         <div class="mt-2 pl-4 space-y-1">
-            <h4 class="px-2 text-xs font-semibold uppercase text-white/50 mb-2 mt-4">Segmentos</h4>
+            <h4 
+                class="px-2 text-xs font-semibold uppercase text-white/50 mb-2 mt-4 cursor-pointer hover:text-white/80"
+                @contextmenu.prevent="handleHeaderContextMenu($event)"
+            >
+                Segmentos
+            </h4>
             <button 
                 @click="selectedSegmento = null"
+                @contextmenu.prevent="handleHeaderContextMenu($event)"
                 class="w-full flex items-center rounded-md px-2 py-1.5 text-xs font-medium transition-colors"
                 :class="selectedSegmento === null ? 'text-cyan-300 bg-cyan-900/40' : 'text-white/70 hover:text-white hover:bg-white/10'"
             >
@@ -30,6 +40,7 @@
                 v-for="seg in segmentos" 
                 :key="seg.id"
                 @click="selectedSegmento = seg.id"
+                @contextmenu.prevent="handleContextMenu($event, seg)"
                 class="w-full flex items-center rounded-md px-2 py-1.5 text-xs font-medium transition-colors"
                 :class="selectedSegmento === seg.id ? 'text-cyan-300 bg-cyan-900/40' : 'text-white/70 hover:text-white hover:bg-white/10'"
             >
@@ -175,6 +186,7 @@
             @click="selectCliente(cliente)"
             @select="selectCliente(cliente)"
             @dblclick="openCanvas(cliente)"
+            @contextmenu.prevent="handleClientContextMenu($event, cliente)"
           >
             <template #icon>
                 <i class="fas fa-user"></i>
@@ -188,6 +200,29 @@
     <aside class="w-80 border-l border-gray-800 bg-gray-900/50">
         <InspectorPanel :item="selectedCliente" @open="openCanvas(selectedCliente)" />
     </aside>
+
+    <!-- Modals & Context Menu -->
+    <SegmentoForm 
+        :show="showSegmentoModal" 
+        :id="editingSegmentoId" 
+        @close="closeSegmentoModal" 
+        @saved="handleSegmentoSaved"
+    />
+
+    <SegmentoList 
+        v-if="showSegmentoList"
+        :isStacked="true"
+        class="fixed inset-0 z-[60] bg-white m-4 rounded-lg shadow-2xl overflow-hidden"
+        @close="showSegmentoList = false"
+    />
+
+    <ContextMenu 
+        v-model="contextMenu.show" 
+        :x="contextMenu.x" 
+        :y="contextMenu.y" 
+        :actions="contextMenu.actions"
+        @close="contextMenu.show = false"
+    />
   </div>
 </template>
 
@@ -198,6 +233,10 @@ import FichaCard from '../components/hawe/FichaCard.vue'
 import InspectorPanel from '../components/canvas/InspectorPanel.vue'
 import { useClientesStore } from '../stores/clientes'
 import { useMaestrosStore } from '../stores/maestros'
+import ContextMenu from '../components/common/ContextMenu.vue'
+import SegmentoForm from './Maestros/SegmentoForm.vue'
+import SegmentoList from './Maestros/SegmentoList.vue'
+import { reactive } from 'vue'
 
 const clienteStore = useClientesStore()
 const maestrosStore = useMaestrosStore()
@@ -212,6 +251,80 @@ const searchQuery = ref('')
 const filterStatus = ref('active') // Default to active
 const sortBy = ref('usage') // Default to usage (Popularity)
 const showSortMenu = ref(false)
+
+// Segmento ABM Logic
+const showSegmentoModal = ref(false)
+const showSegmentoList = ref(false)
+const editingSegmentoId = ref(null)
+const contextMenu = reactive({
+    show: false,
+    x: 0,
+    y: 0,
+    actions: []
+})
+
+const openSegmentoModal = (segmento = null) => {
+    editingSegmentoId.value = segmento ? segmento.id : null
+    showSegmentoModal.value = true
+}
+
+const closeSegmentoModal = () => {
+    showSegmentoModal.value = false
+    editingSegmentoId.value = null
+}
+
+const handleSegmentoSaved = async () => {
+    await maestrosStore.fetchSegmentos('all')
+    segmentos.value = maestrosStore.segmentos
+}
+
+const handleDeleteSegmento = async (segmento) => {
+    if (!confirm(`¿Está seguro de dar de baja a ${segmento.nombre}?`)) return
+    try {
+        await maestrosStore.updateSegmento(segmento.id, { ...segmento, activo: false })
+        await maestrosStore.fetchSegmentos('all')
+        segmentos.value = maestrosStore.segmentos
+    } catch (error) {
+        alert('Error al dar de baja.')
+        console.error(error)
+    }
+}
+
+const handleContextMenu = (e, segmento) => {
+    contextMenu.show = true
+    contextMenu.x = e.clientX
+    contextMenu.y = e.clientY
+    contextMenu.actions = [
+        {
+            label: 'Editar',
+            icon: '✏️',
+            handler: () => openSegmentoModal(segmento)
+        },
+        {
+            label: 'Dar de Baja',
+            icon: '🗑️',
+            handler: () => handleDeleteSegmento(segmento)
+        }
+    ]
+}
+
+const handleHeaderContextMenu = (e) => {
+    contextMenu.show = true
+    contextMenu.x = e.clientX
+    contextMenu.y = e.clientY
+    contextMenu.actions = [
+        {
+            label: 'Nuevo Segmento',
+            icon: '➕',
+            handler: () => openSegmentoModal()
+        },
+        {
+            label: 'Administrar Segmentos',
+            icon: '📋',
+            handler: () => { showSegmentoList.value = true }
+        }
+    ]
+}
 
 onMounted(async () => {
   console.log('HaweView mounted')
@@ -300,6 +413,65 @@ import { onUnmounted } from 'vue'
 onUnmounted(() => {
     window.removeEventListener('keydown', handleKeydown)
 })
+const handleClientContextMenu = (e, client) => {
+    contextMenu.show = true
+    contextMenu.x = e.clientX
+    contextMenu.y = e.clientY
+    contextMenu.actions = [
+        {
+            label: 'Nueva Ficha',
+            icon: '➕',
+            handler: () => router.push({ name: 'HaweClientCanvas', params: { id: 'new' } })
+        },
+        {
+            label: 'Administrar Fichas',
+            icon: '📋',
+            handler: () => router.push('/hawe') // Already here, but consistent with request
+        },
+        {
+            label: '----------------',
+            disabled: true
+        },
+        {
+            label: `Editar ${client.razon_social}`,
+            icon: '✏️',
+            handler: () => openClientCanvas(client.id)
+        },
+        {
+            label: 'Dar de Baja',
+            icon: '🗑️',
+            handler: () => {
+                if(confirm(`¿Está seguro de dar de baja a ${client.razon_social}?`)) {
+                    // store.deleteCliente(client.id) // Implement delete logic
+                    console.log('Dar de baja', client.id)
+                }
+            }
+        },
+        {
+            label: 'IA',
+            icon: '✨',
+            handler: () => alert('Funcionalidad IA próximamente')
+        }
+    ]
+}
+
+const handleGlobalClientsContextMenu = (e) => {
+    contextMenu.show = true
+    contextMenu.x = e.clientX
+    contextMenu.y = e.clientY
+    contextMenu.actions = [
+        {
+            label: 'Nuevo Cliente',
+            icon: '➕',
+            handler: () => router.push({ name: 'HaweClientCanvas', params: { id: 'new' } })
+        },
+        {
+            label: 'Administrar Clientes',
+            icon: '📋',
+            handler: () => router.push('/hawe')
+        }
+    ]
+}
 </script>
 
 <style>

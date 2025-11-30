@@ -11,8 +11,45 @@ class MaestrosService:
         return db.query(models.Provincia).all()
 
     @staticmethod
+    def get_provincia(db: Session, id: str) -> Optional[models.Provincia]:
+        return db.query(models.Provincia).filter(models.Provincia.id == id).first()
+
+    @staticmethod
+    def create_provincia(db: Session, provincia: schemas.ProvinciaCreate) -> models.Provincia:
+        db_provincia = models.Provincia(id=provincia.id, nombre=provincia.nombre)
+        db.add(db_provincia)
+        db.commit()
+        db.refresh(db_provincia)
+        return db_provincia
+
+    @staticmethod
+    def update_provincia(db: Session, id: str, provincia: schemas.ProvinciaUpdate) -> Optional[models.Provincia]:
+        db_provincia = MaestrosService.get_provincia(db, id)
+        if not db_provincia:
+            return None
+        if provincia.nombre:
+            db_provincia.nombre = provincia.nombre
+        db.add(db_provincia)
+        db.commit()
+        db.refresh(db_provincia)
+        return db_provincia
+
+    @staticmethod
+    def delete_provincia(db: Session, id: str) -> bool:
+        db_provincia = MaestrosService.get_provincia(db, id)
+        if not db_provincia:
+            return False
+        db.delete(db_provincia)
+        db.commit()
+        return True
+
+    @staticmethod
     def get_tipos_contacto(db: Session) -> List[models.TipoContacto]:
         return db.query(models.TipoContacto).all()
+
+    @staticmethod
+    def get_tipo_contacto(db: Session, id: str) -> Optional[models.TipoContacto]:
+        return db.query(models.TipoContacto).filter(models.TipoContacto.id == id).first()
 
     @staticmethod
     def create_tipo_contacto(db: Session, tipo: schemas.TipoContactoCreate) -> models.TipoContacto:
@@ -23,8 +60,62 @@ class MaestrosService:
         return db_tipo
 
     @staticmethod
+    def update_tipo_contacto(db: Session, id: str, tipo: schemas.TipoContactoUpdate) -> Optional[models.TipoContacto]:
+        db_tipo = MaestrosService.get_tipo_contacto(db, id)
+        if not db_tipo:
+            return None
+        if tipo.nombre:
+            db_tipo.nombre = tipo.nombre
+        db.add(db_tipo)
+        db.commit()
+        db.refresh(db_tipo)
+        return db_tipo
+
+    @staticmethod
+    def delete_tipo_contacto(db: Session, id: str) -> bool:
+        db_tipo = MaestrosService.get_tipo_contacto(db, id)
+        if not db_tipo:
+            return False
+        db.delete(db_tipo)
+        db.commit()
+        return True
+
+    @staticmethod
     def get_condiciones_iva(db: Session) -> List[models.CondicionIva]:
         return db.query(models.CondicionIva).all()
+
+    @staticmethod
+    def get_condicion_iva(db: Session, id: UUID) -> Optional[models.CondicionIva]:
+        return db.query(models.CondicionIva).filter(models.CondicionIva.id == id).first()
+
+    @staticmethod
+    def create_condicion_iva(db: Session, condicion: schemas.CondicionIvaCreate) -> models.CondicionIva:
+        db_condicion = models.CondicionIva(nombre=condicion.nombre)
+        db.add(db_condicion)
+        db.commit()
+        db.refresh(db_condicion)
+        return db_condicion
+
+    @staticmethod
+    def update_condicion_iva(db: Session, id: UUID, condicion: schemas.CondicionIvaUpdate) -> Optional[models.CondicionIva]:
+        db_condicion = MaestrosService.get_condicion_iva(db, id)
+        if not db_condicion:
+            return None
+        if condicion.nombre:
+            db_condicion.nombre = condicion.nombre
+        db.add(db_condicion)
+        db.commit()
+        db.refresh(db_condicion)
+        return db_condicion
+
+    @staticmethod
+    def delete_condicion_iva(db: Session, id: UUID) -> bool:
+        db_condicion = MaestrosService.get_condicion_iva(db, id)
+        if not db_condicion:
+            return False
+        db.delete(db_condicion)
+        db.commit()
+        return True
 
     # --- Listas de Precios ---
     @staticmethod

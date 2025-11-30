@@ -1,4 +1,14 @@
 
+## Sesión Gy CA - 2025-11-29 18:19 (CERRADA 2025-11-30 00:30)
+**Inicio:** 2025-11-29 18:19
+**Estado:** Cerrada
+**Cierre:** 2025-11-30 00:30
+
+### Resumen
+Refactorización de Domicilios a interfaz de pestañas (Tabs) en ClientCanvas. Fix bug doble click en domicilios. Actualización de Bitácora.
+
+
+
 ## Sesión Gy OF - 2025-11-28 10:01 (EN CURSO)
 **Inicio:** 2025-11-28 10:01
 **Estado:** Abierta

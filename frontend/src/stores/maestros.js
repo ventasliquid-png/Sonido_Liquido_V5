@@ -9,6 +9,7 @@ export const useMaestrosStore = defineStore('maestros', {
         provincias: [],
         condicionesIva: [],
         tiposContacto: [],
+        transportes: [],
         loading: false,
         error: null
     }),
@@ -23,7 +24,8 @@ export const useMaestrosStore = defineStore('maestros', {
                     this.fetchListasPrecios(),
                     this.fetchProvincias(),
                     this.fetchCondicionesIva(),
-                    this.fetchTiposContacto()
+                    this.fetchTiposContacto(),
+                    this.fetchTransportes()
                 ]);
             } catch (error) {
                 this.error = error;
@@ -123,6 +125,30 @@ export const useMaestrosStore = defineStore('maestros', {
                 console.error('Error fetching provincias:', error);
             }
         },
+        async createProvincia(data) {
+            try {
+                await maestrosService.createProvincia(data);
+                await this.fetchProvincias();
+            } catch (error) {
+                throw error;
+            }
+        },
+        async updateProvincia(id, data) {
+            try {
+                await maestrosService.updateProvincia(id, data);
+                await this.fetchProvincias();
+            } catch (error) {
+                throw error;
+            }
+        },
+        async deleteProvincia(id) {
+            try {
+                await maestrosService.deleteProvincia(id);
+                await this.fetchProvincias();
+            } catch (error) {
+                throw error;
+            }
+        },
         async fetchCondicionesIva() {
             try {
                 const response = await maestrosService.getCondicionesIva();
@@ -131,12 +157,86 @@ export const useMaestrosStore = defineStore('maestros', {
                 console.error('Error fetching condiciones iva:', error);
             }
         },
+        async createCondicionIva(data) {
+            try {
+                await maestrosService.createCondicionIva(data);
+                await this.fetchCondicionesIva();
+            } catch (error) {
+                throw error;
+            }
+        },
+        async updateCondicionIva(id, data) {
+            try {
+                await maestrosService.updateCondicionIva(id, data);
+                await this.fetchCondicionesIva();
+            } catch (error) {
+                throw error;
+            }
+        },
+        async deleteCondicionIva(id) {
+            try {
+                await maestrosService.deleteCondicionIva(id);
+                await this.fetchCondicionesIva();
+            } catch (error) {
+                throw error;
+            }
+        },
         async fetchTiposContacto() {
             try {
                 const response = await maestrosService.getTiposContacto();
                 this.tiposContacto = response.data;
             } catch (error) {
                 console.error('Error fetching tipos contacto:', error);
+            }
+        },
+        async createTipoContacto(data) {
+            try {
+                await maestrosService.createTipoContacto(data);
+                await this.fetchTiposContacto();
+            } catch (error) {
+                throw error;
+            }
+        },
+        async updateTipoContacto(id, data) {
+            try {
+                await maestrosService.updateTipoContacto(id, data);
+                await this.fetchTiposContacto();
+            } catch (error) {
+                throw error;
+            }
+        },
+        async deleteTipoContacto(id) {
+            try {
+                await maestrosService.deleteTipoContacto(id);
+                await this.fetchTiposContacto();
+            } catch (error) {
+                throw error;
+            }
+        },
+
+        // --- Transportes ---
+        async fetchTransportes(filter = 'active') {
+            try {
+                const response = await maestrosService.getTransportes({ status: filter });
+                this.transportes = response.data;
+            } catch (error) {
+                console.error('Error fetching transportes:', error);
+            }
+        },
+        async createTransporte(data) {
+            try {
+                await maestrosService.createTransporte(data);
+                await this.fetchTransportes();
+            } catch (error) {
+                throw error;
+            }
+        },
+        async updateTransporte(id, data) {
+            try {
+                await maestrosService.updateTransporte(id, data);
+                await this.fetchTransportes();
+            } catch (error) {
+                throw error;
             }
         }
     }

@@ -17,9 +17,43 @@ router = APIRouter(
 def read_provincias(db: Session = Depends(get_db)):
     return service.MaestrosService.get_provincias(db)
 
+@router.post("/provincias", response_model=schemas.ProvinciaResponse, status_code=status.HTTP_201_CREATED)
+def create_provincia(provincia: schemas.ProvinciaCreate, db: Session = Depends(get_db)):
+    return service.MaestrosService.create_provincia(db, provincia)
+
+@router.put("/provincias/{id}", response_model=schemas.ProvinciaResponse)
+def update_provincia(id: str, provincia: schemas.ProvinciaUpdate, db: Session = Depends(get_db)):
+    db_provincia = service.MaestrosService.update_provincia(db, id, provincia)
+    if db_provincia is None:
+        raise HTTPException(status_code=404, detail="Provincia no encontrada")
+    return db_provincia
+
+@router.delete("/provincias/{id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_provincia(id: str, db: Session = Depends(get_db)):
+    if not service.MaestrosService.delete_provincia(db, id):
+        raise HTTPException(status_code=404, detail="Provincia no encontrada")
+    return None
+
 @router.get("/condiciones-iva", response_model=List[schemas.CondicionIvaResponse])
 def read_condiciones_iva(db: Session = Depends(get_db)):
     return service.MaestrosService.get_condiciones_iva(db)
+
+@router.post("/condiciones-iva", response_model=schemas.CondicionIvaResponse, status_code=status.HTTP_201_CREATED)
+def create_condicion_iva(condicion: schemas.CondicionIvaCreate, db: Session = Depends(get_db)):
+    return service.MaestrosService.create_condicion_iva(db, condicion)
+
+@router.put("/condiciones-iva/{id}", response_model=schemas.CondicionIvaResponse)
+def update_condicion_iva(id: UUID, condicion: schemas.CondicionIvaUpdate, db: Session = Depends(get_db)):
+    db_condicion = service.MaestrosService.update_condicion_iva(db, id, condicion)
+    if db_condicion is None:
+        raise HTTPException(status_code=404, detail="Condición de IVA no encontrada")
+    return db_condicion
+
+@router.delete("/condiciones-iva/{id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_condicion_iva(id: UUID, db: Session = Depends(get_db)):
+    if not service.MaestrosService.delete_condicion_iva(db, id):
+        raise HTTPException(status_code=404, detail="Condición de IVA no encontrada")
+    return None
 
 @router.get("/tipos-contacto", response_model=List[schemas.TipoContactoResponse])
 def read_tipos_contacto(db: Session = Depends(get_db)):
@@ -28,6 +62,19 @@ def read_tipos_contacto(db: Session = Depends(get_db)):
 @router.post("/tipos-contacto", response_model=schemas.TipoContactoResponse, status_code=status.HTTP_201_CREATED)
 def create_tipo_contacto(tipo: schemas.TipoContactoCreate, db: Session = Depends(get_db)):
     return service.MaestrosService.create_tipo_contacto(db, tipo)
+
+@router.put("/tipos-contacto/{id}", response_model=schemas.TipoContactoResponse)
+def update_tipo_contacto(id: str, tipo: schemas.TipoContactoUpdate, db: Session = Depends(get_db)):
+    db_tipo = service.MaestrosService.update_tipo_contacto(db, id, tipo)
+    if db_tipo is None:
+        raise HTTPException(status_code=404, detail="Tipo de contacto no encontrado")
+    return db_tipo
+
+@router.delete("/tipos-contacto/{id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_tipo_contacto(id: str, db: Session = Depends(get_db)):
+    if not service.MaestrosService.delete_tipo_contacto(db, id):
+        raise HTTPException(status_code=404, detail="Tipo de contacto no encontrado")
+    return None
 
 # --- Listas de Precios ---
 @router.get("/listas-precios", response_model=List[schemas.ListaPreciosResponse])

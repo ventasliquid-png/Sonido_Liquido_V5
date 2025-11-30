@@ -60,7 +60,12 @@
                             No se encontraron resultados.
                         </td>
                     </tr>
-                    <tr v-for="segmento in filteredSegmentos" :key="segmento.id" class="hover:bg-gray-50">
+                    <tr 
+                        v-for="segmento in filteredSegmentos" 
+                        :key="segmento.id" 
+                        class="hover:bg-gray-50 cursor-pointer"
+                        @contextmenu.prevent="handleContextMenu($event, segmento)"
+                    >
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ segmento.nombre }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ segmento.descripcion || '-' }}</td>
                         <td class="px-6 py-4 whitespace-nowrap">
@@ -89,13 +94,23 @@
             @close="closeModal" 
             @saved="handleSaved"
         />
+
+        <!-- Context Menu -->
+        <ContextMenu 
+            v-model="contextMenu.show" 
+            :x="contextMenu.x" 
+            :y="contextMenu.y" 
+            :actions="contextMenu.actions"
+            @close="contextMenu.show = false"
+        />
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, reactive } from 'vue';
 import { useMaestrosStore } from '../../stores/maestros';
 import SegmentoForm from './SegmentoForm.vue';
+import ContextMenu from '../../components/common/ContextMenu.vue';
 
 const props = defineProps({
     isStacked: {
@@ -110,6 +125,13 @@ const store = useMaestrosStore();
 const showModal = ref(false);
 const editingId = ref(null);
 const filterState = ref('todos');
+
+const contextMenu = reactive({
+    show: false,
+    x: 0,
+    y: 0,
+    actions: []
+});
 
 onMounted(() => {
     store.fetchSegmentos('all');
@@ -145,5 +167,23 @@ const handleDelete = async (segmento) => {
         alert('Error al dar de baja.');
         console.error(error);
     }
+};
+
+const handleContextMenu = (e, segmento) => {
+    contextMenu.show = true;
+    contextMenu.x = e.clientX;
+    contextMenu.y = e.clientY;
+    contextMenu.actions = [
+        {
+            label: 'Editar',
+            icon: '✏️',
+            handler: () => openModal(segmento)
+        },
+        {
+            label: 'Dar de Baja',
+            icon: '🗑️',
+            handler: () => handleDelete(segmento)
+        }
+    ];
 };
 </script>

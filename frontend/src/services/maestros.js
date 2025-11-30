@@ -5,14 +5,38 @@ export default {
     getCondicionesIva() {
         return api.get('/maestros/condiciones-iva');
     },
+    createCondicionIva(data) {
+        return api.post('/maestros/condiciones-iva', data);
+    },
+    updateCondicionIva(id, data) {
+        return api.put(`/maestros/condiciones-iva/${id}`, data);
+    },
+    deleteCondicionIva(id) {
+        return api.delete(`/maestros/condiciones-iva/${id}`);
+    },
     getProvincias() {
         return api.get('/maestros/provincias');
+    },
+    createProvincia(data) {
+        return api.post('/maestros/provincias', data);
+    },
+    updateProvincia(id, data) {
+        return api.put(`/maestros/provincias/${id}`, data);
+    },
+    deleteProvincia(id) {
+        return api.delete(`/maestros/provincias/${id}`);
     },
     getTiposContacto() {
         return api.get('/maestros/tipos-contacto');
     },
     createTipoContacto(data) {
         return api.post('/maestros/tipos-contacto', data);
+    },
+    updateTipoContacto(id, data) {
+        return api.put(`/maestros/tipos-contacto/${id}`, data);
+    },
+    deleteTipoContacto(id) {
+        return api.delete(`/maestros/tipos-contacto/${id}`);
     },
 
     // --- Listas de Precios ---

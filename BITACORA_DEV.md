@@ -127,3 +127,34 @@ Si se clona el repo en una nueva máquina:
     *   **Fix 422:** Sanitización de payloads para evitar errores de validación con campos vacíos.
     *   **Fix Top Clients:** Se blindó el schema de `ClienteResponse` para tolerar valores nulos en `saldo` y `contador_uso`, recuperando la lista de frecuentes.
     *   **Fix Import:** Corrección de referencia circular/errónea en `backend/clientes/router.py`.
+
+### [2025-11-29] Replicación de Menú Contextual y ABM Maestros
+*   **Backend (Maestros):**
+    *   Implementación de CRUD completo (API + Schemas) para `Provincias`, `CondicionesIva` y `TiposContacto`.
+    *   Validación de integridad referencial y manejo de errores.
+*   **Frontend (Context Menu):**
+    *   **Componente Reutilizable:** Creación de `ContextMenu.vue` para uso global.
+    *   **Dashboard (HaweView):**
+        *   Integración en lista lateral de "Segmentos" (Editar/Borrar).
+        *   Integración en tarjetas de "Clientes" (Nueva Ficha, Administrar, Editar, Baja, IA).
+        *   Integración en enlace "Clientes" del sidebar (Nuevo, Administrar).
+    *   **ClientCanvas:**
+        *   Integración en etiqueta "Segmento" del formulario (Nuevo, Administrar).
+*   **UI/UX Refinements:**
+    *   **Navegación:** Corrección de flujo entre "Fichas", "Nuevo Cliente" y Dashboard.
+    *   **Estilos:** Rediseño de botones en cabecera de ficha para evitar confusión (Fichas resaltado, Nuevo sutil).
+    *   **Feedback:** Mejoras en la indicación visual de contexto.
+
+### [2025-11-30] Refactorización Logística y Domicilios (Tabs)
+*   **Cambio Arquitectónico:**
+    *   **Interfaz por Pestañas:** Se reemplazó el uso de modales flotantes por un sistema de pestañas (`CLIENTE`, `DOMICILIO`, `CONTACTO`) integrado en el canvas central de `ClientCanvas.vue`.
+    *   **DomicilioForm:** Conversión de componente modal a componente de canvas, con botones "Volver" y "Guardar" integrados.
+*   **UX/UI:**
+    *   **Sidebar Logística:** Botones "FICHA - NUEVO" siempre visibles en cabecera de Domicilios.
+    *   **Menú Contextual:** Implementado en cabecera de Domicilios (Nuevo, Administrar) y en tarjetas individuales (Editar, Eliminar).
+    *   **Navegación:** Doble clic en tarjeta de domicilio abre la pestaña de edición correspondiente.
+*   **Corrección de Bugs:**
+    *   **Inicialización Formulario:** Se corrigió bug donde el doble clic abría el formulario de alta en lugar de edición (watcher de `domicilio` con `immediate: true`).
+*   **Próximos Pasos (Pendientes):**
+    *   Implementar navegación en bucle (loop) con flechas Arriba/Abajo en tarjetas de Domicilio.
+    *   Implementar ABM completo de Transportes.
