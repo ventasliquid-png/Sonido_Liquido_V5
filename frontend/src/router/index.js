@@ -1,6 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import ClienteList from '../views/Clientes/ClienteList.vue';
-import TransporteList from '../views/Logistica/TransporteList.vue';
 import SegmentoList from '../views/Maestros/SegmentoList.vue';
 import VendedorList from '../views/Maestros/VendedorList.vue';
 import ListaPreciosList from '../views/Maestros/ListaPreciosList.vue';
@@ -20,16 +18,7 @@ const routes = [
         name: 'Home',
         redirect: '/hawe'
     },
-    {
-        path: '/clientes',
-        name: 'Clientes',
-        component: ClienteList
-    },
-    {
-        path: '/transportes',
-        name: 'Transportes',
-        component: TransporteList
-    },
+
     {
         path: '/segmentos',
         name: 'Segmentos',

@@ -22,8 +22,10 @@
         <!-- Filters Submenu (Only for Clientes) -->
         <div class="mt-2 pl-4 space-y-1">
             <h4 
-                class="px-2 text-xs font-semibold uppercase text-white/50 mb-2 mt-4 cursor-pointer hover:text-white/80"
+                class="px-2 text-xs font-semibold uppercase text-white/50 mb-2 mt-4 cursor-pointer hover:text-white/80 select-none"
                 @contextmenu.prevent="handleHeaderContextMenu($event)"
+                @dblclick="showSegmentoList = true"
+                title="Doble click para administrar"
             >
                 Segmentos
             </h4>

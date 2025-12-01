@@ -6,20 +6,20 @@
       <div class="h-14 flex items-center justify-between px-6 border-b border-white/10 shrink-0">
         <div class="flex items-center gap-4">
             <button @click="$router.back()" class="flex items-center gap-2 text-white/50 hover:text-white transition-colors group" title="Volver a la pantalla anterior">
-                <i class="fas fa-arrow-left group-hover:-translate-x-1 transition-transform"></i>
+                <i class="fa-solid fa-arrow-left group-hover:-translate-x-1 transition-transform"></i>
                 <span class="font-outfit text-sm font-bold uppercase tracking-wider">Volver</span>
             </button>
             
             <div class="h-4 w-px bg-white/10"></div>
 
             <button @click="goToList" class="flex items-center gap-2 text-white hover:text-cyan-400 transition-colors group" title="Ir al Listado de Clientes">
-                <i class="fas fa-list text-cyan-400"></i>
+                <i class="fa-solid fa-list text-cyan-400"></i>
                 <span class="font-outfit text-sm font-bold uppercase tracking-wider text-cyan-400">Fichas</span>
             </button>
         </div>
         
         <button v-if="!isNew" @click="goToNew" class="flex items-center gap-2 text-white/50 hover:text-white px-3 py-1.5 rounded-md hover:bg-white/5 transition-all group border border-transparent hover:border-white/10">
-            <i class="fas fa-plus text-xs"></i>
+            <i class="fa-solid fa-plus text-xs"></i>
             <span class="font-outfit text-xs font-bold uppercase tracking-wider">Nuevo Cliente</span>
         </button>
       </div>
@@ -30,7 +30,7 @@
         <div class="text-center">
             <div class="relative group cursor-pointer inline-block">
                 <div class="h-20 w-20 rounded-full bg-white/10 flex items-center justify-center text-3xl text-cyan-400 border-2 border-white/20 group-hover:border-cyan-400 transition-colors mx-auto">
-                <i class="fas fa-building"></i>
+                <i class="fa-solid fa-building"></i>
                 </div>
             </div>
             <div class="mt-4 space-y-2">
@@ -62,12 +62,12 @@
                     maxlength="11"
                 />
             </div>
-            <div class="bg-white/5 rounded-lg p-3 border border-white/5">
+            <div class="bg-white/5 rounded-lg p-3 border border-white/5" @dblclick="showSegmentoList = true" title="Doble click para administrar">
                 <label 
-                    class="block text-[10px] font-bold uppercase text-white/40 mb-1 cursor-pointer hover:text-white/80"
+                    class="block text-[10px] font-bold uppercase text-white/40 mb-1 cursor-pointer hover:text-white/80 select-none"
                     @contextmenu.prevent="handleSegmentoContextMenu($event)"
                 >
-                    Segmento
+                    SEGMENTOS
                 </label>
                 <div class="w-full">
                     <select 
@@ -91,7 +91,7 @@
             <div class="space-y-2">
                 <label class="text-xs text-white/70">Portal de Pagos</label>
                 <div class="flex items-center bg-white/5 rounded-lg px-3 py-2 border border-white/5">
-                    <i class="fas fa-globe w-4 text-white/30"></i>
+                    <i class="fa-solid fa-globe w-4 text-white/30"></i>
                     <input v-model="form.web_portal_pagos" type="text" class="flex-1 bg-transparent text-xs text-white focus:outline-none ml-2" placeholder="https://..." />
                 </div>
             </div>
@@ -130,9 +130,25 @@
                     <!-- EXISTING CLIENT HEADER MODE -->
                     <div v-else>
                         <h1 class="font-outfit text-2xl font-bold text-white mb-1">{{ form.razon_social }}</h1>
-                        <div class="flex items-center gap-2">
-                            <span v-if="form.activo" class="px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 text-[10px] font-bold border border-green-500/30">OPERATIVO</span>
-                            <span v-else class="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[10px] font-bold border border-red-500/30">INACTIVO</span>
+                        <div class="flex items-center gap-4">
+                            <!-- Active Toggle -->
+                            <div class="flex items-center gap-2 bg-black/20 px-2 py-1 rounded-full border border-white/10">
+                                <span class="text-[10px] font-bold uppercase" :class="form.activo ? 'text-green-400' : 'text-red-400'">
+                                    {{ form.activo ? 'OPERATIVO' : 'INACTIVO' }}
+                                </span>
+                                <button 
+                                    @click="form.activo = !form.activo"
+                                    class="relative inline-flex h-4 w-8 items-center rounded-full transition-colors focus:outline-none"
+                                    :class="form.activo ? 'bg-green-500/50' : 'bg-red-500/50'"
+                                    title="Click para cambiar estado"
+                                >
+                                    <span 
+                                        class="inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform shadow-sm"
+                                        :class="form.activo ? 'translate-x-4' : 'translate-x-1'"
+                                    />
+                                </button>
+                            </div>
+                            
                             <span class="text-white/30 text-xs">•</span>
                             <span class="text-white/50 text-xs">Cód: {{ form.codigo_interno || '---' }}</span>
                         </div>
@@ -154,7 +170,7 @@
                     <div class="relative group">
                         <button class="bg-cyan-900/20 rounded-lg p-3 border border-cyan-500/30 min-w-[120px] text-left hover:bg-cyan-900/40 transition-colors w-full">
                             <p class="text-[10px] uppercase text-cyan-400 font-bold flex justify-between">
-                                Pendientes <i class="fas fa-chevron-down"></i>
+                                Pendientes <i class="fa-solid fa-chevron-down"></i>
                             </p>
                             <p class="text-lg text-cyan-300 font-bold">0</p>
                         </button>
@@ -208,8 +224,10 @@
                                 </div>
                                 <div>
                                     <label 
-                                        class="block text-xs font-bold uppercase text-white/40 mb-1 cursor-pointer hover:text-white/80"
+                                        class="block text-xs font-bold uppercase text-white/40 mb-1 cursor-pointer hover:text-white/80 select-none"
                                         @contextmenu.prevent="handleSegmentoContextMenu($event)"
+                                        @dblclick="showSegmentoList = true"
+                                        title="Doble click para administrar"
                                     >
                                         Segmento
                                     </label>
@@ -219,7 +237,7 @@
                                             <option v-for="seg in segmentos" :key="seg.id" :value="seg.id">{{ seg.nombre }}</option>
                                         </select>
                                         <button @click="showAddSegmento = true" class="px-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-cyan-400 hover:text-cyan-300 transition-colors" title="Nuevo Segmento">
-                                            <i class="fas fa-plus"></i>
+                                            <i class="fa-solid fa-plus"></i>
                                         </button>
                                     </div>
                                 </div>
@@ -231,9 +249,9 @@
                         <div class="bg-white/5 p-6 rounded-xl border border-white/10 opacity-50">
                              <h3 class="text-sm font-bold text-white/90 mb-4 uppercase border-b border-white/10 pb-2">Próximos Pasos</h3>
                              <ul class="space-y-2 text-sm text-white/60">
-                                 <li><i class="fas fa-check-circle text-white/20 mr-2"></i>Guardar Datos Básicos</li>
-                                 <li><i class="fas fa-circle text-white/20 mr-2"></i>Cargar Domicilios</li>
-                                 <li><i class="fas fa-circle text-white/20 mr-2"></i>Cargar Contactos</li>
+                                 <li><i class="fa-solid fa-circle-check text-white/20 mr-2"></i>Guardar Datos Básicos</li>
+                                 <li><i class="fa-solid fa-circle text-white/20 mr-2"></i>Cargar Domicilios</li>
+                                 <li><i class="fa-solid fa-circle text-white/20 mr-2"></i>Cargar Contactos</li>
                              </ul>
                              <p class="mt-4 text-xs text-cyan-400">Guarde el cliente para habilitar la carga de domicilios y contactos.</p>
                         </div>
@@ -253,7 +271,7 @@
                     <div class="space-y-6 max-w-3xl">
                         <div class="bg-white/5 border border-white/10 rounded-xl p-4">
                             <div class="flex justify-between items-center mb-2">
-                                <h3 class="text-sm font-bold text-white/90"><i class="fas fa-sticky-note mr-2 text-yellow-400"></i>Notas Internas</h3>
+                                <h3 class="text-sm font-bold text-white/90"><i class="fa-solid fa-note-sticky mr-2 text-yellow-400"></i>Notas Internas</h3>
                                 <span class="text-xs text-white/30">Visible solo para administración</span>
                             </div>
                             <textarea 
@@ -268,7 +286,7 @@
                             <h4 class="text-xs font-bold uppercase text-white/30 mb-2">Actividad Reciente (Próximamente)</h4>
                             <div class="space-y-2">
                                 <div class="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/5">
-                                    <div class="h-8 w-8 rounded-full bg-green-500/20 flex items-center justify-center text-green-400"><i class="fas fa-check"></i></div>
+                                    <div class="h-8 w-8 rounded-full bg-green-500/20 flex items-center justify-center text-green-400"><i class="fa-solid fa-check"></i></div>
                                     <div>
                                         <p class="text-sm text-white">Pedido #1234 Entregado</p>
                                         <p class="text-xs text-white/40">Hace 2 días</p>
@@ -294,7 +312,7 @@
                         class="px-4 py-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 text-sm font-medium transition-colors"
                         title="Crear nuevo basado en este"
                     >
-                        <i class="fas fa-copy mr-2"></i>Clonar
+                        <i class="fa-solid fa-copy mr-2"></i>Clonar
                     </button>
                     <button 
                         v-if="!isNew && form.activo"
@@ -327,28 +345,27 @@
 
     <!-- ZONE 2: REFERENCE (Right Panel) -->
     <aside class="w-80 flex flex-col border-l border-white/10 bg-black/20 backdrop-blur-md z-20">
-        <!-- Header -->
-        <div class="h-14 flex items-center justify-center px-6 border-b border-white/10 shrink-0 relative">
+        <!-- Header REMOVED as per user request -->
+        <!-- <div class="h-14 flex items-center justify-center px-6 border-b border-white/10 shrink-0 relative">
             <h2 class="font-outfit text-sm font-bold uppercase tracking-wider text-white/70">Logística & Contactos</h2>
-        </div>
+        </div> -->
 
         <div class="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin scrollbar-thumb-white/10">
             <!-- Domicilios -->
             <section>
-                <div class="flex items-center justify-between mb-3 group">
+                <div class="flex items-center justify-between mb-3">
                     <h3 
+                        class="text-sm font-bold text-cyan-400 bg-white/5 px-3 py-1.5 rounded-md border border-white/10 w-full block text-center mb-4 shadow-sm cursor-pointer select-none hover:bg-white/10 transition-colors"
                         @contextmenu.prevent="handleDomicilioContextMenu($event)"
-                        class="text-xs font-bold text-white/50 uppercase cursor-context-menu hover:text-white/80 transition-colors"
+                        @dblclick="showDomicilioList = true"
+                        title="Doble click para administrar"
                     >
-                        Domicilios
+                        LOGÍSTICA
                     </h3>
-                    <div class="flex gap-2">
-                        <button @click="openDomicilioTab()" class="text-[10px] uppercase font-bold text-cyan-400 hover:text-cyan-300">FICHA - NUEVO</button>
-                    </div>
                 </div>
                 <div class="space-y-2">
                     <div 
-                        v-for="dom in domicilios" 
+                        v-for="dom in domicilios.filter(d => d.activo !== false)" 
                         :key="dom.id" 
                         @click="selectDomicilio(dom)"
                         @dblclick="openDomicilioTab(dom)"
@@ -361,12 +378,12 @@
                         <div class="flex justify-between items-start mb-1">
                             <span v-if="dom.es_fiscal" class="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 rounded border border-purple-500/30">FISCAL</span>
                             <span v-else class="text-[10px] bg-gray-700 text-gray-300 px-1.5 rounded">SUCURSAL</span>
-                            <button @click.stop="openDomicilioTab(dom)" class="text-[10px] text-white/30 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"><i class="fas fa-pencil-alt"></i></button>
+                            <button @click.stop="openDomicilioTab(dom)" class="text-[10px] text-white/30 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"><i class="fa-solid fa-pencil"></i></button>
                         </div>
                         <p class="text-sm font-medium text-white leading-tight">{{ dom.calle }} {{ dom.numero }}</p>
                         <p class="text-xs text-white/50">{{ dom.localidad }}</p>
                         <div class="mt-2 flex items-center gap-2 text-xs text-white/40">
-                            <i class="fas fa-truck"></i> {{ dom.transporte?.nombre || dom.transporte_nombre || 'Sin Transporte' }}
+                            <i class="fa-solid fa-truck"></i> {{ dom.transporte?.nombre || dom.transporte_nombre || 'Sin Transporte' }}
                         </div>
                     </div>
                     
@@ -375,7 +392,7 @@
                         @click="openDomicilioTab()"
                         class="w-full py-2 border border-dashed border-white/10 rounded-lg text-white/30 hover:text-cyan-400 hover:border-cyan-500/30 hover:bg-cyan-500/5 transition-all flex items-center justify-center gap-2 text-xs font-bold uppercase"
                     >
-                        <i class="fas fa-plus"></i> Agregar Domicilio
+                        <i class="fa-solid fa-plus"></i> Agregar Domicilio
                     </button>
                 </div>
             </section>
@@ -383,8 +400,8 @@
             <!-- Contactos -->
             <section>
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-xs font-bold text-white/50 uppercase">Contactos</h3>
-                    <button @click="addContacto" class="text-cyan-400 hover:text-cyan-300 text-xs"><i class="fas fa-plus"></i></button>
+                    <h3 class="text-sm font-bold text-cyan-400 bg-white/5 px-3 py-1.5 rounded-md border border-white/10 w-full block text-center mb-4 shadow-sm">CONTACTOS</h3>
+                    <button @click="addContacto" class="text-cyan-400 hover:text-cyan-300 text-xs"><i class="fa-solid fa-plus"></i></button>
                 </div>
                 <div class="space-y-2">
                     <div v-for="contact in contactos" :key="contact.id" class="bg-white/5 border border-white/10 rounded-lg p-3 transition-colors group">
@@ -395,7 +412,7 @@
                             <div class="flex-1 min-w-0">
                                 <div class="flex justify-between">
                                     <p class="text-sm font-bold text-white truncate">{{ contact.nombre }}</p>
-                                    <button @click="editContacto(contact)" class="text-[10px] text-white/30 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"><i class="fas fa-pencil-alt"></i></button>
+                                    <button @click="editContacto(contact)" class="text-[10px] text-white/30 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"><i class="fa-solid fa-pencil"></i></button>
                                 </div>
                                 <p class="text-[10px] text-white/50 uppercase truncate">{{ contact.rol || 'Sin Rol' }}</p>
                             </div>
@@ -441,6 +458,16 @@
         @close="showSegmentoList = false"
     />
 
+    <DomicilioList 
+        v-if="showDomicilioList"
+        :domicilios="domicilios"
+        class="fixed inset-0 z-[60] m-4 rounded-lg shadow-2xl overflow-hidden"
+        @close="showDomicilioList = false"
+        @create="openDomicilioTab(); showDomicilioList = false"
+        @edit="openDomicilioTab($event); showDomicilioList = false"
+        @delete="handleDomicilioDelete($event)"
+    />
+
     <ContextMenu 
         v-model="contextMenu.show" 
         :x="contextMenu.x" 
@@ -460,6 +487,7 @@ import ContextMenu from '../../components/common/ContextMenu.vue'
 import SegmentoForm from '../Maestros/SegmentoForm.vue'
 import SegmentoList from '../Maestros/SegmentoList.vue'
 import DomicilioForm from './components/DomicilioForm.vue'
+import DomicilioList from './components/DomicilioList.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -507,6 +535,7 @@ const editingSegmentoId = ref(null)
 // Domicilios State
 const selectedDomicilio = ref(null)
 const selectedDomicilioId = ref(null)
+const showDomicilioList = ref(false)
 
 const contextMenu = reactive({
     show: false,
@@ -620,6 +649,8 @@ const navigateClient = (direction) => {
     navigateToIndex(newIndex)
 }
 
+
+
 onMounted(async () => {
     window.addEventListener('keydown', handleKeydown)
     
@@ -719,7 +750,7 @@ const saveCliente = async () => {
 const deleteCliente = async () => {
     if(!confirm('¿Está seguro de dar de baja este cliente?')) return
     try {
-        // await store.deleteCliente(form.value.id)
+        await store.deleteCliente(form.value.id)
         notificationStore.add('Cliente dado de baja', 'success')
         router.push('/hawe')
     } catch (e) {
@@ -812,20 +843,28 @@ const openDomicilioTab = (domicilio = null) => {
     activeTab.value = 'DOMICILIO'
 }
 
-const handleDomicilioSaved = (domicilioData) => {
-    if (domicilioData.id) {
-        // Update existing
-        const index = domicilios.value.findIndex(d => d.id === domicilioData.id)
-        if (index !== -1) {
-            domicilios.value[index] = { ...domicilios.value[index], ...domicilioData }
+const handleDomicilioSaved = async (domicilioData) => {
+    // For both new and existing clients, domicilios are immediately persisted
+    try {
+        let savedDom;
+        if (domicilioData.id) {
+            savedDom = await store.updateDomicilio(form.value.id, domicilioData.id, domicilioData);
+            notificationStore.add('Domicilio actualizado', 'success');
+        } else {
+            savedDom = await store.createDomicilio(form.value.id, domicilioData);
+            notificationStore.add('Domicilio creado', 'success');
         }
-    } else {
-        // Add new
-        domicilios.value.push({
-            ...domicilioData,
-            id: Date.now(), // Temp ID
-            es_fiscal: domicilios.value.length === 0 // First one is fiscal default
-        })
+        
+        // Update local state with response (ensure real ID is used)
+        if (domicilioData.id) {
+            const index = domicilios.value.findIndex(d => d.id === domicilioData.id);
+            if (index !== -1) domicilios.value[index] = savedDom;
+        } else {
+            domicilios.value.push(savedDom);
+        }
+    } catch (error) {
+        console.error(error);
+        notificationStore.add('Error al guardar domicilio', 'error');
     }
     activeTab.value = 'CLIENTE'
 }
@@ -849,9 +888,7 @@ const handleDomicilioContextMenu = (e, dom = null) => {
             {
                 label: 'Eliminar',
                 icon: '🗑️',
-                handler: () => {
-                    domicilios.value = domicilios.value.filter(d => d.id !== dom.id)
-                }
+                handler: () => handleDomicilioDelete(dom)
             }
         ]
     } else {
@@ -865,9 +902,30 @@ const handleDomicilioContextMenu = (e, dom = null) => {
             {
                 label: 'Administrar Domicilios',
                 icon: '📋',
-                handler: () => alert('Administrar Domicilios')
+                handler: () => { showDomicilioList.value = true }
             }
         ]
+    }
+}
+
+const handleDomicilioDelete = async (dom) => {
+    if (!confirm('¿Está seguro de eliminar este domicilio?')) return;
+
+    // API delete for existing clients (and now for new clients too, as they are persisted immediately)
+    try {
+        await store.deleteDomicilio(form.value.id, dom.id);
+        // Store updates local state automatically via deleteDomicilio action if implemented correctly,
+        // but let's ensure UI updates:
+        domicilios.value = domicilios.value.filter(d => d.id !== dom.id);
+        notificationStore.add('Domicilio eliminado', 'success');
+    } catch (error) {
+        console.error(error);
+        notificationStore.add('Error al eliminar domicilio', 'error');
+    }
+
+    if (selectedDomicilioId.value === dom.id) {
+        selectedDomicilioId.value = null;
+        selectedDomicilio.value = null;
     }
 }
 </script>

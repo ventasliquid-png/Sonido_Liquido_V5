@@ -1,6 +1,6 @@
 <template>
   <div class="flex h-screen w-full bg-[var(--hawe-bg-main)] text-gray-200 overflow-hidden font-sans">
-    <!-- Left Sidebar (Reused from HaweView - Should be a component but duplicating for speed as per instructions) -->
+    <!-- Left Sidebar (Reused from HaweView) -->
     <aside class="flex w-64 flex-col border-r border-white/10 bg-black/20">
       <!-- Logo Area -->
       <div class="flex h-16 items-center px-6 border-b border-white/10">
@@ -11,23 +11,23 @@
       <!-- Nav Links -->
       <nav class="flex-1 space-y-1 p-4 overflow-y-auto">
         <router-link to="/hawe" class="flex items-center rounded-lg px-4 py-3 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white">
-          <i class="fas fa-users w-6"></i>
+          <i class="fa-solid fa-users w-6"></i>
           Clientes
         </router-link>
         
         <router-link to="/hawe/transportes" class="flex items-center rounded-lg bg-white/10 px-4 py-3 text-sm font-medium text-white shadow-md shadow-black/10 border-l-2 border-cyan-400">
-          <i class="fas fa-truck w-6 text-cyan-400"></i>
+          <i class="fa-solid fa-truck w-6 text-cyan-400"></i>
           Transportes
         </router-link>
 
         <div class="my-4 border-t border-white/10"></div>
 
         <a href="#" class="flex items-center rounded-lg px-4 py-3 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white">
-          <i class="fas fa-box w-6"></i>
+          <i class="fa-solid fa-box w-6"></i>
           Productos
         </a>
         <a href="#" class="flex items-center rounded-lg px-4 py-3 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white">
-          <i class="fas fa-shopping-cart w-6"></i>
+          <i class="fa-solid fa-shopping-cart w-6"></i>
           Pedidos
         </a>
       </nav>
@@ -55,7 +55,7 @@
         <!-- Search & Tools -->
         <div class="flex items-center gap-4">
           <div class="relative">
-            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"></i>
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"></i>
             <input
               v-model="searchQuery"
               type="text"
@@ -69,7 +69,7 @@
             @click="openNewTransporte"
             class="flex items-center gap-2 rounded-lg bg-cyan-600 px-3 py-1.5 text-sm font-bold text-white shadow-lg shadow-cyan-500/20 transition-all hover:bg-cyan-500 hover:shadow-cyan-500/40"
           >
-            <i class="fas fa-plus"></i>
+            <i class="fa-solid fa-plus"></i>
             <span class="hidden sm:inline">Nuevo</span>
           </button>
         </div>
@@ -77,7 +77,10 @@
 
       <!-- Content Grid -->
       <div class="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-track-gray-900 scrollbar-thumb-gray-700">
-        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div v-if="loading" class="flex items-center justify-center h-full">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500"></div>
+        </div>
+        <div v-else class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <div 
             v-for="transporte in filteredTransportes" 
             :key="transporte.id"
@@ -88,84 +91,105 @@
             <div class="flex items-start justify-between">
                 <div class="flex items-center gap-3">
                     <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white shadow-lg">
-                        <i class="fas fa-truck"></i>
+                        <i class="fa-solid fa-truck"></i>
                     </div>
                     <div>
                         <h3 class="font-bold text-white leading-tight group-hover:text-cyan-300 transition-colors">{{ transporte.nombre }}</h3>
-                        <p class="text-xs text-white/50">{{ transporte.telefono || 'Sin teléfono' }}</p>
+                        <p class="text-xs text-white/50">{{ transporte.telefono_reclamos || 'Sin teléfono' }}</p>
                     </div>
                 </div>
                 <div class="h-2 w-2 rounded-full" :class="transporte.activo ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500'"></div>
             </div>
             
             <div class="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
-                <span class="text-[10px] uppercase font-bold text-white/30 tracking-wider">ID: {{ transporte.id }}</span>
-                <i class="fas fa-chevron-right text-white/20 group-hover:translate-x-1 transition-transform"></i>
+                <span class="text-[10px] uppercase font-bold text-white/30 tracking-wider truncate max-w-[100px]" :title="transporte.id">ID: {{ transporte.id.split('-')[0] }}...</span>
+                <i class="fa-solid fa-chevron-right text-white/20 group-hover:translate-x-1 transition-transform"></i>
             </div>
           </div>
         </div>
       </div>
     </main>
 
-    <!-- Right Inspector Panel (Simplified for Transportes) -->
-    <aside class="w-80 border-l border-gray-800 bg-gray-900/50 p-6" v-if="selectedTransporte">
-        <h2 class="text-lg font-bold text-white mb-4">Detalle de Transporte</h2>
+    <!-- Right Inspector Panel -->
+    <aside class="w-80 border-l border-gray-800 bg-gray-900/50 p-6 flex flex-col" v-if="selectedTransporte">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-lg font-bold text-white">
+                {{ selectedId === 'new' ? 'Nuevo Transporte' : 'Editar Transporte' }}
+            </h2>
+            <button @click="closeInspector" class="text-white/40 hover:text-white transition-colors">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        </div>
         
-        <div class="space-y-4">
+        <div class="space-y-4 flex-1 overflow-y-auto">
             <div>
-                <label class="block text-xs font-bold uppercase text-white/40 mb-1">Nombre</label>
-                <input v-model="selectedTransporte.nombre" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-cyan-400 outline-none" />
+                <label class="block text-xs font-bold uppercase text-white/40 mb-1">Nombre *</label>
+                <input v-model="selectedTransporte.nombre" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-cyan-400 outline-none transition-colors" placeholder="Ej: Via Cargo" />
             </div>
             <div>
-                <label class="block text-xs font-bold uppercase text-white/40 mb-1">Teléfono</label>
-                <input v-model="selectedTransporte.telefono_reclamos" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-cyan-400 outline-none" />
+                <label class="block text-xs font-bold uppercase text-white/40 mb-1">Teléfono Reclamos</label>
+                <input v-model="selectedTransporte.telefono_reclamos" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-cyan-400 outline-none transition-colors" placeholder="+54 9 11..." />
             </div>
              <div>
                 <label class="block text-xs font-bold uppercase text-white/40 mb-1">Web Tracking</label>
-                <input v-model="selectedTransporte.web_tracking" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-cyan-400 outline-none" />
+                <input v-model="selectedTransporte.web_tracking" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-cyan-400 outline-none transition-colors" placeholder="https://..." />
             </div>
             
-            <div class="flex items-center gap-2 mt-4">
-                <input type="checkbox" v-model="selectedTransporte.activo" id="activeCheck" class="accent-cyan-500 h-4 w-4" />
-                <label for="activeCheck" class="text-sm text-white">Activo</label>
+            <div class="bg-white/5 p-3 rounded border border-white/5 space-y-2">
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" v-model="selectedTransporte.activo" id="activeCheck" class="accent-cyan-500 h-4 w-4" />
+                    <label for="activeCheck" class="text-sm text-white cursor-pointer select-none">Activo</label>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" v-model="selectedTransporte.requiere_carga_web" id="webCheck" class="accent-cyan-500 h-4 w-4" />
+                    <label for="webCheck" class="text-sm text-white cursor-pointer select-none">Requiere Carga Web</label>
+                </div>
             </div>
 
-            <div class="pt-6 mt-6 border-t border-white/10 flex gap-3">
-                <button @click="saveTransporte" class="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white py-2 rounded font-bold transition-colors">Guardar</button>
-                <button @click="deleteTransporte" class="px-3 bg-red-900/20 hover:bg-red-900/40 text-red-400 rounded border border-red-500/30"><i class="fas fa-trash"></i></button>
+            <div>
+                <label class="block text-xs font-bold uppercase text-white/40 mb-1">Formato Etiqueta</label>
+                <select v-model="selectedTransporte.formato_etiqueta" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-cyan-400 outline-none transition-colors">
+                    <option value="PROPIA">Propia</option>
+                    <option value="EXTERNA_PDF">Externa (PDF)</option>
+                </select>
             </div>
+        </div>
+
+        <div class="pt-6 mt-6 border-t border-white/10 flex gap-3">
+            <button @click="saveTransporte" class="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white py-2 rounded font-bold transition-colors shadow-lg shadow-cyan-900/20">
+                <span v-if="saving"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Guardando...</span>
+                <span v-else>Guardar (F10)</span>
+            </button>
+            <button v-if="selectedId !== 'new'" @click="deleteTransporte" class="px-3 bg-red-900/20 hover:bg-red-900/40 text-red-400 rounded border border-red-500/30 transition-colors" title="Dar de baja">
+                <i class="fa-solid fa-trash"></i>
+            </button>
         </div>
     </aside>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { useLogisticaStore } from '../stores/logistica' // Assuming this store exists or we use generic
-import { useNotificationStore } from '../stores/notification'
-
-// Mock store if not exists, but let's try to use what we have. 
-// If logistica store doesn't exist, I'll need to create it or use a generic one.
-// Checking previous context, TransporteList.vue exists, so likely a store exists.
-// Let's assume useTransportesStore or similar. I'll check imports in TransporteList.vue if this fails, but for now I'll write generic logic.
-
+import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useLogisticaStore } from '../../stores/logistica'
+import { useNotificationStore } from '../../stores/notification'
 
 const transporteStore = useLogisticaStore()
 const notificationStore = useNotificationStore()
 
-const transportes = ref([])
+const transportes = computed(() => transporteStore.empresas)
+const loading = computed(() => transporteStore.loading)
 const searchQuery = ref('')
 const selectedId = ref(null)
 const selectedTransporte = ref(null)
+const saving = ref(false)
 
 onMounted(async () => {
-    try {
-        await transporteStore.fetchEmpresas('all')
-        transportes.value = transporteStore.empresas
-    } catch (e) {
-        console.error(e)
-    }
+    await transporteStore.fetchEmpresas('all')
+    window.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+    window.removeEventListener('keydown', handleKeydown)
 })
 
 const filteredTransportes = computed(() => {
@@ -185,13 +209,26 @@ const openNewTransporte = () => {
     selectedTransporte.value = {
         id: null,
         nombre: '',
-        telefono_reclamos: '', // Adjusted field name
-        direccion: '', // Note: API might not support this yet, check store
-        activo: true
+        telefono_reclamos: '',
+        web_tracking: '',
+        activo: true,
+        requiere_carga_web: false,
+        formato_etiqueta: 'PROPIA'
     }
 }
 
+const closeInspector = () => {
+    selectedId.value = null
+    selectedTransporte.value = null
+}
+
 const saveTransporte = async () => {
+    if (!selectedTransporte.value.nombre) {
+        notificationStore.add('El nombre es obligatorio', 'error')
+        return
+    }
+
+    saving.value = true
     try {
         if (selectedId.value === 'new') {
             await transporteStore.createEmpresa(selectedTransporte.value)
@@ -200,26 +237,40 @@ const saveTransporte = async () => {
             await transporteStore.updateEmpresa(selectedTransporte.value.id, selectedTransporte.value)
             notificationStore.add('Transporte actualizado', 'success')
         }
-        await transporteStore.fetchEmpresas('all')
-        transportes.value = transporteStore.empresas
-        selectedId.value = null
-        selectedTransporte.value = null
+        // Refresh list is handled by store reactivity usually, but fetch ensures sync
+        // Store updates the array in place, so we might not need to fetch again if store logic is correct.
+        // But let's be safe.
+        // Actually, store implementation pushes/updates the array, so reactivity should work.
+        
+        closeInspector()
     } catch (e) {
         notificationStore.add('Error al guardar', 'error')
+        console.error(e)
+    } finally {
+        saving.value = false
     }
 }
 
 const deleteTransporte = async () => {
-    if (!confirm('¿Eliminar transporte?')) return
+    if (!confirm('¿Seguro que desea dar de baja este transporte?')) return
     try {
-        await transporteStore.updateEmpresa(selectedTransporte.value.id, { ...selectedTransporte.value, activo: false }) // Soft delete as per legacy
-        notificationStore.add('Transporte eliminado', 'success')
-        await transporteStore.fetchEmpresas('all')
-        transportes.value = transporteStore.empresas
-        selectedId.value = null
-        selectedTransporte.value = null
+        // Soft delete
+        await transporteStore.updateEmpresa(selectedTransporte.value.id, { ...selectedTransporte.value, activo: false })
+        notificationStore.add('Transporte dado de baja', 'success')
+        closeInspector()
     } catch (e) {
         notificationStore.add('Error al eliminar', 'error')
+    }
+}
+
+const handleKeydown = (e) => {
+    if (e.key === 'F10' && selectedTransporte.value) {
+        e.preventDefault()
+        saveTransporte()
+    }
+    if (e.key === 'Escape' && selectedTransporte.value) {
+        e.preventDefault()
+        closeInspector()
     }
 }
 </script>

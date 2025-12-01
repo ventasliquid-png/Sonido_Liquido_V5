@@ -81,6 +81,7 @@ class Domicilio(Base):
     provincia_id = Column(String(1), ForeignKey("provincias.id"), nullable=True)
     
     # Flags de uso
+    activo = Column(Boolean, default=True, nullable=False)
     es_fiscal = Column(Boolean, default=False)
     es_entrega = Column(Boolean, default=False)
     

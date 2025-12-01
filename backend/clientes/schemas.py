@@ -11,6 +11,7 @@ class DomicilioBase(BaseModel):
     numero: Optional[str] = None
     localidad: Optional[str] = None
     provincia: Optional[str] = None
+    activo: bool = True
     es_fiscal: bool = False
     es_entrega: bool = False
     transporte_id: Optional[UUID] = None
@@ -25,6 +26,7 @@ class DomicilioUpdate(BaseModel):
     numero: Optional[str] = None
     localidad: Optional[str] = None
     provincia: Optional[str] = None
+    activo: Optional[bool] = None
     es_fiscal: Optional[bool] = None
     es_entrega: Optional[bool] = None
     transporte_id: Optional[UUID] = None
@@ -39,6 +41,7 @@ class DomicilioResponse(BaseModel):
     numero: Optional[str] = None
     localidad: Optional[str] = None
     provincia_id: Optional[str] = None
+    activo: bool = True
     es_fiscal: bool = False
     es_entrega: bool = False
     transporte_habitual_nodo_id: Optional[UUID] = None

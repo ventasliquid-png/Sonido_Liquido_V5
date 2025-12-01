@@ -300,6 +300,9 @@ class ClienteService:
     def delete_domicilio(db: Session, domicilio_id: UUID):
         db_domicilio = db.query(Domicilio).filter(Domicilio.id == domicilio_id).first()
         if db_domicilio:
-            db.delete(db_domicilio)
+            # Soft Delete
+            db_domicilio.activo = False
+            db.add(db_domicilio)
             db.commit()
+            db.refresh(db_domicilio)
         return db_domicilio

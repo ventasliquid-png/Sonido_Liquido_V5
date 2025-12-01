@@ -7,6 +7,7 @@ import router from './router'
 
 // Importar el CSS principal (Doctrina Cromática)
 import './styles/main.scss'
+import '@fortawesome/fontawesome-free/css/all.css'
 
 const app = createApp(App)
 

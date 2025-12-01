@@ -28,7 +28,8 @@ const form = reactive({
     localidad: '',
     provincia_id: null,
     transporte_id: null,
-    tipo: 'ENTREGA' // Default type
+    tipo: 'ENTREGA', // Default type
+    activo: true
 });
 
 // Load masters on mount if empty
@@ -50,7 +51,8 @@ watch(() => props.domicilio, (newVal) => {
             localidad: newVal.localidad || '',
             provincia_id: newVal.provincia_id || null,
             transporte_id: newVal.transporte_id || null,
-            tipo: newVal.tipo || 'ENTREGA'
+            tipo: newVal.tipo || 'ENTREGA',
+            activo: newVal.activo !== undefined ? newVal.activo : true
         });
     } else {
         // Create mode
@@ -63,7 +65,8 @@ watch(() => props.domicilio, (newVal) => {
             localidad: '',
             provincia_id: null,
             transporte_id: props.defaultTransportId || null, // Auto-fill transport
-            tipo: 'ENTREGA'
+            tipo: 'ENTREGA',
+            activo: true
         });
     }
 }, { immediate: true });
@@ -89,6 +92,7 @@ const handleKeydown = (e) => {
     if (e.key === 'Escape') close();
     if (e.key === 'F10') {
         e.preventDefault();
+        e.stopPropagation(); // Prevent parent from catching F10
         handleSave();
     }
 };
@@ -108,17 +112,17 @@ onUnmounted(() => {
         <div class="h-32 px-8 py-6 flex items-start justify-between border-b border-white/5 bg-white/5 shrink-0">
             <div>
                 <h2 class="font-outfit text-2xl font-bold text-white mb-1 flex items-center gap-3">
-                    <i class="fas fa-map-marker-alt text-cyan-400"></i>
+                    <i class="fa-solid fa-map-marker-alt text-cyan-400"></i>
                     {{ isEditing ? 'Editar Domicilio' : 'Nuevo Domicilio' }}
                 </h2>
                 <p class="text-white/50 text-sm">Complete los datos de entrega o facturación.</p>
             </div>
             <div class="flex gap-3">
                 <button @click="close" class="px-4 py-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 text-sm font-medium transition-colors">
-                    <i class="fas fa-arrow-left mr-2"></i>Volver
+                    <i class="fa-solid fa-arrow-left mr-2"></i>Volver
                 </button>
                 <button @click="handleSave" class="px-6 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold shadow-lg shadow-cyan-500/20 transition-all flex items-center gap-2">
-                    <i class="fas fa-save"></i>
+                    <i class="fa-solid fa-save"></i>
                     Guardar (F10)
                 </button>
             </div>
@@ -174,7 +178,7 @@ onUnmounted(() => {
 
                 <!-- Transporte -->
                 <div class="bg-white/5 p-6 rounded-xl border border-white/10">
-                    <label class="block text-xs font-bold text-cyan-400 uppercase mb-2"><i class="fas fa-truck mr-2"></i>Transporte Sugerido</label>
+                    <label class="block text-xs font-bold text-cyan-400 uppercase mb-2"><i class="fa-solid fa-truck mr-2"></i>Transporte Sugerido</label>
                     <select v-model="form.transporte_id" class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all appearance-none text-lg">
                         <option :value="null" class="bg-gray-900">Seleccionar...</option>
                         <option v-for="trans in store.transportes" :key="trans.id" :value="trans.id" class="bg-gray-900">
@@ -184,6 +188,34 @@ onUnmounted(() => {
                     <p class="text-xs text-white/40 mt-2">Este transporte se sugerirá automáticamente en los pedidos para este domicilio.</p>
                 </div>
             </form>
+
+            <div class="max-w-4xl mx-auto mt-6 space-y-6">
+                 <!-- Estado (Active Toggle) -->
+                 <div class="bg-white/5 p-6 rounded-xl border border-white/10 flex items-center justify-between">
+                    <div>
+                        <label class="block text-xs font-bold text-white/60 uppercase mb-1">Estado del Domicilio</label>
+                        <p class="text-sm text-white/50">Si desactiva el domicilio, no aparecerá en las búsquedas habituales.</p>
+                    </div>
+                    <button 
+                        @click="form.activo = !form.activo"
+                        class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-[#0f172a]"
+                        :class="form.activo ? 'bg-green-500' : 'bg-gray-700'"
+                    >
+                        <span 
+                            class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+                            :class="form.activo ? 'translate-x-6' : 'translate-x-1'"
+                        />
+                    </button>
+                </div>
+
+                <!-- Bottom Actions -->
+                <div class="flex justify-end pt-6 border-t border-white/10">
+                    <button @click="handleSave" class="px-8 py-3 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-base font-bold shadow-lg shadow-cyan-500/20 transition-all flex items-center gap-2 transform active:scale-95">
+                        <i class="fa-solid fa-save"></i>
+                        GUARDAR CAMBIOS
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </template>
