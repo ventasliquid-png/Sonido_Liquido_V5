@@ -322,6 +322,13 @@
                         Dar de Baja
                     </button>
                     <button 
+                        v-if="!isNew && !form.activo"
+                        @click="activateCliente"
+                        class="px-4 py-2 rounded-lg text-green-400 hover:bg-green-900/20 hover:text-green-300 text-sm font-medium transition-colors"
+                    >
+                        Activar
+                    </button>
+                    <button 
                         @click="saveCliente"
                         class="px-6 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-sm font-bold shadow-lg shadow-emerald-900/50 transition-all transform active:scale-95 flex items-center gap-2"
                     >
@@ -355,12 +362,19 @@
             <section>
                 <div class="flex items-center justify-between mb-3">
                     <h3 
-                        class="text-sm font-bold text-cyan-400 bg-white/5 px-3 py-1.5 rounded-md border border-white/10 w-full block text-center mb-4 shadow-sm cursor-pointer select-none hover:bg-white/10 transition-colors"
+                        class="text-sm font-bold text-cyan-400 bg-white/5 px-3 py-1.5 rounded-md border border-white/10 w-full block text-center mb-4 shadow-sm cursor-pointer select-none hover:bg-white/10 transition-colors relative group"
                         @contextmenu.prevent="handleDomicilioContextMenu($event)"
                         @dblclick="showDomicilioList = true"
                         title="Doble click para administrar"
                     >
                         LOGÍSTICA
+                        <button 
+                            @click.stop="showTransporteManager = true"
+                            class="absolute right-2 top-1/2 -translate-y-1/2 text-white/30 hover:text-cyan-400 transition-colors"
+                            title="Administrar Transportes"
+                        >
+                            <i class="fa-solid fa-truck"></i>
+                        </button>
                     </h3>
                 </div>
                 <div class="space-y-2">
@@ -468,6 +482,20 @@
         @delete="handleDomicilioDelete($event)"
     />
 
+    <div v-if="showTransporteManager" class="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-8">
+        <div class="bg-[#0a253a] border border-white/10 rounded-xl w-full h-full shadow-2xl overflow-hidden">
+            <TransporteManager :isModal="true" @close="showTransporteManager = false" />
+        </div>
+    </div>
+
+    <ContactoForm 
+        :show="showContactoForm"
+        :clienteId="form.id"
+        :contacto="selectedContacto"
+        @close="showContactoForm = false"
+        @saved="handleContactoSaved"
+    />
+
     <ContextMenu 
         v-model="contextMenu.show" 
         :x="contextMenu.x" 
@@ -488,6 +516,8 @@ import SegmentoForm from '../Maestros/SegmentoForm.vue'
 import SegmentoList from '../Maestros/SegmentoList.vue'
 import DomicilioForm from './components/DomicilioForm.vue'
 import DomicilioList from './components/DomicilioList.vue'
+import TransporteManager from './components/TransporteManager.vue'
+import ContactoForm from './components/ContactoForm.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -536,6 +566,11 @@ const editingSegmentoId = ref(null)
 const selectedDomicilio = ref(null)
 const selectedDomicilioId = ref(null)
 const showDomicilioList = ref(false)
+const showTransporteManager = ref(false)
+
+// Contactos State
+const showContactoForm = ref(false)
+const selectedContacto = ref(null)
 
 const contextMenu = reactive({
     show: false,
@@ -758,6 +793,17 @@ const deleteCliente = async () => {
     }
 }
 
+const activateCliente = async () => {
+    try {
+        form.value.activo = true
+        await saveCliente()
+        // notificationStore.add('Cliente reactivado exitosamente', 'success') // saveCliente already notifies
+    } catch (e) {
+        notificationStore.add('Error al reactivar cliente', 'error')
+        form.value.activo = false // Revert on error
+    }
+}
+
 const cloneCliente = () => {
     // Clone logic: reset ID, keep data, set isNew
     form.value.id = null
@@ -768,9 +814,25 @@ const cloneCliente = () => {
     notificationStore.add('Cliente clonado. Edite y guarde.', 'info')
 }
 
-// Placeholder functions for other actions
-const addContacto = () => console.log('Add Contacto')
-const editContacto = (c) => console.log('Edit Contacto', c)
+// Contactos Actions
+const addContacto = () => {
+    if (isNew.value) {
+        notificationStore.add('Guarde el cliente antes de agregar contactos', 'warning')
+        return
+    }
+    selectedContacto.value = null
+    showContactoForm.value = true
+}
+
+const editContacto = (c) => {
+    selectedContacto.value = c
+    showContactoForm.value = true
+}
+
+const handleContactoSaved = async () => {
+    // Refresh client data to get updated contacts
+    await loadCliente(form.value.id)
+}
 
 const createSegmento = async () => {
     if (!newSegmentoName.value) return

@@ -37,8 +37,9 @@ export const useAgendaStore = defineStore('agenda', {
 
         async createPersona(data) {
             try {
-                await agendaService.createPersona(data);
-                await this.fetchPersonas();
+                const response = await agendaService.createPersona(data);
+                this.personas.push(response.data);
+                return response.data;
             } catch (error) {
                 throw error;
             }

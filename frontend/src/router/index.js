@@ -18,7 +18,6 @@ const routes = [
         name: 'Home',
         redirect: '/hawe'
     },
-
     {
         path: '/segmentos',
         name: 'Segmentos',
@@ -40,6 +39,12 @@ const routes = [
         component: () => import('../views/Agenda/PersonaList.vue')
     },
     {
+        path: '/agenda/contactos',
+        name: 'Contactos',
+        component: () => import('../views/Agenda/ContactosView.vue'),
+        meta: { requiresAuth: true }
+    },
+    {
         path: '/hawe',
         component: HaweLayout,
         children: [
@@ -51,14 +56,19 @@ const routes = [
             {
                 path: 'cliente/:id',
                 name: 'HaweClientCanvas',
-                component: () => import('../views/Hawe/ClientCanvas.vue')
+                component: () => import('../views/Hawe/ClientCanvas.vue'),
+                props: true
             },
             {
                 path: 'transportes',
-                name: 'HaweTransportes',
-                component: () => import('../views/Hawe/HaweTransportesView.vue')
+                name: 'Transportes',
+                component: () => import('../views/Logistica/TransportesView.vue')
             }
         ]
+    },
+    {
+        path: '/:pathMatch(.*)*',
+        redirect: '/hawe'
     }
 ];
 

@@ -1,79 +1,11 @@
 <template>
   <div class="flex h-screen w-full bg-[var(--hawe-bg-main)] text-gray-200 overflow-hidden font-sans">
     <!-- Left Sidebar (Navigation) -->
-    <aside class="flex w-64 flex-col border-r border-white/10 bg-black/20">
-      <!-- Logo Area -->
-      <div class="flex h-16 items-center px-6 border-b border-white/10">
-        <div class="h-8 w-8 rounded bg-gradient-to-br from-cyan-400 to-blue-500 mr-3"></div>
-        <span class="font-outfit text-lg font-bold tracking-tight text-white">HAWE <span class="text-cyan-400">V5</span></span>
-      </div>
-
-      <!-- Nav Links -->
-      <nav class="flex-1 space-y-1 p-4 overflow-y-auto">
-        <a 
-            href="#" 
-            class="flex items-center rounded-lg bg-white/10 px-4 py-3 text-sm font-medium text-white shadow-md shadow-black/10 border-l-2 border-cyan-400"
-            @contextmenu.prevent="handleGlobalClientsContextMenu($event)"
-        >
-          <i class="fas fa-users w-6 text-cyan-400"></i>
-          Clientes
-        </a>
-        
-        <!-- Filters Submenu (Only for Clientes) -->
-        <div class="mt-2 pl-4 space-y-1">
-            <h4 
-                class="px-2 text-xs font-semibold uppercase text-white/50 mb-2 mt-4 cursor-pointer hover:text-white/80 select-none"
-                @contextmenu.prevent="handleHeaderContextMenu($event)"
-                @dblclick="showSegmentoList = true"
-                title="Doble click para administrar"
-            >
-                Segmentos
-            </h4>
-            <button 
-                @click="selectedSegmento = null"
-                @contextmenu.prevent="handleHeaderContextMenu($event)"
-                class="w-full flex items-center rounded-md px-2 py-1.5 text-xs font-medium transition-colors"
-                :class="selectedSegmento === null ? 'text-cyan-300 bg-cyan-900/40' : 'text-white/70 hover:text-white hover:bg-white/10'"
-            >
-                <i class="fas fa-circle w-4 text-[8px]" :class="selectedSegmento === null ? 'text-cyan-400' : 'text-white/30'"></i>
-                Todos
-            </button>
-            <button 
-                v-for="seg in segmentos" 
-                :key="seg.id"
-                @click="selectedSegmento = seg.id"
-                @contextmenu.prevent="handleContextMenu($event, seg)"
-                class="w-full flex items-center rounded-md px-2 py-1.5 text-xs font-medium transition-colors"
-                :class="selectedSegmento === seg.id ? 'text-cyan-300 bg-cyan-900/40' : 'text-white/70 hover:text-white hover:bg-white/10'"
-            >
-                <i class="fas fa-circle w-4 text-[8px]" :class="selectedSegmento === seg.id ? 'text-cyan-400' : 'text-white/30'"></i>
-                {{ seg.nombre }}
-            </button>
-        </div>
-
-        <div class="my-4 border-t border-white/10"></div>
-
-        <a href="#" class="flex items-center rounded-lg px-4 py-3 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white">
-          <i class="fas fa-box w-6"></i>
-          Productos
-        </a>
-        <a href="#" class="flex items-center rounded-lg px-4 py-3 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white">
-          <i class="fas fa-shopping-cart w-6"></i>
-          Pedidos
-        </a>
-      </nav>
-
-      <!-- User Profile -->
-      <div class="border-t border-white/10 p-4">
-        <div class="flex items-center gap-3">
-          <div class="h-10 w-10 rounded-full bg-white/10"></div>
-          <div>
-            <p class="text-sm font-medium text-white">Usuario</p>
-            <p class="text-xs text-white/50">Admin</p>
-          </div>
-        </div>
-      </div>
-    </aside>
+    <AppSidebar 
+        @logout="logout" 
+        @open-command-palette="showCommandPalette = true"
+        @navigate="handleSidebarNavigation"
+    />
 
     <!-- Main Content Area -->
     <main class="flex flex-1 flex-col relative">
@@ -217,6 +149,13 @@
         class="fixed inset-0 z-[60] bg-white m-4 rounded-lg shadow-2xl overflow-hidden"
         @close="showSegmentoList = false"
     />
+    
+    <!-- Transportes Modal (Triggered by Sidebar/CommandPalette) -->
+    <div v-if="showTransporteManager" class="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-[#0f172a] w-full max-w-6xl h-[85vh] rounded-2xl shadow-2xl overflow-hidden border border-white/10 flex flex-col">
+            <TransporteManager :isModal="true" @close="showTransporteManager = false" />
+        </div>
+    </div>
 
     <ContextMenu 
         v-model="contextMenu.show" 
@@ -225,20 +164,25 @@
         :actions="contextMenu.actions"
         @close="contextMenu.show = false"
     />
+
+    <!-- Global Command Palette -->
+    <CommandPalette :show="showCommandPalette" @close="showCommandPalette = false" @navigate="handleSidebarNavigation" />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, onUnmounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import FichaCard from '../components/hawe/FichaCard.vue'
 import InspectorPanel from '../components/canvas/InspectorPanel.vue'
+import AppSidebar from '../components/layout/AppSidebar.vue'
+import CommandPalette from '../components/common/CommandPalette.vue'
+import TransporteManager from './Hawe/components/TransporteManager.vue'
 import { useClientesStore } from '../stores/clientes'
 import { useMaestrosStore } from '../stores/maestros'
 import ContextMenu from '../components/common/ContextMenu.vue'
 import SegmentoForm from './Maestros/SegmentoForm.vue'
 import SegmentoList from './Maestros/SegmentoList.vue'
-import { reactive } from 'vue'
 
 const clienteStore = useClientesStore()
 const maestrosStore = useMaestrosStore()
@@ -253,6 +197,8 @@ const searchQuery = ref('')
 const filterStatus = ref('active') // Default to active
 const sortBy = ref('usage') // Default to usage (Popularity)
 const showSortMenu = ref(false)
+const showCommandPalette = ref(false)
+const showTransporteManager = ref(false)
 
 // Segmento ABM Logic
 const showSegmentoModal = ref(false)
@@ -264,6 +210,19 @@ const contextMenu = reactive({
     y: 0,
     actions: []
 })
+
+const handleSidebarNavigation = (payload) => {
+    if (payload.name === 'Transportes') {
+        router.push({ name: 'Transportes' })
+    } else if (payload.name === 'Segmentos') {
+        showSegmentoList.value = true
+    } else if (payload.name === 'Logout') {
+        logout()
+    } else {
+        // Fallback to router if it's a route name
+        router.push(payload)
+    }
+}
 
 const openSegmentoModal = (segmento = null) => {
     editingSegmentoId.value = segmento ? segmento.id : null
@@ -405,16 +364,23 @@ const openCanvas = async (cliente) => {
 }
 
 const handleKeydown = (e) => {
-    if ((e.code === 'Space' || e.code === 'Enter') && selectedCliente.value) {
+    // Command Palette Shortcut (Ctrl+K)
+    if (e.ctrlKey && e.key === 'k') {
+        e.preventDefault()
+        showCommandPalette.value = !showCommandPalette.value
+        return
+    }
+
+    if ((e.code === 'Space' || e.code === 'Enter') && selectedCliente.value && !showCommandPalette.value && !showTransporteManager.value) {
         e.preventDefault()
         openCanvas(selectedCliente.value)
     }
 }
 
-import { onUnmounted } from 'vue'
 onUnmounted(() => {
     window.removeEventListener('keydown', handleKeydown)
 })
+
 const handleClientContextMenu = (e, client) => {
     contextMenu.show = true
     contextMenu.x = e.clientX
@@ -437,7 +403,7 @@ const handleClientContextMenu = (e, client) => {
         {
             label: `Editar ${client.razon_social}`,
             icon: '✏️',
-            handler: () => openClientCanvas(client.id)
+            handler: () => openCanvas(client)
         },
         {
             label: 'Dar de Baja',
@@ -457,22 +423,11 @@ const handleClientContextMenu = (e, client) => {
     ]
 }
 
-const handleGlobalClientsContextMenu = (e) => {
-    contextMenu.show = true
-    contextMenu.x = e.clientX
-    contextMenu.y = e.clientY
-    contextMenu.actions = [
-        {
-            label: 'Nuevo Cliente',
-            icon: '➕',
-            handler: () => router.push({ name: 'HaweClientCanvas', params: { id: 'new' } })
-        },
-        {
-            label: 'Administrar Clientes',
-            icon: '📋',
-            handler: () => router.push('/hawe')
-        }
-    ]
+const logout = () => {
+    if(confirm('¿Desea cerrar sesión?')) {
+        localStorage.removeItem('token')
+        router.push('/login')
+    }
 }
 </script>
 

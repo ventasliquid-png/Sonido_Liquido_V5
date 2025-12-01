@@ -409,3 +409,15 @@ Se completó una sesión intensiva de depuración y mejora de la gestión de Cli
 
 
 
+
+### [2025-12-01] Estandarización de Layouts y Terminología
+*   **Layout Unificado:** Se estandarizó el diseño de los módulos `Transportes` y `Contactos` para que coincidan con `Clientes`:
+    *   **Sidebar Izquierdo:** Menú de navegación persistente.
+    *   **Contenido Central:** Listado de registros.
+    *   **Inspector Derecho:** Panel fijo (320px) para edición/creación, siempre visible (con placeholder cuando no hay selección).
+*   **Terminología Logística:**
+    *   Se renombró "Depósitos" a **"Depósitos Internos"** en el menú lateral para diferenciar los almacenes propios de la empresa de los domicilios de entrega de los clientes.
+    *   *Pendiente de revisión:* Evaluar si el término sigue siendo ambiguo.
+*   **Corrección de Bugs:**
+    *   **Ghost Screen:** Se solucionó el parpadeo del layout antiguo al recargar la página (`Ctrl+F5`) implementando un estado de carga (`ready`) en `App.vue` que espera a que el router esté listo.
+    *   **Persistencia de Menú:** Se implementó `useUIStore` para recordar el estado (abierto/cerrado) de las categorías del sidebar entre navegaciones.

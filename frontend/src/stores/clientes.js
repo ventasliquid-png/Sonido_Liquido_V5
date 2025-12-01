@@ -242,6 +242,14 @@ export const useClientesStore = defineStore('clientes', () => {
         }
     }
 
+    async function incrementUsage(id) {
+        try {
+            await clientesService.incrementUsage(id);
+        } catch (err) {
+            console.error('Error incrementing usage:', err);
+        }
+    }
+
     return {
         clientes,
         currentCliente,
