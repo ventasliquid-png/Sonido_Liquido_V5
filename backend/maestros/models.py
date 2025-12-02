@@ -3,7 +3,7 @@
 import uuid
 from sqlalchemy import Column, String, Boolean, Integer, Numeric, Enum
 from sqlalchemy.dialects.postgresql import UUID
-from core.database import Base
+from backend.core.database import Base
 
 class Provincia(Base):
     """
@@ -89,3 +89,29 @@ class TipoContacto(Base):
 
     def __repr__(self):
         return f"<TipoContacto(id='{self.id}')>"
+
+class TasaIVA(Base):
+    """
+    Tabla 'tasas_iva' (Maestro Fiscal).
+    """
+    __tablename__ = "tasas_iva"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String, nullable=False) # Ej: "General 21%"
+    valor = Column(Numeric(5, 2), nullable=False) # Ej: 21.00
+
+    def __repr__(self):
+        return f"<TasaIVA(nombre='{self.nombre}', valor={self.valor})>"
+
+class Unidad(Base):
+    """
+    Tabla 'unidades' (Maestro de Unidades).
+    """
+    __tablename__ = "unidades"
+
+    id = Column(Integer, primary_key=True, index=True)
+    codigo = Column(String(10), unique=True, nullable=False) # Ej: "UN", "L", "KG"
+    nombre = Column(String, nullable=False) # Ej: "Unidad", "Litro"
+
+    def __repr__(self):
+        return f"<Unidad(codigo='{self.codigo}')>"

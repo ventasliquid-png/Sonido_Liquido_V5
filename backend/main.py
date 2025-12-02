@@ -42,6 +42,9 @@ from backend.clientes.router import router as clientes_router
 from backend.maestros.router import router as maestros_router
 from backend.logistica.router import router as logistica_router
 from backend.agenda.router import router as agenda_router
+from backend.productos.router import router as productos_router
+from backend.productos import models as productos_models
+from backend.proveedores.router import router as proveedores_router
 
 # --- 2. Importaciones de LangGraph (El Cerebro) ---
 from langgraph.graph import StateGraph, END
@@ -301,6 +304,8 @@ app.include_router(clientes_router)
 app.include_router(maestros_router)
 app.include_router(logistica_router)
 app.include_router(agenda_router) 
+app.include_router(productos_router)
+app.include_router(proveedores_router) 
 
 # --- 9. Endpoints (Rutas de la API) ---
 class QueryInput(BaseModel):

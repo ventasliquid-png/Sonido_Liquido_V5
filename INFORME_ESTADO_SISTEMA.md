@@ -40,16 +40,39 @@ El sistema ha alcanzado un alto grado de madurez en sus módulos principales (**
     *   Gestión de Nodos y Empresas.
     *   **Backend:** Implementación de "Tuberías" para Baja Física (Hard Delete) lista para conectar.
 
+### D. Productos (ProductosView) - *Nuevo*
+*   **Estado:** 90% Operativo (Backend 100%, Frontend UI 90%).
+*   **Características:**
+    *   **Identidad Visual:** Tema "Tinto Profundo" (Bordó) distintivo.
+    *   **Gestión Industrial:** Soporte para SKU, Código Visual, Kits y Conversión de Unidades.
+    *   **Simulador de Precios:** Cálculo en tiempo real de márgenes y precios de venta.
+    *   **Infraestructura Satelital:** Integrado con nuevos módulos de **Proveedores**, **Depósitos** y **Maestros Fiscales**.
+
 ## 4. Backend & Seguridad
 *   **Autenticación:** Sistema JWT implementado. *Nota: Actualmente en modo "bypass" en routers de desarrollo para agilizar pruebas; requiere reactivación antes de deploy.*
 *   **Integridad de Datos:** Modelos relacionales robustos con claves foráneas y restricciones de integridad.
 *   **Hard Delete:** Funcionalidad de borrado físico implementada a nivel de servicio y API (protegida), pendiente de exposición en UI para usuarios "Super Admin".
 
-## 5. Próximos Pasos Sugeridos
-1.  **Seguridad:** Reactivar `Depends(get_current_user)` en todos los endpoints del backend.
-2.  **Hard Delete UI:** Crear interfaz segura (ej: modal con doble confirmación o acceso solo por rol) para invocar los endpoints de borrado físico.
-3.  **Nuevos Módulos:** Iniciar el desarrollo de los módulos de **Pedidos** y **Rubros** utilizando los componentes base ya estandarizados.
-4.  **Optimización:** Revisar índices de base de datos para consultas de ordenamiento por "Popularidad" (contador de uso).
+## 5. Plan de Acción Inmediato (Cierre de Fase "Clientes/Base")
+20. 
+21. ### 🔴 PRIORIDAD A: PROTOCOLO "FORTALEZA" (Seguridad)
+22. **Objetivo:** Reactivar el Muro de Fuego y asegurar la trazabilidad real.
+23. *   **Acción Técnica:**
+24.     *   Auditar todos los `routers` del backend.
+25.     *   Descomentar/Reintegrar la dependencia `Depends(get_current_user)` en todos los endpoints protegidos.
+26.     *   Eliminar cualquier hardcodeo de `created_by` / `updated_by` y vincularlo al ID del token JWT.
+27. *   **Efecto Esperado:** Sistema 100% privado y trazable.
+28. 
+29. ### 🟠 PRIORIDAD B: PROTOCOLO "INCINERADOR" (Gestión de Residuos)
+30. **Objetivo:** Implementar UI de Hard Delete (Borrado Físico) para limpieza de datos de prueba.
+31. *   **Restricción:** Funcionalidad exclusiva para perfil **SUPER ADMIN**.
+32. *   **Implementación UI:**
+33.     *   Mecanismo de seguridad robusto (no un simple botón).
+34.     *   Modal con doble confirmación o requerimiento de contraseña/texto de seguridad (ej: escribir "BORRAR").
+35. *   **Alcance:** Módulos Clientes, Agenda y Logística.
+36. 
+37. ### C. Nuevos Módulos
+38. *   Iniciar el desarrollo de **Depósitos Internos**, **Pedidos** y **Rubros** utilizando los componentes base ya estandarizados.
 
 ---
 *Generado por Antigravity Agent - Equipo de Desarrollo*

@@ -134,20 +134,22 @@
         
         <!-- Grid View (Cards) -->
         <div v-else-if="viewMode === 'grid'" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 relative">
+        <div 
+            v-for="persona in filteredPersonas" 
+            :key="persona.id"
+            class="relative w-full min-h-[220px]"
+        >
             <div 
-                v-for="persona in filteredPersonas" 
-                :key="persona.id"
                 @click="editPersona(persona)"
                 @mouseenter="handleMouseEnter(persona.id)"
                 @mouseleave="handleMouseLeave"
-                class="group flex flex-col justify-between rounded-xl border border-white/5 p-4 transition-all duration-300 cursor-pointer"
+                class="group flex flex-col justify-between rounded-xl border border-white/5 p-4 transition-all duration-300 cursor-pointer w-full"
                 :class="[
                     { 'ring-2 ring-pink-500 bg-white/10': selectedPersona?.id === persona.id },
                     hoveredCardId === persona.id 
-                        ? 'absolute z-50 scale-110 bg-gray-900 shadow-2xl shadow-black/50 h-auto min-h-[160px] border-pink-500' 
-                        : 'relative bg-white/5 hover:bg-white/10 hover:shadow-xl hover:shadow-pink-900/20'
+                        ? 'absolute top-0 left-0 z-50 scale-110 bg-gray-900 shadow-2xl shadow-black/50 h-auto min-h-[220px] border-pink-500' 
+                        : 'relative h-full bg-white/5 hover:bg-white/10 hover:shadow-xl hover:shadow-pink-900/20'
                 ]"
-                :style="hoveredCardId === persona.id ? { width: '100%', maxWidth: '100%' } : {}"
             >
                 <div class="flex items-start justify-between mb-4">
                     <div class="h-12 w-12 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center text-white shrink-0 font-bold text-lg shadow-lg">
@@ -203,6 +205,7 @@
                     </div>
                 </div>
             </div>
+        </div>
         </div>
 
         <!-- List View -->

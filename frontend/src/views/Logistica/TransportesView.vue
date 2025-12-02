@@ -135,57 +135,60 @@
           <div 
             v-for="transporte in filteredTransportes" 
             :key="transporte.id"
-            @click="selectTransporte(transporte)"
-            @mouseenter="handleMouseEnter(transporte.id)"
-            @mouseleave="handleMouseLeave"
-            class="group flex flex-col justify-between rounded-xl border border-white/5 p-4 transition-all duration-300 cursor-pointer"
-            :class="[
-                { 'ring-2 ring-orange-500 bg-white/10': selectedId === transporte.id },
-                hoveredCardId === transporte.id 
-                    ? 'absolute z-50 scale-110 bg-gray-900 shadow-2xl shadow-black/50 h-auto min-h-[160px] border-orange-500' 
-                    : 'relative bg-white/5 hover:bg-white/10 hover:shadow-xl hover:shadow-orange-900/20'
-            ]"
-            :style="hoveredCardId === transporte.id ? { width: '100%', maxWidth: '100%' } : {}"
+            class="relative w-full min-h-[160px]"
           >
-            <div class="flex items-start justify-between">
-                <div class="flex items-center gap-3 overflow-hidden">
-                    <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-white shadow-lg shrink-0">
-                        <i class="fas fa-truck"></i>
+            <div 
+                @click="selectTransporte(transporte)"
+                @mouseenter="handleMouseEnter(transporte.id)"
+                @mouseleave="handleMouseLeave"
+                class="group flex flex-col justify-between rounded-xl border border-white/5 p-4 transition-all duration-300 cursor-pointer w-full"
+                :class="[
+                    { 'ring-2 ring-orange-500 bg-white/10': selectedId === transporte.id },
+                    hoveredCardId === transporte.id 
+                        ? 'absolute top-0 left-0 z-50 scale-110 bg-gray-900 shadow-2xl shadow-black/50 h-auto min-h-[160px] border-orange-500' 
+                        : 'relative h-full bg-white/5 hover:bg-white/10 hover:shadow-xl hover:shadow-orange-900/20'
+                ]"
+            >
+                <div class="flex items-start justify-between">
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-white shadow-lg shrink-0">
+                            <i class="fas fa-truck"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <h3 class="font-bold text-white leading-tight group-hover:text-orange-300 transition-colors" :class="{ 'truncate': hoveredCardId !== transporte.id }">{{ transporte.nombre }}</h3>
+                            <p class="text-xs text-white/50" :class="{ 'truncate': hoveredCardId !== transporte.id }">{{ transporte.telefono_reclamos || 'Sin teléfono' }}</p>
+                        </div>
                     </div>
-                    <div class="min-w-0">
-                        <h3 class="font-bold text-white leading-tight group-hover:text-orange-300 transition-colors" :class="{ 'truncate': hoveredCardId !== transporte.id }">{{ transporte.nombre }}</h3>
-                        <p class="text-xs text-white/50" :class="{ 'truncate': hoveredCardId !== transporte.id }">{{ transporte.telefono_reclamos || 'Sin teléfono' }}</p>
-                    </div>
-                </div>
-                <!-- Inline Toggle -->
-                <div 
-                    class="flex items-center gap-2 bg-black/20 px-2 py-1 rounded-full border border-white/5 cursor-pointer hover:bg-white/10 transition-colors ml-2"
-                    @click.stop="toggleTransporteStatus(transporte)"
-                    title="Click para cambiar estado"
-                >
+                    <!-- Inline Toggle -->
                     <div 
-                        class="relative inline-flex h-4 w-7 items-center rounded-full transition-colors shrink-0"
-                        :class="transporte.activo ? 'bg-green-500/50' : 'bg-red-500/50'"
+                        class="flex items-center gap-2 bg-black/20 px-2 py-1 rounded-full border border-white/5 cursor-pointer hover:bg-white/10 transition-colors ml-2"
+                        @click.stop="toggleTransporteStatus(transporte)"
+                        title="Click para cambiar estado"
                     >
-                        <span 
-                            class="inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform shadow-sm"
-                            :class="transporte.activo ? 'translate-x-3.5' : 'translate-x-1'"
-                        />
+                        <div 
+                            class="relative inline-flex h-4 w-7 items-center rounded-full transition-colors shrink-0"
+                            :class="transporte.activo ? 'bg-green-500/50' : 'bg-red-500/50'"
+                        >
+                            <span 
+                                class="inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform shadow-sm"
+                                :class="transporte.activo ? 'translate-x-3.5' : 'translate-x-1'"
+                            />
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Extra details on hover -->
-            <div v-if="hoveredCardId === transporte.id" class="pt-2 mt-2 border-t border-white/10 text-xs text-white/60 animate-fade-in">
-                <p v-if="transporte.web_tracking" class="mb-1 truncate"><i class="fas fa-globe mr-1"></i>{{ transporte.web_tracking }}</p>
-                <p class="text-orange-400">Click para editar</p>
-            </div>
+                
+                <!-- Extra details on hover -->
+                <div v-if="hoveredCardId === transporte.id" class="pt-2 mt-2 border-t border-white/10 text-xs text-white/60 animate-fade-in">
+                    <p v-if="transporte.web_tracking" class="mb-1 truncate"><i class="fas fa-globe mr-1"></i>{{ transporte.web_tracking }}</p>
+                    <p class="text-orange-400">Click para editar</p>
+                </div>
 
-            <div class="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
-                <span class="text-[10px] uppercase font-bold text-white/30 tracking-wider truncate max-w-[100px]" :title="transporte.id">ID: {{ transporte.id.split('-')[0] }}...</span>
-                <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button @click.stop="selectTransporte(transporte)" class="text-white/50 hover:text-white" title="Editar"><i class="fas fa-pencil-alt"></i></button>
-                    <button v-if="transporte.activo" @click.stop="deleteTransporteItem(transporte)" class="text-red-400/50 hover:text-red-400" title="Dar de baja"><i class="fas fa-trash"></i></button>
+                <div class="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
+                    <span class="text-[10px] uppercase font-bold text-white/30 tracking-wider truncate max-w-[100px]" :title="transporte.id">ID: {{ transporte.id.split('-')[0] }}...</span>
+                    <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button @click.stop="selectTransporte(transporte)" class="text-white/50 hover:text-white" title="Editar"><i class="fas fa-pencil-alt"></i></button>
+                        <button v-if="transporte.activo" @click.stop="deleteTransporteItem(transporte)" class="text-red-400/50 hover:text-red-400" title="Dar de baja"><i class="fas fa-trash"></i></button>
+                    </div>
                 </div>
             </div>
           </div>

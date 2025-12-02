@@ -132,22 +132,27 @@
       <div class="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-track-gray-900 scrollbar-thumb-gray-700">
         <!-- Grid View -->
         <div v-if="viewMode === 'grid'" class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-          <FichaCard
+          <div 
             v-for="cliente in filteredClientes"
             :key="cliente.id"
-            :title="cliente.razon_social"
-            :subtitle="cliente.cuit"
-            :status="cliente.activo ? 'active' : 'inactive'"
-            :selected="selectedId === cliente.id"
-            @click="selectCliente(cliente)"
-            @select="selectCliente(cliente)"
-            @dblclick="openCanvas(cliente)"
-            @contextmenu.prevent="handleClientContextMenu($event, cliente)"
+            class="relative w-full min-h-[140px]"
           >
-            <template #icon>
-                <i class="fas fa-user"></i>
-            </template>
-          </FichaCard>
+            <FichaCard
+                class="w-full"
+                :title="cliente.razon_social"
+                :subtitle="cliente.cuit"
+                :status="cliente.activo ? 'active' : 'inactive'"
+                :selected="selectedId === cliente.id"
+                @click="selectCliente(cliente)"
+                @select="selectCliente(cliente)"
+                @dblclick="openCanvas(cliente)"
+                @contextmenu.prevent="handleClientContextMenu($event, cliente)"
+            >
+                <template #icon>
+                    <i class="fas fa-user"></i>
+                </template>
+            </FichaCard>
+          </div>
         </div>
 
         <!-- List View -->

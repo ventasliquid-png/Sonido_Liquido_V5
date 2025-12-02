@@ -3,7 +3,7 @@
     class="ficha-card group relative flex flex-col rounded-xl border border-white/10 bg-white/10 p-4 transition-all duration-300 hover:border-cyan-400/50 hover:bg-white/20 hover:shadow-lg hover:shadow-cyan-500/20 cursor-pointer"
     :class="[
         { 'ring-2 ring-cyan-400 bg-white/20': selected },
-        isExpanded ? 'absolute z-50 scale-110 bg-[#0f344e] shadow-2xl shadow-black/50 h-auto min-h-[160px]' : 'overflow-hidden h-[140px]'
+        isExpanded ? 'absolute top-0 left-0 w-full z-50 scale-110 bg-[#0f344e] shadow-2xl shadow-black/50 h-auto min-h-[160px]' : 'overflow-hidden h-[140px]'
     ]"
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"

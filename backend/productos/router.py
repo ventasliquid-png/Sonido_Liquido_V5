@@ -1,0 +1,94 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session, joinedload
+from typing import List
+from backend.core.database import get_db
+from backend.productos import models, schemas
+
+router = APIRouter(
+    prefix="/productos",
+    tags=["Productos"]
+)
+
+# --- RUBROS ---
+
+@router.get("/rubros", response_model=List[schemas.RubroRead])
+def read_rubros(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    # Para obtener el árbol, idealmente filtraríamos solo los raíces (padre_id=None)
+    # y dejaríamos que la recursividad cargue los hijos.
+    # Pero para un listado plano o select, a veces se necesitan todos.
+    # Aquí devolveremos todos los raíces con sus hijos anidados.
+    rubros = db.query(models.Rubro).filter(models.Rubro.padre_id == None).offset(skip).limit(limit).all()
+    return rubros
+
+@router.post("/rubros", response_model=schemas.RubroRead)
+def create_rubro(rubro: schemas.RubroCreate, db: Session = Depends(get_db)):
+    db_rubro = models.Rubro(**rubro.dict())
+    db.add(db_rubro)
+    db.commit()
+    db.refresh(db_rubro)
+    return db_rubro
+
+# --- PRODUCTOS ---
+
+def calculate_prices(producto: models.Producto):
+    """Helper para calcular precios basados en costos."""
+    if not producto.costos:
+        return producto
+    
+    costo = producto.costos.costo_reposicion
+    margen = producto.costos.margen_mayorista
+    iva = producto.costos.iva_alicuota
+    
+    # Cálculos Simples (Ejemplo)
+    # Precio Mayorista = Costo + Margen
+    precio_neto = costo * (1 + margen / 100)
+    precio_final = precio_neto * (1 + iva / 100)
+    
+    # Asignamos atributos dinámicos al objeto (Pydantic los leerá)
+    producto.precio_mayorista = precio_final # Asumiendo que el precio mayorista es el final con IVA? O sin IVA?
+    # Usualmente Mayorista es con IVA.
+    
+    # Distri y Minorista (Placeholders por ahora)
+    producto.precio_distribuidor = precio_final * 1.10 # +10%
+    producto.precio_minorista = precio_final * 1.40 # +40%
+    
+    return producto
+
+@router.get("/", response_model=List[schemas.ProductoRead])
+def read_productos(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    productos = db.query(models.Producto).options(joinedload(models.Producto.costos), joinedload(models.Producto.rubro)).offset(skip).limit(limit).all()
+    
+    # Calcular precios para cada producto
+    for p in productos:
+        calculate_prices(p)
+        
+    return productos
+
+@router.post("/", response_model=schemas.ProductoRead)
+def create_producto(producto: schemas.ProductoCreate, db: Session = Depends(get_db)):
+    # 1. Crear Producto
+    producto_data = producto.dict(exclude={'costos'})
+    db_producto = models.Producto(**producto_data)
+    db.add(db_producto)
+    db.commit()
+    db.refresh(db_producto)
+    
+    # 2. Crear Costos
+    costos_data = producto.costos.dict()
+    db_costos = models.ProductoCosto(**costos_data, producto_id=db_producto.id)
+    db.add(db_costos)
+    db.commit()
+    
+    # Recargar con relaciones
+    db.refresh(db_producto)
+    # Forzar carga de costos si no se hizo
+    # db_producto.costos 
+    
+    return calculate_prices(db_producto)
+
+@router.get("/{producto_id}", response_model=schemas.ProductoRead)
+def read_producto(producto_id: int, db: Session = Depends(get_db)):
+    producto = db.query(models.Producto).options(joinedload(models.Producto.costos), joinedload(models.Producto.rubro)).filter(models.Producto.id == producto_id).first()
+    if producto is None:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    return calculate_prices(producto)

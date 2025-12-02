@@ -194,6 +194,13 @@ Si se clona el repo en una nueva máquina:
 ### 3. Acciones de Listado
 *   **Baja / Eliminación:** Todos los listados maestros deben incluir una opción explícita para "Dar de Baja" o "Eliminar" (generalmente Soft Delete), accesible directamente desde la fila del registro (icono 🗑️).
 
+### 4. Efecto Lupa (Card Zoom)
+*   **Estrategia de Contenedor (Wrapper Strategy):** Para implementar el efecto de zoom en tarjetas (hover) sin romper el layout ni causar parpadeos, se debe seguir estrictamente este patrón:
+    1.  **Wrapper Relativo:** La tarjeta debe estar envuelta en un `div` con `position: relative` y una altura mínima (`min-height`) definida. Este wrapper es el que ocupa el espacio en la grilla.
+    2.  **Tarjeta Absoluta:** Al hacer hover, la tarjeta interna cambia a `position: absolute`, `z-index: 50`, y `scale: 1.1` (o similar).
+    3.  **Anclaje:** La tarjeta absoluta debe tener `top: 0`, `left: 0`, y **`width: 100%`**. Esto asegura que se expanda visualmente pero mantenga el ancho exacto de su columna original (el wrapper), evitando que se expanda a todo el ancho de la pantalla o que se encoja al contenido (causando flicker).
+    *   *Ejemplo:* Ver implementación en `HaweView.vue` (Clientes), `TransportesView.vue` o `ContactosView.vue`.
+
 ---
 
 ## Protocolo de Continuidad (Caja Negra)
@@ -397,4 +404,50 @@ Si se clona el repo en una nueva máquina:
     *   *Pendiente de revisión:* Evaluar si el término sigue siendo ambiguo.
 *   **Corrección de Bugs:**
     *   **Ghost Screen:** Se solucionó el parpadeo del layout antiguo al recargar la página (`Ctrl+F5`) implementando un estado de carga (`ready`) en `App.vue` que espera a que el router esté listo.
-    *   **Persistencia de Menú:** Se implementó `useUIStore` para recordar el estado (abierto/cerrado) de las categorías del sidebar entre navegaciones.
+### [2025-12-02] Implementación Backend Productos (V5)
+*   **Estructura de Base de Datos:**
+    *   `Rubros`: Jerarquía recursiva (padre-hijo).
+    *   `Productos`: Maestro con SKU (secuencia 10000+), Código Visual, Unidad de Medida, Kit.
+    *   `ProductosCostos`: Tabla satélite para precios y costos (1-to-1).
+*   **API:**
+    *   Router `/productos` implementado con CRUD básico.
+    *   Schemas con cálculo de precios (Mayorista, Distribuidor, Minorista) en lectura.
+*   **Infraestructura:**
+    *   Script `init_productos_db.py` para creación de tablas.
+    *   Integración en `main.py`.
+
+### [2025-12-02] Implementación Frontend Productos (Fase 2A - Lógica)
+*   **Servicios API:**
+    *   `rubrosApi.js`: CRUD estándar.
+    *   `productosApi.js`: CRUD con filtros y toggle de estado.
+*   **State Management (Pinia):**
+    *   `stores/productos.js`: Store centralizado con manejo de filtros, carga de datos y notificaciones (`useNotificationStore`).
+    *   Integración de lógica de negocio para creación, edición y baja lógica.
+
+### [2025-12-02] Implementación UI Productos (Fase 2B - Operación Tinto Profundo)
+*   **Identidad Visual:**
+    *   Fondo `bg-[#2e0a13]` (Bordó oscuro) para diferenciar del módulo Clientes.
+    *   Títulos y acentos en `text-rose-400`.
+*   **Componentes:**
+    *   `ProductosView.vue`: Layout tríptico (Sidebar | Lista | Inspector).
+    *   `ProductoCard.vue`: Tarjeta con SKU, Código Visual (Badge) e indicador de Kit.
+    *   `ProductoInspector.vue`: Panel de edición con Pestañas (General / Costos) y Simulador de Precios en tiempo real.
+*   **UX:**
+    *   Buscador global (F3).
+    *   Filtros por Rubro (Select jerárquico) y Estado.
+    *   Atajo F10 para guardar.
+
+### [2025-12-02] Infraestructura Satelital (Proveedores, Depósitos, Maestros)
+*   **Nuevo Módulo Proveedores:**
+    *   Modelo `Proveedor` (Clon de Cliente).
+    *   API CRUD operativa (`/proveedores`).
+*   **Logística:**
+    *   Nuevo modelo `Deposito` (Físico, Virtual, Móvil).
+    *   Seed inicial: Depósito "CENTRAL".
+*   **Maestros:**
+    *   Nuevas tablas `Unidades` (UN, L, KG, etc.) y `TasasIVA` (21%, 10.5%, etc.).
+*   **Refactor Productos:**
+    *   Integración de lógica industrial: `proveedor_habitual`, `tasa_iva`, `unidad_stock`, `unidad_compra`, `factor_compra`.
+    *   Corrección de relación recursiva en `Rubros` (uso correcto de `backref`).
+*   **Infraestructura:**
+    *   Script `init_satellites_db.py` ejecutado exitosamente.

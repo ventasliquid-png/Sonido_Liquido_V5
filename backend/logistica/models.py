@@ -1,10 +1,10 @@
 # Archivo: backend/logistica/models.py
 # Módulo Logística (V5) - Hub & Spoke
 import uuid
-from sqlalchemy import Column, String, Boolean, Enum, ForeignKey
+from sqlalchemy import Column, String, Boolean, Enum, ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from core.database import Base
+from backend.core.database import Base
 
 class EmpresaTransporte(Base):
     """
@@ -53,3 +53,17 @@ class NodoTransporte(Base):
 
     def __repr__(self):
         return f"<NodoTransporte(nombre='{self.nombre_nodo}')>"
+
+class Deposito(Base):
+    """
+    Tabla 'depositos' (Almacenes Internos).
+    """
+    __tablename__ = "depositos"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String, nullable=False, unique=True)
+    tipo = Column(Enum('FISICO', 'VIRTUAL', 'CONSIGNACION', 'MOVIL', name='tipo_deposito_enum'), default='FISICO')
+    activo = Column(Boolean, default=True)
+
+    def __repr__(self):
+        return f"<Deposito(nombre='{self.nombre}')>"
