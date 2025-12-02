@@ -18,7 +18,7 @@
                         {{ localPersona.activo ? 'ACTIVO' : 'INACTIVO' }}
                     </span>
                     <button 
-                        @click="localPersona.activo = !localPersona.activo"
+                        @click="toggleActive"
                         class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none"
                         :class="localPersona.activo ? 'bg-green-500/50' : 'bg-red-500/50'"
                     >
@@ -37,23 +37,18 @@
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-bold uppercase text-white/40 mb-1">Email</label>
-                    <input v-model="localPersona.email" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-pink-400 outline-none transition-colors" placeholder="juan@example.com" />
+                    <label class="block text-xs font-bold uppercase text-white/40 mb-1">Email Personal</label>
+                    <input v-model="localPersona.email_personal" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-pink-400 outline-none transition-colors" placeholder="juan@example.com" />
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase text-white/40 mb-1">Teléfono</label>
-                    <input v-model="localPersona.telefono" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-pink-400 outline-none transition-colors" placeholder="+54 9 11..." />
+                    <label class="block text-xs font-bold uppercase text-white/40 mb-1">Celular Personal</label>
+                    <input v-model="localPersona.celular_personal" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-pink-400 outline-none transition-colors" placeholder="+54 9 11..." />
                 </div>
             </div>
 
             <div>
-                <label class="block text-xs font-bold uppercase text-white/40 mb-1">Puesto / Cargo</label>
-                <input v-model="localPersona.puesto" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-pink-400 outline-none transition-colors" placeholder="Ej: Gerente de Ventas" />
-            </div>
-
-            <div>
-                <label class="block text-xs font-bold uppercase text-white/40 mb-1">Notas</label>
-                <textarea v-model="localPersona.notas" rows="3" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-pink-400 outline-none transition-colors resize-none" placeholder="Observaciones..."></textarea>
+                <label class="block text-xs font-bold uppercase text-white/40 mb-1">Observaciones</label>
+                <textarea v-model="localPersona.observaciones" rows="3" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-pink-400 outline-none transition-colors resize-none" placeholder="Gustos, cumpleaños, etc..."></textarea>
             </div>
         </div>
 
@@ -69,6 +64,7 @@
     </div>
 </template>
 
+<script setup>
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useAgendaStore } from '../../../stores/agenda'
 import { useNotificationStore } from '../../../stores/notification'
@@ -89,10 +85,9 @@ const saving = ref(false)
 const localPersona = ref({
     id: null,
     nombre_completo: '',
-    email: '',
-    telefono: '',
-    puesto: '',
-    notas: '',
+    email_personal: '',
+    celular_personal: '',
+    observaciones: '',
     activo: true,
     vinculos: []
 })
@@ -107,15 +102,24 @@ watch(() => props.persona, (newVal) => {
         localPersona.value = {
             id: null,
             nombre_completo: '',
-            email: '',
-            telefono: '',
-            puesto: '',
-            notas: '',
+            email_personal: '',
+            celular_personal: '',
+            observaciones: '',
             activo: true,
             vinculos: []
         }
     }
 }, { immediate: true })
+
+const toggleActive = () => {
+    if (localPersona.value.activo) {
+        // If active, use the remove routine (Tachito) which confirms, saves, and closes
+        remove()
+    } else {
+        // If inactive, just toggle local state (user must save)
+        localPersona.value.activo = true
+    }
+}
 
 const save = async () => {
     if (!localPersona.value.nombre_completo) {

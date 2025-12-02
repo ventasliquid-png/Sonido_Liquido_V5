@@ -47,8 +47,13 @@ export const useAgendaStore = defineStore('agenda', {
 
         async updatePersona(id, data) {
             try {
-                await agendaService.updatePersona(id, data);
-                await this.fetchPersonas();
+                const response = await agendaService.updatePersona(id, data);
+                // Update local state preserving the object reference for better reactivity
+                const index = this.personas.findIndex(p => p.id === id);
+                if (index !== -1) {
+                    Object.assign(this.personas[index], response.data);
+                }
+                return response.data;
             } catch (error) {
                 throw error;
             }

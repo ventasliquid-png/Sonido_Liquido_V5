@@ -23,7 +23,7 @@ def search_personas(q: str = Query(..., min_length=3), db: Session = Depends(get
     return service.AgendaService.search_personas(db, q)
 
 @router.post("/personas", response_model=schemas.PersonaResponse, status_code=status.HTTP_201_CREATED)
-def create_persona(persona: schemas.PersonaCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+def create_persona(persona: schemas.PersonaCreate, db: Session = Depends(get_db)):
     return service.AgendaService.create_persona(db, persona)
 
 @router.get("/personas/{persona_id}", response_model=schemas.PersonaResponse)
@@ -34,11 +34,25 @@ def read_persona(persona_id: UUID, db: Session = Depends(get_db)):
     return db_persona
 
 @router.put("/personas/{persona_id}", response_model=schemas.PersonaResponse)
-def update_persona(persona_id: UUID, persona: schemas.PersonaUpdate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+def update_persona(persona_id: UUID, persona: schemas.PersonaUpdate, db: Session = Depends(get_db)):
     db_persona = service.AgendaService.update_persona(db, persona_id, persona)
     if db_persona is None:
         raise HTTPException(status_code=404, detail="Persona no encontrada")
     return db_persona
+
+@router.delete("/personas/{persona_id}/hard", response_model=schemas.PersonaResponse)
+def hard_delete_persona(persona_id: UUID, db: Session = Depends(get_db)):
+    from sqlalchemy.exc import IntegrityError
+    try:
+        db_persona = service.AgendaService.hard_delete_persona(db, persona_id)
+        if db_persona is None:
+            raise HTTPException(status_code=404, detail="Persona no encontrada")
+        return db_persona
+    except IntegrityError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, 
+            detail="No se puede eliminar la persona porque tiene registros asociados."
+        )
 
 # --- Vinculos ---
 @router.post("/vinculos", response_model=schemas.VinculoComercialResponse, status_code=status.HTTP_201_CREATED)

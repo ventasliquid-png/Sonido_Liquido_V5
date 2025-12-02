@@ -202,7 +202,7 @@
                         {{ selectedTransporte.activo ? 'ACTIVO' : 'INACTIVO' }}
                     </span>
                     <button 
-                        @click="selectedTransporte.activo = !selectedTransporte.activo"
+                        @click="toggleSelectedTransporteActive"
                         class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none"
                         :class="selectedTransporte.activo ? 'bg-green-500/50' : 'bg-red-500/50'"
                     >
@@ -385,12 +385,30 @@ const deleteTransporteItem = async (t) => {
 }
 
 const toggleTransporteStatus = async (t) => {
-    try {
-        const newStatus = !t.activo
-        await transporteStore.updateEmpresa(t.id, { ...t, activo: newStatus })
-        notificationStore.add(`Transporte ${newStatus ? 'activado' : 'desactivado'}`, 'success')
-    } catch (e) {
-        notificationStore.add('Error al cambiar estado', 'error')
+    console.log('toggleTransporteStatus clicked', t.nombre, t.activo)
+    if (t.activo) {
+        // If active, use the delete routine (Tachito)
+        console.log('Calling deleteTransporteItem')
+        await deleteTransporteItem(t)
+    } else {
+        // If inactive, activate directly
+        console.log('Activating directly')
+        try {
+            await transporteStore.updateEmpresa(t.id, { ...t, activo: true })
+            notificationStore.add('Transporte activado', 'success')
+        } catch (e) {
+            notificationStore.add('Error al activar', 'error')
+        }
+    }
+}
+
+const toggleSelectedTransporteActive = () => {
+    if (selectedTransporte.value.activo) {
+        // If active, use the delete routine (Tachito) which confirms and closes
+        deleteTransporte()
+    } else {
+        // If inactive, just toggle local state (user must save)
+        selectedTransporte.value.activo = true
     }
 }
 

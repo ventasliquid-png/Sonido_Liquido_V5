@@ -61,6 +61,28 @@
           </div>
 
           <div class="h-6 w-px bg-white/10"></div>
+          <!-- View Toggle -->
+          <div class="flex bg-white/5 rounded-lg p-1 border border-white/10">
+            <button 
+                @click="viewMode = 'grid'"
+                class="p-1.5 rounded-md transition-all"
+                :class="viewMode === 'grid' ? 'bg-white/10 text-cyan-400' : 'text-white/30 hover:text-white'"
+                title="Vista Cuadrícula"
+            >
+                <i class="fas fa-border-all"></i>
+            </button>
+            <button 
+                @click="viewMode = 'list'"
+                class="p-1.5 rounded-md transition-all"
+                :class="viewMode === 'list' ? 'bg-white/10 text-cyan-400' : 'text-white/30 hover:text-white'"
+                title="Vista Lista"
+            >
+                <i class="fas fa-list"></i>
+            </button>
+          </div>
+
+          <div class="h-6 w-px bg-white/10"></div>
+
           <button 
             @click="router.push({ name: 'HaweClientCanvas', params: { id: 'new' } })"
             class="flex items-center gap-2 rounded-lg bg-cyan-600 px-3 py-1.5 text-sm font-bold text-white shadow-lg shadow-cyan-500/20 transition-all hover:bg-cyan-500 hover:shadow-cyan-500/40"
@@ -103,13 +125,13 @@
             </div>
           </div>
           
-          <button class="text-white/70 hover:text-white"><i class="fas fa-list"></i></button>
         </div>
       </header>
 
       <!-- Content Grid -->
       <div class="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-track-gray-900 scrollbar-thumb-gray-700">
-        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+        <!-- Grid View -->
+        <div v-if="viewMode === 'grid'" class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
           <FichaCard
             v-for="cliente in filteredClientes"
             :key="cliente.id"
@@ -126,6 +148,40 @@
                 <i class="fas fa-user"></i>
             </template>
           </FichaCard>
+        </div>
+
+        <!-- List View -->
+        <div v-else class="flex flex-col gap-2">
+            <div 
+                v-for="cliente in filteredClientes" 
+                :key="cliente.id"
+                @click="selectCliente(cliente)"
+                @dblclick="openCanvas(cliente)"
+                @contextmenu.prevent="handleClientContextMenu($event, cliente)"
+                class="group flex items-center justify-between p-3 rounded-lg border border-white/5 bg-white/5 hover:bg-white/10 cursor-pointer transition-colors"
+                :class="{ 'ring-1 ring-cyan-500 bg-white/10': selectedId === cliente.id }"
+            >
+                <div class="flex items-center gap-4 flex-1 min-w-0">
+                    <div class="h-8 w-8 rounded bg-gradient-to-br from-cyan-600 to-blue-700 flex items-center justify-center text-white shrink-0 text-xs">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="min-w-0 flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <h3 class="font-bold text-white truncate">{{ cliente.razon_social }}</h3>
+                        <p class="text-sm text-white/50 truncate hidden sm:block font-mono">{{ cliente.cuit }}</p>
+                        <p class="text-sm text-white/50 truncate hidden sm:block">{{ getSegmentoName(cliente.segmento_id) || 'Sin Segmento' }}</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-4 ml-4">
+                    <div class="flex items-center gap-2 bg-black/20 px-2 py-1 rounded-full border border-white/5">
+                        <div class="h-2 w-2 rounded-full" :class="cliente.activo ? 'bg-green-500' : 'bg-red-500'"></div>
+                        <span class="text-[10px] uppercase font-bold text-white/50 hidden sm:inline">{{ cliente.activo ? 'Activo' : 'Inactivo' }}</span>
+                    </div>
+                    <button @click.stop="openCanvas(cliente)" class="text-white/30 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
         </div>
       </div>
     </main>
@@ -196,6 +252,7 @@ const selectedSegmento = ref(null)
 const searchQuery = ref('')
 const filterStatus = ref('active') // Default to active
 const sortBy = ref('usage') // Default to usage (Popularity)
+const viewMode = ref('grid')
 const showSortMenu = ref(false)
 const showCommandPalette = ref(false)
 const showTransporteManager = ref(false)

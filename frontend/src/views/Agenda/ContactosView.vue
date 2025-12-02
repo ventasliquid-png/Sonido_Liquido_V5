@@ -40,6 +40,7 @@
                 @click="filterStatus = 'all'"
                 class="px-3 py-1 text-xs font-medium rounded-md transition-all"
                 :class="filterStatus === 'all' ? 'bg-pink-600 text-white shadow-sm' : 'text-white/50 hover:text-white'"
+                title="Todos"
             >
                 Todos
             </button>
@@ -47,6 +48,7 @@
                 @click="filterStatus = 'active'"
                 class="px-3 py-1 text-xs font-medium rounded-md transition-all"
                 :class="filterStatus === 'active' ? 'bg-green-600 text-white shadow-sm' : 'text-white/50 hover:text-white'"
+                title="Activos"
             >
                 Activos
             </button>
@@ -54,12 +56,65 @@
                 @click="filterStatus = 'inactive'"
                 class="px-3 py-1 text-xs font-medium rounded-md transition-all"
                 :class="filterStatus === 'inactive' ? 'bg-red-600 text-white shadow-sm' : 'text-white/50 hover:text-white'"
+                title="Inactivos"
             >
                 Inactivos
             </button>
           </div>
 
           <div class="h-6 w-px bg-white/10"></div>
+
+          <!-- Sort Menu -->
+          <div class="relative">
+            <button 
+                @click="showSortMenu = !showSortMenu" 
+                class="text-white/70 hover:text-white transition-colors flex items-center gap-2" 
+                title="Ordenar"
+            >
+                <i class="fas fa-sort-amount-down"></i>
+                <span class="text-xs font-mono text-pink-400" v-if="sortBy === 'usage'">POPULARIDAD</span>
+                <span class="text-xs font-mono text-pink-400" v-else-if="sortBy === 'alpha_asc'">A-Z</span>
+                <span class="text-xs font-mono text-pink-400" v-else-if="sortBy === 'alpha_desc'">Z-A</span>
+                <span class="text-xs font-mono text-pink-400" v-else-if="sortBy === 'id_asc'">ANTIGUEDAD</span>
+                <span class="text-xs font-mono text-pink-400" v-else-if="sortBy === 'id_desc'">RECIENTES</span>
+            </button>
+            
+            <!-- Dropdown -->
+            <div v-if="showSortMenu" class="absolute right-0 mt-2 w-48 bg-[#0a253a] border border-white/10 rounded-lg shadow-xl z-50">
+                <!-- Click outside overlay -->
+                <div class="fixed inset-0 z-40" @click="showSortMenu = false"></div>
+                
+                <div class="relative z-50 py-1">
+                    <button @click="sortBy = 'usage'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10" :class="{ 'text-pink-400 font-bold': sortBy === 'usage' }">Más Usados (Popularidad)</button>
+                    <div class="border-t border-white/10 my-1"></div>
+                    <button @click="sortBy = 'alpha_asc'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10" :class="{ 'text-pink-400 font-bold': sortBy === 'alpha_asc' }">A-Z Alfabético</button>
+                    <button @click="sortBy = 'alpha_desc'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10" :class="{ 'text-pink-400 font-bold': sortBy === 'alpha_desc' }">Z-A Alfabético</button>
+                    <div class="border-t border-white/10 my-1"></div>
+                    <button @click="sortBy = 'id_asc'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10" :class="{ 'text-pink-400 font-bold': sortBy === 'id_asc' }">Más Antiguos</button>
+                    <button @click="sortBy = 'id_desc'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10" :class="{ 'text-pink-400 font-bold': sortBy === 'id_desc' }">Más Recientes</button>
+                </div>
+            </div>
+          </div>
+
+          <!-- View Toggle -->
+          <div class="flex bg-white/5 rounded-lg p-1 border border-white/10">
+            <button 
+                @click="viewMode = 'grid'"
+                class="p-1.5 rounded-md transition-all"
+                :class="viewMode === 'grid' ? 'bg-white/10 text-pink-400' : 'text-white/30 hover:text-white'"
+                title="Vista Cuadrícula"
+            >
+                <i class="fas fa-border-all"></i>
+            </button>
+            <button 
+                @click="viewMode = 'list'"
+                class="p-1.5 rounded-md transition-all"
+                :class="viewMode === 'list' ? 'bg-white/10 text-pink-400' : 'text-white/30 hover:text-white'"
+                title="Vista Lista"
+            >
+                <i class="fas fa-list"></i>
+            </button>
+          </div>
 
           <button 
             @click="openNewContacto"
@@ -77,6 +132,80 @@
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
         </div>
         
+        <!-- Grid View (Cards) -->
+        <div v-else-if="viewMode === 'grid'" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 relative">
+            <div 
+                v-for="persona in filteredPersonas" 
+                :key="persona.id"
+                @click="editPersona(persona)"
+                @mouseenter="handleMouseEnter(persona.id)"
+                @mouseleave="handleMouseLeave"
+                class="group flex flex-col justify-between rounded-xl border border-white/5 p-4 transition-all duration-300 cursor-pointer"
+                :class="[
+                    { 'ring-2 ring-pink-500 bg-white/10': selectedPersona?.id === persona.id },
+                    hoveredCardId === persona.id 
+                        ? 'absolute z-50 scale-110 bg-gray-900 shadow-2xl shadow-black/50 h-auto min-h-[160px] border-pink-500' 
+                        : 'relative bg-white/5 hover:bg-white/10 hover:shadow-xl hover:shadow-pink-900/20'
+                ]"
+                :style="hoveredCardId === persona.id ? { width: '100%', maxWidth: '100%' } : {}"
+            >
+                <div class="flex items-start justify-between mb-4">
+                    <div class="h-12 w-12 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center text-white shrink-0 font-bold text-lg shadow-lg">
+                        {{ getInitials(persona.nombre_completo) }}
+                    </div>
+                    <!-- Inline Toggle -->
+                    <div 
+                        class="flex items-center gap-2 bg-black/20 px-2 py-1 rounded-full border border-white/5 cursor-pointer hover:bg-white/10 transition-colors"
+                        @click.stop="togglePersonaStatus(persona)"
+                        title="Click para cambiar estado"
+                    >
+                        <div 
+                            class="relative inline-flex h-4 w-7 items-center rounded-full transition-colors shrink-0"
+                            :class="persona.activo ? 'bg-green-500/50' : 'bg-red-500/50'"
+                        >
+                            <span 
+                                class="inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform shadow-sm"
+                                :class="persona.activo ? 'translate-x-3.5' : 'translate-x-1'"
+                            />
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <h3 class="font-bold text-white text-lg leading-tight group-hover:text-pink-300 transition-colors" :class="{ 'truncate': hoveredCardId !== persona.id }">{{ persona.nombre_completo }}</h3>
+                    <p class="text-sm text-white/50" :class="{ 'truncate': hoveredCardId !== persona.id }">{{ persona.puesto || 'Sin puesto definido' }}</p>
+                </div>
+
+                <div class="space-y-1 mb-4">
+                    <div class="flex items-center gap-2 text-xs text-white/70 truncate" v-if="persona.email_personal">
+                        <i class="fas fa-envelope text-white/30 w-4"></i>
+                        {{ persona.email_personal }}
+                    </div>
+                    <div class="flex items-center gap-2 text-xs text-white/70 truncate" v-if="persona.celular_personal">
+                        <i class="fas fa-phone text-white/30 w-4"></i>
+                        {{ persona.celular_personal }}
+                    </div>
+                    <!-- Extra details on hover -->
+                    <div v-if="hoveredCardId === persona.id" class="pt-2 mt-2 border-t border-white/10 text-xs text-white/60 animate-fade-in">
+                        <p v-if="persona.observaciones" class="italic mb-2">"{{ persona.observaciones }}"</p>
+                        <p class="text-pink-400">Click para editar</p>
+                    </div>
+                </div>
+
+                <div class="mt-auto pt-4 border-t border-white/5 flex justify-between items-center">
+                    <div class="flex items-center gap-1 text-xs text-white/40">
+                        <i class="fas fa-link"></i>
+                        <span>{{ persona.vinculos?.length || 0 }}</span>
+                    </div>
+                    <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button @click.stop="editPersona(persona)" class="text-white/50 hover:text-white" title="Editar"><i class="fas fa-pencil-alt"></i></button>
+                        <button v-if="persona.activo" @click.stop="deletePersona(persona)" class="text-red-400/50 hover:text-red-400" title="Dar de baja"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- List View -->
         <div v-else class="grid grid-cols-1 gap-4">
              <div 
                 v-for="persona in filteredPersonas" 
@@ -94,13 +223,13 @@
                             <p class="text-xs text-white/40 truncate">{{ persona.puesto || 'Sin puesto definido' }}</p>
                         </div>
                         <div class="flex flex-col justify-center">
-                            <div class="flex items-center gap-2 text-sm text-white/70 truncate" v-if="persona.email">
+                            <div class="flex items-center gap-2 text-sm text-white/70 truncate" v-if="persona.email_personal">
                                 <i class="fas fa-envelope text-white/30 w-4"></i>
-                                {{ persona.email }}
+                                {{ persona.email_personal }}
                             </div>
-                            <div class="flex items-center gap-2 text-sm text-white/70 truncate" v-if="persona.telefono">
+                            <div class="flex items-center gap-2 text-sm text-white/70 truncate" v-if="persona.celular_personal">
                                 <i class="fas fa-phone text-white/30 w-4"></i>
-                                {{ persona.telefono }}
+                                {{ persona.celular_personal }}
                             </div>
                         </div>
                          <div class="flex items-center gap-2 text-sm text-white/50">
@@ -200,18 +329,53 @@ const handleSearch = debounce(async () => {
     }
 }, 300)
 
+const sortBy = ref('alpha_asc')
+const viewMode = ref('list')
+const showSortMenu = ref(false)
+
+// Hover Zoom Logic
+const hoveredCardId = ref(null)
+let hoverTimeout = null
+
+const handleMouseEnter = (id) => {
+    hoverTimeout = setTimeout(() => {
+        hoveredCardId.value = id
+    }, 1000)
+}
+
+const handleMouseLeave = () => {
+    if (hoverTimeout) clearTimeout(hoverTimeout)
+    hoveredCardId.value = null
+}
+
 const filteredPersonas = computed(() => {
     let result = personas.value
     
-    // Client-side filtering for status if needed, 
-    // though the API supports it, search might return mixed status
+    // Client-side filtering for status
     if (filterStatus.value === 'active') {
         result = result.filter(p => p.activo)
     } else if (filterStatus.value === 'inactive') {
         result = result.filter(p => !p.activo)
     }
 
-    return result
+    // Sorting
+    return result.sort((a, b) => {
+        switch (sortBy.value) {
+            case 'alpha_asc':
+                return a.nombre_completo.localeCompare(b.nombre_completo)
+            case 'alpha_desc':
+                return b.nombre_completo.localeCompare(a.nombre_completo)
+            case 'id_asc':
+                return String(a.id).localeCompare(String(b.id))
+            case 'id_desc':
+                return String(b.id).localeCompare(String(a.id))
+            case 'usage':
+                // Fallback to name if usage not available
+                return (b.contador_uso || 0) - (a.contador_uso || 0)
+            default:
+                return 0
+        }
+    })
 })
 
 const getInitials = (name) => {
@@ -235,21 +399,27 @@ const closeInspector = () => {
 }
 
 const handleContactoSaved = async () => {
-    await fetchData()
+    // await fetchData() // Removed to rely on store local update
     notificationStore.add('Contacto guardado correctamente', 'success')
     closeInspector()
 }
 
 const togglePersonaStatus = async (persona) => {
-    try {
-        const newStatus = !persona.activo
-        // We need to update the persona. The endpoint expects a partial update.
-        await agendaStore.updatePersona(persona.id, { activo: newStatus })
-        await fetchData() // Refresh list
-        notificationStore.add(`Contacto ${newStatus ? 'activado' : 'desactivado'}`, 'success')
-    } catch (e) {
-        console.error(e)
-        notificationStore.add('Error al cambiar estado', 'error')
+    if (persona.activo) {
+        // If active, use the delete routine (Tachito) which handles confirmation and deactivation
+        await deletePersona(persona)
+    } else {
+        // If inactive, activate directly
+        try {
+            // Optimistic update for activation
+            persona.activo = true
+            await agendaStore.updatePersona(persona.id, { activo: true })
+            notificationStore.add('Contacto activado', 'success')
+        } catch (e) {
+            console.error(e)
+            persona.activo = false // Revert
+            notificationStore.add('Error al activar', 'error')
+        }
     }
 }
 
@@ -257,7 +427,7 @@ const deletePersona = async (persona) => {
     if (!confirm(`¿Seguro que desea dar de baja a ${persona.nombre_completo}?`)) return
     try {
         await agendaStore.updatePersona(persona.id, { activo: false })
-        await fetchData()
+        // await fetchData() // Removed to rely on store local update
         notificationStore.add('Contacto dado de baja', 'success')
     } catch (e) {
         console.error(e)

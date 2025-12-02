@@ -5,12 +5,9 @@
       <!-- Header -->
       <div class="h-14 flex items-center justify-between px-6 border-b border-white/10 shrink-0">
         <div class="flex items-center gap-4">
-            <button @click="$router.back()" class="flex items-center gap-2 text-white/50 hover:text-white transition-colors group" title="Volver a la pantalla anterior">
-                <i class="fa-solid fa-arrow-left group-hover:-translate-x-1 transition-transform"></i>
-                <span class="font-outfit text-sm font-bold uppercase tracking-wider">Volver</span>
-            </button>
+
             
-            <div class="h-4 w-px bg-white/10"></div>
+
 
             <button @click="goToList" class="flex items-center gap-2 text-white hover:text-cyan-400 transition-colors group" title="Ir al Listado de Clientes">
                 <i class="fa-solid fa-list text-cyan-400"></i>
@@ -490,7 +487,7 @@
 
     <ContactoForm 
         :show="showContactoForm"
-        :clienteId="form.id"
+        :clienteId="form.id || undefined"
         :contacto="selectedContacto"
         @close="showContactoForm = false"
         @saved="handleContactoSaved"

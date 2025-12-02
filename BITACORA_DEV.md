@@ -372,29 +372,6 @@ Si se clona el repo en una nueva máquina:
             *   **Frontend:** La lista de domicilios ahora permite filtrar por estado. Los domicilios dados de baja se muestran en gris en la lista de "Inactivos" y se ocultan del panel principal del cliente.
     *   **Mejoras en DomicilioForm:**
         *   **Toggle Activo:** Se agregó un interruptor para activar/desactivar domicilios desde la edición.
-        *   **Botón Guardar:** Se añadió un botón explícito "GUARDAR CAMBIOS" al final del formulario.
-        *   **Fix F10:** Se mejoró la captura de la tecla F10 para evitar conflictos y asegurar el guardado.
-    *   **Reactivación de Clientes:**
-        *   Se reemplazó la etiqueta estática de estado en la cabecera de la ficha del cliente por un **Interruptor (Switch)** funcional.
-        *   Esto permite reactivar clientes dados de baja (o desactivar activos) directamente desde la ficha.
-    *   **Corrección de Persistencia de Domicilios:**
-        *   Se modificó `ClientCanvas.vue` para que, al editar un cliente existente, las altas y modificaciones de domicilios se guarden **inmediatamente** en el backend (usando `store.createDomicilio` / `store.updateDomicilio`).
-        *   Esto soluciona el problema de pérdida de datos, ya que el endpoint de actualización de cliente no procesaba los domicilios anidados.
-    *   **Corrección Baja de Cliente:**
-        *   Se habilitó la función `deleteCliente` en `ClientCanvas.vue` para permitir la baja lógica desde el botón inferior.
-    *   **Corrección de Error de Sintaxis:**
-        *   Se eliminó un bloque de código duplicado en `ClientCanvas.vue` que causaba un error de compilación `[vue/compiler-sfc] Unexpected token`.
-
-## Cierre de Sesión - 01/12/2025
-
-### Resumen de Logros
-Se completó una sesión intensiva de depuración y mejora de la gestión de Clientes y Domicilios.
-
-1.  **Infraestructura de Domicilios:**
-    *   Implementación completa de **Soft Delete** (Baja Lógica) para domicilios.
-    *   Refactorización de `DomicilioForm` con navegación por teclado, botón de guardado explícito y toggle de estado.
-    *   Creación de `DomicilioList` estandarizado con filtros (Todos/Activos/Inactivos) y búsqueda.
-
 2.  **Gestión de Clientes (Hawe):**
     *   **Reactivación:** Implementación de un **Switch de Estado** en la cabecera de la ficha del cliente, permitiendo reactivar clientes dados de baja de manera intuitiva.
     *   **Corrección Crítica de Datos:** Se solucionó el bug donde la reactivación de un cliente provocaba la pérdida de sus domicilios. Esto se logró desacoplando el guardado de domicilios del guardado del cliente principal, forzando la persistencia inmediata de los cambios logísticos.

@@ -60,7 +60,21 @@ class AgendaService:
         db.commit()
         db.refresh(db_persona)
         return db_persona
-
+    @staticmethod
+    def hard_delete_persona(db: Session, persona_id: UUID) -> Optional[models.Persona]:
+        """Hard delete. Raises IntegrityError if it has related records."""
+        from sqlalchemy.exc import IntegrityError
+        db_persona = AgendaService.get_persona(db, persona_id)
+        if not db_persona:
+            return None
+        
+        try:
+            db.delete(db_persona)
+            db.commit()
+            return db_persona
+        except IntegrityError as e:
+            db.rollback()
+            raise e
     # --- VinculoComercial ---
     @staticmethod
     def create_vinculo(db: Session, vinculo_in: schemas.VinculoComercialCreate) -> models.VinculoComercial:

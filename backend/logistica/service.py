@@ -56,6 +56,22 @@ class LogisticaService:
         db.refresh(db_empresa)
         return db_empresa
 
+    @staticmethod
+    def hard_delete_empresa(db: Session, empresa_id: UUID) -> Optional[models.EmpresaTransporte]:
+        """Hard delete. Raises IntegrityError if it has related records."""
+        from sqlalchemy.exc import IntegrityError
+        db_empresa = LogisticaService.get_empresa(db, empresa_id)
+        if not db_empresa:
+            return None
+        
+        try:
+            db.delete(db_empresa)
+            db.commit()
+            return db_empresa
+        except IntegrityError as e:
+            db.rollback()
+            raise e
+
     # --- NodoTransporte ---
     @staticmethod
     def create_nodo(db: Session, nodo_in: schemas.NodoTransporteCreate) -> models.NodoTransporte:
@@ -95,3 +111,19 @@ class LogisticaService:
         db.commit()
         db.refresh(db_nodo)
         return db_nodo
+
+    @staticmethod
+    def hard_delete_nodo(db: Session, nodo_id: UUID) -> Optional[models.NodoTransporte]:
+        """Hard delete. Raises IntegrityError if it has related records."""
+        from sqlalchemy.exc import IntegrityError
+        db_nodo = LogisticaService.get_nodo(db, nodo_id)
+        if not db_nodo:
+            return None
+        
+        try:
+            db.delete(db_nodo)
+            db.commit()
+            return db_nodo
+        except IntegrityError as e:
+            db.rollback()
+            raise e
