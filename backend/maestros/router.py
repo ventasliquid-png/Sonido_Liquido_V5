@@ -123,3 +123,13 @@ def update_vendedor(id: UUID, vendedor: schemas.VendedorUpdate, db: Session = De
     if db_vendedor is None:
         raise HTTPException(status_code=404, detail="Vendedor no encontrado")
     return db_vendedor
+
+# --- Tasas IVA ---
+@router.get("/tasas-iva", response_model=List[schemas.TasaIVAResponse])
+def read_tasas_iva(db: Session = Depends(get_db)):
+    return service.MaestrosService.get_tasas_iva(db)
+
+# --- Unidades ---
+@router.get("/unidades", response_model=List[schemas.UnidadResponse])
+def read_unidades(db: Session = Depends(get_db)):
+    return service.MaestrosService.get_unidades(db)

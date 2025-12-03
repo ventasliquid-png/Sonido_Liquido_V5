@@ -81,5 +81,13 @@ export default {
     },
     updateTransporte(id, data) {
         return api.put(`/logistica/empresas/${id}`, data);
+    },
+
+    // --- Industrial ---
+    getTasasIva() {
+        return api.get('/maestros/tasas-iva');
+    },
+    getUnidades() {
+        return api.get('/maestros/unidades');
     }
 };

@@ -28,6 +28,36 @@ def create_rubro(rubro: schemas.RubroCreate, db: Session = Depends(get_db)):
     db.refresh(db_rubro)
     return db_rubro
 
+@router.put("/rubros/{rubro_id}", response_model=schemas.RubroRead)
+def update_rubro(rubro_id: int, rubro: schemas.RubroUpdate, db: Session = Depends(get_db)):
+    db_rubro = db.query(models.Rubro).filter(models.Rubro.id == rubro_id).first()
+    if not db_rubro:
+        raise HTTPException(status_code=404, detail="Rubro no encontrado")
+    
+    for key, value in rubro.dict(exclude_unset=True).items():
+        setattr(db_rubro, key, value)
+    
+    db.commit()
+    db.refresh(db_rubro)
+    return db_rubro
+
+@router.delete("/rubros/{rubro_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_rubro(rubro_id: int, db: Session = Depends(get_db)):
+    db_rubro = db.query(models.Rubro).filter(models.Rubro.id == rubro_id).first()
+    if not db_rubro:
+        raise HTTPException(status_code=404, detail="Rubro no encontrado")
+    
+    # Soft delete or hard delete? Model has 'activo', let's use soft delete if possible or hard if requested.
+    # The model has 'activo = Column(Boolean, default=True)'
+    # Let's do soft delete by default or toggle active.
+    # But usually delete endpoint implies removal.
+    # Given the previous pattern in other modules, let's check.
+    # Proveedores router does soft delete.
+    # Let's do soft delete here too.
+    db_rubro.activo = False
+    db.commit()
+    return None
+
 # --- PRODUCTOS ---
 
 def calculate_prices(producto: models.Producto):

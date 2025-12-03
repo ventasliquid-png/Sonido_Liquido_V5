@@ -110,3 +110,23 @@ class VendedorResponse(VendedorBase):
     id: UUID
     class Config:
         from_attributes = True
+
+# --- Tasa IVA ---
+class TasaIVABase(BaseModel):
+    nombre: str
+    valor: Decimal
+
+class TasaIVAResponse(TasaIVABase):
+    id: int
+    class Config:
+        from_attributes = True
+
+# --- Unidad ---
+class UnidadBase(BaseModel):
+    codigo: str
+    nombre: str
+
+class UnidadResponse(UnidadBase):
+    id: int
+    class Config:
+        from_attributes = True

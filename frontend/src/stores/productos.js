@@ -2,11 +2,16 @@ import { defineStore } from 'pinia';
 import { ref, reactive } from 'vue';
 import productosApi from '../services/productosApi';
 import rubrosApi from '../services/rubrosApi';
+import maestrosApi from '../services/maestros';
+import proveedoresApi from '../services/proveedoresApi';
 import { useNotificationStore } from './notification';
 
 export const useProductosStore = defineStore('productos', () => {
     const productos = ref([]);
     const rubros = ref([]);
+    const unidades = ref([]);
+    const tasasIva = ref([]);
+    const proveedores = ref([]);
     const currentProducto = ref(null);
     const loading = ref(false);
 
@@ -43,6 +48,36 @@ export const useProductosStore = defineStore('productos', () => {
         } catch (error) {
             console.error('Error fetching rubros:', error);
             notificationStore.add('Error al cargar rubros', 'error');
+        }
+    }
+
+    async function fetchUnidades() {
+        try {
+            const response = await maestrosApi.getUnidades();
+            unidades.value = response.data;
+        } catch (error) {
+            console.error('Error fetching unidades:', error);
+            notificationStore.add('Error al cargar unidades', 'error');
+        }
+    }
+
+    async function fetchTasasIva() {
+        try {
+            const response = await maestrosApi.getTasasIva();
+            tasasIva.value = response.data;
+        } catch (error) {
+            console.error('Error fetching tasas iva:', error);
+            notificationStore.add('Error al cargar tasas IVA', 'error');
+        }
+    }
+
+    async function fetchProveedores() {
+        try {
+            const response = await proveedoresApi.getAll();
+            proveedores.value = response.data;
+        } catch (error) {
+            console.error('Error fetching proveedores:', error);
+            notificationStore.add('Error al cargar proveedores', 'error');
         }
     }
 
@@ -123,11 +158,17 @@ export const useProductosStore = defineStore('productos', () => {
     return {
         productos,
         rubros,
+        unidades,
+        tasasIva,
+        proveedores,
         currentProducto,
         filters,
         loading,
         fetchProductos,
         fetchRubros,
+        fetchUnidades,
+        fetchTasasIva,
+        fetchProveedores,
         fetchProductoById,
         createProducto,
         updateProducto,

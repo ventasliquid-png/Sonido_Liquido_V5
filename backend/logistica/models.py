@@ -49,7 +49,7 @@ class NodoTransporte(Base):
 
     # Relaciones
     empresa = relationship("EmpresaTransporte")
-    provincia = relationship("maestros.models.Provincia")
+    provincia = relationship("backend.maestros.models.Provincia")
 
     def __repr__(self):
         return f"<NodoTransporte(nombre='{self.nombre_nodo}')>"

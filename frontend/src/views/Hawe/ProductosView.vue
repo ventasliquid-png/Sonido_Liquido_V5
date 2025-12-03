@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-screen w-full overflow-hidden bg-[#2e0a13]">
+  <div class="flex h-screen w-full overflow-hidden bg-[#1a050b]">
     <!-- Sidebar -->
     <AppSidebar theme="pink" @logout="handleLogout" @open-command-palette="openCommandPalette" />
 
@@ -173,7 +173,14 @@ const createNew = () => {
             costo_reposicion: 0,
             margen_mayorista: 30,
             iva_alicuota: 21
-        }
+        },
+        // Industrial Fields Defaults
+        tipo_producto: 'VENTA',
+        unidad_stock_id: null,
+        unidad_compra_id: null,
+        factor_compra: 1.0,
+        proveedor_habitual_id: null,
+        tasa_iva_id: null
     }
     showInspector.value = true
 }

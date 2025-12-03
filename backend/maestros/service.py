@@ -227,3 +227,13 @@ class MaestrosService:
         db.commit()
         db.refresh(db_vendedor)
         return db_vendedor
+
+    # --- Tasas IVA ---
+    @staticmethod
+    def get_tasas_iva(db: Session) -> List[models.TasaIVA]:
+        return db.query(models.TasaIVA).all()
+
+    # --- Unidades ---
+    @staticmethod
+    def get_unidades(db: Session) -> List[models.Unidad]:
+        return db.query(models.Unidad).all()

@@ -7,7 +7,7 @@ from sqlalchemy.orm import relationship
 
 # --- [INICIO REFACTOR V10.10] ---
 # Importamos la Base desde el módulo 'core' (import absoluto)
-from core.database import Base
+from backend.core.database import Base
 # --- [FIN REFACTOR V10.10] ---
 
 class Rol(Base):

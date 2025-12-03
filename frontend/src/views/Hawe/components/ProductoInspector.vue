@@ -80,6 +80,69 @@
                   </select>
               </div>
 
+              <!-- Tipo Producto -->
+              <div class="space-y-1">
+                  <label class="text-xs font-bold text-white/60 uppercase">Tipo Producto</label>
+                  <select 
+                    v-model="localProducto.tipo_producto"
+                    class="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-rose-500 focus:outline-none transition-colors appearance-none"
+                  >
+                      <option value="VENTA">Venta</option>
+                      <option value="INSUMO">Insumo</option>
+                      <option value="MATERIA_PRIMA">Materia Prima</option>
+                      <option value="SERVICIO">Servicio</option>
+                  </select>
+              </div>
+
+              <!-- Logística de Unidades -->
+              <div class="p-4 rounded-lg bg-white/5 border border-white/10 space-y-4">
+                  <h4 class="text-rose-400 text-xs font-bold uppercase flex items-center gap-2">
+                      <i class="fas fa-truck-loading"></i> Logística de Unidades
+                  </h4>
+                  
+                  <div class="grid grid-cols-2 gap-4">
+                      <!-- Unidad Stock -->
+                      <div class="space-y-1">
+                          <label class="text-xs font-bold text-white/60 uppercase">Unidad Stock</label>
+                          <select 
+                            v-model="localProducto.unidad_stock_id"
+                            class="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-rose-500 focus:outline-none transition-colors appearance-none"
+                          >
+                              <option :value="null">Seleccionar...</option>
+                              <option v-for="u in unidades" :key="u.id" :value="u.id">
+                                  {{ u.nombre }} ({{ u.codigo }})
+                              </option>
+                          </select>
+                      </div>
+
+                      <!-- Unidad Compra -->
+                      <div class="space-y-1">
+                          <label class="text-xs font-bold text-white/60 uppercase">Unidad Compra</label>
+                          <select 
+                            v-model="localProducto.unidad_compra_id"
+                            class="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-rose-500 focus:outline-none transition-colors appearance-none"
+                          >
+                              <option :value="null">Seleccionar...</option>
+                              <option v-for="u in unidades" :key="u.id" :value="u.id">
+                                  {{ u.nombre }} ({{ u.codigo }})
+                              </option>
+                          </select>
+                      </div>
+                  </div>
+
+                  <!-- Factor Conversión -->
+                  <div class="space-y-1">
+                      <label class="text-xs font-bold text-white/60 uppercase">Factor Conversión (Compra -> Stock)</label>
+                      <input 
+                        v-model.number="localProducto.factor_compra"
+                        type="number" 
+                        step="0.01"
+                        class="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-rose-500 focus:outline-none transition-colors font-mono"
+                        placeholder="Ej: 1.00"
+                      />
+                  </div>
+              </div>
+
               <div class="grid grid-cols-2 gap-4">
                   <!-- Unidad -->
                   <div class="space-y-1">
@@ -115,6 +178,20 @@
                   <h4 class="text-rose-400 text-xs font-bold uppercase mb-3 flex items-center gap-2">
                       <i class="fas fa-coins"></i> Estructura de Costos
                   </h4>
+
+                  <!-- Proveedor Habitual -->
+                  <div class="mb-4">
+                      <label class="text-xs text-white/60 block mb-1">Proveedor Habitual</label>
+                      <select 
+                        v-model="localProducto.proveedor_habitual_id"
+                        class="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-white focus:border-rose-500 focus:outline-none appearance-none"
+                      >
+                          <option :value="null">Seleccionar Proveedor...</option>
+                          <option v-for="p in proveedores" :key="p.id" :value="p.id">
+                              {{ p.razon_social || p.nombre }}
+                          </option>
+                      </select>
+                  </div>
                   
                   <div class="space-y-4">
                       <!-- Costo Reposición -->
@@ -144,13 +221,17 @@
                           </div>
                           <!-- IVA -->
                           <div>
-                              <label class="text-xs text-white/60 block mb-1">Alícuota IVA %</label>
-                              <input 
-                                v-model.number="localCostos.iva_alicuota"
-                                type="number" 
-                                step="0.1"
-                                class="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-white font-mono focus:border-rose-500 focus:outline-none text-right"
-                              />
+                              <label class="text-xs text-white/60 block mb-1">Alícuota IVA</label>
+                              <select 
+                                v-model="localProducto.tasa_iva_id"
+                                class="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-white font-mono focus:border-rose-500 focus:outline-none appearance-none text-right"
+                                @change="updateLocalIvaRate"
+                              >
+                                  <option :value="null">Seleccionar...</option>
+                                  <option v-for="t in tasasIva" :key="t.id" :value="t.id">
+                                      {{ t.nombre }} ({{ t.valor }}%)
+                                  </option>
+                              </select>
                           </div>
                       </div>
                   </div>
@@ -212,6 +293,11 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useProductosStore } from '../../../stores/productos'
+
+const productosStore = useProductosStore()
+const { unidades, tasasIva, proveedores } = storeToRefs(productosStore)
 
 const props = defineProps({
   producto: {
@@ -307,6 +393,13 @@ const toggleActive = () => {
     }
 }
 
+const updateLocalIvaRate = () => {
+    const selectedTasa = tasasIva.value.find(t => t.id === localProducto.value.tasa_iva_id)
+    if (selectedTasa) {
+        localCostos.value.iva_alicuota = Number(selectedTasa.valor)
+    }
+}
+
 // Keyboard Shortcuts
 const handleKeydown = (e) => {
     if (e.key === 'F10') {
@@ -315,7 +408,12 @@ const handleKeydown = (e) => {
     }
 }
 
-onMounted(() => window.addEventListener('keydown', handleKeydown))
+onMounted(() => {
+    window.addEventListener('keydown', handleKeydown)
+    productosStore.fetchUnidades()
+    productosStore.fetchTasasIva()
+    productosStore.fetchProveedores()
+})
 onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
 
 </script>

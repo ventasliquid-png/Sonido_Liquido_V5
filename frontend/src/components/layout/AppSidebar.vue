@@ -58,7 +58,7 @@
             <a href="#" @click.prevent="navigate('HaweHome')" class="nav-item-sub active-link">
                 <i class="fas fa-users w-5"></i> Clientes
             </a>
-            <a href="#" class="nav-item-sub">
+            <a href="#" @click.prevent="navigate('Productos')" class="nav-item-sub">
                 <i class="fas fa-box w-5"></i> Productos
             </a>
         </div>
@@ -112,13 +112,13 @@
             <i class="fas fa-chevron-right text-xs transition-transform duration-200" :class="{ 'rotate-90': uiStore.sidebarState.maestros }"></i>
         </button>
         <div v-show="uiStore.sidebarState.maestros" class="pl-4 space-y-1 pt-1">
-            <a href="#" class="nav-item-sub">
+            <a href="#" @click.prevent="navigate('Segmentos')" class="nav-item-sub">
                 <i class="fas fa-layer-group w-5"></i> Segmentos
             </a>
-             <a href="#" class="nav-item-sub">
+             <a href="#" @click.prevent="navigate('ListasPrecios')" class="nav-item-sub">
                 <i class="fas fa-tags w-5"></i> Listas de Precios
             </a>
-             <a href="#" class="nav-item-sub">
+             <a href="#" @click.prevent="navigate('Vendedores')" class="nav-item-sub">
                 <i class="fas fa-user-tag w-5"></i> Vendedores
             </a>
         </div>

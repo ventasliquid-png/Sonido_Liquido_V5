@@ -2,6 +2,7 @@ from typing import List, Optional
 from pydantic import BaseModel, Field, validator
 from datetime import datetime
 from decimal import Decimal
+from uuid import UUID
 
 # --- RUBROS ---
 
@@ -57,6 +58,14 @@ class ProductoBase(BaseModel):
     activo: bool = True
     es_kit: bool = False
 
+    # Campos Industriales (V5.2)
+    tipo_producto: str = 'VENTA'
+    unidad_stock_id: Optional[int] = None
+    unidad_compra_id: Optional[int] = None
+    factor_compra: Optional[Decimal] = 1.0
+    proveedor_habitual_id: Optional[UUID] = None
+    tasa_iva_id: Optional[int] = None
+
 class ProductoCreate(ProductoBase):
     costos: ProductoCostoCreate
 
@@ -64,6 +73,14 @@ class ProductoUpdate(ProductoBase):
     nombre: Optional[str] = None
     rubro_id: Optional[int] = None
     costos: Optional[ProductoCostoCreate] = None
+    
+    # Campos Industriales Update
+    tipo_producto: Optional[str] = None
+    unidad_stock_id: Optional[int] = None
+    unidad_compra_id: Optional[int] = None
+    factor_compra: Optional[Decimal] = None
+    proveedor_habitual_id: Optional[UUID] = None
+    tasa_iva_id: Optional[int] = None
 
 class ProductoRead(ProductoBase):
     id: int

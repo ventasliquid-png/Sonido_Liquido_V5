@@ -7,7 +7,10 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 
-from core.database import Base
+from backend.core.database import Base
+from backend.maestros.models import CondicionIva, ListaPrecios, Segmento, Provincia
+# Nota: Importamos Usuario como string o condicionalmente si hay riesgo de ciclo, 
+# pero Maestros son seguros.
 
 class Cliente(Base):
     """
@@ -54,9 +57,9 @@ class Cliente(Base):
     # Relaciones
     domicilios = relationship("Domicilio", back_populates="cliente", cascade="all, delete-orphan")
     vinculos = relationship("backend.agenda.models.VinculoComercial", back_populates="cliente")
-    condicion_iva = relationship("backend.maestros.models.CondicionIva")
-    lista_precios = relationship("backend.maestros.models.ListaPrecios")
-    segmento = relationship("backend.maestros.models.Segmento")
+    condicion_iva = relationship(CondicionIva)
+    lista_precios = relationship(ListaPrecios)
+    segmento = relationship(Segmento)
     vendedor = relationship("backend.auth.models.Usuario")
 
     def __repr__(self):
@@ -92,7 +95,7 @@ class Domicilio(Base):
     
     # Relaciones
     cliente = relationship("Cliente", back_populates="domicilios")
-    provincia = relationship("backend.maestros.models.Provincia")
+    provincia = relationship(Provincia)
     transporte_habitual_nodo = relationship("backend.logistica.models.NodoTransporte")
     transporte = relationship("backend.logistica.models.EmpresaTransporte", foreign_keys=[transporte_id])
     intermediario = relationship("backend.logistica.models.EmpresaTransporte", foreign_keys=[intermediario_id])

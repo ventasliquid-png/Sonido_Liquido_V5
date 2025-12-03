@@ -36,10 +36,10 @@ from core import config
 from core.database import engine, Base
 
 # Imports de Routers
+# Imports de Routers
 from backend.auth.router import router as auth_router
-from backend.rubros.router import router as rubros_router
-from backend.clientes.router import router as clientes_router
 from backend.maestros.router import router as maestros_router
+from backend.clientes.router import router as clientes_router
 from backend.logistica.router import router as logistica_router
 from backend.agenda.router import router as agenda_router
 from backend.productos.router import router as productos_router
@@ -299,9 +299,8 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
-app.include_router(rubros_router) 
-app.include_router(clientes_router)
 app.include_router(maestros_router)
+app.include_router(clientes_router)
 app.include_router(logistica_router)
 app.include_router(agenda_router) 
 app.include_router(productos_router)
@@ -341,5 +340,5 @@ async def invoke_atenea_v5(input: QueryInput):
         "respuesta_generada": final_state["generation"]
     }
 
-print("--- [Atenea V5 Backend]: Módulo 'main.py' V10.12 (Modular Estable) cargado y listo. ---")
+print("--- [Atenea V5 Backend]: Módulo 'main.py' V10.16 (Modular Estable) cargado y listo. ---")
 # Reload trigger for V5.1 schema update
