@@ -7,16 +7,29 @@ from uuid import UUID
 # --- RUBROS ---
 
 class RubroBase(BaseModel):
+    codigo: str
     nombre: str
     padre_id: Optional[int] = None
     activo: bool = True
 
 class RubroCreate(RubroBase):
-    pass
+    @validator('codigo')
+    def validate_codigo(cls, v):
+        if len(v) > 3:
+            raise ValueError('El código no puede tener más de 3 caracteres')
+        return v.upper()
 
 class RubroUpdate(RubroBase):
     nombre: Optional[str] = None
     activo: Optional[bool] = None
+    
+    @validator('codigo')
+    def validate_codigo(cls, v):
+        if v is None:
+            return v
+        if len(v) > 3:
+            raise ValueError('El código no puede tener más de 3 caracteres')
+        return v.upper()
 
 class RubroRead(RubroBase):
     id: int

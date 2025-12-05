@@ -9,8 +9,8 @@ import os
 
 # --- Configuración de IA y Región ---
 APP_LOCATION = "us-central1"
-EMBEDDINGS_MODEL_NAME = "textembedding-gecko@003"
-GEMINI_MODEL_NAME = "gemini-1.0-pro"
+EMBEDDINGS_MODEL_NAME = "text-embedding-004"
+GEMINI_MODEL_NAME = "gemini-pro"
 
 # --- [INICIO FASE 10.E (SEGURIDAD)] ---
 

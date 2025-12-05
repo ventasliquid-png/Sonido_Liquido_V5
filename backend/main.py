@@ -8,6 +8,9 @@ import json
 from contextlib import asynccontextmanager
 from typing import TypedDict, List, Literal
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
@@ -37,13 +40,16 @@ from core.database import engine, Base
 
 # Imports de Routers
 # Imports de Routers
+from backend.proveedores import models as proveedores_models
+from backend.maestros import models as maestros_models
+from backend.productos import models as productos_models
+from backend.clientes import models as clientes_models # Added explicit import
 from backend.auth.router import router as auth_router
 from backend.maestros.router import router as maestros_router
 from backend.clientes.router import router as clientes_router
 from backend.logistica.router import router as logistica_router
 from backend.agenda.router import router as agenda_router
 from backend.productos.router import router as productos_router
-from backend.productos import models as productos_models
 from backend.proveedores.router import router as proveedores_router
 
 # --- 2. Importaciones de LangGraph (El Cerebro) ---
@@ -89,6 +95,8 @@ async def lifespan(app: FastAPI):
         print(f"✅ Verificación de arranque: GOOGLE_APPLICATION_CREDENTIALS... ENCONTRADO.")
     elif os.path.exists(creds_path_file):
         print(f"✅ Verificación de arranque: GOOGLE_APPLICATION_CREDENTIALS... ENCONTRADO (archivo local).")
+        # FIX: Set the env var so the AI client can find it
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.abspath(creds_path_file)
     else:
         # Advertencia, no error - el servidor puede arrancar sin IA
         print(f"⚠️  ADVERTENCIA: GOOGLE_APPLICATION_CREDENTIALS no encontrado.")
@@ -289,7 +297,9 @@ app = FastAPI(
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost:3000", # Por si acaso
 ]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,

@@ -11,6 +11,7 @@ class Rubro(Base):
     __tablename__ = "rubros"
 
     id = Column(Integer, primary_key=True, index=True)
+    codigo = Column(String(3), unique=True, index=True, nullable=False)
     nombre = Column(String(50), unique=True, index=True, nullable=False)
     padre_id = Column(Integer, ForeignKey('rubros.id'), nullable=True)
     activo = Column(Boolean, default=True)

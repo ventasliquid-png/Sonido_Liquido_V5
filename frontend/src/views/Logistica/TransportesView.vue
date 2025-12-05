@@ -1,12 +1,6 @@
 <template>
   <div class="flex h-screen w-full bg-[var(--hawe-bg-main)] text-gray-200 overflow-hidden font-sans">
-    <!-- Sidebar -->
-    <AppSidebar 
-        theme="orange"
-        @logout="logout" 
-        @open-command-palette="showCommandPalette = true"
-        @navigate="handleNavigation"
-    />
+    <!-- Sidebar removed (handled by Layout) -->
 
     <!-- Main Content Area -->
     <main class="flex flex-1 flex-col relative min-w-0">

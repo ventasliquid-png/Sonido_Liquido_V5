@@ -73,6 +73,20 @@ Si se clona el repo en una nueva máquina:
 2.  Ejecutar `python scripts/session_manager.py start`.
 3.  El sistema reconocerá al nuevo agente y comenzará a trackear sus sesiones, manteniendo la referencia a OF y CA según corresponda.
 
+### 5. Protocolo de Memoria (RAG)
+Para garantizar que la "conciencia" del proyecto evolucione, es **obligatorio** actualizar la base de datos vectorial tras hitos importantes.
+
+#### A. Cuándo Indexar
+*   Al finalizar una sesión de trabajo significativa (como esta).
+*   Tras completar un módulo nuevo (ej: Rubros, Productos).
+*   Después de refactorizaciones grandes.
+
+#### B. Comando de Indexación
+```bash
+python scripts/index_dev_memory.py
+```
+*   Este script lee `BITACORA_DEV.md`, `MEMORIA_SESIONES.md` y el código fuente clave, generando embeddings para futuras consultas.
+
 ---
 
 ## Historial de Cambios Relevantes
@@ -265,3 +279,30 @@ Si se clona el repo en una nueva máquina:
 *   Implementación de módulos: Ramos, Vendedores, Listas de Precios, Agenda.
 *   Seed de transporte virtual "RETIRO EN LOCAL" (ID 1).
 *   Ajuste de UX en Transportes: Cierre automático de modal al guardar y botón de Baja.
+
+## [2025-12-05] Refactorización UI Rubros y Protección de Datos
+### Cambios Realizados
+- **Frontend (RubrosView.vue):**
+  - Implementación del patrón "Explorador + Inspector" (Bridge UI).
+  - Cabecera con filtros de estado (Todos/Activos/Inactivos) y búsqueda.
+  - Menú de ordenamiento completo (A-Z, Z-A, Antiguos, Recientes).
+  - Toggle de "Baja Rápida" con confirmación en caso de desactivación.
+  - Inspector lateral siempre visible con "Empty State".
+- **Backend (productos/router.py):**
+  - Agregada validación en el endpoint `PUT /rubros/{id}`.
+  - **Regla de Negocio:** No se puede desactivar un rubro si tiene hijos activos o productos asociados activos.
+
+### Pendientes Identificados
+- **Gestión de Dependencias:** Se requiere una herramienta para reasignar hijos/productos cuando se desea eliminar un rubro padre (Wizard de Reasignación).
+
+### [2025-12-05] Refactorización UI Clientes y Theming (Sesión Tarde)
+*   **Refactor UI Clientes:**
+    *   **Explorador + Inspector:** Se migró `HaweView.vue` al patrón de lista izquierda y panel derecho (`ClienteInspector.vue`), eliminando la navegación a pantalla completa (`ClientCanvas`).
+    *   **Funcionalidad:** Alta, Baja (Soft Delete), Modificación y Listado integrados en el nuevo layout.
+    *   **Fix Sidebar:** Se eliminó la duplicación del menú lateral en `TransportesView.vue`.
+*   **Theming Dinámico:**
+    *   **Sidebar:** `AppSidebar.vue` ahora adapta su color de fondo y bordes según el módulo activo (Azul para Clientes, Rosa para Rubros, Naranja para Transportes).
+    *   **Paleta Clientes:** Se implementó un tema "Cian/Azul Noche" (`#081c26`, `#05151f`) para diferenciarlo visualmente de otros módulos, manteniendo la consistencia de contraste y luminosidad.
+*   **Correcciones:**
+    *   **Sintaxis:** Se corrigió un error de cierre de etiquetas en `HaweView.vue`.
+    *   **Visibilidad:** Se ajustaron los colores de fondo del sidebar para que el tinte de color sea claramente perceptible.

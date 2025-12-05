@@ -1,24 +1,42 @@
 <template>
-  <div class="bridge-layout-container">
-    <router-view></router-view>
+  <div class="flex h-screen w-screen bg-[#0a0a0a] overflow-hidden">
+    <!-- Global Sidebar -->
+    <AppSidebar :theme="currentTheme" />
+
+    <!-- Main Content Area -->
+    <main class="flex-1 relative overflow-hidden">
+      <router-view v-slot="{ Component }">
+        <transition name="fade" mode="out-in">
+          <component :is="Component" />
+        </transition>
+      </router-view>
+    </main>
   </div>
 </template>
 
 <script setup>
-import { onMounted } from 'vue';
-onMounted(() => {
-  console.log('HaweLayout mounted');
+import { computed } from 'vue';
+import { useRoute } from 'vue-router';
+import AppSidebar from '../components/layout/AppSidebar.vue';
+
+const route = useRoute();
+
+const currentTheme = computed(() => {
+    if (route.name === 'Rubros') return 'rose';
+    if (route.name === 'Transportes') return 'orange';
+    if (['HaweHome', 'HaweClientCanvas'].includes(route.name)) return 'cyan';
+    return 'cyan'; // Default
 });
 </script>
 
-<style>
-/* Reset global styles specifically for this layout tree if needed */
-.bridge-layout-container {
-  width: 100vw;
-  height: 100vh;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  background-color: #0a0a0a; /* Ensure dark background */
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

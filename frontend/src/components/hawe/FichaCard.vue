@@ -38,10 +38,9 @@
     </div>
 
     <!-- Hover Actions (Optional) -->
-    <div class="absolute bottom-2 right-2 opacity-0 transition-opacity group-hover:opacity-100">
-      <button class="text-gray-400 hover:text-white">
-        <i class="fas fa-ellipsis-h"></i>
-      </button>
+    <!-- Actions Slot -->
+    <div class="absolute bottom-2 right-2 z-20">
+      <slot name="actions"></slot>
     </div>
   </div>
 </template>

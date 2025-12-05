@@ -1,11 +1,7 @@
 <template>
-  <div class="flex h-screen w-full bg-[var(--hawe-bg-main)] text-gray-200 overflow-hidden font-sans">
+  <div class="flex h-screen w-full bg-[#081c26] text-gray-200 overflow-hidden font-sans">
     <!-- Left Sidebar (Navigation) -->
-    <AppSidebar 
-        @logout="logout" 
-        @open-command-palette="showCommandPalette = true"
-        @navigate="handleSidebarNavigation"
-    />
+    <!-- Left Sidebar (Navigation) is now in HaweLayout -->
 
     <!-- Main Content Area -->
     <main class="flex flex-1 flex-col relative">
@@ -38,7 +34,6 @@
                 @click="filterStatus = 'all'"
                 class="px-3 py-1 text-xs font-medium rounded-md transition-all"
                 :class="filterStatus === 'all' ? 'bg-cyan-600 text-white shadow-sm' : 'text-white/50 hover:text-white'"
-                title="Todos"
             >
                 Todos
             </button>
@@ -46,7 +41,6 @@
                 @click="filterStatus = 'active'"
                 class="px-3 py-1 text-xs font-medium rounded-md transition-all"
                 :class="filterStatus === 'active' ? 'bg-green-600 text-white shadow-sm' : 'text-white/50 hover:text-white'"
-                title="Activos"
             >
                 Activos
             </button>
@@ -54,19 +48,48 @@
                 @click="filterStatus = 'inactive'"
                 class="px-3 py-1 text-xs font-medium rounded-md transition-all"
                 :class="filterStatus === 'inactive' ? 'bg-red-600 text-white shadow-sm' : 'text-white/50 hover:text-white'"
-                title="Inactivos"
             >
                 Inactivos
             </button>
           </div>
 
           <div class="h-6 w-px bg-white/10"></div>
+
+          <!-- Sort Menu -->
+          <div class="relative">
+            <button 
+                @click="showSortMenu = !showSortMenu" 
+                class="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/10 transition-colors" 
+                title="Ordenar"
+            >
+                <i class="fas fa-sort-amount-down"></i>
+                <span v-if="sortBy === 'usage'">POPULARIDAD</span>
+                <span v-else-if="sortBy === 'alpha_asc'">A-Z</span>
+                <span v-else-if="sortBy === 'alpha_desc'">Z-A</span>
+                <span v-else-if="sortBy === 'id_asc'">ANTIGUOS</span>
+                <span v-else-if="sortBy === 'id_desc'">RECIENTES</span>
+            </button>
+            
+            <!-- Dropdown -->
+            <div v-if="showSortMenu" class="absolute right-0 mt-2 w-48 bg-[#0a253a] border border-white/10 rounded-lg shadow-xl z-50 overflow-hidden">
+                <div class="fixed inset-0 z-40" @click="showSortMenu = false"></div>
+                <div class="relative z-50 py-1">
+                    <button @click="sortBy = 'usage'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'usage' }">Más Usados</button>
+                    <button @click="sortBy = 'alpha_asc'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'alpha_asc' }">A-Z Alfabético</button>
+                    <button @click="sortBy = 'alpha_desc'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'alpha_desc' }">Z-A Alfabético</button>
+                    <button @click="sortBy = 'id_desc'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'id_desc' }">Más Recientes</button>
+                </div>
+            </div>
+          </div>
+
+          <div class="h-6 w-px bg-white/10"></div>
+
           <!-- View Toggle -->
           <div class="flex bg-white/5 rounded-lg p-1 border border-white/10">
             <button 
                 @click="viewMode = 'grid'"
                 class="p-1.5 rounded-md transition-all"
-                :class="viewMode === 'grid' ? 'bg-white/10 text-cyan-400' : 'text-white/30 hover:text-white'"
+                :class="viewMode === 'grid' ? 'bg-cyan-600 text-white shadow-sm' : 'text-white/50 hover:text-white'"
                 title="Vista Cuadrícula"
             >
                 <i class="fas fa-border-all"></i>
@@ -74,7 +97,7 @@
             <button 
                 @click="viewMode = 'list'"
                 class="p-1.5 rounded-md transition-all"
-                :class="viewMode === 'list' ? 'bg-white/10 text-cyan-400' : 'text-white/30 hover:text-white'"
+                :class="viewMode === 'list' ? 'bg-cyan-600 text-white shadow-sm' : 'text-white/50 hover:text-white'"
                 title="Vista Lista"
             >
                 <i class="fas fa-list"></i>
@@ -84,59 +107,22 @@
           <div class="h-6 w-px bg-white/10"></div>
 
           <button 
-            @click="router.push({ name: 'HaweClientCanvas', params: { id: 'new' } })"
+            @click="openNewCliente"
             class="flex items-center gap-2 rounded-lg bg-cyan-600 px-3 py-1.5 text-sm font-bold text-white shadow-lg shadow-cyan-500/20 transition-all hover:bg-cyan-500 hover:shadow-cyan-500/40"
           >
             <i class="fas fa-plus"></i>
             <span class="hidden sm:inline">Nuevo</span>
           </button>
-          <div class="h-6 w-px bg-white/10"></div>
-          <div class="h-6 w-px bg-white/10"></div>
-          
-          <!-- Sort Menu -->
-          <div class="relative">
-            <button 
-                @click="showSortMenu = !showSortMenu" 
-                class="text-white/70 hover:text-white transition-colors flex items-center gap-2" 
-                title="Ordenar"
-            >
-                <i class="fas fa-sort-amount-down"></i>
-                <span class="text-xs font-mono text-cyan-400" v-if="sortBy === 'usage'">POPULARIDAD</span>
-                <span class="text-xs font-mono text-cyan-400" v-else-if="sortBy === 'alpha_asc'">A-Z</span>
-                <span class="text-xs font-mono text-cyan-400" v-else-if="sortBy === 'alpha_desc'">Z-A</span>
-                <span class="text-xs font-mono text-cyan-400" v-else-if="sortBy === 'id_asc'">ANTIGUEDAD</span>
-                <span class="text-xs font-mono text-cyan-400" v-else-if="sortBy === 'id_desc'">RECIENTES</span>
-            </button>
-            
-            <!-- Dropdown -->
-            <div v-if="showSortMenu" class="absolute right-0 mt-2 w-48 bg-[#0a253a] border border-white/10 rounded-lg shadow-xl z-50">
-                <!-- Click outside overlay -->
-                <div class="fixed inset-0 z-40" @click="showSortMenu = false"></div>
-                
-                <div class="relative z-50 py-1">
-                    <button @click="sortBy = 'usage'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'usage' }">Más Usados (Popularidad)</button>
-                    <div class="border-t border-white/10 my-1"></div>
-                    <button @click="sortBy = 'alpha_asc'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'alpha_asc' }">A-Z Alfabético</button>
-                    <button @click="sortBy = 'alpha_desc'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'alpha_desc' }">Z-A Alfabético</button>
-                    <div class="border-t border-white/10 my-1"></div>
-                    <button @click="sortBy = 'id_asc'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'id_asc' }">Más Antiguos</button>
-                    <button @click="sortBy = 'id_desc'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'id_desc' }">Más Recientes</button>
-                </div>
-            </div>
-          </div>
-          
+
         </div>
       </header>
 
-      <!-- Content Grid -->
+      <!-- Content List -->
       <div class="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-track-gray-900 scrollbar-thumb-gray-700">
+        
         <!-- Grid View -->
         <div v-if="viewMode === 'grid'" class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-          <div 
-            v-for="cliente in filteredClientes"
-            :key="cliente.id"
-            class="relative w-full min-h-[140px]"
-          >
+          <div v-for="cliente in filteredClientes" :key="cliente.id" class="relative w-full min-h-[140px]">
             <FichaCard
                 class="w-full"
                 :title="cliente.razon_social"
@@ -144,12 +130,29 @@
                 :status="cliente.activo ? 'active' : 'inactive'"
                 :selected="selectedId === cliente.id"
                 @click="selectCliente(cliente)"
-                @select="selectCliente(cliente)"
-                @dblclick="openCanvas(cliente)"
                 @contextmenu.prevent="handleClientContextMenu($event, cliente)"
             >
                 <template #icon>
                     <i class="fas fa-user"></i>
+                </template>
+                <template #actions>
+                    <!-- Toggle Switch -->
+                    <button 
+                        @click.stop="handleInspectorDelete(cliente)"
+                        v-if="cliente.activo"
+                        class="relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none shrink-0 ml-2 bg-green-500/50"
+                        title="Desactivar"
+                    >
+                        <span class="inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform shadow-sm translate-x-3.5" />
+                    </button>
+                     <button 
+                        @click.stop="handleInspectorDelete(cliente)"
+                        v-else
+                        class="relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none shrink-0 ml-2 bg-red-500/50"
+                        title="Activar"
+                    >
+                        <span class="inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform shadow-sm translate-x-1" />
+                    </button>
                 </template>
             </FichaCard>
           </div>
@@ -161,40 +164,41 @@
                 v-for="cliente in filteredClientes" 
                 :key="cliente.id"
                 @click="selectCliente(cliente)"
-                @dblclick="openCanvas(cliente)"
                 @contextmenu.prevent="handleClientContextMenu($event, cliente)"
                 class="group flex items-center justify-between p-3 rounded-lg border border-white/5 bg-white/5 hover:bg-white/10 cursor-pointer transition-colors"
-                :class="{ 'ring-1 ring-cyan-500 bg-white/10': selectedId === cliente.id }"
+                :class="{ 'ring-1 ring-cyan-500 bg-cyan-500/10': selectedId === cliente.id }"
             >
-                <div class="flex items-center gap-4 flex-1 min-w-0">
-                    <div class="h-8 w-8 rounded bg-gradient-to-br from-cyan-600 to-blue-700 flex items-center justify-center text-white shrink-0 text-xs">
-                        <i class="fas fa-user"></i>
+                <div class="flex items-center gap-4">
+                    <div class="h-10 w-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                        {{ cliente.razon_social.substring(0,1).toUpperCase() }}
                     </div>
-                    <div class="min-w-0 flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <h3 class="font-bold text-white truncate">{{ cliente.razon_social }}</h3>
-                        <p class="text-sm text-white/50 truncate hidden sm:block font-mono">{{ cliente.cuit }}</p>
-                        <p class="text-sm text-white/50 truncate hidden sm:block">{{ getSegmentoName(cliente.segmento_id) || 'Sin Segmento' }}</p>
+                    <div>
+                        <h3 class="font-bold text-white">{{ cliente.razon_social }}</h3>
+                        <p class="text-xs text-white/50 font-mono">{{ cliente.cuit }}</p>
                     </div>
                 </div>
                 
-                <div class="flex items-center gap-4 ml-4">
-                    <div class="flex items-center gap-2 bg-black/20 px-2 py-1 rounded-full border border-white/5">
-                        <div class="h-2 w-2 rounded-full" :class="cliente.activo ? 'bg-green-500' : 'bg-red-500'"></div>
-                        <span class="text-[10px] uppercase font-bold text-white/50 hidden sm:inline">{{ cliente.activo ? 'Activo' : 'Inactivo' }}</span>
-                    </div>
-                    <button @click.stop="openCanvas(cliente)" class="text-white/30 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
+                <div class="flex items-center gap-4">
+                    <span class="text-xs text-white/50">{{ getSegmentoName(cliente.segmento_id) }}</span>
+                    <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full" :class="cliente.activo ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'">
+                        {{ cliente.activo ? 'Activo' : 'Inactivo' }}
+                    </span>
+                    <i class="fas fa-chevron-right text-white/20 group-hover:text-white/50 transition-colors"></i>
                 </div>
             </div>
         </div>
+
       </div>
     </main>
 
     <!-- Right Inspector Panel -->
-    <aside class="w-80 border-l border-gray-800 bg-gray-900/50">
-        <InspectorPanel :item="selectedCliente" @open="openCanvas(selectedCliente)" />
-    </aside>
+    <ClienteInspector 
+        :modelValue="selectedCliente" 
+        :isNew="selectedId === 'new'"
+        @close="closeInspector"
+        @save="handleInspectorSave"
+        @delete="handleInspectorDelete"
+    />
 
     <!-- Modals & Context Menu -->
     <SegmentoForm 
@@ -235,8 +239,7 @@
 import { ref, onMounted, computed, onUnmounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import FichaCard from '../components/hawe/FichaCard.vue'
-import InspectorPanel from '../components/canvas/InspectorPanel.vue'
-import AppSidebar from '../components/layout/AppSidebar.vue'
+import ClienteInspector from './Hawe/components/ClienteInspector.vue'
 import CommandPalette from '../components/common/CommandPalette.vue'
 import TransporteManager from './Hawe/components/TransporteManager.vue'
 import { useClientesStore } from '../stores/clientes'
@@ -244,12 +247,14 @@ import { useMaestrosStore } from '../stores/maestros'
 import ContextMenu from '../components/common/ContextMenu.vue'
 import SegmentoForm from './Maestros/SegmentoForm.vue'
 import SegmentoList from './Maestros/SegmentoList.vue'
+import { useNotificationStore } from '../stores/notification'
 
 const clienteStore = useClientesStore()
 const maestrosStore = useMaestrosStore()
+const notificationStore = useNotificationStore()
 const router = useRouter()
 
-const clientes = ref([])
+const clientes = computed(() => clienteStore.clientes)
 const segmentos = ref([])
 const selectedId = ref(null)
 const selectedCliente = ref(null)
@@ -357,7 +362,7 @@ onMounted(async () => {
           clienteStore.fetchClientes(),
           maestrosStore.fetchSegmentos()
       ])
-      clientes.value = clienteStore.clientes
+      // clientes.value = clienteStore.clientes // Computed now
       segmentos.value = maestrosStore.segmentos
   } catch (e) {
       console.error('Error loading HaweView data:', e)
@@ -413,16 +418,51 @@ const getSegmentoName = (id) => {
 
 const selectCliente = (cliente) => {
     selectedId.value = cliente.id
-    selectedCliente.value = cliente
+    selectedCliente.value = { ...cliente } // Clone for editing
 }
 
-const openCanvas = async (cliente) => {
-    try {
-        await clienteStore.incrementUsage(cliente.id)
-    } catch (e) {
-        console.error('Failed to increment usage', e)
+const openNewCliente = () => {
+    selectedId.value = 'new'
+    selectedCliente.value = {
+        razon_social: '',
+        cuit: '',
+        activo: true,
+        condicion_iva: 'Responsable Inscripto',
+        domicilios: [],
+        vinculos: []
     }
-    router.push({ name: 'HaweClientCanvas', params: { id: cliente.id } })
+}
+
+const closeInspector = () => {
+    selectedId.value = null
+    selectedCliente.value = null
+}
+
+const handleInspectorSave = async (clienteData) => {
+    try {
+        if (selectedId.value === 'new') {
+            await clienteStore.createCliente(clienteData)
+            notificationStore.add('Cliente creado', 'success')
+        } else {
+            await clienteStore.updateCliente(clienteData.id, clienteData)
+            notificationStore.add('Cliente actualizado', 'success')
+        }
+        closeInspector()
+    } catch (error) {
+        console.error(error)
+        notificationStore.add('Error al guardar cliente', 'error')
+    }
+}
+
+const handleInspectorDelete = async (clienteData) => {
+    try {
+        await clienteStore.updateCliente(clienteData.id, { ...clienteData, activo: false })
+        notificationStore.add('Cliente dado de baja', 'success')
+        closeInspector()
+    } catch (error) {
+        console.error(error)
+        notificationStore.add('Error al dar de baja', 'error')
+    }
 }
 
 const handleKeydown = (e) => {
@@ -434,8 +474,8 @@ const handleKeydown = (e) => {
     }
 
     if ((e.code === 'Space' || e.code === 'Enter') && selectedCliente.value && !showCommandPalette.value && !showTransporteManager.value) {
-        e.preventDefault()
-        openCanvas(selectedCliente.value)
+        // e.preventDefault()
+        // openCanvas(selectedCliente.value) // No longer needed
     }
 }
 
@@ -449,14 +489,9 @@ const handleClientContextMenu = (e, client) => {
     contextMenu.y = e.clientY
     contextMenu.actions = [
         {
-            label: 'Nueva Ficha',
+            label: 'Nuevo Cliente',
             icon: '➕',
-            handler: () => router.push({ name: 'HaweClientCanvas', params: { id: 'new' } })
-        },
-        {
-            label: 'Administrar Fichas',
-            icon: '📋',
-            handler: () => router.push('/hawe') // Already here, but consistent with request
+            handler: () => openNewCliente()
         },
         {
             label: '----------------',
@@ -465,22 +500,16 @@ const handleClientContextMenu = (e, client) => {
         {
             label: `Editar ${client.razon_social}`,
             icon: '✏️',
-            handler: () => openCanvas(client)
+            handler: () => selectCliente(client)
         },
         {
             label: 'Dar de Baja',
             icon: '🗑️',
             handler: () => {
                 if(confirm(`¿Está seguro de dar de baja a ${client.razon_social}?`)) {
-                    // store.deleteCliente(client.id) // Implement delete logic
-                    console.log('Dar de baja', client.id)
+                    handleInspectorDelete(client)
                 }
             }
-        },
-        {
-            label: 'IA',
-            icon: '✨',
-            handler: () => alert('Funcionalidad IA próximamente')
         }
     ]
 }

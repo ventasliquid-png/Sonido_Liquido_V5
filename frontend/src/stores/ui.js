@@ -3,10 +3,10 @@ import { ref } from 'vue'
 
 export const useUIStore = defineStore('ui', () => {
     const sidebarState = ref({
-        operativo: true,
-        logistica: false,
-        agenda: false,
-        maestros: false
+        pedidos: true,
+        productos: true,
+        clientes: true,
+        compartidas: true
     })
 
     const toggleSidebarCategory = (category) => {

@@ -22,6 +22,14 @@ def read_rubros(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
 
 @router.post("/rubros", response_model=schemas.RubroRead)
 def create_rubro(rubro: schemas.RubroCreate, db: Session = Depends(get_db)):
+    # Validar unicidad de código
+    if db.query(models.Rubro).filter(models.Rubro.codigo == rubro.codigo).first():
+        raise HTTPException(status_code=400, detail=f"El código '{rubro.codigo}' ya existe.")
+    
+    # Validar unicidad de nombre
+    if db.query(models.Rubro).filter(models.Rubro.nombre == rubro.nombre).first():
+        raise HTTPException(status_code=400, detail=f"El rubro '{rubro.nombre}' ya existe.")
+
     db_rubro = models.Rubro(**rubro.dict())
     db.add(db_rubro)
     db.commit()
@@ -34,6 +42,39 @@ def update_rubro(rubro_id: int, rubro: schemas.RubroUpdate, db: Session = Depend
     if not db_rubro:
         raise HTTPException(status_code=404, detail="Rubro no encontrado")
     
+    # Validar unicidad de código si cambia
+    if rubro.codigo and rubro.codigo != db_rubro.codigo:
+        if db.query(models.Rubro).filter(models.Rubro.codigo == rubro.codigo).first():
+            raise HTTPException(status_code=400, detail=f"El código '{rubro.codigo}' ya existe.")
+
+    # Validar unicidad de nombre si cambia
+    if rubro.nombre and rubro.nombre != db_rubro.nombre:
+        if db.query(models.Rubro).filter(models.Rubro.nombre == rubro.nombre).first():
+            raise HTTPException(status_code=400, detail=f"El rubro '{rubro.nombre}' ya existe.")
+
+    # Validar ciclos en jerarquía
+    if rubro.padre_id is not None:
+        if rubro.padre_id == rubro_id:
+            raise HTTPException(status_code=400, detail="Un rubro no puede ser su propio padre.")
+        
+        # Chequear si el nuevo padre es descendiente del rubro actual (Ciclo)
+        # Recorremos hacia arriba desde el nuevo padre
+        current = db.query(models.Rubro).get(rubro.padre_id)
+        while current:
+            if current.id == rubro_id:
+                raise HTTPException(status_code=400, detail="No se puede asignar como padre a un descendiente (Ciclo detectado).")
+            current = current.padre if current.padre_id else None
+
+    # Validar desactivación (Si se está desactivando)
+    if rubro.activo is False and db_rubro.activo is True:
+        # Validar si tiene hijos activos
+        if db.query(models.Rubro).filter(models.Rubro.padre_id == rubro_id, models.Rubro.activo == True).first():
+            raise HTTPException(status_code=400, detail="No se puede desactivar un rubro que tiene sub-rubros activos.")
+        
+        # Validar si tiene productos asociados activos
+        if db.query(models.Producto).filter(models.Producto.rubro_id == rubro_id, models.Producto.activo == True).first():
+            raise HTTPException(status_code=400, detail="No se puede desactivar un rubro que tiene productos activos asociados.")
+
     for key, value in rubro.dict(exclude_unset=True).items():
         setattr(db_rubro, key, value)
     
@@ -54,6 +95,14 @@ def delete_rubro(rubro_id: int, db: Session = Depends(get_db)):
     # Given the previous pattern in other modules, let's check.
     # Proveedores router does soft delete.
     # Let's do soft delete here too.
+    # Validar si tiene hijos activos
+    if db.query(models.Rubro).filter(models.Rubro.padre_id == rubro_id, models.Rubro.activo == True).first():
+        raise HTTPException(status_code=400, detail="No se puede eliminar un rubro que tiene sub-rubros activos.")
+
+    # Validar si tiene productos asociados
+    if db.query(models.Producto).filter(models.Producto.rubro_id == rubro_id, models.Producto.activo == True).first():
+        raise HTTPException(status_code=400, detail="No se puede eliminar un rubro que tiene productos activos asociados.")
+
     db_rubro.activo = False
     db.commit()
     return None
@@ -79,10 +128,12 @@ def calculate_prices(producto: models.Producto):
     # Usualmente Mayorista es con IVA.
     
     # Distri y Minorista (Placeholders por ahora)
-    producto.precio_distribuidor = precio_final * 1.10 # +10%
-    producto.precio_minorista = precio_final * 1.40 # +40%
+    producto.precio_distribuidor = precio_final * Decimal("1.10") # +10%
+    producto.precio_minorista = precio_final * Decimal("1.40") # +40%
     
     return producto
+
+from decimal import Decimal
 
 @router.get("/", response_model=List[schemas.ProductoRead])
 def read_productos(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):

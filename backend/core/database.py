@@ -1,79 +1,78 @@
 # --- backend/database.py (V10.7 - Base de Datos Completa) ---
-# --- [ACTUALIZADO V11.2 - PROTOCOLO DE SEGURIDAD MANUAL] ---
+# --- [ACTUALIZADO V11.3 - FIX IP FANTASMA] ---
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
-from urllib.parse import urlparse, urlunparse, quote_plus
+from urllib.parse import urlparse, quote_plus
+from dotenv import dotenv_values
 
-def _ensure_database_password():
+# --- [FIX IP FANTASMA] ---
+# No confiamos en os.environ["DATABASE_URL"] porque puede estar sucia.
+# Leemos directamente del archivo .env
+config = dotenv_values(".env")
+DATABASE_URL_FROM_ENV_FILE = config.get("DATABASE_URL")
+
+def _get_clean_database_url():
     """
-    Asegura que DATABASE_URL tenga la contraseña correcta.
-    SIEMPRE usa la contraseña por defecto "e" para desarrollo.
+    Construye la URL de conexión ignorando variables de entorno viciadas.
+    Prioriza el archivo .env local.
     """
-    # Contraseña por defecto de desarrollo (hardcodeada)
-    DEFAULT_PASSWORD = "e"
+    # 1. Intentar usar la del archivo .env
+    url_candidate = DATABASE_URL_FROM_ENV_FILE
     
-    DATABASE_URL = os.environ.get("DATABASE_URL")
-    
-    # Parsear la URL existente o construir una nueva
-    if DATABASE_URL:
-        parsed = urlparse(DATABASE_URL)
+    # 2. Si no está en el archivo, usar hardcode de emergencia (Nueva IP)
+    if not url_candidate:
+        print("⚠️  DATABASE_URL no encontrada en .env. Usando hardcode de seguridad.")
+        # Hardcode actualizado a la IP 104.197.57.226
+        url_candidate = "postgresql://postgres:Spawn1743.@104.197.57.226:5432/postgres?sslmode=require"
+
+    # 3. Parsear para asegurar que la contraseña esté bien (aunque venga del file)
+    try:
+        parsed = urlparse(url_candidate)
+        
+        # Extracción de componentes
         user = parsed.username or "postgres"
-        host = parsed.hostname or "34.95.172.190"
+        password = parsed.password or "Spawn1743."
+        host = parsed.hostname or "104.197.57.226" # Forzar nueva IP si falla parseo
         port = parsed.port or "5432"
-        database = parsed.path.lstrip("/") or "postgres"
-    else:
-        # Si no existe, construir desde cero
-        print("⚠️  DATABASE_URL no encontrada en el entorno.")
-        print("📋 Construyendo URL con valores por defecto...")
-        user = os.environ.get("DB_USER", "postgres")
-        host = os.environ.get("DB_HOST", "34.95.172.190")
-        port = os.environ.get("DB_PORT", "5432")
-        database = os.environ.get("DB_NAME", "postgres")
-    
-    # SIEMPRE usar la contraseña por defecto "e"
-    # Escapar caracteres especiales en la contraseña
-    password_escaped = quote_plus(DEFAULT_PASSWORD)
-    
-    # Reconstruir la URL completa con la contraseña correcta
-    netloc = f"{user}:{password_escaped}@{host}"
-    if port:
-        netloc += f":{port}"
-    
-    DATABASE_URL = f"postgresql://{netloc}/{database}"
-    
-    # Establecer la URL completa en el entorno para que otros módulos la usen
-    os.environ["DATABASE_URL"] = DATABASE_URL
-    
-    print(f"✅ DATABASE_URL configurada con contraseña por defecto.")
-    print(f"📊 Servidor: {host}:{port}")
-    print(f"📊 Base de datos: {database}")
-    print(f"📊 Usuario: {user}\n")
-    
-    return DATABASE_URL
+        dbname = parsed.path.lstrip("/") or "postgres"
+        query = parsed.query # sslmode=require
 
-# --- [INICIO PROTOCOLO DE SEGURIDAD MANUAL V11.2] ---
-# Asegurar que DATABASE_URL tenga contraseña antes de crear el engine
-DATABASE_URL = _ensure_database_password()
-# --- [FIN PROTOCOLO DE SEGURIDAD MANUAL V11.2] ---
+        # Validación anti-fantasma
+        if host == "34.95.172.190":
+            print("🚨 ALERTA: IP Fantasma detectada en .env! Forzando corrección a 104.197.57.226")
+            host = "104.197.57.226"
 
-# Crear el engine solo después de tener la URL completa
+        # Reconstrucción limpia
+        password_escaped = quote_plus(password)
+        netloc = f"{user}:{password_escaped}@{host}:{port}"
+        
+        clean_url = f"postgresql://{netloc}/{dbname}"
+        if query:
+            clean_url += f"?{query}"
+            
+        print(f"✅ CONEXIÓN DB: {host}:{port} ({dbname})")
+        return clean_url
+
+    except Exception as e:
+        print(f"❌ Error parseando URL de DB: {e}")
+        return url_candidate
+
+# --- [INICIO] ---
+DATABASE_URL = _get_clean_database_url()
+# Actualizamos os.environ para que otras libs (como alembic o scripts) la vean correcta
+os.environ["DATABASE_URL"] = DATABASE_URL
+
 engine = create_engine(DATABASE_URL)
-
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Esta es la Base declarativa que usarán todos nuestros modelos ORM
 Base = declarative_base()
 
-# --- [INICIO PARCHE V10.7 (FUNCIÓN FALTANTE)] ---
 def get_db():
-    """Generador de sesión de DB para FastAPI (Dependency Injection)."""
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
-# --- [FIN PARCHE V10.7] ---
 
 print("--- [Atenea V10.7]: Capa ORM (SQLAlchemy) inicializada. ---")

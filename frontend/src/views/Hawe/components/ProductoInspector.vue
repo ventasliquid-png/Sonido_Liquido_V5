@@ -57,7 +57,7 @@
 
               <!-- Código Visual -->
               <div class="space-y-1">
-                  <label class="text-xs font-bold text-white/60 uppercase">Código Visual (Corto)</label>
+                  <label class="text-xs font-bold text-white/60 uppercase">Código Visual</label>
                   <input 
                     v-model="localProducto.codigo_visual"
                     type="text" 
