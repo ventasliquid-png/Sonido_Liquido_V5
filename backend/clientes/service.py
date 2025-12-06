@@ -183,14 +183,27 @@ class ClienteService:
         # Check if any is active
         active_clients = [c for c in clients if c.activo]
         
-        summary_list = [
-            schemas.ClienteSummary(
+        summary_list = []
+        for c in clients:
+            # Find main address
+            # Assuming c.domicilios is accessible (lazy check)
+            domicilio_str = "Sin Domicilio"
+            if c.domicilios:
+                # Privilegiar Fiscal o Entrega
+                fiscal = next((d for d in c.domicilios if d.es_fiscal), None)
+                if fiscal:
+                    domicilio_str = f"{fiscal.calle} {fiscal.numero}, {fiscal.localidad}"
+                else:
+                    first = c.domicilios[0]
+                    domicilio_str = f"{first.calle} {first.numero}, {first.localidad}"
+            
+            summary_list.append(schemas.ClienteSummary(
                 id=c.id, 
                 razon_social=c.razon_social, 
                 nombre_fantasia=getattr(c, 'nombre_fantasia', None), 
+                domicilio_principal=domicilio_str,
                 activo=c.activo
-            ) for c in clients
-        ]
+            ))
         
         if active_clients:
             return schemas.CuitCheckResponse(status="EXISTS", existing_clients=summary_list)

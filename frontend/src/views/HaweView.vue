@@ -138,7 +138,7 @@
                 <template #actions>
                     <!-- Toggle Switch -->
                     <button 
-                        @click.stop="handleInspectorDelete(cliente)"
+                        @click.stop="toggleClienteStatus(cliente)"
                         v-if="cliente.activo"
                         class="relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none shrink-0 ml-2 bg-green-500/50"
                         title="Desactivar"
@@ -146,7 +146,7 @@
                         <span class="inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform shadow-sm translate-x-3.5" />
                     </button>
                      <button 
-                        @click.stop="handleInspectorDelete(cliente)"
+                        @click.stop="toggleClienteStatus(cliente)"
                         v-else
                         class="relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none shrink-0 ml-2 bg-red-500/50"
                         title="Activar"
@@ -180,9 +180,23 @@
                 
                 <div class="flex items-center gap-4">
                     <span class="text-xs text-white/50">{{ getSegmentoName(cliente.segmento_id) }}</span>
-                    <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full" :class="cliente.activo ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'">
-                        {{ cliente.activo ? 'Activo' : 'Inactivo' }}
-                    </span>
+                    <!-- List Toggle Switch -->
+                    <button 
+                        @click.stop="toggleClienteStatus(cliente)"
+                        v-if="cliente.activo"
+                        class="relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none shrink-0 ml-2 bg-green-500/50"
+                        title="Desactivar"
+                    >
+                        <span class="inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform shadow-sm translate-x-3.5" />
+                    </button>
+                    <button 
+                        @click.stop="toggleClienteStatus(cliente)"
+                        v-else
+                        class="relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none shrink-0 ml-2 bg-red-500/50"
+                        title="Activar"
+                    >
+                        <span class="inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform shadow-sm translate-x-1" />
+                    </button>
                     <i class="fas fa-chevron-right text-white/20 group-hover:text-white/50 transition-colors"></i>
                 </div>
             </div>
@@ -198,6 +212,8 @@
         @close="closeInspector"
         @save="handleInspectorSave"
         @delete="handleInspectorDelete"
+        @manage-segmentos="handleManageSegmentos"
+        @switch-client="handleSwitchClient"
     />
 
     <!-- Modals & Context Menu -->
@@ -416,9 +432,16 @@ const getSegmentoName = (id) => {
     return seg ? seg.nombre : ''
 }
 
-const selectCliente = (cliente) => {
+const selectCliente = async (cliente) => {
     selectedId.value = cliente.id
-    selectedCliente.value = { ...cliente } // Clone for editing
+    // Fetch full details (including domicilios) because list view might exclude them
+    try {
+        const fullCliente = await clienteStore.fetchClienteById(cliente.id)
+        selectedCliente.value = { ...fullCliente }
+    } catch (e) {
+        console.error("Error fetching full client details", e)
+        selectedCliente.value = { ...cliente } // Fallback
+    }
 }
 
 const openNewCliente = () => {
@@ -427,7 +450,8 @@ const openNewCliente = () => {
         razon_social: '',
         cuit: '',
         activo: true,
-        condicion_iva: 'Responsable Inscripto',
+        condicion_iva_id: null, // Should match model
+        segmento_id: null,
         domicilios: [],
         vinculos: []
     }
@@ -465,6 +489,25 @@ const handleInspectorDelete = async (clienteData) => {
     }
 }
 
+const toggleClienteStatus = async (cliente) => {
+    const newStatus = !cliente.activo
+    
+    // Logic: Active -> Inactive requires confirmation
+    if (cliente.activo && !newStatus) {
+        if (!confirm(`¿Está seguro de desactivar al cliente ${cliente.razon_social}?`)) {
+            return
+        }
+    }
+    
+    try {
+        await clienteStore.updateCliente(cliente.id, { ...cliente, activo: newStatus })
+        notificationStore.add(newStatus ? 'Cliente reactivado' : 'Cliente desactivado', 'success')
+    } catch (error) {
+        console.error(error)
+        notificationStore.add('Error al cambiar estado', 'error')
+    }
+}
+
 const handleKeydown = (e) => {
     // Command Palette Shortcut (Ctrl+K)
     if (e.ctrlKey && e.key === 'k') {
@@ -482,6 +525,20 @@ const handleKeydown = (e) => {
 onUnmounted(() => {
     window.removeEventListener('keydown', handleKeydown)
 })
+
+const handleManageSegmentos = () => {
+    showSegmentoList.value = true
+}
+
+const handleSwitchClient = async (clientId) => {
+    selectedId.value = clientId
+    try {
+        const fullCliente = await clienteStore.fetchClienteById(clientId)
+        selectedCliente.value = { ...fullCliente }
+    } catch (e) {
+        console.error("Error switching client", e)
+    }
+}
 
 const handleClientContextMenu = (e, client) => {
     contextMenu.show = true

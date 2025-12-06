@@ -119,6 +119,7 @@ class ClienteSummary(BaseModel):
     id: UUID
     razon_social: str
     nombre_fantasia: Optional[str] = None
+    domicilio_principal: Optional[str] = None
     activo: bool
 
     class Config:

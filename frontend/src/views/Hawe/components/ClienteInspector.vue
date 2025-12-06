@@ -1,26 +1,26 @@
 <template>
   <aside class="w-96 border-l border-cyan-900/30 bg-[#05151f]/95 flex flex-col z-30 shadow-2xl overflow-hidden h-full backdrop-blur-xl">
+    <!-- Persistent Header -->
+    <div class="flex justify-between items-center p-6 border-b border-cyan-900/20 bg-[#0a253a]/30 shrink-0">
+        <div>
+            <h2 class="text-lg font-bold text-cyan-100 leading-tight">
+                {{ headerTitle }}
+            </h2>
+            <p v-if="headerSubtitle" class="text-xs text-cyan-400/50 font-mono mt-1">{{ headerSubtitle }}</p>
+        </div>
+        <button v-if="modelValue || isNew" @click="$emit('close')" class="text-cyan-900/50 hover:text-cyan-100 transition-colors">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
     <!-- Empty State -->
-    <div v-if="!modelValue && !isNew" class="flex flex-col items-center justify-center h-full text-cyan-900/40 p-6 text-center">
+    <div v-if="!modelValue && !isNew" class="flex-1 flex flex-col items-center justify-center text-cyan-900/40 p-6 text-center">
         <i class="fas fa-user text-4xl mb-4"></i>
         <p>Seleccione un cliente para ver sus propiedades</p>
     </div>
 
     <!-- Form Content -->
-    <div v-else class="flex flex-col h-full">
-        <!-- Header -->
-        <div class="flex justify-between items-center p-6 border-b border-cyan-900/20 bg-[#0a253a]/30 shrink-0">
-            <div>
-                <h2 class="text-lg font-bold text-cyan-100 leading-tight">
-                    {{ isNew ? 'Nuevo Cliente' : 'Editar Cliente' }}
-                </h2>
-                <p v-if="!isNew" class="text-xs text-cyan-400/50 font-mono mt-1">{{ form.cuit || 'Sin CUIT' }}</p>
-            </div>
-            <button @click="$emit('close')" class="text-cyan-900/50 hover:text-cyan-100 transition-colors">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-
+    <div v-else class="flex-1 flex flex-col min-h-0">
         <!-- Tabs -->
         <div class="flex border-b border-cyan-900/20 shrink-0 bg-[#0a253a]/10">
             <button 
@@ -75,17 +75,58 @@
 
                 <!-- Fields -->
                 <div>
-                    <label class="block text-xs font-bold uppercase text-cyan-900/50 mb-1">Razón Social *</label>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-cyan-900/50 mb-1">Razón Social <span class="text-red-400">*</span></label>
                     <input v-model="form.razon_social" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors placeholder-cyan-900/30" placeholder="Ej: Empresa S.A." />
                 </div>
-
-                <div>
-                    <label class="block text-xs font-bold uppercase text-cyan-900/50 mb-1">CUIT</label>
-                    <input v-model="form.cuit" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors font-mono placeholder-cyan-900/30" placeholder="00-00000000-0" maxlength="13" />
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold uppercase text-cyan-900/50 mb-1">Segmento</label>
+                    <label class="block text-xs font-bold uppercase text-cyan-900/50 mb-1">CUIT <span class="text-red-400">*</span></label>
+                    <input v-model="form.cuit" @input="formatCuitInput" @blur="checkCuitBackend" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors font-mono placeholder-cyan-900/30" placeholder="00-00000000-0" maxlength="13" />
+                    
+                    <!-- Alert: Duplicated CUIT -->
+                    <div v-if="cuitWarningClients.length > 0 && !cuitWarningDismissed" class="mt-2 bg-yellow-900/20 border border-yellow-500/30 rounded p-3 text-xs animate-pulse-once">
+                        <div class="flex justify-between items-start mb-2">
+                            <p class="text-yellow-400 font-bold flex items-center gap-2">
+                                <i class="fas fa-exclamation-triangle"></i> CUIT compartido:
+                            </p>
+                            <button @click="dismissCuitWarning" class="text-[10px] bg-yellow-500/20 hover:bg-yellow-500/40 text-yellow-200 px-2 py-0.5 rounded border border-yellow-500/30 transition-colors uppercase font-bold" title="Ignorar advertencia y continuar creación">
+                                Ok, Nueva Sede
+                            </button>
+                        </div>
+                        
+                        <p class="text-[10px] text-yellow-500/70 mb-2 italic">
+                            Este CUIT ya existe. Doble click para editar el existente, o "Ok" para crear nueva sede.
+                        </p>
+
+                        <ul class="space-y-1 max-h-32 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-yellow-700/50">
+                            <li 
+                                v-for="dup in cuitWarningClients" 
+                                :key="dup.id" 
+                                @dblclick="selectExistingClient(dup)"
+                                class="text-yellow-200/70 hover:text-yellow-100 hover:bg-yellow-500/10 cursor-pointer bg-black/20 p-2 rounded border border-transparent hover:border-yellow-500/30 transition-all select-none"
+                                title="Doble click para cargar este cliente"
+                            >
+                                <div class="flex justify-between items-center">
+                                    <span class="font-bold">{{ dup.razon_social }}</span>
+                                    <i class="fas fa-external-link-alt text-[10px] opacity-50"></i>
+                                </div>
+                                <div class="text-[10px] opacity-70 mt-0.5">{{ dup.domicilio_principal || 'Sin domicilio registrado' }}</div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <p v-if="cuitError" class="text-[10px] text-red-400 mt-1">{{ cuitError }}</p>
+                </div>
+
+                <div>
+                    <div class="flex justify-between mb-1">
+                        <label class="block text-xs font-bold uppercase text-cyan-900/50">Segmento <span class="text-red-400">*</span></label>
+                        <button @click="$emit('manage-segmentos')" class="text-[10px] uppercase font-bold text-cyan-500 hover:text-cyan-400 focus:outline-none" title="Administrar Segmentos (F4)">
+                            <i class="fas fa-cog"></i> ABM
+                        </button>
+                    </div>
                     <select v-model="form.segmento_id" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors appearance-none">
                         <option :value="null">Sin Segmento</option>
                         <option v-for="seg in segmentos" :key="seg.id" :value="seg.id">{{ seg.nombre }}</option>
@@ -93,13 +134,49 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold uppercase text-cyan-900/50 mb-1">Condición IVA</label>
-                    <select v-model="form.condicion_iva" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors appearance-none">
-                        <option value="Responsable Inscripto">Responsable Inscripto</option>
-                        <option value="Monotributista">Monotributista</option>
-                        <option value="Exento">Exento</option>
-                        <option value="Consumidor Final">Consumidor Final</option>
+                    <div class="flex justify-between mb-1">
+                        <label class="block text-xs font-bold uppercase text-cyan-900/50">Condición IVA <span class="text-red-400">*</span></label>
+                        <button @click="showCondicionIvaForm = true" class="text-[10px] uppercase font-bold text-cyan-500 hover:text-cyan-400 focus:outline-none" title="Nueva Condición">
+                            <i class="fas fa-plus"></i> NUEVA
+                        </button>
+                    </div>
+                    <select v-model="form.condicion_iva_id" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors appearance-none">
+                        <option :value="null">Seleccionar...</option>
+                        <option v-for="cond in condicionesIva" :key="cond.id" :value="cond.id">{{ cond.nombre }}</option>
                     </select>
+                </div>
+
+
+                <!-- DOMICILIO FISCAL (Solo Alta) -->
+                <div v-if="isNew" class="pt-4 border-t border-cyan-900/20">
+                    <h3 class="text-xs font-bold text-cyan-400 mb-3 flex items-center gap-2">
+                        <i class="fas fa-map-marker-alt"></i> DOMICILIO FISCAL (Obligatorio)
+                    </h3>
+                    <div class="space-y-3">
+                        <div>
+                            <input v-model="fiscalForm.calle" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors placeholder-cyan-900/30" placeholder="Calle *" />
+                        </div>
+                        <div class="flex gap-2">
+                             <input v-model="fiscalForm.numero" class="w-1/3 bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors placeholder-cyan-900/30" placeholder="Altura *" />
+                             <input v-model="fiscalForm.localidad" class="w-2/3 bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors placeholder-cyan-900/30" placeholder="Localidad *" />
+                        </div>
+                        <div>
+                            <select v-model="fiscalForm.provincia_id" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors appearance-none text-xs">
+                                <option :value="null">Provincia *</option>
+                                <option v-for="prov in provincias" :key="prov.id" :value="prov.id">{{ prov.nombre }}</option>
+                            </select>
+                        </div>
+                         <div>
+                            <select v-model="fiscalForm.transporte_id" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors appearance-none text-xs">
+                                <option :value="null">Transporte Sugerido</option>
+                                <option v-for="trans in transportes" :key="trans.id" :value="trans.id">{{ trans.nombre }}</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="isNew" class="pt-2 text-[10px] text-red-400/80 italic text-right">
+                    * Campos Obligatorios
                 </div>
 
                 <div class="pt-4 border-t border-cyan-900/20">
@@ -126,13 +203,13 @@
                         <p class="text-sm font-medium text-cyan-100 mt-1">{{ dom.calle }} {{ dom.numero }}</p>
                         <p class="text-xs text-cyan-200/50">{{ dom.localidad }}</p>
                         
-                        <!-- Edit Button (Placeholder) -->
-                        <button class="absolute top-2 right-2 text-cyan-900/30 hover:text-cyan-100 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <!-- Edit Button -->
+                        <button @click="openDomicilioForm(dom)" class="absolute top-2 right-2 text-cyan-900/30 hover:text-cyan-100 opacity-0 group-hover:opacity-100 transition-opacity">
                             <i class="fas fa-pencil-alt"></i>
                         </button>
                     </div>
                     
-                    <button class="w-full py-2 border border-dashed border-cyan-900/30 rounded-lg text-cyan-900/50 hover:text-cyan-400 hover:border-cyan-500/30 hover:bg-cyan-500/5 transition-all text-xs font-bold uppercase">
+                    <button @click="openDomicilioForm()" class="w-full py-2 border border-dashed border-cyan-900/30 rounded-lg text-cyan-900/50 hover:text-cyan-400 hover:border-cyan-500/30 hover:bg-cyan-500/5 transition-all text-xs font-bold uppercase">
                         <i class="fas fa-plus mr-1"></i> Agregar Domicilio
                     </button>
                 </div>
@@ -166,6 +243,25 @@
                         <i class="fas fa-plus mr-1"></i> Agregar Contacto
                     </button>
                 </div>
+
+    <!-- Domicilio Form Overlay -->
+    <div v-if="showDomicilioForm" class="absolute inset-0 z-50">
+        <DomicilioForm 
+            :show="showDomicilioForm" 
+            :domicilio="selectedDomicilio" 
+            @close="showDomicilioForm = false"
+            @saved="handleDomicilioSaved"
+        />
+    </div>
+
+    <!-- Condicion IVA Form Overlay -->
+    <div v-if="showCondicionIvaForm" class="absolute inset-0 z-50">
+        <CondicionIvaForm 
+            :show="showCondicionIvaForm" 
+            @close="showCondicionIvaForm = false"
+            @saved="handleCondicionIvaSaved"
+        />
+    </div>
             </div>
 
         </div>
@@ -187,6 +283,10 @@
 <script setup>
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useMaestrosStore } from '../../../stores/maestros'
+import { useClientesStore } from '../../../stores/clientes'
+import { useNotificationStore } from '../../../stores/notification'
+import DomicilioForm from './DomicilioForm.vue'
+import CondicionIvaForm from '../../Maestros/CondicionIvaForm.vue'
 
 const props = defineProps({
     modelValue: {
@@ -199,14 +299,182 @@ const props = defineProps({
     }
 })
 
-const emit = defineEmits(['update:modelValue', 'close', 'save', 'delete'])
+const emit = defineEmits(['update:modelValue', 'close', 'save', 'delete', 'manage-segmentos', 'switch-client'])
 
 const maestrosStore = useMaestrosStore()
+const clienteStore = useClientesStore()
+const notificationStore = useNotificationStore()
+
 const segmentos = computed(() => maestrosStore.segmentos)
+const condicionesIva = computed(() => maestrosStore.condicionesIva)
+const provincias = computed(() => maestrosStore.provincias)
+const transportes = computed(() => maestrosStore.transportes)
 
 const activeTab = ref('general')
 const saving = ref(false)
 const form = ref({})
+const cuitError = ref(null)
+
+const headerTitle = computed(() => {
+    if (!props.modelValue && !props.isNew) return 'Inspector'
+    return props.isNew ? 'Nuevo Cliente' : 'Editar Cliente'
+})
+
+const headerSubtitle = computed(() => {
+    if (!props.isNew && props.modelValue) return form.value.cuit || 'Sin CUIT'
+    return null
+})
+
+const formatCuitInput = () => {
+    let val = form.value.cuit || ''
+    // Allow digits and up to 2 separators (-, _, /)
+    // First remove anything that is not digit or separator
+    val = val.replace(/[^0-9\-_/]/g, '')
+    
+    // Check separator count
+    const separators = val.match(/[\-_/]/g)
+    if (separators && separators.length > 2) {
+        // Keep only first 2
+       // This is complex to do via regex replace on the fly, easier to warn or truncate.
+       // Let's iterate chars
+       let count = 0
+       let newVal = ''
+       for (let char of val) {
+           if (['-', '_', '/'].includes(char)) {
+               count++
+               if (count <= 2) newVal += char
+           } else {
+               newVal += char
+           }
+       }
+       val = newVal
+    }
+    
+    form.value.cuit = val.slice(0, 13) // Max 13 chars
+    cuitError.value = null
+    // Reset warning on typing
+    cuitWarningDismissed.value = false
+    if (val.length < 13) cuitWarningClients.value = []
+}
+
+// CUIT Multi-Sede Warning System
+const cuitWarningClients = ref([])
+const cuitWarningDismissed = ref(false)
+
+const dismissCuitWarning = () => {
+    cuitWarningDismissed.value = true
+}
+
+const checkCuitBackend = async () => {
+    // Check if we have a potentially valid CUIT (at least 11 digits, valid structure)
+    if (!form.value.cuit) return
+    if (!validateCuit(form.value.cuit)) return 
+    
+    try {
+        const res = await clienteStore.checkCuit(form.value.cuit, props.isNew ? null : form.value.id)
+        if (res.status === 'EXISTS' || res.status === 'INACTIVE') {
+            cuitWarningClients.value = res.existing_clients
+            // Do not reset dismissed flag here if it was already dismissed for THIS cuit?
+            // Actually users might tab out multiple times. If they dismissed it, keep it dismissed unless they changed input.
+            // But 'cuitWarningDismissed' is reset in 'formatCuitInput' (on input). 
+            // So here we don't need to force reset it to false, allowing persistance if user just tabs out again.
+            // However, if we found new results (different list?), maybe we should?
+            // For simplicity, if input didn't change (handled by formatCuitInput), we respect current dismissed state.
+        } else {
+            cuitWarningClients.value = []
+            cuitWarningDismissed.value = false
+        }
+    } catch (e) {
+        console.error("Error checking CUIT:", e)
+    }
+}
+
+const selectExistingClient = (clientSummary) => {
+    if(confirm(`¿Desea descartar el alta y cargar el cliente "${clientSummary.razon_social}"?`)) {
+         emit('switch-client', clientSummary.id)
+    }
+}
+
+const validateCuit = (cuit) => {
+    if (!cuit) return false
+    const clean = cuit.replace(/[^0-9]/g, '')
+    if (clean.length !== 11) return false
+    
+    const multipliers = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2]
+    let total = 0
+    for (let i = 0; i < 10; i++) {
+        total += parseInt(clean[i]) * multipliers[i]
+    }
+    
+    let mod = total % 11
+    let digit = mod === 0 ? 0 : 11 - mod
+    if (digit === 10) digit = 9 // Rare case, typically handled by different algorithm variant but acceptable for standard simplified check
+    
+    // Official algorithm handles 10 slightly differently (Type Z), but standard personal/business CUITs follow this.
+    // If we want to be strict: 
+    // Verification digit is clean[10]
+    const valid = digit === parseInt(clean[10])
+    if (!valid) {
+        cuitError.value = 'CUIT inválido (Dígito verificador incorrecto)'
+    } else {
+        cuitError.value = null
+    }
+    return valid
+}
+
+// Fiscal Form for New Client
+const fiscalForm = ref({
+    calle: '',
+    numero: '',
+    localidad: '',
+    provincia_id: null,
+    transporte_id: null
+})
+
+// Domicilio Management (Editing)
+const showDomicilioForm = ref(false)
+const selectedDomicilio = ref(null)
+
+const openDomicilioForm = (dom = null) => {
+    selectedDomicilio.value = dom
+    showDomicilioForm.value = true
+}
+
+const handleDomicilioSaved = async (domData) => {
+    try {
+        let res;
+        if (domData.id) {
+            res = await clienteStore.updateDomicilio(form.value.id, domData.id, domData)
+            notificationStore.add('Domicilio actualizado', 'success')
+        } else {
+            res = await clienteStore.createDomicilio(form.value.id, domData)
+            notificationStore.add('Domicilio creado', 'success')
+        }
+        
+        // Update local list
+        const idx = form.value.domicilios.findIndex(d => d.id === res.id)
+        if (idx !== -1) {
+            form.value.domicilios[idx] = res
+        } else {
+            form.value.domicilios.push(res)
+        }
+        
+        showDomicilioForm.value = false
+    } catch (error) {
+        console.error(error)
+        notificationStore.add('Error al guardar domicilio', 'error')
+    }
+}
+
+// Condicion IVA Management
+const showCondicionIvaForm = ref(false)
+
+const handleCondicionIvaSaved = async () => {
+    await maestrosStore.fetchCondicionesIva()
+    showCondicionIvaForm.value = false
+    notificationStore.add('Condición de IVA creada', 'success')
+}
+
 
 // Initialize form when modelValue changes
 watch(() => props.modelValue, (newVal) => {
@@ -218,8 +486,18 @@ watch(() => props.modelValue, (newVal) => {
     } else {
         form.value = {}
     }
-    // Reset tab on new selection
-    if (props.isNew) activeTab.value = 'general'
+    
+    // Reset fiscal form
+    if (props.isNew) {
+        activeTab.value = 'general'
+        fiscalForm.value = {
+            calle: '',
+            numero: '',
+            localidad: '',
+            provincia_id: null,
+            transporte_id: null
+        }
+    }
 }, { immediate: true })
 
 const toggleActive = () => {
@@ -234,7 +512,91 @@ const toggleActive = () => {
 const save = async () => {
     saving.value = true
     try {
+        // Validation for New Client
+        if (props.isNew) {
+            if (!fiscalForm.value.calle || !fiscalForm.value.numero || !fiscalForm.value.localidad || !fiscalForm.value.provincia_id) {
+                alert('Por favor complete todos los datos obligatorios del Domicilio Fiscal.')
+                saving.value = false
+                return
+            }
+            if (!form.value.razon_social) {
+                 alert('La Razón Social es obligatoria.')
+                 saving.value = false
+                 return
+            }
+            if (!form.value.cuit) {
+                 alert('El CUIT es obligatorio.')
+                 saving.value = false
+                 return
+            }
+            
+            // CUIT Validation
+            if (!validateCuit(form.value.cuit)) {
+                cuitError.value = 'CUIT inválido (Dígito verificador incorrecto)'
+                saving.value = false
+                return
+            }
+
+            // Soft Duplicate Check (handled by backend warning mostly, but final check here)
+            // Just warn if not already warned?
+            // The requirement says: "Permitir guardar (F10) de todas formas. El operador es quien decide".
+            // So we don't block. but duplicate logic was:
+            
+            // Check Duplicate (Client-side pre-check via Store if loaded, otherwise backend handles it)
+            // Ideally we call an API endpoint to check existence.
+            /* 
+            // OLD BLOCKING LOGIC - REMOVED per requested change
+            const existing = clienteStore.clientes.find(c => c.cuit === form.value.cuit && c.id !== form.value.id)
+            if (existing) {
+                 // ...
+            } 
+            */
+            
+            // Now we set audit flag if duplicates exist but proceed.
+            // Backend create_cliente sets require_auditoria=True if existing.
+            // But we can warn one last time via confirm if warning showed.
+            
+            // FORCE CHECK before saving to ensure state is up to date (e.g. user typed quick and hit F10)
+            await checkCuitBackend()
+            
+            // Check duplicates if NOT DISMISSED
+            if (cuitWarningClients.value.length > 0) {
+                if (cuitWarningDismissed.value) {
+                    // User explicitly dismissed, so we mark for audit but allow
+                    form.value.requiere_auditoria = true
+                } else {
+                    // Not dismissed -> Require confirmation
+                    if(!confirm(`Este CUIT ya existe en ${cuitWarningClients.value.length} clientes. ¿Confirma que es una nueva sede/facultad?`)) {
+                        saving.value = false
+                        return
+                    }
+                    form.value.requiere_auditoria = true
+                }
+            }
+
+            if (!form.value.segmento_id) {
+                alert('El Segmento es obligatorio.')
+                saving.value = false
+                return
+            }
+            if (!form.value.condicion_iva_id) {
+                alert('La Condición IVA es obligatoria.')
+                saving.value = false
+                return
+            }
+            // Add Fiscal Address to payload
+            form.value.domicilios = [{
+                ...fiscalForm.value,
+                es_fiscal: true,
+                es_entrega: true,
+                activo: true,
+                tipo: 'FISCAL' // Assuming backend supports this or defaults
+            }]
+        }
+        
         emit('save', form.value)
+    } catch(e) {
+        console.error(e)
     } finally {
         saving.value = false
     }
@@ -251,13 +613,14 @@ const handleKeydown = (e) => {
         e.preventDefault()
         save()
     }
-    if (e.key === 'Escape') {
+    if (e.key === 'Escape' && !showDomicilioForm.value) { // Don't close inspector if domicile modal is open
         e.preventDefault()
         emit('close')
     }
 }
 
 onMounted(() => {
+    maestrosStore.fetchAll() // Ensure we have masters
     window.addEventListener('keydown', handleKeydown)
 })
 

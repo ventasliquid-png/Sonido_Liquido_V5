@@ -29,6 +29,8 @@ const form = reactive({
     provincia_id: null,
     transporte_id: null,
     tipo: 'ENTREGA', // Default type
+    es_fiscal: false,
+    es_entrega: true,
     activo: true
 });
 
@@ -51,7 +53,8 @@ watch(() => props.domicilio, (newVal) => {
             localidad: newVal.localidad || '',
             provincia_id: newVal.provincia_id || null,
             transporte_id: newVal.transporte_id || null,
-            tipo: newVal.tipo || 'ENTREGA',
+            es_fiscal: newVal.es_fiscal || false,
+            es_entrega: newVal.es_entrega !== undefined ? newVal.es_entrega : true,
             activo: newVal.activo !== undefined ? newVal.activo : true
         });
     } else {
@@ -65,7 +68,8 @@ watch(() => props.domicilio, (newVal) => {
             localidad: '',
             provincia_id: null,
             transporte_id: props.defaultTransportId || null, // Auto-fill transport
-            tipo: 'ENTREGA',
+            es_fiscal: false,
+            es_entrega: true,
             activo: true
         });
     }
@@ -206,6 +210,42 @@ onUnmounted(() => {
                             :class="form.activo ? 'translate-x-6' : 'translate-x-1'"
                         />
                     </button>
+                </div>
+
+                <!-- Flags de Uso -->
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="bg-white/5 p-4 rounded-xl border border-white/10 flex items-center justify-between">
+                            <div>
+                            <label class="block text-xs font-bold text-purple-400 uppercase mb-1">Fiscal</label>
+                            <p class="text-[10px] text-white/40">Dirección legal de facturación</p>
+                            </div>
+                            <button 
+                                @click="form.es_fiscal = !form.es_fiscal"
+                                class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none"
+                                :class="form.es_fiscal ? 'bg-purple-600' : 'bg-gray-700'"
+                            >
+                                <span 
+                                    class="inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform"
+                                    :class="form.es_fiscal ? 'translate-x-4.5' : 'translate-x-1'"
+                                />
+                            </button>
+                    </div>
+                    <div class="bg-white/5 p-4 rounded-xl border border-white/10 flex items-center justify-between">
+                            <div>
+                            <label class="block text-xs font-bold text-blue-400 uppercase mb-1">Entrega</label>
+                            <p class="text-[10px] text-white/40">Habilitado para envíos</p>
+                            </div>
+                            <button 
+                                @click="form.es_entrega = !form.es_entrega"
+                                class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none"
+                                :class="form.es_entrega ? 'bg-blue-600' : 'bg-gray-700'"
+                            >
+                                <span 
+                                    class="inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform"
+                                    :class="form.es_entrega ? 'translate-x-4.5' : 'translate-x-1'"
+                                />
+                            </button>
+                    </div>
                 </div>
 
                 <!-- Bottom Actions -->
