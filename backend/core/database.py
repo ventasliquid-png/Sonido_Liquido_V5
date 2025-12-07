@@ -25,7 +25,7 @@ def _get_clean_database_url():
     if not url_candidate:
         print("⚠️  DATABASE_URL no encontrada en .env. Usando hardcode de seguridad.")
         # Hardcode actualizado a la IP 104.197.57.226
-        url_candidate = "postgresql://postgres:Spawn1743.@104.197.57.226:5432/postgres?sslmode=require"
+        url_candidate = "postgresql://postgres:Spawn1482.@104.197.57.226:5432/postgres?sslmode=require"
 
     # 3. Parsear para asegurar que la contraseña esté bien (aunque venga del file)
     try:
@@ -33,7 +33,7 @@ def _get_clean_database_url():
         
         # Extracción de componentes
         user = parsed.username or "postgres"
-        password = parsed.password or "Spawn1743."
+        password = parsed.password or "Spawn1482."
         host = parsed.hostname or "104.197.57.226" # Forzar nueva IP si falla parseo
         port = parsed.port or "5432"
         dbname = parsed.path.lstrip("/") or "postgres"

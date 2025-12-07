@@ -46,6 +46,13 @@ class CondicionIvaResponse(CondicionIvaBase):
     class Config:
         from_attributes = True
 
+class CondicionIvaUsage(BaseModel):
+    count: int
+    examples: list[str]
+
+class CondicionIvaReplace(BaseModel):
+    target_id: UUID
+
 # --- Lista Precios ---
 class ListaPreciosBase(BaseModel):
     nombre: str

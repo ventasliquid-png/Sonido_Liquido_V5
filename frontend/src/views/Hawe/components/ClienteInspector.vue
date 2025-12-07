@@ -75,10 +75,8 @@
 
                 <!-- Fields -->
                 <div>
-                <div>
-                    <label class="block text-xs font-bold uppercase text-cyan-900/50 mb-1">Razón Social <span class="text-red-400">*</span></label>
-                    <input v-model="form.razon_social" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors placeholder-cyan-900/30" placeholder="Ej: Empresa S.A." />
-                </div>
+                  <label class="block text-xs font-bold uppercase text-cyan-900/50 mb-1">Razón Social <span class="text-red-400">*</span></label>
+                  <input v-model="form.razon_social" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors placeholder-cyan-900/30" placeholder="Ej: Empresa S.A." />
                 </div>
 
                 <div>
@@ -120,6 +118,19 @@
                     <p v-if="cuitError" class="text-[10px] text-red-400 mt-1">{{ cuitError }}</p>
                 </div>
 
+                <div @contextmenu.prevent="openIvaContextMenu" class="cursor-context-menu">
+                    <div class="flex justify-between mb-1">
+                        <label class="block text-xs font-bold uppercase text-cyan-900/50">Condición IVA <span class="text-red-400">*</span></label>
+                        <button @click="openCondicionIva('list')" class="text-[10px] uppercase font-bold text-cyan-500 hover:text-cyan-400 focus:outline-none" title="Administrar Condiciones (ABM)">
+                            <i class="fas fa-cog"></i> ABM
+                        </button>
+                    </div>
+                    <select v-model="form.condicion_iva_id" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors appearance-none">
+                        <option :value="null">Seleccionar...</option>
+                        <option v-for="cond in condicionesIva" :key="cond.id" :value="cond.id">{{ cond.nombre }}</option>
+                    </select>
+                </div>
+
                 <div>
                     <div class="flex justify-between mb-1">
                         <label class="block text-xs font-bold uppercase text-cyan-900/50">Segmento <span class="text-red-400">*</span></label>
@@ -130,19 +141,6 @@
                     <select v-model="form.segmento_id" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors appearance-none">
                         <option :value="null">Sin Segmento</option>
                         <option v-for="seg in segmentos" :key="seg.id" :value="seg.id">{{ seg.nombre }}</option>
-                    </select>
-                </div>
-
-                <div>
-                    <div class="flex justify-between mb-1">
-                        <label class="block text-xs font-bold uppercase text-cyan-900/50">Condición IVA <span class="text-red-400">*</span></label>
-                        <button @click="showCondicionIvaForm = true" class="text-[10px] uppercase font-bold text-cyan-500 hover:text-cyan-400 focus:outline-none" title="Nueva Condición">
-                            <i class="fas fa-plus"></i> NUEVA
-                        </button>
-                    </div>
-                    <select v-model="form.condicion_iva_id" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors appearance-none">
-                        <option :value="null">Seleccionar...</option>
-                        <option v-for="cond in condicionesIva" :key="cond.id" :value="cond.id">{{ cond.nombre }}</option>
                     </select>
                 </div>
 
@@ -243,27 +241,17 @@
                         <i class="fas fa-plus mr-1"></i> Agregar Contacto
                     </button>
                 </div>
-
-    <!-- Domicilio Form Overlay -->
-    <div v-if="showDomicilioForm" class="absolute inset-0 z-50">
-        <DomicilioForm 
-            :show="showDomicilioForm" 
-            :domicilio="selectedDomicilio" 
-            @close="showDomicilioForm = false"
-            @saved="handleDomicilioSaved"
-        />
-    </div>
-
-    <!-- Condicion IVA Form Overlay -->
-    <div v-if="showCondicionIvaForm" class="absolute inset-0 z-50">
-        <CondicionIvaForm 
-            :show="showCondicionIvaForm" 
-            @close="showCondicionIvaForm = false"
-            @saved="handleCondicionIvaSaved"
-        />
-    </div>
             </div>
+        </div>
 
+        <!-- Domicilio Form Overlay - Outside Tabs -->
+        <div v-if="showDomicilioForm" class="absolute inset-0 z-50">
+            <DomicilioForm 
+                :show="showDomicilioForm" 
+                :domicilio="selectedDomicilio" 
+                @close="showDomicilioForm = false"
+                @saved="handleDomicilioSaved"
+            />
         </div>
 
         <!-- Footer Actions -->
@@ -277,6 +265,26 @@
             </button>
         </div>
     </div>
+    
+    <!-- Condicion IVA Form Overlay (Self-Teleported) - MOVED TO ROOT -->
+    <CondicionIvaForm 
+        :show="showCondicionIvaForm"
+        :initial-view="condicionIvaStartView" 
+        @close="showCondicionIvaForm = false"
+        @saved="handleCondicionIvaSaved"
+    />
+
+    <!-- Global Context Menu -->
+    <Teleport to="body">
+        <ContextMenu 
+            v-if="contextMenu.show"
+            v-model="contextMenu.show" 
+            :x="contextMenu.x" 
+            :y="contextMenu.y" 
+            :actions="contextMenu.actions" 
+            @close="contextMenu.show = false"
+        />
+    </Teleport>
   </aside>
 </template>
 
@@ -287,6 +295,7 @@ import { useClientesStore } from '../../../stores/clientes'
 import { useNotificationStore } from '../../../stores/notification'
 import DomicilioForm from './DomicilioForm.vue'
 import CondicionIvaForm from '../../Maestros/CondicionIvaForm.vue'
+import ContextMenu from '../../../components/common/ContextMenu.vue'
 
 const props = defineProps({
     modelValue: {
@@ -468,11 +477,53 @@ const handleDomicilioSaved = async (domData) => {
 
 // Condicion IVA Management
 const showCondicionIvaForm = ref(false)
+const condicionIvaStartView = ref('list')
+
+const openCondicionIva = (view = 'list') => {
+    condicionIvaStartView.value = view
+    showCondicionIvaForm.value = true
+}
 
 const handleCondicionIvaSaved = async () => {
     await maestrosStore.fetchCondicionesIva()
-    showCondicionIvaForm.value = false
-    notificationStore.add('Condición de IVA creada', 'success')
+    // Don't close automatically if in list mode? Or close?
+    // User requested "Alta rápida". If fast add, usually close.
+    if (condicionIvaStartView.value === 'form') {
+         showCondicionIvaForm.value = false
+    } else {
+        // In manager mode, stay open?
+        // But CondicionIvaForm emits 'saved', let's just refresh.
+        // It handles internal view switch if needed.
+    }
+    notificationStore.add('Condición de IVA actualizada', 'success')
+}
+
+// Context Menu Logic
+const contextMenu = ref({
+    show: false,
+    x: 0,
+    y: 0,
+    actions: []
+})
+
+const openIvaContextMenu = (e) => {
+    contextMenu.value = {
+        show: true,
+        x: e.clientX,
+        y: e.clientY,
+        actions: [
+            { 
+                label: 'Administrar (ABM)', 
+                iconClass: 'fas fa-tasks', 
+                handler: () => { openCondicionIva('list') } 
+            },
+            { 
+                label: 'Nueva Condición (+)', 
+                iconClass: 'fas fa-plus', 
+                handler: () => { openCondicionIva('form') } 
+            }
+        ]
+    }
 }
 
 
@@ -513,59 +564,52 @@ const save = async () => {
     saving.value = true
     try {
         // Validation for New Client
+        // Shared Validations (Create & Edit)
+        if (!form.value.razon_social) {
+             alert('La Razón Social es obligatoria.')
+             saving.value = false
+             return
+        }
+        if (!form.value.cuit) {
+             alert('El CUIT es obligatorio.')
+             saving.value = false
+             return
+        }
+        
+        // CUIT Validation
+        if (!validateCuit(form.value.cuit)) {
+            cuitError.value = 'CUIT inválido (Dígito verificador incorrecto)'
+            saving.value = false
+            return
+        }
+
+        if (!form.value.segmento_id) {
+            alert('El Segmento es obligatorio.')
+            saving.value = false
+            return
+        }
+        if (!form.value.condicion_iva_id) {
+            alert('La Condición IVA es obligatoria.')
+            saving.value = false
+            return
+        }
+
+        // Specific Validations for New Client
         if (props.isNew) {
             if (!fiscalForm.value.calle || !fiscalForm.value.numero || !fiscalForm.value.localidad || !fiscalForm.value.provincia_id) {
                 alert('Por favor complete todos los datos obligatorios del Domicilio Fiscal.')
                 saving.value = false
                 return
             }
-            if (!form.value.razon_social) {
-                 alert('La Razón Social es obligatoria.')
-                 saving.value = false
-                 return
-            }
-            if (!form.value.cuit) {
-                 alert('El CUIT es obligatorio.')
-                 saving.value = false
-                 return
-            }
-            
-            // CUIT Validation
-            if (!validateCuit(form.value.cuit)) {
-                cuitError.value = 'CUIT inválido (Dígito verificador incorrecto)'
-                saving.value = false
-                return
-            }
 
-            // Soft Duplicate Check (handled by backend warning mostly, but final check here)
-            // Just warn if not already warned?
-            // The requirement says: "Permitir guardar (F10) de todas formas. El operador es quien decide".
-            // So we don't block. but duplicate logic was:
-            
-            // Check Duplicate (Client-side pre-check via Store if loaded, otherwise backend handles it)
-            // Ideally we call an API endpoint to check existence.
-            /* 
-            // OLD BLOCKING LOGIC - REMOVED per requested change
-            const existing = clienteStore.clientes.find(c => c.cuit === form.value.cuit && c.id !== form.value.id)
-            if (existing) {
-                 // ...
-            } 
-            */
-            
-            // Now we set audit flag if duplicates exist but proceed.
-            // Backend create_cliente sets require_auditoria=True if existing.
-            // But we can warn one last time via confirm if warning showed.
-            
-            // FORCE CHECK before saving to ensure state is up to date (e.g. user typed quick and hit F10)
+            // FORCE CHECK before saving to ensure state is up to date
             await checkCuitBackend()
             
-            // Check duplicates if NOT DISMISSED
+            // Check duplicates
             if (cuitWarningClients.value.length > 0) {
                 if (cuitWarningDismissed.value) {
-                    // User explicitly dismissed, so we mark for audit but allow
                     form.value.requiere_auditoria = true
                 } else {
-                    // Not dismissed -> Require confirmation
                     if(!confirm(`Este CUIT ya existe en ${cuitWarningClients.value.length} clientes. ¿Confirma que es una nueva sede/facultad?`)) {
                         saving.value = false
                         return
@@ -574,23 +618,13 @@ const save = async () => {
                 }
             }
 
-            if (!form.value.segmento_id) {
-                alert('El Segmento es obligatorio.')
-                saving.value = false
-                return
-            }
-            if (!form.value.condicion_iva_id) {
-                alert('La Condición IVA es obligatoria.')
-                saving.value = false
-                return
-            }
             // Add Fiscal Address to payload
             form.value.domicilios = [{
                 ...fiscalForm.value,
                 es_fiscal: true,
                 es_entrega: true,
                 activo: true,
-                tipo: 'FISCAL' // Assuming backend supports this or defaults
+                tipo: 'FISCAL'
             }]
         }
         

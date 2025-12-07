@@ -1,5 +1,11 @@
 # Bitácora de Desarrollo - Sonido Líquido V5
 
+## Protocolo de Personalidad (Identidad Gy)
+*   **Tono:** Cómplice, Ejecutivo y Resolutivo. Evitar la solemnidad excesiva o la timidez ("Timorata").
+*   **Estilo:** "Manos a la obra". Menos disculpas burocráticas, más acción técnica. Se valora la proactividad inteligente.
+*   **Lenguaje:** Uso natural de metáforas de operación, aeronáuticas o de misión crítica (Ej: "Vuelo 411", "Enceder Motores", "Blindaje", "Triangulación").
+*   **Mindset:** El sistema trabaja para el usuario, no al revés. Priorizar la automatización y la "Ingesta Inteligente" sobre la carga manual.
+
 ## Normas de UX / UI (Doctrina DEOU)
 
 ### 1. Atajos de Teclado Globales
@@ -90,6 +96,21 @@ python scripts/index_dev_memory.py
 ---
 
 ## Historial de Cambios Relevantes
+
+### [2025-12-07] Corrección Crítica: Estabilidad en Modales Anidados (Vue 3 / Teleport)
+*   **El Problema "Pantalla Blanca" y Syntax Error:**
+    *   Se presentó un error persistente `Invalid end tag` y posteriormente un crash total de la aplicación.
+    *   **Causa Raíz 1 (Sintaxis):** Al mover el componente `CondicionIvaForm` dentro de `ClienteInspector` para mejorar la UX, se generó un desbalance de etiquetas `</div>` debido a ediciones parciales inseguras.
+    *   **Causa Raíz 2 (Ciclo de Vida):** El componente `CondicionIvaForm` contenía un hook `onUpdated` sin importar (`ReferenceError`), lo que causaba el crash runtime.
+    *   **Lección de Arquitectura (La "Regla de Oro"):**
+        *   **Regla:** NO anidar componentes modales globales (como ABMs o selectores complejos) dentro de bloques condicionales (`v-if`) profundos de pestañas o sub-secciones.
+        *   **Razón:** Si la pestaña cambia (`v-if="activeTab === 'general'"` a `contactos`), el componente se destruye. Si ese componente manejaba estado global o estaba abierto, el comportamiento se rompe.
+        *   **Solución:** Colocar siempre los componentes modales invocados (`CondicionIvaForm`, `DomicilioForm`) en la **raíz del template del componente padre**, fuera de cualquier `v-if` condicional de navegación, controlando su visibilidad puramente con props (`:show`).
+
+*   **Implementación (ClienteInspector.vue):**
+    *   Se reescribió el archivo completo para garantizar la integridad estructural.
+    *   Se implementó `CondicionIvaForm` con prop `initial-view` ('list' o 'form') para soportar tanto gestión general como alta rápida ("Smart ABM").
+    *   Se añadió Menú Contextual (Click Derecho) en el formulario de alta para acceso rápido a ABMs maestros.
 
 ### [2025-12-02] Estabilización Crítica Backend y UI Productos (Sesión Nocturna)
 *   **Backend (Correcciones Críticas):**
@@ -355,3 +376,35 @@ python scripts/index_dev_memory.py
     *   La herramienta de importación (y el sistema en general) debe ser **permisiva en la entrada** pero **estricta en el almacenamiento**.
     *   **Caso de Uso:** El operador copia y pega CUITs desde Órdenes de Compra (PDFs/Mails) que suelen tener guiones, barras o espacios (Ej: `30-11223344-6`).
     *   **Acción:** El sistema debe limpiar automáticamente estos caracteres (`strip`) y guardar solo los 11 dígitos numéricos, ahorrando tiempo de edición manual al usuario. (Nota: Esto ya está parcialmente implementado en el Frontend `ClienteInspector`).
+
+### [2025-12-06] Definición Estratégica: V5 como Producto y Data Intelligence
+Durante una sesión de planificación conceptual ("Charla de Sistemas"), se pergeñaron los siguientes pilares para el futuro del proyecto:
+
+1.  **Visión Comercial de Sonido Líquido V5:**
+    *   **El Nicho:** No competir contra ERPs contables, sino ofrecer una solución para "el que no piensa en sistemas".
+    *   **La Diferencia:** Un sistema que piensa por el usuario. "Sacale una foto a tu cuaderno y yo te ordeno el pedido".
+    *   **Feature Star:** La capacidad de ingerir el caos (Excel, PDFs, Fotos) y devolver orden sin carga manual.
+
+2.  **Estrategia de Migración "Smart Merge" (ARCA + Excel):**
+    *   **El Problema:** El Excel interno de pedidos tiene datos ricos pero sucios (nombres informales). ARCA (AFIP) tiene datos fiscales perfectos pero fríos.
+    *   **La Solución:** Triangulación de datos.
+        *   Si en el Excel dice "Lácteos Poblet - 4 cajas" el 12/03 por $10.000...
+        *   Y en ARCA hay una factura a "Poblet S.A." el 13/03 por $10.000...
+        *   **Match:** El sistema infiere que el cliente informal corresponde a ese CUIT oficial.
+    *   **Resultado:** Construcción automática de una Base de Clientes V5 depurada y enriquecida con historial fiscal real.
+
+
+### [2025-12-07] Consolidación de Maestros y UX Avanzada
+*   **Corrección de Infraestructura:**
+    *   **Conexión DB:** Se resolvió el error `FATAL: password authentication failed` identificando una contraseña desactualizada en el código de fallback (`backend/core/database.py`) y en el servidor PostgreSQL. Se unificó la credencial a la correcta.
+    *   **CORS:** Se ajustó la política CORS para permitir el desarrollo local y depuración segura.
+*   **Potenciación de Maestros (ABM Condición IVA):**
+    *   **API Usage check:** Creación de endpoint `GET .../usage` para verificar dependencias antes del borrado.
+    *   **Wizard de Migración:** Implementación de un asistente visual que intercepta el borrado de condiciones en uso.
+        *   Muestra conteo y ejemplos de clientes afectados.
+        *   Permite **Reasignar** masivamente a otra condición existente.
+        *   Permite **Crear y Reasignar** a una nueva condición en el mismo flujo.
+    *   **Auto-Merge (Unificación):** Detección de duplicados por nombre al editar. Ofrece fusionar el registro actual con el existente, migrando automáticamente los clientes.
+*   **Corrección de Calidad de Datos (ClienteInspector):**
+    *   **Validación Estricta:** Se extendió la validación de campos obligatorios (Razón Social, CUIT, Segmento, Condición IVA) también a la **edición** de clientes, evitando inconsistencias como guardar con "Seleccionar..." (valor nulo).
+    *   **UX:** Se mejoró el comportamiento de los selectores para prevenir selecciones inválidas accidentales.

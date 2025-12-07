@@ -117,6 +117,36 @@ class MaestrosService:
         db.commit()
         return True
 
+    @staticmethod
+    def get_condicion_iva_usage(db: Session, id: UUID) -> schemas.CondicionIvaUsage:
+        from backend.clientes.models import Cliente
+        count = db.query(Cliente).filter(Cliente.condicion_iva_id == id).count()
+        examples = []
+        if count > 0:
+            examples = [c.razon_social for c in db.query(Cliente).filter(Cliente.condicion_iva_id == id).limit(5).all()]
+        return schemas.CondicionIvaUsage(count=count, examples=examples)
+
+    @staticmethod
+    def replace_and_delete_condicion_iva(db: Session, id: UUID, target_id: UUID) -> bool:
+        from backend.clientes.models import Cliente
+        
+        # 0. Check existence
+        source = MaestrosService.get_condicion_iva(db, id)
+        target = MaestrosService.get_condicion_iva(db, target_id)
+        if not source or not target:
+            return False
+            
+        # 1. Update Clients
+        db.query(Cliente).filter(Cliente.condicion_iva_id == id).update(
+            {Cliente.condicion_iva_id: target_id}, 
+            synchronize_session=False
+        )
+        
+        # 2. Delete Old Condition
+        db.delete(source)
+        db.commit()
+        return True
+
     # --- Listas de Precios ---
     @staticmethod
     def get_listas_precios(db: Session, status: str = "active") -> List[models.ListaPrecios]:

@@ -294,11 +294,11 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:3000", # Por si acaso
-]
+
+origins = ["*"]
+
+
+print(f"--- [CORS Config] Allowed Origins: {origins} ---")
 
 app.add_middleware(
     CORSMiddleware,

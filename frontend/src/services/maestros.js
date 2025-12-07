@@ -14,6 +14,12 @@ export default {
     deleteCondicionIva(id) {
         return api.delete(`/maestros/condiciones-iva/${id}`);
     },
+    getCondicionIvaUsage(id) {
+        return api.get(`/maestros/condiciones-iva/${id}/usage`);
+    },
+    replaceCondicionIva(id, targetId) {
+        return api.post(`/maestros/condiciones-iva/${id}/replace`, { target_id: targetId });
+    },
     getProvincias() {
         return api.get('/maestros/provincias');
     },

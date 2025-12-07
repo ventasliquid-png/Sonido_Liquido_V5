@@ -55,6 +55,16 @@ def delete_condicion_iva(id: UUID, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Condición de IVA no encontrada")
     return None
 
+@router.get("/condiciones-iva/{id}/usage", response_model=schemas.CondicionIvaUsage)
+def read_condicion_iva_usage(id: UUID, db: Session = Depends(get_db)):
+    return service.MaestrosService.get_condicion_iva_usage(db, id)
+
+@router.post("/condiciones-iva/{id}/replace", status_code=status.HTTP_200_OK)
+def replace_condicion_iva(id: UUID, payload: schemas.CondicionIvaReplace, db: Session = Depends(get_db)):
+    if not service.MaestrosService.replace_and_delete_condicion_iva(db, id, payload.target_id):
+        raise HTTPException(status_code=404, detail="Condición de IVA origen o destino no encontrada")
+    return {"message": "Reasignación y eliminación completada"}
+
 @router.get("/tipos-contacto", response_model=List[schemas.TipoContactoResponse])
 def read_tipos_contacto(db: Session = Depends(get_db)):
     return service.MaestrosService.get_tipos_contacto(db)

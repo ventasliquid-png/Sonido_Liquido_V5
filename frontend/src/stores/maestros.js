@@ -159,8 +159,9 @@ export const useMaestrosStore = defineStore('maestros', {
         },
         async createCondicionIva(data) {
             try {
-                await maestrosService.createCondicionIva(data);
+                const res = await maestrosService.createCondicionIva(data);
                 await this.fetchCondicionesIva();
+                return res.data;
             } catch (error) {
                 throw error;
             }
