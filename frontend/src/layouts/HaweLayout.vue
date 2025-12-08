@@ -7,7 +7,7 @@
     <main class="flex-1 relative overflow-hidden">
       <router-view v-slot="{ Component }">
         <transition name="fade" mode="out-in">
-          <component :is="Component" />
+          <component :is="Component" :key="route.path" />
         </transition>
       </router-view>
     </main>
@@ -23,7 +23,8 @@ const route = useRoute();
 
 const currentTheme = computed(() => {
     if (route.name === 'Rubros') return 'rose';
-    if (route.name === 'Transportes') return 'orange';
+    if (['Transportes', 'Contactos'].includes(route.name)) return 'amber';
+    if (['Pedidos'].includes(route.name)) return 'green';
     if (['HaweHome', 'HaweClientCanvas'].includes(route.name)) return 'cyan';
     return 'cyan'; // Default
 });

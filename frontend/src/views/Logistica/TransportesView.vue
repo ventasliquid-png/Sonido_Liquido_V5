@@ -1,11 +1,10 @@
 <template>
-  <div class="flex h-screen w-full bg-[var(--hawe-bg-main)] text-gray-200 overflow-hidden font-sans">
-    <!-- Sidebar removed (handled by Layout) -->
-
+  <div class="flex h-screen w-full bg-[#1f1605] text-gray-200 overflow-hidden font-sans">
+    
     <!-- Main Content Area -->
     <main class="flex flex-1 flex-col relative min-w-0">
       <!-- Top Bar -->
-      <header class="relative z-20 flex h-16 items-center justify-between border-b border-white/10 bg-black/10 px-6 backdrop-blur-sm shrink-0">
+      <header class="relative z-20 flex h-16 items-center justify-between border-b border-amber-900/30 bg-amber-900/10 px-6 backdrop-blur-sm shrink-0">
         <div class="flex items-center gap-4">
             <h1 class="font-outfit text-xl font-semibold text-white truncate">
                 Explorador de Transportes
@@ -149,8 +148,13 @@
                             <i class="fas fa-truck"></i>
                         </div>
                         <div class="min-w-0">
-                            <h3 class="font-bold text-white leading-tight group-hover:text-orange-300 transition-colors" :class="{ 'truncate': hoveredCardId !== transporte.id }">{{ transporte.nombre }}</h3>
-                            <p class="text-xs text-white/50" :class="{ 'truncate': hoveredCardId !== transporte.id }">{{ transporte.telefono_reclamos || 'Sin teléfono' }}</p>
+                            <h3 class="font-bold text-white leading-tight group-hover:text-orange-300 transition-colors" :class="{ 'truncate': hoveredCardId !== transporte.id }">
+                                {{ transporte.nombre }}
+                                <i v-if="transporte.servicio_retiro_domicilio" class="fas fa-dolly text-orange-400 ml-1" title="Retira a Domicilio"></i>
+                            </h3>
+                            <p class="text-xs text-white/50" :class="{ 'truncate': hoveredCardId !== transporte.id }">
+                                <i class="fab fa-whatsapp text-green-400 mr-1"></i>{{ transporte.whatsapp || 'Sin WhatsApp' }}
+                            </p>
                         </div>
                     </div>
                     <!-- Inline Toggle -->
@@ -203,8 +207,8 @@
                     </div>
                     <div class="min-w-0 flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <h3 class="font-bold text-white truncate">{{ transporte.nombre }}</h3>
-                        <p class="text-sm text-white/50 truncate hidden sm:block">{{ transporte.telefono_reclamos || '---' }}</p>
-                        <p class="text-sm text-white/50 truncate hidden sm:block">{{ transporte.web_tracking || '---' }}</p>
+                        <p class="text-sm text-white/50 truncate hidden sm:block"><i class="fab fa-whatsapp text-green-400 mr-1"></i>{{ transporte.whatsapp || '---' }}</p>
+                        <p class="text-xs text-white/30 truncate hidden sm:block">{{ transporte.direccion || 'Sin direccion' }}</p>
                     </div>
                 </div>
                 
@@ -238,103 +242,242 @@
 
     <!-- Right Inspector Panel -->
     <aside 
-        class="w-80 border-l border-gray-800 bg-gray-900/95 flex flex-col z-30 shadow-2xl overflow-hidden"
+        class="w-96 border-l border-amber-900/30 bg-[#140e03]/95 flex flex-col z-30 shadow-2xl overflow-hidden"
     >
         <div v-if="!selectedTransporte" class="flex flex-col items-center justify-center h-full text-white/30 p-6 text-center">
             <i class="fas fa-truck text-4xl mb-4"></i>
             <p>Seleccione un transporte para ver sus detalles</p>
         </div>
 
-        <div class="p-6 flex flex-col h-full min-w-[20rem]" v-else>
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-lg font-bold text-white">
-                    {{ selectedId === 'new' ? 'Nuevo Transporte' : 'Editar Transporte' }}
-                </h2>
-                <button @click="closeInspector" class="text-white/40 hover:text-white transition-colors">
-                    <i class="fas fa-times"></i>
-                </button>
+        <div class="flex flex-col h-full min-w-[24rem]" v-else>
+            <!-- Inspector Header -->
+            <div class="p-6 pb-2">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold text-amber-500">
+                        {{ selectedId === 'new' ? 'Nuevo Transporte' : 'Editar Transporte' }}
+                    </h2>
+                    <button @click="closeInspector" class="text-white/40 hover:text-white transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <!-- Tabs -->
+                <div class="flex border-b border-white/10">
+                    <button 
+                        @click="activeTab = 'general'"
+                        class="flex-1 pb-2 text-sm font-bold transition-colors border-b-2"
+                        :class="activeTab === 'general' ? 'border-amber-500 text-amber-500' : 'border-transparent text-white/40 hover:text-white'"
+                    >
+                        General
+                    </button>
+                    <button 
+                        @click="activeTab = 'sedes'"
+                        class="flex-1 pb-2 text-sm font-bold transition-colors border-b-2"
+                        :class="activeTab === 'sedes' ? 'border-amber-500 text-amber-500' : 'border-transparent text-white/40 hover:text-white'"
+                        :disabled="selectedId === 'new'"
+                    >
+                        Sedes
+                    </button>
+                </div>
             </div>
         
-        <div class="space-y-4 flex-1 overflow-y-auto">
-            <!-- Active Toggle -->
-            <div class="flex items-center justify-between bg-white/5 p-3 rounded-lg border border-white/10">
-                <span class="text-sm font-bold text-white">Estado</span>
-                <div class="flex items-center gap-2">
-                    <span class="text-[10px] font-bold uppercase" :class="selectedTransporte.activo ? 'text-green-400' : 'text-red-400'">
-                        {{ selectedTransporte.activo ? 'ACTIVO' : 'INACTIVO' }}
-                    </span>
-                    <button 
-                        @click="toggleSelectedTransporteActive"
-                        class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none"
-                        :class="selectedTransporte.activo ? 'bg-green-500/50' : 'bg-red-500/50'"
+            <div class="flex-1 overflow-y-auto p-6 pt-2 space-y-4" v-if="activeTab === 'general'">
+                <!-- Active Toggle -->
+                <div class="flex items-center justify-between bg-white/5 p-3 rounded-lg border border-white/10">
+                    <span class="text-sm font-bold text-white">Estado</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-bold uppercase" :class="selectedTransporte.activo ? 'text-green-400' : 'text-red-400'">
+                            {{ selectedTransporte.activo ? 'ACTIVO' : 'INACTIVO' }}
+                        </span>
+                        <button 
+                            @click="toggleSelectedTransporteActive"
+                            class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none"
+                            :class="selectedTransporte.activo ? 'bg-green-500/50' : 'bg-red-500/50'"
+                        >
+                            <span 
+                                class="inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm"
+                                :class="selectedTransporte.activo ? 'translate-x-4.5' : 'translate-x-1'"
+                            />
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase text-white/40 mb-1">Nombre *</label>
+                    <input v-model="selectedTransporte.nombre" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-orange-400 outline-none transition-colors" placeholder="Ej: Via Cargo" />
+                </div>
+
+                <!-- New Fields V5 -->
+                <div>
+                    <label class="block text-xs font-bold uppercase text-white/40 mb-1">Dirección Sede Central</label>
+                    <input v-model="selectedTransporte.direccion" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-orange-400 outline-none transition-colors" placeholder="Av. Principal 1234" />
+                </div>
+                 <div class="grid grid-cols-2 gap-2">
+                    <div>
+                         <label class="block text-xs font-bold uppercase text-white/40 mb-1">WhatsApp (Prioridad)</label>
+                         <input v-model="selectedTransporte.whatsapp" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-orange-400 outline-none transition-colors" placeholder="+54 9..." />
+                    </div>
+                    <div>
+                         <label class="block text-xs font-bold uppercase text-white/40 mb-1">Tel. Reclamos</label>
+                         <input v-model="selectedTransporte.telefono_reclamos" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-orange-400 outline-none transition-colors" placeholder="0800..." />
+                    </div>
+                </div>
+                <div>
+                     <label class="block text-xs font-bold uppercase text-white/40 mb-1">Email</label>
+                     <input v-model="selectedTransporte.email" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-orange-400 outline-none transition-colors" placeholder="operaciones@..." />
+                </div>
+                <div>
+                     <label class="block text-xs font-bold uppercase text-white/40 mb-1">Observaciones</label>
+                     <textarea v-model="selectedTransporte.observaciones" rows="2" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-orange-400 outline-none transition-colors resize-none" placeholder="Horarios, requisitos, etc..."></textarea>
+                </div>
+                
+                 <div>
+                    <label class="block text-xs font-bold uppercase text-white/40 mb-1">Web Tracking</label>
+                    <input v-model="selectedTransporte.web_tracking" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-orange-400 outline-none transition-colors" placeholder="https://..." />
+                </div>
+
+                <div class="bg-white/5 p-3 rounded border border-white/5 space-y-2">
+                     <div class="flex items-center gap-2">
+                        <input type="checkbox" v-model="selectedTransporte.servicio_retiro_domicilio" id="pickupCheck" class="accent-orange-500 h-4 w-4" />
+                        <label for="pickupCheck" class="text-sm text-white cursor-pointer select-none font-bold">Acepta retiros por domicilio</label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" v-model="selectedTransporte.requiere_carga_web" id="webCheck" class="accent-orange-500 h-4 w-4" />
+                        <label for="webCheck" class="text-sm text-white/70 cursor-pointer select-none">Requiere Carga Web (Obligatorio)</label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase text-white/40 mb-1">Formato Etiqueta</label>
+                    <select v-model="selectedTransporte.formato_etiqueta" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-orange-400 outline-none transition-colors">
+                        <option value="PROPIA" class="bg-[#140e03] text-white">Propia</option>
+                        <option value="EXTERNA_PDF" class="bg-[#140e03] text-white">Externa (PDF)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Tab Sedes -->
+            <div class="flex-1 overflow-y-auto p-6 pt-2 space-y-4" v-else-if="activeTab === 'sedes'">
+                <div v-if="loadingNodos" class="text-center py-4 text-white/50">
+                    <i class="fas fa-spinner fa-spin"></i> Cargando sedes...
+                </div>
+                <div v-else class="space-y-3">
+                    <div v-if="nodos.length === 0" class="text-center py-8 border-2 border-dashed border-white/10 rounded-lg">
+                        <p class="text-white/40 text-sm mb-2">No hay sucursales cargadas.</p>
+                        <button @click="openNewNodo" class="text-orange-400 hover:text-orange-300 text-xs font-bold uppercase tracking-wide">
+                            + Agregar Primera Sede
+                        </button>
+                    </div>
+
+                    <div 
+                        v-for="nodo in nodos" 
+                        :key="nodo.id"
+                        class="bg-white/5 border border-white/10 p-3 rounded hover:bg-white/10 transition-colors group relative"
                     >
-                        <span 
-                            class="inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm"
-                            :class="selectedTransporte.activo ? 'translate-x-4.5' : 'translate-x-1'"
-                        />
+                         <div class="flex justify-between items-start">
+                             <div>
+                                 <h4 class="font-bold text-white text-sm">{{ nodo.nombre_nodo }}</h4>
+                                 <p class="text-xs text-white/50">{{ getProvinciaNombre(nodo.provincia_id) }} - {{ nodo.localidad || 'Sin localidad' }}</p>
+                                 <p class="text-xs text-white/40 mt-1" v-if="nodo.direccion_completa">{{ nodo.direccion_completa }}</p>
+                             </div>
+                             <div class="flex gap-2">
+                                 <button @click="editNodo(nodo)" class="text-white/30 hover:text-white"><i class="fas fa-pencil-alt text-xs"></i></button>
+                                 <button @click="deleteNodo(nodo)" class="text-white/30 hover:text-red-400"><i class="fas fa-trash text-xs"></i></button>
+                             </div>
+                         </div>
+                    </div>
+                    
+                    <button v-if="nodos.length > 0" @click="openNewNodo" class="w-full py-2 border-2 border-dashed border-white/10 rounded text-white/40 hover:text-orange-400 hover:border-orange-400/30 transition-colors text-sm font-bold uppercase">
+                        + Agregar Sede
                     </button>
                 </div>
             </div>
 
-            <div>
-                <label class="block text-xs font-bold uppercase text-white/40 mb-1">Nombre *</label>
-                <input v-model="selectedTransporte.nombre" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-orange-400 outline-none transition-colors" placeholder="Ej: Via Cargo" />
+            <div class="p-6 pt-0 border-t border-white/10 flex gap-3 mt-auto bg-[#140e03]">
+                <button @click="saveTransporte" class="flex-1 bg-orange-600 hover:bg-orange-500 text-white py-2 rounded font-bold transition-colors shadow-lg shadow-orange-900/20">
+                    <span v-if="saving"><i class="fas fa-spinner fa-spin mr-2"></i>Guardando...</span>
+                    <span v-else>Guardar (F10)</span>
+                </button>
+                <button v-if="selectedId !== 'new'" @click="deleteTransporte" class="px-3 bg-red-900/20 hover:bg-red-900/40 text-red-400 rounded border border-red-500/30 transition-colors" title="Dar de baja">
+                    <i class="fas fa-trash"></i>
+                </button>
             </div>
-            <div>
-                <label class="block text-xs font-bold uppercase text-white/40 mb-1">Teléfono Reclamos</label>
-                <input v-model="selectedTransporte.telefono_reclamos" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-orange-400 outline-none transition-colors" placeholder="+54 9 11..." />
-            </div>
-             <div>
-                <label class="block text-xs font-bold uppercase text-white/40 mb-1">Web Tracking</label>
-                <input v-model="selectedTransporte.web_tracking" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-orange-400 outline-none transition-colors" placeholder="https://..." />
-            </div>
+        </div>
+    </aside>
+
+    <!-- Modal Nodo -->
+    <div v-if="showNodoModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+        <div class="bg-[#1f1605] border border-amber-900/50 rounded-xl shadow-2xl w-full max-w-md p-6 relative">
+            <h3 class="text-lg font-bold text-white mb-4">{{ editingNodo ? 'Editar Sede' : 'Nueva Sede' }}</h3>
             
-            <div class="bg-white/5 p-3 rounded border border-white/5 space-y-2">
-                <div class="flex items-center gap-2">
-                    <input type="checkbox" v-model="selectedTransporte.requiere_carga_web" id="webCheck" class="accent-orange-500 h-4 w-4" />
-                    <label for="webCheck" class="text-sm text-white cursor-pointer select-none">Requiere Carga Web</label>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-white/40 mb-1">Nombre Sede *</label>
+                    <input v-model="nodoForm.nombre_nodo" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-orange-400 outline-none" placeholder="Ej: Depósito Pompeya" />
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-white/40 mb-1">Dirección</label>
+                    <input v-model="nodoForm.direccion_completa" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-orange-400 outline-none" placeholder="Av. Saenz 1234" />
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-white/40 mb-1">Localidad</label>
+                        <input v-model="nodoForm.localidad" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-orange-400 outline-none" placeholder="CABA" />
+                    </div>
+                     <div>
+                        <label class="block text-xs font-bold uppercase text-white/40 mb-1">Provincia *</label>
+                         <select v-model="nodoForm.provincia_id" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-orange-400 outline-none">
+                            <option value="" disabled class="bg-[#140e03] text-white/50">Seleccionar...</option>
+                            <option v-for="prov in provincias" :key="prov.id" :value="prov.id" class="bg-[#140e03] text-white">
+                                {{ prov.nombre }}
+                            </option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-white/40 mb-1">Teléfono</label>
+                        <input v-model="nodoForm.telefono" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-orange-400 outline-none" />
+                    </div>
+                     <div>
+                        <label class="block text-xs font-bold uppercase text-white/40 mb-1">Email</label>
+                        <input v-model="nodoForm.email" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-orange-400 outline-none" />
+                    </div>
                 </div>
             </div>
 
-            <div>
-                <label class="block text-xs font-bold uppercase text-white/40 mb-1">Formato Etiqueta</label>
-                <select v-model="selectedTransporte.formato_etiqueta" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-orange-400 outline-none transition-colors">
-                    <option value="PROPIA">Propia</option>
-                    <option value="EXTERNA_PDF">Externa (PDF)</option>
-                </select>
+            <div class="flex justify-end gap-2 mt-6">
+                <button @click="showNodoModal = false" class="px-4 py-2 text-white/60 hover:text-white font-bold text-sm">Cancelar</button>
+                <button @click="saveNodo" class="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded font-bold text-sm shadow-lg flex items-center gap-2" :disabled="savingNodo">
+                    <span v-if="savingNodo"><i class="fas fa-spinner fa-spin"></i></span>
+                    <span>{{ savingNodo ? 'Guardando...' : 'Guardar' }}</span>
+                </button>
             </div>
         </div>
-
-        <div class="pt-6 mt-6 border-t border-white/10 flex gap-3">
-            <button @click="saveTransporte" class="flex-1 bg-orange-600 hover:bg-orange-500 text-white py-2 rounded font-bold transition-colors shadow-lg shadow-orange-900/20">
-                <span v-if="saving"><i class="fas fa-spinner fa-spin mr-2"></i>Guardando...</span>
-                <span v-else>Guardar (F10)</span>
-            </button>
-            <button v-if="selectedId !== 'new'" @click="deleteTransporte" class="px-3 bg-red-900/20 hover:bg-red-900/40 text-red-400 rounded border border-red-500/30 transition-colors" title="Dar de baja">
-                <i class="fas fa-trash"></i>
-            </button>
-        </div>
-        </div>
-    </aside>
+    </div>
 
     <CommandPalette :show="showCommandPalette" @close="showCommandPalette = false" @navigate="handleNavigation" />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed, onUnmounted } from 'vue'
+import { ref, onMounted, computed, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AppSidebar from '../../components/layout/AppSidebar.vue'
 import CommandPalette from '../../components/common/CommandPalette.vue'
 import { useLogisticaStore } from '../../stores/logistica'
 import { useNotificationStore } from '../../stores/notification'
+import { useMaestrosStore } from '../../stores/maestros' // Import Maestros Store
 
 const router = useRouter()
 const transporteStore = useLogisticaStore()
 const notificationStore = useNotificationStore()
+const maestrosStore = useMaestrosStore() // Initialize
 
 const transportes = computed(() => transporteStore.empresas)
 const loading = computed(() => transporteStore.loading)
+const provincias = computed(() => maestrosStore.provincias) // Computed for provinces
+
 const searchQuery = ref('')
 const selectedId = ref(null)
 const selectedTransporte = ref(null)
@@ -344,6 +487,25 @@ const showCommandPalette = ref(false)
 // New State
 const filterStatus = ref('active') // 'all', 'active', 'inactive'
 const viewMode = ref('grid') // 'grid', 'list'
+const activeTab = ref('general') // 'general', 'sedes'
+
+// Sedes State
+const nodos = computed(() => transporteStore.nodos)
+const loadingNodos = ref(false)
+const showNodoModal = ref(false)
+const editingNodo = ref(null)
+const savingNodo = ref(false) // New loading state for Sede
+const nodoForm = ref({
+    nombre_nodo: '',
+    direccion_completa: '',
+    localidad: '',
+    provincia_id: '',
+    telefono: '',
+    email: '',
+    es_punto_despacho: false,
+    es_punto_retiro: false
+})
+
 
 // Hover Zoom Logic
 const hoveredCardId = ref(null)
@@ -360,8 +522,34 @@ const handleMouseLeave = () => {
     hoveredCardId.value = null
 }
 
+const getProvinciaNombre = (id) => {
+    if (!id) return ''
+    const p = provincias.value.find(p => p.id === id)
+    return p ? p.nombre : id
+}
+
+const fetchSedes = async () => {
+    if (!selectedId.value || selectedId.value === 'new') return
+    loadingNodos.value = true
+    await transporteStore.fetchNodos(selectedId.value)
+    loadingNodos.value = false
+}
+
+// Watch Active Tab to fetch sedes
+watch(activeTab, (newTab) => {
+    if (newTab === 'sedes') {
+        fetchSedes()
+    }
+})
+
+// Watch Selected ID to reset tab
+watch(selectedId, () => {
+    activeTab.value = 'general'
+})
+
 onMounted(async () => {
     await transporteStore.fetchEmpresas('all')
+    await maestrosStore.fetchProvincias() // Fetch Provinces
     window.addEventListener('keydown', handleKeydown)
 })
 
@@ -420,8 +608,13 @@ const openNewTransporte = () => {
         nombre: '',
         telefono_reclamos: '',
         web_tracking: '',
+        direccion: '',
+        whatsapp: '',
+        email: '',
+        observaciones: '',
         activo: true,
         requiere_carga_web: false,
+        servicio_retiro_domicilio: false,
         formato_etiqueta: 'PROPIA'
     }
 }
@@ -502,6 +695,65 @@ const toggleSelectedTransporteActive = () => {
     }
 }
 
+// --- Sedes Logic ---
+const openNewNodo = () => {
+    editingNodo.value = null
+    nodoForm.value = {
+        nombre_nodo: '',
+        direccion_completa: '',
+        localidad: '',
+        provincia_id: '', // Starts empty
+        telefono: '',
+        email: '',
+        es_punto_despacho: false,
+        es_punto_retiro: false
+    }
+    showNodoModal.value = true
+}
+
+const editNodo = (nodo) => {
+    editingNodo.value = nodo
+    nodoForm.value = { ...nodo }
+    showNodoModal.value = true
+}
+
+const saveNodo = async () => {
+    if (!nodoForm.value.nombre_nodo || !nodoForm.value.provincia_id) {
+        notificationStore.add('Nombre y Provincia son obligatorios', 'error')
+        return
+    }
+
+    savingNodo.value = true // Start loading
+    try {
+        if (editingNodo.value) {
+            await transporteStore.updateNodo(editingNodo.value.id, nodoForm.value)
+            notificationStore.add('Sede actualizada', 'success')
+        } else {
+            const payload = { ...nodoForm.value, empresa_id: selectedId.value }
+            await transporteStore.createNodo(payload)
+            notificationStore.add('Sede creada', 'success')
+        }
+        showNodoModal.value = false
+    } catch (e) {
+        console.error('Error in saveNodo:', e) // Explicit logging
+        const isConstraint = e.response && e.response.status === 409
+        notificationStore.add(isConstraint ? 'Error de integridad (posible duplicado)' : 'Error al guardar sede', 'error')
+    } finally {
+        savingNodo.value = false // Stop loading
+    }
+}
+
+const deleteNodo = async (nodo) => {
+    if (!confirm(`¿Eliminar sede ${nodo.nombre_nodo}?`)) return
+    try {
+        // Placeholder for delete logic
+        notificationStore.add('Función Eliminar Sede pendiente de implementación en Store', 'warning')
+    } catch (e) {
+         notificationStore.add('Error al eliminar', 'error')
+    }
+}
+
+
 const handleNavigation = (payload) => {
     if (payload.name === 'Logout') {
         logout()
@@ -523,7 +775,10 @@ const handleKeydown = (e) => {
         saveTransporte()
     }
     if (e.key === 'Escape') {
-        if (selectedTransporte.value) {
+        if (showNodoModal.value) {
+            showNodoModal.value = false
+            e.preventDefault()
+        } else if (selectedTransporte.value) {
             e.preventDefault()
             closeInspector()
         }

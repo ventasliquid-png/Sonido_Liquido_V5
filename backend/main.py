@@ -84,6 +84,15 @@ async def lifespan(app: FastAPI):
         print(f"❌ ERROR DE ARRANQUE V10: Falla al sincronizar tablas ORM: {e}")
     # --- [FIN PARCHE V10.1] ---
 
+    # --- [PROTOCOLO DE SIEMBRA AUTOMÁTICA] ---
+    try:
+        from backend.core.seed import seed_all
+        print("--- [Atenea V5 Seed]: Protocolo de Siembra Automática activado... ---")
+        seed_all()
+    except Exception as e:
+        print(f"❌ [SEED ERROR]: Falla crítica en siembra automática: {e}")
+    # -----------------------------------------
+
     # --- [Parche de Autenticación (ACTIVO)] ---
     # --- [INICIO PARCHE V10.12] ---
     # La ruta ahora es relativa a la raíz (donde corre Uvicorn), no a backend/

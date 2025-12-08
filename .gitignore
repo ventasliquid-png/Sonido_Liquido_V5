@@ -1,19 +1,6 @@
-# Entornos virtuales y dependencias
-backend/venv/
-frontend/node_modules/
-
-# Archivos de credenciales y secretos
-.google_credentials
-*.json
-
-# Archivos de sistema y logs
-.DS_Store
-npm-debug.log*
-
-# Archivos de instalador local
-instalador*.bat
-instalador*.ps1
-.google_credentials
-.gy_identity
-
-backend/.env
+venv/
+.env
+__pycache__/
+*.pyc
+*.log
+debug_*.py

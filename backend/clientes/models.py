@@ -65,6 +65,60 @@ class Cliente(Base):
     def __repr__(self):
         return f"<Cliente(razon_social='{self.razon_social}', cuit='{self.cuit}')>"
 
+    # --- Propiedades UI (V5.1) ---
+    @property
+    def domicilio_fiscal_resumen(self):
+        """Retorna string direccion fiscal o None"""
+        fiscal = next((d for d in self.domicilios if d.es_fiscal and d.activo), None)
+        if fiscal:
+            numero = f" {fiscal.numero}" if fiscal.numero else ""
+            localidad = f", {fiscal.localidad}" if fiscal.localidad else ""
+            return f"{fiscal.calle}{numero}{localidad}"
+        return None
+
+    @property
+    def tiene_entrega_alternativa(self):
+        """Retorna True si tiene algun domicilio de entrega que NO sea el fiscal"""
+        entregas = [d for d in self.domicilios if d.es_entrega and d.activo]
+        fiscal = next((d for d in self.domicilios if d.es_fiscal and d.activo), None)
+        
+        if not entregas:
+            return False
+        
+        # Si tiene entregas, verificamos si alguna es distinta a la fiscal
+        if fiscal:
+             # Si hay fiscal, buscamos alguna entrega que NO sea el mismo objeto/ID 
+             # (Asumiendo que un domicilio puede ser ambos, o separados)
+             # Logica: Si hay un domicilio 'es_fiscal=True' y 'es_entrega=False', y Otro 'es_entrega=True', entonces True.
+             # Si el fiscal tamiben es entrega (es_fiscal=T, es_entrega=T), y es el unico, entonces False.
+             
+             # Buscamos si existe algun domicilio de entrega que NO sea el fiscal
+             for e in entregas:
+                 if e.id != fiscal.id:
+                     return True
+             return False
+        else:
+             # Si no hay fiscal definido pero hay entregas, tecnicamente es "alternativa" a nada? 
+             # O consideramos que si hay entregas, hay punto de entrega.
+             # El usuario quiere "punto naranja indque domicilio entrega distinto".
+             # Asumamos: Distinto a Fiscal.
+             # Si no hay fiscal, y hay entrega -> True (es distinto a null).
+             return True
+
+    @property
+    def contacto_principal_nombre(self):
+        """Retorna nombre del contacto principal o primero disponible"""
+        principal = next((v for v in self.vinculos if v.es_principal and v.activo), None)
+        if principal and principal.persona:
+            return principal.persona.nombre_completo
+        
+        # Fallback: Primero activo
+        primero = next((v for v in self.vinculos if v.activo), None)
+        if primero and primero.persona:
+            return primero.persona.nombre_completo
+            
+        return None
+
 
 class Domicilio(Base):
     """

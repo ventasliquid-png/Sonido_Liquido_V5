@@ -51,6 +51,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import axios from 'axios';
 import api from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 
@@ -65,11 +66,13 @@ const handleLogin = async () => {
     error.value = '';
     
     try {
-        const formData = new FormData();
-        formData.append('username', username.value);
-        formData.append('password', password.value);
+        const params = new URLSearchParams();
+        params.append('username', username.value);
+        params.append('password', password.value);
 
-        const response = await api.post('/auth/token', formData, {
+        // Usamos axios directo en lugar de la instancia 'api' para evitar
+        // interferencias con headers globales (application/json) o interceptores.
+        const response = await axios.post('http://localhost:8000/auth/token', params, {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
             }

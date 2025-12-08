@@ -17,7 +17,7 @@ from backend.auth import models
 
 # --- [INICIO FASE 10.E (SEGURIDAD)] ---
 # Importamos la configuración de seguridad desde el módulo 'core'
-from core.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+from backend.core.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 # --- [FIN FASE 10.E] ---
 
 

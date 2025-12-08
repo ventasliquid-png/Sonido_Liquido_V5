@@ -129,7 +129,14 @@
                 :subtitle="cliente.cuit"
                 :status="cliente.activo ? 'active' : 'inactive'"
                 :selected="selectedId === cliente.id"
+                :hasAlert="cliente.tiene_entrega_alternativa"
+                :extraData="{
+                    segmento: getSegmentoName(cliente.segmento_id),
+                    domicilio: cliente.domicilio_fiscal_resumen,
+                    contacto: cliente.contacto_principal_nombre
+                }"
                 @click="selectCliente(cliente)"
+                @dblclick="selectCliente(cliente)"
                 @contextmenu.prevent="handleClientContextMenu($event, cliente)"
             >
                 <template #icon>
@@ -164,17 +171,33 @@
                 v-for="cliente in filteredClientes" 
                 :key="cliente.id"
                 @click="selectCliente(cliente)"
+                @dblclick="selectCliente(cliente)"
                 @contextmenu.prevent="handleClientContextMenu($event, cliente)"
                 class="group flex items-center justify-between p-3 rounded-lg border border-white/5 bg-white/5 hover:bg-white/10 cursor-pointer transition-colors"
                 :class="{ 'ring-1 ring-cyan-500 bg-cyan-500/10': selectedId === cliente.id }"
             >
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-4 flex-1">
                     <div class="h-10 w-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">
                         {{ cliente.razon_social.substring(0,1).toUpperCase() }}
                     </div>
-                    <div>
-                        <h3 class="font-bold text-white">{{ cliente.razon_social }}</h3>
+                    <div class="w-1/4 min-w-[200px]">
+                        <h3 class="font-bold text-white truncate">{{ cliente.razon_social }}</h3>
                         <p class="text-xs text-white/50 font-mono">{{ cliente.cuit }}</p>
+                    </div>
+
+                    <!-- New Columns (V5.1) -->
+                    <div class="flex-1 hidden md:block">
+                        <div class="flex items-center gap-2 text-sm text-white/70">
+                            <i class="fas fa-map-marker-alt text-cyan-500/50 text-xs"></i>
+                            <span class="truncate">{{ cliente.domicilio_fiscal_resumen || '---' }}</span>
+                            <span v-if="cliente.tiene_entrega_alternativa" class="h-2 w-2 rounded-full bg-orange-500 ml-1" title="Tiene entrega alternativa"></span>
+                        </div>
+                    </div>
+                     <div class="w-1/5 hidden lg:block">
+                        <div class="flex items-center gap-2 text-sm text-white/70">
+                            <i class="fas fa-user text-cyan-500/50 text-xs"></i>
+                            <span class="truncate">{{ cliente.contacto_principal_nombre || '---' }}</span>
+                        </div>
                     </div>
                 </div>
                 
@@ -433,13 +456,17 @@ const getSegmentoName = (id) => {
 }
 
 const selectCliente = async (cliente) => {
+    window.LAST_SELECTED = cliente.razon_social // Debug probe
+    console.log("Selecting:", cliente.razon_social)
     selectedId.value = cliente.id
+    
     // Fetch full details (including domicilios) because list view might exclude them
     try {
         const fullCliente = await clienteStore.fetchClienteById(cliente.id)
         selectedCliente.value = { ...fullCliente }
     } catch (e) {
         console.error("Error fetching full client details", e)
+        notificationStore.add('Error al cargar detalles del cliente', 'error')
         selectedCliente.value = { ...cliente } // Fallback
     }
 }

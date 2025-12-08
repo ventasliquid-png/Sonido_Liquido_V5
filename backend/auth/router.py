@@ -66,6 +66,7 @@ async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(), 
     db: Session = Depends(get_db)
 ):
+    print(f"DEBUG LOGIN: username={form_data.username} password={form_data.password}")
     """
     Endpoint de Login.
     Recibe un formulario (username/password) y devuelve un Token JWT.

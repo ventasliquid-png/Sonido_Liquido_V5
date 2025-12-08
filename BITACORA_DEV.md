@@ -95,7 +95,22 @@ python scripts/index_dev_memory.py
 
 ---
 
-## Historial de Cambios Relevantes
+
+### [2025-12-08] Estabilización Infraestructura y Logística V5
+*   **Seguridad y Acceso (Auth):**
+    *   **Incidente:** Pérdida de acceso admin tras reinicio.
+    *   **Solución:** Implementación de `seed.py` en arranque (`backend/main.py`) que garantiza existencia de rol `Administrador` y usuario `admin` en desarrollo.
+    *   **Protocolo:** Documentación de recuperación de contraseñas.
+*   **UX/UI Global (Sidebar):**
+    *   **Refactor:** `AppSidebar.vue` unificado con lógica de estado activa real (Router-based).
+    *   **Theming:** Paletas de colores dinámicas por módulo (Azul, Bordó, Ambar).
+*   **Módulo Logística (Transportes):**
+    *   **Refactor UI:** Inspector con pestañas (General / Sedes).
+    *   **Gestión de Sedes:** Implementación completa de ABM de Nodos.
+        *   **Fix Critical Freeze:** Corrección de bloqueo al crear sedes mediante implementación de Selector de Provincias (vs Input Manual).
+        *   **UX:** Visualización de Provincias por Nombre y mejora de contraste en selectores (`bg-[#140e03]`).
+    *   **Nuevos Campos:** `servicio_retiro_domicilio`, prioridad WhatsApp.
+
 
 ### [2025-12-07] Corrección Crítica: Estabilidad en Modales Anidados (Vue 3 / Teleport)
 *   **El Problema "Pantalla Blanca" y Syntax Error:**
@@ -408,3 +423,27 @@ Durante una sesión de planificación conceptual ("Charla de Sistemas"), se perg
 *   **Corrección de Calidad de Datos (ClienteInspector):**
     *   **Validación Estricta:** Se extendió la validación de campos obligatorios (Razón Social, CUIT, Segmento, Condición IVA) también a la **edición** de clientes, evitando inconsistencias como guardar con "Seleccionar..." (valor nulo).
     *   **UX:** Se mejoró el comportamiento de los selectores para prevenir selecciones inválidas accidentales.
+
+## [Protocolo de Seguridad] Siembra Automática (Auth)
+**Contexto:**
+Debido a la volatilidad de los datos en entornos de desarrollo/nube, se ha implementado un mecanismo de 'Siembra' (seed.py).
+
+**Funcionamiento:**
+1. Al iniciar el backend (main.py), se invoca backend.core.seed.seed_all().
+2. Verifica existencia de Rol 'Administrador' (ID 1). Si falta, lo crea.
+3. Verifica existencia de Usuario 'admin'. Si falta, lo crea (Pass: admin).
+
+
+### [2025-12-07] Mejoras Visuales y Fixes Interactividad (Clientes)
+*   **Enriquecimiento Visual (UI/UX):**
+    *   **Vista Lista:** Nuevas columnas para "Domicilio Fiscal" y "Contacto Principal", visibles en resoluciones medias/altas.
+    *   **Alerta de Entrega:** Indicador visual (Punto Naranja 🟠) en filas y tarjetas cuando el cliente posee un domicilio de entrega distinto al fiscal.
+    *   **Card Expansible:** Efecto hover en "Vista Grid" que despliega información detallada (Segmento, Dirección, Contacto) sin sobrecargar la vista inicial.
+*   **Interactividad:**
+    *   **Doble Click:** Se habilitó globalmente. Ahora abre el Inspector tanto desde la tarjeta como desde el renglón de la lista.
+    *   **Menú Contextual:** Se aseguró que la acción "Editar" seleccione y cargue correctamente al cliente en el inspector.
+*   **Estabilidad Frontend:**
+    *   **Fix Sintaxis:** Se corrigió un error de compilación (`Attribute name cannot contain...`) causado por una llave duplicada en `HaweView.vue`.
+    *   **Backend:** Propiedades calculadas en el modelo `Cliente` (`domicilio_fiscal_resumen`, etc.) para optimizar el rendimiento y lógica de presentación.
+
+

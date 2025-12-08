@@ -1,7 +1,7 @@
 # Archivo: backend/logistica/models.py
 # Módulo Logística (V5) - Hub & Spoke
 import uuid
-from sqlalchemy import Column, String, Boolean, Enum, ForeignKey, Integer
+from sqlalchemy import Column, String, Boolean, Enum, ForeignKey, Integer, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from backend.core.database import Base
@@ -15,10 +15,18 @@ class EmpresaTransporte(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     nombre = Column(String, nullable=False, unique=True) # Ej: "Expreso Cruz del Sur"
+    
+    # Datos Core (V5)
+    direccion = Column(String, nullable=True) # Sede Central
+    whatsapp = Column(String, nullable=True)
+    email = Column(String, nullable=True)
+    observaciones = Column(Text, nullable=True)
+
     web_tracking = Column(String, nullable=True) # URL genérica
     telefono_reclamos = Column(String, nullable=True)
     
     # Flags operativos
+    servicio_retiro_domicilio = Column(Boolean, default=False) # Pick-up logic
     requiere_carga_web = Column(Boolean, default=False) # Bloquea cierre si no se carga en portal
     formato_etiqueta = Column(Enum('PROPIA', 'EXTERNA_PDF', name='formato_etiqueta_enum'), default='PROPIA')
     activo = Column(Boolean, default=True)
@@ -38,7 +46,13 @@ class NodoTransporte(Base):
     
     nombre_nodo = Column(String, nullable=False) # Ej: "Depósito Pompeya"
     direccion_completa = Column(String, nullable=True)
+    localidad = Column(String, nullable=True) # Match por texto (V5)
+    
     provincia_id = Column(String(1), ForeignKey("provincias.id"), nullable=False)
+    
+    # Contacto Nodo
+    telefono = Column(String, nullable=True)
+    email = Column(String, nullable=True)
     
     # Capacidades
     es_punto_despacho = Column(Boolean, default=False) # Nosotros llevamos la carga aquí

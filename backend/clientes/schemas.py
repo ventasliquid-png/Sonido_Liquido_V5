@@ -110,6 +110,12 @@ class ClienteListResponse(ClienteBase):
     contador_uso: Optional[int] = 0
     created_at: datetime
     updated_at: datetime
+    
+    # Nuevos Campos Visuales (Propiedades @property del modelo)
+    domicilio_fiscal_resumen: Optional[str] = None
+    tiene_entrega_alternativa: bool = False
+    contacto_principal_nombre: Optional[str] = None
+    
     # Exclude nested lists for performance
 
     class Config:
