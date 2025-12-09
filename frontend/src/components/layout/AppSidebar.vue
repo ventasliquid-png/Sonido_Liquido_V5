@@ -80,7 +80,7 @@
              <div class="space-y-1">
                 <a href="#" @click.prevent="navigate('Productos')" class="nav-item-sub hover:bg-rose-500/10" :class="{ 'active-link-rose': isActive('Productos') }">
                     <i class="fas fa-box w-5 text-rose-400"></i> 
-                    <span class="text-white/80">Productos</span>
+                    <span class="text-white/80">Gestión de Productos</span>
                 </a>
                 
                 <a href="#" @click.prevent="navigate('Rubros')" class="nav-item-sub hover:bg-rose-500/10" :class="{ 'active-link-rose': isActive('Rubros') }">

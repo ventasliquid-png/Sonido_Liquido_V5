@@ -23,7 +23,7 @@ def read_rubros(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     # y dejaríamos que la recursividad cargue los hijos.
     # Pero para un listado plano o select, a veces se necesitan todos.
     # Aquí devolveremos todos los raíces con sus hijos anidados.
-    rubros = db.query(models.Rubro).filter(models.Rubro.padre_id == None).offset(skip).limit(limit).all()
+    rubros = db.query(models.Rubro).offset(skip).limit(limit).all()
     return rubros
 
 @router.post("/rubros", response_model=schemas.RubroRead)
@@ -128,6 +128,14 @@ def probe_router():
     #    cantidad_hijos=len(hijos),
     #    cantidad_productos=len(productos)
     # )
+
+@router.get("/rubros/{rubro_id}/productos", response_model=List[schemas.ProductoRead])
+def read_rubro_products(rubro_id: int, db: Session = Depends(get_db)):
+    """Obtiene los productos directos de un rubro."""
+    productos = db.query(models.Producto).options(joinedload(models.Producto.costos), joinedload(models.Producto.rubro)).filter(models.Producto.rubro_id == rubro_id, models.Producto.activo == True).all()
+    for p in productos:
+        calculate_prices(p)
+    return productos
 
 @router.post("/rubros/{rubro_id}/migrate_and_delete", status_code=status.HTTP_200_OK)
 def migrate_and_delete_rubro(rubro_id: int, migration: schemas.RubroMigration, db: Session = Depends(get_db)):

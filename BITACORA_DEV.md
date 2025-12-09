@@ -460,3 +460,52 @@ Debido a la volatilidad de los datos en entornos de desarrollo/nube, se ha imple
     *   **Visualización:** Ajuste en el filtrado para que los Sub-rubros no aparezcan en la grilla principal (Raíz) salvo en búsquedas explícitas.
 *   **Próximos Pasos (Diseño):**
     *   Se definió un nuevo requerimiento de diseño "Split Screen" (Maestro-Detalle vertical) para la gestión de sub-rubros, a implementar en la siguiente sesión.
+
+### [2025-12-09] Finalización Modulo Rubros V5 (Split & UX)
+*   **Implementación "Split Screen":**
+    *   **Diseño:** Nuevo layout vertical 66/33. Panel superior para Rubros Principales y panel inferior para Sub-rubros.
+    *   **Mecanismo:** El panel inferior reacciona dinámicamente a la selección del padre.
+    *   **Visualización:** Soporte dual (Grid/List) en el panel principal.
+*   **Corrección de UX (Norma DEOU):**
+    *   **F10:** Se implementó el atajo global para guardar en el inspector (faltante en la primera versión).
+    *   **Doble Click:** Se habilitó la apertura del inspector al hacer doble click en tarjetas y renglones.
+*   **Corrección de Bugs:**
+    *   **Sintaxis:** Se resolvió definitivamente el error de compilación `Invalid end tag` reescribiendo el componente para asegurar la integridad HTML.
+    *   **Router:** Se verificó la ruta correcta `/hawe/rubros`.
+    *   **Interactividad:** Se implementó el "Slider" (Toggle Switch) de activación/desactivación en las Fichas y en la Lista de Rubros, homologando el comportamiento con el módulo Clientes. Incluye validación de integridad (no permite desactivar si tiene hijos).
+
+### [2025-12-09] Verificación de Migración Masiva y Seguridad
+*   **Investigación "Rubro Destino":**
+    *   Se reportó imposibilidad de desactivar el rubro "Rubro Destino" (TS2).
+    *   **Causa:** El sistema protege correctamente la desactivación porque el rubro posee hijos activos ("1 Sub").
+    *   **Resolución:** Comportamiento esperado (Feature, no bug). El usuario debe usar el Inspector para gestionar la baja o reasignación.
+*   **Prueba de Carga (Stress Test):**
+    *   Se generó un dataset de prueba ("RUBRO MASIVO TEST") con 15 sub-rubros mediante script `seed_subrubros.py`.
+    *   **Migración Exitosa:** Se ejecutó el Wizard de eliminación, moviendo los 15 hijos a la categoría "HUÉRFANOS" en una sola operación (`bulk_move`).
+    *   **Integridad:** El padre fue eliminado correctamente tras la limpieza de dependencias.
+
+*   **Refinamiento UX (Smart Toggle):**
+    *   **Solicitud Usuario:** "Si intento desactivar con el slider, quiero que me deje gestionar los hijos, no solo que me bloquee".
+    *   **Implementación:** Se modificó la lógica del Toggle Switch. Si el rubro tiene hijos, en lugar de mostrar una alerta bloqueante, se invoca automáticamente al **Wizard de Migración** (mismo flujo que Eliminar).
+    *   **Resultado:** UX fluida que guía al usuario a la resolución del conflicto (reasignación) en lugar de un "punto muerto".
+
+### [2025-12-09] Estabilización Productos y Refactorización Rubros Flat
+*   **Refactorización Mayor (Rubros Flat):**
+    *   **Cambio de Modelo:** Se eliminó la lógica jerárquica (Padre/Hijo) en el frontend para simplificar la categorización. Ahora `RubrosView` muestra una grilla plana unificada.
+    *   **Backend:** Se simplificó `GET /rubros` para devolver todos los registros sin filtrar por `padre_id`.
+    *   **UI:** Se eliminó la vista de pantalla dividida ("Split Pane"). Se migraron los controles de Ordenamiento y Vistas (Grid/List) para coincidir con `HaweView` (Clientes).
+    *   **Optimización de Carga:** Se migró el estado de Rubros al `useProductosStore` (Pinia) para mantener los datos en memoria y evitar el parpadeo de carga ("flash") al navegar entre pestañas.
+
+*   **Estabilidad ProductosView:**
+    *   **Fix Reload Loop:** Se reescribió `ProductosView.vue` desde cero para limpiar errores de anidamiento HTML que causaban recargas infinitas y errores 500 en Vite.
+    *   **Performance:** La carga inicial se optimizó al usar la lista plana de rubros cacheada.
+
+*   **Corrección de Bugs (En Proceso):**
+    *   **Flash al Hover (Rubros):** Se detectó un problema donde, al pasar el mouse por una ficha con efecto de lupa (`scale`), el contenedor colapsaba y generaba un bucle de `mouseenter`/`mouseleave`.
+    *   **Solución Aplicada:** Se agregó `min-h-[140px]` al contenedor de la grilla en `RubrosView.vue` para reservar el espacio físico.
+    *   **Estado:** El usuario reportó que el problema persistía antes de cerrar la sesión. Pendiente de verificación visual profunda en próxima sesión.
+
+*   **Estado del Sistema:**
+    *   **Productos:** Operativo, carga rápida.
+    *   **Rubros:** Operativo (Flat), bug visual menor pendiente de confirmación.
+    *   **Backend:** Estable, sin errores de recursión.

@@ -1,6 +1,6 @@
 <template>
   <div class="flex h-screen w-full overflow-hidden bg-[#1a050b]">
-    <!-- Sidebar removed (handled by Layout) -->
+    <!-- Sidebar is handled by Layout -->
 
     <!-- Main Content -->
     <main class="flex flex-1 flex-col min-w-0 relative">
@@ -49,6 +49,51 @@
             <span class="hidden sm:inline">Inactivos</span>
           </button>
 
+          <!-- Sort Menu -->
+          <div class="relative">
+            <button 
+                @click="showSortMenu = !showSortMenu" 
+                class="flex items-center gap-2 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white hover:bg-white/5 transition-colors" 
+                title="Ordenar"
+            >
+                <i class="fas fa-sort-amount-down"></i>
+                <span v-if="sortBy === 'alpha_asc'">A-Z</span>
+                <span v-else-if="sortBy === 'alpha_desc'">Z-A</span>
+                <span v-else-if="sortBy === 'id_desc'">Recientes</span>
+                <span v-else>ordenar</span>
+            </button>
+            
+            <!-- Dropdown -->
+            <div v-if="showSortMenu" class="absolute right-0 mt-2 w-48 bg-[#2e0a13] border border-rose-500/30 rounded-lg shadow-xl z-50 overflow-hidden">
+                <div class="fixed inset-0 z-40" @click="showSortMenu = false"></div>
+                <div class="relative z-50 py-1">
+                    <button @click="sortBy = 'alpha_asc'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-rose-100 hover:bg-rose-500/10" :class="{ 'text-rose-400 font-bold': sortBy === 'alpha_asc' }">A-Z Alfabético</button>
+                    <button @click="sortBy = 'alpha_desc'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-rose-100 hover:bg-rose-500/10" :class="{ 'text-rose-400 font-bold': sortBy === 'alpha_desc' }">Z-A Alfabético</button>
+                    <button @click="sortBy = 'id_desc'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-rose-100 hover:bg-rose-500/10" :class="{ 'text-rose-400 font-bold': sortBy === 'id_desc' }">Más Recientes</button>
+                </div>
+            </div>
+          </div>
+
+          <!-- View Toggle -->
+          <div class="flex bg-white/5 rounded-lg p-1 border border-white/10">
+            <button 
+                @click="viewMode = 'grid'"
+                class="p-1.5 rounded-md transition-all"
+                :class="viewMode === 'grid' ? 'bg-rose-500/20 text-rose-400' : 'text-white/30 hover:text-white'"
+                title="Vista Cuadrícula"
+            >
+                <i class="fas fa-border-all"></i>
+            </button>
+            <button 
+                @click="viewMode = 'list'"
+                class="p-1.5 rounded-md transition-all"
+                :class="viewMode === 'list' ? 'bg-rose-500/20 text-rose-400' : 'text-white/30 hover:text-white'"
+                title="Vista Lista"
+            >
+                <i class="fas fa-list"></i>
+            </button>
+          </div>
+
           <!-- New Button -->
           <button 
             @click="createNew"
@@ -60,47 +105,106 @@
         </div>
       </div>
 
-      <!-- Grid Content -->
+      <!-- Content Area -->
       <div class="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-rose-900/50">
+        
+        <!-- Loading State -->
         <div v-if="productosStore.loading" class="flex h-full items-center justify-center">
             <div class="h-12 w-12 animate-spin rounded-full border-4 border-rose-500 border-t-transparent"></div>
         </div>
 
+        <!-- Empty State -->
         <div v-else-if="productosStore.productos.length === 0" class="flex h-full flex-col items-center justify-center text-white/30">
             <i class="fas fa-search mb-4 text-4xl opacity-50"></i>
             <p>No se encontraron productos</p>
         </div>
 
-        <div v-else class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-            <!-- Wrapper Strategy Implementation -->
-            <div 
-                v-for="producto in productosStore.productos" 
-                :key="producto.id"
-                class="relative min-h-[160px]"
-            >
-                <ProductoCard 
-                    :producto="producto"
-                    :selected="selectedId === producto.id"
-                    class="absolute top-0 left-0 w-full"
+        <!-- Data Display -->
+        <div v-else>
+            <!-- Grid View -->
+            <div v-if="viewMode === 'grid'" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+                <div 
+                    v-for="producto in sortedProductos" 
+                    :key="producto.id"
+                    class="relative min-h-[160px]"
+                >
+                    <ProductoCard 
+                        :producto="producto"
+                        :selected="selectedId === producto.id"
+                        class="absolute top-0 left-0 w-full"
+                        @click="selectProducto(producto)"
+                        @select="selectProducto(producto)"
+                    />
+                </div>
+            </div>
+
+            <!-- List View -->
+            <div v-else class="space-y-1">
+                <div class="flex items-center justify-between px-4 py-2 text-xs font-bold text-rose-900/50 uppercase tracking-wider border-b border-white/5 mb-2">
+                    <div class="flex-1">Producto</div>
+                    <div class="w-32 hidden md:block">Rubro</div>
+                    <div class="w-24 text-center">SKU</div>
+                    <div class="w-24 text-center">Estado</div>
+                    <div class="w-10"></div>
+                </div>
+
+                <div 
+                    v-for="producto in sortedProductos" 
+                    :key="producto.id"
                     @click="selectProducto(producto)"
-                    @select="selectProducto(producto)"
-                />
+                    class="group flex items-center justify-between p-2 rounded-lg border border-transparent hover:bg-rose-900/10 hover:border-rose-900/20 cursor-pointer transition-all"
+                    :class="{ 'bg-rose-900/20 border-rose-500/30': selectedId === producto.id }"
+                >
+                    <div class="flex items-center gap-3 flex-1 min-w-0">
+                        <div class="h-8 w-8 rounded bg-[#2e0a13] flex items-center justify-center text-rose-500 border border-rose-900/30">
+                            <i class="fas fa-box text-xs"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="font-bold text-rose-100 text-sm truncate">{{ producto.nombre }}</div>
+                            <div class="text-[10px] text-rose-400/50 block md:hidden">{{ producto.sku }}</div>
+                        </div>
+                    </div>
+
+                    <div class="w-32 hidden md:block text-xs text-rose-200/50 truncate pr-2">
+                         {{ getRubroName(producto.rubro_id) }}
+                    </div>
+
+                    <div class="w-24 text-center hidden md:block">
+                        <span class="text-xs font-mono text-rose-400">{{ producto.sku }}</span>
+                    </div>
+                    
+                    <div class="w-24 flex justify-center">
+                        <button 
+                            @click.stop="handleToggleActive(producto.id)"
+                            class="relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none shrink-0"
+                            :class="producto.activo ? 'bg-green-500/50' : 'bg-red-500/50'"
+                            title="Click para cambiar estado"
+                        >
+                            <span 
+                                class="inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform shadow-sm"
+                                :class="producto.activo ? 'translate-x-3.5' : 'translate-x-1'"
+                            />
+                        </button>
+                    </div>
+
+                    <div class="w-10 flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                         <button @click.stop="selectProducto(producto)" class="text-rose-400 hover:text-white"><i class="fas fa-pencil"></i></button>
+                    </div>
+                </div>
             </div>
         </div>
       </div>
     </main>
 
-    <!-- Right Inspector (Fixed Sibling) -->
+    <!-- Right Inspector -->
     <aside 
       class="w-96 border-l border-white/10 bg-[#2e0a13]/95 flex flex-col z-20 shadow-xl overflow-hidden shrink-0"
     >
-        <!-- Empty State -->
         <div v-if="!showInspector" class="flex flex-col items-center justify-center h-full text-white/30 p-6 text-center">
              <i class="fas fa-box-open text-4xl mb-4"></i>
              <p>Seleccione un producto para ver propiedades o presione "Nuevo"</p>
         </div>
         
-        <!-- Inspector Component -->
         <ProductoInspector 
             v-else
             class="h-full flex flex-col"
@@ -119,7 +223,6 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProductosStore } from '../../stores/productos'
-// Sidebar import removed to avoid duplication
 import ProductoCard from './components/ProductoCard.vue'
 import ProductoInspector from './components/ProductoInspector.vue'
 
@@ -128,25 +231,30 @@ const productosStore = useProductosStore()
 
 const showInspector = ref(false)
 const selectedId = ref(null)
+const sortBy = ref('alpha_asc')
+const viewMode = ref('grid')
+const showSortMenu = ref(false)
 let searchTimeout = null
 
-// Flatten rubros for filter
 const flattenedRubros = computed(() => {
-    const result = []
-    const traverse = (items, level = 0) => {
-        for (const item of items) {
-            result.push({
-                ...item,
-                indent: '\u00A0\u00A0'.repeat(level) + (level > 0 ? '└ ' : '')
-            })
-            if (item.hijos && item.hijos.length) {
-                traverse(item.hijos, level + 1)
-            }
-        }
-    }
-    traverse(productosStore.rubros)
-    return result
+    return productosStore.rubros;
 })
+
+const getRubroName = (id) => flattenedRubros.value.find(r => r.id === id)?.nombre || '-'
+
+const sortedProductos = computed(() => {
+    // Create a copy to sort
+    let items = [...productosStore.productos];
+    
+    return items.sort((a,b) => {
+        switch (sortBy.value) {
+            case 'alpha_asc': return a.nombre.localeCompare(b.nombre);
+            case 'alpha_desc': return b.nombre.localeCompare(a.nombre);
+            case 'id_desc': return b.id - a.id; 
+            default: return 0;
+        }
+    });
+});
 
 const handleSearch = () => {
     if (searchTimeout) clearTimeout(searchTimeout)
@@ -221,11 +329,6 @@ const handleToggleActive = async (id) => {
              closeInspector()
          }
     }
-}
-
-const handleLogout = () => {
-    localStorage.removeItem('token')
-    router.push('/login')
 }
 
 // Keyboard Shortcuts

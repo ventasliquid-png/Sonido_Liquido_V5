@@ -155,6 +155,47 @@ export const useProductosStore = defineStore('productos', () => {
         }
     }
 
+    async function createRubro(payload) {
+        try {
+            const response = await rubrosApi.create(payload);
+            rubros.value.push(response.data);
+            notificationStore.add('Rubro creado correctamente', 'success');
+            return response.data;
+        } catch (error) {
+            console.error('Error creating rubro:', error);
+            notificationStore.add('Error al crear rubro', 'error');
+            throw error;
+        }
+    }
+
+    async function updateRubro(id, payload) {
+        try {
+            const response = await rubrosApi.update(id, payload);
+            const index = rubros.value.findIndex(r => r.id === id);
+            if (index !== -1) {
+                rubros.value[index] = response.data;
+            }
+            notificationStore.add('Rubro actualizado correctamente', 'success');
+            return response.data;
+        } catch (error) {
+            console.error('Error updating rubro:', error);
+            notificationStore.add('Error al actualizar rubro', 'error');
+            throw error;
+        }
+    }
+
+    async function deleteRubro(id) {
+        try {
+            await rubrosApi.delete(id);
+            rubros.value = rubros.value.filter(r => r.id !== id);
+            notificationStore.add('Rubro eliminado', 'success');
+        } catch (error) {
+            console.error('Error deleting rubro:', error);
+            notificationStore.add('Error al eliminar rubro', 'error');
+            throw error;
+        }
+    }
+
     return {
         productos,
         rubros,
@@ -172,6 +213,9 @@ export const useProductosStore = defineStore('productos', () => {
         fetchProductoById,
         createProducto,
         updateProducto,
-        toggleEstado
+        toggleEstado,
+        createRubro,
+        updateRubro,
+        deleteRubro
     };
 });

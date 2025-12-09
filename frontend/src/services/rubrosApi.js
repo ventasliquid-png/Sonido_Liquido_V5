@@ -16,6 +16,9 @@ export default {
     getDependencies(id) {
         return api.get('/bypass/check_rubro_deps', { params: { rubro_id: id } });
     },
+    getProducts(id) {
+        return api.get(`/productos/rubros/${id}/productos`);
+    },
     migrateAndDelete(id, data) {
         return api.post(`/productos/rubros/${id}/migrate_and_delete`, data);
     },
