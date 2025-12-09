@@ -11,6 +11,12 @@ router = APIRouter(
 
 # --- RUBROS ---
 
+
+
+
+
+
+
 @router.get("/rubros", response_model=List[schemas.RubroRead])
 def read_rubros(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     # Para obtener el árbol, idealmente filtraríamos solo los raíces (padre_id=None)
@@ -106,6 +112,110 @@ def delete_rubro(rubro_id: int, db: Session = Depends(get_db)):
     db_rubro.activo = False
     db.commit()
     return None
+
+from fastapi.responses import JSONResponse
+import traceback
+
+@router.get("/rubros/test/probe")
+def probe_router():
+    return {"message": "Router works"}
+
+
+
+    # return schemas.RubroDependency(
+    #    rubros_hijos=hijos,
+    #    productos=productos,
+    #    cantidad_hijos=len(hijos),
+    #    cantidad_productos=len(productos)
+    # )
+
+@router.post("/rubros/{rubro_id}/migrate_and_delete", status_code=status.HTTP_200_OK)
+def migrate_and_delete_rubro(rubro_id: int, migration: schemas.RubroMigration, db: Session = Depends(get_db)):
+    # 1. Validate Source
+    source = db.query(models.Rubro).get(rubro_id)
+    if not source:
+        raise HTTPException(status_code=404, detail="Rubro origen no encontrado")
+        
+    # 2. Validate Target
+    target = db.query(models.Rubro).get(migration.target_rubro_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="Rubro destino no encontrado")
+        
+    if target.id == source.id:
+        raise HTTPException(status_code=400, detail="No se puede migrar al mismo rubro")
+        
+    # Check for cycles if source is an ancestor of target (unlikely if active but possible)
+    # If source is parent of target, and we move source's children to target... wait.
+    # If source is parent of target, we cannot delete source and move target to target?
+    # Logic:
+    # Source (Delete) -> Children moved to Target.
+    # If Target is a child of Source, then Target becomes a child of Target? (Cycle)
+    # We must check if Target is a descendant of Source.
+    
+    # Simple Cycle Check: Is Source an ancestor of Target?
+    curr = target
+    while curr:
+        if curr.id == source.id:
+             raise HTTPException(status_code=400, detail="El rubro destino es descendiente del rubro a eliminar. Esto crearía un ciclo.")
+        curr = curr.padre if curr.padre_id else None
+
+    # 3. Migrate Children (Sub-rubros)
+    # Update all rubros where padre_id = source.id
+    hijos = db.query(models.Rubro).filter(models.Rubro.padre_id == source.id).all()
+    for hijo in hijos:
+        # If hijo is the target (rare case if not caught by cycle check), skip? 
+        # No, cycle check handles it.
+        hijo.padre_id = target.id
+        
+    # 4. Migrate Products
+    productos = db.query(models.Producto).filter(models.Producto.rubro_id == source.id).all()
+    for prod in productos:
+        prod.rubro_id = target.id
+        
+    # 5. Deactivate/Delete Source
+    source.activo = migration.new_status # Usually False
+    
+    db.commit()
+    
+    return {"message": f"Se migraron {len(hijos)} sub-rubros, {len(productos)} productos y se actualizó el estado del rubro origen."}
+
+@router.post("/rubros/bulk_move", status_code=status.HTTP_200_OK)
+def bulk_move_rubro_items(move_data: schemas.RubroBulkMove, db: Session = Depends(get_db)):
+    # 1. Validate Target
+    target = db.query(models.Rubro).get(move_data.target_rubro_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="Rubro destino no encontrado")
+
+    count_sub = 0
+    count_prod = 0
+
+    # 2. Move Sub-rubros
+    if move_data.subrubros_ids:
+        subrubros = db.query(models.Rubro).filter(models.Rubro.id.in_(move_data.subrubros_ids)).all()
+        for sub in subrubros:
+            # Cycle check for each subrubro
+            # Check if target is a descendant of sub (cycle)
+            curr = target
+            while curr:
+                if curr.id == sub.id:
+                    raise HTTPException(status_code=400, detail=f"El rubro destino es descendiente de '{sub.nombre}'. Ciclo detectado.")
+                curr = curr.padre if curr.padre_id else None
+            
+            # Additional check: sub cannot be target
+            if sub.id == target.id:
+                 raise HTTPException(status_code=400, detail=f"No se puede mover '{sub.nombre}' a sí mismo.")
+
+            sub.padre_id = target.id
+            count_sub += 1
+
+    # 3. Move Products
+    if move_data.productos_ids:
+        # Bulk update is efficient here
+        updated = db.query(models.Producto).filter(models.Producto.id.in_(move_data.productos_ids)).update({models.Producto.rubro_id: target.id}, synchronize_session=False)
+        count_prod = updated
+
+    db.commit()
+    return {"message": f"Se movieron {count_sub} sub-rubros y {count_prod} productos a '{target.nombre}'."}
 
 # --- PRODUCTOS ---
 

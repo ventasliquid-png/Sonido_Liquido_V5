@@ -1,13 +1,12 @@
 <template>
   <div class="flex h-screen w-full overflow-hidden bg-[#1a050b]">
-    <!-- Sidebar -->
-    <AppSidebar theme="pink" @logout="handleLogout" @open-command-palette="openCommandPalette" />
+    <!-- Sidebar removed (handled by Layout) -->
 
     <!-- Main Content -->
-    <div class="flex flex-1 flex-col min-w-0 transition-all duration-300" :class="{ 'mr-80': showInspector }">
+    <main class="flex flex-1 flex-col min-w-0 relative">
       
       <!-- Top Bar -->
-      <div class="flex items-center justify-between border-b border-white/10 bg-[#2e0a13]/90 px-6 py-4 backdrop-blur-md z-10">
+      <div class="flex items-center justify-between border-b border-white/10 bg-[#2e0a13]/90 px-6 py-4 backdrop-blur-md z-10 shrink-0">
         <div class="flex items-center gap-4">
           <h1 class="font-outfit text-2xl font-bold text-white">
             <i class="fas fa-boxes mr-2 text-rose-500"></i> Productos
@@ -89,21 +88,29 @@
             </div>
         </div>
       </div>
-    </div>
+    </main>
 
-    <!-- Right Inspector -->
-    <div 
-      class="fixed right-0 top-0 h-full w-96 shadow-2xl transform transition-transform duration-300 z-20"
-      :class="showInspector ? 'translate-x-0' : 'translate-x-full'"
+    <!-- Right Inspector (Fixed Sibling) -->
+    <aside 
+      class="w-96 border-l border-white/10 bg-[#2e0a13]/95 flex flex-col z-20 shadow-xl overflow-hidden shrink-0"
     >
-      <ProductoInspector 
-        :producto="productosStore.currentProducto"
-        :rubros="productosStore.rubros"
-        @close="closeInspector"
-        @save="handleSave"
-        @toggle-active="handleToggleActive"
+        <!-- Empty State -->
+        <div v-if="!showInspector" class="flex flex-col items-center justify-center h-full text-white/30 p-6 text-center">
+             <i class="fas fa-box-open text-4xl mb-4"></i>
+             <p>Seleccione un producto para ver propiedades o presione "Nuevo"</p>
+        </div>
+        
+        <!-- Inspector Component -->
+        <ProductoInspector 
+            v-else
+            class="h-full flex flex-col"
+            :producto="productosStore.currentProducto"
+            :rubros="productosStore.rubros"
+            @close="closeInspector"
+            @save="handleSave"
+            @toggle-active="handleToggleActive"
       />
-    </div>
+    </aside>
 
   </div>
 </template>
@@ -112,7 +119,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProductosStore } from '../../stores/productos'
-import AppSidebar from '../../components/layout/AppSidebar.vue'
+// Sidebar import removed to avoid duplication
 import ProductoCard from './components/ProductoCard.vue'
 import ProductoInspector from './components/ProductoInspector.vue'
 
@@ -219,10 +226,6 @@ const handleToggleActive = async (id) => {
 const handleLogout = () => {
     localStorage.removeItem('token')
     router.push('/login')
-}
-
-const openCommandPalette = () => {
-    // Implement command palette logic
 }
 
 // Keyboard Shortcuts

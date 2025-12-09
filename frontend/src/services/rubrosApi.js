@@ -12,5 +12,14 @@ export default {
     },
     delete(id) {
         return api.delete(`/productos/rubros/${id}`);
+    },
+    getDependencies(id) {
+        return api.get('/bypass/check_rubro_deps', { params: { rubro_id: id } });
+    },
+    migrateAndDelete(id, data) {
+        return api.post(`/productos/rubros/${id}/migrate_and_delete`, data);
+    },
+    bulkMove(data) {
+        return api.post('/productos/rubros/bulk_move', data);
     }
 };

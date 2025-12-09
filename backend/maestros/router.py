@@ -12,6 +12,44 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
+@router.get("/check_rubro_deps", response_model=dict)
+def check_rubro_dependencies(rubro_id: int, db: Session = Depends(get_db)):
+    # Import locally to avoid circulars if necessary, but models should be fine
+    from backend.productos import models as prod_models
+    
+    # Debug print
+    print(f"DEBUG: Checking dependencies for Rubro {rubro_id} in MAESTROS")
+    
+    rubro = db.query(prod_models.Rubro).get(rubro_id)
+    if not rubro:
+        raise HTTPException(status_code=404, detail="Rubro no encontrado")
+        
+    hijos = db.query(prod_models.Rubro).filter(prod_models.Rubro.padre_id == rubro_id, prod_models.Rubro.activo == True).all()
+    
+    # Manual Serialization
+    hijos_data = [{
+        "id": h.id, 
+        "nombre": h.nombre, 
+        "codigo": h.codigo,
+        "activo": h.activo
+    } for h in hijos]
+
+    productos = db.query(prod_models.Producto).filter(prod_models.Producto.rubro_id == rubro_id, prod_models.Producto.activo == True).all()
+
+    productos_data = [{
+        "id": p.id,
+        "nombre": p.nombre,
+        "rubro_id": p.rubro_id,
+        "activo": p.activo
+    } for p in productos]
+
+    return {
+        "rubros_hijos": hijos_data,
+        "productos": productos_data,
+        "cantidad_hijos": len(hijos),
+        "cantidad_productos": len(productos)
+    }
+
 # --- Read Only Maestros ---
 @router.get("/provincias", response_model=List[schemas.ProvinciaResponse])
 def read_provincias(db: Session = Depends(get_db)):

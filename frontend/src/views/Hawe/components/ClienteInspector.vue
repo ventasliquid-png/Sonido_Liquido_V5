@@ -1,5 +1,5 @@
 <template>
-  <aside class="w-96 border-l border-cyan-900/30 bg-[#05151f]/95 flex flex-col z-30 shadow-2xl overflow-hidden h-full backdrop-blur-xl">
+  <div class="flex flex-col h-full w-full bg-[#05151f]/95 backdrop-blur-xl">
     <!-- Persistent Header -->
     <div class="flex justify-between items-center p-6 border-b border-cyan-900/20 bg-[#0a253a]/30 shrink-0">
         <div>
@@ -285,7 +285,7 @@
             @close="contextMenu.show = false"
         />
     </Teleport>
-  </aside>
+</div>
 </template>
 
 <script setup>

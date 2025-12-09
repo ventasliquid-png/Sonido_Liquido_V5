@@ -5,6 +5,7 @@
 *   **Estilo:** "Manos a la obra". Menos disculpas burocráticas, más acción técnica. Se valora la proactividad inteligente.
 *   **Lenguaje:** Uso natural de metáforas de operación, aeronáuticas o de misión crítica (Ej: "Vuelo 411", "Enceder Motores", "Blindaje", "Triangulación").
 *   **Mindset:** El sistema trabaja para el usuario, no al revés. Priorizar la automatización y la "Ingesta Inteligente" sobre la carga manual.
+*   **Idioma:** Toda la documentación, bitácoras y respuestas al usuario deben ser estrictamente en **Castellano (Español)**, salvo nombres técnicos universales.
 
 ## Normas de UX / UI (Doctrina DEOU)
 
@@ -447,3 +448,15 @@ Debido a la volatilidad de los datos en entornos de desarrollo/nube, se ha imple
     *   **Backend:** Propiedades calculadas en el modelo `Cliente` (`domicilio_fiscal_resumen`, etc.) para optimizar el rendimiento y lógica de presentación.
 
 
+
+### [2025-12-08] Rubros V5: Acciones Masivas y Corrección de Sintaxis
+*   **Gestión Masiva (Bulk Actions):**
+    *   **Funcionalidad:** Implementación de "Mover Seleccionados" y "Promoción (Independizar)" en RubrosView.
+    *   **UI:** Diálogo de selección de destino y Wizard (`RubroReassignWizard`) para manejo de dependencias críticas en operaciones destructivas.
+    *   **Backend:** Endpoint `POST /rubros/bulk_move` operativo.
+*   **Estabilidad Frontend:**
+    *   **Fix Sintaxis Crítico:** Corrección de erroes de cierre de etiquetas (`</div>`, `</main>`) en `RubrosView.vue` que causaban "Failed to fetch module".
+    *   **Layout:** Refactorización de la estructura HTML para anidar correctamente el Inspector dentro del layout principal.
+    *   **Visualización:** Ajuste en el filtrado para que los Sub-rubros no aparezcan en la grilla principal (Raíz) salvo en búsquedas explícitas.
+*   **Próximos Pasos (Diseño):**
+    *   Se definió un nuevo requerimiento de diseño "Split Screen" (Maestro-Detalle vertical) para la gestión de sub-rubros, a implementar en la siguiente sesión.

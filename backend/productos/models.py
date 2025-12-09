@@ -21,6 +21,10 @@ class Rubro(Base):
     hijos = relationship("Rubro", backref=backref("padre", remote_side=[id]), uselist=True)
     productos = relationship("Producto", back_populates="rubro")
 
+    @property
+    def productos_count(self):
+        return len(self.productos)
+
 class Producto(Base):
     __tablename__ = "productos"
 

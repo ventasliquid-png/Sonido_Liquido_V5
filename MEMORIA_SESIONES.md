@@ -12,6 +12,18 @@ Se recuperó el control del entorno de desarrollo (Auth Seed) y se finalizó la 
     - Solución a "Freeze" en creación de Sedes (Input Validation).
 - **Entregables:** `INFORME_FINAL_SESION.md`, `BITACORA_DEV.md` actualizada.
 
+## Sesión Gy [2025-12-08] - Rubros V5 Avanzado
+**Estado:** CERRADA
+
+### Resumen
+Implementación de lógica compleja de **Movimiento Masivo** y **Promoción de Rubros**. Corrección de bloqueos críticos de sintaxis en Vue. Refinamiento de la visualización de jerarquías.
+- **Hitos:**
+    - Bulk Move (Backend + Frontend).
+    - Wizard de Reasignación operativo.
+    - Fix "Missing End Tag" en `RubrosView.vue`.
+    - Lógica de Visualización: Ocultar hijos en vista raíz.
+- **Pendiente:** Rediseño UI a Split Screen (66/33).
+
 ## Sesión Gy CA - 2025-12-01 20:29 (CERRADA 2025-12-02 12:40)
 **Inicio:** 2025-12-01 20:29
 **Estado:** Cerrada

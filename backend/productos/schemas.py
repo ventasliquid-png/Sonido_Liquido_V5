@@ -35,6 +35,7 @@ class RubroRead(RubroBase):
     id: int
     created_at: datetime
     hijos: List['RubroRead'] = []
+    productos_count: int = 0
 
     class Config:
         orm_mode = True
@@ -125,3 +126,31 @@ class ProductoRead(ProductoBase):
     # NOTA: Para simplificar, los precios calculados se deberían computar en el Service 
     # antes de pasar al Schema, o usar propiedades en el Modelo SQLAlchemy.
     # Por ahora los definimos como opcionales.
+
+# --- MIGRATION WIZARD SCHEMAS ---
+
+class RubroReadSimple(RubroBase):
+    id: int
+    class Config:
+        orm_mode = True
+
+class ProductoReadSimple(ProductoBase):
+    id: int
+    class Config:
+        orm_mode = True
+
+class RubroDependency(BaseModel):
+    rubros_hijos: List[RubroReadSimple] = []
+    productos: List[ProductoReadSimple] = []
+    cantidad_hijos: int = 0
+    cantidad_productos: int = 0
+
+class RubroMigration(BaseModel):
+    target_rubro_id: int
+    new_status: bool = False
+
+class RubroBulkMove(BaseModel):
+    target_rubro_id: int
+    subrubros_ids: List[int] = []
+    productos_ids: List[int] = []
+

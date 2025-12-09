@@ -329,6 +329,49 @@ app.include_router(proveedores_router)
 class QueryInput(BaseModel):
     query: str
 
+# --- Bypass Endpoint for Rubro Dependencies ---
+from backend.productos import models as prod_models
+from core.database import get_db
+from sqlalchemy.orm import Session
+from fastapi import Depends, HTTPException
+
+@app.get("/bypass/check_rubro_deps", tags=["Bypass"])
+def check_rubro_dependencies_bypass(rubro_id: int, db: Session = Depends(get_db)):
+    print(f"DEBUG: Checking dependencies for Rubro {rubro_id} in MAIN BYPASS")
+    try:
+        rubro = db.query(prod_models.Rubro).get(rubro_id)
+        if not rubro:
+            raise HTTPException(status_code=404, detail="Rubro no encontrado")
+            
+        hijos = db.query(prod_models.Rubro).filter(prod_models.Rubro.padre_id == rubro_id, prod_models.Rubro.activo == True).all()
+        
+        hijos_data = [{
+            "id": h.id, 
+            "nombre": h.nombre, 
+            "codigo": h.codigo,
+            "activo": h.activo
+        } for h in hijos]
+
+        productos = db.query(prod_models.Producto).filter(prod_models.Producto.rubro_id == rubro_id, prod_models.Producto.activo == True).all()
+
+        productos_data = [{
+            "id": p.id,
+            "nombre": p.nombre,
+            "rubro_id": p.rubro_id,
+            "activo": p.activo
+        } for p in productos]
+
+        return {
+            "rubros_hijos": hijos_data,
+            "productos": productos_data,
+            "cantidad_hijos": len(hijos),
+            "cantidad_productos": len(productos)
+        }
+    except Exception as e:
+        print(f"ERROR IN BYPASS: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+# ----------------------------------------------
+
 @app.get("/", tags=["Estado"])
 async def get_root_status():
     if not vector_store or not llm:
@@ -361,3 +404,5 @@ async def invoke_atenea_v5(input: QueryInput):
 
 print("--- [Atenea V5 Backend]: Módulo 'main.py' V10.16 (Modular Estable) cargado y listo. ---")
 # Reload trigger for V5.1 schema update
+
+

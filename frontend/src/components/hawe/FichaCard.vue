@@ -110,7 +110,7 @@ let hoverTimeout = null
 const handleMouseEnter = () => {
   hoverTimeout = setTimeout(() => {
     isExpanded.value = true
-    emit('select') // Auto-select on expansion
+    // emit('select') // Removed to prevent accidental selection triggers on hover
   }, 1000)
 }
 
