@@ -122,9 +122,8 @@
                 class="w-full"
                 :title="cliente.razon_social"
                 :subtitle="cliente.cuit"
-                :status="cliente.activo ? 'active' : 'inactive'"
                 :selected="selectedId === cliente.id"
-                :hasAlert="cliente.tiene_entrega_alternativa"
+                :hasLogisticsAlert="cliente.requiere_entrega"
                 :extraData="{
                     segmento: getSegmentoName(cliente.segmento_id),
                     domicilio: cliente.domicilio_fiscal_resumen,
@@ -132,7 +131,6 @@
                 }"
                 @click="selectCliente(cliente)"
                 @dblclick="selectCliente(cliente)"
-                @select="selectCliente(cliente)"
                 @contextmenu.prevent="handleClientContextMenu($event, cliente)"
             >
                 <template #icon>
@@ -194,6 +192,15 @@
                      <span class="text-xs text-cyan-200/50">{{ getSegmentoName(cliente.segmento_id) }}</span>
                 </div>
                 
+                <!-- Logistics Indicator (List) -->
+                <div class="px-2 w-8 flex justify-center">
+                     <div
+                        v-if="cliente.requiere_entrega"
+                        class="h-2 w-2 rounded-full shadow-[0_0_8px] bg-orange-500 shadow-orange-500"
+                        title="Requiere Entrega (Logística)"
+                    ></div>
+                </div>
+                
                 <div class="w-24 flex justify-center">
                     <!-- List Toggle Switch -->
                     <div class="flex items-center gap-2 bg-black/20 px-2 py-1 rounded-full border border-cyan-900/10">
@@ -245,7 +252,7 @@
     <SegmentoList 
         v-if="showSegmentoList"
         :isStacked="true"
-        class="fixed inset-0 z-[60] bg-white m-4 rounded-lg shadow-2xl overflow-hidden"
+        class="fixed inset-0 z-[60] bg-[#0a1f2e] m-4 rounded-lg shadow-2xl overflow-hidden border border-cyan-500/30"
         @close="showSegmentoList = false"
     />
     

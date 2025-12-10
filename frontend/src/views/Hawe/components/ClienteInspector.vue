@@ -4,9 +4,9 @@
     <div class="flex justify-between items-center p-6 border-b border-cyan-900/20 bg-[#0a253a]/30 shrink-0">
         <div>
             <h2 class="text-lg font-bold text-cyan-100 leading-tight">
-                {{ headerTitle }}
+                {{ modelValue?.razon_social || (isNew ? 'Nuevo Cliente' : 'Seleccione Cliente') }}
             </h2>
-            <p v-if="headerSubtitle" class="text-xs text-cyan-400/50 font-mono mt-1">{{ headerSubtitle }}</p>
+            <p v-if="modelValue?.cuit" class="text-xs text-cyan-400/50 font-mono mt-1">{{ modelValue.cuit }}</p>
         </div>
         <button v-if="modelValue || isNew" @click="$emit('close')" class="text-cyan-900/50 hover:text-cyan-100 transition-colors">
             <i class="fas fa-times"></i>
@@ -26,14 +26,14 @@
             <button 
                 @click="activeTab = 'general'"
                 class="flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2"
-                :class="activeTab === 'general' ? 'border-cyan-400 text-cyan-400 bg-cyan-900/10' : 'border-transparent text-cyan-900/50 hover:text-cyan-200 hover:bg-cyan-900/5'"
+                :class="activeTab === 'general' ? 'border-cyan-400 text-cyan-400 bg-cyan-900/10' : 'border-transparent text-cyan-200/40 hover:text-cyan-200 hover:bg-cyan-900/5'"
             >
                 General
             </button>
             <button 
                 @click="activeTab = 'domicilios'"
                 class="flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2"
-                :class="activeTab === 'domicilios' ? 'border-cyan-400 text-cyan-400 bg-cyan-900/10' : 'border-transparent text-cyan-900/50 hover:text-cyan-200 hover:bg-cyan-900/5'"
+                :class="activeTab === 'domicilios' ? 'border-cyan-400 text-cyan-400 bg-cyan-900/10' : 'border-transparent text-cyan-200/40 hover:text-cyan-200 hover:bg-cyan-900/5'"
                 :disabled="isNew"
             >
                 Domicilios
@@ -41,7 +41,7 @@
             <button 
                 @click="activeTab = 'contactos'"
                 class="flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2"
-                :class="activeTab === 'contactos' ? 'border-cyan-400 text-cyan-400 bg-cyan-900/10' : 'border-transparent text-cyan-900/50 hover:text-cyan-200 hover:bg-cyan-900/5'"
+                :class="activeTab === 'contactos' ? 'border-cyan-400 text-cyan-400 bg-cyan-900/10' : 'border-transparent text-cyan-200/40 hover:text-cyan-200 hover:bg-cyan-900/5'"
                 :disabled="isNew"
             >
                 Contactos
@@ -152,15 +152,23 @@
                     </h3>
                     <div class="space-y-3">
                         <div>
-                            <input v-model="fiscalForm.calle" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors placeholder-cyan-900/30" placeholder="Calle *" />
+                            <label class="block text-[10px] font-bold uppercase text-cyan-900/50 mb-1">Calle <span class="text-red-400">*</span></label>
+                            <input v-model="fiscalForm.calle" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors placeholder-cyan-900/30" placeholder="Ej: San Martin" />
                         </div>
                         <div class="flex gap-2">
-                             <input v-model="fiscalForm.numero" class="w-1/3 bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors placeholder-cyan-900/30" placeholder="Altura *" />
-                             <input v-model="fiscalForm.localidad" class="w-2/3 bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors placeholder-cyan-900/30" placeholder="Localidad *" />
+                             <div class="w-1/3">
+                                <label class="block text-[10px] font-bold uppercase text-cyan-900/50 mb-1">Altura <span class="text-red-400">*</span></label>
+                                <input v-model="fiscalForm.numero" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors placeholder-cyan-900/30" />
+                             </div>
+                             <div class="w-2/3">
+                                <label class="block text-[10px] font-bold uppercase text-cyan-900/50 mb-1">Localidad <span class="text-red-400">*</span></label>
+                                <input v-model="fiscalForm.localidad" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors placeholder-cyan-900/30" />
+                             </div>
                         </div>
                         <div>
+                            <label class="block text-[10px] font-bold uppercase text-cyan-900/50 mb-1">Provincia <span class="text-red-400">*</span></label>
                             <select v-model="fiscalForm.provincia_id" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors appearance-none text-xs">
-                                <option :value="null">Provincia *</option>
+                                <option :value="null">Seleccionar...</option>
                                 <option v-for="prov in provincias" :key="prov.id" :value="prov.id">{{ prov.nombre }}</option>
                             </select>
                         </div>
@@ -190,24 +198,61 @@
                 </div>
                 <div v-else class="space-y-3">
                     <div 
-                        v-for="dom in form.domicilios" 
+                        v-for="dom in sortedDomicilios" 
                         :key="dom.id"
-                        class="bg-cyan-900/5 border border-cyan-900/20 rounded-lg p-3 relative group hover:bg-cyan-900/10 transition-colors"
+                        @dblclick="openDomicilioForm(dom)"
+                        class="bg-cyan-900/5 border border-cyan-900/20 rounded-lg p-3 relative group hover:bg-cyan-900/10 transition-colors cursor-pointer select-none"
                     >
-                        <div class="flex justify-between items-start">
-                            <span v-if="dom.es_fiscal" class="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 rounded border border-purple-500/30">FISCAL</span>
-                            <span v-else class="text-[10px] bg-gray-700 text-gray-300 px-1.5 rounded">SUCURSAL</span>
+                        <div class="flex justify-between items-start pr-24">
+                            <div class="flex items-center gap-2">
+                            <span v-if="dom.es_fiscal" class="text-[10px] bg-purple-500/30 text-purple-200 font-bold px-2 py-0.5 rounded border border-purple-500/50 shadow-sm shadow-purple-900/20">FISCAL</span>
+                            <span v-else class="text-[10px] bg-slate-700 text-white font-bold px-2 py-0.5 rounded border border-slate-600 shadow-sm shadow-black/20">SUCURSAL</span>
+                            
+                            <!-- Logistics Icon -->
+                            <div v-if="dom.es_entrega" class="ml-2" :title="dom.origen_logistico === 'RETIRO_EN_PLANTA' ? 'Nos Retiran' : 'Despachamos'">
+                                <i v-if="dom.origen_logistico === 'RETIRO_EN_PLANTA'" class="fa-solid fa-truck-pickup text-cyan-400 text-xs"></i>
+                                <i v-else class="fa-solid fa-dolly text-emerald-400 text-xs"></i>
+                            </div>
+                        </div>
                         </div>
                         <p class="text-sm font-medium text-cyan-100 mt-1">{{ dom.calle }} {{ dom.numero }}</p>
                         <p class="text-xs text-cyan-200/50">{{ dom.localidad }}</p>
                         
-                        <!-- Edit Button -->
-                        <button @click="openDomicilioForm(dom)" class="absolute top-2 right-2 text-cyan-900/30 hover:text-cyan-100 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <i class="fas fa-pencil-alt"></i>
-                        </button>
+                        <!-- Actions: Edit, Delete, Toggle -->
+                        <div class="absolute top-2 right-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            
+                            <!-- Toggle Active (Slider) - Except Fiscal -->
+                            <button 
+                                v-if="!dom.es_fiscal"
+                                @click.stop="toggleDomicilioActive(dom)"
+                                :title="dom.activo ? 'Desactivar Domicilio' : 'Activar Domicilio'"
+                                class="relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none shrink-0"
+                                :class="dom.activo ? 'bg-green-500/50' : 'bg-red-500/50'"
+                            >
+                                <span 
+                                    class="inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform shadow-sm"
+                                    :class="dom.activo ? 'translate-x-3.5' : 'translate-x-1'"
+                                />
+                            </button>
+
+                            <!-- Edit -->
+                            <button @click.stop="openDomicilioForm(dom)" class="text-cyan-200 hover:text-white bg-white/10 hover:bg-white/20 p-1.5 rounded transition-colors" title="Editar">
+                                <i class="fas fa-pencil-alt"></i>
+                            </button>
+                            
+                            <!-- Delete (Tachito) - Except Fiscal -->
+                            <button 
+                                v-if="!dom.es_fiscal" 
+                                @click.stop="deleteDomicilio(dom)" 
+                                class="text-red-400 hover:text-red-300 bg-white/10 hover:bg-white/20 p-1.5 rounded transition-colors"
+                                title="Eliminar Domicilio"
+                            >
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </div>
                     
-                    <button @click="openDomicilioForm()" class="w-full py-2 border border-dashed border-cyan-900/30 rounded-lg text-cyan-900/50 hover:text-cyan-400 hover:border-cyan-500/30 hover:bg-cyan-500/5 transition-all text-xs font-bold uppercase">
+                    <button @click="openDomicilioForm()" class="w-full py-2 border border-dashed border-cyan-500/30 rounded-lg text-cyan-400/50 hover:text-cyan-300 hover:border-cyan-400/50 hover:bg-cyan-500/5 transition-all text-xs font-bold uppercase">
                         <i class="fas fa-plus mr-1"></i> Agregar Domicilio
                     </button>
                 </div>
@@ -245,14 +290,17 @@
         </div>
 
         <!-- Domicilio Form Overlay - Outside Tabs -->
-        <div v-if="showDomicilioForm" class="absolute inset-0 z-50">
-            <DomicilioForm 
-                :show="showDomicilioForm" 
-                :domicilio="selectedDomicilio" 
-                @close="showDomicilioForm = false"
-                @saved="handleDomicilioSaved"
-            />
-        </div>
+        <!-- Domicilio Form Overlay - Outside Tabs -->
+        <Teleport to="body">
+            <div v-if="showDomicilioForm" class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" @click.self="showDomicilioForm = false">
+                <DomicilioForm 
+                    :show="showDomicilioForm" 
+                    :domicilio="selectedDomicilio" 
+                    @close="showDomicilioForm = false"
+                    @saved="handleDomicilioSaved"
+                />
+            </div>
+        </Teleport>
 
         <!-- Footer Actions -->
         <div class="p-6 border-t border-cyan-900/20 flex gap-3 shrink-0 bg-[#020a0f]">
@@ -260,8 +308,8 @@
                 <span v-if="saving"><i class="fas fa-spinner fa-spin mr-2"></i>Guardando...</span>
                 <span v-else>Guardar (F10)</span>
             </button>
-            <button v-if="!isNew" @click="remove" class="px-3 bg-red-900/20 hover:bg-red-900/40 text-red-400 rounded border border-red-500/30 transition-colors" title="Dar de baja">
-                <i class="fas fa-trash"></i>
+            <button v-if="!isNew" @click="remove" class="px-3 bg-red-900/20 hover:bg-red-900/40 text-red-400 rounded border border-red-500/30 transition-colors" title="Dar de baja Cliente">
+                <i class="fas fa-trash"></i> <span class="ml-2 text-xs font-bold uppercase">Dar de Baja Cliente</span>
             </button>
         </div>
     </div>
@@ -293,6 +341,7 @@ import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useMaestrosStore } from '../../../stores/maestros'
 import { useClientesStore } from '../../../stores/clientes'
 import { useNotificationStore } from '../../../stores/notification'
+import clientesService from '../../../services/clientes'
 import DomicilioForm from './DomicilioForm.vue'
 import CondicionIvaForm from '../../Maestros/CondicionIvaForm.vue'
 import ContextMenu from '../../../components/common/ContextMenu.vue'
@@ -318,6 +367,14 @@ const segmentos = computed(() => maestrosStore.segmentos)
 const condicionesIva = computed(() => maestrosStore.condicionesIva)
 const provincias = computed(() => maestrosStore.provincias)
 const transportes = computed(() => maestrosStore.transportes)
+const sortedDomicilios = computed(() => {
+    if (!form.value.domicilios) return []
+    return [...form.value.domicilios].sort((a, b) => {
+        if (a.es_fiscal && !b.es_fiscal) return -1
+        if (!a.es_fiscal && b.es_fiscal) return 1
+        return (a.alias || a.calle || '').localeCompare(b.alias || b.calle || '')
+    })
+})
 
 const activeTab = ref('general')
 const saving = ref(false)
@@ -467,6 +524,12 @@ const handleDomicilioSaved = async (domData) => {
         } else {
             form.value.domicilios.push(res)
         }
+        
+        // Fix Dirty State: Identify that this change is persisted
+        // Ideally we should update the originalValues comparison reference
+        // But since Domicilios are a nested object, it's tricky.
+        // Easiest fix: force a refreshed fetch of the client to sync everything
+        emit('switch-client', form.value.id) 
         
         showDomicilioForm.value = false
     } catch (error) {
@@ -636,6 +699,44 @@ const save = async () => {
     }
 }
 
+const deleteDomicilio = async (dom) => {
+    if (!confirm(`¿Está seguro que desea eliminar el domicilio de ${dom.calle}? Esta acción no se puede deshacer.`)) return
+    
+    try {
+        await clientesService.deleteDomicilio(form.value.id, dom.id)
+        
+        // Refresh client
+        const updatedClient = await clienteStore.fetchClienteById(form.value.id)
+        form.value = JSON.parse(JSON.stringify(updatedClient))
+        emit('switch-client', updatedClient.id) // Force refresh
+        
+        notificationStore.add('Domicilio eliminado', 'success')
+    } catch (e) {
+        console.error(e)
+        notificationStore.add('Error al eliminar domicilio', 'error')
+    }
+}
+
+const toggleDomicilioActive = async (dom) => {
+    try {
+        const newState = !dom.activo
+        // Optimistic update
+        dom.activo = newState
+        
+        await clientesService.updateDomicilio(form.value.id, dom.id, { activo: newState })
+        
+        // Background refresh to ensure consistency
+        await clienteStore.fetchClienteById(form.value.id)
+        
+        // Force list refresh to ensure indicators update in Grid/List
+        clienteStore.fetchClientes()
+    } catch (e) {
+        console.error(e)
+        dom.activo = !dom.activo // Revert on error
+        notificationStore.add('Error al actualizar estado', 'error')
+    }
+}
+
 const remove = () => {
     if (confirm('¿Seguro que desea dar de baja este cliente?')) {
         emit('delete', form.value)
@@ -644,6 +745,7 @@ const remove = () => {
 
 const handleKeydown = (e) => {
     if (e.key === 'F10') {
+        if (showDomicilioForm.value) return // Let modal handle it
         e.preventDefault()
         save()
     }

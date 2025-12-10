@@ -19,11 +19,6 @@ const routes = [
         redirect: '/hawe'
     },
     {
-        path: '/segmentos',
-        name: 'Segmentos',
-        component: SegmentoList
-    },
-    {
         path: '/vendedores',
         name: 'Vendedores',
         component: VendedorList
@@ -58,6 +53,11 @@ const routes = [
                 name: 'HaweClientCanvas',
                 component: () => import('../views/Hawe/ClientCanvas.vue'),
                 props: true
+            },
+            {
+                path: 'segmentos',
+                name: 'Segmentos',
+                component: SegmentoList
             },
             {
                 path: 'transportes',

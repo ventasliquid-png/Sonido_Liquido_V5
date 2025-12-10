@@ -108,6 +108,10 @@ class ClienteResponse(ClienteBase):
     updated_at: datetime
     domicilios: List[DomicilioResponse] = []
     vinculos: List[VinculoComercialResponse] = []
+    
+    # Nuevos Campos Visuales (Propiedades @property del modelo)
+    domicilio_fiscal_resumen: Optional[str] = None
+    requiere_entrega: bool = False
 
     class Config:
         from_attributes = True
@@ -122,7 +126,7 @@ class ClienteListResponse(ClienteBase):
     
     # Nuevos Campos Visuales (Propiedades @property del modelo)
     domicilio_fiscal_resumen: Optional[str] = None
-    tiene_entrega_alternativa: bool = False
+    requiere_entrega: bool = False
     contacto_principal_nombre: Optional[str] = None
     
     # Exclude nested lists for performance

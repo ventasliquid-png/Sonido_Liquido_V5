@@ -8,25 +8,13 @@
     ]"
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
-    @dblclick="handleDblClick"
+    @dblclick.stop=""
   >
-    <!-- Status Indicator -->
+    <!-- Logistics Indicator -->
     <div
-      v-if="status"
-      class="absolute right-3 top-3 h-2 w-2 rounded-full shadow-[0_0_8px]"
-      :class="{
-        'bg-green-500 shadow-green-500': status === 'active',
-        'bg-red-500 shadow-red-500': status === 'inactive',
-        'bg-yellow-500 shadow-yellow-500': status === 'pending'
-      }"
-    ></div>
-
-    <!-- Alert Indicator (Orange Dot for Alternative Delivery) -->
-    <div
-      v-if="hasAlert"
-      class="absolute right-6 top-3 h-2 w-2 rounded-full shadow-[0_0_8px]"
-      :class="alertColor + ' shadow-' + alertColor.replace('bg-', '')"
-      title="Entrega Alternativa / Alerta"
+      v-if="hasLogisticsAlert"
+      class="absolute right-3 top-3 h-2 w-2 rounded-full shadow-[0_0_8px] bg-orange-500 shadow-orange-500"
+      title="Requiere Entrega (Logística)"
     ></div>
 
     <!-- Icon / Thumbnail -->
@@ -79,22 +67,9 @@ const props = defineProps({
     type: String,
     default: ''
   },
-  status: {
-    type: String,
-    default: null // 'active', 'inactive', 'pending'
-  },
-  selected: {
+  hasLogisticsAlert: {
     type: Boolean,
     default: false
-  },
-  // New props for V5.1 Visual Enhancements
-  hasAlert: {
-    type: Boolean,
-    default: false
-  },
-  alertColor: {
-    type: String,
-    default: 'bg-orange-500' 
   },
   extraData: {
     type: Object,

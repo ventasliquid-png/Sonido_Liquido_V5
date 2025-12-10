@@ -77,33 +77,11 @@ class Cliente(Base):
         return None
 
     @property
-    def tiene_entrega_alternativa(self):
-        """Retorna True si tiene algun domicilio de entrega que NO sea el fiscal"""
-        entregas = [d for d in self.domicilios if d.es_entrega and d.activo]
-        fiscal = next((d for d in self.domicilios if d.es_fiscal and d.activo), None)
-        
-        if not entregas:
-            return False
-        
-        # Si tiene entregas, verificamos si alguna es distinta a la fiscal
-        if fiscal:
-             # Si hay fiscal, buscamos alguna entrega que NO sea el mismo objeto/ID 
-             # (Asumiendo que un domicilio puede ser ambos, o separados)
-             # Logica: Si hay un domicilio 'es_fiscal=True' y 'es_entrega=False', y Otro 'es_entrega=True', entonces True.
-             # Si el fiscal tamiben es entrega (es_fiscal=T, es_entrega=T), y es el unico, entonces False.
-             
-             # Buscamos si existe algun domicilio de entrega que NO sea el fiscal
-             for e in entregas:
-                 if e.id != fiscal.id:
-                     return True
-             return False
-        else:
-             # Si no hay fiscal definido pero hay entregas, tecnicamente es "alternativa" a nada? 
-             # O consideramos que si hay entregas, hay punto de entrega.
-             # El usuario quiere "punto naranja indque domicilio entrega distinto".
-             # Asumamos: Distinto a Fiscal.
-             # Si no hay fiscal, y hay entrega -> True (es distinto a null).
-             return True
+    def requiere_entrega(self):
+        """Retorna True si tiene algun domicilio marcado para entrega (Fiscal o Sucursal)"""
+        # Nueva logica simplificada por pedido del usuario (Orange Dot = Necesita Entrega, NO Retiro)
+        # Se excluye explicitamente 'RETIRO_EN_PLANTA' aunque tenga flag envio=True (casos legacy)
+        return any(d.es_entrega and d.activo and d.origen_logistico != 'RETIRO_EN_PLANTA' for d in self.domicilios)
 
     @property
     def contacto_principal_nombre(self):

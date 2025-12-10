@@ -57,9 +57,20 @@ Un cliente puede tener múltiples domicilios, pero se clasifican estrictamente e
 ### 2.3 Concepto de Segmentos
 Los clientes se agrupan en **Segmentos** (anteriormente "Ramos").
 *   Permite clasificar la cartera por canal de venta o tipo de negocio.
-*   Es un filtro primario en el explorador de clientes.
-
----
+60: *   Es un filtro primario en el explorador de clientes.
+61: 
+62: ### 2.4 Administración de Segmentos
+63: El módulo de Segmentos permite crear y editar las clasificaciones de la cartera.
+64: *   **Ubicación:** Menú Lateral > Grupo CLIENTES > Segmentos.
+65: *   **Interfaz Split-Pane:** La pantalla se divide en dos:
+66:     *   **Izquierda (Lista):** Muestra los segmentos existentes.
+67:     *   **Derecha (Inspector):** Panel fijo de edición.
+68: *   **Operación:**
+69:     *   Al seleccionar un segmento de la lista, se carga en el panel derecho.
+70:     *   Para crear uno nuevo, presione el botón **+ NUEVO (INS)** o la tecla `Insert`.
+71:     *   Para guardar, presione **Guardar (F10)**.
+72: 
+73: ---
 
 ## CAPÍTULO 3: MÓDULO PRODUCTOS (MANUFACTURA)
 

@@ -80,26 +80,82 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div v-if="show" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-[60] flex items-center justify-center">
-        <div class="relative mx-auto p-5 border w-96 shadow-lg rounded-md bg-white animate-scale-in">
-            <div class="mt-3">
-                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">{{ isEditing ? 'Editar Segmento' : 'Nuevo Segmento' }}</h3>
+    <div v-if="show" class="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" @click.self="close">
+        <div class="relative w-full max-w-md bg-[#0a253a] border border-cyan-500/30 shadow-2xl shadow-cyan-900/40 rounded-lg overflow-hidden animate-scale-in">
+            
+            <!-- Header -->
+            <div class="px-6 py-4 border-b border-cyan-900/30 flex justify-between items-center bg-[#05151f]/50">
+                <h3 class="text-lg font-bold text-cyan-100 leading-6 font-outfit">
+                    {{ isEditing ? 'Editar Segmento' : 'Nuevo Segmento' }}
+                </h3>
+                <button @click="close" class="text-cyan-900/50 hover:text-cyan-100 transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-6">
                 <form @submit.prevent="handleSave">
-                    <div class="mb-4">
-                        <label class="block text-gray-700 text-sm font-bold mb-2">Nombre</label>
-                        <input v-model="form.nombre" type="text" required class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b]">
+                    <div class="mb-5">
+                        <label class="block text-xs font-bold uppercase text-cyan-900/50 mb-1">Nombre <span class="text-red-400">*</span></label>
+                        <input 
+                            v-model="form.nombre" 
+                            type="text" 
+                            required 
+                            placeholder="Ej: Mayoristas"
+                            class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors placeholder-cyan-900/30"
+                        >
                     </div>
-                    <div class="mb-4">
-                        <label class="block text-gray-700 text-sm font-bold mb-2">Descripción</label>
-                        <input v-model="form.descripcion" type="text" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b]">
+                    
+                    <div class="mb-5">
+                        <label class="block text-xs font-bold uppercase text-cyan-900/50 mb-1">Descripción</label>
+                        <textarea 
+                            v-model="form.descripcion" 
+                            rows="2"
+                            placeholder="Breve descripción del segmento..."
+                            class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors placeholder-cyan-900/30 resize-none"
+                        ></textarea>
                     </div>
-                    <div class="mb-4 flex items-center">
-                        <input v-model="form.activo" type="checkbox" class="h-4 w-4 text-[#54cb9b] focus:ring-[#54cb9b] border-gray-300 rounded">
-                        <label class="ml-2 block text-gray-900 text-sm">Activo</label>
+
+                    <div class="mb-6 flex items-center justify-between bg-cyan-900/10 p-3 rounded-lg border border-cyan-900/20">
+                        <span class="text-sm font-bold text-cyan-100">Estado Activo</span>
+                        <div class="flex items-center gap-2">
+                             <span class="text-[10px] font-bold uppercase transition-colors" :class="form.activo ? 'text-green-400' : 'text-red-400'">
+                                {{ form.activo ? 'ACTIVO' : 'INACTIVO' }}
+                            </span>
+                            <input 
+                                v-model="form.activo" 
+                                type="checkbox" 
+                                class="hidden" 
+                                id="statusToggle"
+                            >
+                            <label 
+                                for="statusToggle"
+                                class="relative inline-flex h-4 w-7 items-center rounded-full transition-colors cursor-pointer"
+                                :class="form.activo ? 'bg-green-500/50' : 'bg-red-500/50'"
+                            >
+                                <span 
+                                    class="inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform shadow-sm" 
+                                    :class="form.activo ? 'translate-x-3.5' : 'translate-x-1'"
+                                />
+                            </label>
+                        </div>
                     </div>
-                    <div class="flex justify-end gap-2 mt-4">
-                        <button type="button" @click="close" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 text-sm font-bold">Cancelar (ESC)</button>
-                        <button type="submit" class="px-4 py-2 bg-[#54cb9b] text-white rounded hover:bg-[#45b085] text-sm font-bold">Guardar (F10)</button>
+
+                    <div class="flex justify-end gap-3 pt-2">
+                        <button 
+                            type="button" 
+                            @click="close" 
+                            class="px-4 py-2 bg-transparent text-cyan-900/50 hover:text-cyan-100 font-bold uppercase text-xs border border-transparent hover:border-cyan-900/30 rounded transition-all"
+                        >
+                            Cancelar (ESC)
+                        </button>
+                        <button 
+                            type="submit" 
+                            class="px-6 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold uppercase text-xs rounded shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 transition-all flex items-center gap-2"
+                        >
+                            <i class="fas fa-save"></i> Guardar (F10)
+                        </button>
                     </div>
                 </form>
             </div>

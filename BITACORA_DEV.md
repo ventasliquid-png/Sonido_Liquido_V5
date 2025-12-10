@@ -5,7 +5,7 @@
 *   **Estilo:** "Manos a la obra". Menos disculpas burocráticas, más acción técnica. Se valora la proactividad inteligente.
 *   **Lenguaje:** Uso natural de metáforas de operación, aeronáuticas o de misión crítica (Ej: "Vuelo 411", "Enceder Motores", "Blindaje", "Triangulación").
 *   **Mindset:** El sistema trabaja para el usuario, no al revés. Priorizar la automatización y la "Ingesta Inteligente" sobre la carga manual.
-*   **Idioma:** Toda la documentación, bitácoras y respuestas al usuario deben ser estrictamente en **Castellano (Español)**, salvo nombres técnicos universales.
+*   **Idioma:** Toda la comunicación, bitácoras y respuestas al usuario deben ser estrictamente en **ESPAÑOL (CASTELLANO)**. Prohibido responder en inglés salvo para términos técnicos inevitables.
 
 ## Normas de UX / UI (Doctrina DEOU)
 
@@ -592,3 +592,26 @@ Debido a la volatilidad de los datos en entornos de desarrollo/nube, se ha imple
         4.  **Origen:** Despachamos Nosotros / Nos Retiran (Colecta).
     *   Esto cubre los 8 escenarios logísticos planteados por el usuario.
 
+### [2025-12-10] Definición Lógica Logística y Corrección API
+*   **Hito:** Se definió la lógica de negocio para indicadores logísticos en Clientes (Punto Naranja).
+*   **Lógica:**
+    *   **Punto Naranja (Requiere Entrega):** Se activa solo si el cliente tiene un domicilio marcado como `es_entrega=True` Y que NO sea `ORIGEN_LOGISTICO='RETIRO_EN_PLANTA'`.
+    *   **Retiro en Planta:** Es el escenario por defecto (ej: Comisionista Juan). No requiere acción nuestra, por ende no lleva indicador.
+    *   **Excepciones:** Las desviaciones del hábito (ej: "Hoy mandalo por Pepe") se manejan en el **Pedido**, no en la ficha del cliente.
+*   **Bug CORS/500 Resuelto:**
+    *   **Síntoma:** Error de CORS al guardar domicilios.
+    *   **Causa:** La ruta `PUT /clientes/{id}/domicilios/{id}` declaraba `response_model=DomicilioResponse` pero el servicio devolvía un objeto `Cliente` (para actualizar la UI). Esto generaba un error de validación Pydantic (500) invisible.
+    *   **Solución:** Se actualizó `response_model` a `ClienteResponse` en `backend/clientes/router.py`.
+*   **UX Domicilio:**
+    *   Se simplificó `DomicilioForm.vue` moviendo flags Fiscal/Estado al encabezado y eliminando redundancias en el pie.
+*   **Refactor UI Segmentos:**
+    *   Se actualizó `SegmentoList` (modal apilado en Clientes) para eliminar el fondo blanco y usar el tema Dark Blue (`#0a1f2e`).
+    *   **Arquitectura:** Se migró de Modal simple a **Inspector Lateral**, unificando la UX con el módulo de Clientes y Productos.
+    *   **Router:** Se movió la ruta `/segmentos` bajo el layout `HaweLayout` para evitar la duplicación de Sidebar.
+    *   **Sidebar UX:** Se implementó resaltado visual del "Grupo Padre" (Ej: Clientes) cuando un módulo hijo (Ej: Segmentos) está activo, para mejor orientación del usuario.
+    *   Se corrigió error de sintaxis en el componente `SegmentoList.vue`.
+    *   **Layout Logística:** Se adoptó el patrón "Split-Pane" (Panel Dividido) para Segmentos, replicando la estructura de **Transportes** (Lista Izquierda + Inspector Fijo Derecha) para garantizar visibilidad y consistencia.
+    *   **Documentación:** Se actualizó `MANUAL_OPERATIVO_V5.md` con la nueva sección de Administración de Segmentos.
+
+> [!NOTE]
+> **Estado Final de Sesión:** Módulo de Segmentos operativo y consistente con la estética V5 (Dark/Cyan). Sidebar unificado y navegación clara.

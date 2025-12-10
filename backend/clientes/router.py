@@ -87,11 +87,11 @@ def hard_delete_cliente(cliente_id: UUID, db: Session = Depends(get_db)):
 # --- Domicilios ---
 from backend.clientes.schemas import DomicilioCreate, DomicilioUpdate, DomicilioResponse
 
-@router.post("/{cliente_id}/domicilios", response_model=DomicilioResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/{cliente_id}/domicilios", response_model=ClienteResponse, status_code=status.HTTP_201_CREATED)
 def create_domicilio(cliente_id: UUID, domicilio: DomicilioCreate, db: Session = Depends(get_db)):
     return ClienteService.create_domicilio(db, cliente_id, domicilio)
 
-@router.put("/{cliente_id}/domicilios/{domicilio_id}", response_model=DomicilioResponse)
+@router.put("/{cliente_id}/domicilios/{domicilio_id}", response_model=ClienteResponse)
 def update_domicilio(cliente_id: UUID, domicilio_id: UUID, domicilio: DomicilioUpdate, db: Session = Depends(get_db)):
     db_domicilio = ClienteService.update_domicilio(db, domicilio_id, domicilio)
     if db_domicilio is None:

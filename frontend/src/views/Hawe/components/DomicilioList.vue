@@ -63,6 +63,7 @@
                             <th class="px-6 py-3 text-left text-xs font-bold text-white/50 uppercase tracking-wider">Calle y Número</th>
                             <th class="px-6 py-3 text-left text-xs font-bold text-white/50 uppercase tracking-wider">Localidad</th>
                             <th class="px-6 py-3 text-left text-xs font-bold text-white/50 uppercase tracking-wider">Tipo</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-white/50 uppercase tracking-wider">Entrega</th>
                             <th class="px-6 py-3 text-left text-xs font-bold text-white/50 uppercase tracking-wider">Estado</th>
                             <th class="px-6 py-3 text-right text-xs font-bold text-white/50 uppercase tracking-wider">Acciones</th>
                         </tr>
@@ -95,6 +96,16 @@
                                 <span v-else class="px-2 py-0.5 inline-flex text-[10px] leading-5 font-bold rounded-full border bg-gray-700/50 text-gray-400 border-gray-600">
                                     SUCURSAL
                                 </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-white/70">
+                                <div v-if="dom.metodo_entrega" class="flex items-center gap-2" :title="dom.metodo_entrega">
+                                    <i v-if="dom.metodo_entrega === 'RETIRO_LOCAL'" class="fa-solid fa-store text-cyan-400"></i>
+                                    <i v-else-if="dom.metodo_entrega === 'TRANSPORTE'" class="fa-solid fa-truck text-amber-400"></i>
+                                    <i v-else-if="dom.metodo_entrega === 'FLETE_MOTO'" class="fa-solid fa-motorcycle text-blue-400"></i>
+                                    <i v-else-if="dom.metodo_entrega === 'PLATAFORMA'" class="fa-solid fa-laptop text-purple-400"></i>
+                                    <span class="text-xs font-medium">{{ dom.metodo_entrega.replace('_', ' ') }}</span>
+                                </div>
+                                <span v-else class="text-white/20 text-xs">-</span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span :class="[
@@ -153,6 +164,13 @@ const filteredDomicilios = computed(() => {
             normalizeText(d.localidad).includes(query)
         );
     }
+
+    // Sort: Fiscal first, then by Alias/Calle
+    result.sort((a, b) => {
+        if (a.es_fiscal && !b.es_fiscal) return -1;
+        if (!a.es_fiscal && b.es_fiscal) return 1;
+        return (a.alias || a.calle || '').localeCompare(b.alias || b.calle || '');
+    });
 
     return result;
 });

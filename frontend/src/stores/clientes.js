@@ -27,6 +27,11 @@ export const useClientesStore = defineStore('clientes', {
         async fetchClienteById(id) {
             try {
                 const response = await clientesService.getById(id);
+                // Update local list cache to ensure Grid/List view is fresh
+                const index = this.clientes.findIndex(c => c.id === id);
+                if (index !== -1) {
+                    this.clientes[index] = response.data;
+                }
                 return response.data;
             } catch (error) {
                 console.error(`Error fetching cliente ${id}:`, error);

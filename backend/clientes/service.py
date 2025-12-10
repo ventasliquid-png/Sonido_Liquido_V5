@@ -81,12 +81,15 @@ class ClienteService:
 
     @staticmethod
     def get_clientes(db: Session, skip: int = 0, limit: int = 100, include_inactive: bool = False) -> List[Cliente]:
+        from sqlalchemy.orm import joinedload
         # Modified to allow fetching inactive clients if needed, or by default just return all and let frontend filter
         # User requested: "SI un cliente está de baja lógica, no es mostrado en el listado cuando se one 'todos' en el encabezado"
         # So we should probably return ALL clients by default or have a flag.
         # The prompt said: "Verifica que el filtro 'Todos' en la lista traiga también a los inactivos."
         # So I will remove the filter(Cliente.activo == True).
-        return db.query(Cliente).offset(skip).limit(limit).all()
+        return db.query(Cliente).options(
+            joinedload(Cliente.domicilios)
+        ).offset(skip).limit(limit).all()
 
     @staticmethod
     def update_cliente(db: Session, cliente_id: UUID, cliente_in: schemas.ClienteUpdate) -> Optional[Cliente]:
@@ -274,6 +277,14 @@ class ClienteService:
              prov = db.query(Provincia).filter(Provincia.id == prov_id).first()
              if not prov:
                  raise HTTPException(status_code=400, detail="Código de provincia inválido")
+        
+        # Enforce Single Fiscal Domicile Logic
+        if domicilio_in.es_fiscal:
+            # Demote all existing domiciles
+            db.query(Domicilio).filter(
+                Domicilio.cliente_id == cliente_id,
+                Domicilio.es_fiscal == True
+            ).update({"es_fiscal": False})
 
         db_domicilio = Domicilio(
             **domicilio_in.model_dump(exclude={'provincia', 'zona_id'}), # Exclude zona_id as it's not in model
@@ -301,13 +312,23 @@ class ClienteService:
              val = update_data.pop('provincia')
              update_data['provincia_id'] = val if val != "" else None
 
+        # Enforce Single Fiscal Domicile Logic
+        if update_data.get('es_fiscal'):
+            # Demote others
+            db.query(Domicilio).filter(
+                Domicilio.cliente_id == db_domicilio.cliente_id,
+                Domicilio.id != domicilio_id, # Don't demote self (though it's about to be True anyway)
+                Domicilio.es_fiscal == True
+            ).update({"es_fiscal": False})
+
         for key, value in update_data.items():
             setattr(db_domicilio, key, value)
-        
-        db.add(db_domicilio)
+            
         db.commit()
-        db.refresh(db_domicilio)
-        return db_domicilio
+        # Removed refresh, better to re-fetch with relationships
+        
+        # Return fully loaded client
+        return ClienteService.get_cliente(db, db_domicilio.cliente_id)
 
     @staticmethod
     def delete_domicilio(db: Session, domicilio_id: UUID):
