@@ -17,6 +17,9 @@ class DomicilioBase(BaseModel):
     transporte_id: Optional[UUID] = None
     intermediario_id: Optional[UUID] = None
     zona_id: Optional[UUID] = None
+    metodo_entrega: Optional[str] = None
+    modalidad_envio: Optional[str] = None
+    origen_logistico: Optional[str] = None
 
 class DomicilioCreate(DomicilioBase):
     pass
@@ -32,6 +35,9 @@ class DomicilioUpdate(BaseModel):
     transporte_id: Optional[UUID] = None
     intermediario_id: Optional[UUID] = None
     zona_id: Optional[UUID] = None
+    metodo_entrega: Optional[str] = None
+    modalidad_envio: Optional[str] = None
+    origen_logistico: Optional[str] = None
 
 class DomicilioResponse(BaseModel):
     id: UUID
@@ -47,6 +53,9 @@ class DomicilioResponse(BaseModel):
     transporte_habitual_nodo_id: Optional[UUID] = None
     transporte_id: Optional[UUID] = None
     intermediario_id: Optional[UUID] = None
+    metodo_entrega: Optional[str] = None
+    modalidad_envio: Optional[str] = None
+    origen_logistico: Optional[str] = None
 
     class Config:
         from_attributes = True

@@ -30,22 +30,22 @@
           <div class="flex bg-cyan-900/10 rounded-lg p-1 border border-cyan-900/20">
             <button 
                 @click="filterStatus = 'all'"
-                class="px-3 py-1 text-xs font-medium rounded-md transition-all"
-                :class="filterStatus === 'all' ? 'bg-cyan-600 text-white shadow-sm' : 'text-cyan-100/50 hover:text-cyan-100'"
+                class="px-3 py-1 text-xs font-bold rounded-md transition-all"
+                :class="filterStatus === 'all' ? 'bg-indigo-600/70 text-white shadow-md ring-1 ring-indigo-500' : 'text-cyan-100/40 hover:text-cyan-100 hover:bg-cyan-500/10'"
             >
                 Todos
             </button>
             <button 
                 @click="filterStatus = 'active'"
-                class="px-3 py-1 text-xs font-medium rounded-md transition-all"
-                :class="filterStatus === 'active' ? 'bg-green-600 text-white shadow-sm' : 'text-cyan-100/50 hover:text-cyan-100'"
+                class="px-3 py-1 text-xs font-bold rounded-md transition-all"
+                :class="filterStatus === 'active' ? 'bg-green-600/70 text-white shadow-md ring-1 ring-green-500' : 'text-cyan-100/40 hover:text-cyan-100 hover:bg-cyan-500/10'"
             >
                 Activos
             </button>
             <button 
                 @click="filterStatus = 'inactive'"
-                class="px-3 py-1 text-xs font-medium rounded-md transition-all"
-                :class="filterStatus === 'inactive' ? 'bg-red-600 text-white shadow-sm' : 'text-cyan-100/50 hover:text-cyan-100'"
+                class="px-3 py-1 text-xs font-bold rounded-md transition-all"
+                :class="filterStatus === 'inactive' ? 'bg-red-600/70 text-white shadow-md ring-1 ring-red-500' : 'text-cyan-100/40 hover:text-cyan-100 hover:bg-cyan-500/10'"
             >
                 Inactivos
             </button>

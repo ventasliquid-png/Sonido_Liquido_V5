@@ -509,3 +509,86 @@ Debido a la volatilidad de los datos en entornos de desarrollo/nube, se ha imple
     *   **Productos:** Operativo, carga rápida.
     *   **Rubros:** Operativo (Flat), bug visual menor pendiente de confirmación.
     *   **Backend:** Estable, sin errores de recursión.
+
+### [2025-12-09] Finalización Rubros V5 (Bug Fix Hover)
+*   **Corrección Visual (Flash al Hover):**
+    *   **Diagnóstico:** Se identificó conflicto de transformaciones CSS entre el control de la grilla (`RubrosView`) y la lógica interna de escalado (`FichaCard`). La doble aplicación de `transform` causaba parpadeo y bucles de evento.
+    *   **Solución:** Se eliminaron las clases redundantes `transition-transform duration-200 hover:-translate-y-1` en `RubrosView.vue`, dejando que el componente `FichaCard` maneje exclusivamente su estado visual (Doctrina de encapsulamiento).
+*   **Verificación:**
+    *   El módulo Rubros ahora sigue estrictamente el estándar visual de `HaweView` (Clientes) y `TransportesView`.
+    *   **Estado:** Módulo Rubros CERRADO y ESTABLE.
+
+### [2025-12-09] Estabilización Productos (Fix Loop Hover)
+*   **Corrección Bug Crítico (Infinite Reload Loop):**
+    *   **Síntoma:** "Flasheo" e inestabilidad al pasar el mouse por tarjetas de Productos.
+    *   **Causa:** La tarjeta emitía el evento `select` al hacer hover, lo que disparaba un `fetch` al backend, que a su vez refrescaba la lista y reiniciaba el componente, creando un ciclo infinito.
+    *   **Solución:**
+        *   Se deshabilitó el `emit('select')` automático en el evento `mouseenter` de `ProductoCard.vue`.
+        *   Se eliminó el posicionamiento `absolute` forzado en `ProductosView.vue` para respetar la lógica interna de expansión de la tarjeta.
+    *   **Resultado:** El efecto "Lupa" (Zoom) funciona visualmente, pero la selección (y carga de datos) requiere un **Click** explícito, homologando el comportamiento con el módulo Clientes.
+
+### [2025-12-09] Mejoras de UX (Toggle Switch)
+*   **Feature:** Se replicó el control de estado de Clientes en el módulo de Productos.
+    *   **Visual:** Interruptor deslizante (Slider) Verde/Rojo en lugar de checkboxes.
+    *   **Lógica:**
+        *   **Activar:** Inmediato.
+        *   **Desactivar:** Requiere confirmación explícita (Dialogo del navegador) para evitar accidentes operativos.
+    *   **Arquitectura:** Se implementó un `slot` de acciones en `ProductoCard` para inyectar botones contextuales sin ensuciar el componente base.
+
+### [2025-12-09] Estandarización de UI (Productos)
+*   **Barra de Herramientas:**
+    *   **Filtros de Estado:** Se reemplazó el botón simple de "Inactivos" por un grupo de botones (Todos | Activos | Inactivos) consistente con el módulo de Clientes.
+    *   **Ordenamiento:** Se refinó el menú de ordenamiento, añadiendo "Recientes" y mejorando la presentación.
+    *   **Estilos:** Se corrigió el contraste de los desplegables (Rubros) usando fondo oscuro (`#1a050b`) y texto blanco para mejorar la legibilidad.
+*   **Inspector de Producto:**
+    *   **Corrección Visual:** Se aplicó el mismo estilo de alto contraste (Fondo Oscuro/Texto Blanco) a todos los selectores del formulario (Rubro, Tipo, Unidades, Proveedor, IVA) para eliminar problemas de legibilidad con fondos semitransparentes.
+
+### [2025-12-09] Refactorización de UI (Productos)
+*   **Tarjeta de Producto:**
+    *   **Reubicación de Status:** Se movió el interruptor de estado (Slider) a la esquina superior derecha, integrando la funcionalidad de "Indicador de Estado" y "Control de Activación" en un solo elemento. Esto liberó la zona inferior de la tarjeta para evitar que el texto "Click para editar" fuera obstruido.
+*   **Layout General:**
+    *   **Z-Index Header:** Se elevó el Z-Index de la barra superior a `30` para asegurar que el botón "Nuevo" y los filtros permanezcan accesibles y visibles incluso si el Inspector (`z-20`) solapa el contenido en resoluciones ajustadas.
+    *   **Hotfix:** Se corrigió un error de sintaxis en `handleSearch` (paréntesis faltante) introducido durante la refactorización anterior.
+
+### [2025-12-09] Corrección de Lógica de Toggle y API (Productos)
+*   **Corrección Frontend (ProductosView):**
+    *   Se solucionó un `ReferenceError` en `handleToggleActive` donde se referenciaba `id` en lugar de `producto.id` al intentar cerrar el inspector tras desactivar un producto.
+*   **Implementación API Backend:**
+    *   **Endpoints Faltantes:** Se detectó que la API no exponía rutas para actualización y borrado lógico de productos, causando error 405.
+    *   **ADD `PUT /productos/{id}`:** Se implementó el endpoint para actualizar productos y sus costos asociados.
+    *   **ADD `DELETE /productos/{id}`:** Se implementó el endpoint para realizar el *toggle* del estado `activo` (Borrado Lógico), alineado con la expectativa del frontend.
+
+### [2025-12-09] Refinamiento de UI y Lógica (Productos)
+*   **Ajustes de Interfaz:**
+    *   **Z-Index Inspector:** Se aumentó a `z-40` para garantizar que cubra la cabecera (`z-30`) y evitar superposiciones indeseadas.
+    *   **Toggle en Inspector:** Se agregó un interruptor de "Activado/Desactivado" en la cabecera del Inspector, permitiendo cambiar el estado del producto sin cerrar la ficha.
+*   **Mejora de Backend:**
+    *   **Filtros de API:** Se actualizó `GET /productos/` para aceptar parámetros `activo` (bool) y `rubro_id` (int), permitiendo que los botones "Todos/Activos/Inactivos" del frontend filtren realmente en la base de datos en lugar de depender solo del cliente.
+
+### [2025-12-09] Refinamiento de UI (Ronda 2)
+*   **Corrección de Superposición:**
+    *   **Espaciado:** Se redujo el ancho de la barra de búsqueda (`w-96` -> `w-64`) para liberar espacio horizontal y evitar colisiones botones/inspector.
+    *   **Z-Index Definitivo:** Se subió el Inspector a `z-50` para asegurar que ningún elemento (como el botón "Nuevo") pueda quedar encima de él.
+*   **Lógica de Refresco:**
+    *   **Consistencia de Listado:** Se implementó una lógica de auto-refresh (`fetchProductos`) al cambiar el estado de un producto (Activar/Desactivar) si el filtro actual ("Activos" o "Inactivos") ya no coincide con el nuevo estado del ítem, asegurando que el producto desaparezca/aparezca según corresponda instantáneamente.
+
+### [2025-12-09] Estandarización de Estilos UI
+*   **Botones de Filtro (Estado):** Se unificó la paleta de colores para los filtros de estado en **Clientes, Productos y Transportes**:
+    *   **Todos:** Indigo/Violeta (`bg-indigo-500/20 text-indigo-300`).
+    *   **Activos:** Verde (`bg-green-500/20 text-green-300`).
+    *   **Inactivos:** Rojo (`bg-red-500/20 text-red-300`).
+*   **Ajuste de Contraste:** Se incrementó la opacidad de los botones a `bg-[color]-600/70` y se cambió el texto a `text-white` para mejorar la legibilidad y el "pop" visual, manteniendo la transparencia moderna pero con mayor peso.
+*   **Ajuste de Contraste:** Se incrementó la opacidad de los botones a `bg-[color]-600/70` y se cambió el texto a `text-white` para mejorar la legibilidad y el "pop" visual, manteniendo la transparencia moderna pero con mayor peso.
+*   **Documentación:** Se actualizó `ARQUITECTURA_Y_DOCTRINA_V5.txt` con estas normas de estilo.
+
+### [2025-12-09] Implementación de Arquitectura Logística
+*   **Nueva Entidad "Estrategia Logística" (Domicilios):**
+    *   **Base de Datos:** Se agregaron columnas `metodo_entrega`, `modalidad_envio` y `origen_logistico` a la tabla `domicilios`.
+    *   **Backend:** Se actualizaron Modelos y Schemas (`Clientes`) para soportar estos nuevos campos.
+    *   **Frontend (DomicilioForm):** Se reemplazó el selector simple de transporte por un **Wizard Logístico** que permite definir:
+        1.  **Método:** Retiro Local / Transporte / Moto / Plataforma.
+        2.  **Transportista:** Selección de empresa (Si aplica).
+        3.  **Modalidad:** A Domicilio / A Sucursal.
+        4.  **Origen:** Despachamos Nosotros / Nos Retiran (Colecta).
+    *   Esto cubre los 8 escenarios logísticos planteados por el usuario.
+

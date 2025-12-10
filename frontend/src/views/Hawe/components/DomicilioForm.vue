@@ -28,10 +28,14 @@ const form = reactive({
     localidad: '',
     provincia_id: null,
     transporte_id: null,
-    tipo: 'ENTREGA', // Default type
+    tipo: 'ENTREGA', 
     es_fiscal: false,
     es_entrega: true,
-    activo: true
+    activo: true,
+    // V5.2 Logistics Strategy
+    metodo_entrega: 'TRANSPORTE', // Default
+    modalidad_envio: 'A_DOMICILIO',
+    origen_logistico: 'DESPACHO_NUESTRO'
 });
 
 // Load masters on mount if empty
@@ -55,7 +59,10 @@ watch(() => props.domicilio, (newVal) => {
             transporte_id: newVal.transporte_id || null,
             es_fiscal: newVal.es_fiscal || false,
             es_entrega: newVal.es_entrega !== undefined ? newVal.es_entrega : true,
-            activo: newVal.activo !== undefined ? newVal.activo : true
+            activo: newVal.activo !== undefined ? newVal.activo : true,
+            metodo_entrega: newVal.metodo_entrega || 'TRANSPORTE',
+            modalidad_envio: newVal.modalidad_envio || 'A_DOMICILIO',
+            origen_logistico: newVal.origen_logistico || 'DESPACHO_NUESTRO'
         });
     } else {
         // Create mode
@@ -67,10 +74,13 @@ watch(() => props.domicilio, (newVal) => {
             cp: '',
             localidad: '',
             provincia_id: null,
-            transporte_id: props.defaultTransportId || null, // Auto-fill transport
+            transporte_id: props.defaultTransportId || null, 
             es_fiscal: false,
             es_entrega: true,
-            activo: true
+            activo: true,
+            metodo_entrega: 'TRANSPORTE',
+            modalidad_envio: 'A_DOMICILIO',
+            origen_logistico: 'DESPACHO_NUESTRO'
         });
     }
 }, { immediate: true });
@@ -180,16 +190,118 @@ onUnmounted(() => {
                     </div>
                 </div>
 
-                <!-- Transporte -->
-                <div class="bg-white/5 p-6 rounded-xl border border-white/10">
-                    <label class="block text-xs font-bold text-cyan-400 uppercase mb-2"><i class="fa-solid fa-truck mr-2"></i>Transporte Sugerido</label>
-                    <select v-model="form.transporte_id" class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all appearance-none text-lg">
-                        <option :value="null" class="bg-gray-900">Seleccionar...</option>
-                        <option v-for="trans in store.transportes" :key="trans.id" :value="trans.id" class="bg-gray-900">
-                            {{ trans.nombre }}
-                        </option>
-                    </select>
-                    <p class="text-xs text-white/40 mt-2">Este transporte se sugerirá automáticamente en los pedidos para este domicilio.</p>
+                <!-- Estrategia Logística (Wizard) -->
+                <div class="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+                    <div class="p-4 bg-white/5 border-b border-white/5">
+                         <label class="block text-xs font-bold text-cyan-400 uppercase"><i class="fa-solid fa-truck-fast mr-2"></i>Estrategia Logística</label>
+                    </div>
+                    
+                    <div class="p-6 space-y-6">
+                        <!-- 1. Método de Entrega -->
+                        <div>
+                            <label class="block text-[10px] font-bold text-white/40 uppercase mb-2">¿Cómo recibe el cliente?</label>
+                            <div class="grid grid-cols-4 gap-3">
+                                <button 
+                                    type="button"
+                                    @click="form.metodo_entrega = 'RETIRO_LOCAL'"
+                                    class="flex flex-col items-center justify-center p-3 rounded-lg border transition-all gap-2"
+                                    :class="form.metodo_entrega === 'RETIRO_LOCAL' ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300' : 'bg-black/20 border-transparent text-white/40 hover:bg-white/5'"
+                                >
+                                    <i class="fa-solid fa-store text-xl"></i>
+                                    <span class="text-xs font-bold">Retiro Local</span>
+                                </button>
+                                <button 
+                                    type="button"
+                                    @click="form.metodo_entrega = 'TRANSPORTE'"
+                                    class="flex flex-col items-center justify-center p-3 rounded-lg border transition-all gap-2"
+                                    :class="form.metodo_entrega === 'TRANSPORTE' ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300' : 'bg-black/20 border-transparent text-white/40 hover:bg-white/5'"
+                                >
+                                    <i class="fa-solid fa-truck text-xl"></i>
+                                    <span class="text-xs font-bold">Transporte</span>
+                                </button>
+                                <button 
+                                    type="button"
+                                    @click="form.metodo_entrega = 'FLETE_MOTO'"
+                                    class="flex flex-col items-center justify-center p-3 rounded-lg border transition-all gap-2"
+                                    :class="form.metodo_entrega === 'FLETE_MOTO' ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300' : 'bg-black/20 border-transparent text-white/40 hover:bg-white/5'"
+                                >
+                                    <i class="fa-solid fa-motorcycle text-xl"></i>
+                                    <span class="text-xs font-bold">Moto/Flete</span>
+                                </button>
+                                <button 
+                                    type="button"
+                                    @click="form.metodo_entrega = 'PLATAFORMA'"
+                                    class="flex flex-col items-center justify-center p-3 rounded-lg border transition-all gap-2"
+                                    :class="form.metodo_entrega === 'PLATAFORMA' ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300' : 'bg-black/20 border-transparent text-white/40 hover:bg-white/5'"
+                                >
+                                    <i class="fa-solid fa-laptop text-xl"></i>
+                                    <span class="text-xs font-bold">Plataforma</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 2. Configuración Detallada (Condicional) -->
+                        <div v-if="form.metodo_entrega !== 'RETIRO_LOCAL'" class="grid grid-cols-2 gap-6 pt-4 border-t border-white/5 animate-fade-in">
+                            
+                            <!-- Selección de Transporte (Solo si es Transporte o Moto) -->
+                            <div v-if="['TRANSPORTE', 'FLETE_MOTO'].includes(form.metodo_entrega)" class="col-span-2">
+                                <label class="block text-[10px] font-bold text-white/40 uppercase mb-2">Transportista Asignado</label>
+                                <select v-model="form.transporte_id" class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-cyan-500 outline-none transition-all">
+                                    <option :value="null" class="bg-gray-900">Seleccionar Empresa...</option>
+                                    <option v-for="trans in store.transportes" :key="trans.id" :value="trans.id" class="bg-gray-900">
+                                        {{ trans.nombre }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <!-- Modalidad (Domicilio vs Sucursal) -->
+                             <div v-if="form.metodo_entrega === 'TRANSPORTE'">
+                                <label class="block text-[10px] font-bold text-white/40 uppercase mb-2">Modalidad de Envío</label>
+                                <div class="flex gap-2">
+                                     <button 
+                                        type="button"
+                                        @click="form.modalidad_envio = 'A_DOMICILIO'"
+                                        class="flex-1 py-2 px-3 rounded text-xs font-bold border transition-colors"
+                                        :class="form.modalidad_envio === 'A_DOMICILIO' ? 'bg-indigo-500/20 border-indigo-500 text-indigo-300' : 'border-white/10 text-white/40 hover:bg-white/5'"
+                                    >
+                                        <i class="fa-solid fa-house mr-2"></i>A Domicilio
+                                    </button>
+                                     <button 
+                                        type="button"
+                                        @click="form.modalidad_envio = 'A_SUCURSAL'"
+                                        class="flex-1 py-2 px-3 rounded text-xs font-bold border transition-colors"
+                                        :class="form.modalidad_envio === 'A_SUCURSAL' ? 'bg-indigo-500/20 border-indigo-500 text-indigo-300' : 'border-white/10 text-white/40 hover:bg-white/5'"
+                                    >
+                                        <i class="fa-solid fa-building mr-2"></i>A Sucursal
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Origen Logístico (Quién despacha) -->
+                             <div :class="form.metodo_entrega === 'TRANSPORTE' ? '' : 'col-span-2'">
+                                <label class="block text-[10px] font-bold text-white/40 uppercase mb-2">Origen Logístico</label>
+                                <div class="flex gap-2">
+                                     <button 
+                                        type="button"
+                                        @click="form.origen_logistico = 'DESPACHO_NUESTRO'"
+                                        class="flex-1 py-2 px-3 rounded text-xs font-bold border transition-colors"
+                                        :class="form.origen_logistico === 'DESPACHO_NUESTRO' ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300' : 'border-white/10 text-white/40 hover:bg-white/5'"
+                                    >
+                                        <i class="fa-solid fa-dolly mr-2"></i>Despachamos
+                                    </button>
+                                     <button 
+                                        type="button"
+                                        @click="form.origen_logistico = 'RETIRO_EN_PLANTA'"
+                                        class="flex-1 py-2 px-3 rounded text-xs font-bold border transition-colors"
+                                        :class="form.origen_logistico === 'RETIRO_EN_PLANTA' ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300' : 'border-white/10 text-white/40 hover:bg-white/5'"
+                                    >
+                                        <i class="fa-solid fa-truck-pickup mr-2"></i>Nos Retiran
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
                 </div>
             </form>
 

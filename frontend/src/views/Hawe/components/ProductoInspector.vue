@@ -11,8 +11,23 @@
     <!-- Content -->
     <div v-if="localProducto" class="flex-1 flex flex-col overflow-hidden">
       <!-- Top Info -->
+      <!-- Top Info with Toggle -->
       <div class="p-6 pb-2 text-center shrink-0">
-        <div class="mb-4 flex justify-center">
+        <div class="mb-4 flex flex-col items-center gap-3">
+          <!-- Toggle Switch -->
+           <button 
+              @click="$emit('toggle-active', localProducto)"
+              class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none bg-black/40 border border-white/10"
+              :class="localProducto.activo ? 'border-green-500/50' : 'border-red-500/50'"
+              title="Click para cambiar estado"
+          >
+              <span 
+                  class="inline-block h-3 w-3 transform rounded-full transition-transform shadow-sm"
+                  :class="localProducto.activo ? 'translate-x-5 bg-green-400' : 'translate-x-1 bg-red-400'"
+              />
+          </button>
+
+          <!-- Icon -->
           <div class="flex h-20 w-20 items-center justify-center rounded-xl bg-gradient-to-br from-[#3f0e1a] to-black text-4xl text-rose-500 shadow-lg border border-rose-500/20">
             <i class="fas fa-box"></i>
           </div>
@@ -71,10 +86,10 @@
                   <label class="text-xs font-bold text-white/60 uppercase">Rubro / Categoría</label>
                   <select 
                     v-model="localProducto.rubro_id"
-                    class="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-rose-500 focus:outline-none transition-colors appearance-none"
+                    class="w-full bg-[#1a050b] border border-white/10 rounded-lg px-3 py-2 text-white focus:border-rose-500 focus:outline-none transition-colors appearance-none"
                   >
-                      <option :value="null" disabled>Seleccione un Rubro</option>
-                      <option v-for="rubro in flattenedRubros" :key="rubro.id" :value="rubro.id">
+                      <option :value="null" disabled class="bg-[#1a050b] text-white">Seleccione un Rubro</option>
+                      <option v-for="rubro in flattenedRubros" :key="rubro.id" :value="rubro.id" class="bg-[#1a050b] text-white">
                           {{ rubro.indent }}{{ rubro.nombre }}
                       </option>
                   </select>
@@ -85,12 +100,12 @@
                   <label class="text-xs font-bold text-white/60 uppercase">Tipo Producto</label>
                   <select 
                     v-model="localProducto.tipo_producto"
-                    class="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-rose-500 focus:outline-none transition-colors appearance-none"
+                    class="w-full bg-[#1a050b] border border-white/10 rounded-lg px-3 py-2 text-white focus:border-rose-500 focus:outline-none transition-colors appearance-none"
                   >
-                      <option value="VENTA">Venta</option>
-                      <option value="INSUMO">Insumo</option>
-                      <option value="MATERIA_PRIMA">Materia Prima</option>
-                      <option value="SERVICIO">Servicio</option>
+                      <option value="VENTA" class="bg-[#1a050b] text-white">Venta</option>
+                      <option value="INSUMO" class="bg-[#1a050b] text-white">Insumo</option>
+                      <option value="MATERIA_PRIMA" class="bg-[#1a050b] text-white">Materia Prima</option>
+                      <option value="SERVICIO" class="bg-[#1a050b] text-white">Servicio</option>
                   </select>
               </div>
 
@@ -106,10 +121,10 @@
                           <label class="text-xs font-bold text-white/60 uppercase">Unidad Stock</label>
                           <select 
                             v-model="localProducto.unidad_stock_id"
-                            class="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-rose-500 focus:outline-none transition-colors appearance-none"
+                            class="w-full bg-[#1a050b] border border-white/10 rounded-lg px-3 py-2 text-white focus:border-rose-500 focus:outline-none transition-colors appearance-none"
                           >
-                              <option :value="null">Seleccionar...</option>
-                              <option v-for="u in unidades" :key="u.id" :value="u.id">
+                              <option :value="null" class="bg-[#1a050b] text-white">Seleccionar...</option>
+                              <option v-for="u in unidades" :key="u.id" :value="u.id" class="bg-[#1a050b] text-white">
                                   {{ u.nombre }} ({{ u.codigo }})
                               </option>
                           </select>
@@ -120,10 +135,10 @@
                           <label class="text-xs font-bold text-white/60 uppercase">Unidad Compra</label>
                           <select 
                             v-model="localProducto.unidad_compra_id"
-                            class="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-rose-500 focus:outline-none transition-colors appearance-none"
+                            class="w-full bg-[#1a050b] border border-white/10 rounded-lg px-3 py-2 text-white focus:border-rose-500 focus:outline-none transition-colors appearance-none"
                           >
-                              <option :value="null">Seleccionar...</option>
-                              <option v-for="u in unidades" :key="u.id" :value="u.id">
+                              <option :value="null" class="bg-[#1a050b] text-white">Seleccionar...</option>
+                              <option v-for="u in unidades" :key="u.id" :value="u.id" class="bg-[#1a050b] text-white">
                                   {{ u.nombre }} ({{ u.codigo }})
                               </option>
                           </select>
@@ -149,12 +164,12 @@
                       <label class="text-xs font-bold text-white/60 uppercase">Unidad</label>
                       <select 
                         v-model="localProducto.unidad_medida"
-                        class="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-rose-500 focus:outline-none transition-colors"
+                        class="w-full bg-[#1a050b] border border-white/10 rounded-lg px-3 py-2 text-white focus:border-rose-500 focus:outline-none transition-colors"
                       >
-                          <option value="UN">Unidad</option>
-                          <option value="LT">Litro</option>
-                          <option value="KG">Kilo</option>
-                          <option value="MT">Metro</option>
+                          <option value="UN" class="bg-[#1a050b] text-white">Unidad</option>
+                          <option value="LT" class="bg-[#1a050b] text-white">Litro</option>
+                          <option value="KG" class="bg-[#1a050b] text-white">Kilo</option>
+                          <option value="MT" class="bg-[#1a050b] text-white">Metro</option>
                       </select>
                   </div>
                   
@@ -184,10 +199,10 @@
                       <label class="text-xs text-white/60 block mb-1">Proveedor Habitual</label>
                       <select 
                         v-model="localProducto.proveedor_habitual_id"
-                        class="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-white focus:border-rose-500 focus:outline-none appearance-none"
+                        class="w-full bg-[#1a050b] border border-white/10 rounded px-3 py-2 text-white focus:border-rose-500 focus:outline-none appearance-none"
                       >
-                          <option :value="null">Seleccionar Proveedor...</option>
-                          <option v-for="p in proveedores" :key="p.id" :value="p.id">
+                          <option :value="null" class="bg-[#1a050b] text-white">Seleccionar Proveedor...</option>
+                          <option v-for="p in proveedores" :key="p.id" :value="p.id" class="bg-[#1a050b] text-white">
                               {{ p.razon_social || p.nombre }}
                           </option>
                       </select>
@@ -224,11 +239,11 @@
                               <label class="text-xs text-white/60 block mb-1">Alícuota IVA</label>
                               <select 
                                 v-model="localProducto.tasa_iva_id"
-                                class="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-white font-mono focus:border-rose-500 focus:outline-none appearance-none text-right"
+                                class="w-full bg-[#1a050b] border border-white/10 rounded px-3 py-2 text-white font-mono focus:border-rose-500 focus:outline-none appearance-none text-right"
                                 @change="updateLocalIvaRate"
                               >
-                                  <option :value="null">Seleccionar...</option>
-                                  <option v-for="t in tasasIva" :key="t.id" :value="t.id">
+                                  <option :value="null" class="bg-[#1a050b] text-white">Seleccionar...</option>
+                                  <option v-for="t in tasasIva" :key="t.id" :value="t.id" class="bg-[#1a050b] text-white">
                                       {{ t.nombre }} ({{ t.valor }}%)
                                   </option>
                               </select>

@@ -9,14 +9,10 @@
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
   >
-    <!-- Status Indicator -->
-    <div
-      class="absolute right-3 top-3 h-2 w-2 rounded-full shadow-[0_0_8px]"
-      :class="{
-        'bg-green-500 shadow-green-500': producto.activo,
-        'bg-red-500 shadow-red-500': !producto.activo
-      }"
-    ></div>
+    <!-- Status Action Slot (Top Right) -->
+    <div class="absolute right-3 top-3 z-30 transform scale-90">
+      <slot name="status-action"></slot>
+    </div>
 
     <!-- Kit Indicator -->
     <div v-if="producto.es_kit" class="absolute right-8 top-2 text-xs text-yellow-400 font-bold tracking-wider" title="Es Kit">
@@ -54,6 +50,8 @@
           </div>
       </div>
     </div>
+    <!-- Actions Slot -->
+
   </div>
 </template>
 
@@ -79,7 +77,7 @@ let hoverTimeout = null
 const handleMouseEnter = () => {
   hoverTimeout = setTimeout(() => {
     isExpanded.value = true
-    emit('select')
+    // emit('select')
   }, 800) // Slightly faster than clients
 }
 

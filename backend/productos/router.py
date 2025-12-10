@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
-from typing import List
+from typing import List, Optional
 from backend.core.database import get_db
 from backend.productos import models, schemas
 
@@ -254,8 +254,23 @@ def calculate_prices(producto: models.Producto):
 from decimal import Decimal
 
 @router.get("/", response_model=List[schemas.ProductoRead])
-def read_productos(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    productos = db.query(models.Producto).options(joinedload(models.Producto.costos), joinedload(models.Producto.rubro)).offset(skip).limit(limit).all()
+def read_productos(
+    skip: int = 0, 
+    limit: int = 100, 
+    activo: Optional[bool] = None, 
+    rubro_id: Optional[int] = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(models.Producto).options(joinedload(models.Producto.costos), joinedload(models.Producto.rubro))
+    
+    # Apply Filters
+    if activo is not None:
+        query = query.filter(models.Producto.activo == activo)
+    
+    if rubro_id is not None:
+        query = query.filter(models.Producto.rubro_id == rubro_id)
+
+    productos = query.offset(skip).limit(limit).all()
     
     # Calcular precios para cada producto
     for p in productos:
@@ -291,3 +306,42 @@ def read_producto(producto_id: int, db: Session = Depends(get_db)):
     if producto is None:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     return calculate_prices(producto)
+
+@router.put("/{producto_id}", response_model=schemas.ProductoRead)
+def update_producto(producto_id: int, producto: schemas.ProductoUpdate, db: Session = Depends(get_db)):
+    db_producto = db.query(models.Producto).options(joinedload(models.Producto.costos)).filter(models.Producto.id == producto_id).first()
+    if not db_producto:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+
+    # Update Producto fields
+    producto_data = producto.dict(exclude_unset=True, exclude={'costos'})
+    for key, value in producto_data.items():
+        setattr(db_producto, key, value)
+    
+    # Update Costos if present
+    if producto.costos:
+        # Check if costs exist
+        if db_producto.costos:
+             costos_data = producto.costos.dict(exclude_unset=True)
+             for key, value in costos_data.items():
+                 setattr(db_producto.costos, key, value)
+        else:
+             # Create costs if missing
+             costos_data = producto.costos.dict()
+             db_costos = models.ProductoCosto(**costos_data, producto_id=db_producto.id)
+             db.add(db_costos)
+
+    db.commit()
+    db.refresh(db_producto)
+    return calculate_prices(db_producto)
+
+@router.delete("/{producto_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_producto(producto_id: int, db: Session = Depends(get_db)):
+    db_producto = db.query(models.Producto).filter(models.Producto.id == producto_id).first()
+    if not db_producto:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    
+    # Toggle Active (Soft Delete behavior)
+    db_producto.activo = not db_producto.activo
+    db.commit()
+    return None

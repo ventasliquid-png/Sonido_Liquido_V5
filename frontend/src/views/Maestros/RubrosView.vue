@@ -137,7 +137,7 @@
                      class="relative w-full min-h-[140px]"
                  >
                     <FichaCard
-                        class="w-full transition-transform duration-200 hover:-translate-y-1 cursor-pointer"
+                        class="w-full cursor-pointer"
                         :title="rubro.nombre"
                         :subtitle="`${rubro.codigo}`"
                         :status="rubro.activo ? 'active' : 'inactive'"

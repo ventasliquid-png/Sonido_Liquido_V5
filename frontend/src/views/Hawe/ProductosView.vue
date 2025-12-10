@@ -6,14 +6,14 @@
     <main class="flex flex-1 flex-col min-w-0 relative">
       
       <!-- Top Bar -->
-      <div class="flex items-center justify-between border-b border-white/10 bg-[#2e0a13]/90 px-6 py-4 backdrop-blur-md z-10 shrink-0">
+      <div class="flex items-center justify-between border-b border-white/10 bg-[#2e0a13]/90 px-6 py-4 backdrop-blur-md z-30 shrink-0">
         <div class="flex items-center gap-4">
           <h1 class="font-outfit text-2xl font-bold text-white">
             <i class="fas fa-boxes mr-2 text-rose-500"></i> Productos
           </h1>
           
           <!-- Search -->
-          <div class="relative w-96 group">
+          <div class="relative w-64 group">
             <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-rose-400 transition-colors"></i>
             <input 
               v-model="productosStore.filters.search"
@@ -31,36 +31,55 @@
           <select 
             v-model="productosStore.filters.rubro_id"
             @change="productosStore.fetchProductos()"
-            class="rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white focus:border-rose-500 focus:outline-none"
+            class="rounded-lg border border-white/10 bg-[#1a050b] text-white px-3 py-2 text-sm focus:border-rose-500 focus:outline-none"
           >
-            <option :value="null">Todos los Rubros</option>
-            <option v-for="rubro in flattenedRubros" :key="rubro.id" :value="rubro.id">
+            <option :value="null" class="bg-[#1a050b] text-white">Todos los Rubros</option>
+            <option v-for="rubro in flattenedRubros" :key="rubro.id" :value="rubro.id" class="bg-[#1a050b] text-white">
                 {{ rubro.indent }}{{ rubro.nombre }}
             </option>
           </select>
 
           <!-- Active Toggle -->
-          <button 
-            @click="toggleShowInactive"
-            class="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm transition-colors"
-            :class="!productosStore.filters.activo ? 'bg-rose-500/20 text-rose-300 border-rose-500/50' : 'bg-black/20 text-white/50 hover:bg-white/5'"
-          >
-            <i class="fas fa-eye-slash"></i>
-            <span class="hidden sm:inline">Inactivos</span>
-          </button>
+          <!-- Filter Group (All/Active/Inactive) -->
+          <div class="flex bg-black/20 rounded-lg p-1 border border-white/10">
+              <button 
+                  @click="setFilter('all')"
+                  class="px-3 py-1.5 text-xs font-bold rounded-md transition-all"
+                  :class="filterStatus === 'all' ? 'bg-indigo-600/70 text-white shadow-md ring-1 ring-indigo-500' : 'text-white/40 hover:text-white hover:bg-white/5'"
+              >
+                  Todos
+              </button>
+              <button 
+                  @click="setFilter('active')"
+                  class="px-3 py-1.5 text-xs font-bold rounded-md transition-all"
+                  :class="filterStatus === 'active' ? 'bg-green-600/70 text-white shadow-md ring-1 ring-green-500' : 'text-white/40 hover:text-white hover:bg-white/5'"
+              >
+                  Activos
+              </button>
+              <button 
+                  @click="setFilter('inactive')"
+                  class="px-3 py-1.5 text-xs font-bold rounded-md transition-all"
+                  :class="filterStatus === 'inactive' ? 'bg-red-600/70 text-white shadow-md ring-1 ring-red-500' : 'text-white/40 hover:text-white hover:bg-white/5'"
+              >
+                  Inactivos
+              </button>
+          </div>
 
           <!-- Sort Menu -->
           <div class="relative">
             <button 
                 @click="showSortMenu = !showSortMenu" 
-                class="flex items-center gap-2 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white hover:bg-white/5 transition-colors" 
+                class="flex items-center gap-2 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white hover:bg-white/5 transition-colors min-w-[140px] justify-between" 
                 title="Ordenar"
             >
-                <i class="fas fa-sort-amount-down"></i>
-                <span v-if="sortBy === 'alpha_asc'">A-Z</span>
-                <span v-else-if="sortBy === 'alpha_desc'">Z-A</span>
-                <span v-else-if="sortBy === 'id_desc'">Recientes</span>
-                <span v-else>ordenar</span>
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-sort-amount-down text-rose-500"></i>
+                    <span v-if="sortBy === 'alpha_asc'">A-Z</span>
+                    <span v-else-if="sortBy === 'alpha_desc'">Z-A</span>
+                    <span v-else-if="sortBy === 'id_desc'">Recientes</span>
+                    <span v-else>Ordenar</span>
+                </div>
+                <i class="fas fa-chevron-down text-xs opacity-50"></i>
             </button>
             
             <!-- Dropdown -->
@@ -131,10 +150,29 @@
                     <ProductoCard 
                         :producto="producto"
                         :selected="selectedId === producto.id"
-                        class="absolute top-0 left-0 w-full"
+                        class="w-full"
                         @click="selectProducto(producto)"
                         @select="selectProducto(producto)"
-                    />
+                    >
+                        <template #status-action>
+                            <button 
+                                @click.stop="handleToggleActive(producto)"
+                                v-if="producto.activo"
+                                class="relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none shrink-0 bg-green-500/50"
+                                title="Desactivar"
+                            >
+                                <span class="inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform shadow-sm translate-x-3.5" />
+                            </button>
+                             <button 
+                                @click.stop="handleToggleActive(producto)"
+                                v-else
+                                class="relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none shrink-0 bg-red-500/50"
+                                title="Activar"
+                            >
+                                <span class="inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform shadow-sm translate-x-1" />
+                            </button>
+                        </template>
+                    </ProductoCard>
                 </div>
             </div>
 
@@ -175,7 +213,7 @@
                     
                     <div class="w-24 flex justify-center">
                         <button 
-                            @click.stop="handleToggleActive(producto.id)"
+                            @click.stop="handleToggleActive(producto)"
                             class="relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none shrink-0"
                             :class="producto.activo ? 'bg-green-500/50' : 'bg-red-500/50'"
                             title="Click para cambiar estado"
@@ -198,7 +236,7 @@
 
     <!-- Right Inspector -->
     <aside 
-      class="w-96 border-l border-white/10 bg-[#2e0a13]/95 flex flex-col z-20 shadow-xl overflow-hidden shrink-0"
+      class="w-96 border-l border-white/10 bg-[#2e0a13]/95 flex flex-col z-50 shadow-xl overflow-hidden shrink-0"
     >
         <div v-if="!showInspector" class="flex flex-col items-center justify-center h-full text-white/30 p-6 text-center">
              <i class="fas fa-box-open text-4xl mb-4"></i>
@@ -234,6 +272,7 @@ const selectedId = ref(null)
 const sortBy = ref('alpha_asc')
 const viewMode = ref('grid')
 const showSortMenu = ref(false)
+const filterStatus = ref('active') // all, active, inactive
 let searchTimeout = null
 
 const flattenedRubros = computed(() => {
@@ -263,8 +302,15 @@ const handleSearch = () => {
     }, 300)
 }
 
-const toggleShowInactive = () => {
-    productosStore.filters.activo = !productosStore.filters.activo
+
+
+
+const setFilter = (status) => {
+    filterStatus.value = status
+    if (status === 'all') productosStore.filters.activo = null
+    else if (status === 'active') productosStore.filters.activo = true
+    else if (status === 'inactive') productosStore.filters.activo = false
+    
     productosStore.fetchProductos()
 }
 
@@ -319,15 +365,31 @@ const handleSave = async (payload) => {
     }
 }
 
-const handleToggleActive = async (id) => {
-    await productosStore.toggleEstado(id)
-    // Refresh list if we are hiding inactives
-    if (productosStore.filters.activo) { // If we only show actives
-         // If the product became inactive, it will disappear from list, so close inspector
-         const p = productosStore.productos.find(p => p.id === id)
-         if (p && !p.activo) {
-             closeInspector()
-         }
+const handleToggleActive = async (producto) => {
+    const newStatus = !producto.activo
+    if (producto.activo && !newStatus) {
+         if (!confirm(`¿Está seguro de desactivar el producto "${producto.nombre}"?`)) return
+    }
+    
+    await productosStore.toggleEstado(producto.id)
+    
+    // Auto-refresh: If we are filtering by Active/Inactive, and the product status no longer matches the filter,
+    // we should remove it from the view (or refresh).
+    // filters.activo is: true (Actives), false (Inactives), null (All)
+    
+    const currentFilter = productosStore.filters.activo;
+    
+    if (currentFilter !== null) { // Only if we are filtering
+        // If filter is Active (true) and product became Inactive (false) -> mismatch
+        // If filter is Inactive (false) and product became Active (true) -> mismatch
+        if (currentFilter !== newStatus) {
+             // Refresh list to remove the item
+             await productosStore.fetchProductos()
+             // If we were inspecting this product, close it because it disappeared
+             if (selectedId.value === producto.id) {
+                 closeInspector()
+             }
+        }
     }
 }
 

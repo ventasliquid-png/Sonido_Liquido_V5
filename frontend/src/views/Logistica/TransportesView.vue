@@ -7,7 +7,7 @@
       <header class="relative z-20 flex h-16 items-center justify-between border-b border-amber-900/30 bg-amber-900/10 px-6 backdrop-blur-sm shrink-0">
         <div class="flex items-center gap-4">
             <h1 class="font-outfit text-xl font-semibold text-white truncate">
-                Explorador de Transportes
+                Gestión de Logística
             </h1>
         </div>
 
@@ -28,24 +28,24 @@
           <div class="flex bg-white/5 rounded-lg p-1 border border-white/10">
             <button 
                 @click="filterStatus = 'all'"
-                class="px-3 py-1 text-xs font-medium rounded-md transition-all"
-                :class="filterStatus === 'all' ? 'bg-orange-600 text-white shadow-sm' : 'text-white/50 hover:text-white'"
+                class="px-3 py-1 text-xs font-bold rounded-md transition-all"
+                :class="filterStatus === 'all' ? 'bg-indigo-600/70 text-white shadow-md ring-1 ring-indigo-500' : 'text-white/40 hover:text-white hover:bg-white/5'"
                 title="Todos"
             >
                 Todos
             </button>
             <button 
                 @click="filterStatus = 'active'"
-                class="px-3 py-1 text-xs font-medium rounded-md transition-all"
-                :class="filterStatus === 'active' ? 'bg-green-600 text-white shadow-sm' : 'text-white/50 hover:text-white'"
+                class="px-3 py-1 text-xs font-bold rounded-md transition-all"
+                :class="filterStatus === 'active' ? 'bg-green-600/70 text-white shadow-md ring-1 ring-green-500' : 'text-white/40 hover:text-white hover:bg-white/5'"
                 title="Activos"
             >
                 Activos
             </button>
             <button 
                 @click="filterStatus = 'inactive'"
-                class="px-3 py-1 text-xs font-medium rounded-md transition-all"
-                :class="filterStatus === 'inactive' ? 'bg-red-600 text-white shadow-sm' : 'text-white/50 hover:text-white'"
+                class="px-3 py-1 text-xs font-bold rounded-md transition-all"
+                :class="filterStatus === 'inactive' ? 'bg-red-600/70 text-white shadow-md ring-1 ring-red-500' : 'text-white/40 hover:text-white hover:bg-white/5'"
                 title="Inactivos"
             >
                 Inactivos

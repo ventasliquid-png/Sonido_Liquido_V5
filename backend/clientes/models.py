@@ -147,6 +147,11 @@ class Domicilio(Base):
     transporte_id = Column(UUID(as_uuid=True), ForeignKey("empresas_transporte.id"), nullable=True)
     intermediario_id = Column(UUID(as_uuid=True), ForeignKey("empresas_transporte.id"), nullable=True)
     
+    # Estrategia Logística (V5.2)
+    metodo_entrega = Column(String, nullable=True) # RETIRO_LOCAL, TRANSPORTE, FLETE_MOTO, PLATAFORMA, DROPSHIPPING
+    modalidad_envio = Column(String, nullable=True) # A_DOMICILIO, A_SUCURSAL
+    origen_logistico = Column(String, nullable=True) # DESPACHO_NUESTRO, RETIRO_EN_PLANTA
+    
     # Relaciones
     cliente = relationship("Cliente", back_populates="domicilios")
     provincia = relationship(Provincia)
