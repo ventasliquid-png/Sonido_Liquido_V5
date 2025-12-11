@@ -25,7 +25,8 @@ class Cliente(Base):
     cuit = Column(String, unique=False, nullable=False, index=True)
     
     # Identificadores
-    codigo_interno = Column(Integer, Sequence("clientes_codigo_interno_seq", start=1000), nullable=True)
+    # [FIX PILOT] Removed Sequence for SQLite compatibility
+    codigo_interno = Column(Integer, nullable=True)
     legacy_id_bas = Column(String, nullable=True) # ID del sistema BAS anterior
 
     # Comunicación y Pagos

@@ -1,11 +1,8 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text, Numeric, Sequence
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text, Numeric
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.sql import func
 from backend.core.database import Base
-
-# Secuencia para SKU (inicia en 10000)
-producto_sku_seq = Sequence('producto_sku_seq', start=10000)
 
 class Rubro(Base):
     __tablename__ = "rubros"
@@ -29,7 +26,8 @@ class Producto(Base):
     __tablename__ = "productos"
 
     id = Column(Integer, primary_key=True, index=True)
-    sku = Column(Integer, producto_sku_seq, server_default=producto_sku_seq.next_value(), unique=True, index=True)
+    # [FIX PILOT] Removed Sequence for SQLite
+    sku = Column(Integer, unique=True, index=True)
     codigo_visual = Column(String(30), unique=True, nullable=True, index=True)
     nombre = Column(String(150), index=True, nullable=False)
     descripcion = Column(Text, nullable=True)

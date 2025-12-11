@@ -4,6 +4,7 @@ import VendedorList from '../views/Maestros/VendedorList.vue';
 import ListaPreciosList from '../views/Maestros/ListaPreciosList.vue';
 import Login from '../views/Login.vue';
 import HaweLayout from '../layouts/HaweLayout.vue';
+import DataCleaner from '../views/DataIntel/DataCleaner.vue';
 import HaweView from '../views/HaweView.vue';
 
 const routes = [
@@ -80,6 +81,12 @@ const routes = [
                 component: () => import('../views/Hawe/PedidosView.vue')
             }
         ]
+    },
+    {
+        path: '/data-cleaner',
+        name: 'data-cleaner',
+        component: DataCleaner,
+        meta: { layout: 'hawe' }
     },
     {
         path: '/:pathMatch(.*)*',

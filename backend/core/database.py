@@ -21,6 +21,11 @@ def _get_clean_database_url():
     # 1. Intentar usar la del archivo .env
     url_candidate = DATABASE_URL_FROM_ENV_FILE
     
+    # [FIX] Si es SQLite, devolvemos directo (no intentamos parsear como Postgres)
+    if url_candidate and url_candidate.startswith("sqlite"):
+        print(f"✅ CONEXIÓN DB (LOCAL SQLITE): {url_candidate}")
+        return url_candidate
+    
     # 2. Si no está en el archivo, usar hardcode de emergencia (Nueva IP)
     if not url_candidate:
         print("⚠️  DATABASE_URL no encontrada en .env. Usando hardcode de seguridad.")

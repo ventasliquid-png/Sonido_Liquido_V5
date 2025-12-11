@@ -22,7 +22,7 @@ Se identificaron dos patrones principales de almacenamiento:
     *   `Ventas`: Columnas posteriores.
 
 ## 2. Anomalías y Desafíos Detectados
-1.  **Multi-Columna en Histórico:** La hoja "Pedidos" parece tener 2 o más pedidos por fila. El script de lectura deberá recorrer no solo hacia abajo, sino barrer hacia la derecha.
+1.  **Multi-Columna en Histórico:**  **ACLARACIÓN (11/12):** El usuario confirma que los pedidos válidos terminan en la **Columna 8 (H)**. Todo lo que esté a la derecha (Columnas I en adelante) es basura/auxiliar y debe ser ignorado por el script. Esto simplifica el barrido: cada fila contiene *solo un pedido* (o vacío), no múltiples.
 2.  **Identidad de Productos:**
     *   Variaciones de nombre: `Surgizime E2 botella x 1 Lt` vs `Surgizime E2 * 1 litro`.
     *   **Acción:** El importador generará una lista de "Productos Únicos" y tendremos que decidir cuáles se fusionan.

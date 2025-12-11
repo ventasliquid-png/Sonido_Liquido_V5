@@ -4,3 +4,4 @@ __pycache__/
 *.pyc
 *.log
 debug_*.py
+BUILD_PILOTO/

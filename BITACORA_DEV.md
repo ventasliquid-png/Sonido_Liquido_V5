@@ -631,3 +631,36 @@ Debido a la volatilidad de los datos en entornos de desarrollo/nube, se ha imple
 > [!IMPORTANT]
 > **Próxima Sesión:** Foco total en **Limpieza de Datos** (Herramientas UI de Fusión) e implementación del **Cargador Táctico**.
 
+### [2025-12-11] Implementación Data Intelligence (Piloto) y Estabilización UI
+*   **Data Cleaner UI (Herramienta Crítica):**
+    *   **Desarrollo:** Se creó la interfaz visual `DataCleaner.vue` para la curación masiva de datos candidatos (clientes y productos extraídos del Excel legado).
+    *   **Funcionalidades:**
+        *   **Edición en Línea:** Corrección de nombres mal escritos (Ej: "Jabón Liq" -> "Jabón Líquido").
+        *   **Validación de CUIT:** Verificación en tiempo real con algoritmo Modulo 11 y formateo automático.
+        *   **Sort & Group:** Ordenamiento inteligente por "Frecuencia" (para identificar productos top) y "Nombre Original" (para agrupar variantes).
+        *   **Estabilidad UI:** Se resolvió un bug de "Cursor Saltador" usando claves estables (`_id`) y ordenamiento inmutable (`nombre_original`) durante la edición.
+*   **Commit System (Backend):**
+    *   **Endpoint:** Implementación de `POST /data_intel/commit/{type}`.
+    *   **Lógica de Negocio:**
+        *   Toma registros marcados como "IMPORTAR".
+        *   Verifica duplicados en la base de datos de producción (SQLite).
+        *   Si es producto, asegura/crea rubro "GENERAL" por defecto.
+        *   Inserta los registros limpios en las tablas `clientes` o `productos`.
+    *   **Sanitización:** Implementación de forzado de tipos (String) en el frontend para evitar errores de validación Pydantic (422) con alias numéricos.
+*   **Hito Piloto:**
+    *   Se validó el ciclo completo: Extracción (Excel) -> Limpieza (UI) -> Persistencia (SQLite).
+    *   El sistema "Piloto" (`BUILD_PILOTO`) quedó en estado operativo estable para iniciar la carga de datos reales.
+
+
+> [!CAUTION]
+> **Próximo Paso Crítico:** Auditoría forense de la base de datos SQL Server en la nube (IOWA) para evaluar migrabilidad.
+
+### [2025-12-11] Estrategia de Respaldo "Golden Seeds"
+*   **Definición:** Se estableció como política de seguridad la generación periódica de archivos CSV planos (`SEMILLAS_MAESTRAS`) que contengan el estado completo de las tablas críticas (Clientes, Productos, Transportes, etc.).
+*   **Propósito:** Servir como "Arca de Noé" ante catástrofes tecnológicas. Si se pierde la DB (Local y Nube), el sistema puede reconstruirse desde estos archivos.
+*   **Requerimiento Futuro (V5):** Implementar una utilidad de usuario "Backup de Emergencia" que invite al operador a descargar estos CSV a un soporte externo (Drive, Pendrive) regularmene.
+
+### [2025-12-11] Diseño: Cargador Táctico "Excel Killer"
+*   **Definición:** Se aprobó el diseño técnico (`DISEÑO_CARGADOR_TACTICO.md`) para el módulo de carga de pedidos de alta velocidad.
+*   **Características:** UI tipo Grilla, navegación 100% teclado, buscador semántico (F3), Feedback en tiempo real.
+*   **Estado:** Listo para desarrollo. Fase 1 (Esqueleto UI) pendiente para la próxima sesión.

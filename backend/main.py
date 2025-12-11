@@ -14,6 +14,8 @@ load_dotenv()
 from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles # Added for SPA
+from fastapi.responses import FileResponse # Added for SPA
 
 # --- 1. Importaciones de LangChain y Google ---
 from pgvector.psycopg2 import register_vector
@@ -50,7 +52,9 @@ from backend.clientes.router import router as clientes_router
 from backend.logistica.router import router as logistica_router
 from backend.agenda.router import router as agenda_router
 from backend.productos.router import router as productos_router
+from backend.productos.router import router as productos_router
 from backend.proveedores.router import router as proveedores_router
+from backend.data_intel.router import router as data_intel_router
 
 # --- 2. Importaciones de LangGraph (El Cerebro) ---
 from langgraph.graph import StateGraph, END
@@ -132,12 +136,18 @@ async def lifespan(app: FastAPI):
                 max_output_tokens=2048,
                 top_p=0.95
             )
-            vector_store = PGVector(
-                connection_string=CONNECTION_STRING,
-                embedding_function=embeddings_model,
-                collection_name="atenea_memory", 
-            )
-            print(f"✅ Clientes de IA (Región: {config.APP_LOCATION}) y Memoria (pgvector) inicializados.")
+            # [FIX PILOT] Si falla vector store (ej: estamos en SQLite), no matar el server.
+            try:
+                vector_store = PGVector(
+                    collection_name="base_conocimiento_v5",
+                    connection_string=CONNECTION_STRING,
+                    embedding_function=embeddings_model,
+                )
+                print(f"✅ Clientes de IA (Región: {config.APP_LOCATION}) y Memoria (pgvector) inicializados.")
+            except Exception as e:
+                print(f"⚠️ [PILOT MODE] No se pudo iniciar RAG/VectorStore (Normal en SQLite): {e}")
+                vector_store = None
+            
             atenea_v5_app = workflow_builder.compile()
         except Exception as e:
             print(f"❌ ERROR DE ARRANQUE V10: Falla al inicializar clientes de IA o pgvector.")
@@ -329,6 +339,41 @@ app.include_router(logistica_router)
 app.include_router(agenda_router) 
 app.include_router(productos_router)
 app.include_router(proveedores_router) 
+app.include_router(data_intel_router)
+app.include_router(proveedores_router) 
+
+app.include_router(proveedores_router) 
+
+# --- [SPA / STATIC FILES SUPPORT] ---
+# Sirve los archivos estáticos compilados de Vue (JS, CSS, Img)
+static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "static")
+if os.path.exists(static_dir):
+    print(f"--- [SPA] Montando archivos estáticos desde: {static_dir} ---")
+    app.mount("/assets", StaticFiles(directory=os.path.join(static_dir, "assets")), name="assets")
+    # app.mount("/static", StaticFiles(directory=static_dir), name="static") # Generic Mount if needed
+
+# Catch-all para Vue Router (HTML5 History Mode)
+# Cualquier ruta que no sea API (/... vs /atenea/invoke) devuelve index.html
+@app.get("/{full_path:path}", include_in_schema=False)
+async def serve_spa(full_path: str):
+    # Ignorar rutas de API (ya manejadas arriba por include_router)
+    if full_path.startswith("api") or full_path.startswith("docs") or full_path.startswith("openapi"):
+         # Dejar que FastAPI maneje 404 para API real si no matcheó antes
+         from fastapi import HTTPException
+         raise HTTPException(status_code=404, detail="API Endpoint not found")
+
+    # Si existe archivo físico (ej: favicon.ico), servirlo
+    posible_archivo = os.path.join(static_dir, full_path)
+    if os.path.exists(posible_archivo) and os.path.isfile(posible_archivo):
+        return FileResponse(posible_archivo)
+
+    # Si no, servir index.html (SPA)
+    index_path = os.path.join(static_dir, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    
+    return {"error": "SPA no compilada. Ejecute 'npm run build' y copie a 'static'."}
+# ------------------------------------
 
 # --- 9. Endpoints (Rutas de la API) ---
 class QueryInput(BaseModel):

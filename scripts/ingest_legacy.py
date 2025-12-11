@@ -1,105 +1,133 @@
+import pandas as pd
 import os
-import time
-import google.generativeai as genai
-from pathlib import Path
-from dotenv import load_dotenv
+import difflib
 
-# Cargar variables de entorno si existen
-load_dotenv()
+LEGACY_FILE = r"C:\Users\USUARIO\Downloads\clientes discovery.xls"
+CANDIDATES_FILE = r"c:\dev\Sonido_Liquido_V5\BUILD_PILOTO\data\clientes_candidatos.csv"
+OUTPUT_FILE = r"c:\dev\Sonido_Liquido_V5\BUILD_PILOTO\data\clientes_limpios.csv"
 
-# --- CONFIGURACIÓN ---
-# Asegúrese de tener su API KEY seteada en las variables de entorno o péguela aquí (no recomendado para prod)
-api_key = os.environ.get("GEMINI_API_KEY")
-
-if not api_key:
-    print("⚠️  ADVERTENCIA: No se encontró GEMINI_API_KEY en las variables de entorno.")
-    print("   Por favor, configure la variable o edite el script para incluirla.")
-    # Opcional: input manual
-    # api_key = input("Ingrese su API Key de Google AI Studio: ").strip()
-
-if api_key:
-    genai.configure(api_key=api_key)
-
-# Nombre de la carpeta donde puso los PDFs descargados
-# Ajustamos para que funcione desde la raíz del proyecto
-SOURCE_DIR = "./bas_legacy_docs"
-# Nombre de la Bóveda en la Nube
-STORE_NAME = "BAS_LEGADO_MUSEO_V1"
-
-def upload_to_gemini(path, mime_type=None):
-    """Sube el archivo a la API (Capa Física)"""
+def extract_legacy_data():
+    print(f"--- Parsing Legacy File: {LEGACY_FILE} ---")
     try:
-        file = genai.upload_file(path, mime_type=mime_type)
-        print(f"⬆️ Subido: {file.display_name} as {file.uri}")
-        return file
+        df = pd.read_excel(LEGACY_FILE, header=None)
+        rows, cols = df.shape
+        
+        legacy_db = []
+        
+        for r in range(rows):
+            # Check for Block Start (Código:)
+            val_0 = str(df.iat[r, 0]).strip()
+            # print(f"DEBUG ROW {r}: '{val_0}'") 
+            if val_0 == "Código:":
+                print(f"DEBUG: Found Block at row {r}")
+                # Extract Name (Col 3 usually)
+                try:
+                    name = str(df.iat[r, 3]).strip()
+                    print(f"   Name Raw: {name}")
+                except: name = ""
+                
+                if name == "nan": continue
+                
+                # Extract CUIT (Search roughly 10-15 rows down)
+                cuit = ""
+                found_cuit = False
+                for r_sub in range(r, min(r+20, rows)):
+                    if found_cuit: break
+                    for c_scan in range(6): # Scan first 6 cols
+                        try:
+                            val = str(df.iat[r_sub, c_scan]).strip()
+                            if val == "C.U.I.T.:":
+                                # Value is likely in next col
+                                cuit = str(df.iat[r_sub, c_scan+1]).strip()
+                                # print(f"   Found CUIT at ({r_sub},{c_scan}): {cuit}")
+                                found_cuit = True
+                                break
+                        except: pass
+                
+                if name and cuit and cuit != "nan":
+                    legacy_db.append({"name": name, "cuit": cuit})
+                    
+        print(f"✅ Extracted {len(legacy_db)} legacy clients.")
+        return legacy_db
+        
     except Exception as e:
-        print(f"❌ Error subiendo {path}: {e}")
-        return None
+        print(f"❌ Error parsing legacy: {e}")
+        return []
 
-def wait_for_files_active(files):
-    """Espera a que Google procese los archivos antes de indexarlos"""
-    print("⏳ Esperando procesamiento de archivos...")
-    for file in files:
-        if not file: continue
-        name = file.name
-        file = genai.get_file(name)
-        while file.state.name == "PROCESSING":
-            print(".", end="", flush=True)
-            time.sleep(5)
-            file = genai.get_file(name)
-        if file.state.name != "ACTIVE":
-            print(f"\n❌ El archivo {file.name} falló al procesarse. Estado: {file.state.name}")
-        else:
-            print(f"\n✅ {file.display_name} listo.")
+def fuzzy_match_cuit(candidate_name, legacy_db):
+    best_match = None
+    best_ratio = 0.0
+    
+    candidate_norm = str(candidate_name).upper().strip()
+    
+    for item in legacy_db:
+        legacy_name = str(item['name']).upper().strip()
+        
+        # 1. Exact contain (Candidate is substring of Legacy)
+        if candidate_norm in legacy_name and len(candidate_norm) > 4: 
+             return item['cuit'], 1.0
+        
+        # 2. Difflib Ratio
+        ratio = difflib.SequenceMatcher(None, candidate_norm, legacy_name).ratio()
+        if ratio > best_ratio:
+            best_ratio = ratio
+            best_match = item['cuit']
+            best_name_log = legacy_name
+            
+    # if best_ratio > 0.4:
+    #    print(f"   Best for '{candidate_norm}': '{best_name_log}' ({best_ratio:.2f})")
+    
+    if best_ratio > 0.6: # Threshold
+        return best_match, best_ratio
+    return "", 0.0
 
-def main():
-    # 1. Detectar archivos locales
-    # Aseguramos que la ruta sea absoluta o correcta relativa al CWD
-    source_path = Path(SOURCE_DIR)
-    if not source_path.exists():
-        print(f"❌ No encontré la carpeta {SOURCE_DIR}. Asegúrese de correr el script desde la raíz del proyecto.")
+def enrich():
+    if not os.path.exists(CANDIDATES_FILE):
+        print("Candidates file not found.")
         return
 
-    file_paths = [p for p in source_path.glob('*') if p.suffix.lower() in ['.pdf', '.txt', '.csv', '.xlsx']]
-    if not file_paths:
-        print(f"❌ No encontré archivos compatibles en {SOURCE_DIR}.")
+    df_cand = pd.read_csv(CANDIDATES_FILE)
+    print(f"--- Candidates Loaded: {len(df_cand)} ---")
+    # print(df_cand.head()) # Debug header
+    
+    legacy_data = extract_legacy_data()
+    if not legacy_data:
+        print("No legacy data found.")
         return
 
-    print(f"🔍 Encontrados {len(file_paths)} documentos para ingestión.")
+    # Add columns if missing
+    if "cuit" not in df_cand.columns:
+        df_cand["cuit"] = ""
+    else:
+        # Fill NaN with empty string
+        df_cand["cuit"] = df_cand["cuit"].fillna("")
 
-    if not api_key:
-        print("❌ No se puede proceder sin API Key.")
-        return
+    if "nombre_final" not in df_cand.columns:
+        df_cand["nombre_final"] = df_cand["nombre"]
+    if "alias" not in df_cand.columns:
+        df_cand["alias"] = ""
+    if "estado" not in df_cand.columns:
+        df_cand["estado"] = "PENDIENTE"
 
-    # 2. Crear la Bóveda (Vector Store) - Nota: El código original usaba genai.caching, 
-    # pero para File Search simple con la API actual, subimos archivos y obtenemos URIs.
-    
-    print("🏛️ Iniciando proceso de subida...")
-    
-    # 1. Subir Archivos
-    uploaded_files = []
-    for path in file_paths:
-        f = upload_to_gemini(path)
-        if f:
-            uploaded_files.append(f)
-    
-    if not uploaded_files:
-        print("❌ No se subió ningún archivo.")
-        return
+    matches = 0
+    print("--- Starting Enrichment ---")
+    for idx, row in df_cand.iterrows():
+        # Only enrich if CUIT is missing
+        curr_cuit = str(row['cuit']).strip()
+        if curr_cuit == "" or curr_cuit == "nan":
+            cand_name = str(row['nombre']).strip()
+            # print(f"Processing: {cand_name}")
+            cuit_found, score = fuzzy_match_cuit(cand_name, legacy_data)
+            if cuit_found:
+                df_cand.at[idx, 'cuit'] = cuit_found
+                matches += 1
+                if matches % 10 == 0: print(f"Matched {matches}...")
+                # print(f"MATCH: {cand_name} -> {cuit_found} (Score: {score:.2f})")
 
-    # 2. Esperar que estén activos
-    wait_for_files_active(uploaded_files)
-
-    # 3. Reporte Final
-    print("\n" + "="*40)
-    print("✅ MISIÓN CUMPLIDA. COPIE ESTO:")
-    print("="*40)
-    print(f"Archivos subidos y listos para usar en Antigravity:")
-    for f in uploaded_files:
-        print(f"- {f.display_name}: {f.uri}")
+    print(f"✅ Enriched {matches} clients with CUITs.")
     
-    print("\n⚠️ IMPORTANTE: Guarde estos URIs.")
-    print("Para usarlo en el chat, Antigravity debe enviar estos archivos en el history o contexto.")
+    df_cand.to_csv(OUTPUT_FILE, index=False, encoding='utf-8-sig')
+    print(f"💾 Saved to {OUTPUT_FILE}")
 
 if __name__ == "__main__":
-    main()
+    enrich()
