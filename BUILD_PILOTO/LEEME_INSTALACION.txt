@@ -1,0 +1,21 @@
+Sistema Sonido Líquido V5 - Entorno de Producción (PILOTO)
+==========================================================
+
+ESTRUCTURA DE DIRECTORIOS
+-------------------------
+/backend        -> Código del servidor (Python/FastAPI). Copia estable.
+/frontend_dist  -> Archivos estáticos de la interfaz (Build de Vue).
+/data           -> Aquí vive la Base de Datos (produccion.db). ¡CUIDAR!
+/logs           -> Archivos de registro de actividad.
+/scripts        -> Herramientas de mantenimiento (Backups, Ingesta).
+
+INSTRUCCIONES DE INSTALACIÓN
+----------------------------
+1. Mover toda la carpeta "BUILD_PILOTO" a la ubicación deseada (Ej: C:\Sistema_Sonido_Liquido).
+2. Ejecutar "INICIAR_SISTEMA.bat" (Dentro de la carpeta).
+3. Abrir navegador en http://localhost:8000
+
+NOTAS IMPORTANTES
+-----------------
+* Este es un entorno "Portable". Puede moverse a otra PC copiando toda la carpeta.
+* La base de datos está en /data/produccion.db

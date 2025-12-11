@@ -615,3 +615,19 @@ Debido a la volatilidad de los datos en entornos de desarrollo/nube, se ha imple
 
 > [!NOTE]
 > **Estado Final de Sesión:** Módulo de Segmentos operativo y consistente con la estética V5 (Dark/Cyan). Sidebar unificado y navegación clara.
+
+### [2025-12-10] Inicio Fase Piloto y Minería de Datos
+*   **Hito Estratégico:** Se definió la estrategia de **Implementación Paralela (Piloto)**.
+    *   **Arquitectura:** Creación de entorno portable BUILD_PILOTO (separado de Dev) para despliegue en producción local sin riesgo para el código fuente.
+    *   **Objetivo:** Validar funcionalidad V5 con datos reales y sustituir progresivamente el Excel de pedidos.
+*   **Ingeniería de Datos (Harvesting):**
+    *   Se desarrolló y ejecutó script harvest_excel.py para minar la historia transaccional (pedidos_raw.xlsx).
+    *   **Resultado:** Extracción exitosa de ~200 Clientes y ~300 Productos crudos (Formatos heterogéneos detectados).
+    *   **Archivos Generados:** BUILD_PILOTO/data/clientes_raw.csv y productos_raw.csv.
+*   **Planificación (Roadmap V5.3):**
+    *   Se diseñó el concepto de **Cargador Táctico**: Una vista simplificada en V5 que permite cargar pedidos, guardar en BD limpia y exportar a Excel (Formato cliente) simultáneamente.
+    *   Se generaron documentos rectores: PLAN_TECNICO_GY.md y INFORME_ESTRATEGICO_USUARIO.md.
+
+> [!IMPORTANT]
+> **Próxima Sesión:** Foco total en **Limpieza de Datos** (Herramientas UI de Fusión) e implementación del **Cargador Táctico**.
+

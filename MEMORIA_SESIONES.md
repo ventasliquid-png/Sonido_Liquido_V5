@@ -98,3 +98,15 @@ Sesión crítica de **Estandarización UI** e **Ingeniería Logística**. Se uni
 
 ### Próximos Pasos
 *   Validación integral de flujos logísticos (De la ficha al pedido).
+
+## Sesión Gy [2025-12-10] - Inicio Fase Piloto
+**Estado:** CERRADA
+
+### Resumen
+Inicio formal de la transición a producción mediante entorno 'Piloto'.
+- **Hitos:**
+    - Minería de Datos (Harvesting) de Excel Legacy (~500 registros rescatados).
+    - Creación de infraestructura portable BUILD_PILOTO.
+    - Definición del 'Cargador Táctico' para reemplazar flujo manual.
+- **Entregables:** PLAN_TECNICO_GY.md, INFORME_ESTRATEGICO_USUARIO.md, CSVs de datos crudos.
+
