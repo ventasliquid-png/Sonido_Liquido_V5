@@ -2,20 +2,21 @@
 
 **Contexto:** Transición a Fase Piloto. Ingesta de datos legacy y creación de herramienta de carga táctica.
 
-## 1. INGENIERÍA DE DATOS (Ingesta y Limpieza)
+## 1. INGENIERÍA DE DATOS (Estrategia "Master CSV")
+**Principio:** Los datos validados ("ciudadanos de primera") deben residir en archivos CSV Maestros (`_master.csv`) que sirven como respaldo ante catástrofes. La base de datos es una proyección de estos archivos.
 
-### A. Script de Inyección (`scripts/inject_raw_data.py`)
-*   **Input:** `BUILD_PILOTO/data/clientes_raw.csv` y `productos_raw.csv`.
-*   **Lógica:**
-    *   Iterar CSVs.
-    *   Insertar en tablas `clientes` y `productos`.
-    *   **Flag clave:** Establecer un campo (o tag) que identifique estos registros como `IMPORTADO_RAW` o `REQUIERE_REVISION`.
-    *   *Nota:* Si el modelo no tiene campo de estado de validación, considerar agregarlo o usar una categoría especial (ej: Rubro "A CLASIFICAR").
-    *   **Manejo de Duplicados:** Si el CUIT/Nombre ya existe, **no sobrescribir**, loguear la colisión o crear con sufijo "(DUP)".
+### A. Flujo de Limpieza y Persistencia
+1.  **Fuente:** `_raw.csv` (Datos crudos de legacy).
+2.  **Depurador:** Lee Raw o Limpios temporales.
+3.  **Acción "IMPORTAR/APROBAR":**
+    *   **DB:** Inserta el registro en la base de datos operativa (SQLite/Cloud).
+    *   **Master CSV:** *Appendea* (agrega al final) el registro validado a `clientes_master.csv` o `productos_master.csv`.
+4.  **Recuperación:** En caso de desastre, se puede repoblar la base re-importando los `_master.csv`.
 
-### B. Backend Updates
-*   **Schema `Cliente` / `Producto`:** Verificar si necesitamos un campo `is_validated` o `data_source`.
-    *   *Decisión Rápida:* Usar un "Tag" o "Rubro" temporal es menos invasivo que cambiar el schema físico por ahora. Ej: Productos van al Rubro "SIN CLASIFICAR".
+### B. Estructura de Archivos (BUILD_PILOTO/data)
+*   `clientes_raw.csv` / `productos_raw.csv`: Ingesta inicial sucia.
+*   `clientes_master.csv` / `productos_master.csv`: La "Verdad" validada y acumulada.
+
 
 ## 2. FRONTEND - HERRAMIENTAS DE LIMPIEZA
 

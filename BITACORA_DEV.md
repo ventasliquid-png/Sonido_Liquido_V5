@@ -664,3 +664,29 @@ Debido a la volatilidad de los datos en entornos de desarrollo/nube, se ha imple
 *   **Definición:** Se aprobó el diseño técnico (`DISEÑO_CARGADOR_TACTICO.md`) para el módulo de carga de pedidos de alta velocidad.
 *   **Características:** UI tipo Grilla, navegación 100% teclado, buscador semántico (F3), Feedback en tiempo real.
 *   **Estado:** Listo para desarrollo. Fase 1 (Esqueleto UI) pendiente para la próxima sesión.
+
+## [2025-12-11] Consolidación Data Cleaner y Sincronización Piloto
+
+### Resumen
+Implementación final del flujo de "Data Cleaner" para la importación y validación de datos maestros. Se resolvió la persistencia de duplicados, se mejoró la UX para la corrección de errores (CUITs truncados) y se estableció la sincronización unidireccional hacia la nube.
+
+### Implementaciones Clave
+1.  **Validación Inteligente de Duplicados (Smart Update):**
+    *   **Lógica:** Si el CUIT/Nombre existe Identico -> `EXISTENTE` (Skip). Si difiere -> `ACTUALIZADO` (Update).
+    *   **Persistencia:** Corrección crítica en `router.py` para asegurar que el estado (`EXISTENTE`) se guarde en el CSV físico (`df.to_csv`), evitando bucles infinitos de procesamiento.
+2.  **UX "Dirty State":** Detección automática de cambios en el frontend. Si el usuario edita un campo de un registro grisado, este se reactiva (`IMPORTAR`) automáticamente.
+3.  **Corrección de CUITs:** Ampliación del input de CUIT a 15 caracteres para permitir guiones, aunque se guarden solo los dígitos.
+4.  **Workflow sin Bloqueos:** Habilitación permanente del botón `IMPORTAR (F10)` eliminando la obligatoriedad de "Guardar" previo (el sistema auto-guarda).
+5.  **Cierre de Ciclo (Cloud Sync):** Creación y ejecución de `scripts/push_pilot_to_cloud.py` para subir los datos validados (`_master.csv`) al entorno remoto (Postgres IOWA).
+
+### Decisión de Arquitectura: "Master CSV Strategy"
+Se formalizó en `PROTOCOLO_DATOS.md` que la fuente de verdad son los archivos `clientes_master.csv` y `productos_master.csv`, siendo la DB SQLite un derivado operacional y la Nube un espejo de respaldo.
+
+### Estado Final
+*   **Data Cleaner:** Operativo y estabilizado.
+*   **Gestión de Duplicados:** Resuelto.
+*   **Nube:** Sincronizada con 11 clientes validados.
+
+### ⚠ AVISO DE NAVEGACIÓN (Próxima Sesión)
+**DOCUMENTO DE LECTURA OBLIGATORIA:** `PROTOCOLO_DATOS.md`
+Antes de cualquier operación de carga o mantenimiento de datos, leer el protocolo definido en esta sesión. Contiene las definiciones de "Fuente de Verdad" (Master CSV) y las reglas de Sincronización con la Nube.

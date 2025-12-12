@@ -74,6 +74,10 @@ const props = defineProps({
   extraData: {
     type: Object,
     default: () => ({})
+  },
+  selected: {
+    type: Boolean,
+    default: false
   }
 })
 

@@ -341,8 +341,8 @@ app.include_router(productos_router)
 app.include_router(proveedores_router) 
 app.include_router(data_intel_router)
 app.include_router(proveedores_router) 
-
-app.include_router(proveedores_router) 
+from backend.pedidos.router import router as pedidos_router
+app.include_router(pedidos_router) 
 
 # --- [SPA / STATIC FILES SUPPORT] ---
 # Sirve los archivos estáticos compilados de Vue (JS, CSS, Img)

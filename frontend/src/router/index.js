@@ -79,6 +79,11 @@ const routes = [
                 path: 'pedidos',
                 name: 'Pedidos',
                 component: () => import('../views/Hawe/PedidosView.vue')
+            },
+            {
+                path: 'pedidos/tactico',
+                name: 'PedidoTactico',
+                component: () => import('../views/Pedidos/PedidoTacticoView.vue')
             }
         ]
     },

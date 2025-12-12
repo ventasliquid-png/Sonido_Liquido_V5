@@ -32,9 +32,9 @@
             <i class="fas fa-plus-circle text-green-400"></i>
             <span class="truncate">Nuevo Cliente</span>
         </a>
-        <a href="#" @click.prevent="navigate('Pedidos')" class="nav-item-compact">
+        <a href="#" @click.prevent="navigate('PedidoTactico')" class="nav-item-compact">
             <i class="fas fa-cart-plus text-yellow-400"></i>
-            <span class="truncate">Nuevo Pedido</span>
+            <span class="truncate">Nuevo Pedido (Táctico)</span>
         </a>
       </div>
 
@@ -53,9 +53,9 @@
         </button>
         
         <div v-show="expandedGroups.includes('PEDIDOS')" class="pl-4 space-y-1">
-            <a href="#" @click.prevent="navigate('Pedidos')" class="nav-item-sub" :class="{ 'active-link-emerald': isActive('Pedidos') }">
+            <a href="#" @click.prevent="navigate('PedidoTactico')" class="nav-item-sub" :class="{ 'active-link-emerald': isActive('PedidoTactico') }">
                 <i class="fas fa-plus w-4"></i> 
-                <span>Nuevo Pedido</span>
+                <span>Nuevo Pedido (Táctico)</span>
             </a>
             <a href="#" class="nav-item-sub text-white/30 cursor-not-allowed">
                 <i class="fas fa-list w-4"></i> 
@@ -154,6 +154,28 @@
         </div>
       </div>
 
+      <!-- DATA INTEL Group (Pilot) -->
+      <div class="space-y-1">
+        <button 
+            @click="toggleGroup('INTEL')"
+            class="w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-all duration-200"
+            :class="isGroupActive('INTEL') || expandedGroups.includes('INTEL') ? 'bg-indigo-900/20 border-indigo-500/30' : 'bg-transparent border-transparent hover:bg-white/5'"
+        >
+             <span class="flex items-center gap-3 text-indigo-400 font-bold tracking-wide text-sm">
+                <i class="fas fa-brain w-5 text-center" :class="isGroupActive('INTEL') ? 'text-indigo-400' : 'text-indigo-500/50'"></i>
+                INTELIGENCIA
+            </span>
+            <i class="fas fa-chevron-right text-xs transition-transform duration-200" :class="expandedGroups.includes('INTEL') ? 'rotate-90 text-indigo-400' : 'text-white/20'"></i>
+        </button>
+
+        <div v-show="expandedGroups.includes('INTEL')" class="pl-4 space-y-1">
+            <a href="#" @click.prevent="navigate('data-cleaner')" class="nav-item-sub" :class="{ 'active-link-indigo': isActive('data-cleaner') }">
+                <i class="fas fa-broom w-4"></i> 
+                <span>Depurador de Datos</span>
+            </a>
+        </div>
+      </div>
+
     </nav>
 
     <!-- User Profile -->
@@ -206,7 +228,8 @@ const isGroupActive = (group) => {
     if (group === 'CLIENTES') return ['HaweHome', 'Segmentos', 'Vendedores', 'HaweClientCanvas'].includes(route.name)
     if (group === 'PRODUCTOS') return ['Productos', 'Rubros', 'ListasPrecios'].includes(route.name)
     if (group === 'MAESTROS') return ['Contactos', 'Transportes'].includes(route.name)
-    if (group === 'PEDIDOS') return ['Pedidos'].includes(route.name)
+    if (group === 'PEDIDOS') return ['Pedidos', 'PedidoTactico'].includes(route.name)
+    if (group === 'INTEL') return ['data-cleaner'].includes(route.name)
     return false
 }
 
@@ -263,5 +286,8 @@ const handleDepositosClick = () => {
 }
 .active-link-emerald {
     @apply text-emerald-200 bg-emerald-900/10 border-emerald-400 font-bold;
+}
+.active-link-indigo {
+    @apply text-indigo-200 bg-indigo-900/10 border-indigo-400 font-bold;
 }
 </style>

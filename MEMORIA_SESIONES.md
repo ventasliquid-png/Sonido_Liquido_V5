@@ -110,3 +110,22 @@ Inicio formal de la transición a producción mediante entorno 'Piloto'.
     - Definición del 'Cargador Táctico' para reemplazar flujo manual.
 - **Entregables:** PLAN_TECNICO_GY.md, INFORME_ESTRATEGICO_USUARIO.md, CSVs de datos crudos.
 
+
+## Sesión Gy CA - 2025-12-11 (CERRADA)
+**Estado:** Cerrada
+
+### Resumen
+**Hito: Implementación Data Cleaner & Estrategia Master CSV**
+
+Se consolidó el flujo de importación de datos. Se abandonó la edición directa en grillas inestables en favor de una "Zona de Limpieza" (Data Cleaner) previa a la base de datos operativa.
+
+**Logros Técnicos:**
+1.  **Cleaner UI:** Interfaz de validación de CUITs (algoritmo Módulo 11) y corrección de nombres.
+2.  **Smart Deduplication:** Algoritmo que distingue entre Duplicado IDÉNTICO (Skip) y Duplicado con CAMBIOS (Update), permitiendo la corrección de registros existentes.
+3.  **Persistencia CSV:** Los estados de limpieza se persisten en el CSV de origen, limpiando la cola de trabajo del usuario.
+4.  **Cloud Sync:** Script `push_pilot_to_cloud.py` implementado para subir los datos "Master" (CSV) a la nube (IOWA - Postgres) como respaldo de seguridad.
+
+**Estado Actual:**
+*   Sistema Piloto funcionando con datos reales validados (11 Clientes iniciales).
+*   Sincronización con Nube operativa.
+*   Protocolo de Datos documentado.

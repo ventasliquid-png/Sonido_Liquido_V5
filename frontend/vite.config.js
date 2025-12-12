@@ -14,7 +14,7 @@ export default defineConfig({
         '**/node_modules/**',
         '**/.git/**',
         '**/dist/**',
-        
+
         // Ignorar explícitamente las carpetas de AppData que causan ruido.
         // Usamos path.resolve para crear una ruta absoluta que el watcher entienda.
         path.resolve("C:/Users/USUARIO/AppData/Local/Microsoft/Edge/**"),
@@ -23,4 +23,10 @@ export default defineConfig({
     },
   },
   // --- [FIN PARCHE V10.E] ---
+
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
 })

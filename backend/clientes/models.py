@@ -62,6 +62,7 @@ class Cliente(Base):
     lista_precios = relationship(ListaPrecios)
     segmento = relationship(Segmento)
     vendedor = relationship("backend.auth.models.Usuario")
+    pedidos = relationship("backend.pedidos.models.Pedido", back_populates="cliente")
 
     def __repr__(self):
         return f"<Cliente(razon_social='{self.razon_social}', cuit='{self.cuit}')>"

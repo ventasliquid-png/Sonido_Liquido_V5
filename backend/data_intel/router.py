@@ -30,7 +30,8 @@ def get_candidates(type: str):
         raise HTTPException(status_code=400, detail="Tipo inválido")
     
     # Priorizar archivo 'limpios' si existe, sino el 'candidatos' (raw)
-    filename_raw = f"{type}_candidatos.csv"
+    # Priorizar archivo 'limpios' si existe, sino el 'raw' original
+    filename_raw = f"{type}_raw.csv"
     filename_clean = f"{type}_limpios.csv"
     
     path_clean = os.path.join(DATA_DIR, filename_clean)
@@ -96,13 +97,13 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 from backend.core.database import get_db
 from backend.clientes.models import Cliente
-from backend.productos.models import Producto, Rubro
+from backend.clientes.models import Cliente, Domicilio
+from backend.productos.models import Producto, Rubro, ProductoCosto
+from decimal import Decimal
 
 @router.post("/commit/{type}")
 def commit_candidates(type: str, db: Session = Depends(get_db)):
-    """
-    Toma los items marcados como IMPORTAR en el archivo 'limpios' y los inserta en la BD real.
-    """
+    # ... (existing check code) ...
     if type not in ["clientes", "productos"]:
         raise HTTPException(status_code=400, detail="Tipo inválido")
         
@@ -110,7 +111,7 @@ def commit_candidates(type: str, db: Session = Depends(get_db)):
     path_clean = os.path.join(DATA_DIR, filename_clean)
     
     if not os.path.exists(path_clean):
-        raise HTTPException(status_code=404, detail="No hay datos para commitear (archivo no existe)")
+        raise HTTPException(status_code=404, detail="No hay datos para commitear")
         
     try:
         df = pd.read_csv(path_clean)
@@ -124,33 +125,88 @@ def commit_candidates(type: str, db: Session = Depends(get_db)):
         errores = []
         
         if type == "clientes":
-            for _, row in df_import.iterrows():
+            filename_master = "clientes_master.csv"
+            path_master = os.path.join(DATA_DIR, filename_master)
+            master_rows = []
+
+            for index, row in df_import.iterrows():
                 try:
                     cuit_limpio = str(row.get("cuit", "")).replace("-", "").replace("/", "").strip()
                     nombre = row.get("nombre_final", row.get("nombre_original"))
-                    # Alias ignorado por ahora en modelo Cliente simple, o podria ir en observaciones
                     
-                    # Chequear duplicado por CUIT si existe
                     if cuit_limpio:
                         exists = db.query(Cliente).filter(Cliente.cuit == cuit_limpio).first()
                         if exists:
-                            errores.append(f"Cliente {nombre} ya existe (CUIT {cuit_limpio})")
-                            continue
+                            # [SMART UPDATE]
+                            # Si es 100% igual, "chilla" (Marca EXISTENTE).
+                            # Si es diferente, actualiza.
+                            if exists.razon_social == nombre:
+                                df.at[index, 'estado'] = 'EXISTENTE'
+                                errores.append(f"Cliente {nombre} ya existe idéntico. (Skip)")
+                                continue
+                            else:
+                                # Update existing
+                                old_name = exists.razon_social
+                                exists.razon_social = nombre
+                                db.add(exists)
+                                
+                                # Add to Master (New Version)
+                                master_rows.append({
+                                    "id_legacy": row.get("id", ""), 
+                                    "razon_social": nombre,
+                                    "cuit": cuit_limpio,
+                                    "fecha_importacion": pd.Timestamp.now().isoformat()
+                                })
+                                
+                                df.at[index, 'estado'] = 'ACTUALIZADO'
+                                count += 1
+                                continue
                     
                     nuevo_cliente = Cliente(
                         razon_social=nombre,
                         cuit=cuit_limpio,
-                        # email="importado@data-cleaner.local", # Removed: field does not exist in model
                         activo=True
                     )
                     db.add(nuevo_cliente)
+                    db.flush() # Get ID for Domicilio
+
+                    # [FIX CONSISTENCY] Create Default Address
+                    dom_def = Domicilio(
+                        cliente_id=nuevo_cliente.id,
+                        calle="A DEFINIR",
+                        numero="0",
+                        localidad="CABA", # Default safe
+                        cp="0000",
+                        es_fiscal=True,
+                        activo=True
+                    )
+                    db.add(dom_def)
+                    
+                    # Add to Master List
+                    master_rows.append({
+                        "id_legacy": row.get("id", ""), 
+                        "razon_social": nombre,
+                        "cuit": cuit_limpio,
+                        "fecha_importacion": pd.Timestamp.now().isoformat()
+                    })
+                    
+                    # Update status
+                    df.at[index, 'estado'] = 'IMPORTADO'
                     count += 1
                 except Exception as e:
                     errores.append(f"Error importando {row.get('nombre_original')}: {e}")
-                    
+            
+            # Append to Master CSV
+            if master_rows:
+                df_master_new = pd.DataFrame(master_rows)
+                header = not os.path.exists(path_master)
+                df_master_new.to_csv(path_master, mode='a', header=header, index=False, encoding='utf-8-sig')
+
         elif type == "productos":
-             # Lógica simplificada para productos
-             # Asumimos Rubro "GENERAL" por defecto si no existe hay que crearlo
+             filename_master = "productos_master.csv"
+             path_master = os.path.join(DATA_DIR, filename_master)
+             master_rows = []
+
              rubro_default = db.query(Rubro).filter(Rubro.nombre == "GENERAL").first()
              if not rubro_default:
                  rubro_default = Rubro(nombre="GENERAL", codigo="GEN")
@@ -158,25 +214,51 @@ def commit_candidates(type: str, db: Session = Depends(get_db)):
                  db.commit()
                  db.refresh(rubro_default)
                  
-             for _, row in df_import.iterrows():
+             for index, row in df_import.iterrows():
                 try:
                     nombre = row.get("nombre_final", row.get("nombre_original"))
-                    # Check duplicado nombre
                     exists = db.query(Producto).filter(Producto.nombre == nombre).first()
-                    if exists: continue
-
+                    if exists: 
+                        df.at[index, 'estado'] = 'EXISTENTE'
+                        continue
+                        
                     nuevo_prod = Producto(
                         nombre=nombre,
                         rubro_id=rubro_default.id,
                         activo=True,
-                        sku=None # Dejar que sea null o generar uno
+                        sku=None 
                     )
                     db.add(nuevo_prod)
+                    db.flush() # ID for Costo
+
+                    # [FIX CONSISTENCY] Create Default Cost
+                    costo_def = ProductoCosto(
+                        producto_id=nuevo_prod.id,
+                        costo_reposicion=Decimal(0),
+                        margen_mayorista=Decimal(30),
+                        iva_alicuota=Decimal(21)
+                    )
+                    db.add(costo_def)
+                    
+                    master_rows.append({
+                        "nombre": nombre,
+                        "rubro": "GENERAL",
+                        "fecha_importacion": pd.Timestamp.now().isoformat()
+                    })
                     count += 1
                 except Exception as ex:
                     errores.append(f"Error prod {row.get('nombre')}: {ex}")
 
+             if master_rows:
+                df_master_new = pd.DataFrame(master_rows)
+                header = not os.path.exists(path_master)
+                df_master_new.to_csv(path_master, mode='a', header=header, index=False, encoding='utf-8-sig')
+
         db.commit()
+        
+        # Save updated Clean CSV with new statuses
+        df.to_csv(path_clean, index=False, encoding='utf-8-sig')
+
         return {
             "status": "ok", 
             "imported_count": count, 

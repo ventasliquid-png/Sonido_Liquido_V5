@@ -39,12 +39,12 @@
 
         <button 
           @click="commitData" 
-          class="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white px-4 py-2 rounded shadow flex items-center gap-2 transition-transform active:scale-95 font-bold shadow-cyan-500/20"
-          :disabled="isSaving || loading || hasUnsavedChanges"
+          class="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white px-4 py-2 rounded shadow flex items-center gap-2 transition-transform active:scale-95 font-bold shadow-cyan-500/20 opacity-100 disabled:opacity-50 disabled:cursor-not-allowed"
+          :disabled="isSaving || loading"
           title="Mueve los registros 'IMPORTAR' a la base de datos real"
         >
             <i class="fa-solid fa-file-import"></i>
-            IMPORTAR A SISTEMA
+            IMPORTAR A SISTEMA (F10)
         </button>
       </div>
     </header>
@@ -88,7 +88,7 @@
             <td class="p-2">
               <input 
                 v-model="item.nombre_final"
-                @input="markChanged"
+                @input="handleInput(item)"
                 :class="['w-full bg-[#0a0a0a] border border-gray-700 rounded px-3 py-1.5 focus:border-cyan-500 focus:outline-none transition-colors text-white', item.estado === 'IGNORAR' ? 'opacity-50 line-through' : '']"
                 :disabled="item.estado === 'IGNORAR'"
               />
@@ -104,7 +104,7 @@
                     !isCuitValid(item.cuit) ? 'border-red-500 text-red-500' : 'border-gray-700 text-blue-200 focus:border-cyan-500'
                 ]"
                 :disabled="item.estado === 'IGNORAR'"
-                maxlength="11"
+                maxlength="15"
               />
               <div v-if="item.cuit && !isCuitValid(item.cuit)" class="absolute right-3 top-3 text-red-500 text-[10px]" title="CUIT Inválido">
                   <i class="fa-solid fa-triangle-exclamation"></i>
@@ -115,7 +115,7 @@
             <td class="p-2">
               <input 
                 v-model="item.alias"
-                @input="markChanged"
+                @input="handleInput(item)"
                 placeholder="Ej: LABME"
                 class="w-full bg-[#0a0a0a] border border-gray-700 rounded px-2 py-1.5 focus:border-cyan-500 focus:outline-none text-xs text-yellow-200 uppercase"
                 :disabled="item.estado === 'IGNORAR'"
@@ -156,7 +156,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
 
 const currentType = ref('clientes'); // clientes | productos
@@ -267,7 +267,8 @@ const commitData = async () => {
         }
         alert(msg);
         
-        // Recargar para ver si cambió algo (opcional, por ahora mantenemos estado)
+        // Recargar para sincronizar los estados (IMPORTADO/EXISTENTE) y que no se vuelvan a enviar
+        await loadData(currentType.value);
     } catch (error) {
         alert("❌ Error en importación masiva: " + (error.response?.data?.detail || error.message));
     } finally {
@@ -308,9 +309,17 @@ const validateCuit = (cuit) => {
     return parseInt(cuit[10]) === digit;
 };
 
+const handleInput = (item) => {
+    // Si el usuario toca algo, lo marcamos para IMPORTAR (si no estaba ignorado)
+    if (item.estado !== 'IGNORAR') {
+        item.estado = 'IMPORTAR';
+    }
+    markChanged();
+};
+
 const handleCuitInput = (item) => {
     item.cuit = cleanCuit(item.cuit);
-    markChanged();
+    handleInput(item);
 };
 
 const isCuitValid = (cuit) => {
@@ -322,9 +331,20 @@ const toggleSort = () => {
     sortDesc.value = !sortDesc.value;
 };
 
-// Lifecycle
+const handleKeydown = (e) => {
+    if (e.key === 'F10') {
+        e.preventDefault();
+        commitData();
+    }
+};
+
 onMounted(() => {
+    window.addEventListener('keydown', handleKeydown);
     loadData('clientes');
+});
+
+onUnmounted(() => {
+    window.removeEventListener('keydown', handleKeydown);
 });
 
 </script>
