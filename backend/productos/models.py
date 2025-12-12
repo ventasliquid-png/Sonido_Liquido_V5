@@ -22,6 +22,9 @@ class Rubro(Base):
     def productos_count(self):
         return len(self.productos)
 
+from backend.proveedores.models import Proveedor
+from backend.maestros.models import TasaIVA, Unidad
+
 class Producto(Base):
     __tablename__ = "productos"
 
@@ -59,10 +62,10 @@ class Producto(Base):
     costos = relationship("ProductoCosto", uselist=False, back_populates="producto", cascade="all, delete-orphan")
     
     # Relaciones Satelitales
-    proveedor_habitual = relationship("backend.proveedores.models.Proveedor")
-    tasa_iva = relationship("backend.maestros.models.TasaIVA")
-    unidad_stock = relationship("backend.maestros.models.Unidad", foreign_keys=[unidad_stock_id])
-    unidad_compra = relationship("backend.maestros.models.Unidad", foreign_keys=[unidad_compra_id])
+    proveedor_habitual = relationship("Proveedor")
+    tasa_iva = relationship("TasaIVA")
+    unidad_stock = relationship("Unidad", foreign_keys=[unidad_stock_id])
+    unidad_compra = relationship("Unidad", foreign_keys=[unidad_compra_id])
 
 class ProductoCosto(Base):
     __tablename__ = "productos_costos"

@@ -81,9 +81,9 @@ const routes = [
                 component: () => import('../views/Hawe/PedidosView.vue')
             },
             {
-                path: 'pedidos/tactico',
-                name: 'PedidoTactico',
-                component: () => import('../views/Pedidos/PedidoTacticoView.vue')
+                path: 'tactical',
+                name: 'TacticalLoader',
+                component: () => import('../views/Ventas/TacticalView.vue')
             }
         ]
     },

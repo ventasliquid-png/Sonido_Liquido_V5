@@ -76,7 +76,7 @@ watch(() => props.domicilio, (newVal) => {
             localidad: '',
             provincia_id: null,
             transporte_id: props.defaultTransportId || null, 
-            es_fiscal: false,
+            es_fiscal: true, // Default to Fiscal to prevent "No Fiscal" errors
             es_entrega: true,
             activo: true,
             metodo_entrega: 'TRANSPORTE',

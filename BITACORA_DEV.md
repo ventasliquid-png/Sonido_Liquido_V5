@@ -689,4 +689,20 @@ Se formalizó en `PROTOCOLO_DATOS.md` que la fuente de verdad son los archivos `
 
 ### ⚠ AVISO DE NAVEGACIÓN (Próxima Sesión)
 **DOCUMENTO DE LECTURA OBLIGATORIA:** `PROTOCOLO_DATOS.md`
-Antes de cualquier operación de carga o mantenimiento de datos, leer el protocolo definido en esta sesión. Contiene las definiciones de "Fuente de Verdad" (Master CSV) y las reglas de Sincronización con la Nube.
+Antes de cualquier operación de carga o mantenimiento de datos, leer el protocolo definido en esta sesión. ### [2025-12-12] Pivot Estratégico: Operación Nike (Doctrina de Sanidad)
+*   **Contexto:** Se detectó que el enfoque de "Importación Perfecta" (limpiar todo antes de cargar) era inviable y generaba fricción operativa.
+*   **Nueva Doctrina (Nike Report):**
+    1.  **Depuración Just-in-Time:** Se acepta la carga "sucia". La limpieza ocurre en la trinchera, al momento de cargar un pedido.
+    2.  **Fuente de Verdad:** La Base de Datos V5 es la autoridad suprema.
+    3.  **Golden Seeds (Blindaje):** Respaldo automático de tablas maestras a CSV planos tras cada sesión. "Punto de Restauración Institucional".
+*   **Dispositivo Táctico (Grid V5):**
+    *   Interfaz de carga de alta velocidad ("Excel Killer").
+    *   **Semáforo de Auditoría (F3):**
+        *   🟢 **VERDE:** Listo para facturar.
+        *   🔴 **ROJO:** Requiere intervención (Inspector).
+        *   🗑️ **KILL:** Basura / Duplicado -> Soft Delete.
+*   **Próximos Pasos:** Desarrollo del `TacticalView` y componente de Semáforo.
+
+> [!IMPORTANT]
+> **Base de Datos:** Se confirma que la operación inicia sobre la base SQLite local (`pilot.db`), respaldada por los CSVs maestros.
+

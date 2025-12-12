@@ -50,12 +50,18 @@ def seed_data():
             print("Created default Rubro: GENERAL")
         
         # 4. Productos
-        prod_path = os.path.join(DATA_DIR, "productos_raw.csv")
+        prod_path = os.path.join(DATA_DIR, "productos_limpios.csv")
         if os.path.exists(prod_path):
             df_prod = pd.read_csv(prod_path).fillna("")
             count_p = 0
             for _, row in df_prod.iterrows():
-                nombre = row.get("nombre", "").strip()
+                estado = row.get("estado", "PENDIENTE")
+                # Importamos IMPORTAR y PENDIENTE para asegurar carga inicial
+                if estado not in ["IMPORTAR", "PENDIENTE"]: continue
+
+                nombre = row.get("nombre_final", "").strip()
+                if not nombre: 
+                    nombre = row.get("nombre_original", "").strip()
                 if not nombre: continue
                 
                 # Check exist
@@ -63,6 +69,7 @@ def seed_data():
                     continue
 
                 precio = row.get("precio", 0)
+                # Si no hay precio explícito en el CSV limpio, usamos 0
                 try:
                     precio = float(precio) if precio else 0
                 except:
@@ -92,12 +99,17 @@ def seed_data():
             print(f"Not found: {prod_path}")
 
         # 5. Clientes
-        clie_path = os.path.join(DATA_DIR, "clientes_raw.csv")
+        clie_path = os.path.join(DATA_DIR, "clientes_limpios.csv")
         if os.path.exists(clie_path):
             df_clie = pd.read_csv(clie_path).fillna("")
             count_c = 0
             for _, row in df_clie.iterrows():
-                nombre = row.get("nombre", "").strip()
+                estado = row.get("estado", "PENDIENTE")
+                if estado not in ["IMPORTAR", "PENDIENTE"]: continue
+
+                nombre = row.get("nombre_final", "").strip()
+                if not nombre: 
+                    nombre = row.get("nombre_original", "").strip()
                 if not nombre: continue
                 
                 cuit = str(row.get("cuit", "")).strip().replace("-", "").replace("/", "")

@@ -7,42 +7,42 @@
 *   **Feedback Inmediato:** Precios, descuentos y stock se calculan en tiempo real.
 *   **Flexibilidad "Anti-Bloqueo":** Si el precio no existe, permite carga manual (con log). Si falta un dato, permite avanzar (dentro de lo legal).
 
-## 2. Interfaz de Usuario (UI)
+## 2. Interfaz de Usuario (UI) - Estructura Tríptica
 
-### A. Cabecera (Contexto del Pedido)
-*   **Info Operativa:**
-    *   **Nº Pedido:** Contador Automático (Sugiere el siguiente).
-    *   **Fecha:** Selector de Fecha (Default: Hoy).
-*   **Selector de Cliente (F2):** Autocompletado. Muestra:
-    *   *Deuda Actual* (Color coded).
-    *   *Saldo a Favor*.
-*   **Modo de Transacción:**
-    *   **Tipo:** [Pedido] / [Presupuesto] (Toggle).
-    *   **Fiscal:** [Con IVA] / [Sin IVA/X] (Oculta impuestos en totales).
-*   **Comentarios:** Campo de texto libre para notas logísticas ("Entregar por puerta lateral", "Entrega Parcial acorada", etc.).
+### A. Cabecera (Contexto Administrativo)
+*   **Datos Identitarios:** Ficha de Cliente (Nombre, CUIT, Semáforo).
+*   **Datos Operativos:** 
+    *   **Fecha/Hora:** Automática.
+    *   **Numero de Pedido:** Contador correlativo.
+    *   **OC Cliente:** Campo opcional para referencia externa.
+*   **Semántica:**
+    *   Color de fondo cambia según el tipo de documento.
 
-### B. La Grilla (Carga de Items)
-Comportamiento tipo hoja de cálculo.
-Columnas:
-1.  **Código:** Buscador exacto.
-2.  **Producto (F3):**
-    *   Búsqueda difusa al escribir.
-    *   **F3 (DEOU):** Abre modal de "Ayuda de Búsqueda" con listado filtrable.
-3.  **Cant:** Número.
-4.  **Unidad:** Selector rápido.
-5.  **Precio Unit:**
-    *   Automático desde Lista V5.
-    *   **Editable:** Permite sobre-escritura manual.
-    *   *Helper:* Mostrar "Último Precio Pagado" por este cliente (Tooltip o panel lateral).
-6.  **Desc %:** Descuento manual de línea.
-7.  **Subtotal:** (Cant * Precio * (1-Desc)).
-8.  **Acciones:** Icono Papelera (Eliminar fila).
+### B. El Cuerpo (Grilla Transaccional)
+Es el corazón del sistema. Una lista de "n" renglones con:
+1.  **#:** Número de renglón.
+2.  **SKU:** Identificador único.
+3.  **Descripción:** Nombre del producto.
+4.  **Cant:** Cantidad solicitada.
+5.  **Unidad:** Medida (UN, CJ, etc).
+6.  **Precio Unitario:** Valor base.
+7.  **Subtotal:** (Cant * Precio).
+*   **Descuentos:** Se agregan como un renglón especial con valor negativo antes del final.
 
-### C. Pie (Totales y Cierre)
-*   **Desglose:** Neto, IVA (si aplica), Total Final.
-*   **Botones:**
-    *   `[F10] PROCESAR PEDIDO`: Guarda en DB y limpia formulario.
-    *   `[Guardar Borrador]`: Persiste en LocalStorage sin enviar a DB.
+### C. Pie (Liquidación y Logística)
+*   **Totales:**
+    *   **Subtotal Neto:** Suma de renglones.
+    *   **IVA:** Discriminado (21% / 10.5%).
+    *   **Total Final:** Monto a pagar.
+*   **Logística:**
+    *   **Cambio Logístico:** Selector para alterar el destino/transporte por defecto del cliente (Override).
+
+## 3. Semántica Visual (Color Coding)
+El fondo general de la grilla (muy suave) comunica el estado/tipo de documento:
+*   🟢 **Verde Suave:** PEDIDO (Firme).
+*   🟣 **Lila Suave:** PRESUPUESTO (Cotización).
+*   🟡 **Amarillo Suave:** COMPLETADO / ARCHIVADO.
+*   🔴 **Rojo Suave:** ANULADO.
 
 ## 3. Comportamientos Clave
 *   **Navegación:** `Flechas` para moverse entre celdas. `Enter` para avanzar/confirmar.

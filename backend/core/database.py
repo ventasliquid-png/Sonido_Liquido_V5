@@ -23,7 +23,7 @@ def _get_clean_database_url():
     
     # [FIX] Si es SQLite, devolvemos directo (no intentamos parsear como Postgres)
     if url_candidate and url_candidate.startswith("sqlite"):
-        print(f"✅ CONEXIÓN DB (LOCAL SQLITE): {url_candidate}")
+        print(f"[OK] CONEXION DB (LOCAL SQLITE): {url_candidate}")
         return url_candidate
     
     # 2. Si no está en el archivo, usar hardcode de emergencia (Nueva IP)

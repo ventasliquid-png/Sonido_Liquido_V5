@@ -138,6 +138,18 @@ def end_session(summary):
         
     print(f"Sesión cerrada y memoria optimizada para Gy {identity}")
 
+    # Golden Seeds Backup Strategy
+    # Intentamos ejecutar el respaldo SIEMPRE al cerrar sesión para garantizar el "Punto de Restauración"
+    try:
+        # Importación dinámica para evitar bloqueos circulares si se corre desde otro lado
+        sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+        from export_golden_seeds import run_export
+        print("\n🌱 Ejecutando Protocolo Golden Seeds (Respaldo Automático)...")
+        run_export()
+    except Exception as e:
+        print(f"\n⚠️  ADVERTENCIA: Falló el respaldo automático Golden Seeds: {e}")
+        print("Por favor ejecute 'python scripts/export_golden_seeds.py' manualmente si es necesario.")
+
 if __name__ == "__main__":
     import sys
     if len(sys.argv) < 2:

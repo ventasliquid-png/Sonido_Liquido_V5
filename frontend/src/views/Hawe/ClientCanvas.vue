@@ -9,7 +9,26 @@
             
 
 
-            <button @click="goToList" class="flex items-center gap-2 text-white hover:text-cyan-400 transition-colors group" title="Ir al Listado de Clientes">
+
+            
+            <!-- RETURN MODE -->
+            <button 
+                v-if="returnUrl" 
+                @click="goBackToSource" 
+                class="flex items-center gap-2 text-white hover:text-green-400 transition-colors group px-3 py-1.5 rounded bg-green-900/20 border border-green-500/30" 
+                title="Volver a la operación anterior"
+            >
+                <i class="fa-solid fa-arrow-left text-green-400"></i>
+                <span class="font-outfit text-sm font-bold uppercase tracking-wider text-green-400">Volver al Pedido</span>
+            </button>
+
+            <!-- STANDARD MODE -->
+            <button 
+                v-else 
+                @click="goToList" 
+                class="flex items-center gap-2 text-white hover:text-cyan-400 transition-colors group" 
+                title="Ir al Listado de Clientes"
+            >
                 <i class="fa-solid fa-list text-cyan-400"></i>
                 <span class="font-outfit text-sm font-bold uppercase tracking-wider text-cyan-400">Fichas</span>
             </button>
@@ -48,6 +67,19 @@
 
         <!-- Identifiers -->
         <div class="space-y-3">
+            
+            <!-- LIVE AUDIT STATUS -->
+            <div v-if="auditResult.code !== 'VERDE'" class="bg-red-500/10 border border-red-500/30 rounded-lg p-3 animate-pulse">
+                <div class="flex items-center gap-2 mb-2">
+                    <i class="fa-solid fa-triangle-exclamation text-red-400"></i>
+                    <span class="text-xs font-bold text-red-400 uppercase">Ficha Incompleta</span>
+                </div>
+                <ul class="list-disc list-inside text-[10px] text-red-300/80 font-mono">
+                    <li v-for="reason in auditResult.reasons" :key="reason">{{ reason }}</li>
+                </ul>
+            </div>
+            
+            <!-- CUIT -->
             <div class="bg-white/5 rounded-lg p-3 border border-white/5">
                 <label class="block text-[10px] font-bold uppercase text-white/40 mb-1">CUIT</label>
                 <input 
@@ -59,6 +91,24 @@
                     maxlength="11"
                 />
             </div>
+            
+            <!-- CONDICION IVA -->
+            <div class="bg-white/5 rounded-lg p-3 border border-white/5">
+                <label class="block text-[10px] font-bold uppercase text-white/40 mb-1">CONDICIÓN IVA</label>
+                <div class="w-full">
+                    <select 
+                        v-model="form.condicion_iva_id" 
+                        class="w-full bg-transparent text-sm text-white focus:outline-none appearance-none [&>option]:bg-slate-900 border-b border-white/10 focus:border-cyan-400 pb-1"
+                    >
+                        <option :value="null">Seleccionar...</option>
+                        <option v-for="iva in condicionesIva" :key="iva.id" :value="iva.id">
+                            {{ iva.nombre }}
+                        </option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- SEGMENTOS -->
             <div class="bg-white/5 rounded-lg p-3 border border-white/5" @dblclick="showSegmentoList = true" title="Doble click para administrar">
                 <label 
                     class="block text-[10px] font-bold uppercase text-white/40 mb-1 cursor-pointer hover:text-white/80 select-none"
@@ -516,13 +566,36 @@ import DomicilioList from './components/DomicilioList.vue'
 import TransporteManager from './components/TransporteManager.vue'
 import ContactoForm from './components/ContactoForm.vue'
 
+import { useAuditSemaphore } from '../../composables/useAuditSemaphore'
+
 const route = useRoute()
 const router = useRouter()
 const store = useClientesStore()
 const maestrosStore = useMaestrosStore()
 const notificationStore = useNotificationStore()
 
+// Audit Logic
+const { evaluateCliente } = useAuditSemaphore()
+const auditResult = computed(() => {
+    // Construct a temporary client object from form data to reactive check
+    // Need to mimic the structure expected by evaluateCliente
+    const tempClient = {
+        ...form.value,
+        domicilios: domicilios.value, // Pass current domicilios array
+        // Calculate dynamic properties manually if needed, or helper
+        domicilio_fiscal_resumen: null // Let helper check domicilios array
+    }
+    return evaluateCliente(tempClient)
+})
+
+const returnUrl = computed(() => route.query.returnUrl)
+
 const goToList = () => router.push('/hawe')
+const goBackToSource = () => {
+    console.log("DEBUG: Volviendo a", returnUrl.value)
+    if (returnUrl.value) router.push(returnUrl.value)
+    else router.push('/hawe')
+}
 const goToNew = () => router.push({ name: 'HaweClientCanvas', params: { id: 'new' } })
 
 // State
@@ -533,7 +606,7 @@ const form = ref({
     id: null,
     razon_social: '',
     cuit: '',
-    condicion_iva: 'Responsable Inscripto',
+    condicion_iva_id: null,
     lista_precios_id: null,
     vendedor_id: null,
     segmento_id: null,
@@ -580,6 +653,7 @@ const contextMenu = reactive({
 const listasPrecios = computed(() => maestrosStore.listasPrecios)
 const vendedores = computed(() => maestrosStore.vendedores)
 const segmentos = computed(() => maestrosStore.segmentos)
+const condicionesIva = computed(() => maestrosStore.condicionesIva)
 
 // Keyboard Shortcuts
 const handleKeydown = (e) => {
@@ -772,7 +846,12 @@ const saveCliente = async () => {
             await store.updateCliente(form.value.id, payload)
             notificationStore.add('Cliente actualizado exitosamente', 'success')
         }
-        router.push('/hawe')
+        
+        if (returnUrl.value) {
+            router.push(returnUrl.value)
+        } else {
+            router.push('/hawe')
+        }
     } catch (e) {
         notificationStore.add('Error al guardar cliente', 'error')
         console.error(e)

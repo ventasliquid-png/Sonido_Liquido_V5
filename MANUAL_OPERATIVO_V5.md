@@ -129,3 +129,21 @@ Configuración centralizada de alícuotas impositivas para asegurar consistencia
 *   **10.5%:** IVA Reducido.
 *   **27.0%:** IVA Diferencial.
 *   **0.0%:** Exento / No Gravado.
+
+---
+
+## CAPÍTULO 5: ESTRATEGIA DE DATOS Y CONTINGENCIA
+
+Para garantizar la operación continua incluso sin conexión a internet o ante fallos del servidor central (IOWA), el sistema V5 implementa la **Doctrina de Blindaje de Datos**.
+
+### 5.1 Modo Híbrido (Offline First)
+La operación diaria no depende de la nube.
+*   **Trinchera (Local):** La facturación, carga de pedidos y gestión se realizan sobre una base de datos local de alta velocidad (`pilot.db`).
+*   **Respaldo (Nube):** La sincronización con el servidor central es asíncrona. Se suben los datos cuando la conexión es estable, pero no bloquea el trabajo si se corta internet.
+
+### 5.2 Semillas Maestras (Golden Seeds)
+Son el mecanismo de seguridad último ("Arca de Noé").
+*   Al final de cada sesión o hito importante, el sistema exporta el conocimiento clave (Clientes, Productos, Deudas) a archivos **CSV planos e inmutables**.
+*   **Recuperación:** Si la base de datos local se corrompe y la nube es inaccesible, el sistema puede "Resetearse" y reconstruirse por completo en segundos importando estas semillas.
+*   **Ubicación:** Carpeta `BUILD_PILOTO/data`.
+

@@ -286,6 +286,8 @@ const clienteStore = useClientesStore()
 const maestrosStore = useMaestrosStore()
 const notificationStore = useNotificationStore()
 const router = useRouter()
+import { useRoute } from 'vue-router' // Import useRoute
+const route = useRoute()
 
 const clientes = computed(() => clienteStore.clientes)
 const segmentos = ref([])
@@ -379,6 +381,15 @@ const openNewCliente = () => {
 const closeInspector = () => {
     selectedId.value = null
     selectedCliente.value = null
+    
+    // Auto Return to Tactical if context exists
+    if (route.query.returnUrl) {
+        console.log("Returning to source:", route.query.returnUrl)
+        router.push({ 
+            path: route.query.returnUrl,
+            query: { q: route.query.q } // Restore search context
+        })
+    }
 }
 
 const handleInspectorSave = async (clienteData) => {
@@ -489,6 +500,19 @@ onMounted(async () => {
             maestrosStore.fetchSegmentos()
         ])
         segmentos.value = maestrosStore.segmentos
+        
+        // Check for Auto-Inspect
+        if (route.query.inspectId) {
+            console.log("Auto-inspecting:", route.query.inspectId)
+            // Buscar el cliente en la lista cargada para tener info básica
+            const client = clientes.value.find(c => c.id === route.query.inspectId)
+            if (client) {
+                await selectCliente(client)
+            } else {
+                // Si no está en la lista (inactivo?), intentar fetch directo
+                await handleSwitchClient(route.query.inspectId)
+            }
+        }
     } catch (e) {
         console.error('Error loading HaweView data:', e)
     }

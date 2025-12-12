@@ -8,8 +8,13 @@ import json
 from contextlib import asynccontextmanager
 from typing import TypedDict, List, Literal
 
+# load_dotenv() # Desactivado temporalmente para asegurar modo offline si se desea
 from dotenv import load_dotenv
 load_dotenv()
+
+# FORCE DISABLE IOWA (Cloud Costs Saving)
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = ""
+os.environ["ENABLE_AI"] = "False"
 
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -105,23 +110,23 @@ async def lifespan(app: FastAPI):
     
     # Verificar si las credenciales de Google están disponibles
     if google_creds_env and os.path.exists(google_creds_env):
-        print(f"✅ Verificación de arranque: GOOGLE_APPLICATION_CREDENTIALS... ENCONTRADO.")
+        print(f"[OK] Verificación de arranque: GOOGLE_APPLICATION_CREDENTIALS... ENCONTRADO.")
     elif os.path.exists(creds_path_file):
-        print(f"✅ Verificación de arranque: GOOGLE_APPLICATION_CREDENTIALS... ENCONTRADO (archivo local).")
+        print(f"[OK] Verificación de arranque: GOOGLE_APPLICATION_CREDENTIALS... ENCONTRADO (archivo local).")
         # FIX: Set the env var so the AI client can find it
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.abspath(creds_path_file)
     else:
         # Advertencia, no error - el servidor puede arrancar sin IA
-        print(f"⚠️  ADVERTENCIA: GOOGLE_APPLICATION_CREDENTIALS no encontrado.")
+        print(f"[WARN] ADVERTENCIA: GOOGLE_APPLICATION_CREDENTIALS no encontrado.")
         print(f"   El servidor arrancará sin funcionalidades de IA (Atenea).")
         print(f"   Para habilitar IA, configure GOOGLE_APPLICATION_CREDENTIALS o coloque '.google_credentials' en la raíz.\n")
     # --- [FIN DEL PARCHE] ---
         
     CONNECTION_STRING = os.environ.get("DATABASE_URL")
     if CONNECTION_STRING and "postgres" in CONNECTION_STRING:
-        print("✅ Verificación de arranque: DATABASE_URL... ENCONTRADA.")
+        print("[OK] Verificación de arranque: DATABASE_URL... ENCONTRADA.")
     else:
-        print("❌ ERROR DE ARRANQUE: DATABASE_URL no encontrada en el entorno.")
+        print("[ERROR] ERROR DE ARRANQUE: DATABASE_URL no encontrada en el entorno.")
 
     if CONNECTION_STRING and os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
         try:
@@ -143,17 +148,17 @@ async def lifespan(app: FastAPI):
                     connection_string=CONNECTION_STRING,
                     embedding_function=embeddings_model,
                 )
-                print(f"✅ Clientes de IA (Región: {config.APP_LOCATION}) y Memoria (pgvector) inicializados.")
+                print(f"[OK] Clientes de IA (Región: {config.APP_LOCATION}) y Memoria (pgvector) inicializados.")
             except Exception as e:
-                print(f"⚠️ [PILOT MODE] No se pudo iniciar RAG/VectorStore (Normal en SQLite): {e}")
+                print(f"[WARN] [PILOT MODE] No se pudo iniciar RAG/VectorStore (Normal en SQLite): {e}")
                 vector_store = None
             
             atenea_v5_app = workflow_builder.compile()
         except Exception as e:
-            print(f"❌ ERROR DE ARRANQUE V10: Falla al inicializar clientes de IA o pgvector.")
+            print(f"[ERROR] ERROR DE ARRANQUE V10: Falla al inicializar clientes de IA o pgvector.")
             print(f"     Error detallado: {e}")
     else:
-        print("⚠️ Advertencia: El servidor arranca sin IA.")
+        print("[WARN] Advertencia: El servidor arranca sin IA.")
 
     print("--- [Atenea V5 Backend]: Secuencia de arranque finalizada. ---")
     yield
@@ -318,6 +323,7 @@ origins = [
     "http://localhost:5173",
     "http://localhost:5174",
     "http://localhost:3000",
+    "http://127.0.0.1:5173",  # Para prevenir problemas si Vite usa IP
     "*"
 ]
 

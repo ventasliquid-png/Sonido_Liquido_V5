@@ -253,7 +253,7 @@ def calculate_prices(producto: models.Producto):
 
 from decimal import Decimal
 
-@router.get("/", response_model=List[schemas.ProductoRead])
+@router.get("/")
 def read_productos(
     skip: int = 0, 
     limit: int = 100, 
@@ -261,22 +261,36 @@ def read_productos(
     rubro_id: Optional[int] = None,
     db: Session = Depends(get_db)
 ):
-    query = db.query(models.Producto).options(joinedload(models.Producto.costos), joinedload(models.Producto.rubro))
-    
-    # Apply Filters
-    if activo is not None:
-        query = query.filter(models.Producto.activo == activo)
-    
-    if rubro_id is not None:
-        query = query.filter(models.Producto.rubro_id == rubro_id)
-
-    productos = query.offset(skip).limit(limit).all()
-    
-    # Calcular precios para cada producto
-    for p in productos:
-        calculate_prices(p)
+    try:
+        query = db.query(models.Producto).options(joinedload(models.Producto.costos), joinedload(models.Producto.rubro))
         
-    return productos
+        # Apply Filters
+        if activo is not None:
+            query = query.filter(models.Producto.activo == activo)
+        
+        if rubro_id is not None:
+            query = query.filter(models.Producto.rubro_id == rubro_id)
+
+        productos = query.offset(skip).limit(limit).all()
+        
+        # Calcular precios para cada producto
+        for p in productos:
+            calculate_prices(p)
+            
+        # Minimal debug return
+        return [
+            {
+                "id": p.id, 
+                "nombre": p.nombre,
+                "sku": p.sku,
+                "precio_costo": p.costos.costo_reposicion if p.costos else 0
+            } 
+            for p in productos
+        ]
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error reading productos: {str(e)}")
 
 @router.post("/", response_model=schemas.ProductoRead)
 def create_producto(producto: schemas.ProductoCreate, db: Session = Depends(get_db)):
