@@ -5,3 +5,9 @@ __pycache__/
 *.log
 debug_*.py
 BUILD_PILOTO/
+
+.venv/
+
+*.db
+
+__pycache__/
