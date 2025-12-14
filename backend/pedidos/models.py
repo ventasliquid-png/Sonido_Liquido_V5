@@ -12,6 +12,7 @@ class Pedido(Base):
     cliente_id = Column(UUID(as_uuid=True), ForeignKey("clientes.id"), nullable=False)
     total = Column(Float, default=0.0)
     nota = Column(Text, nullable=True)
+    estado = Column(String, default="PENDIENTE") # PENDIENTE, CUMPLIDO, ANULADO, INTERNO
     
     # Metadata
     created_at = Column(DateTime, default=datetime.now)
@@ -31,6 +32,7 @@ class PedidoItem(Base):
     cantidad = Column(Float, default=1.0)
     precio_unitario = Column(Float, default=0.0)
     subtotal = Column(Float, default=0.0)
+    nota = Column(String, nullable=True)
     
     # Relaciones
     pedido = relationship("Pedido", back_populates="items")

@@ -7,6 +7,7 @@ class PedidoItemCreate(BaseModel):
     producto_id: int
     cantidad: float
     precio_unitario: float
+    nota: Optional[str] = None
 
 class PedidoCreate(BaseModel):
     cliente_id: UUID
@@ -28,6 +29,7 @@ class PedidoResponse(BaseModel):
     cliente_id: UUID
     total: float
     nota: Optional[str] = None
+    estado: str
     items: List[PedidoItemResponse] = []
 
     class Config:

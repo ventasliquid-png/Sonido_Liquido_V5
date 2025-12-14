@@ -61,11 +61,6 @@ const routes = [
                 component: SegmentoList
             },
             {
-                path: 'transportes',
-                name: 'Transportes',
-                component: () => import('../views/Logistica/TransportesView.vue')
-            },
-            {
                 path: 'productos',
                 name: 'Productos',
                 component: () => import('../views/Hawe/ProductosView.vue')
@@ -81,9 +76,9 @@ const routes = [
                 component: () => import('../views/Hawe/PedidosView.vue')
             },
             {
-                path: 'tactical',
+                path: 'tactico',
                 name: 'TacticalLoader',
-                component: () => import('../views/Ventas/TacticalView.vue')
+                component: () => import('../views/Ventas/GridLoader.vue')
             }
         ]
     },

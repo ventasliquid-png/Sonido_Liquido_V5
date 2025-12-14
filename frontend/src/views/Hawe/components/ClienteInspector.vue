@@ -121,7 +121,7 @@
                 <div @contextmenu.prevent="openIvaContextMenu" class="cursor-context-menu">
                     <div class="flex justify-between mb-1">
                         <label class="block text-xs font-bold uppercase text-cyan-900/50">Condición IVA <span class="text-red-400">*</span></label>
-                        <button @click="openCondicionIva('list')" class="text-[10px] uppercase font-bold text-cyan-500 hover:text-cyan-400 focus:outline-none" title="Administrar Condiciones (ABM)">
+                        <button @click="openAbm('IVA')" class="text-[10px] uppercase font-bold text-cyan-500 hover:text-cyan-400 focus:outline-none" title="Administrar Condiciones">
                             <i class="fas fa-cog"></i> ABM
                         </button>
                     </div>
@@ -134,7 +134,7 @@
                 <div>
                     <div class="flex justify-between mb-1">
                         <label class="block text-xs font-bold uppercase text-cyan-900/50">Segmento <span class="text-red-400">*</span></label>
-                        <button @click="$emit('manage-segmentos')" class="text-[10px] uppercase font-bold text-cyan-500 hover:text-cyan-400 focus:outline-none" title="Administrar Segmentos (F4)">
+                        <button @click="openAbm('SEGMENTO')" class="text-[10px] uppercase font-bold text-cyan-500 hover:text-cyan-400 focus:outline-none" title="Administrar Segmentos">
                             <i class="fas fa-cog"></i> ABM
                         </button>
                     </div>
@@ -314,13 +314,25 @@
         </div>
     </div>
     
-    <!-- Condicion IVA Form Overlay (Self-Teleported) - MOVED TO ROOT -->
+    <!-- Condicion IVA Form Overlay (Old logic preserved but hidden/not used mostly) -->
     <CondicionIvaForm 
         :show="showCondicionIvaForm"
         :initial-view="condicionIvaStartView" 
         @close="showCondicionIvaForm = false"
         @saved="handleCondicionIvaSaved"
     />
+
+    <!-- NEW SIMPLE ABM MODAL -->
+    <Teleport to="body">
+        <SimpleAbmModal
+            v-if="showAbm"
+            :title="abmTitle"
+            :items="abmItems"
+            @close="showAbm = false"
+            @create="handleAbmCreate"
+            @delete="handleAbmDelete"
+        />
+    </Teleport>
 
     <!-- Global Context Menu -->
     <Teleport to="body">
@@ -345,6 +357,7 @@ import clientesService from '../../../services/clientes'
 import DomicilioForm from './DomicilioForm.vue'
 import CondicionIvaForm from '../../Maestros/CondicionIvaForm.vue'
 import ContextMenu from '../../../components/common/ContextMenu.vue'
+import SimpleAbmModal from '../../../components/common/SimpleAbmModal.vue'
 
 const props = defineProps({
     modelValue: {
@@ -613,6 +626,46 @@ watch(() => props.modelValue, (newVal) => {
         }
     }
 }, { immediate: true })
+
+// --- ABM LOGIC ---
+const showAbm = ref(false)
+const abmType = ref(null) // 'IVA' | 'SEGMENTO'
+const abmTitle = computed(() => abmType.value === 'IVA' ? 'Condiciones de IVA' : 'Segmentos')
+const abmItems = computed(() => abmType.value === 'IVA' ? condicionesIva.value : segmentos.value)
+
+const openAbm = (type) => {
+    abmType.value = type
+    showAbm.value = true
+}
+
+const handleAbmCreate = async (name) => {
+    try {
+        if (abmType.value === 'IVA') {
+            await maestrosStore.createCondicionIva({ nombre: name })
+        } else {
+            await maestrosStore.createSegmento({ nombre: name })
+        }
+        notificationStore.add('Elemento creado', 'success')
+    } catch (e) {
+        console.error(e)
+        notificationStore.add('Error al crear elemento', 'error')
+    }
+}
+
+const handleAbmDelete = async (id) => {
+    try {
+        if (abmType.value === 'IVA') {
+            await maestrosStore.deleteCondicionIva(id)
+        } else {
+            await maestrosStore.deleteSegmento(id) // Requires implement in Service/Store
+        }
+        notificationStore.add('Elemento eliminado', 'success')
+    } catch (e) {
+        console.error(e)
+        notificationStore.add('Error: Elemento en uso o fallo técnico', 'error')
+    }
+}
+
 
 const toggleActive = () => {
     if (form.value.activo) {

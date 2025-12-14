@@ -63,6 +63,14 @@ export const useMaestrosStore = defineStore('maestros', {
                 throw error;
             }
         },
+        async deleteSegmento(id) {
+            try {
+                await maestrosService.deleteSegmento(id);
+                await this.fetchSegmentos();
+            } catch (error) {
+                throw error;
+            }
+        },
 
         // --- Vendedores ---
         async fetchVendedores(filter = 'active') {

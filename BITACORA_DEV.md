@@ -97,7 +97,24 @@ python scripts/index_dev_memory.py
 ---
 
 
-### [2025-12-08] Estabilización Infraestructura y Logística V5
+
+### [2025-12-14] Infraestructura de Ventas Fase 2 (Tactical Loader)
+*   **Gestión de "Consumidor Final" (Persistencia Crítica):**
+    *   **Síntoma:** El cliente `CONSUMIDOR FINAL` sembrado (`seed_consumidor_final.py`) no persistía en la base `pilot.db` tras la ejecución del script, pese a reportar éxito.
+    *   **Diagnóstico:** Posible "Silent Rollback" o desconexión de sesión en scripts independientes que no importan todos los modelos (Mappers no inicializados).
+    *   **Solución Técnica:**
+        *   Se agregaron todas las importaciones de modelos (`logistica`, `pedidos`, `auth`) al script de seed para asegurar el registro en SQLAlchemy.
+        *   Se implementó una estrategia de **Doble Commit**: Primero vía ORM con `db.flush()` y verificación inmediata. En caso de fallo, **Fallback a SQL Crudo** (`INSERT INTO clientes ...`).
+*   **Backend Pedidos (Inteligencia):**
+    *   **Nuevo Endpoint:** `GET /pedidos/last_price/{cliente_id}/{producto_id}`.
+    *   **Funcionalidad:** Devuelve el último precio unitario pagado por un cliente para un producto específico, permitiendo al `GridLoader` sugerir precios personalizados en tiempo real.
+    *   **Refactor:** Se eliminó código duplicado en `backend/pedidos/router.py` (bloques de generación de Excel redundantes).
+*   **UX Dashboard Pedidos (`PedidoList`):**
+    *   **Corrección Semántica de Color:** A pedido del usuario, se invirtió la lógica de colores de estado:
+        *   **VERDE (`bg-emerald-50`):** PENDIENTE (En proceso / Espacio de trabajo).
+        *   **AMARILLO (`bg-yellow-50`):** CUMPLIDO (Finalizado / Alerta de completud).
+    *   **Filtros:** Se habilitó el botón/filtro para pedidos "ANULADOS".
+
 *   **Seguridad y Acceso (Auth):**
     *   **Incidente:** Pérdida de acceso admin tras reinicio.
     *   **Solución:** Implementación de `seed.py` en arranque (`backend/main.py`) que garantiza existencia de rol `Administrador` y usuario `admin` en desarrollo.

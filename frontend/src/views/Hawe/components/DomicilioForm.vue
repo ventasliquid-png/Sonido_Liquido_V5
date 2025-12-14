@@ -267,7 +267,7 @@ onUnmounted(() => {
                         <input v-model="form.calle" type="text" ref="firstInput" required class="w-full bg-black/20 border border-white/10 rounded px-3 py-1.5 text-white focus:border-cyan-500 outline-none text-sm placeholder-white/20" placeholder="Ej: Av. Corrientes">
                     </div>
                     <div class="col-span-2">
-                        <label class="block text-[10px] font-bold text-cyan-400 uppercase mb-0.5">Número</label>
+                        <label class="block text-[10px] font-bold text-cyan-400 uppercase mb-0.5">Número <span class="text-red-400">*</span></label>
                         <input v-model="form.numero" type="text" class="w-full bg-black/20 border border-white/10 rounded px-3 py-1.5 text-white focus:border-cyan-500 outline-none text-sm placeholder-white/20">
                     </div>
                     <div class="col-span-2">
@@ -283,11 +283,11 @@ onUnmounted(() => {
                 <!-- ROW 2: Localidad, Provincia, CP -->
                 <div class="grid grid-cols-12 gap-3">
                     <div class="col-span-5">
-                        <label class="block text-[10px] font-bold text-cyan-400 uppercase mb-0.5">Localidad</label>
+                        <label class="block text-[10px] font-bold text-cyan-400 uppercase mb-0.5">Localidad <span class="text-red-400">*</span></label>
                         <input v-model="form.localidad" type="text" class="w-full bg-black/20 border border-white/10 rounded px-3 py-1.5 text-white focus:border-cyan-500 outline-none text-sm">
                     </div>
                     <div class="col-span-5">
-                        <label class="block text-[10px] font-bold text-cyan-400 uppercase mb-0.5">Provincia</label>
+                        <label class="block text-[10px] font-bold text-cyan-400 uppercase mb-0.5">Provincia <span class="text-red-400">*</span></label>
                         <select v-model="form.provincia_id" class="w-full bg-black/20 border border-white/10 rounded px-3 py-1.5 text-white focus:border-cyan-500 outline-none text-sm appearance-none">
                             <option :value="null" class="bg-gray-900">Seleccionar...</option>
                             <option v-for="prov in store.provincias" :key="prov.id" :value="prov.id" class="bg-gray-900">

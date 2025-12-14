@@ -1,4 +1,18 @@
 
+## Sesión Gy CA - 2025-12-14 (Fase 2 Ventas: Estabilización Táctica)
+**Inicio:** 2025-12-14 00:06
+**Estado:** CERRADA
+**Cierre:** 2025-12-14 00:30
+
+### Resumen
+Sesión de verificación e implementación "Deep Dive" en el Módulo de Ventas (Fase 2). Se aseguró la infraestructura para el "Cargador Táctico" (GridLoader) y se resolvieron inconsistencias críticas en la persistencia de datos maestros (Consumidor Final) y lógica de negocio (Semáforos).
+
+### Hitos
+1.  **Persistencia "Consumidor Final":** Diagnóstico y blindaje del script `seed_consumidor_final.py` ante fallos de persistencia en SQLite (`pilot.db`), implementando Fallback a SQL Crudo y Force Flush.
+2.  **Inteligencia de Precios:** Implementación del endpoint `GET /last_price` en el Backend para habilitar la sugerencia de precios basada en historial.
+3.  **Refinamiento UX Pedidos:** Inversión de semáforo de estados (Verde=Proceso, Amarillo=Cumplido) y habilitación de filtro "Anulados" en Dashboard.
+
+
 ## Sesión Gy CA - 2025-12-09 22:10 (CERRADA 2025-12-09 22:13)
 **Inicio:** 2025-12-09 22:10
 **Estado:** Cerrada

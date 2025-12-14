@@ -141,9 +141,33 @@ La operación diaria no depende de la nube.
 *   **Trinchera (Local):** La facturación, carga de pedidos y gestión se realizan sobre una base de datos local de alta velocidad (`pilot.db`).
 *   **Respaldo (Nube):** La sincronización con el servidor central es asíncrona. Se suben los datos cuando la conexión es estable, pero no bloquea el trabajo si se corta internet.
 
+
 ### 5.2 Semillas Maestras (Golden Seeds)
 Son el mecanismo de seguridad último ("Arca de Noé").
 *   Al final de cada sesión o hito importante, el sistema exporta el conocimiento clave (Clientes, Productos, Deudas) a archivos **CSV planos e inmutables**.
 *   **Recuperación:** Si la base de datos local se corrompe y la nube es inaccesible, el sistema puede "Resetearse" y reconstruirse por completo en segundos importando estas semillas.
 *   **Ubicación:** Carpeta `BUILD_PILOTO/data`.
+
+---
+
+## CAPÍTULO 6: MÓDULO VENTAS (TACTICAL LOADER)
+
+El módulo de ventas está diseñado para la velocidad ("Excel Killer"). Prioriza la carga rápida mediante teclado y la inteligencia contextual.
+
+### 6.1 Dashboard de Pedidos
+El centro de control de ventas (`Tablero Pedidos`) ofrece una vista densa y rápida del estado del negocio.
+*   **Semáforo de Estados:**
+    *   🟢 **PENDIENTE (Verde):** Pedido en proceso, borrador o recién ingresado. Requiere acción.
+    *   🟡 **CUMPLIDO (Amarillo):** Pedido finalizado, entregado o facturado. Ciclo cerrado.
+    *   🔴 **ANULADO (Rojo):** Pedido cancelado (baja lógica).
+    *   🟣 **INTERNO:** Pedidos administrativos o de movimiento interno.
+*   **Filtros:** Barra superior para filtrar rápidamente por estado.
+
+### 6.2 Cargador Táctico (GridLoader)
+Interfaz de alta velocidad para la toma de pedidos. Visualmente similar a una hoja de cálculo.
+*   **Navegación:** Diseñada para usarse sin mouse (Enter para nueva fila, Flechas para navegar).
+*   **Inteligencia de Precios:** Al seleccionar un cliente y un producto, el sistema busca automáticamente la **última venta** de ese producto a ese cliente y sugiere ese precio (respetando la historia comercial real).
+*   **Consumidor Final:** Lógica especial que omite validaciones estrictas de CUIT/Domicilio para ventas rápidas de mostrador.
+*   **Exportación:** Generación instantánea de Excel con el detalle del pedido para procesar en sistemas legacy o enviar por mail.
+
 

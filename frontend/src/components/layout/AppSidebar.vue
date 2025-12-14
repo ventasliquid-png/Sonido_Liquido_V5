@@ -57,9 +57,9 @@
                 <i class="fas fa-plus w-4"></i> 
                 <span>Nuevo Pedido (Táctico)</span>
             </a>
-            <a href="#" class="nav-item-sub text-white/30 cursor-not-allowed">
+            <a href="#" @click.prevent="navigate('PedidoList')" class="nav-item-sub" :class="{ 'active-link-emerald': isActive('PedidoList') }">
                 <i class="fas fa-list w-4"></i> 
-                <span>Historial</span>
+                <span>Tablero Pedidos</span>
             </a>
         </div>
       </div>
