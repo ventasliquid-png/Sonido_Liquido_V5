@@ -68,8 +68,8 @@ class ClienteBase(BaseModel):
     condicion_iva_id: Optional[UUID] = None
     lista_precios_id: Optional[UUID] = None
     segmento_id: Optional[UUID] = None
-    activo: bool = True
-    requiere_auditoria: bool = False
+    activo: Optional[bool] = True
+    requiere_auditoria: Optional[bool] = False
     
     # Nuevos campos V5.1
     legacy_id_bas: Optional[str] = None
@@ -104,8 +104,8 @@ class ClienteResponse(ClienteBase):
     codigo_interno: Optional[int] = None
     saldo_actual: Optional[float] = 0.0
     contador_uso: Optional[int] = 0
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     domicilios: List[DomicilioResponse] = []
     vinculos: List[VinculoComercialResponse] = []
     
@@ -121,8 +121,8 @@ class ClienteListResponse(ClienteBase):
     codigo_interno: Optional[int] = None
     saldo_actual: Optional[float] = 0.0
     contador_uso: Optional[int] = 0
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     
     # Nuevos Campos Visuales (Propiedades @property del modelo)
     domicilio_fiscal_resumen: Optional[str] = None

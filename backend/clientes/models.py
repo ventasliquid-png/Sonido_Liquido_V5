@@ -2,7 +2,8 @@
 # Módulo Clientes (V5) - Implementación Jerárquica (Nike S)
 
 import uuid
-from sqlalchemy import Column, String, Boolean, ForeignKey, Numeric, Text, DateTime, Integer, Sequence
+import uuid
+from sqlalchemy import Column, String, Boolean, ForeignKey, Numeric, Text, DateTime, Integer, Sequence, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
@@ -50,6 +51,10 @@ class Cliente(Base):
     
     # Ranking de Uso (V5.2)
     contador_uso = Column(Integer, default=0)
+    
+    # Vector de Historial (V5.3 - Cache Denormalizado)
+    # Guarda [{id, fecha, total, estado}, ...] (Max 5)
+    historial_cache = Column(JSON, nullable=True, default=list)
 
     # Auditoría
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

@@ -1,4 +1,21 @@
 
+
+## Sesión Gy CA - 2025-12-14 (Fase 2 Ventas: Refinamiento Táctico)
+**Inicio:** 2025-12-14 16:30
+**Estado:** EN PAUSA
+**Cierre:** 2025-12-14 17:05
+
+### Resumen
+Sesión de refinamiento táctico basada en feedback de uso real. Se ajustaron comportamientos de usabilidad (Atajos F3/F4) y validaciones excesivas (CUIT genérico). Se abrió una discusión estratégica sobre la identidad del "Consumidor Final".
+
+### Hitos
+1.  **UX Tactical Loader:**
+    *   **Atajos Contextuales:** Se eliminó el secuestro global de F3/F4, permitiendo un uso natural en inputs locales (Buscadores).
+    *   **Segmentos ABM:** Se visibilizó el acceso a la administración de segmentos con un botón dedicado (Engranaje) y se corrigió el error de creación (ID mismatch).
+2.  **Lógica Fiscal (CUIT):**
+    *   **Bypass Genérico:** Se implementó una excepción en `check_cuit` para el CUIT `00000000000`, evitando alertas de duplicidad irrelevantes para ventas anónimas.
+3.  **Debate Abierto:** Tratamiento del "Cliente sin CUIT identificado" vs "Consumidor Final Anónimo".
+
 ## Sesión Gy CA - 2025-12-14 (Fase 2 Ventas: Estabilización Táctica)
 **Inicio:** 2025-12-14 00:06
 **Estado:** CERRADA

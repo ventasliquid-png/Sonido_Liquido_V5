@@ -173,6 +173,11 @@ class ClienteService:
 
     @staticmethod
     def check_cuit(db: Session, cuit: str, exclude_id: UUID = None) -> schemas.CuitCheckResponse:
+        # Check for Generic CUITs (Consumidor Final)
+        clean_cuit = cuit.replace("-", "").replace(" ", "").strip()
+        if clean_cuit in ["00000000000", "99999999999"]:
+             return schemas.CuitCheckResponse(status="NEW", existing_clients=[])
+
         query = db.query(Cliente).filter(Cliente.cuit == cuit)
         
         if exclude_id:

@@ -269,7 +269,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, onUnmounted, reactive } from 'vue'
+import { ref, onMounted, computed, onUnmounted, reactive, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import FichaCard from '../components/hawe/FichaCard.vue'
 import ClienteInspector from './Hawe/components/ClienteInspector.vue'
@@ -296,11 +296,15 @@ const selectedCliente = ref(null)
 const selectedSegmento = ref(null)
 const searchQuery = ref('')
 const filterStatus = ref('active') // Default to active
-const sortBy = ref('usage') // Default to usage (Popularity)
+const sortBy = ref(localStorage.getItem('hawe_sort_pref') || 'usage')
 const viewMode = ref('grid')
 const showSortMenu = ref(false)
 const showCommandPalette = ref(false)
 const showTransporteManager = ref(false)
+
+watch(sortBy, (newVal) => {
+    localStorage.setItem('hawe_sort_pref', newVal)
+})
 
 // Segmento ABM Logic
 const showSegmentoModal = ref(false)

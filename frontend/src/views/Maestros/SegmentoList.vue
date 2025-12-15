@@ -177,7 +177,8 @@ const closeInspector = () => {
 const handleSaveFromInspector = async (formData) => {
     try {
         if (isNewSegmento.value) {
-            await store.createSegmento(formData);
+            const { id, ...newSegmento } = formData;
+            await store.createSegmento(newSegmento);
         } else {
             await store.updateSegmento(formData.id, formData);
         }

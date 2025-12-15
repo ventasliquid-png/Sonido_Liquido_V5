@@ -96,6 +96,26 @@ def create_pedido_tactico(
 
     # 4. Actualizar Total Header
     nuevo_pedido.total = total_pedido
+    
+    # --- VECTOR STRATEGY: Update Client History Cache ---
+    # We update the user's vector directly to avoid queries later.
+    current_cache = list(cliente.historial_cache) if cliente.historial_cache else []
+    
+    nuevo_summary = {
+        "id": nuevo_pedido.id,
+        "cliente_id": str(cliente.id),
+        "fecha": nuevo_pedido.fecha.isoformat() if nuevo_pedido.fecha else None,
+        "total": total_pedido,
+        "estado": "PENDIENTE", # Default for new tactical orders
+        "nota": nuevo_pedido.nota
+    }
+    
+    # Prepend and limit to 5
+    current_cache.insert(0, nuevo_summary)
+    cliente.historial_cache = current_cache[:5]
+    db.add(cliente) # Flag for update
+    # ----------------------------------------------------
+
     db.commit()
     db.refresh(nuevo_pedido)
 
@@ -154,11 +174,20 @@ def get_historial_cliente(
     """
     Últimos 5 pedidos de un cliente (Intelligence Widget).
     """
-    return db.query(models.Pedido)\
-        .filter(models.Pedido.cliente_id == cliente_id)\
-        .order_by(models.Pedido.fecha.desc())\
-        .limit(limit)\
-        .all()
+    """
+    Últimos 5 pedidos de un cliente (Intelligence Widget).
+    """
+    # VECTOR UPDATE: Read directly from Client Cache
+    from sqlalchemy import cast, String
+    from backend.clientes.models import Cliente
+    
+    # Robust search for client
+    cliente = db.query(Cliente).filter(cast(Cliente.id, String) == str(cliente_id)).first()
+    
+    if cliente and cliente.historial_cache:
+        return cliente.historial_cache
+        
+    return []
 
 
 
@@ -184,9 +213,16 @@ def get_ultima_venta(
     if not last_item:
         return None
         
-    return {
-        "precio": last_item.precio_unitario,
-        "cantidad": last_item.cantidad,
-        "fecha": last_item.pedido.fecha,
-        "pedido_id": last_item.pedido_id
-    }
+@router.delete("/{pedido_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_pedido(pedido_id: int, db: Session = Depends(get_db)):
+    """
+    Eliminación física de un pedido (Sólo Admin/Corrección).
+    Elimina también los items en cascada.
+    """
+    pedido = db.query(models.Pedido).get(pedido_id)
+    if not pedido:
+        raise HTTPException(status_code=404, detail="Pedido no encontrado")
+    
+    db.delete(pedido)
+    db.commit()
+    return None

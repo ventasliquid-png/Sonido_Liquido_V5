@@ -4,6 +4,27 @@
 **Código de Doctrina:** DEOU-2025
 
 ---
+# Manual Operativo V5
+
+## Control de Cambios
+- **V5.3 (Vector Update):** Implementación de Historial Vectorial y Toggle de Excel en Carga Táctica.
+
+## 1. Carga Táctica (Tactical Loader)
+El módulo de carga rápida (`/ventas/loader`) permite la creación ágil de pedidos.
+
+### Nuevas Funcionalidades
+1.  **Historial de Cliente (Widget Reloj):**
+    - Al pasar el mouse sobre el ícono de reloj (o clic derecho), se despliega el historial de los **últimos 5 pedidos**.
+    - Este historial es "vivo" y se actualiza instantáneamente con cada nueva compra.
+    
+2.  **Exportación Excel Opcional:**
+    - Casilla de verificación: **"Generar Comprobante (Excel)"**.
+    - Permite elegir si se desea descargar el archivo físico `.xlsx` al guardar el pedido. Ideal para cargas masivas donde no se requiere imprimir comprobantes uno por uno.
+
+### Teclas Rápidas
+- **F3:** Buscar Cliente.
+- **F4 / "+" :** Agregar Producto.
+- **F10:** Guardar Pedido.
 
 ## CAPÍTULO 1: LA DOCTRINA DE INTERFAZ (DEOU)
 

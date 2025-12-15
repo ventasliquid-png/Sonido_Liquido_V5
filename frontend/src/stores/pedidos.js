@@ -22,7 +22,7 @@ export const usePedidosStore = defineStore('pedidos', {
             }
         },
 
-        async createPedidoTactico(pedidoData) {
+        async createPedidoTactico(pedidoData, download = true) {
             this.isLoading = true;
             try {
                 // The backend returns a BLOB (Excel file)
@@ -30,24 +30,26 @@ export const usePedidosStore = defineStore('pedidos', {
                     responseType: 'blob'
                 });
 
-                // Trigger Download
-                const url = window.URL.createObjectURL(new Blob([response.data]));
-                const link = document.createElement('a');
-                link.href = url;
-                link.setAttribute('download', 'Pedido_Nuevo.xlsx'); // Fallback name
+                if (download) {
+                    // Trigger Download
+                    const url = window.URL.createObjectURL(new Blob([response.data]));
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.setAttribute('download', 'Pedido_Nuevo.xlsx'); // Fallback name
 
-                // Try to get filename from header
-                const contentDisposition = response.headers['content-disposition'];
-                if (contentDisposition) {
-                    const fileNameMatch = contentDisposition.match(/filename="(.+)"/);
-                    if (fileNameMatch && fileNameMatch.length === 2) {
-                        link.setAttribute('download', fileNameMatch[1]);
+                    // Try to get filename from header
+                    const contentDisposition = response.headers['content-disposition'];
+                    if (contentDisposition) {
+                        const fileNameMatch = contentDisposition.match(/filename="(.+)"/);
+                        if (fileNameMatch && fileNameMatch.length === 2) {
+                            link.setAttribute('download', fileNameMatch[1]);
+                        }
                     }
-                }
 
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                }
 
                 return true;
 

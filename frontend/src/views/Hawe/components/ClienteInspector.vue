@@ -1,12 +1,14 @@
 <template>
-  <div class="flex flex-col h-full w-full bg-[#05151f]/95 backdrop-blur-xl">
+  <div class="flex flex-col h-full w-full backdrop-blur-xl transition-all" 
+       :class="isCompact ? 'bg-[#05151f]/80 border-l border-cyan-900/50' : 'bg-[#05151f]/95'">
     <!-- Persistent Header -->
-    <div class="flex justify-between items-center p-6 border-b border-cyan-900/20 bg-[#0a253a]/30 shrink-0">
+    <div class="flex justify-between items-center border-b border-cyan-900/20 bg-[#0a253a]/30 shrink-0 transition-all"
+         :class="isCompact ? 'p-3 py-2' : 'p-6'">
         <div>
             <h2 class="text-lg font-bold text-cyan-100 leading-tight">
                 {{ modelValue?.razon_social || (isNew ? 'Nuevo Cliente' : 'Seleccione Cliente') }}
             </h2>
-            <p v-if="modelValue?.cuit" class="text-xs text-cyan-400/50 font-mono mt-1">{{ modelValue.cuit }}</p>
+            <p class="text-xs text-cyan-400/50 font-mono mt-1">{{ headerSubtitle }}</p>
         </div>
         <button v-if="modelValue || isNew" @click="$emit('close')" class="text-cyan-900/50 hover:text-cyan-100 transition-colors">
             <i class="fas fa-times"></i>
@@ -49,7 +51,8 @@
         </div>
 
         <!-- Scrollable Body -->
-        <div class="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-cyan-900/50 scrollbar-track-transparent">
+        <div class="flex-1 overflow-y-auto space-y-6 scrollbar-thin scrollbar-thumb-cyan-900/50 scrollbar-track-transparent"
+             :class="isCompact ? 'p-3' : 'p-6'">
             
             <!-- TAB: GENERAL -->
             <div v-if="activeTab === 'general'" class="space-y-4">
@@ -367,10 +370,17 @@ const props = defineProps({
     isNew: {
         type: Boolean,
         default: false
+    },
+    mode: {
+        type: String,
+        default: 'full' // 'full' | 'compact'
     }
 })
 
 const emit = defineEmits(['update:modelValue', 'close', 'save', 'delete', 'manage-segmentos', 'switch-client'])
+
+const isCompact = computed(() => props.mode === 'compact')
+
 
 const maestrosStore = useMaestrosStore()
 const clienteStore = useClientesStore()
@@ -400,8 +410,9 @@ const headerTitle = computed(() => {
 })
 
 const headerSubtitle = computed(() => {
-    if (!props.isNew && props.modelValue) return form.value.cuit || 'Sin CUIT'
-    return null
+    // Fix reactivity: check form.value.cuit if editing, or modelValue if valid. 
+    // Actually form.value is the source of truth for the inputs.
+    return form.value.cuit || (props.isNew ? 'Nuevo' : 'Sin CUIT')
 })
 
 const formatCuitInput = () => {
@@ -539,10 +550,8 @@ const handleDomicilioSaved = async (domData) => {
         }
         
         // Fix Dirty State: Identify that this change is persisted
-        // Ideally we should update the originalValues comparison reference
-        // But since Domicilios are a nested object, it's tricky.
-        // Easiest fix: force a refreshed fetch of the client to sync everything
-        emit('switch-client', form.value.id) 
+        // We updated the local array, so the UI should reflect it immediately.
+        // DO NOT emit switch-client here, as it triggers a reload from the (potentially stale) store list in the parent.
         
         showDomicilioForm.value = false
     } catch (error) {
@@ -657,7 +666,14 @@ const handleAbmDelete = async (id) => {
         if (abmType.value === 'IVA') {
             await maestrosStore.deleteCondicionIva(id)
         } else {
-            await maestrosStore.deleteSegmento(id) // Requires implement in Service/Store
+             // Implement Segmento deletion
+             if (maestrosStore.deleteSegmento) {
+                 await maestrosStore.deleteSegmento(id)
+             } else {
+                 console.warn("deleteSegmento implementation missing in store")
+                 alert("Funcionalidad no implementada en backend aún.")
+                 return
+             }
         }
         notificationStore.add('Elemento eliminado', 'success')
     } catch (e) {
@@ -745,6 +761,7 @@ const save = async () => {
         }
         
         emit('save', form.value)
+        notificationStore.add(`Cliente ${props.isNew ? 'creado' : 'actualizado'} con éxito`, 'success')
     } catch(e) {
         console.error(e)
     } finally {

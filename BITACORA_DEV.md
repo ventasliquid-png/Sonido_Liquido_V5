@@ -723,3 +723,26 @@ Antes de cualquier operación de carga o mantenimiento de datos, leer el protoco
 > [!IMPORTANT]
 > **Base de Datos:** Se confirma que la operación inicia sobre la base SQLite local (`pilot.db`), respaldada por los CSVs maestros.
 
+
+### [2025-12-14] Refinamiento Táctico y Arquitectura Unificada (Refactor 5 Puntos)
+*   **Hito Arquitectónico (Respuesta a Inquietud de Desvío):**
+    *   **Confirmación de Unidad:** Se valida que el "Cargador Táctico" (`GridLoader.vue`) y el sistema V5 (`HaweView.vue`) comparten el **100% de los componentes maestros**.
+    *   **Evidencia:** El arreglo del `ClienteInspector` (usado para corregir CUITs) se aplicó una sola vez y corrigió instantáneamente ambos módulos. No existen "ramas ocultas" ni código duplicado divergente.
+*   **Implementación de Mejoras (User Feedback):**
+    *   1. **Segmentos ABM:** Conexión de `SimpleAbmModal` en el entorno táctico.
+    *   2. **Fix CUIT Header:** Reactividad corregida en el inspector unificado.
+    *   3. **Toasts (Feedback):** Notificaciones visuales de éxito al guardar.
+    *   4. **Autosave Táctico:** Implementación de persistencia local (`localStorage`) para evitar pérdida de pedidos borrador.
+    *   5. **Persistencia de Orden:** Memoria de preferencia de ordenamiento en listados.
+*   **Incidente y Corrección Rápida:**
+    *   **Crash:** Pantalla blanca por `ReferenceError: watch`.
+    *   **Solución:** Importación faltante agregada en `GridLoader.vue` y `HaweView.vue`.
+    *   **Crash:** `Invalid prop: clienteId` en `ClientCanvas`.
+    *   **Solución:** Protección `v-if="form.id"` agregada a `ContactoForm` para evitar renderizado prematuro.
+    *   **UX:** Teclas `F3` y `F4` saltaban a Cliente globalmente.
+    *   **Solución:** Se eliminó la captura global en `GridLoader` para respetar el contexto local (ej. búsqueda de productos).
+    *   **Bug:** Segmento ABM no guardaba (Error de ID).
+    *   **Solución:** Se corrigió `SegmentoInspector` para no enviar ID vacío (autogenerado por backend) y se limpió el payload en `SegmentoList`.
+    *   **UX:** Alerta "CUIT Compartido" molesta en Consumidor Final (`00000000000`).
+    *   **Solución:** Se añadió una excepción en el backend (`ClienteService.check_cuit`) para ignorar la verificación de duplicados si el CUIT es genérico (todos ceros), permitiendo múltiples "Consumidores Finales" sin alertas.
+

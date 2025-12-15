@@ -256,7 +256,7 @@ from decimal import Decimal
 @router.get("/")
 def read_productos(
     skip: int = 0, 
-    limit: int = 100, 
+    limit: int = 1000, 
     activo: Optional[bool] = None, 
     rubro_id: Optional[int] = None,
     db: Session = Depends(get_db)

@@ -116,17 +116,24 @@
                 >
                     SEGMENTOS
                 </label>
-                <div class="w-full">
+                <div class="w-full flex gap-2">
                     <select 
                         v-model="form.segmento_id" 
                         @change="handleSegmentoChange"
-                        class="w-full bg-transparent text-sm text-white focus:outline-none appearance-none [&>option]:bg-slate-900 border-b border-white/10 focus:border-cyan-400 pb-1"
+                        class="flex-1 bg-transparent text-sm text-white focus:outline-none appearance-none [&>option]:bg-slate-900 border-b border-white/10 focus:border-cyan-400 pb-1"
                     >
                         <option :value="null">Sin Segmento</option>
                         <option value="__NEW__" class="text-green-400 font-bold">+ Crear Nuevo Segmento</option>
                         <option disabled>----------------</option>
                         <option v-for="seg in segmentos" :key="seg.id" :value="seg.id">{{ seg.nombre }}</option>
                     </select>
+                    <button 
+                         @click="showSegmentoList = true"
+                         class="text-white/30 hover:text-cyan-400 transition-colors px-1"
+                         title="Administrar Segmentos"
+                    >
+                        <i class="fa-solid fa-cog"></i>
+                    </button>
                 </div>
             </div>
         </div>
@@ -536,8 +543,9 @@
     </div>
 
     <ContactoForm 
+        v-if="showContactoForm && form.id"
         :show="showContactoForm"
-        :clienteId="form.id || undefined"
+        :clienteId="String(form.id)"
         :contacto="selectedContacto"
         @close="showContactoForm = false"
         @saved="handleContactoSaved"
@@ -994,12 +1002,17 @@ const handleDomicilioSaved = async (domicilioData) => {
         }
         
         // Update local state with response (ensure real ID is used)
+        if (!savedDom.activo) savedDom.activo = true; // Ensure default visibility
+        
         if (domicilioData.id) {
             const index = domicilios.value.findIndex(d => d.id === domicilioData.id);
             if (index !== -1) domicilios.value[index] = savedDom;
         } else {
             domicilios.value.push(savedDom);
         }
+        
+        // Force list refresh just in case
+        await store.fetchClientes(); 
     } catch (error) {
         console.error(error);
         notificationStore.add('Error al guardar domicilio', 'error');

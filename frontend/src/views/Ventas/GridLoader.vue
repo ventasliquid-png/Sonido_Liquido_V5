@@ -3,114 +3,154 @@
         
         <!-- === ZONA A: CABECERA (CONTEXTO) === -->
         <header 
-            class="flex flex-col px-4 py-3 border-b shrink-0 z-30 shadow-lg transition-colors"
-            :class="headerThemeClass"
+            class="grid grid-cols-[100px_1fr_120px_180px] grid-rows-2 gap-px bg-slate-800 border-b border-slate-700 shrink-0 select-none text-xs"
         >
-            <div class="flex items-start justify-between gap-4">
-                
-                <!-- A1. IDENTIDAD PEDIDO -->
-                <div class="flex flex-col gap-1 w-32 shrink-0">
-                    <div class="text-[10px] uppercase opacity-70 font-bold tracking-widest">DOCUMENTO #</div>
-                    <div class="text-xl font-bold leading-none tracking-tighter opacity-90">
-                        {{ form.numero_manual || sugeridoId || 'NUEVO' }}
-                    </div>
-                    <input 
-                        type="date" 
-                        class="bg-transparent text-xs opacity-80 focus:outline-none cursor-pointer mt-1 font-mono font-bold" 
-                        v-model="form.fecha"
-                    >
-                </div>
-
-                <!-- A2. CLIENTE (INPUT CONTEXTUAL) -->
-                <div class="flex-1 relative group">
-                    <label 
-                        class="block text-[10px] uppercase font-bold opacity-60 mb-1 tracking-wider cursor-pointer hover:opacity-100 transition-opacity flex justify-between" 
-                        @click="focusClient"
-                    >
-                        <span>Cliente (F2)</span>
-                        <span 
-                            v-if="clienteStatus" 
-                            :class="clienteStatus.color"
-                            :title="clienteStatus.title"
-                            class="cursor-help"
-                            @click.stop="clienteStatus.missing.length > 0 ? showMissingFieldsAlert(clienteStatus.missing) : null"
-                        >
-                            ● {{ clienteStatus.text }}
-                        </span>
-                    </label>
-                    
-                    <div class="relative">
-                        <input 
-                            ref="clientInput"
-                            type="text" 
-                            class="w-full text-lg bg-black/20 border-b-2 border-emerald-900/30 focus:border-emerald-500 rounded-t px-3 py-1 outline-none placeholder-emerald-800/50 transition-all font-mono text-emerald-100"
-                            :class="{'bg-[#0d2623] border-emerald-500 shadow-lg': focusedZone === 'CLIENT'}"
-                            placeholder="Buscar Cliente / Razón Social (F4 para Nuevo)..."
-                            v-model="clientQuery"
-                            @focus="focusedZone = 'CLIENT'"
-                            @keydown="handleClientKeydown"
-                            @contextmenu.prevent="handleInputContextMenu"
-                        >
-                        <!-- RESULTADOS CLIENTE -->
-                        <!-- RESULTADOS CLIENTE -->
-                        <div v-if="showClientResults" 
-                             class="absolute top-full left-0 w-full bg-[#0d2623] text-emerald-100 shadow-xl rounded-b z-50 max-h-64 overflow-y-auto border border-emerald-900">
-                             <div 
-                                v-for="(c, idx) in filteredClients" :key="c.id"
-                                class="px-4 py-2 border-b border-emerald-900/30 hover:bg-emerald-900/50 cursor-pointer flex justify-between items-center group relative select-none"
-                                :class="{'bg-emerald-900/50': idx === selectedClientIdx}"
-                                @mousedown.left="selectClient(c)"
-                                @contextmenu.prevent="openClientContextMenu($event, c)"
-                             >
-                                <div>
-                                    <span class="font-bold text-sm block" :class="!c.activo ? 'line-through text-slate-500' : 'text-emerald-100'">{{ c.razon_social }}</span>
-                                    <span class="text-xs opacity-50 font-mono flex items-center gap-2 text-emerald-400">
-                                        {{ c.cuit }}
-                                        <span v-if="!c.activo" class="bg-red-900 text-red-100 px-1 rounded text-[9px] uppercase font-bold">INACTIVO</span>
-                                    </span>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                     <div v-if="c.domicilios?.length > 1" class="text-[10px] bg-amber-900/50 text-amber-500 px-2 py-0.5 rounded-full border border-amber-900">
-                                        Multi-Sede
-                                    </div>
-                                    <i class="fas fa-ellipsis-v text-emerald-800 group-hover:text-emerald-500 px-2"></i>
-                                </div>
-                             </div>
-                             
-                             <!-- Empty State / Create New -->
-                             <div v-if="filteredClients.length === 0" class="p-4 text-center text-xs opacity-50 italic">
-                                 <p>No hay coincidencias.</p>
-                                 <p class="font-bold cursor-pointer text-blue-500 hover:underline mt-1" @mousedown="openInspectorNew">
-                                     (F4) Crear Nuevo Cliente
-                                 </p>
-                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- A3. ORDEN DE COMPRA & TIPO -->
-                <div class="flex flex-col gap-2 w-48 shrink-0 items-end">
-                    <div class="flex items-center gap-1 bg-black/5 rounded p-1">
-                        <button 
-                            v-for="type in ['PEDIDO', 'PRESUPUESTO']" 
-                            :key="type"
-                            class="px-3 py-1 rounded text-[10px] font-bold uppercase transition-all"
-                            :class="form.tipo === type ? activeTypeClass(type) : 'text-slate-400 hover:text-slate-600'"
-                            @click="form.tipo = type"
-                            tabindex="-1"
-                        >
-                            {{ type.slice(0,3) }}.
-                        </button>
-                    </div>
-                    <input 
-                        type="text" 
-                        class="w-full bg-transparent border-b border-black/10 text-right text-xs px-2 py-1 outline-none focus:border-black/30 placeholder-black/20 font-mono"
-                        placeholder="O.C. Cliente (Opcional)"
-                        v-model="form.oc"
-                    >
-                </div>
-
+            <!-- A1. NRO PEDIDO (Top Left) -->
+            <div class="bg-[#0f172a] text-slate-400 flex flex-col justify-center px-2 py-1">
+                <span class="text-[9px] uppercase font-bold tracking-widest opacity-50">PEDIDO #</span>
+                <span class="text-emerald-400 font-mono font-bold text-sm leading-none">{{ form.numero_manual || sugeridoId || 'NEW' }}</span>
             </div>
+
+            <!-- A2. CLIENTE SEARCH (F3) (Top Center - Expanded) -->
+            <div class="bg-[#1e293b] relative group flex flex-col justify-center px-1">
+                <div class="flex items-center justify-between pointer-events-none absolute inset-x-2 top-1 z-10">
+                     <span class="text-[9px] font-bold text-slate-500">CLIENTE (F3)</span>
+                     <span v-if="clienteStatus" :class="clienteStatus.color" class="text-[9px] font-bold uppercase tracking-wider flex items-center gap-1">
+                        <i class="fas fa-circle text-[6px]"></i> {{ clienteStatus.text }}
+                     </span>
+                </div>
+                
+                <input 
+                    ref="clientInput"
+                    type="text" 
+                    class="w-full h-full bg-transparent pt-3 pb-0 px-1 outline-none text-emerald-100 font-bold placeholder-slate-600 focus:bg-slate-700/50 transition-colors cursor-text pr-6"
+                    :class="{'bg-slate-700/50': focusedZone === 'CLIENT'}"
+                    placeholder="BUSCAR CLIENTE..."
+                    v-model="clientQuery"
+                    @input="handleClientInput"
+                    @focus="focusedZone = 'CLIENT'"
+                    @keydown="handleClientKeydown"
+                    @contextmenu.prevent="handleInputContextMenu"
+                >
+                
+                <!-- Clear Button -->
+                <button 
+                    v-if="clientQuery"
+                    @click="clearClient"
+                    class="absolute right-6 top-1/2 -translate-y-0 text-slate-500 hover:text-rose-500 z-20 px-2"
+                    tabindex="-1"
+                >
+                    <i class="fa-solid fa-times"></i>
+                </button>
+
+                <!-- History Trigger (Hover) -->
+                <div 
+                    v-if="selectedClient"
+                    class="absolute right-1 bottom-1 text-slate-500 hover:text-emerald-400 cursor-help"
+                    @mouseenter="showHistoryPreview"
+                    @mouseleave="hideHistoryPreview"
+                >
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+
+                <!-- RESULTADOS CLIENTE -->
+                <div v-if="showClientResults" 
+                        class="absolute top-full left-0 w-full bg-[#0d2623] text-emerald-100 shadow-xl rounded-b z-50 max-h-80 overflow-y-auto border border-emerald-900 border-t-0">
+                        <div 
+                        v-for="(c, idx) in filteredClients" :key="c.id"
+                        class="px-3 py-1.5 border-b border-emerald-900/30 hover:bg-emerald-900/50 cursor-pointer flex justify-between items-center group relative select-none text-xs"
+                        :class="{'bg-emerald-900/50': idx === selectedClientIdx}"
+                        @mousedown.left="selectClient(c)"
+                        @contextmenu.prevent="openClientContextMenu($event, c)"
+                        >
+                        <div>
+                            <span class="font-bold block" :class="!c.activo ? 'line-through text-slate-500' : 'text-emerald-100'">{{ c.razon_social }}</span>
+                            <span class="text-[10px] opacity-50 font-mono flex items-center gap-2 text-emerald-400">
+                                {{ c.cuit }}
+                                <span v-if="!c.activo" class="bg-red-900 text-red-100 px-1 rounded text-[8px] uppercase font-bold">INACTIVO</span>
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                                <div v-if="c.domicilios?.length > 1" class="text-[9px] bg-amber-900/50 text-amber-500 px-1.5 rounded-full border border-amber-900">
+                                Multi-Sede
+                            </div>
+                        </div>
+                        </div>
+                        
+                        <!-- Empty State / Create New -->
+                        <div v-if="filteredClients.length === 0" class="p-2 text-center text-xs opacity-50 italic">
+                            <p>No hay coincidencias.</p>
+                            <p class="font-bold cursor-pointer text-blue-500 hover:underline mt-1" @mousedown="openInspectorNew">
+                                (F4) Crear Nuevo Cliente
+                            </p>
+                        </div>
+                </div>
+            </div>
+
+            <!-- A3. FECHA (Top Right) -->
+            <div class="bg-[#0f172a] flex flex-col justify-center px-2 py-1">
+                <span class="text-[9px] uppercase font-bold tracking-widest text-slate-500">FECHA</span>
+                <input 
+                    type="date" 
+                    class="bg-transparent text-xs text-emerald-100 focus:outline-none cursor-pointer font-mono font-bold w-full" 
+                    v-model="form.fecha"
+                >
+            </div>
+
+            <!-- A4. TOTAL (Top Right - Big) -->
+            <div class="bg-[#020617] text-right flex flex-col justify-center px-3 row-span-2 border-l border-slate-700">
+                <span class="text-[9px] uppercase font-bold tracking-widest text-emerald-600 mb-1">TOTAL ESTIMADO</span>
+                <span class="text-2xl font-mono font-bold text-emerald-400 tracking-tight leading-none">
+                    {{ formatCurrency(totals.final) }}
+                </span>
+                <span class="text-[10px] text-slate-600 mt-1 font-mono">
+                    {{ items.length }} ITEM(S) | {{ formatCurrency(totals.iva) }} IVA
+                </span>
+            </div>
+
+            <!-- B1. CUIT (Bottom Left) -->
+            <div class="bg-[#0f172a] flex items-center px-2 border-t border-slate-800">
+                <span class="text-[9px] font-bold text-slate-500 w-8">CUIT:</span>
+                <span class="font-mono text-emerald-100/80 ml-1 select-all h-full flex items-center">
+                    {{ selectedClient?.cuit || '-' }}
+                </span>
+            </div>
+
+            <!-- B2. LOGISTICA + COND IVA (Bottom Center) -->
+            <div class="bg-[#1e293b] flex items-center px-2 gap-4 border-t border-slate-700">
+                <!-- Logistica Dropdown Simulation -->
+                <div class="flex items-center gap-1 flex-1 cursor-pointer hover:text-emerald-400 transition-colors" title="Cambiar Logística / Domicilio">
+                    <i class="fa-solid fa-truck text-[10px] text-slate-500"></i>
+                    <span class="font-bold truncate text-slate-300">
+                        {{ selectedClient?.transporte_nombre || 'Retiro en Local' }}
+                    </span>
+                    <span class="text-[9px] text-slate-500 truncate ml-1">
+                        ({{ selectedClient?.domicilio_entrega || 'Sin dirección de entrega' }})
+                    </span>
+                    <i class="fa-solid fa-caret-down text-[10px] text-slate-600 ml-auto"></i>
+                </div>
+
+                <div class="w-px h-3/4 bg-slate-700"></div>
+
+                 <!-- Cond IVA -->
+                <div class="flex items-center gap-1 shrink-0">
+                    <span class="text-[9px] font-bold text-slate-500">IVA:</span>
+                    <span class="font-bold text-slate-300 truncate max-w-[100px]" :title="selectedClient?.condicion_iva_nombre">
+                         {{ selectedClient?.condicion_iva_nombre || '-' }}
+                    </span>
+                </div>
+            </div>
+
+             <!-- B3. NOTA/OC (Bottom Right) -->
+            <div class="bg-[#0f172a] border-t border-slate-800">
+                 <input 
+                    type="text" 
+                    v-model="form.oc"
+                    placeholder="O.C. / NOTA INTERNA..."
+                    class="w-full h-full bg-transparent px-2 text-[10px] text-emerald-100 placeholder-slate-600 outline-none focus:bg-slate-800 transition-colors"
+                >
+            </div>
+
         </header>
 
         <!-- === ZONA B: CUERPO (GRILLA) === -->
@@ -304,6 +344,13 @@
                     </span>
                 </button>
             </div>
+            <!-- TOGGLE EXCEL -->
+            <div class="absolute bottom-16 right-6 flex items-center gap-2 bg-[#061816]/90 backdrop-blur px-3 py-1 rounded-full border border-emerald-900/50 shadow text-[10px] text-emerald-400 select-none cursor-pointer" @click="downloadExcel = !downloadExcel">
+                 <div class="w-2.5 h-2.5 rounded-sm border border-emerald-600 flex items-center justify-center transition-colors" :class="{'bg-emerald-600': downloadExcel}">
+                     <i v-if="downloadExcel" class="fa-solid fa-check text-white text-[8px]"></i>
+                 </div>
+                 <span class="font-bold">Generar Comprobante (Excel)</span>
+            </div>
         </footer>
 
         <!-- === OVERLAYS === -->
@@ -332,31 +379,46 @@
         <Teleport to="body">
             <!-- click.self removed to prevent accidental close -->
             <div v-if="showInspector" class="fixed inset-0 z-[60] flex justify-end bg-black/50 backdrop-blur-sm">
-                <div class="w-full max-w-2xl h-full shadow-2xl overflow-y-auto transform transition-transform duration-300">
+                <div class="w-full max-w-lg h-full shadow-2xl overflow-y-auto transform transition-transform duration-300">
                     <ClienteInspector 
                         :modelValue="clienteForInspector"
                         :isNew="isInspectorNew"
+                        mode="compact"
                         @close="closeInspector"
                         @save="handleInspectorSave"
                         @delete="handleInspectorDelete"
                         @switch-client="switchToClient"
+                        @manage-segmentos="openSegmentoAbm"
                     />
                 </div>
             </div>
         </Teleport>
 
+        <!-- Segmento ABM for Tactical Mode -->
+        <Teleport to="body">
+            <SimpleAbmModal
+                v-if="showSegmentoAbm"
+                title="Administrar Segmentos"
+                :items="segmentosList"
+                @close="showSegmentoAbm = false"
+                @create="handleCreateSegmento"
+                @delete="handleDeleteSegmento"
+            />
+        </Teleport>
     </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useClientesStore } from '@/stores/clientes';
 import { useProductosStore } from '@/stores/productos';
 import { usePedidosStore } from '@/stores/pedidos';
+import { useMaestrosStore } from '@/stores/maestros';
 import apiClient from '@/services/api';
 import ContextMenu from '@/components/common/ContextMenu.vue';
 import ClientHistoryPopover from '@/components/common/ClientHistoryPopover.vue';
 import ClienteInspector from '../Hawe/components/ClienteInspector.vue';
+import SimpleAbmModal from '@/components/common/SimpleAbmModal.vue';
 
 // STORES
 const clientesStore = useClientesStore();
@@ -386,6 +448,7 @@ const historyPopover = ref({
 
 const isSubmitting = ref(false);
 const draftId = ref(null);
+const downloadExcel = ref(false); // Default false per user feedback, or persist? Let's default false.
 
 // INSPECTOR & CONTEXT MENU
 const showInspector = ref(false);
@@ -398,6 +461,27 @@ const contextMenu = ref({
     y: 0,
     actions: []
 });
+
+// SEGMENTOS ABM (Tactical)
+const showSegmentoAbm = ref(false);
+const userMaestros = useMaestrosStore();
+const segmentosList = computed(() => userMaestros.segmentos);
+
+const openSegmentoAbm = () => {
+    showSegmentoAbm.value = true;
+};
+
+const handleCreateSegmento = async (name) => {
+    try {
+        await userMaestros.createSegmento({ nombre: name });
+    } catch(e) { alert(e.message) }
+};
+
+const handleDeleteSegmento = async (id) => {
+    try {
+        await userMaestros.deleteSegmento(id);
+    } catch(e) { alert("No se puede eliminar: " + e.message) }
+};
 
 // DATA STATE
 const form = ref({
@@ -448,6 +532,7 @@ const filteredClients = computed(() => {
     
     return clientesStore.clientes
         .filter(c => {
+            if (!c.activo) return false;
             const name = normalizeText(c.razon_social);
             const cuit = c.cuit || "";
             return name.includes(q) || cuit.includes(q);
@@ -551,11 +636,65 @@ const fetchNextId = async () => {
     }
 }
 
-onMounted(() => {
+const autosaveDraft = () => {
+    const draft = {
+        items: items.value,
+        form: form.value,
+        selectedClient: selectedClient.value,
+        timestamp: Date.now()
+    };
+    localStorage.setItem('tactical_draft', JSON.stringify(draft));
+};
+
+// Clear draft on successful submit
+const clearDraft = () => {
+    localStorage.removeItem('tactical_draft');
+    items.value = [];
+    form.value.nota = '';
+    form.value.cliente_id = null;
+    selectedClient.value = null;
+    createEmptyRow(); // Reset UI
+};
+
+onMounted(async () => {
     focusedZone.value = 'CLIENT';
+    
+    // Restore Draft
+    const saved = localStorage.getItem('tactical_draft');
+    if (saved) {
+        try {
+            const draft = JSON.parse(saved);
+            // Valid for 24 hours
+            if (Date.now() - draft.timestamp < 24 * 60 * 60 * 1000) {
+                if (draft.items?.length > 0 || draft.selectedClient) {
+                    items.value = draft.items || [];
+                    form.value = { ...form.value, ...draft.form }; // Merge safely
+                    selectedClient.value = draft.selectedClient;
+                    clientQuery.value = draft.selectedClient?.razon_social || '';
+                }
+            }
+        } catch (e) {
+            console.error("Error restoring draft", e);
+        }
+    }
+
     setTimeout(() => clientInput.value?.focus(), 100);
-    fetchNextId();
+    
+    // Parallel data loading
+    Promise.all([
+        clientesStore.fetchClientes(),
+        productosStore.fetchProductos(),
+        useMaestrosStore().fetchAll(), 
+        fetchNextId()
+    ]);
 });
+
+// Watch for changes to autosave
+watch([items, () => form.value, selectedClient], () => {
+    if (items.value.length > 0 || selectedClient.value) {
+        autosaveDraft();
+    }
+}, { deep: true });
 
 onUnmounted(() => {
     // cleanup
@@ -594,13 +733,35 @@ const handleClientKeydown = (e) => {
     } else if (e.key === 'Escape') {
         showClientResults.value = false;
         clientInput.value?.blur();
-    } else if (e.key === 'F4') {
-        e.preventDefault();
-        openInspectorNew();
     } else {
+        // Default behavior: typing
         showClientResults.value = true;
-        selectedClientIdx.value = 0; 
+        // Reset index if typing new query
+        // selectedClientIdx.value = 0; // handled by watcher/computed usually
     }
+};
+
+const handleGlobalKeydown = (e) => {
+    if (e.key === 'F10') {
+        e.preventDefault();
+        handleSubmit();
+    }
+};
+
+const handleClientInput = () => {
+    // If user clears input, reset selection
+    if (clientQuery.value === '') {
+        selectedClient.value = null;
+    }
+    // Open results if typing
+    showClientResults.value = true;
+};
+
+const clearClient = () => {
+    clientQuery.value = '';
+    selectedClient.value = null;
+    showClientResults.value = false;
+    clientInput.value?.focus();
 };
 
 const selectClient = (client) => {
@@ -805,15 +966,12 @@ const handleSubmit = async () => {
             }))
         };
         
-        await pedidosStore.createPedidoTactico(payload);
+        await pedidosStore.createPedidoTactico(payload, downloadExcel.value);
         
         if(confirm('Pedido generado con éxito. ¿Limpiar?')) {
-            items.value = [];
-            form.value.nota = '';
-            form.value.oc = '';
-            // Reset client? Depends on user workflow. Usually yes.
-            selectedClient.value = null;
-            clientQuery.value = '';
+            clearDraft();
+            // Reset client if needed, clearDraft does it mostly but selectedClient check logic might vary
+            // clearDraft resets selectedClient too.
             focusClient();
         }
     } catch (e) {
@@ -825,17 +983,35 @@ const handleSubmit = async () => {
 
 
 // Lifecycle
+const showHistoryPreview = async (e) => {
+    if (!selectedClient.value) return;
+    historyPopover.value.x = e.clientX;
+    historyPopover.value.y = e.clientY + 20; // Offset
+    historyPopover.value.orders = await pedidosStore.getHistorialCliente(selectedClient.value.id);
+    historyPopover.value.show = true;
+};
+
+const hideHistoryPreview = () => {
+    historyPopover.value.show = false;
+};
+
+// Lifecycle
 const handleGlobalKeys = (e) => {
-    if (e.key === 'F2') {
+    // F3: BÚSQUEDA GLOBAL (CLIENTES) - DOCTRINA DEOU
+    if (e.key === 'F3') {
         e.preventDefault();
         focusClient();
-    } else if (e.key === 'F3') {
+    } 
+    // F2: BÚSQUEDA PRODUCTO (SECUNDARIO)
+    else if (e.key === 'F2') {
         e.preventDefault();
         focusProductSearch();
-    } else if (e.key === 'F10') {
+    } 
+    else if (e.key === 'F10') {
         e.preventDefault();
-        if (!showInspector.value) handleSubmit(); // Don't submit grid if inspector open
-    } else if (e.key === 'F4') {
+        if (!showInspector.value) handleSubmit(); 
+    } 
+    else if (e.key === 'F4') {
         if (focusedZone.value === 'CLIENT') {
             e.preventDefault();
             openInspectorNew();
