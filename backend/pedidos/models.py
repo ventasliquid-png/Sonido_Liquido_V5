@@ -13,6 +13,7 @@ class Pedido(Base):
     total = Column(Float, default=0.0)
     nota = Column(Text, nullable=True)
     estado = Column(String, default="PENDIENTE") # PENDIENTE, CUMPLIDO, ANULADO, INTERNO
+    oc = Column(String, nullable=True) # Orden de Compra
     
     # Metadata
     created_at = Column(DateTime, default=datetime.now)

@@ -117,38 +117,76 @@
             </div>
 
             <!-- B2. LOGISTICA + COND IVA (Bottom Center) -->
-            <div class="bg-[#1e293b] flex items-center px-2 gap-4 border-t border-slate-700">
-                <!-- Logistica Dropdown Simulation -->
-                <div class="flex items-center gap-1 flex-1 cursor-pointer hover:text-emerald-400 transition-colors" title="Cambiar Logística / Domicilio">
-                    <i class="fa-solid fa-truck text-[10px] text-slate-500"></i>
-                    <span class="font-bold truncate text-slate-300">
-                        {{ selectedClient?.transporte_nombre || 'Retiro en Local' }}
-                    </span>
-                    <span class="text-[9px] text-slate-500 truncate ml-1">
-                        ({{ selectedClient?.domicilio_entrega || 'Sin dirección de entrega' }})
-                    </span>
-                    <i class="fa-solid fa-caret-down text-[10px] text-slate-600 ml-auto"></i>
+            <!-- B2. LOGISTICA + NOTAS (Bottom Center - Span 2) -->
+            <!-- B2. LOGISTICA + NOTAS (Bottom Center - Span 2) -->
+            <div class="bg-[#1e293b] flex items-center col-span-2 border-t border-slate-700 divide-x divide-slate-700 relative z-30">
+                
+                <!-- 1. Logistica (Width: Auto / Approx 40%) -->
+                <div 
+                    class="flex items-center gap-1 px-3 cursor-pointer hover:text-emerald-400 transition-colors h-full min-w-[30%] max-w-[40%]" 
+                    title="Cambiar Logística / Domicilio"
+                    @click="showLogisticaModal = true"
+                >
+                    <i class="fa-solid fa-truck text-[10px] text-slate-500 shrink-0"></i>
+                    <div class="flex flex-col leading-none ml-1 overflow-hidden">
+                        <span class="font-bold truncate text-slate-300 text-[10px]">
+                            {{ logisticsLabel }}
+                        </span>
+                        <span class="text-[9px] text-slate-500 truncate">
+                            {{ selectedClient?.domicilio_entrega || 'Sin dirección de entrega' }}
+                        </span>
+                    </div>
+                    <i class="fa-solid fa-caret-down text-[10px] text-slate-600 ml-auto pl-2"></i>
                 </div>
 
-                <div class="w-px h-3/4 bg-slate-700"></div>
+                <!-- 2. OC (Width: Fixed 80px) -->
+                <div class="w-20 h-full bg-slate-200 relative border-r border-slate-300">
+                    <input 
+                        type="text" 
+                        v-model="form.oc"
+                        placeholder="O.C."
+                        autocomplete="off"
+                        class="w-full h-full px-2 text-[10px] text-slate-900 placeholder-slate-500 font-bold outline-none transition-colors text-center border-none bg-transparent"
+                        title="Orden de Compra"
+                    >
+                </div>
 
-                 <!-- Cond IVA -->
-                <div class="flex items-center gap-1 shrink-0">
+                <!-- 3. Nota (Width: Flex) -->
+                <div class="flex-1 h-full bg-slate-200 relative">
+                    <input 
+                        type="text" 
+                        v-model="form.nota"
+                        placeholder="Observaciones del Pedido..."
+                        autocomplete="off"
+                        class="w-full h-full px-3 text-[10px] text-slate-900 placeholder-slate-500 font-bold outline-none transition-colors border-none bg-transparent"
+                        style="color: #0f172a !important;"
+                    >
+                </div>
+
+                 <!-- 4. Cond IVA (Fixed - End) -->
+                <div class="flex items-center gap-1 shrink-0 px-2 bg-[#1e293b]">
                     <span class="text-[9px] font-bold text-slate-500">IVA:</span>
-                    <span class="font-bold text-slate-300 truncate max-w-[100px]" :title="selectedClient?.condicion_iva_nombre">
+                    <span class="font-bold text-slate-300 truncate max-w-[80px]" :title="selectedClient?.condicion_iva_nombre">
                          {{ selectedClient?.condicion_iva_nombre || '-' }}
                     </span>
                 </div>
             </div>
 
              <!-- B3. NOTA/OC (Bottom Right) -->
-            <div class="bg-[#0f172a] border-t border-slate-800">
-                 <input 
-                    type="text" 
-                    v-model="form.oc"
-                    placeholder="O.C. / NOTA INTERNA..."
-                    class="w-full h-full bg-transparent px-2 text-[10px] text-emerald-100 placeholder-slate-600 outline-none focus:bg-slate-800 transition-colors"
+
+            
+            <!-- SEMÁFORO (ESTADO) -->
+            <div class="h-8 flex items-center bg-[#0d1f1c] rounded-md mx-2 px-1 border border-emerald-900/40">
+                <button 
+                    v-for="opt in statusOptions" :key="opt.value"
+                    class="px-3 h-6 text-[10px] font-bold uppercase rounded transition-all mr-1 last:mr-0 flex items-center gap-1"
+                    :class="form.estado === opt.value ? opt.activeClass : 'text-slate-500 hover:text-slate-300'"
+                    @click="form.estado = opt.value"
+                    :title="opt.label"
                 >
+                    <div class="w-2 h-2 rounded-full" :class="form.estado === opt.value ? 'bg-current' : opt.dotClass"></div>
+                    {{ opt.label }}
+                </button>
             </div>
 
         </header>
@@ -305,7 +343,7 @@
                 <!-- COMENTARIOS -->
                 <div class="flex-1 max-w-xl">
                     <textarea 
-                        class="w-full h-12 bg-white border border-slate-200 rounded-lg p-2 text-xs outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 resize-none placeholder-slate-400 transition-all shadow-inner"
+                        class="w-full h-12 bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-900 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 resize-none placeholder-slate-400 transition-all shadow-inner"
                         placeholder="Notas internas, instrucciones de entrega o comentarios del pedido..."
                         v-model="form.nota"
                     ></textarea>
@@ -331,25 +369,39 @@
                     </div>
                 </div>
 
-                <!-- BOTON PROCESAR -->
-                <button 
-                    class="h-12 px-6 rounded-lg shadow-lg font-bold tracking-wider flex items-center gap-2 transition-all transform hover:scale-105 active:scale-95 text-white ml-auto"
-                    :class="form.tipo === 'PEDIDO' ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-200' : 'bg-purple-600 hover:bg-purple-500 shadow-purple-200'"
-                    @click="handleSubmit"
-                >
-                    <span v-if="isSubmitting" class="animate-spin"><i class="fa-solid fa-circle-notch"></i></span>
-                    <span v-else class="flex items-center gap-2">
-                        <span>GUARDAR</span>
-                        <span class="bg-white/20 px-1.5 py-0.5 rounded text-[10px] font-mono opacity-80">F10</span>
-                    </span>
-                </button>
-            </div>
-            <!-- TOGGLE EXCEL -->
-            <div class="absolute bottom-16 right-6 flex items-center gap-2 bg-[#061816]/90 backdrop-blur px-3 py-1 rounded-full border border-emerald-900/50 shadow text-[10px] text-emerald-400 select-none cursor-pointer" @click="downloadExcel = !downloadExcel">
-                 <div class="w-2.5 h-2.5 rounded-sm border border-emerald-600 flex items-center justify-center transition-colors" :class="{'bg-emerald-600': downloadExcel}">
-                     <i v-if="downloadExcel" class="fa-solid fa-check text-white text-[8px]"></i>
-                 </div>
-                 <span class="font-bold">Generar Comprobante (Excel)</span>
+                <!-- ACTIONS -->
+                <div class="flex items-center gap-3 ml-auto">
+                    <!-- TOGGLE EXCEL (Now Inline) -->
+                    <div class="flex items-center gap-2 bg-[#061816]/50 px-3 py-2 rounded-lg border border-emerald-900/30 text-[10px] text-emerald-400 select-none cursor-pointer hover:bg-[#061816]/80 transition-colors" @click="downloadExcel = !downloadExcel">
+                        <div class="w-3 h-3 rounded-sm border border-emerald-600 flex items-center justify-center transition-colors" :class="{'bg-emerald-600': downloadExcel}">
+                            <i v-if="downloadExcel" class="fa-solid fa-check text-white text-[8px]"></i>
+                        </div>
+                        <span class="font-bold">Generar Excel</span>
+                    </div>
+
+                    <!-- BOTON LIMPIAR (Reset) -->
+                    <button 
+                        v-if="items.length > 0 || selectedClient"
+                        class="h-12 px-4 rounded-lg bg-slate-800 text-slate-400 hover:text-rose-400 hover:bg-slate-700 transition-colors font-bold text-xs uppercase tracking-wider flex items-center gap-2 border border-slate-700"
+                        @click="handleClearManual"
+                        title="Limpiar pantalla y borrar borrador"
+                    >
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+
+                    <!-- BOTON PROCESAR -->
+                    <button 
+                        class="h-12 px-6 rounded-lg font-bold tracking-wider flex items-center gap-2 transition-all transform hover:scale-105 active:scale-95 text-white shadow-lg"
+                        :class="form.tipo === 'PEDIDO' ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/50' : 'bg-purple-600 hover:bg-purple-500 shadow-purple-900/50'"
+                        @click="handleSubmit"
+                    >
+                        <span v-if="isSubmitting" class="animate-spin"><i class="fa-solid fa-circle-notch"></i></span>
+                        <span v-else class="flex items-center gap-2">
+                            <span>GUARDAR</span>
+                            <span class="bg-white/20 px-1.5 py-0.5 rounded text-[10px] font-mono opacity-80">F10</span>
+                        </span>
+                    </button>
+                </div>
             </div>
         </footer>
 
@@ -404,6 +456,40 @@
                 @create="handleCreateSegmento"
                 @delete="handleDeleteSegmento"
             />
+        </Teleport>
+        <!-- Logistica Selector Modal -->
+        <Teleport to="body">
+            <div v-if="showLogisticaModal" class="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm" @click.self="showLogisticaModal = false">
+                <div class="bg-[#0f172a] w-96 rounded-lg border border-slate-700 shadow-2xl p-4">
+                    <h3 class="text-emerald-400 font-bold mb-4">Seleccionar Domicilio / Transporte</h3>
+                    
+                    <div v-if="selectedClient && selectedClient.domicilios && selectedClient.domicilios.length > 0" class="space-y-2 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                        <div 
+                            v-for="dom in selectedClient.domicilios" 
+                            :key="dom.id"
+                            class="p-2 border border-slate-700 rounded hover:bg-slate-800 cursor-pointer transition-colors"
+                            @click="handleUpdateLogistica({ 
+                                transporte_id: dom.transporte_id, 
+                                transporte_nombre: dom.transporte?.nombre || 'Retiro Local', 
+                                domicilio_entrega: dom.calle + ' ' + dom.numero + ' (' + dom.localidad + ')'
+                            })"
+                        >
+                            <div class="font-bold text-slate-200">{{ dom.calle }} {{ dom.numero }}</div>
+                            <div class="text-xs text-slate-500">{{ dom.localidad }} - {{ dom.provincia?.nombre }}</div>
+                            <div class="text-[10px] text-emerald-600 mt-1">
+                                <i class="fa-solid fa-truck"></i> {{ dom.transporte?.nombre || 'Retiro en Local' }}
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else class="text-slate-500 text-sm italic text-center py-4">
+                        El cliente no tiene domicilios registrados.
+                    </div>
+
+                    <button @click="showLogisticaModal = false" class="mt-4 w-full bg-slate-800 text-slate-400 hover:text-white py-2 rounded">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
         </Teleport>
     </div>
 </template>
@@ -485,14 +571,22 @@ const handleDeleteSegmento = async (id) => {
 
 // DATA STATE
 const form = ref({
-    cliente_id: null,
     fecha: new Date().toISOString().split('T')[0],
+    oc: '',
     nota: '',
-    tipo: 'PEDIDO', // PEDIDO | COTIZACION
-    numero_manual: '' // Visual suggestion from backend
+    estado: 'PENDIENTE', // PENDIENTE (Pedido) | PRESUPUESTO
+    numero_manual: '' 
 });
 
+const statusOptions = [
+    { value: 'PRESUPUESTO', label: 'PRESUPUESTO', activeClass: 'bg-indigo-900/50 text-indigo-300 border border-indigo-500/50 shadow-sm', dotClass: 'bg-indigo-800' },
+    { value: 'PENDIENTE', label: 'PEDIDO FIRME', activeClass: 'bg-emerald-900/50 text-emerald-300 border border-emerald-500/50 shadow-sm', dotClass: 'bg-emerald-800' }
+];
+
 const sugeridoId = ref(0); // To store valid next ID
+
+const showLogisticaModal = ref(false); // [GY-MOD] Logistica Selection
+
 
 const selectedClient = ref(null);
 const items = ref([]);
@@ -501,18 +595,18 @@ const items = ref([]);
 // --- COMPUTED STYLES ---
 
 const headerThemeClass = computed(() => {
-    if (form.value.tipo === 'COTIZACION') return 'bg-[#1a0b1e] border-purple-900 text-purple-400'; // Lilac/Purple Theme
-    if (form.value.tipo === 'PEDIDO') return 'bg-[#061816] border-emerald-900 text-emerald-400';
+    if (form.value.estado === 'PRESUPUESTO') return 'bg-[#1a0b1e] border-purple-900 text-purple-400'; // Lilac/Purple Theme
+    if (form.value.estado === 'PENDIENTE') return 'bg-[#061816] border-emerald-900 text-emerald-400';
     return 'bg-[#0f0a1e] border-purple-900 text-purple-400'; // Default?
 });
 
 const mainThemeClass = computed(() => {
-    if (form.value.tipo === 'COTIZACION') return 'bg-[#2d1b36]'; // Lilac bg
+    if (form.value.estado === 'PRESUPUESTO') return 'bg-[#2d1b36]'; // Lilac bg
     return 'bg-[#0b211f]'; // Green bg
 });
 
 const activeTypeClass = (type) => {
-    if (type === 'PEDIDO') return 'bg-emerald-500 text-white shadow-sm';
+    if (type === 'PENDIENTE') return 'bg-emerald-500 text-white shadow-sm';
     return 'bg-purple-500 text-white shadow-sm';
 };
 
@@ -615,12 +709,56 @@ const productPlaceholder = computed(() => {
 // Totals
 const totals = computed(() => {
     const neto = items.value.reduce((sum, item) => sum + (item.cantidad * item.precio_unitario), 0);
-    const iva = form.value.tipo === 'PEDIDO' ? neto * 0.21 : 0;
+    // IVA Logic: Only for 'PENDIENTE' (Pedido Firme) - mimics old behavior where COTIZACION had no IVA in UI
+    const iva = form.value.estado === 'PENDIENTE' ? neto * 0.21 : 0;
     return { neto, iva, final: neto + iva };
 });
 
+const logisticsLabel = computed(() => {
+    if (!selectedClient.value) return 'Retiro en Local';
+    const hasAddress = !!selectedClient.value.domicilio_entrega;
+    const transportName = selectedClient.value.transporte_nombre;
+    
+    // Explicit transport set
+    if (transportName && transportName !== 'Retiro Local') return transportName;
+    
+    // Fallback: If has address -> "Envío a Domicilio", else "Retira Local"
+    return hasAddress ? 'Envío a Domicilio' : 'Retira en Local';
+});
+
+const handleUpdateLogistica = (data) => {
+    // data: { transporte_id, transporte_nombre, domicilio_entrega }
+    if(selectedClient.value) {
+        selectedClient.value.transporte_id = data.transporte_id;
+        selectedClient.value.transporte_nombre = data.transporte_nombre;
+        selectedClient.value.domicilio_entrega = data.domicilio_entrega;
+    }
+    showLogisticaModal.value = false;
+};
+
+
 
 // --- METHODS ---
+
+const handleClearManual = () => {
+    if(confirm('¿Borrar todo y limpiar pantalla localmente?')) {
+        // Force reset
+        items.value = [];
+        selectedClient.value = null;
+        form.value.nota = '';
+        form.value.oc = '';
+        form.value.estado = 'PENDIENTE';
+        clientQuery.value = '';
+        localStorage.removeItem('tactical_draft');
+        
+        // Ensure UI updates
+        createEmptyRow(); 
+        fetchNextId();
+        
+        // Small delay to ensure focus works
+        setTimeout(() => focusClient(), 100);
+    }
+};
 
 const formatCurrency = (val) => {
     return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(val);
@@ -651,8 +789,11 @@ const clearDraft = () => {
     localStorage.removeItem('tactical_draft');
     items.value = [];
     form.value.nota = '';
+    form.value.oc = '';
+    form.value.estado = 'PENDIENTE';
     form.value.cliente_id = null;
     selectedClient.value = null;
+    clientQuery.value = '';
     createEmptyRow(); // Reset UI
 };
 
@@ -764,17 +905,31 @@ const clearClient = () => {
     clientInput.value?.focus();
 };
 
-const selectClient = (client) => {
+const selectClient = async (client) => {
     selectedClient.value = client;
     clientQuery.value = client.razon_social;
     showClientResults.value = false;
+    
+    // [GY-FIX] Fetch full details (Domicilios/Transportes)
+    try {
+        const fullClient = await clientesStore.fetchClienteById(client.id);
+        if (fullClient) selectedClient.value = fullClient;
+    } catch (e) {
+        console.error("Error fetching client details", e);
+    }
+
     focusProductSearch();
 };
 
 // --- INSPECTOR LOGIC ---
 
 const openInspectorNew = () => {
-    clienteForInspector.value = null;
+    // [GY-UX] Pass current search query as initial data
+    clienteForInspector.value = { 
+        razon_social: clientQuery.value || '',
+        cuit: '',
+        activo: true // Defaults
+    };
     isInspectorNew.value = true;
     showInspector.value = true;
     showClientResults.value = false;
@@ -959,20 +1114,21 @@ const handleSubmit = async () => {
             fecha: form.value.fecha,
             nota: form.value.nota,
             oc: form.value.oc,
-            items: items.value.map(i => ({
+            estado: form.value.estado,
+             items: items.value.map(i => ({
                 producto_id: i.id,
                 cantidad: i.cantidad,
                 precio_unitario: i.precio_unitario
             }))
         };
         
-        await pedidosStore.createPedidoTactico(payload, downloadExcel.value);
+        const result = await pedidosStore.createPedidoTactico(payload);
         
-        if(confirm('Pedido generado con éxito. ¿Limpiar?')) {
+        if(confirm(`Pedido #${result.id} generado con éxito.\n¿Limpiar pantalla?`)) {
             clearDraft();
-            // Reset client if needed, clearDraft does it mostly but selectedClient check logic might vary
             // clearDraft resets selectedClient too.
             focusClient();
+            fetchNextId(); // Refresh ID suggestion
         }
     } catch (e) {
         alert('Error al guardar: ' + e.message);
@@ -1027,6 +1183,7 @@ onMounted(async () => {
     if (productosStore.productos.length === 0) await productosStore.fetchProductos();
     
     focusClient();
+    fetchNextId(); // Initialize ID
 });
 
 onUnmounted(() => {
@@ -1039,5 +1196,20 @@ onUnmounted(() => {
 .custom-scrollbar::-webkit-scrollbar { width: 8px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.5); border-radius: 4px; border: 2px solid transparent; background-clip: content-box; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.5); border-radius: 4px; border: 2px solid transparent; background-clip: content-box; }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(148, 163, 184, 0.8); }
+
+.force-dark-input {
+    background-color: #0f172a !important; /* Force dark background */
+    color: #d1fae5 !important; /* Force emerald-100 text */
+    -webkit-text-fill-color: #d1fae5 !important; /* Safari/Chrome override */
+}
+.force-dark-input:-webkit-autofill,
+.force-dark-input:-webkit-autofill:hover, 
+.force-dark-input:-webkit-autofill:focus, 
+.force-dark-input:-webkit-autofill:active{
+    -webkit-box-shadow: 0 0 0 30px #0f172a inset !important;
+    -webkit-text-fill-color: #d1fae5 !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
 </style>

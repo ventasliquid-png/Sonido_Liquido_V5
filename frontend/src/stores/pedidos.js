@@ -22,36 +22,15 @@ export const usePedidosStore = defineStore('pedidos', {
             }
         },
 
-        async createPedidoTactico(pedidoData, download = true) {
+        // [GY-MOD] Removed download logic. Now returns JSON.
+        async createPedidoTactico(pedidoData) {
             this.isLoading = true;
             try {
-                // The backend returns a BLOB (Excel file)
-                const response = await apiClient.post('/pedidos/tactico', pedidoData, {
-                    responseType: 'blob'
-                });
+                // Return JSON { id, message, ... }
+                const response = await apiClient.post('/pedidos/tactico', pedidoData);
 
-                if (download) {
-                    // Trigger Download
-                    const url = window.URL.createObjectURL(new Blob([response.data]));
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.setAttribute('download', 'Pedido_Nuevo.xlsx'); // Fallback name
-
-                    // Try to get filename from header
-                    const contentDisposition = response.headers['content-disposition'];
-                    if (contentDisposition) {
-                        const fileNameMatch = contentDisposition.match(/filename="(.+)"/);
-                        if (fileNameMatch && fileNameMatch.length === 2) {
-                            link.setAttribute('download', fileNameMatch[1]);
-                        }
-                    }
-
-                    document.body.appendChild(link);
-                    link.click();
-                    link.remove();
-                }
-
-                return true;
+                // Return the data so component can show Success Toast
+                return response.data;
 
             } catch (error) {
                 console.error("Error creating tactico order:", error);

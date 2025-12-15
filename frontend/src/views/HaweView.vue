@@ -372,7 +372,7 @@ const selectCliente = async (cliente) => {
 const openNewCliente = () => {
     selectedId.value = 'new'
     selectedCliente.value = {
-        razon_social: '',
+        razon_social: searchQuery.value || '', // [GY-UX] Auto-fill search term
         cuit: '',
         activo: true,
         condicion_iva_id: null,

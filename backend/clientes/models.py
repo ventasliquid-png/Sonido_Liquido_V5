@@ -66,8 +66,10 @@ class Cliente(Base):
     condicion_iva = relationship(CondicionIva)
     lista_precios = relationship(ListaPrecios)
     segmento = relationship(Segmento)
-    vendedor = relationship("backend.auth.models.Usuario")
-    pedidos = relationship("backend.pedidos.models.Pedido", back_populates="cliente")
+    # [FIX] Importación diferida o string directo si el modelo está en Base
+    vendedor = relationship("Usuario")
+    # [FIX] Usar nombre corto 'Pedido' ya que está registrado en Base
+    pedidos = relationship("Pedido", back_populates="cliente")
 
     def __repr__(self):
         return f"<Cliente(razon_social='{self.razon_social}', cuit='{self.cuit}')>"
@@ -140,9 +142,9 @@ class Domicilio(Base):
     # Relaciones
     cliente = relationship("Cliente", back_populates="domicilios")
     provincia = relationship(Provincia)
-    transporte_habitual_nodo = relationship("backend.logistica.models.NodoTransporte")
-    transporte = relationship("backend.logistica.models.EmpresaTransporte", foreign_keys=[transporte_id])
-    intermediario = relationship("backend.logistica.models.EmpresaTransporte", foreign_keys=[intermediario_id])
+    transporte_habitual_nodo = relationship("NodoTransporte")
+    transporte = relationship("EmpresaTransporte", foreign_keys=[transporte_id])
+    intermediario = relationship("EmpresaTransporte", foreign_keys=[intermediario_id])
 
     def __repr__(self):
         return f"<Domicilio(alias='{self.alias}', calle='{self.calle}')>"

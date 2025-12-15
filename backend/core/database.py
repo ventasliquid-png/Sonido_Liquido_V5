@@ -28,9 +28,10 @@ def _get_clean_database_url():
     
     # 2. Si no está en el archivo, usar hardcode de emergencia (Nueva IP)
     if not url_candidate:
-        print("⚠️  DATABASE_URL no encontrada en .env. Usando hardcode de seguridad.")
-        # Hardcode actualizado a la IP 104.197.57.226
-        url_candidate = "postgresql://postgres:Spawn1482.@104.197.57.226:5432/postgres?sslmode=require"
+        # [GY-FIX] Hardcode de seguridad: Priorizar LOCAL si falla ENV
+        print("⚠️  DATABASE_URL no encontrada en .env. Usando SQLITE LOCAL (pilot.db).")
+        url_candidate = "sqlite:///./pilot.db"
+        # url_candidate = "postgresql://postgres:Spawn1482.@104.197.57.226:5432/postgres?sslmode=require"
 
     # 3. Parsear para asegurar que la contraseña esté bien (aunque venga del file)
     try:

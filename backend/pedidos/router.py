@@ -36,114 +36,136 @@ def create_pedido_tactico(
     2. Genera un Excel al vuelo y lo devuelve para descargar (Legacy Bridge).
     """
     
-    # 1. Validar Cliente
-    cliente = db.query(Cliente).get(pedido_data.cliente_id)
-    if not cliente:
-        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    try:
+        # 1. Validar Cliente
+        cliente = db.query(Cliente).get(pedido_data.cliente_id)
+        if not cliente:
+            raise HTTPException(status_code=404, detail="Cliente no encontrado")
 
-    # 2. Crear Pedido Header
-    # Si el usuario mandó un ID manual (simulado en nota o algo), aqui usamos el autoincrement de la BD
-    # El "Nro Pedido" manual del frontend por ahora se guarda en la NOTA del header si el usuario lo pone ahi, 
-    # o podríamos forzar el ID si la BD lo permitiera (pero es serial).
-    # Asumimos que la "sugerencia" del frontend es visual para que coincida con el ID que se va a generar.
-    
-    nuevo_pedido = models.Pedido(
-        cliente_id=pedido_data.cliente_id,
-        fecha=pedido_data.fecha,
-        nota=pedido_data.nota,
-        total=0.0 # Se calcula abajo
-    )
-    db.add(nuevo_pedido)
-    db.flush() # Para tener ID
-
-    total_pedido = 0.0
-    items_excel_data = []
-
-    # 3. Procesar Items
-    for item in pedido_data.items:
-        producto = db.query(Producto).get(item.producto_id)
-        if not producto:
-            continue # O lanzar error, pero en táctico mejor omitir y seguir
-            
-        subtotal = item.cantidad * item.precio_unitario
-        total_pedido += subtotal
+        # 2. Crear Pedido Header
+        # Si el usuario mandó un ID manual (simulado en nota o algo), aqui usamos el autoincrement de la BD
+        # El "Nro Pedido" manual del frontend por ahora se guarda en la NOTA del header si el usuario lo pone ahi, 
+        # o podríamos forzar el ID si la BD lo permitiera (pero es serial).
+        # Asumimos que la "sugerencia" del frontend es visual para que coincida con el ID que se va a generar.
         
-        # Guardar Item BD
-        nuevo_item = models.PedidoItem(
-            pedido_id=nuevo_pedido.id,
-            producto_id=item.producto_id,
-            cantidad=item.cantidad,
-            precio_unitario=item.precio_unitario,
-            subtotal=subtotal,
-            nota=item.nota
+        nuevo_pedido = models.Pedido(
+            cliente_id=pedido_data.cliente_id,
+            fecha=pedido_data.fecha,
+            nota=pedido_data.nota,
+            oc=pedido_data.oc,
+            estado=pedido_data.estado or "PENDIENTE",
+            total=0.0 # Se calcula abajo
         )
-        db.add(nuevo_item)
+        db.add(nuevo_pedido)
+        db.flush() # Para tener ID
+
+        total_pedido = 0.0
+        items_excel_data = []
+
+        # 3. Procesar Items
+        for item in pedido_data.items:
+            producto = db.query(Producto).get(item.producto_id)
+            if not producto:
+                continue # O raise error?
+            
+            # Calcular subtotal (Backend confía en precio del front? Por ahora si es táctico, SÍ.
+            # Pero idealmente validaríamos. Asumimos que front manda precio correcto o override.)
+            # Si precio es 0, usamos el del sistema?
+            precio_final = item.precio_unitario
+            if precio_final == 0:
+                # Fallback simple
+               precio_final = getattr(producto, 'precio_mayorista', 0)
+
+            subtotal = precio_final * item.cantidad
+            total_pedido += subtotal
+            
+            nuevo_item = models.PedidoItem(
+                pedido_id=nuevo_pedido.id,
+                producto_id=item.producto_id,
+                cantidad=item.cantidad,
+                precio_unitario=precio_final,
+                subtotal=subtotal,
+                nota="" # Nota por item no está en schema frontend aun
+            )
+            db.add(nuevo_item)
+            
+            # Data para Excel
+            items_excel_data.append({
+                "CANT": item.cantidad,
+                "DESCRIPCION": producto.nombre,
+                "P.UNIT": precio_final,
+                "SUBTOTAL": subtotal
+            })
+
+        # 4. Actualizar Total
+        nuevo_pedido.total = total_pedido
+        db.commit()
+        db.refresh(nuevo_pedido)
         
-        # Preparar datos para Excel
-        items_excel_data.append({
-            "Fecha": pedido_data.fecha.strftime("%d/%m/%Y") if pedido_data.fecha else "",
-            "Pedido Nro": nuevo_pedido.id, # Usamos el ID real de la BD
-            "Cliente": cliente.razon_social,
-            "CUIT": cliente.cuit,
-            "Producto": producto.nombre,
-            "SKU": producto.sku or "",
-            "Cantidad": item.cantidad,
-            "Precio Unitario": item.precio_unitario,
-            "Subtotal": subtotal,
-            "Notas Item": item.nota or "",
-            "Nota Pedido": pedido_data.nota or ""
-        })
+        # 5. Respuesta JSON (Sin Excel)
+        return {
+            "id": nuevo_pedido.id,
+            "cliente": cliente.razon_social,
+            "total": total_pedido,
+            "items_count": len(items_excel_data),
+            "message": "Pedido creado exitosamente (Modo Táctico)"
+        }
+        """
+        # LEGACY EXCEL GENERATION (Disabled by User Request)
+        # Crear DataFrame
+        # Header data
+        buffer = BytesIO()
+        
+        # Usamos pandas y XlsxWriter
+        with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+            workbook = writer.book
+            worksheet = workbook.add_worksheet("Pedido")
+            
+            # Estilos
+            bold = workbook.add_format({'bold': True})
+            money = workbook.add_format({'num_format': '$ #,##0.00'})
+            
+            # Encabezado
+            worksheet.write('A1', f"Pedido # {nuevo_pedido.id}", bold)
+            worksheet.write('A2', f"Fecha: {nuevo_pedido.fecha}")
+            worksheet.write('A3', f"Cliente: {cliente.razon_social}")
+            worksheet.write('A4', f"CUIT: {cliente.cuit or 'N/A'}")
+            
+            # Tabla Items
+            # Convertir a DF
+            if items_excel_data:
+                df = pd.DataFrame(items_excel_data)
+                # Escribir tabla desde A6
+                # Header manual o automatico? Automatico
+                worksheet.write_row('A6', df.columns, bold)
+                
+                for i, row in enumerate(items_excel_data):
+                    worksheet.write(6+i, 0, row['CANT'])
+                    worksheet.write(6+i, 1, row['DESCRIPCION'])
+                    worksheet.write(6+i, 2, row['P.UNIT'], money)
+                    worksheet.write(6+i, 3, row['SUBTOTAL'], money)
 
-    # 4. Actualizar Total Header
-    nuevo_pedido.total = total_pedido
-    
-    # --- VECTOR STRATEGY: Update Client History Cache ---
-    # We update the user's vector directly to avoid queries later.
-    current_cache = list(cliente.historial_cache) if cliente.historial_cache else []
-    
-    nuevo_summary = {
-        "id": nuevo_pedido.id,
-        "cliente_id": str(cliente.id),
-        "fecha": nuevo_pedido.fecha.isoformat() if nuevo_pedido.fecha else None,
-        "total": total_pedido,
-        "estado": "PENDIENTE", # Default for new tactical orders
-        "nota": nuevo_pedido.nota
-    }
-    
-    # Prepend and limit to 5
-    current_cache.insert(0, nuevo_summary)
-    cliente.historial_cache = current_cache[:5]
-    db.add(cliente) # Flag for update
-    # ----------------------------------------------------
+                # Total
+                last_row = 6 + len(items_excel_data)
+                worksheet.write(last_row+1, 2, "TOTAL", bold)
+                worksheet.write(last_row+1, 3, total_pedido, money)
+            else:
+                worksheet.write('A6', "Sin items")
 
-    db.commit()
-    db.refresh(nuevo_pedido)
-
-    # 5. Generar Excel (Pandas)
-    if not items_excel_data:
-        items_excel_data = [{"Nota": "Pedido sin items validos"}]
-
-    df = pd.DataFrame(items_excel_data)
-    
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name='Pedido')
-        # Auto-adjust column width (Basic)
-        worksheet = writer.sheets['Pedido']
-        for column_cells in worksheet.columns:
-            length = max(len(str(cell.value)) for cell in column_cells)
-            worksheet.column_dimensions[column_cells[0].column_letter].width = length + 2
-    
-    output.seek(0)
-    
-    # Filename
-    filename = f"Pedido_{nuevo_pedido.id}_{cliente.razon_social[:10]}.xlsx".replace(" ", "_")
-    
-    return Response(
-        content=output.getvalue(),
-        media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        headers={'Content-Disposition': f'attachment; filename="{filename}"'}
-    )
+        buffer.seek(0)
+        
+        filename = f"Pedido_{nuevo_pedido.id}_{cliente.razon_social[:10]}.xlsx".replace(" ", "_")
+        
+        return Response(
+            content=buffer.getvalue(),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
+        """
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error creando pedido: {str(e)}")
 
 @router.get("/", response_model=List[schemas.PedidoResponse])
 def get_pedidos(

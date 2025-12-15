@@ -47,6 +47,7 @@ from core.database import engine, Base
 
 # Imports de Routers
 # Imports de Routers
+from backend.auth import models as auth_models # Added explicit import to fix Cliente relationship
 from backend.proveedores import models as proveedores_models
 from backend.maestros import models as maestros_models
 from backend.productos import models as productos_models
@@ -319,6 +320,7 @@ app = FastAPI(
 )
 
 
+# --- 2. CORS Config ---
 origins = [
     "http://localhost:5173",
     "http://localhost:5174",
@@ -326,10 +328,8 @@ origins = [
     "http://127.0.0.1:5173",
     "http://127.0.0.1:5174",
     "http://localhost",
-    "http://127.0.0.1",
-    "*"
+    "http://127.0.0.1"
 ]
-
 
 print(f"--- [CORS Config] Allowed Origins: {origins} ---")
 
@@ -341,6 +341,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- 3. Endpoints y Routers ---
+
+# Imports de Routers (Unificados)
+from backend.auth import models as auth_models
+from backend.auth.router import router as auth_router
+from backend.maestros.router import router as maestros_router
+from backend.clientes.router import router as clientes_router
+from backend.logistica.router import router as logistica_router
+from backend.agenda.router import router as agenda_router
+from backend.productos.router import router as productos_router
+from backend.proveedores.router import router as proveedores_router
+from backend.data_intel.router import router as data_intel_router
+from backend.pedidos.router import router as pedidos_router
+
+# Inclusiones (Ordenadas)
 app.include_router(auth_router)
 app.include_router(maestros_router)
 app.include_router(clientes_router)
@@ -349,8 +364,6 @@ app.include_router(agenda_router)
 app.include_router(productos_router)
 app.include_router(proveedores_router) 
 app.include_router(data_intel_router)
-app.include_router(proveedores_router) 
-from backend.pedidos.router import router as pedidos_router
 app.include_router(pedidos_router) 
 
 # --- [SPA / STATIC FILES SUPPORT] ---
@@ -366,7 +379,9 @@ if os.path.exists(static_dir):
 @app.get("/{full_path:path}", include_in_schema=False)
 async def serve_spa(full_path: str):
     # Ignorar rutas de API (ya manejadas arriba por include_router)
-    if full_path.startswith("api") or full_path.startswith("docs") or full_path.startswith("openapi"):
+    # Ignorar rutas de API (ya manejadas arriba por include_router)
+    api_prefixes = ["api", "docs", "openapi", "clientes", "pedidos", "productos", "maestros", "logistica", "agenda", "proveedores", "auth", "bypass"]
+    if any(full_path.startswith(prefix) for prefix in api_prefixes):
          # Dejar que FastAPI maneje 404 para API real si no matcheó antes
          from fastapi import HTTPException
          raise HTTPException(status_code=404, detail="API Endpoint not found")

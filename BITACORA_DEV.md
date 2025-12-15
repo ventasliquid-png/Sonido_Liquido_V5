@@ -746,3 +746,21 @@ Antes de cualquier operaciÃ³n de carga o mantenimiento de datos, leer el protoco
     *   **UX:** Alerta "CUIT Compartido" molesta en Consumidor Final (`00000000000`).
     *   **SoluciÃ³n:** Se aÃ±adiÃ³ una excepciÃ³n en el backend (`ClienteService.check_cuit`) para ignorar la verificaciÃ³n de duplicados si el CUIT es genÃ©rico (todos ceros), permitiendo mÃºltiples "Consumidores Finales" sin alertas.
 
+
+
+### 2025-12-15 13:10 - Protocolo de Sincronización de Datos (Anti-Desliz)
+> [!IMPORTANT]
+> **LECCIÓN APRENDIDA:** El código viaja por Git, pero los **DATOS** (SQLite) viajan por **Semillas (CSV)**.
+>
+> **Problema:** Se trabajó en una ubicación (CA), se agregaron clientes/productos, pero no se exportaron las semillas. Al llegar a la otra ubicación (OF), el código estaba actualizado pero la base de datos vacía o desactualizada.
+> **Intento Fallido:** Se intentó conectar a la Nube (IOWA) como backup, pero falló por timeout (Firewall/IP).
+
+**PROTOCOLO OBLIGATORIO AL TERMINAR SESIÓN (HANDOVER):**
+1.  **Ejecutar:** python scripts/export_master_seeds.py (Exporta DB -> CSV en SEMILLAS_MAESTRAS/).
+2.  **Verificar:** Que los archivos .csv tengan fecha/hora actual.
+3.  **Git:** git add SEMILLAS_MAESTRAS/ -> commit -> push.
+
+**PROTOCOLO AL INICIAR SESIÓN:**
+1.  **Git:** git pull.
+2.  **Verificar:** Si hay nuevos CSVs en SEMILLAS_MAESTRAS/.
+3.  **Ejecutar:** python scripts/restore_seeds.py (Importa CSV -> DB Local).

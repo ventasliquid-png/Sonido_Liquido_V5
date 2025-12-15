@@ -779,6 +779,11 @@ onMounted(async () => {
     if (route.params.id === 'new') {
         isNew.value = true
         resetForm()
+        
+        // [GY-UX] Auto-fill from search query if provided
+        if (route.query.search) {
+             form.value.razon_social = route.query.search
+        }
     } else {
         isNew.value = false
         await loadCliente(route.params.id)

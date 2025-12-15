@@ -50,7 +50,7 @@ export const useMaestrosStore = defineStore('maestros', {
         async createSegmento(data) {
             try {
                 await maestrosService.createSegmento(data);
-                await this.fetchSegmentos();
+                await this.fetchSegmentos('active', true);
             } catch (error) {
                 throw error;
             }
@@ -58,7 +58,7 @@ export const useMaestrosStore = defineStore('maestros', {
         async updateSegmento(id, data) {
             try {
                 await maestrosService.updateSegmento(id, data);
-                await this.fetchSegmentos();
+                await this.fetchSegmentos('active', true);
             } catch (error) {
                 throw error;
             }
@@ -66,7 +66,7 @@ export const useMaestrosStore = defineStore('maestros', {
         async deleteSegmento(id) {
             try {
                 await maestrosService.deleteSegmento(id);
-                await this.fetchSegmentos();
+                await this.fetchSegmentos('active', true);
             } catch (error) {
                 throw error;
             }

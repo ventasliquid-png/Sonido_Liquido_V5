@@ -13,6 +13,8 @@ class PedidoCreate(BaseModel):
     cliente_id: UUID
     fecha: Optional[datetime] = None
     nota: Optional[str] = None
+    oc: Optional[str] = None
+    estado: Optional[str] = "PENDIENTE"
     items: List[PedidoItemCreate]
 
 class PedidoItemResponse(PedidoItemCreate):

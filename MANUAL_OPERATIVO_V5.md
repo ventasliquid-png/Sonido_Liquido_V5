@@ -192,3 +192,15 @@ Interfaz de alta velocidad para la toma de pedidos. Visualmente similar a una ho
 *   **Exportación:** Generación instantánea de Excel con el detalle del pedido para procesar en sistemas legacy o enviar por mail.
 
 
+
+### 6.3 Herramientas de Gestión de Sesión
+Para evitar errores por datos persistentes ("Datos viejos"), se incorporaron controles explícitos en el pie de página:
+
+1.  **Limpiar Pantalla (Icono Papelera):**
+    - Este botón realiza un "Hard Reset" del formulario.
+    - Borra todos los ítems, deselecciona el cliente y **elimina la memoria temporal** del navegador.
+    - Úselo si nota que el sistema carga información de un pedido anterior.
+
+2.  **Generar Excel (Toggle):**
+    - Ubicado junto al botón Guardar.
+    - Si está activo (Verde), al guardar el pedido se descargará automáticamente una copia en Excel.

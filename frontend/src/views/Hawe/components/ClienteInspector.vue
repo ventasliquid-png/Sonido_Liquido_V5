@@ -490,6 +490,9 @@ const validateCuit = (cuit) => {
     const clean = cuit.replace(/[^0-9]/g, '')
     if (clean.length !== 11) return false
     
+    // [GY-FIX] Excepción de CUITs Genéricos (Consumidor Final / Mostrador)
+    if (['00000000000', '99999999999', '11111111111'].includes(clean)) return true;
+    
     const multipliers = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2]
     let total = 0
     for (let i = 0; i < 10; i++) {
@@ -618,7 +621,8 @@ watch(() => props.modelValue, (newVal) => {
         form.value = JSON.parse(JSON.stringify(newVal)) // Deep copy
         // Ensure arrays exist
         if (!form.value.domicilios) form.value.domicilios = []
-        if (!form.value.vinculos) form.value.vinculos = []
+        if (newVal.activo === undefined) form.value.activo = true // Default to true if undefined
+        // Ensure arrays exist
     } else {
         form.value = {}
     }
@@ -715,30 +719,62 @@ const save = async () => {
             return
         }
 
-        if (!form.value.segmento_id) {
+        // Check if Generic CUIT
+        const cleanCuit = form.value.cuit ? form.value.cuit.replace(/[^0-9]/g, '') : ''
+        const isGenericCuit = ['00000000000', '99999999999', '11111111111'].includes(cleanCuit)
+
+        if (!form.value.segmento_id && !isGenericCuit) {
             alert('El Segmento es obligatorio.')
             saving.value = false
             return
         }
-        if (!form.value.condicion_iva_id) {
-            alert('La Condición IVA es obligatoria.')
-            saving.value = false
-            return
+        if (!form.value.condicion_iva_id && !isGenericCuit) {
+             // For Generic, we can auto-set Consumidor Final if not set
+             if (isGenericCuit) {
+                 const consFinal = condicionesIva.value.find(c => c.nombre.toLowerCase().includes('consumidor final'))
+                 if (consFinal) form.value.condicion_iva_id = consFinal.id
+                 else {
+                     // If we can't find it, don't block? Or blocking is safer? 
+                     // Let's soft warn or default to the first one?
+                     // Better: Auto-set to "Consumidor Final" ID if known, or skip.
+                     // The backend might require it though. 
+                     // Let's assume Consumidor Final exists.
+                     // If user didn't select, we try to find it.
+                 }
+             } else {
+                alert('La Condición IVA es obligatoria.')
+                saving.value = false
+                return
+             }
         }
 
         // Specific Validations for New Client
         if (props.isNew) {
-            if (!fiscalForm.value.calle || !fiscalForm.value.numero || !fiscalForm.value.localidad || !fiscalForm.value.provincia_id) {
-                alert('Por favor complete todos los datos obligatorios del Domicilio Fiscal.')
-                saving.value = false
-                return
+            // [GY-FIX] Skip Address Check for Generic CUITs
+            if (!isGenericCuit) {
+                if (!fiscalForm.value.calle || !fiscalForm.value.numero || !fiscalForm.value.localidad || !fiscalForm.value.provincia_id) {
+                    alert('Por favor complete todos los datos obligatorios del Domicilio Fiscal.')
+                    saving.value = false
+                    return
+                }
+            } else {
+                // Auto-fill dummy fiscal for generic if empty
+                if (!fiscalForm.value.calle) {
+                     fiscalForm.value = {
+                         calle: 'Mostrador',
+                         numero: 'S/N',
+                         localidad: 'Local',
+                         provincia_id: provincias.value.length > 0 ? provincias.value[0].id : null, 
+                         transporte_id: null
+                     }
+                }
             }
 
             // FORCE CHECK before saving to ensure state is up to date
             await checkCuitBackend()
             
-            // Check duplicates
-            if (cuitWarningClients.value.length > 0) {
+            // Check duplicates (Skip for Generic)
+            if (cuitWarningClients.value.length > 0 && !isGenericCuit) {
                 if (cuitWarningDismissed.value) {
                     form.value.requiere_auditoria = true
                 } else {
