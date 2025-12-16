@@ -1,161 +1,429 @@
 <template>
-    <div class="flex flex-col h-full bg-[#e6f0eb] text-slate-800 font-sans">
+  <div class="flex h-screen w-full bg-[#021812] text-gray-200 overflow-hidden font-sans">
+    
+    <!-- Main Content Area -->
+    <main class="flex flex-1 flex-col relative min-w-0">
+      <!-- Top Bar -->
+      <header class="relative z-20 flex h-16 items-center justify-between border-b border-emerald-900/20 bg-[#052e1e]/50 px-6 backdrop-blur-sm shrink-0">
+        <!-- Title -->
+        <div>
+            <h1 class="font-outfit text-xl font-semibold text-white">
+                Gestión de Pedidos
+            </h1>
+            <p class="text-xs text-emerald-400/50 font-medium uppercase tracking-wider">Tablero Táctico</p>
+        </div>
+
+        <!-- Search & Tools -->
+        <div class="flex items-center gap-4">
+          <div class="relative">
+            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500/50"></i>
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Buscar cliente o ID..."
+              class="h-9 w-64 rounded-full border border-emerald-900/30 bg-[#020f0a] pl-10 pr-4 text-sm text-emerald-100 placeholder-emerald-900/50 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+          </div>
+          <div class="h-6 w-px bg-emerald-900/20"></div>
+          
+          <!-- General Filters (Todos/Activos/Inactivos style) -->
+          <!-- For Orders: Todos / Pendientes / Completados / Anulados -->
+          <div class="flex bg-emerald-900/10 rounded-lg p-1 border border-emerald-900/20">
+            <button 
+                v-for="f in filters"
+                :key="f.key"
+                @click="setFilter(f.key)"
+                class="px-3 py-1 text-xs font-bold rounded-md transition-all whitespace-nowrap"
+                :class="activeFilter === f.key ? f.activeClass : 'text-emerald-100/40 hover:text-emerald-100 hover:bg-emerald-500/10'"
+            >
+                {{ f.label }}
+            </button>
+          </div>
+
+          <div class="h-6 w-px bg-emerald-900/20"></div>
+
+          <button 
+            @click="refresh"
+            class="p-2 text-emerald-500 hover:text-emerald-300 transition-colors"
+            title="Recargar"
+          >
+            <i class="fas fa-sync-alt" :class="{ 'animate-spin': store.isLoading }"></i>
+          </button>
+
+            <!-- New Order Button (Direct to Tactico) -->
+            <button 
+                @click="router.push('/ventas/tactico')"
+                class="ml-2 flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-1.5 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 transition-all hover:bg-emerald-500 hover:shadow-emerald-500/40"
+                title="Nuevo Pedido (F4)"
+            >
+                <i class="fas fa-plus"></i>
+                <span class="hidden sm:inline">Nuevo</span>
+            </button>
+        </div>
+      </header>
+
+      <!-- Content List -->
+      <div class="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-track-emerald-900/10 scrollbar-thumb-emerald-900/30">
         
-        <!-- HEADER -->
-        <header class="flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200">
-            <div>
-                <h1 class="text-xl font-bold text-slate-800 tracking-tight">Tablero de Pedidos</h1>
-                <p class="text-xs text-slate-400 font-medium uppercase tracking-wider">Gestión & Seguimiento</p>
+        <!-- List View -->
+        <div class="flex flex-col gap-2">
+            <!-- Header Row with Sort -->
+             <div class="flex items-center justify-between px-4 py-2 text-xs font-bold text-emerald-900/50 uppercase tracking-wider select-none">
+                <div @click="toggleSort('id')" class="w-20 cursor-pointer hover:text-emerald-500 flex items-center gap-1">
+                    ID
+                    <i v-if="sortKey === 'id'" :class="sortOrder === 'asc' ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+                </div>
+                <div @click="toggleSort('fecha')" class="w-32 cursor-pointer hover:text-emerald-500 flex items-center gap-1">
+                    Fecha
+                    <i v-if="sortKey === 'fecha'" :class="sortOrder === 'asc' ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+                </div>
+                <div @click="toggleSort('cliente')" class="flex-1 cursor-pointer hover:text-emerald-500 flex items-center gap-1">
+                    Cliente
+                    <i v-if="sortKey === 'cliente'" :class="sortOrder === 'asc' ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+                </div>
+                <div @click="toggleSort('total')" class="w-32 text-right cursor-pointer hover:text-emerald-500 flex items-center justify-end gap-1">
+                    Total
+                    <i v-if="sortKey === 'total'" :class="sortOrder === 'asc' ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+                </div>
+                <div @click="toggleSort('estado')" class="w-32 text-center cursor-pointer hover:text-emerald-500 flex items-center justify-center gap-1">
+                    Estado
+                    <i v-if="sortKey === 'estado'" :class="sortOrder === 'asc' ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+                </div>
+                <div class="w-10"></div>
+            </div>
+
+            <div 
+                v-for="pedido in sortedAndFilteredPedidos" 
+                :key="pedido.id"
+                class="group flex items-center justify-between p-3 rounded-lg border border-emerald-900/10 bg-emerald-900/5 hover:bg-emerald-900/10 cursor-pointer transition-colors"
+                @dblclick="openPedido(pedido)"
+                @contextmenu.prevent="openPedido(pedido)"
+            >
+                <!-- ID -->
+                <div class="w-20 font-mono text-emerald-500">
+                    #{{ pedido.id }}
+                </div>
+
+                <!-- Fecha -->
+                <div class="w-32 text-sm text-emerald-200/70 flex flex-col leading-tight">
+                    <span>{{ formatDate(pedido.fecha).split(' ')[0] }}</span>
+                    <span class="text-[10px] text-emerald-200/40">{{ formatDate(pedido.fecha).split(' ')[1] }}</span>
+                </div>
+
+                <!-- Cliente -->
+                <div class="flex items-center gap-4 flex-1">
+                    <div class="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-900 to-green-900 flex items-center justify-center text-white font-bold text-xs border border-emerald-500/20 shrink-0">
+                         {{ getInitials(pedido.cliente?.razon_social) }}
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <h3 class="font-bold text-emerald-100 truncate">{{ pedido.cliente?.razon_social || 'Cliente Desconocido' }}</h3>
+                        <!-- Optional Note Display -->
+                         <p v-if="pedido.nota" class="text-xs text-emerald-200/30 font-mono italic truncate">{{ pedido.nota }}</p>
+                    </div>
+                </div>
+
+                <!-- Total -->
+                <div class="w-32 text-right font-mono text-emerald-100 font-bold">
+                    {{ formatCurrency(pedido.total) }}
+                </div>
+                
+                <!-- Status Badge (Interactive) -->
+                <div class="w-32 flex justify-center relative group/status">
+                    <span 
+                        class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border transition-all"
+                        :class="getStatusClass(pedido.estado)"
+                    >
+                        {{ pedido.estado }}
+                    </span>
+                    
+                    <!-- Invisible Select Overlay -->
+                    <select 
+                        :value="pedido.estado"
+                        @click.stop
+                        @change="handleStatusChange(pedido, $event.target.value)"
+                        class="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                        title="Cambiar Estado"
+                    >
+                        <option value="BORRADOR" class="text-gray-500 bg-white font-bold">BORRADOR</option>
+                        <option value="PENDIENTE" class="text-black bg-white">PENDIENTE</option>
+                        <option value="CUMPLIDO" class="text-black bg-white">CUMPLIDO</option>
+                        <option value="ANULADO" class="text-black bg-white">ANULADO</option>
+                        <option value="PRESUPUESTO" class="text-black bg-white">PRESUPUESTO</option>
+                    </select>
+                </div>
+
+                 <div class="w-10 flex justify-end">
+                    <i class="fas fa-chevron-right text-emerald-900/30 group-hover:text-emerald-500/50 transition-colors"></i>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div v-if="sortedAndFilteredPedidos.length === 0 && !store.isLoading" class="flex flex-col items-center justify-center py-20 text-emerald-900/40">
+                <i class="fas fa-box-open text-4xl mb-4"></i>
+                <p>No se encontraron pedidos</p>
             </div>
             
-            <div class="flex items-center gap-3">
-                <!-- Quick Filters -->
-                <div class="flex bg-slate-100 rounded p-1">
-                    <button 
-                        v-for="f in filters" 
-                        :key="f.key"
-                        class="px-3 py-1 text-xs font-bold rounded transition-all uppercase tracking-wide"
-                        :class="activeFilter === f.key ? 'bg-white shadow text-emerald-600' : 'text-slate-400 hover:text-slate-600'"
-                        @click="setFilter(f.key)"
-                    >
-                        {{ f.label }}
-                    </button>
-                </div>
-                
-                <button class="bg-emerald-600 text-white w-8 h-8 rounded hover:bg-emerald-500 flex items-center justify-center shadow-lg transition-transform active:scale-95" @click="refresh">
-                    <i class="fa-solid fa-sync-alt" :class="{'animate-spin': store.isLoading}"></i>
-                </button>
+             <!-- Loading State -->
+            <div v-if="store.isLoading" class="flex flex-col items-center justify-center py-20 text-emerald-500">
+                <i class="fas fa-spinner fa-spin text-4xl mb-4"></i>
+                <p>Cargando...</p>
             </div>
-        </header>
+        </div>
 
-        <!-- GRID -->
-        <main class="flex-1 overflow-hidden p-6">
-            <div class="bg-white rounded-lg shadow-sm border border-slate-200 h-full flex flex-col">
-                
-                <!-- Table Header -->
-                <div class="flex px-4 py-2 bg-slate-50 border-b border-slate-200 text-[10px] font-bold uppercase text-slate-400 tracking-widest select-none">
-                    <div class="w-20"># ID</div>
-                    <div class="w-32">Fecha</div>
-                    <div class="w-32">Estado</div>
-                    <div class="flex-1">Cliente</div>
-                    <div class="w-32 text-right">Total</div>
-                    <div class="w-20 text-center">Acciones</div>
-                </div>
+      </div>
+      <!-- Inspector Slide-over -->
+      <Transition
+        enter-active-class="transform transition ease-in-out duration-300"
+        enter-from-class="translate-x-full"
+        enter-to-class="translate-x-0"
+        leave-active-class="transform transition ease-in-out duration-300"
+        leave-from-class="translate-x-0"
+        leave-to-class="translate-x-full"
+      >
+        <div v-if="selectedPedido" class="absolute inset-y-0 right-0 z-30 w-full max-w-md shadow-2xl">
+            <PedidoInspector 
+                :model-value="selectedPedido"
+                @close="selectedPedido = null"
+                @update-status="handleStatusChange"
+                @clone="handleClone"
+                @delete-item="handleDeleteItem"
+            />
+        </div>
+      </Transition>
 
-                <!-- Table Body -->
-                <div class="flex-1 overflow-y-auto custom-scrollbar relative">
-                    <div v-if="store.pedidos.length === 0" class="flex flex-col items-center justify-center h-64 opacity-40">
-                        <i class="fa-solid fa-box-open text-4xl mb-2 text-slate-300"></i>
-                        <p class="text-sm font-medium">No hay pedidos para mostrar</p>
-                    </div>
+      <!-- Backdrop -->
+      <Transition
+        enter-active-class="transition-opacity ease-linear duration-300"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition-opacity ease-linear duration-300"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
+        <div 
+            v-if="selectedPedido" 
+            @click="selectedPedido = null"
+            class="absolute inset-0 bg-black/50 z-20 backdrop-blur-sm"
+        ></div>
+      </Transition>
 
-                    <div 
-                        v-for="p in store.pedidos" 
-                        :key="p.id"
-                        class="flex items-center px-4 py-3 border-b border-slate-100 hover:bg-blue-50/50 transition-colors group cursor-default text-sm"
-                        @dblclick="openPedido(p)"
-                    >
-                        <div class="w-20 font-mono text-slate-500 font-bold">#{{ p.id }}</div>
-                        <div class="w-32 font-mono text-slate-600 text-xs">{{ formatDate(p.fecha) }}</div>
-                        <div class="w-32">
-                            <span 
-                                class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border"
-                                :class="statusClass(p.estado)"
-                            >
-                                {{ p.estado }}
-                            </span>
-                        </div>
-                        <div class="flex-1 font-bold text-slate-700 truncate pr-4" :title="p.nota">
-                            {{ p.cliente_razon_social || 'Cliente #' + p.cliente_id }}
-                             <span v-if="p.nota" class="ml-2 text-xs text-slate-400 font-normal italic truncate max-w-xs inline-block align-bottom">
-                                - {{ p.nota }}
-                            </span>
-                        </div>
-                        <div class="w-32 text-right font-mono font-bold text-slate-700">
-                            {{ formatCurrency(p.total) }}
-                        </div>
-                        <div class="w-20 text-center opacity-0 group-hover:opacity-100 transition-opacity flex justify-center gap-2">
-                             <button class="text-slate-400 hover:text-blue-500" title="Ver Detalle" @click="openPedido(p)">
-                                <i class="fa-solid fa-eye"></i>
-                            </button>
-                            <button class="text-slate-400 hover:text-emerald-500" title="Re-Imprimir Excel" @click="reprint(p)">
-                                <i class="fa-solid fa-file-excel"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Footer Summary -->
-                 <div class="px-4 py-2 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 flex justify-between font-medium">
-                    <span>Mostrando {{ store.pedidos.length }} registros</span>
-                    <span>Total Visible: <b>{{ formatCurrency(totalVisible) }}</b></span>
-                </div>
-            </div>
-        </main>
-    </div>
+    </main>
+  </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { usePedidosStore } from '@/stores/pedidos';
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { usePedidosStore } from '@/stores/pedidos' 
+import { useNotificationStore } from '../../stores/notification'
+import PedidoInspector from './PedidoInspector.vue'
 
-const store = usePedidosStore();
-const activeFilter = ref('PENDIENTE');
+const router = useRouter()
+const notificationStore = useNotificationStore()
+const store = usePedidosStore()
 
-const filters = [
-    { key: null, label: 'Todos' },
-    { key: 'PENDIENTE', label: 'Pendientes' },
-    { key: 'CUMPLIDO', label: 'Cumplidos' },
-    { key: 'ANULADO', label: 'Anulados' },
-    { key: 'INTERNO', label: 'Internos' }
-];
+const searchQuery = ref('')
+const activeFilter = ref('all') 
+const selectedPedido = ref(null)
 
-const totalVisible = computed(() => {
-    return store.pedidos.reduce((acc, p) => acc + p.total, 0);
-});
+// Sort State
+const sortKey = ref('fecha')
+const sortOrder = ref('desc') // asc or desc
 
-onMounted(() => {
-    refresh();
-});
+const filters = computed(() => {
+    // Calculate counts from local list (which might be filtered by backend, but we do our best)
+    // Ideally we need counts of ALL orders. If 'activeFilter' is 'all', we have all orders (up to limit).
+    // If we only have a subset, counts will be subset counts.
+    // For TACTICAL board, we assume we want counts of loaded.
+    
+    const counts = {
+        all: store.pedidos.length,
+        PENDIENTE: store.pedidos.filter(p => p.estado === 'PENDIENTE').length,
+        BORRADOR: store.pedidos.filter(p => p.estado === 'BORRADOR' || p.estado === 'CLONADO').length,
+        CUMPLIDO: store.pedidos.filter(p => p.estado === 'CUMPLIDO').length,
+        PRESUPUESTO: store.pedidos.filter(p => p.estado === 'PRESUPUESTO' || p.estado === 'INTERNO').length,
+        ANULADO: store.pedidos.filter(p => p.estado === 'ANULADO').length
+    }
 
-const refresh = () => {
-    const params = {};
-    if (activeFilter.value) params.estado = activeFilter.value;
-    store.fetchPedidos(params);
-};
+    return [
+        { key: 'all', label: `Todos (${counts.all})`, activeClass: 'bg-emerald-600/70 text-white shadow-md ring-1 ring-emerald-500' },
+        { key: 'PENDIENTE', label: `Pendientes (${counts.PENDIENTE})`, activeClass: 'bg-white/90 text-emerald-950 font-bold shadow-md ring-1 ring-white' },
+        { key: 'BORRADOR', label: `Borradores (${counts.BORRADOR})`, activeClass: 'bg-gray-500 text-white font-bold shadow-md ring-1 ring-gray-400' },
+        { key: 'CUMPLIDO', label: `Completados (${counts.CUMPLIDO})`, activeClass: 'bg-yellow-500/80 text-black font-bold shadow-md ring-1 ring-yellow-400' },
+        { key: 'PRESUPUESTO', label: `Presupuesto (${counts.PRESUPUESTO})`, activeClass: 'bg-purple-600/70 text-white shadow-md ring-1 ring-purple-500' },
+        { key: 'ANULADO', label: `Anulados (${counts.ANULADO})`, activeClass: 'bg-red-600/70 text-white shadow-md ring-1 ring-red-500' }
+    ]
+})
+
+const refresh = async () => {
+    // Fetch ALL for dashboard to get accurate counts if limit allows
+    const params = { limit: 100 }
+    // We don't filter by backend params here anymore if we want correct counts for other tabs!
+    // If we filter backend by 'PENDIENTE', we won't know how many 'ANULADO' exist.
+    // Strategy: Fetch ALL (Tactical Limit) then filter client side for tabs.
+    // This supports "Tablero Táctico" concept of seeing everything.
+    await store.fetchPedidos(params)
+}
 
 const setFilter = (key) => {
-    activeFilter.value = key;
-    refresh();
-};
+    activeFilter.value = key
+}
 
-const formatDate = (dateStr) => {
-    if(!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' });
-};
-
-const formatCurrency = (val) => {
-    return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(val);
-};
-
-const statusClass = (status) => {
-    switch (status) {
-        case 'PENDIENTE': return 'bg-emerald-50 text-emerald-700 border-emerald-200'; // Proceso (Verde/Neutral)
-        case 'CUMPLIDO': return 'bg-yellow-50 text-yellow-700 border-yellow-200'; // Finalizado (Amarillo)
-        case 'ANULADO': return 'bg-red-50 text-red-700 border-red-200 line-through opacity-70';
-        case 'INTERNO': return 'bg-purple-50 text-purple-700 border-purple-200';
-        default: return 'bg-slate-100 text-slate-600 border-slate-200';
+const sortedAndFilteredPedidos = computed(() => {
+    // 1. Filter by Status (Client Side for Counters Logic)
+    let result = store.pedidos
+    
+    if (activeFilter.value !== 'all') {
+        if (activeFilter.value === 'BORRADOR') {
+            result = result.filter(p => p.estado === 'BORRADOR' || p.estado === 'CLONADO')
+        } else if (activeFilter.value === 'PRESUPUESTO') {
+            result = result.filter(p => p.estado === 'PRESUPUESTO' || p.estado === 'INTERNO')
+        } else {
+            result = result.filter(p => p.estado === activeFilter.value)
+        }
     }
-};
 
-const openPedido = (p) => {
-    // TODO: Implement Detail View or Edit
-    alert("Próximamente: Edición de Pedido #" + p.id);
-};
+    // 2. Filter by Search Query
+    if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase()
+        result = result.filter(p => {
+             const idMatch = String(p.id).includes(query)
+            const clientMatch = p.cliente?.razon_social?.toLowerCase().includes(query)
+            return idMatch || clientMatch
+        })
+    }
 
-const reprint = (p) => {
-    // TODO: Re-download logic
-    alert("Re-descarga Excel pendiente de implementación backend");
-};
+    // 3. Sort
+    result.sort((a, b) => {
+        let valA, valB
+        // ... (sort logic same as before)
+        switch (sortKey.value) {
+             case 'id': valA = a.id; valB = b.id; break;
+             case 'fecha': valA = new Date(a.fecha); valB = b.fecha ? new Date(b.fecha) : new Date(0); break;
+             case 'cliente': valA = (a.cliente?.razon_social || '').toLowerCase(); valB = (b.cliente?.razon_social || '').toLowerCase(); break;
+             case 'total': valA = a.total; valB = b.total; break;
+             case 'estado': valA = (a.estado || '').toLowerCase(); valB = (b.estado || '').toLowerCase(); break;
+             default: valA = a.id; valB = b.id;
+        }
 
+        if (valA < valB) return sortOrder.value === 'asc' ? -1 : 1
+        if (valA > valB) return sortOrder.value === 'asc' ? 1 : -1
+        return 0
+    })
+
+    return result
+})
+
+const getStatusClass = (status) => {
+    switch (status) {
+        case 'PENDIENTE': return 'bg-white/10 text-white border-white/20 font-bold'
+        case 'BORRADOR': return 'bg-gray-500/20 text-gray-400 border-gray-500/30 font-bold'
+        case 'CLONADO': return 'bg-pink-500/20 text-pink-400 border-pink-500/30 font-bold' // Legacy
+        case 'CUMPLIDO': return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20 font-bold'
+        case 'ANULADO': return 'bg-red-500/10 text-red-400 border-red-500/20 font-bold'
+        case 'PRESUPUESTO': return 'bg-purple-600/40 text-purple-300 border-purple-500/50 font-bold' 
+        case 'INTERNO': return 'bg-purple-600/40 text-purple-300 border-purple-500/50 font-bold' // Legacy
+        default: return 'bg-gray-500/10 text-gray-400 border-gray-500/20 font-bold'
+    }
+}
+
+const openPedido = (pedido) => {
+    selectedPedido.value = pedido
+}
+
+const handleStatusChange = async (pedido, newStatus) => {
+    if (pedido.estado === newStatus) return
+    
+    try {
+        await store.updatePedido(pedido.id, { estado: newStatus })
+        notificationStore.add(`Pedido #${pedido.id} actualizado a ${newStatus}`, 'success')
+        
+        const updated = store.pedidos.find(p => p.id === pedido.id)
+        if (updated && selectedPedido.value && selectedPedido.value.id === pedido.id) {
+            selectedPedido.value = updated
+        }
+    } catch (e) {
+        notificationStore.add('Error actualizando estado', 'error')
+    }
+}
+
+const handleClone = async () => {
+    if (!selectedPedido.value) return
+    
+    // Confirmation Dialog
+    if (!confirm(`¿Estás seguro de CLONAR el Pedido #${selectedPedido.value.id}?\nSe creará una copia nueva en estado PENDIENTE.`)) {
+        return
+    }
+
+    try {
+        const newOrder = await store.clonePedido(selectedPedido.value.id)
+        notificationStore.add(`Pedido clonado con éxito (ID: ${newOrder.id})`, 'success')
+        selectedPedido.value = null 
+        
+        // Scroll to top to see new order
+        const listContainer = document.querySelector('.overflow-y-auto')
+        if (listContainer) listContainer.scrollTop = 0
+        
+    } catch (e) {
+        notificationStore.add('Error clonando pedido', 'error')
+    }
+}
+
+const handleDeleteItem = async (itemId) => {
+    if (!selectedPedido.value) return
+    if (!confirm('¿Seguro que deseas eliminar este item?')) return
+
+    try {
+        await store.deletePedidoItem(selectedPedido.value.id, itemId)
+        notificationStore.add('Item eliminado', 'success')
+    } catch (e) {
+        notificationStore.add('Error eliminando item', 'error')
+    }
+}
+
+onMounted(() => {
+    refresh()
+    window.addEventListener('keydown', handleGlobalKeydown)
+})
+
+onUnmounted(() => {
+    window.removeEventListener('keydown', handleGlobalKeydown)
+})
+
+const handleGlobalKeydown = (e) => {
+    if (e.key === 'F4') {
+        e.preventDefault()
+        router.push('/ventas/tactico')
+    }
+}
+
+const formatDate = (dateString) => {
+    if (!dateString) return '-'
+    return new Date(dateString).toLocaleDateString('es-AR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    })
+}
+
+const formatCurrency = (value) => {
+    return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(value)
+}
+
+const getInitials = (name) => {
+    if (!name) return '?'
+    return name.substring(0, 1).toUpperCase()
+}
+
+const toggleSort = (key) => {
+    if (sortKey.value === key) {
+        sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+    } else {
+        sortKey.value = key
+        sortOrder.value = 'asc' // Default new sort to asc generally
+        if (key === 'fecha' || key === 'id') sortOrder.value = 'desc' // Exception for date/id preference
+    }
+}
 </script>

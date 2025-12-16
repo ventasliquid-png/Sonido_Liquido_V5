@@ -72,8 +72,8 @@ const routes = [
             },
             {
                 path: 'pedidos',
-                name: 'Pedidos',
-                component: () => import('../views/Hawe/PedidosView.vue')
+                name: 'PedidoList',
+                component: () => import('../views/Pedidos/PedidoList.vue')
             },
             {
                 path: 'tactico',

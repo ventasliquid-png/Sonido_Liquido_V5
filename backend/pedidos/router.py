@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List
 import pandas as pd
 from io import BytesIO
 from fastapi.responses import Response
+from datetime import datetime
 
 from backend.core.database import get_db
 from backend.pedidos import models, schemas
@@ -54,6 +55,7 @@ def create_pedido_tactico(
             nota=pedido_data.nota,
             oc=pedido_data.oc,
             estado=pedido_data.estado or "PENDIENTE",
+            tipo_comprobante=pedido_data.tipo_comprobante or "FISCAL",
             total=0.0 # Se calcula abajo
         )
         db.add(nuevo_pedido)
@@ -184,6 +186,12 @@ def get_pedidos(
     
     # Ordenar por fecha descendente (más nuevos primero)
     q = q.order_by(models.Pedido.fecha.desc(), models.Pedido.id.desc())
+
+    # Eager load cliente and items with products
+    q = q.options(
+        joinedload(models.Pedido.cliente),
+        joinedload(models.Pedido.items).joinedload(models.PedidoItem.producto)
+    )
     
     return q.limit(limit).offset(offset).all()
 
@@ -235,6 +243,202 @@ def get_ultima_venta(
     if not last_item:
         return None
         
+@router.patch("/{pedido_id}", response_model=schemas.PedidoResponse)
+def update_pedido(
+    pedido_id: int, 
+    pedido_update: schemas.PedidoUpdate,
+    db: Session = Depends(get_db)
+):
+    """
+    Actualiza parcialmente un pedido (ej: cambiar estado).
+    """
+    # Use eager load to return full structure
+    pedido = (
+        db.query(models.Pedido)
+        .options(
+            joinedload(models.Pedido.cliente),
+            joinedload(models.Pedido.items).joinedload(models.PedidoItem.producto)
+        )
+        .filter(models.Pedido.id == pedido_id)
+        .first()
+    )
+    
+    if not pedido:
+        raise HTTPException(status_code=404, detail="Pedido no encontrado")
+    
+    update_data = pedido_update.dict(exclude_unset=True)
+    
+    for key, value in update_data.items():
+        setattr(pedido, key, value)
+        
+    db.commit()
+    db.refresh(pedido)
+    return pedido
+
+@router.post("/{pedido_id}/items", response_model=schemas.PedidoResponse)
+def add_pedido_item(
+    pedido_id: int, 
+    item_create: schemas.PedidoItemCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    Agrega un item a un pedido existente.
+    """
+    pedido = db.query(models.Pedido).get(pedido_id)
+    if not pedido:
+        raise HTTPException(status_code=404, detail="Pedido no encontrado")
+        
+    producto = db.query(Producto).get(item_create.producto_id)
+    if not producto:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+        
+    # Calculate values
+    # Use provided price or default to product price
+    precio_final = item_create.precio_unitario
+    if precio_final == 0:
+         precio_final = getattr(producto, 'precio_mayorista', 0)
+         
+    subtotal = precio_final * item_create.cantidad
+    
+    new_item = models.PedidoItem(
+        pedido_id=pedido.id,
+        producto_id=item_create.producto_id,
+        cantidad=item_create.cantidad,
+        precio_unitario=precio_final,
+        subtotal=subtotal,
+        nota=item_create.nota or ""
+    )
+    db.add(new_item)
+    
+    # Update Total
+    pedido.total += subtotal
+    
+    db.commit()
+    
+    # Refresh logic to return full PedidoResponse
+    return (
+        db.query(models.Pedido)
+        .options(
+            joinedload(models.Pedido.cliente),
+            joinedload(models.Pedido.items).joinedload(models.PedidoItem.producto)
+        )
+        .filter(models.Pedido.id == pedido.id)
+        .first()
+    )
+
+@router.patch("/items/{item_id}", response_model=schemas.PedidoResponse)
+def update_pedido_item(
+    item_id: int, 
+    item_update: schemas.PedidoItemUpdate,
+    db: Session = Depends(get_db)
+):
+    """
+    Actualiza un item de pedido (cantidad, precio) y recalcula el total del pedido.
+    """
+    item = db.query(models.PedidoItem).filter(models.PedidoItem.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item no encontrado")
+    
+    # Update fields
+    update_data = item_update.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(item, key, value)
+    
+    # Recalculate Subtotal
+    item.subtotal = item.cantidad * item.precio_unitario
+    
+    # Recalculate Order Total
+    pedido = item.pedido
+    db.flush() # Save item change first
+    
+    new_total = sum(i.cantidad * i.precio_unitario for i in pedido.items)
+    pedido.total = new_total
+    
+    db.commit()
+    
+    # Refresh to return full PedidoResponse
+    return (
+        db.query(models.Pedido)
+        .options(
+            joinedload(models.Pedido.cliente),
+            joinedload(models.Pedido.items).joinedload(models.PedidoItem.producto)
+        )
+        .filter(models.Pedido.id == pedido.id)
+        .first()
+    )
+
+@router.delete("/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_pedido_item(item_id: int, db: Session = Depends(get_db)):
+    """
+    Elimina un item específico de un pedido.
+    """
+    item = db.query(models.PedidoItem).filter(models.PedidoItem.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item no encontrado")
+    
+    # Optional logic: recalculate order total? Or assumes frontend/trigger handles it?
+    # For now, let's recalculate total explicitly or assume client will reload.
+    # Recalculating is safer.
+    pedido = item.pedido
+    db.delete(item)
+    db.commit()
+    
+    # Recalculate total
+    new_total = sum(i.cantidad * i.precio_unitario for i in pedido.items)
+    pedido.total = new_total
+    db.commit()
+    
+    return None
+
+@router.post("/{pedido_id}/clone", response_model=schemas.PedidoResponse)
+def clone_pedido(pedido_id: int, db: Session = Depends(get_db)):
+    """
+    Clona un pedido existente, creando uno nuevo con estado PENDIENTE y fecha actual.
+    """
+    original = (
+        db.query(models.Pedido)
+        .options(joinedload(models.Pedido.items))
+        .filter(models.Pedido.id == pedido_id)
+        .first()
+    )
+    
+    if not original:
+        raise HTTPException(status_code=404, detail="Pedido original no encontrado")
+        
+    new_pedido = models.Pedido(
+        cliente_id=original.cliente_id,
+        fecha=datetime.now(),
+        nota=f"Clonado de Pedido #{original.id}. {original.nota or ''}",
+        oc=original.oc,
+        estado="BORRADOR",
+        tipo_comprobante=original.tipo_comprobante or "FISCAL",
+        total=original.total, # Initial total, assuming prices same. Ideally should fetch current prices but clone usually implies exact copy first.
+    )
+    db.add(new_pedido)
+    db.flush() # get ID
+    
+    for item in original.items:
+        new_item = models.PedidoItem(
+            pedido_id=new_pedido.id,
+            producto_id=item.producto_id,
+            cantidad=item.cantidad,
+            precio_unitario=item.precio_unitario
+        )
+        db.add(new_item)
+        
+    db.commit()
+    
+    # Refresh to load relations for response
+    return (
+        db.query(models.Pedido)
+        .options(
+            joinedload(models.Pedido.cliente),
+            joinedload(models.Pedido.items).joinedload(models.PedidoItem.producto)
+        )
+        .filter(models.Pedido.id == new_pedido.id)
+        .first()
+    )
+
 @router.delete("/{pedido_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_pedido(pedido_id: int, db: Session = Depends(get_db)):
     """

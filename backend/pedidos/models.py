@@ -12,7 +12,8 @@ class Pedido(Base):
     cliente_id = Column(UUID(as_uuid=True), ForeignKey("clientes.id"), nullable=False)
     total = Column(Float, default=0.0)
     nota = Column(Text, nullable=True)
-    estado = Column(String, default="PENDIENTE") # PENDIENTE, CUMPLIDO, ANULADO, INTERNO
+    estado = Column(String, default="PENDIENTE") # PENDIENTE, CUMPLIDO, ANULADO, PRESUPUESTO, BORRADOR
+    tipo_comprobante = Column(String, default="FISCAL") # FISCAL, X
     oc = Column(String, nullable=True) # Orden de Compra
     
     # Metadata

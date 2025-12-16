@@ -228,7 +228,7 @@ const isGroupActive = (group) => {
     if (group === 'CLIENTES') return ['HaweHome', 'Segmentos', 'Vendedores', 'HaweClientCanvas'].includes(route.name)
     if (group === 'PRODUCTOS') return ['Productos', 'Rubros', 'ListasPrecios'].includes(route.name)
     if (group === 'MAESTROS') return ['Contactos', 'Transportes'].includes(route.name)
-    if (group === 'PEDIDOS') return ['Pedidos', 'PedidoTactico'].includes(route.name)
+    if (group === 'PEDIDOS') return ['PedidoList', 'TacticalLoader'].includes(route.name)
     if (group === 'INTEL') return ['data-cleaner'].includes(route.name)
     return false
 }

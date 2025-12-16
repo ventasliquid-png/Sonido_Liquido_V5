@@ -160,3 +160,6 @@ Se consolidó el flujo de importación de datos. Se abandonó la edición direct
 *   Sistema Piloto funcionando con datos reales validados (11 Clientes iniciales).
 *   Sincronización con Nube operativa.
 *   Protocolo de Datos documentado.
+
+## Sesión 2025-12-15: La Evolución a 'Gmail Style'
+Se redefinió el concepto de Clonado a 'Borrador'. Se eliminaron las fricciones de 'preguntas al cerrar'. Se implementó la lógica de que el estado PENDIENTE es el disparador de la decisión Fiscal vs X. El sistema ahora permite iterar en borradores sin estrés y oficializar en un solo paso claro.

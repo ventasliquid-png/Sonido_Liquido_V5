@@ -49,6 +49,91 @@ export const usePedidosStore = defineStore('pedidos', {
             }
         },
 
+
+
+        async updatePedido(id, data) {
+            try {
+                const res = await apiClient.patch(`/pedidos/${id}`, data);
+                // Update local list
+                const index = this.pedidos.findIndex(p => p.id === id);
+                if (index !== -1) {
+                    // Update object but keep reactivity structure if needed, or replace.
+                    // Merging data from response (which is the full object) is safest.
+                    this.pedidos[index] = res.data;
+                }
+                return res.data;
+            } catch (error) {
+                console.error("Error updating pedido:", error);
+                throw error;
+            }
+        },
+
+        async clonePedido(id) {
+            try {
+                const res = await apiClient.post(`/pedidos/${id}/clone`);
+                // Add to beginning of list
+                this.pedidos.unshift(res.data);
+                return res.data;
+            } catch (error) {
+                console.error("Error cloning pedido:", error);
+                throw error;
+            }
+        },
+
+        async addPedidoItem(pedidoId, itemData) {
+            try {
+                const res = await apiClient.post(`/pedidos/${pedidoId}/items`, itemData);
+                const updatedPedido = res.data;
+                // Update local list with the FULL updated pedido returned by backend
+                // This is safer than manual splicing for complex additions
+                const index = this.pedidos.findIndex(p => p.id === pedidoId);
+                if (index !== -1) {
+                    this.pedidos[index] = updatedPedido;
+                }
+                return updatedPedido;
+            } catch (error) {
+                console.error("Error adding pedido item:", error);
+                throw error;
+            }
+        },
+
+        async updatePedidoItem(pedidoId, itemId, data) {
+            try {
+                const res = await apiClient.patch(`/pedidos/items/${itemId}`, data);
+                const updatedPedido = res.data;
+                // Enable reactivity
+                const index = this.pedidos.findIndex(p => p.id === pedidoId);
+                if (index !== -1) {
+                    this.pedidos[index] = updatedPedido;
+                }
+                return updatedPedido;
+            } catch (error) {
+                console.error("Error updating pedido item:", error);
+                throw error;
+            }
+        },
+
+        async deletePedidoItem(pedidoId, itemId) {
+            try {
+                await apiClient.delete(`/pedidos/items/${itemId}`);
+
+                // Update local list manually to reflect change without full reload
+                const pedido = this.pedidos.find(p => p.id === pedidoId);
+                if (pedido) {
+                    const itemIndex = pedido.items.findIndex(i => i.id === itemId);
+                    if (itemIndex !== -1) {
+                        const item = pedido.items[itemIndex];
+                        pedido.items.splice(itemIndex, 1);
+                        // Update total locally (approximate)
+                        pedido.total -= (item.cantidad * item.precio_unitario);
+                    }
+                }
+            } catch (error) {
+                console.error("Error deleting pedido item:", error);
+                throw error;
+            }
+        },
+
         async getHistorialCliente(clienteId) {
             try {
                 const res = await apiClient.get(`/pedidos/historial/${clienteId}`);

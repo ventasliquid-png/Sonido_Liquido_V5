@@ -764,3 +764,11 @@ Antes de cualquier operación de carga o mantenimiento de datos, leer el protoco
 1.  **Git:** git pull.
 2.  **Verificar:** Si hay nuevos CSVs en SEMILLAS_MAESTRAS/.
 3.  **Ejecutar:** python scripts/restore_seeds.py (Importa CSV -> DB Local).
+
+## [2025-12-15] Refactorización de Flujo de Pedidos
+- **DB**: Added 	ipo_comprobante column (scripts/add_tipo_to_pedidos.py).
+- **API**: Updated Pedido Create/Update schemas and router logic.
+- **UX**: Implemented Gmail-style drafts (Auto-save, no prompts).
+- **UX**: Unified status control via Dropdown (Pendiente triggers Fiscal/X prompt).
+- **Fix**: Resolved CORS/500 crash due to migration script path issue.
+- **Fix**: Repaired invalid Vue template in PedidoInspector.
