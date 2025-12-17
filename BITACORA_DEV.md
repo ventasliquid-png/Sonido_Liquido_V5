@@ -798,3 +798,45 @@ Script `scripts/war_game_pricing_v5_fix.py` ejecutado con Ã©xito.
 - Validado cÃ¡lculo reverso de descuentos.
 - Validado markup de MELI.
 - Validado override de precios fijos.
+
+## Pendientes para esta sesiÃ³n (Rescatado de OF)
+
+### Hallazgos y Pendientes
+1.  **Campo OC (Orden de Compra):** Existe en BD (pedidos.oc) pero falta en:
+    *   Schema PedidoResponse (Backend).
+    *   UI PedidoTacticoView (Input explÃ­cito).
+    *   UI PedidoInspector (EdiciÃ³n).
+2.  **UX TÃ¡ctico:** Falta botÃ³n 'Limpiar/Nuevo' explÃ­cito para resetear el borrador sin recargar.
+3.  **Plan de AcciÃ³n:** Se generÃ³ el implementation_plan.md para abordar estos puntos en la prÃ³xima sesiÃ³n.
+
+### Nota Post-Cierre
+Se intentÃ³ correr una 'SimulaciÃ³n de Integridad' (Frontend Build + Backend Tests), pero se abortÃ³ por falta de tiempo. Queda pendiente verificar el estado del servidor y tests de integraciÃ³n en la prÃ³xima sesiÃ³n.
+
+---
+## [SESIÓN 17-DIC-2025] - Limpieza Profunda y Acceso LAN
+
+### Objetivo
+Habilitar herramientas para la 'depuración masiva' de la base de datos (clientes/productos basura) y configurar el entorno para permitir la carga de datos concurrente desde múltiples puestos (LAN).
+
+### Logros
+1.  **Limpieza Masiva (Bulk Hard Delete):**
+    *   Implementado mecanismo de 'Doble Fase':
+        *   **Fase 1 (Naranja):** Desactivación masiva (Soft Delete) desde el filtro 'Activos'.
+        *   **Fase 2 (Rojo):** Eliminación definitiva (Hard Delete) desde el filtro 'Inactivos'.
+    *   Aplicado tanto en **Clientes** como en **Productos**.
+    *   **Seguridad:** Backend protege registros con integridad referencial (no deja borrar si tienen ventas).
+
+2.  **Sanitización de CUITs:**
+    *   **Frontend:** El inspector limpia automáticamente guiones y espacios al guardar.
+    *   **Backend:** Validator Pydantic ('clean_cuit') fuerza string numérico de 11 dígitos.
+    *   Resultado: Se permite input flexible ('20-1234...') pero se guarda limpio ('201234...').
+
+3.  **Acceso Remoto (LAN / Multijugador):**
+    *   **Configuración Backend:** CORS habilitado para '*' (Wildcard).
+    *   **Configuración Firewall:** Scripts para abrir puertos 8000 (API) y 5173 (Web).
+    *   **Hardcoding de IP:** Se fijó la IP '192.168.0.34' en 'api.js' y 'Login.vue' para anular problemas de resolución de nombres o variables de entorno.
+    *   **Launcher:** Se creó 'scripts/run_lan.ps1' para automatizar el arranque en modo red.
+    *   **Usuarios:** Se creó el usuario 'operador' (carga restringida) y se reseteó 'admin'.
+
+### Estado Final
+El sistema está desplegado en la red local y listo para que el equipo comience la carga y depuración de datos.

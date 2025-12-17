@@ -1,32 +1,41 @@
-from backend.core.database import SessionLocal
-from backend.auth.models import Usuario
-from backend.auth.service import get_password_hash
+import sys
+import os
 
-def reset_admin():
+# Add backend directory to path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'backend')))
+
+from core.database import SessionLocal
+from backend.auth import models, service
+from sqlalchemy.orm import Session
+
+def reset_password():
+    print("--- [AUTH] Realizando Reset de Contraseña Admin ---")
     db = SessionLocal()
     try:
-        user = db.query(Usuario).filter(Usuario.username == "admin").first()
-        if not user:
-            print("Usuario 'admin' no encontrado. Creando...")
-            user = Usuario(
-                username="admin",
-                email="admin@sonidoliquido.com",
-                hashed_password=get_password_hash("admin"),
-                is_active=True,
-                is_superuser=True
-            )
-            db.add(user)
-        else:
-            print("Usuario 'admin' encontrado. Reseteando password...")
-            user.hashed_password = get_password_hash("admin")
-            user.is_active = True
+        username = "admin"
+        new_password = "admin123"
         
+        user = service.get_usuario_by_username(db, username)
+        if not user:
+            print(f"❌ Error: Usuario '{username}' no encontrado.")
+            return
+
+        print(f"   -> Usuario '{username}' encontrado.")
+        print(f"   -> Generando nuevo hash para '{new_password}'...")
+        
+        new_hash = service.get_password_hash(new_password)
+        user.hashed_password = new_hash
+        
+        db.add(user)
         db.commit()
-        print("EXITO: Usuario 'admin' configurado con password 'admin'")
+        
+        print(f"✅ ÉXITO: La contraseña del usuario '{username}' ha sido reseteada a '{new_password}'.")
+
     except Exception as e:
-        print(f"ERROR: {e}")
+        print(f"❌ Error durante el reset: {e}")
+        db.rollback()
     finally:
         db.close()
 
 if __name__ == "__main__":
-    reset_admin()
+    reset_password()

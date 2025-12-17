@@ -11,6 +11,10 @@
           <h1 class="font-outfit text-2xl font-bold text-white">
             <i class="fas fa-boxes mr-2 text-rose-500"></i> Productos
           </h1>
+          <!-- Bulk Action Indicator -->
+          <span v-if="selectedIds.length > 0" class="ml-4 text-xs font-bold text-red-400 bg-red-900/20 px-2 py-1 rounded border border-red-500/30 animate-pulse">
+              {{ selectedIds.length }} SELECCIONADOS
+          </span>
           
           <!-- Search -->
           <div class="relative w-64 group">
@@ -114,12 +118,22 @@
           </div>
 
           <!-- New Button -->
-          <button 
-            @click="createNew"
-            class="flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-rose-900/20 transition-transform hover:bg-rose-500 active:scale-95"
-          >
-            <i class="fas fa-plus"></i>
             <span>Nuevo</span>
+          </button>
+
+            <span>Nuevo</span>
+          </button>
+
+          <!-- Dynamic Bulk Button -->
+          <button 
+            v-if="selectedIds.length > 0"
+            @click="handleBulkAction"
+            class="ml-2 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-white shadow-lg transition-transform active:scale-95"
+            :class="filterStatus === 'inactive' ? 'bg-red-600 hover:bg-red-500 shadow-red-500/20' : 'bg-orange-600 hover:bg-orange-500 shadow-orange-500/20'"
+            :title="filterStatus === 'inactive' ? 'Eliminar Definitivamente' : 'Desactivar (Baja Lógica)'"
+          >
+            <i :class="filterStatus === 'inactive' ? 'fas fa-trash-alt' : 'fas fa-archive'"></i>
+            <span class="hidden sm:inline">{{ filterStatus === 'inactive' ? `Eliminar (${selectedIds.length})` : `Baja (${selectedIds.length})` }}</span>
           </button>
         </div>
       </div>
@@ -145,8 +159,18 @@
                 <div 
                     v-for="producto in sortedProductos" 
                     :key="producto.id"
-                    class="relative min-h-[160px]"
+                    class="relative min-h-[160px] group"
                 >
+                    <!-- Selection Checkbox -->
+                    <div class="absolute top-2 left-2 z-20" @click.stop>
+                        <input 
+                            type="checkbox" 
+                            :checked="selectedIds.includes(producto.id)" 
+                            @change="toggleSelection(producto.id)"
+                            class="rounded bg-[#2e0a13] border-rose-500/50 text-rose-500 focus:ring-0 focus:ring-offset-0 cursor-pointer h-5 w-5 shadow-lg shadow-black/50 opacity-50 group-hover:opacity-100 transition-opacity"
+                            :class="{ 'opacity-100': selectedIds.includes(producto.id) }"
+                        />
+                    </div>
                     <ProductoCard 
                         :producto="producto"
                         :selected="selectedId === producto.id"
@@ -179,6 +203,9 @@
             <!-- List View -->
             <div v-else class="space-y-1">
                 <div class="flex items-center justify-between px-4 py-2 text-xs font-bold text-rose-900/50 uppercase tracking-wider border-b border-white/5 mb-2">
+                    <div class="w-8">
+                        <input type="checkbox" :checked="isAllSelected" @click="toggleSelectAll" class="rounded bg-transparent border-rose-800 focus:ring-0 checked:bg-rose-500 cursor-pointer"/>
+                    </div>
                     <div class="flex-1">Producto</div>
                     <div class="w-32 hidden md:block">Rubro</div>
                     <div class="w-24 text-center">SKU</div>
@@ -193,6 +220,16 @@
                     class="group flex items-center justify-between p-2 rounded-lg border border-transparent hover:bg-rose-900/10 hover:border-rose-900/20 cursor-pointer transition-all"
                     :class="{ 'bg-rose-900/20 border-rose-500/30': selectedId === producto.id }"
                 >
+                    <!-- Checkbox (Always Visible) -->
+                    <div class="w-8 flex items-center justify-center p-2" @click.stop>
+                        <input 
+                            type="checkbox" 
+                            :checked="selectedIds.includes(producto.id)" 
+                            @change="toggleSelection(producto.id)"
+                            class="rounded bg-[#020a0f] border-rose-800/50 text-rose-500 focus:ring-0 focus:ring-offset-0 cursor-pointer h-4 w-4"
+                        />
+                    </div>
+
                     <div class="flex items-center gap-3 flex-1 min-w-0">
                         <div class="h-8 w-8 rounded bg-[#2e0a13] flex items-center justify-center text-rose-500 border border-rose-900/30">
                             <i class="fas fa-box text-xs"></i>
@@ -258,17 +295,20 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProductosStore } from '../../stores/productos'
+import { useNotificationStore } from '../../stores/notification'
 import ProductoCard from './components/ProductoCard.vue'
 import ProductoInspector from './components/ProductoInspector.vue'
 
 const router = useRouter()
 const productosStore = useProductosStore()
+const notificationStore = useNotificationStore()
 
 const showInspector = ref(false)
 const selectedId = ref(null)
+const selectedIds = ref([]) // IDs for bulk actions
 const sortBy = ref('alpha_asc')
 const viewMode = ref('grid')
 const showSortMenu = ref(false)
@@ -312,6 +352,86 @@ const setFilter = (status) => {
     else if (status === 'inactive') productosStore.filters.activo = false
     
     productosStore.fetchProductos()
+}
+
+watch(filterStatus, () => {
+    selectedIds.value = [] // Clear items when filter changes
+})
+
+const isAllSelected = computed(() => {
+    if (sortedProductos.value.length === 0) return false
+    return sortedProductos.value.every(p => selectedIds.value.includes(p.id))
+})
+
+const toggleSelection = (id) => {
+    if (selectedIds.value.includes(id)) {
+        selectedIds.value = selectedIds.value.filter(existingId => existingId !== id)
+    } else {
+        selectedIds.value = [...selectedIds.value, id]
+    }
+}
+
+const toggleSelectAll = () => {
+    if (isAllSelected.value) {
+        selectedIds.value = []
+    } else {
+        selectedIds.value = sortedProductos.value.map(p => p.id)
+    }
+}
+
+const handleBulkAction = async () => {
+    if (filterStatus.value === 'inactive') {
+        // Hard Delete
+        await handleBulkHardDelete()
+    } else {
+        // Soft Delete (Baja Lógica)
+        await handleBulkSoftDelete()
+    }
+}
+
+const handleBulkSoftDelete = async () => {
+    if (!confirm(`¿Está seguro que desea dar de BAJA (desactivar) a ${selectedIds.value.length} productos?`)) return
+    
+    let successCount = 0
+    for (const id of selectedIds.value) {
+        try {
+            // Check status locally
+            const p = productosStore.productos.find(prod => prod.id === id)
+            if (p && p.activo) {
+                await productosStore.toggleEstado(id) 
+                // toggleEstado handles notification, maybe too spammy? 
+                // store handles 'Error', 'Success'.
+                successCount++
+            }
+        } catch (e) {
+            console.error(e)
+        }
+    }
+    notificationStore.add(`${successCount} productos desactivados`, 'success')
+    selectedIds.value = []
+    productosStore.fetchProductos()
+}
+
+const handleBulkHardDelete = async () => {
+    if (!confirm(`PELIGRO: ¿Está seguro que desea eliminar DEFINITIVAMENTE ${selectedIds.value.length} productos? Esta acción NO se puede deshacer.`)) return
+    
+    let successCount = 0
+    let failCount = 0
+    
+    for (const id of selectedIds.value) {
+        try {
+            await productosStore.hardDeleteProducto(id)
+            successCount++
+        } catch (e) {
+            failCount++
+        }
+    }
+    
+    if (successCount > 0) notificationStore.add(`${successCount} productos eliminados definitivamente`, 'success')
+    if (failCount > 0) notificationStore.add(`${failCount} productos no se pudieron eliminar (tienen órdenes asociadas)`, 'error')
+    
+    selectedIds.value = []
+    // Store already filters locally but let's encourage refresh if needed
 }
 
 const selectProducto = async (producto) => {

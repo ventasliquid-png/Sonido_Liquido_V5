@@ -355,7 +355,25 @@ def delete_producto(producto_id: int, db: Session = Depends(get_db)):
     if not db_producto:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     
-    # Toggle Active (Soft Delete behavior)
     db_producto.activo = not db_producto.activo
     db.commit()
+    return None
+
+@router.delete("/{producto_id}/hard", status_code=status.HTTP_204_NO_CONTENT)
+def hard_delete_producto(producto_id: int, db: Session = Depends(get_db)):
+    from sqlalchemy.exc import IntegrityError
+    db_producto = db.query(models.Producto).filter(models.Producto.id == producto_id).first()
+    if not db_producto:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    
+    try:
+        db.delete(db_producto)
+        db.commit()
+    except IntegrityError:
+        # Rollback automatically handled by session context usually, but explicit here
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="No se puede eliminar el producto porque tiene registros asociados (ventas)."
+        )
     return None

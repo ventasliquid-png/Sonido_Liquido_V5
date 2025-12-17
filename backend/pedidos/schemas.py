@@ -61,6 +61,7 @@ class PedidoResponse(BaseModel):
     nota: Optional[str] = None
     estado: str
     tipo_comprobante: Optional[str] = "FISCAL"
+    oc: Optional[str] = None
     items: List[PedidoItemResponse] = []
 
     class Config:

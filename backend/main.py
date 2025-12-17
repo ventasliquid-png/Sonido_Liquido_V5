@@ -328,14 +328,15 @@ origins = [
     "http://127.0.0.1:5173",
     "http://127.0.0.1:5174",
     "http://localhost",
-    "http://127.0.0.1"
+    "http://127.0.0.1",
+    "*" # [DEV] Allow All for LAN Access
 ]
 
 print(f"--- [CORS Config] Allowed Origins: {origins} ---")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"], # Force Wildcard for LAN
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

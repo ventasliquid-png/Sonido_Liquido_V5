@@ -15,6 +15,7 @@ const productosStore = useProductosStore();
 const fecha = ref(new Date().toISOString().split('T')[0]);
 const clienteId = ref(null);
 const nota = ref('');
+const oc = ref('');
 const items = ref([]);
 const isSaving = ref(false);
 
@@ -113,6 +114,7 @@ const saveAndExport = async () => {
             cliente_id: clienteId.value,
             fecha: new Date(fecha.value),
             nota: nota.value,
+            oc: oc.value,
             items: validItems.map(i => ({
                 producto_id: i.producto_id,
                 cantidad: parseFloat(i.cantidad),
@@ -258,14 +260,25 @@ const onInspectorClose = async () => {
                 </button>
             </div>
 
-            <div class="col-span-12 lg:col-span-5">
-                <label class="block text-xs font-bold text-slate-500 mb-1">NOTA / O.C.</label>
-                <input 
-                    type="text" 
-                    v-model="nota" 
-                    placeholder="..." 
-                    class="w-full bg-[#1e293b] border border-slate-700 rounded p-2 text-white focus:border-indigo-500 outline-none"
-                >
+            <div class="col-span-12 lg:col-span-5 flex gap-2">
+                <div class="w-1/3">
+                    <label class="block text-xs font-bold text-slate-500 mb-1">O.C.</label>
+                    <input 
+                        type="text" 
+                        v-model="oc" 
+                        placeholder="Orden Compra" 
+                        class="w-full bg-[#1e293b] border border-slate-700 rounded p-2 text-white focus:border-indigo-500 outline-none font-bold text-center"
+                    >
+                </div>
+                <div class="flex-1">
+                    <label class="block text-xs font-bold text-slate-500 mb-1">NOTA INTERNA</label>
+                    <input 
+                        type="text" 
+                        v-model="nota" 
+                        placeholder="Observaciones..." 
+                        class="w-full bg-[#1e293b] border border-slate-700 rounded p-2 text-white focus:border-indigo-500 outline-none"
+                    >
+                </div>
             </div>
         </section>
 

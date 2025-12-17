@@ -1,7 +1,8 @@
 from typing import List, Optional
 from uuid import UUID
 from datetime import datetime
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
+import re
 
 
 
@@ -78,6 +79,13 @@ class ClienteBase(BaseModel):
     datos_acceso_pagos: Optional[str] = None
     observaciones: Optional[str] = None
 
+    @field_validator('cuit')
+    @classmethod
+    def clean_cuit(cls, v: str) -> str:
+        if v:
+            return re.sub(r'[^0-9]', '', v)
+        return v
+
 class ClienteCreate(ClienteBase):
     domicilios: List[DomicilioCreate] = []
 
@@ -96,6 +104,13 @@ class ClienteUpdate(BaseModel):
     datos_acceso_pagos: Optional[str] = None
     observaciones: Optional[str] = None
     transporte_id: Optional[UUID] = None
+
+    @field_validator('cuit')
+    @classmethod
+    def clean_cuit_update(cls, v: Optional[str]) -> Optional[str]:
+        if v:
+            return re.sub(r'[^0-9]', '', v)
+        return v
 
 from backend.agenda.schemas import VinculoComercialResponse
 

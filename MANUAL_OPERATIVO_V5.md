@@ -231,3 +231,29 @@ En el Cargador Táctico, los campos numéricos (Cantidad y Precio) funcionan com
 ### 7.3 Overrides (Excepciones)
 Si un producto tiene asignado un **Precio Fijo Override**, el motor ignorará cualquier cálculo de costo/margen y usará ese valor como base inamovible ("La Roca"). Esto es útil para ofertas puntuales o productos con precio regulado.
 
+---
+
+## CAPÍTULO 8: ACCESO REMOTO MULTIJUGADOR (LAN)
+
+### 8.1 Concepto
+El sistema V5 permite que múltiples usuarios (ej: Administración + Ventas + Depósito) trabajen simultáneamente sobre la misma base de datos desde distintas computadoras de la red local (WiFi o Cable), sin necesidad de Internet.
+
+### 8.2 Cómo Iniciar (Lanzador Automático)
+Para habilitar el modo red, **NO use el comando habitual**.
+1. En la PC Principal (Servidor), cierre todas las ventanas negras.
+2. Abra una sola terminal y ejecute:
+   `.\scripts\run_lan.ps1`
+3. El sistema abrirá automáticamente el Servidor y la Web configurados para la red.
+
+### 8.3 Conexión desde otras PC
+El script mostrará una dirección IP (ej: `http://192.168.0.X:5173`).
+Ingrese esa dirección exacta en el navegador de las otras computadoras.
+
+**Usuarios Disponibles:**
+*   Administrador: `admin` / `admin123`
+*   Operador de Carga: `operador` / `operador123` (Rol restringido).
+
+### 8.4 Solución de Problemas
+*   **"Error al conectar":** Generalmente es el Firewall de Windows en la PC Principal. Ejecute el script `scripts\fix_access.ps1` como Administrador para abrir los puertos 8000 y 5173.
+*   **"Sitio no carga":** Verifique que ambas PC estén en la misma red WiFi.
+

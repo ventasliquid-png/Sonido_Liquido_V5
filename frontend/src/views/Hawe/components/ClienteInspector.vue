@@ -795,6 +795,12 @@ const save = async () => {
                 tipo: 'FISCAL'
             }]
         }
+
+        // [GY-FIX] Sanitize CUIT: Remove all separators before saving
+        // User Requirement: Allow delimiters in UI but SAVE only digits.
+        if (form.value.cuit) {
+            form.value.cuit = form.value.cuit.replace(/[^0-9]/g, '')
+        }
         
         emit('save', form.value)
         notificationStore.add(`Cliente ${props.isNew ? 'creado' : 'actualizado'} con éxito`, 'success')

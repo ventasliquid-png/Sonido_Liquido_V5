@@ -11,6 +11,10 @@
             <span v-if="selectedSegmento" class="ml-2 text-sm font-normal text-cyan-400">
                 / {{ getSegmentoName(selectedSegmento) }}
             </span>
+            <!-- Bulk Action Indicator -->
+            <span v-if="selectedIds.length > 0" class="ml-4 text-xs font-bold text-red-400 bg-red-900/20 px-2 py-1 rounded border border-red-500/30 animate-pulse">
+                {{ selectedIds.length }} SELECCIONADOS
+            </span>
         </h1>
 
         <!-- Search & Tools -->
@@ -101,6 +105,18 @@
             </button>
           </div>
 
+          <!-- Dynamic Bulk Button -->
+          <button 
+            v-if="selectedIds.length > 0"
+            @click="handleBulkAction"
+            class="ml-2 flex items-center gap-2 rounded-lg px-4 py-1.5 text-sm font-bold text-white shadow-lg transition-transform active:scale-95"
+            :class="filterStatus === 'inactive' ? 'bg-red-600 hover:bg-red-500 shadow-red-500/20' : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-500/20'"
+            :title="filterStatus === 'inactive' ? 'Eliminar Definitivamente' : 'Desactivar (Baja Lógica)'"
+          >
+            <i :class="filterStatus === 'inactive' ? 'fas fa-trash-alt' : 'fas fa-toggle-off'"></i>
+            <span class="hidden sm:inline">{{ filterStatus === 'inactive' ? `Eliminar (${selectedIds.length})` : `Desactivar (${selectedIds.length})` }}</span>
+          </button>
+
           <button 
             @click="openNewCliente"
             class="ml-2 flex items-center gap-2 rounded-lg bg-cyan-600 px-4 py-1.5 text-sm font-bold text-white shadow-lg shadow-cyan-500/20 transition-all hover:bg-cyan-500 hover:shadow-cyan-500/40"
@@ -117,7 +133,17 @@
         
         <!-- Grid View -->
         <div v-if="viewMode === 'grid'" class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-          <div v-for="cliente in filteredClientes" :key="cliente.id" class="relative w-full min-h-[140px]">
+          <div v-for="cliente in filteredClientes" :key="cliente.id" class="relative w-full min-h-[140px] group">
+            <!-- Selection Checkbox -->
+            <div class="absolute top-2 left-2 z-20" @click.stop>
+                <input 
+                    type="checkbox" 
+                    :checked="selectedIds.includes(cliente.id)" 
+                    @change="toggleSelection(cliente.id)"
+                    class="rounded bg-[#020a0f] border-cyan-500/50 text-cyan-500 focus:ring-0 focus:ring-offset-0 cursor-pointer h-5 w-5 shadow-lg shadow-black/50 opacity-50 group-hover:opacity-100 transition-opacity"
+                    :class="{ 'opacity-100': selectedIds.includes(cliente.id) }"
+                />
+            </div>
             <FichaCard
                 class="w-full"
                 :title="cliente.razon_social"
@@ -163,6 +189,9 @@
         <div v-else class="flex flex-col gap-2">
             <!-- Header Row -->
              <div class="flex items-center justify-between px-4 py-2 text-xs font-bold text-cyan-900/50 uppercase tracking-wider">
+                <div class="w-8">
+                    <input type="checkbox" :checked="isAllSelected" @click="toggleSelectAll" class="rounded bg-transparent border-cyan-800 focus:ring-0 checked:bg-cyan-500 cursor-pointer"/>
+                </div>
                 <div class="flex-1">Cliente</div>
                 <div class="w-1/4 hidden md:block">Segmento</div>
                 <div class="w-24 text-center">Estado</div>
@@ -178,6 +207,16 @@
                 class="group flex items-center justify-between p-3 rounded-lg border border-cyan-900/10 bg-cyan-900/5 hover:bg-cyan-900/10 cursor-pointer transition-colors"
                 :class="{ 'ring-1 ring-cyan-500 bg-cyan-500/10': selectedId === cliente.id }"
             >
+                <!-- Checkbox (Always Visible) -->
+                <div class="w-8 flex items-center justify-center p-2" @click.stop>
+                     <input 
+                        type="checkbox" 
+                        :checked="selectedIds.includes(cliente.id)" 
+                        @change="toggleSelection(cliente.id)"
+                        class="rounded bg-[#020a0f] border-cyan-800/50 text-cyan-500 focus:ring-0 focus:ring-offset-0 cursor-pointer h-4 w-4"
+                    />
+                </div>
+
                 <div class="flex items-center gap-4 flex-1">
                     <div class="h-10 w-10 rounded-full bg-gradient-to-br from-cyan-600 to-blue-700 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-cyan-900/20">
                         {{ cliente.razon_social.substring(0,1).toUpperCase() }}
@@ -298,6 +337,7 @@ const searchQuery = ref('')
 const filterStatus = ref('active') // Default to active
 const sortBy = ref(localStorage.getItem('hawe_sort_pref') || 'usage')
 const viewMode = ref('grid')
+const selectedIds = ref([]) // IDs for bulk actions
 const showSortMenu = ref(false)
 const showCommandPalette = ref(false)
 const showTransporteManager = ref(false)
@@ -305,6 +345,83 @@ const showTransporteManager = ref(false)
 watch(sortBy, (newVal) => {
     localStorage.setItem('hawe_sort_pref', newVal)
 })
+
+watch(filterStatus, () => {
+    selectedIds.value = [] // Clear selection on tab switch
+})
+
+const isAllSelected = computed(() => {
+    if (filteredClientes.value.length === 0) return false
+    return filteredClientes.value.every(c => selectedIds.value.includes(c.id))
+})
+
+const toggleSelection = (id) => {
+    if (selectedIds.value.includes(id)) {
+        selectedIds.value = selectedIds.value.filter(existingId => existingId !== id)
+    } else {
+        selectedIds.value = [...selectedIds.value, id]
+    }
+}
+
+const toggleSelectAll = () => {
+    if (isAllSelected.value) {
+        selectedIds.value = []
+    } else {
+        selectedIds.value = filteredClientes.value.map(c => c.id)
+    }
+}
+
+const handleBulkAction = async () => {
+    if (filterStatus.value === 'inactive') {
+        await handleBulkHardDelete()
+    } else {
+        await handleBulkSoftDelete()
+    }
+}
+
+const handleBulkSoftDelete = async () => {
+    if (!confirm(`¿Está seguro que desea DESACTIVAR ${selectedIds.value.length} clientes?`)) return
+    
+    let successCount = 0
+    for (const id of selectedIds.value) {
+        try {
+            const client = clientes.value.find(c => c.id === id)
+            if (client && client.activo) {
+                 await clienteStore.updateCliente(id, { ...client, activo: false })
+                 successCount++
+            }
+        } catch (e) {
+            console.error(`Error deactivating ${id}`, e)
+        }
+    }
+    notificationStore.add(`${successCount} clientes desactivados`, 'success')
+    selectedIds.value = []
+}
+
+const handleBulkHardDelete = async () => {
+    if (!confirm(`PELIGRO: ¿Está seguro que desea eliminar DEFINITIVAMENTE ${selectedIds.value.length} clientes? Esta acción NO se puede deshacer y borrará permanentemente los datos si no tienen pedidos.`)) return
+    
+    let successCount = 0
+    let failCount = 0
+    
+    for (const id of selectedIds.value) {
+        try {
+            await clienteStore.hardDeleteCliente(id)
+            successCount++
+        } catch (e) {
+            console.error(`Error deleting ${id}`, e)
+            failCount++
+        }
+    }
+    
+    if (successCount > 0) notificationStore.add(`${successCount} clientes eliminados definitivamente`, 'success')
+    if (failCount > 0) notificationStore.add(`${failCount} clientes no se pudieron eliminar (posiblemente tienen pedidos)`, 'error')
+    
+    selectedIds.value = [] // Clear
+    
+    // Refresh
+    clienteStore.fetchClientes()
+}
 
 // Segmento ABM Logic
 const showSegmentoModal = ref(false)

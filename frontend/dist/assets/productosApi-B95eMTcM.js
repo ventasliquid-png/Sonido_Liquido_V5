@@ -1,0 +1,1 @@
+import{K as r}from"./index-CbJ9Xo6G.js";const p={getAll(t={}){return r.get("/productos/",{params:t})},getById(t){return r.get(`/productos/${t}`)},create(t){return r.post("/productos/",t)},update(t,e){return r.put(`/productos/${t}`,e)},toggleActive(t){return r.delete(`/productos/${t}`)}};export{p};

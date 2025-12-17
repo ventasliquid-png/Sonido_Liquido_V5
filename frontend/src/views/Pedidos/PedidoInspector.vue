@@ -215,6 +215,35 @@
                          </div>
                     </div>
                 </div>
+
+                <!-- O.C. (Editable) -->
+                <div class="bg-blue-500/5 border-l-2 border-blue-500/30 p-3 rounded-r relative group/oc">
+                    <label class="block text-[10px] uppercase tracking-wider font-bold text-blue-500/70 mb-1">Orden de Compra (O.C.)</label>
+                    
+                    <div v-if="!isEditingOC" class="flex justify-between items-start">
+                         <p class="text-xs text-blue-100/80 font-mono tracking-wide min-h-[1.5rem]">{{ modelValue.oc || '-' }}</p>
+                         <button 
+                            @click="startEditingOC"
+                            class="text-blue-500/30 hover:text-blue-400 opacity-0 group-hover/oc:opacity-100 transition-opacity"
+                            title="Editar O.C."
+                        >
+                            <i class="fas fa-pencil-alt"></i>
+                        </button>
+                    </div>
+
+                    <div v-else>
+                        <input 
+                            type="text"
+                            v-model="tempOC"
+                            class="w-full bg-[#051f15] text-blue-100 border border-blue-500/30 rounded p-2 text-xs font-mono font-bold focus:outline-none focus:border-blue-500"
+                            placeholder="Nro Orden Compra..."
+                        >
+                         <div class="flex justify-end gap-2 mt-2">
+                             <button @click="cancelEditOC" class="text-xs text-white/50 hover:text-white">Cancelar</button>
+                             <button @click="saveOC" class="text-xs bg-blue-600/50 hover:bg-blue-600 text-white px-2 py-1 rounded font-bold">Guardar</button>
+                         </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Total Footer -->
@@ -441,6 +470,36 @@ const saveNote = async () => {
         hasChanges.value = true
     } catch (e) {
         notification.add('Error actualizando nota', 'error')
+    }
+}
+
+// OC Edit Logic
+const isEditingOC = ref(false)
+const tempOC = ref('')
+
+const startEditingOC = () => {
+    tempOC.value = props.modelValue.oc || ''
+    isEditingOC.value = true
+}
+
+const cancelEditOC = () => {
+    isEditingOC.value = false
+    tempOC.value = ''
+}
+
+const saveOC = async () => {
+    if (tempOC.value === props.modelValue.oc) {
+        cancelEditOC()
+        return
+    }
+    try {
+        await store.updatePedido(props.modelValue.id, { oc: tempOC.value })
+        notification.add('O.C. actualizada', 'success')
+        props.modelValue.oc = tempOC.value // Optimistic update
+        isEditingOC.value = false
+        hasChanges.value = true
+    } catch (e) {
+        notification.add('Error actualizando O.C.', 'error')
     }
 }
 

@@ -196,6 +196,22 @@ export const useProductosStore = defineStore('productos', () => {
         }
     }
 
+    async function hardDeleteProducto(id) {
+        loading.value = true;
+        try {
+            await productosApi.hardDelete(id);
+            productos.value = productos.value.filter(p => p.id !== id);
+            if (currentProducto.value && currentProducto.value.id === id) {
+                currentProducto.value = null;
+            }
+        } catch (error) {
+            console.error('Error hard deleting producto:', error);
+            throw error;
+        } finally {
+            loading.value = false;
+        }
+    }
+
     return {
         productos,
         rubros,
@@ -214,6 +230,7 @@ export const useProductosStore = defineStore('productos', () => {
         createProducto,
         updateProducto,
         toggleEstado,
+        hardDeleteProducto,
         createRubro,
         updateRubro,
         deleteRubro

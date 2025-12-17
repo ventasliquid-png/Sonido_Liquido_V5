@@ -72,7 +72,8 @@ const handleLogin = async () => {
 
         // Usamos axios directo en lugar de la instancia 'api' para evitar
         // interferencias con headers globales (application/json) o interceptores.
-        const response = await axios.post('http://localhost:8000/auth/token', params, {
+        // [DEBUG-LAN] Hardcoded IP to ensure connectivity
+        const response = await axios.post('http://192.168.0.34:8000/auth/token', params, {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
             }
