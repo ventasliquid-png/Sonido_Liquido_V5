@@ -42,6 +42,9 @@ class Cliente(Base):
     segmento_id = Column(UUID(as_uuid=True), ForeignKey("segmentos.id"), nullable=True)
     vendedor_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True) # Account Manager
     
+    # Motor de Precios V5
+    estrategia_precio = Column(String, default='MAYORISTA_FISCAL') # 'Sabor' del Cliente
+    
     # Datos financieros
     saldo_actual = Column(Numeric(18, 2), default=0.00)
     

@@ -240,25 +240,23 @@
                     </div>
 
                     <div class="w-20 text-center">
-                        <input 
-                            type="number" 
+                        <MagicInput 
                             v-model.number="item.cantidad" 
-                            class="w-16 text-center bg-transparent hover:bg-white/10 focus:bg-black/20 rounded outline-none focus:ring-1 focus:ring-emerald-500 font-mono font-bold text-white"
-                            min="0"
+                            inputClass="w-16 text-center bg-transparent hover:bg-white/10 focus:bg-black/20 rounded outline-none focus:ring-1 focus:ring-emerald-500 font-mono font-bold text-white placeholder-emerald-800"
+                            :decimals="0"
                             @focus="focusedRow = index"
-                        >
+                        />
                     </div>
                     
                     <div class="w-12 text-center text-[10px] text-emerald-600 uppercase select-none">{{ item.unidad || 'UN' }}</div>
                     
                     <div class="w-24 text-right font-mono">
-                        <input 
-                            type="number" 
+                        <MagicInput 
                             v-model.number="item.precio_unitario" 
-                            class="w-20 text-right bg-transparent hover:bg-white/10 focus:bg-black/20 outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1 text-emerald-300 text-xs"
-                            step="0.01"
+                            inputClass="w-20 text-right bg-transparent hover:bg-white/10 focus:bg-black/20 outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1 text-emerald-300 text-xs placeholder-emerald-800"
+                            :decimals="2"
                             @focus="focusedRow = index"
-                        >
+                        />
                     </div>
                     
                     <div class="w-24 text-right font-bold font-mono text-emerald-100 text-sm">
@@ -505,6 +503,7 @@ import ContextMenu from '@/components/common/ContextMenu.vue';
 import ClientHistoryPopover from '@/components/common/ClientHistoryPopover.vue';
 import ClienteInspector from '../Hawe/components/ClienteInspector.vue';
 import SimpleAbmModal from '@/components/common/SimpleAbmModal.vue';
+import MagicInput from '@/components/ui/MagicInput.vue';
 
 // STORES
 const clientesStore = useClientesStore();
@@ -1070,26 +1069,57 @@ const handleProductKeydown = (e) => {
             addProduct(filteredProducts.value[selectedProdIdx.value]);
         }
     } else if (e.key === 'Escape') {
+```
         productQuery.value = '';
         productInput.value?.blur();
     }
 };
 
-const addProduct = (p) => {
-    items.value.push({
-        _ui_id: Date.now() + Math.random(), 
-        id: p.id,
-        sku: p.sku || 'N/A',
-        nombre: p.nombre,
-        unidad: p.unidad_venta || 'UN',
+const addProduct = async (product) => {
+    // 1. Determine Initial Price (Default to stored list price)
+    let unitPrice = product.precio_sugerido || 0;
+    let note = '';
+
+    // 2. Intelligence: Quote with Backend if Client is selected
+    if (selectedClient.value && selectedClient.value.id) {
+        try {
+            const res = await apiClient.post('/pedidos/cotizar', {
+                cliente_id: selectedClient.value.id,
+                producto_id: product.id,
+                cantidad: 1
+            });
+            
+            if (res.data) {
+                // Use the Final Target Price from the Engine
+                unitPrice = res.data.precio_final_sugerido;
+                
+                // Optional: Add a subtle note if it's a special strategy?
+                // note = res.data.estrategia === 'MAYORISTA_FISCAL' ? '' : `(${res.data.estrategia})`;
+            }
+        } catch (e) {
+            console.warn("Pricing Engine Quote Failed, falling back to basic price", e);
+        }
+    }
+
+    const newItem = {
+        _ui_id: Date.now() + Math.random(), // Temp UI ID
+        producto_id: product.id,
+        sku: product.sku,
+        nombre: product.nombre,
+        unidad: product.unidad_medida || 'UN',
         cantidad: 1,
-        precio_unitario: p.precio_sugerido || 0 
-    });
+        precio_unitario: unitPrice,
+        nota: note
+    };
+
+    items.value.push(newItem);
     
+    // Reset Search
     productQuery.value = '';
-    selectedProdIdx.value = 0;
     
+    // Focus logic
     nextTick(() => {
+        focusedRow.value = items.value.length - 1;
         if (gridContainer.value) {
             gridContainer.value.scrollTop = gridContainer.value.scrollHeight;
         }

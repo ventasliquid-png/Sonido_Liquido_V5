@@ -163,3 +163,23 @@ Se consolidó el flujo de importación de datos. Se abandonó la edición direct
 
 ## Sesión 2025-12-15: La Evolución a 'Gmail Style'
 Se redefinió el concepto de Clonado a 'Borrador'. Se eliminaron las fricciones de 'preguntas al cerrar'. Se implementó la lógica de que el estado PENDIENTE es el disparador de la decisión Fiscal vs X. El sistema ahora permite iterar en borradores sin estrés y oficializar en un solo paso claro.
+
+## Sesión 2025-12-16: El Motor de Precios "Costo-Céntrico"
+**Estado:** CERRADA
+
+### Resumen
+Jornada intensiva de ingeniería financiera. Se integró el "Motor de Precios V5", reemplazando la carga manual por un sistema inteligente basado en "La Roca" (Costo Puro) y "La Máscara" (Lista inflada para descuentos).
+
+### Hitos Clave
+1.  **Cerebro de Precios (PricingEngine):**
+    *   Soporte para múltiples estrategias (Fiscal, X, MELI Clásico, Consumidor Final).
+    *   Jerarquía de Overrides: Precio Fijo Manual > Margen Producto > Margen General.
+    *   Ingeniería Inversa: Cálculo del Precio de Lista basado en el Descuento del Cliente para llegar al Target exacto.
+
+2.  **Frontend Táctico:**
+    *   **Magic Math:** Implementación de inputs tipo Excel (`100*1.21`) en Carga Táctica.
+    *   **Cotización en Tiempo Real:** `GridLoader` consulta al backend al seleccionar cliente.
+
+3.  **Verificación:**
+    *   **War Game 3.0:** Simulación exitosa de los 4 escenarios críticos de negocio.
+    *   Validación de la "Psicología de Precios" (redondeos y descuentos visibles).

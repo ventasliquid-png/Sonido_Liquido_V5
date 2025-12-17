@@ -452,3 +452,22 @@ def delete_pedido(pedido_id: int, db: Session = Depends(get_db)):
     db.delete(pedido)
     db.commit()
     return None
+
+# --- MOTOR DE PRECIOS V5 ENDPOINTS ---
+from backend.pedidos.pricing import PricingEngine
+from pydantic import BaseModel
+
+class CotizacionRequest(BaseModel):
+    cliente_id: str
+    producto_id: int
+    cantidad: float = 1.0
+
+@router.post("/cotizar")
+def cotizar_precio(req: CotizacionRequest, db: Session = Depends(get_db)):
+    """
+    Endpoint Táctico: Cotiza un producto para un cliente específico
+    usando la lógica 'La Roca y La Máscara'.
+    """
+    engine = PricingEngine(db)
+    resultado = engine.cotizar_producto(req.cliente_id, req.producto_id, req.cantidad)
+    return resultado

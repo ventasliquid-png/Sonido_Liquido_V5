@@ -76,6 +76,10 @@ class ProductoCosto(Base):
     margen_mayorista = Column(Numeric(6, 2), nullable=False)
     moneda_costo = Column(String(3), default='ARS')
     iva_alicuota = Column(Numeric(5, 2), default=21.00)
+    
+    # Motor de Precios V5
+    precio_fijo_override = Column(Numeric(12, 2), nullable=True, default=None) # Prioridad Divina
+    permitir_descuentos = Column(Boolean, default=True)
 
     # Relaciones
     producto = relationship("Producto", back_populates="costos")

@@ -201,6 +201,33 @@ Para evitar errores por datos persistentes ("Datos viejos"), se incorporaron con
     - Borra todos los ítems, deselecciona el cliente y **elimina la memoria temporal** del navegador.
     - Úselo si nota que el sistema carga información de un pedido anterior.
 
+
 2.  **Generar Excel (Toggle):**
     - Ubicado junto al botón Guardar.
     - Si está activo (Verde), al guardar el pedido se descargará automáticamente una copia en Excel.
+
+---
+
+## CAPÍTULO 7: MOTOR DE PRECIOS V5 (LA ROCA Y LA MÁSCARA)
+
+El sistema V5 abandona las listas de precio estáticas en favor de un cálculo dinámico basado en costos y estrategias.
+
+### 7.1 Filosofía de Cálculo
+El precio sugerido se construye en tres capas:
+1.  **"La Roca" (Precio Piso):** Es el valor mínimo técnico. `(Costo Reposición * (1 + Margen))` o el **Precio Fijo Manual** si existe (Prioridad Divina).
+2.  **"K-Factor" (Estrategia):** Multiplicador según el perfil del cliente.
+    *   **Mayorista Fiscal:** Aplica IVA Discriminado (21% / 10.5%).
+    *   **Mayorista X:** Aplica IVA Compartido ("Saborizado").
+    *   **MELI Clásico:** Aplica Markup (+40%) y Costo Fijo por venta.
+3.  **"La Máscara" (Ingeniería Inversa):** El sistema muestra un **Precio de Lista Inflado** calculado matemáticamente para que, tras aplicar el descuento visual prometido al cliente (ej: 20%), el precio final coincida exactamente con el objetivo de rentabilidad.
+
+### 7.2 Herramienta "Magic Math"
+En el Cargador Táctico, los campos numéricos (Cantidad y Precio) funcionan como una calculadora inteligente (estilo Excel).
+*   **Suma rápida:** Escriba `10 + 5` → Resultado: `15`.
+*   **Cálculo de IVA:** Escriba `100 * 1.21` → Resultado: `121`.
+*   **División:** Escriba `5000 / 3` → Resultado: `1666.67`.
+*   *Indicador visual:* Aparecerá un símbolo `fx` azul mientras escribe una fórmula.
+
+### 7.3 Overrides (Excepciones)
+Si un producto tiene asignado un **Precio Fijo Override**, el motor ignorará cualquier cálculo de costo/margen y usará ese valor como base inamovible ("La Roca"). Esto es útil para ofertas puntuales o productos con precio regulado.
+

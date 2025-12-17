@@ -772,3 +772,29 @@ Antes de cualquier operación de carga o mantenimiento de datos, leer el protoco
 - **UX**: Unified status control via Dropdown (Pendiente triggers Fiscal/X prompt).
 - **Fix**: Resolved CORS/500 crash due to migration script path issue.
 - **Fix**: Repaired invalid Vue template in PedidoInspector.
+
+## [2025-12-16] Implementación Motor de Precios V5
+
+### Contexto
+El usuario requería formalizar la lógica de "precios sugeridos" que hasta ahora era mental. Se definió la doctrina "La Roca y La Máscara" para manejar la dualidad entre Costo Real y Precio de Lista (Vidriera).
+
+### Cambios Técnicos
+1.  **Base de Datos:**
+    *   `productos_costos`: Agregado `precio_fijo_override` (Numeric), `permitir_descuentos` (Bool).
+    *   `clientes`: Agregado `estrategia_precio` (String/Enum).
+    *   Script de migración: `scripts/update_db_pricing_engine.py`.
+
+2.  **Backend:**
+    *   Nueva clase `backend.pedidos.pricing.PricingEngine`.
+    *   Nuevo endpoint `POST /pedidos/cotizar`.
+    *   Lógica de escenarios (K-Factors): `MAYORISTA_FISCAL`, `MAYORISTA_X`, `MELI_CLASICO`.
+
+3.  **Frontend (`GridLoader`):**
+    *   Integración con endpoint de cotización.
+    *   Componente `MagicInput.vue`: Input que evalúa expresiones matemáticas (`eval` sanitizado local).
+
+### Verificación
+Script `scripts/war_game_pricing_v5_fix.py` ejecutado con éxito.
+- Validado cálculo reverso de descuentos.
+- Validado markup de MELI.
+- Validado override de precios fijos.
