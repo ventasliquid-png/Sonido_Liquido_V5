@@ -39,7 +39,6 @@ def push_to_cloud():
                             print(f"  [UPD] {nombre}")
                         else:
                             # Insert (Minimal)
-                            # UUID generation in Postgres default?
                             ins_sql = text("""
                                 INSERT INTO clientes (id, razon_social, cuit, activo, created_at, updated_at)
                                 VALUES (gen_random_uuid(), :nombre, :cuit, true, NOW(), NOW())
@@ -64,9 +63,7 @@ def push_to_cloud():
                 print(f"Subiendo {len(df_prod)} productos...")
                  # Iterate and Upsert
                 with engine.connect() as conn:
-                     # Get Rubro Default ID from Cloud? 
-                     # We assume Rubro 'GENERAL' exists or handle it?
-                     # Let's check/create Rubro 'GENERAL' on Cloud first
+                     # Check/Create Rubro 'GENERAL' on Cloud first
                      rubro_sql = text("SELECT id FROM rubros WHERE nombre = 'GENERAL'")
                      rubro_id = conn.execute(rubro_sql).scalar()
                      
@@ -98,9 +95,9 @@ def push_to_cloud():
                      conn.commit()
                 print("✅ Productos sincronizados.")
             else:
-                 print("⚠ productos_master.csv está vacío.")
+                 print("⚠ PRODUCTOS_MAESTRO_LATEST.csv está vacío.")
         else:
-             print("⚠ No se encontró productos_master.csv")
+             print("⚠ No se encontró PRODUCTOS_MAESTRO_LATEST.csv")
 
     except Exception as e:
         print("\n❌ FALLO LA SINCRONIZACIÓN A LA NUBE.")
