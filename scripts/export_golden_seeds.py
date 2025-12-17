@@ -131,7 +131,7 @@ def run_export():
     for table in TABLAS_CRITICAS:
         export_table(engine, table, timestamp)
         
-    cleanup_old_backups()
+    # cleanup_old_backups()
     
     print("="*60)
     print(f"✨ Proceso Finalizado. Semillas guardadas en: {OUTPUT_DIR}\n")
