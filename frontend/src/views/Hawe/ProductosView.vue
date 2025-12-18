@@ -11,10 +11,21 @@
           <h1 class="font-outfit text-2xl font-bold text-white">
             <i class="fas fa-boxes mr-2 text-rose-500"></i> Productos
           </h1>
-          <!-- Bulk Action Indicator -->
-          <span v-if="selectedIds.length > 0" class="ml-4 text-xs font-bold text-red-400 bg-red-900/20 px-2 py-1 rounded border border-red-500/30 animate-pulse">
-              {{ selectedIds.length }} SELECCIONADOS
-          </span>
+          <!-- Bulk Action Indicator & Button -->
+          <div v-if="selectedIds.length > 0" class="flex items-center gap-2 ml-4">
+              <span class="text-xs font-bold text-red-400 bg-red-900/20 px-2 py-1 rounded border border-red-500/30 animate-pulse">
+                  {{ selectedIds.length }} SELECCIONADOS
+              </span>
+              <button 
+                @click="handleBulkAction"
+                class="flex items-center gap-2 rounded-lg px-3 py-1 text-xs font-bold text-white shadow-lg transition-transform active:scale-95"
+                :class="filterStatus === 'inactive' ? 'bg-red-600 hover:bg-red-500 shadow-red-500/20' : 'bg-orange-600 hover:bg-orange-500 shadow-orange-500/20'"
+                :title="filterStatus === 'inactive' ? 'Eliminar Definitivamente' : 'Desactivar (Baja Lógica)'"
+              >
+                <i :class="filterStatus === 'inactive' ? 'fas fa-trash-alt' : 'fas fa-archive'"></i>
+                <span>{{ filterStatus === 'inactive' ? `Eliminar` : `Baja` }}</span>
+              </button>
+          </div>
           
           <!-- Search -->
           <div class="relative w-64 group">
@@ -118,23 +129,16 @@
           </div>
 
           <!-- New Button -->
-            <span>Nuevo</span>
-          </button>
-
-            <span>Nuevo</span>
-          </button>
-
-          <!-- Dynamic Bulk Button -->
+          <!-- New Button -->
           <button 
-            v-if="selectedIds.length > 0"
-            @click="handleBulkAction"
-            class="ml-2 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-white shadow-lg transition-transform active:scale-95"
-            :class="filterStatus === 'inactive' ? 'bg-red-600 hover:bg-red-500 shadow-red-500/20' : 'bg-orange-600 hover:bg-orange-500 shadow-orange-500/20'"
-            :title="filterStatus === 'inactive' ? 'Eliminar Definitivamente' : 'Desactivar (Baja Lógica)'"
+            @click="createNew"
+            class="flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-rose-500/20 transition-transform active:scale-95 hover:bg-rose-500"
           >
-            <i :class="filterStatus === 'inactive' ? 'fas fa-trash-alt' : 'fas fa-archive'"></i>
-            <span class="hidden sm:inline">{{ filterStatus === 'inactive' ? `Eliminar (${selectedIds.length})` : `Baja (${selectedIds.length})` }}</span>
+            <i class="fas fa-plus"></i>
+            <span>Nuevo</span>
           </button>
+
+
         </div>
       </div>
 
@@ -393,23 +397,38 @@ const handleBulkSoftDelete = async () => {
     if (!confirm(`¿Está seguro que desea dar de BAJA (desactivar) a ${selectedIds.value.length} productos?`)) return
     
     let successCount = 0
+    let failCount = 0
+    
+    productosStore.loading = true
+    
     for (const id of selectedIds.value) {
         try {
             // Check status locally
             const p = productosStore.productos.find(prod => prod.id === id)
+            // Even if p.activo is false locally, maybe we want to ensure? 
+            // PRO TIP: User might have filtered by 'All' and wants to deactivate.
+            // If p.activo is true, we deactivate.
             if (p && p.activo) {
                 await productosStore.toggleEstado(id) 
-                // toggleEstado handles notification, maybe too spammy? 
-                // store handles 'Error', 'Success'.
                 successCount++
             }
         } catch (e) {
             console.error(e)
+            failCount++
         }
     }
-    notificationStore.add(`${successCount} productos desactivados`, 'success')
+    
+    productosStore.loading = false
+    
+    if (successCount > 0) notificationStore.add(`${successCount} productos desactivados correctamente`, 'success')
+    if (failCount > 0) notificationStore.add(`Falló la desactivación de ${failCount} productos`, 'error')
+    
     selectedIds.value = []
-    productosStore.fetchProductos()
+    
+    // Force wait for DB commit propagation
+    setTimeout(() => {
+        productosStore.fetchProductos()
+    }, 500)
 }
 
 const handleBulkHardDelete = async () => {
@@ -435,9 +454,17 @@ const handleBulkHardDelete = async () => {
 }
 
 const selectProducto = async (producto) => {
-    selectedId.value = producto.id
-    await productosStore.fetchProductoById(producto.id)
-    showInspector.value = true
+    try {
+        selectedId.value = producto.id
+        // Show inspector immediately with loading state (if supported) or keep stale until loaded?
+        // Let's force show to ensure aside opens
+        showInspector.value = true
+        
+        await productosStore.fetchProductoById(producto.id)
+    } catch (e) {
+        alert('Error cargando producto: ' + e.message)
+        console.error(e)
+    }
 }
 
 const createNew = () => {
@@ -486,30 +513,44 @@ const handleSave = async (payload) => {
 }
 
 const handleToggleActive = async (producto) => {
-    const newStatus = !producto.activo
-    if (producto.activo && !newStatus) {
+    // Optimistic UI Update Logic could be here, but let's rely on server for safety
+    const oldStatus = producto.activo;
+    const newStatus = !oldStatus;
+    
+    if (oldStatus && !newStatus) {
          if (!confirm(`¿Está seguro de desactivar el producto "${producto.nombre}"?`)) return
     }
     
-    await productosStore.toggleEstado(producto.id)
-    
-    // Auto-refresh: If we are filtering by Active/Inactive, and the product status no longer matches the filter,
-    // we should remove it from the view (or refresh).
-    // filters.activo is: true (Actives), false (Inactives), null (All)
-    
-    const currentFilter = productosStore.filters.activo;
-    
-    if (currentFilter !== null) { // Only if we are filtering
-        // If filter is Active (true) and product became Inactive (false) -> mismatch
-        // If filter is Inactive (false) and product became Active (true) -> mismatch
-        if (currentFilter !== newStatus) {
-             // Refresh list to remove the item
-             await productosStore.fetchProductos()
-             // If we were inspecting this product, close it because it disappeared
-             if (selectedId.value === producto.id) {
-                 closeInspector()
-             }
+    try {
+        console.log(`[Frontend] Toggling product ${producto.id} from ${oldStatus} to ${newStatus}`);
+        await productosStore.toggleEstado(producto.id)
+        
+        // Force strict reactivity update
+        // The store should have updated the item in the list, but let's verify
+        
+        const currentFilter = productosStore.filters.activo;
+        
+        // Always refresh if we are in a filtered view to ensure consistency
+        if (currentFilter !== null) {
+            console.log('[Frontend] Refreshing list due to filter mismatch...');
+            // Add small delay to allow DB commit propagation
+            setTimeout(async () => {
+                await productosStore.fetchProductos()
+                
+                // Close inspector if item disappeared from current view
+                if (selectedId.value === producto.id) {
+                     // Check if it still exists in the fetched list
+                     const exists = productosStore.productos.find(p => p.id === producto.id);
+                     if (!exists) {
+                         closeInspector()
+                     }
+                }
+            }, 200);
         }
+    } catch (e) {
+        console.error('[Frontend] Error executing toggle:', e);
+        // Revert optimistic update if we did one (we didn't yet)
+        alert('Error al cambiar estado: ' + e.message);
     }
 }
 

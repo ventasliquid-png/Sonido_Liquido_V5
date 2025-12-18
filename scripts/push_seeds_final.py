@@ -5,7 +5,8 @@ import os
 import sys
 
 # Hardcoded connection for recovery (Same as harvest)
-CLOUD_DB_URL = "postgresql://postgres:Spawn1482.@104.197.57.226:5432/postgres?sslmode=require"
+DB_PASSWORD = os.getenv('DB_PASSWORD')
+CLOUD_DB_URL = f"postgresql://postgres:{DB_PASSWORD}@104.197.57.226:5432/postgres?sslmode=require"
 DATA_DIR = r"c:\dev\Sonido_Liquido_V5\SEMILLAS_MAESTRAS"
 
 def push_to_cloud():

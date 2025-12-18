@@ -8,7 +8,7 @@ import sys
 # --- CONFIGURACIÓN IOWA (DESTINO) ---
 IOWA_HOST = "104.197.57.226"
 IOWA_USER = "postgres"
-IOWA_PASS = "Spawn1482."
+IOWA_PASS = os.getenv('DB_PASSWORD')
 IOWA_DB = "postgres"
 
 # --- CONFIGURACIÓN PILOTO (ORIGEN) ---

@@ -4,9 +4,10 @@ from urllib.parse import quote_plus
 
 def check_iowa():
     # Credentials from database.py hardcode
+    import os
     host = "104.197.57.226"
     user = "postgres"
-    password = "Spawn1482."
+    password = os.getenv('DB_PASSWORD')
     dbname = "postgres"
     
     print(f"Connecting to IOWA ({host})...")

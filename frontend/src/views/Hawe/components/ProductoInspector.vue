@@ -288,12 +288,18 @@
           </button>
           
           <button 
-            v-if="localProducto.id"
+            v-if="localProducto.id && localProducto.activo"
             @click="toggleActive"
-            class="px-3 py-2 rounded-lg border border-white/10 hover:bg-white/10 text-white/50 hover:text-white transition-colors"
-            :title="localProducto.activo ? 'Desactivar' : 'Reactivar'"
+            class="px-4 py-2 rounded-lg text-red-400 hover:bg-red-900/20 hover:text-red-300 text-sm font-medium transition-colors border border-transparent hover:border-red-500/30"
           >
-            <i class="fas" :class="localProducto.activo ? 'fa-trash' : 'fa-undo'"></i>
+            Dar de Baja
+          </button>
+          <button 
+            v-if="localProducto.id && !localProducto.activo"
+            @click="toggleActive"
+            class="px-4 py-2 rounded-lg text-green-400 hover:bg-green-900/20 hover:text-green-300 text-sm font-medium transition-colors border border-transparent hover:border-green-500/30"
+          >
+            Activar
           </button>
       </div>
     </div>
@@ -404,7 +410,7 @@ const save = () => {
 
 const toggleActive = () => {
     if (localProducto.value) {
-        emit('toggle-active', localProducto.value.id)
+        emit('toggle-active', localProducto.value)
     }
 }
 

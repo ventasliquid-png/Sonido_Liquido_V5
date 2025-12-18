@@ -137,19 +137,22 @@ export const useProductosStore = defineStore('productos', () => {
     async function toggleEstado(id) {
         loading.value = true;
         try {
-            await productosApi.toggleActive(id);
+            const response = await productosApi.toggleActive(id);
+            const updatedProducto = response.data;
+
             // Actualizar estado localmente
             const index = productos.value.findIndex(p => p.id === id);
             if (index !== -1) {
-                productos.value[index].activo = !productos.value[index].activo;
+                productos.value[index] = updatedProducto;
             }
             if (currentProducto.value && currentProducto.value.id === id) {
-                currentProducto.value.activo = !currentProducto.value.activo;
+                currentProducto.value = updatedProducto;
             }
             notificationStore.add('Estado del producto actualizado', 'success');
         } catch (error) {
             console.error('Error toggling producto status:', error);
             notificationStore.add('Error al cambiar estado del producto', 'error');
+            throw error; // Propagate error for bulk actions
         } finally {
             loading.value = false;
         }

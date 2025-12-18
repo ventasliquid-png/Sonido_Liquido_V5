@@ -14,8 +14,7 @@ export default {
         return api.put(`/productos/${id}`, data);
     },
     toggleActive(id) {
-        // Asumiendo que el endpoint DELETE hace Soft Delete (toggle activo)
-        return api.delete(`/productos/${id}`);
+        return api.post(`/productos/${id}/toggle`);
     },
     hardDelete(id) {
         return api.delete(`/productos/${id}/hard`);

@@ -4,9 +4,10 @@ import time
 from datetime import datetime
 
 def monitor_iowa():
+    import os
     host = "104.197.57.226"
     user = "postgres"
-    password = "Spawn1482."
+    password = os.getenv('DB_PASSWORD')
     dbname = "postgres"
     
     print(f"[{datetime.now().strftime('%H:%M:%S')}] Monitoring IOWA connection...")

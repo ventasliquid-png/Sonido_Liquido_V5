@@ -1,8 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  // [DEBUG-LAN] Hardcoded IP to ensure connectivity
-  baseURL: 'http://192.168.0.34:8000',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
   headers: {
     'Content-Type': 'application/json',
   },

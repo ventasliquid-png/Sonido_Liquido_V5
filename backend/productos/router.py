@@ -253,12 +253,15 @@ def calculate_prices(producto: models.Producto):
 
 from decimal import Decimal
 
-@router.get("/")
+from typing import List, Optional
+
+@router.get("/", response_model=List[schemas.ProductoRead])
 def read_productos(
     skip: int = 0, 
     limit: int = 1000, 
     activo: Optional[bool] = None, 
     rubro_id: Optional[int] = None,
+    search: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     try:
@@ -266,10 +269,31 @@ def read_productos(
         
         # Apply Filters
         if activo is not None:
+            print(f"Filtering by activo={activo}")
             query = query.filter(models.Producto.activo == activo)
         
         if rubro_id is not None:
             query = query.filter(models.Producto.rubro_id == rubro_id)
+
+        if search:
+            from sqlalchemy import or_
+            search_term = f"%{search}%"
+            # Try to convert to int for SKU search
+            sku_val = None
+            if search.isdigit():
+                sku_val = int(search)
+            
+            if sku_val is not None:
+                 query = query.filter(or_(
+                    models.Producto.nombre.ilike(search_term),
+                    models.Producto.codigo_visual.ilike(search_term),
+                    models.Producto.sku == sku_val
+                ))
+            else:
+                query = query.filter(or_(
+                    models.Producto.nombre.ilike(search_term),
+                    models.Producto.codigo_visual.ilike(search_term)
+                ))
 
         productos = query.offset(skip).limit(limit).all()
         
@@ -277,16 +301,9 @@ def read_productos(
         for p in productos:
             calculate_prices(p)
             
-        # Minimal debug return
-        return [
-            {
-                "id": p.id, 
-                "nombre": p.nombre,
-                "sku": p.sku,
-                "precio_costo": p.costos.costo_reposicion if p.costos else 0
-            } 
-            for p in productos
-        ]
+        # [FIX] Return full Schema objects instead of minimal debug dict
+        # Pydantic will handle the conversion from ORM models to JSON
+        return productos
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -349,14 +366,29 @@ def update_producto(producto_id: int, producto: schemas.ProductoUpdate, db: Sess
     db.refresh(db_producto)
     return calculate_prices(db_producto)
 
-@router.delete("/{producto_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_producto(producto_id: int, db: Session = Depends(get_db)):
+@router.post("/{producto_id}/toggle", response_model=schemas.ProductoRead)
+def toggle_producto_status(producto_id: int, db: Session = Depends(get_db)):
     db_producto = db.query(models.Producto).filter(models.Producto.id == producto_id).first()
     if not db_producto:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     
     db_producto.activo = not db_producto.activo
     db.commit()
+    db.refresh(db_producto)
+    return calculate_prices(db_producto)
+
+@router.delete("/{producto_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_producto(producto_id: int, db: Session = Depends(get_db)):
+    print(f"--- DELETE REQUEST FOR ID {producto_id} ---")
+    db_producto = db.query(models.Producto).filter(models.Producto.id == producto_id).first()
+    if not db_producto:
+        print("Product not found")
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    
+    current_status = db_producto.activo
+    db_producto.activo = not current_status
+    db.commit()
+    print(f"Toggled Product {producto_id} from {current_status} to {db_producto.activo}")
     return None
 
 @router.delete("/{producto_id}/hard", status_code=status.HTTP_204_NO_CONTENT)

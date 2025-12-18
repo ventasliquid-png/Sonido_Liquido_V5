@@ -3,9 +3,10 @@ import psycopg2
 from urllib.parse import quote_plus
 
 # Credentials found in backend/core/database.py
+import os
 HOST = "104.197.57.226"
 USER = "postgres"
-PASS = "Spawn1482."
+PASS = os.getenv('DB_PASSWORD')
 DB_NAME = "postgres"
 
 def audit_db():

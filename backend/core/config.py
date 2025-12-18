@@ -28,4 +28,15 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 1500 # 1500 minutos (25 horas)
 
 # --- [FIN FASE 10.E] ---
 
-print("--- [Atenea V10.E]: Core/Config (IA y Seguridad JWT) cargado. ---")
+# --- 4. CORS Config ---
+CORS_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+    "http://localhost",
+    "http://127.0.0.1"
+]
+
+print("--- [Atenea V10.E]: Core/Config (IA, Seguridad JWT, CORS) cargado. ---")

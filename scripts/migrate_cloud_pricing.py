@@ -6,7 +6,8 @@ from sqlalchemy import create_engine, text, inspect
 sys.path.append(os.getcwd())
 
 # Hardcoded Cloud URL (IOWA)
-CLOUD_DB_URL = "postgresql://postgres:Spawn1482.@104.197.57.226:5432/postgres?sslmode=require"
+DB_PASSWORD = os.getenv('DB_PASSWORD')
+CLOUD_DB_URL = f"postgresql://postgres:{DB_PASSWORD}@104.197.57.226:5432/postgres?sslmode=require"
 
 def migrate_cloud():
     print(f"--- INICIANDO MIGRACION CLOUD (IOWA) - MOTOR DE PRECIOS V5 ---")

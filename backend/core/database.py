@@ -31,7 +31,7 @@ def _get_clean_database_url():
         # [GY-FIX] Hardcode de seguridad: Priorizar LOCAL si falla ENV
         print("⚠️  DATABASE_URL no encontrada en .env. Usando SQLITE LOCAL (pilot.db).")
         url_candidate = "sqlite:///./pilot.db"
-        # url_candidate = "postgresql://postgres:Spawn1482.@104.197.57.226:5432/postgres?sslmode=require"
+        # url_candidate = "postgresql://postgres:***SECRET***@104.197.57.226:5432/postgres?sslmode=require"
 
     # 3. Parsear para asegurar que la contraseña esté bien (aunque venga del file)
     try:
@@ -39,7 +39,7 @@ def _get_clean_database_url():
         
         # Extracción de componentes
         user = parsed.username or "postgres"
-        password = parsed.password or "Spawn1482."
+        password = parsed.password or os.getenv("DB_PASSWORD")
         host = parsed.hostname or "104.197.57.226" # Forzar nueva IP si falla parseo
         port = parsed.port or "5432"
         dbname = parsed.path.lstrip("/") or "postgres"
@@ -70,7 +70,10 @@ DATABASE_URL = _get_clean_database_url()
 # Actualizamos os.environ para que otras libs (como alembic o scripts) la vean correcta
 os.environ["DATABASE_URL"] = DATABASE_URL
 
-engine = create_engine(DATABASE_URL)
+if "sqlite" in DATABASE_URL:
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+else:
+    engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 

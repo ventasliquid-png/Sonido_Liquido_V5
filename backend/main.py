@@ -321,22 +321,15 @@ app = FastAPI(
 
 
 # --- 2. CORS Config ---
-origins = [
-    "http://localhost:5173",
-    "http://localhost:5174",
-    "http://localhost:3000",
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:5174",
-    "http://localhost",
-    "http://127.0.0.1",
-    "*" # [DEV] Allow All for LAN Access
-]
+from backend.core import config as app_config
+
+origins = app_config.CORS_ORIGINS # [FIX] Remove wildcard to allow credentials
 
 print(f"--- [CORS Config] Allowed Origins: {origins} ---")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Force Wildcard for LAN
+    allow_origins=origins, # Use explicit list for credentials support
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -4,11 +4,11 @@ import sqlite3
 import pandas as pd
 import uuid
 
-# Config
+import os
 IOWA_CONFIG = {
     "host": "104.197.57.226",
     "user": "postgres",
-    "password": "Spawn1482.",
+    "password": os.getenv('DB_PASSWORD'),
     "dbname": "postgres",
     "sslmode": "require"
 }

@@ -5,11 +5,12 @@ import pandas as pd
 import uuid
 import datetime
 
+import os
 # Config
 IOWA_CONFIG = {
     "host": "104.197.57.226",
     "user": "postgres",
-    "password": "Spawn1482.",
+    "password": os.getenv('DB_PASSWORD'),
     "dbname": "postgres",
     "sslmode": "require"
 }

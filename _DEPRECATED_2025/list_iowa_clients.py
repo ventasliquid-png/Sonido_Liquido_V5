@@ -3,9 +3,10 @@ import psycopg2
 import pandas as pd
 
 def list_iowa_clients():
+    import os
     host = "104.197.57.226"
     user = "postgres"
-    password = "Spawn1482."
+    password = os.getenv('DB_PASSWORD')
     dbname = "postgres"
     
     try:

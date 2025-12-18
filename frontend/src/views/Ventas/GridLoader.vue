@@ -326,7 +326,7 @@
         <!-- === ZONA C: PIE (LIQUIDACIÓN) === -->
         <footer 
             class=" relative z-40 px-6 py-4 border-t border-emerald-900/30 shadow-[0_-4px_20px_rgba(0,0,0,0.2)] transition-colors"
-            :class="form.tipo === 'PEDIDO' ? 'bg-[#061816]' : 'bg-[#0f0a1e]'"
+            :class="form.estado === 'PENDIENTE' ? 'bg-[#061816]' : 'bg-[#0f0a1e]'"
         >
             <!-- OVERRIDE LOGISTICA -->
             <div class="absolute -top-3 left-6">
@@ -1069,7 +1069,7 @@ const handleProductKeydown = (e) => {
             addProduct(filteredProducts.value[selectedProdIdx.value]);
         }
     } else if (e.key === 'Escape') {
-```
+
         productQuery.value = '';
         productInput.value?.blur();
     }

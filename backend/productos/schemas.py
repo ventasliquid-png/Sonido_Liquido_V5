@@ -38,7 +38,7 @@ class RubroRead(RubroBase):
     productos_count: int = 0
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # Necesario para la recursividad
 RubroRead.update_forward_refs()
@@ -59,7 +59,7 @@ class ProductoCostoRead(ProductoCostoBase):
     producto_id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # --- PRODUCTOS ---
 
@@ -98,7 +98,7 @@ class ProductoUpdate(ProductoBase):
 
 class ProductoRead(ProductoBase):
     id: int
-    sku: int
+    sku: Optional[int] = None
     created_at: datetime
     rubro: Optional[RubroRead] = None
     costos: Optional[ProductoCostoRead] = None
@@ -109,7 +109,7 @@ class ProductoRead(ProductoBase):
     precio_minorista: Optional[Decimal] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
     @validator('precio_mayorista', always=True, pre=True)
     def calculate_precio_mayorista(cls, v, values):
@@ -132,12 +132,12 @@ class ProductoRead(ProductoBase):
 class RubroReadSimple(RubroBase):
     id: int
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class ProductoReadSimple(ProductoBase):
     id: int
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class RubroDependency(BaseModel):
     rubros_hijos: List[RubroReadSimple] = []
