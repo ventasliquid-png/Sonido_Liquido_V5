@@ -32,7 +32,12 @@ export const useProductosStore = defineStore('productos', () => {
             if (params.rubro_id === null) delete params.rubro_id;
 
             const response = await productosApi.getAll(params);
-            productos.value = response.data;
+            if (Array.isArray(response.data)) {
+                productos.value = response.data;
+            } else {
+                console.error("API Error (Productos): Expected Array but got", typeof response.data, response.data);
+                productos.value = [];
+            }
         } catch (error) {
             console.error('Error fetching productos:', error);
             notificationStore.add('Error al cargar productos', 'error');

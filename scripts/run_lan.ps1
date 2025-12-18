@@ -15,8 +15,17 @@ Write-Host "Iniciando Backend..." -ForegroundColor Magenta
 Start-Process powershell -ArgumentList "uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload"
 
 # 4. Lanzar Frontend (en nueva ventana)
+# [GY-FIX] Escribir .env.local para asegurar que Vite lo tome
+# [GY-FIX-ARCH] Configuramos VITE_API_URL vacío para forzar que use el Proxy (relativo)
+# De esta forma, el browser remoto le pide todos los datos al Frontend Server (5173)
+# y el Frontend Server los reenvia internamente a localhost:8000.
+# Esto elimina problemas de CORS y de IPs visibles.
+$envContent = "VITE_API_URL="
+Set-Content -Path "frontend\.env.local" -Value $envContent
+Write-Host "Configuración PROXY guardada en frontend\.env.local (API Relative Mode)" -ForegroundColor Yellow
+
 Write-Host "Iniciando Frontend..." -ForegroundColor Magenta
-Start-Process powershell -ArgumentList "cd frontend; $env:VITE_API_URL='http://$ip:8000'; npm run dev -- --host"
+Start-Process powershell -ArgumentList "cd frontend; npm run dev -- --host"
 
 # 5. Instrucciones
 Write-Host "`n--- LISTO ---" -ForegroundColor Green

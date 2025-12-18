@@ -330,6 +330,7 @@ print(f"--- [CORS Config] Allowed Origins: {origins} ---")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins, # Use explicit list for credentials support
+    allow_origin_regex='https?://(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}).*', # [GY-FIX] LAN Support
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

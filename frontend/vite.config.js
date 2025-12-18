@@ -8,6 +8,23 @@ export default defineConfig({
 
   // --- [INICIO PARCHE V10.E (Filtrado de Ruido)] ---
   server: {
+    host: true, // Allow LAN access (Listen on 0.0.0.0)
+    proxy: {
+      // [GY-LAN-ARCH] Proxy API requests to Backend running on localhost:8000
+      // This solves CORS and LAN IP configuration issues permanently.
+      '/clientes': { target: 'http://localhost:8000', changeOrigin: true },
+      '/productos': { target: 'http://localhost:8000', changeOrigin: true },
+      '/pedidos': { target: 'http://localhost:8000', changeOrigin: true },
+      '/maestros': { target: 'http://localhost:8000', changeOrigin: true },
+      '/auth': { target: 'http://localhost:8000', changeOrigin: true },
+      '/logistica': { target: 'http://localhost:8000', changeOrigin: true },
+      '/agenda': { target: 'http://localhost:8000', changeOrigin: true },
+      '/proveedores': { target: 'http://localhost:8000', changeOrigin: true },
+      '/data_intel': { target: 'http://localhost:8000', changeOrigin: true },
+      '/docs': { target: 'http://localhost:8000', changeOrigin: true },
+      '/openapi.json': { target: 'http://localhost:8000', changeOrigin: true },
+      '/atenea': { target: 'http://localhost:8000', changeOrigin: true },
+    },
     watch: {
       // Ignorar directorios que generan "ruido" en la consola
       ignored: [

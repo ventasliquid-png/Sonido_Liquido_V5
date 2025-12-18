@@ -54,8 +54,39 @@ La base de datos activa (pilot.db) NO viaja sola. Para que el trabajo del dÃ­a s
 *   **El Efecto**: Esto crea una copia con fecha en `_BACKUPS_IOWA/`. Ese es el archivo que sube al CamiÃ³n (Git).
 *   **Consecuencia**: Si no se ejecuta este script, el trabajo del dÃ­a MUERE en la PC local.
 
-### 3. SITUACIÃ“N TÃCTICA ACTUAL (Snapshot 18-Dic)
+### 3. SITUACIÃ“N TÃCTICA ACTUAL (Snapshot 18-Dic - CORREGIDO)
 *   **Clientes**: 135 (Depurado y limpio).
-*   **Productos**: ~303 (Limpieza parcial).
-*   **Entorno**: Estamos en OFICINA, operando sobre una copia restaurada correctamente desde CA.
+*   **Productos**: 173 (Purga ejecutada).
+*   **Entorno**: OFICINA.
+*   **Cargador TÃ¡ctico (`GridLoader`)**: **OPERATIVO (v5.4)**.
+    *   Incluye: NavegaciÃ³n Teclado, BÃºsqueda Inteligente, OC, LogÃ­stica, Cotizador.
+    *   Pendiente: GeneraciÃ³n de Excel (BotÃ³n existe, lÃ³gica no).
 
+
+
+## SESIÓN 2025-12-18 (TARDE): LAN Access & Domicile Fixes
+
+### 1. Conquista de la Red Local (LAN)
+*   **Problema:** El frontend fallaba al acceder desde otra PC (Network Error, TypeError: filter is not a function) debido a CORS y configuración de IP.
+*   **Solución (Capa 8):** Se implementó una arquitectura de *Proxy Inverso en Vite*.
+    *   vite.config.js: Redirecciona /api -> localhost:8000.
+    *   run_lan.ps1: Inyecta VITE_API_URL='' (path relativo) para obligar al navegador a usar el proxy.
+    *   main.py: Se flexibilizó CORS (allow_origin_regex) para aceptar IPs dinámicas (192.168.X.X).
+*   **Resultado:** Acceso fluido desde cualquier PC de la red.
+
+### 2. Estabilización de Domicilios (Bug Hunt)
+*   **Bug Ghost Domiciles (Error 500):**
+    *   **Síntoma:** Al crear un domicilio, el backend tiraba Error 500 pero el registro SE GUARDABA.
+    *   **Causa:** create_domicilio devolvía un objeto Domicilio, pero el Router esperaba un ClienteResponse (Schema Mismatch).
+    *   **Fix:** Se modificó el service para devolver el Cliente actualizado tras la inserción.
+*   **Bug Invisibilidad de Bajas:**
+    *   **Síntoma:** Los domicilios borrados (Inactivos) seguían apareciendo en la lista de ClienteInspector.
+    *   **Fix:** Se aplicó un filtro explícito .filter(d => d.activo !== false) en el frontend (ClienteInspector.vue).
+
+### 3. Preparación Motor de Precios (La Roca)
+*   **Estado:** Base de datos con costos en 0.
+*   **Estrategia:** Se diseñó el *Importador Masivo de Costos*.
+*   **Plan (Para Turno Noche - Entorno CA):**
+    *   Implementar Endpoint POST /productos/import/costos.
+    *   Implementar Modal de Carga en Frontend.
+    *   Documento Rector: implementation_plan.md (Ya creado en Brain).

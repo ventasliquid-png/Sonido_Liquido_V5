@@ -296,10 +296,16 @@ class ClienteService:
             provincia_id=prov_id,
             cliente_id=cliente_id
         )
-        db.add(db_domicilio)
-        db.commit()
-        db.refresh(db_domicilio)
-        return db_domicilio
+        try:
+            db.add(db_domicilio)
+            db.commit()
+            db.refresh(db_domicilio)
+            # [GY-FIX] Return the full CLIENT as expected by Router response_model=ClienteResponse
+            return ClienteService.get_cliente(db, cliente_id)
+        except Exception as e:
+            db.rollback()
+            print(f"❌ ERROR CREATE_DOMICILIO: {str(e)}")
+            raise HTTPException(status_code=400, detail=f"Error al guardar domicilio: {str(e)}")
 
     @staticmethod
     def update_domicilio(db: Session, domicilio_id: UUID, domicilio_in: schemas.DomicilioUpdate) -> Optional[Domicilio]:

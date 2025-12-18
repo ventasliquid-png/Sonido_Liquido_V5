@@ -15,7 +15,13 @@ export const useClientesStore = defineStore('clientes', {
             this.loading = true;
             try {
                 const response = await clientesService.getAll(params);
-                this.clientes = response.data;
+                if (Array.isArray(response.data)) {
+                    this.clientes = response.data;
+                } else {
+                    console.error("API Error: Expected Array but got", typeof response.data, response.data);
+                    // [GY-FIX] Prevent App Crash if API returns HTML (Index.html)
+                    this.clientes = [];
+                }
             } catch (error) {
                 this.error = error;
                 console.error('Error fetching clientes:', error);

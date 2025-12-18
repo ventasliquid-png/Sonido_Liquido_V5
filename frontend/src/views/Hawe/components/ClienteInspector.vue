@@ -392,11 +392,14 @@ const provincias = computed(() => maestrosStore.provincias)
 const transportes = computed(() => maestrosStore.transportes)
 const sortedDomicilios = computed(() => {
     if (!form.value.domicilios) return []
-    return [...form.value.domicilios].sort((a, b) => {
-        if (a.es_fiscal && !b.es_fiscal) return -1
-        if (!a.es_fiscal && b.es_fiscal) return 1
-        return (a.alias || a.calle || '').localeCompare(b.alias || b.calle || '')
-    })
+    // [GY-FIX] Filter only active domicilios (Soft Delete View)
+    return [...form.value.domicilios]
+        .filter(d => d.activo !== false)
+        .sort((a, b) => {
+            if (a.es_fiscal && !b.es_fiscal) return -1
+            if (!a.es_fiscal && b.es_fiscal) return 1
+            return (a.alias || a.calle || '').localeCompare(b.alias || b.calle || '')
+        })
 })
 
 const activeTab = ref('general')

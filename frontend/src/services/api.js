@@ -1,7 +1,9 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+  // [GY-LAN-ARCH] Use relative URL by default to leverage Vite Proxy (LAN Support)
+  // If VITE_API_URL is set (Production?), use it. Otherwise use proxy.
+  baseURL: import.meta.env.VITE_API_URL || '',
   headers: {
     'Content-Type': 'application/json',
   },
