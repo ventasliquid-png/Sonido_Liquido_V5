@@ -20,7 +20,9 @@ class PedidoCreate(BaseModel):
     nota: Optional[str] = None
     oc: Optional[str] = None
     estado: Optional[str] = "PENDIENTE"
-    tipo_comprobante: Optional[str] = "FISCAL"
+    tipo_facturacion: Optional[str] = "X"
+    origen: Optional[str] = "DIRECTO"
+    fecha_compromiso: Optional[datetime] = None
     items: List[PedidoItemCreate]
 
 class PedidoUpdate(BaseModel):
@@ -29,7 +31,10 @@ class PedidoUpdate(BaseModel):
     nota: Optional[str] = None
     oc: Optional[str] = None
     estado: Optional[str] = None
-    tipo_comprobante: Optional[str] = None
+    tipo_facturacion: Optional[str] = None
+    origen: Optional[str] = None
+    fecha_compromiso: Optional[datetime] = None
+    liberado_despacho: Optional[bool] = None
 
 class ClienteSummary(BaseModel):
     id: UUID
@@ -60,7 +65,10 @@ class PedidoResponse(BaseModel):
     total: float
     nota: Optional[str] = None
     estado: str
-    tipo_comprobante: Optional[str] = "FISCAL"
+    tipo_facturacion: str
+    origen: str
+    fecha_compromiso: Optional[datetime] = None
+    liberado_despacho: bool = False
     oc: Optional[str] = None
     items: List[PedidoItemResponse] = []
 

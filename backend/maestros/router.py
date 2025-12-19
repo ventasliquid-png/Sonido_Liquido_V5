@@ -156,6 +156,12 @@ def update_segmento(id: UUID, segmento: schemas.SegmentoUpdate, db: Session = De
         raise HTTPException(status_code=404, detail="Segmento no encontrado")
     return db_segmento
 
+@router.delete("/segmentos/{id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_segmento(id: UUID, db: Session = Depends(get_db)):
+    if not service.MaestrosService.delete_segmento(db, id):
+        raise HTTPException(status_code=404, detail="Segmento no encontrado")
+    return None
+
 # --- Vendedores ---
 @router.get("/vendedores", response_model=List[schemas.VendedorResponse])
 def read_vendedores(status: str = Query("active", enum=["active", "inactive", "all"]), db: Session = Depends(get_db)):

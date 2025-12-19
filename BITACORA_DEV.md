@@ -90,3 +90,57 @@ La base de datos activa (pilot.db) NO viaja sola. Para que el trabajo del d√≠a s
     *   Implementar Endpoint POST /productos/import/costos.
     *   Implementar Modal de Carga en Frontend.
     *   Documento Rector: implementation_plan.md (Ya creado en Brain).
+
+## [2025-12-19] FASE 1 & 2: SEGURIDAD Y ESTANDARIZACI”N (AGENT: ANTIGRAVITY)
+- **Backup**: Realizado respaldo de pilot.db en _BACKUPS_IOWA.
+- **Pythonization (Scripts Universales)**:
+    - Creados scripts/run_dev.py y scripts/backup.py.
+    - Se eliminÛ dependencia de .ps1 para ejecuciÛn de backend.
+    - Corregido error de importaciÛn de mÛdulo 'backend' mediante ajuste de PYTHONPATH en un_dev.py.
+    - Corregido error de parseo de SQLite en ackend/core/database.py.
+- **Limpieza**: equirements.txt validado.
+- **Protocolo**: Oficialmente se utiliza python scripts/run_dev.py para el arranque.
+
+ # #   S E S I ” N   2 0 2 5 - 1 2 - 1 9 :   R e p a r a c i Û n   E s t r u c t u r a l   y   A B M   M a e s t r o s   ( A G E N T :   A N T I G R A V I T Y ) 
+ 
+ # # #   O b j e t i v o s   A l c a n z a d o s 
+ 1 .     * * B a j a   F Ì s i c a   d e   C l i e n t e s   ( C o r r e g i d o   y   R o b u s t o ) * * : 
+         -       S e   i m p l e m e n t Û   e l   f l u j o   c o m p l e t o   d e s d e   U I   h a s t a   D B . 
+         -       * * R e p a r a c i Û n   d e   E r r o r   4 0 4 * * :   S e   i m p l e m e n t Û   e l   t i p o   \ G U I D \   u n i f i c a d o   p a r a   m a n e j a r   U U I D s   s i n   g u i o n e s   e n   S Q L i t e . 
+         -       * * R e p a r a c i Û n   d e   E r r o r   5 0 0 * * :   S e   d e t e c t Û   y   c o r r i g i Û   u n   d e s a j u s t e   d e   e s q u e m a   ( * S c h e m a   M i s m a t c h * )   e n   \ p i l o t . d b \   ( f a l t a b a n   c o l u m n a s   e n   \ p e d i d o s \ ) . 
+         -       * * I n t e g r i d a d   R e f e r e n c i a l * * :   S e   h a b i l i t Û   \ c a s c a d e   d e l e t e \   p a r a   l o s   c o n t a c t o s   d e l   c l i e n t e   ( V i n c u l o s C o m e r c i a l e s ) . 
+ 2 .     * * A B M   d e   S e g m e n t o s   ( D e s b l o q u e a d o ) * * : 
+         -       S e   e l i m i n Û   e l   l Ì m i t e   a r t i f i c i a l   d e   8   s e g m e n t o s . 
+         -       S e   i m p l e m e n t Û   l a   f u n c i o n a l i d a d   d e   e l i m i n a c i Û n   d e f i n i t i v a   p a r a   s e g m e n t o s . 
+         -       A c t u a l i z a d a   l a   U I   ( \ S e g m e n t o I n s p e c t o r \ )   y   e l   B a c k e n d   ( \ M a e s t r o s S e r v i c e \ ) . 
+ 
+ # # #   D e s a f Ì o s   T È c n i c o s   S u p e r a d o s 
+ -       * * S c h e m a   M i s m a t c h * * :   L a s   a d i c i o n e s   d e   c a m p o s   t · c t i c o s   a l   m o d e l o   \ P e d i d o \   n o   e s t a b a n   r e p l i c a d a s   e n   l a   b a s e   l o c a l .   S e   r e a l i z Û   m i g r a c i Û n   m a n u a l   v i a   s c r i p t . 
+ -       * * C o m p u t e d   P r o p e r t y   L o c k * * :   S e   c o r r i g i Û   u n   e r r o r   e n   e l   f r o n t e n d   ( \ H a w e V i e w . v u e \ )   d o n d e   s e   i n t e n t a b a   m u t a r   u n a   p r o p i e d a d   c o m p u t a d a ,   l o   q u e   i m p e d Ì a   e l   c i e r r e   d e l   i n s p e c t o r   t r a s   e l   b o r r a d o . 
+ 
+ # # #   S i t u a c i Û n   T · c t i c a   F i n a l 
+ -       * * C l i e n t e s * * :   O p e r a t i v o s   c o n   B a j a   F Ì s i c a   c o n d i c i o n a l   ( p r e s e r v a   i n t e g r i d a d   d e   p e d i d o s ) . 
+ -       * * S e g m e n t o s * * :   9   r e g i s t r o s   c o n f i r m a d o s   e n   D B .   A B M   t o t a l   h a b i l i t a d o . 
+ -       * * B a s e   d e   D a t o s * * :   \ p i l o t . d b \   m i g r a d a   y   s i n c r o n i z a d a   c o n   e l   m o d e l o   V 5 . 
+  
+ 
+## SESI√ìN 2025-12-19: Estelarizaci√≥n de Infraestructura y M√≥dulo Pedidos (AGENT: ANTIGRAVITY)
+
+### üöÄ Despliegue de Infraestructura LAN
+- **Protocolo run_lan.py**: Se ha consolidado el script de arranque para red local. Detecta autom√°ticamente la IP de la m√°quina servidor y configura tanto el Frontend como el Backend para ser accesibles desde otros dispositivos (ej: Tom√°s en su puesto).
+- **Lanzador de Escritorio**: Se ha generado el archivo 'LAN_SERVER_V5.bat' en el Escritorio del servidor. Este permite iniciar todo el ecosistema (DB, API y Web) con un solo clic sin abrir terminales manuales.
+
+### üì¶ M√≥dulo Pedidos (Nacimiento de la V5 T√°ctica)
+- **Visualizaci√≥n de Lista**: Se dise√±√≥ la maqueta 'pedidos_mockup.html' siguiendo la est√©tica 'Hawe'. 
+- **Cargador T√°ctico (Speed-Grid)**: Se cre√≥ 'pedido_tactico_mockup.html', introduciendo la carga ultrarr√°pida sin mouse y la previsualizaci√≥n de precios.
+- **Evoluci√≥n del Esquema**: Se migraron los campos cr√≠ticos a la tabla 'pedidos': 'tipo_facturacion', 'origen', 'fecha_compromiso' y 'liberado_despacho'.
+
+### üß¨ Doctrina V5: Notas para el Futuro
+- **L√≥gica 'La Roca y La M√°scara'**: El sistema debe priorizar el precio hist√≥rico pactado con el cliente (La M√°scara) sobre el precio de lista t√©cnico (La Roca).
+- **Identidad 'Rosa Chicle Fluo'**: Las entregas compromiso a futuro deben resaltarse en este tono para no perderse en el flujo de despacho diario.
+- **X/Facturable**: Se estableci√≥ el selector expl√≠cito para diferenciar ventas internas de fiscales desde el inicio de la carga.
+
+### üõ†Ô∏è Reparaciones de Emergencia (Cr√≠tico)
+- **Schema Mismatch Fix**: Se resolvi√≥ el Error 500 inyectando las columnas faltantes en 'pilot.db'.
+- **GUID Unified**: Implementaci√≥n del nuevo tipo de ID para evitar desajustes de guiones en SQLite.
+- **Cascade Delete**: Limpieza autom√°tica de contactos al borrar clientes.

@@ -2,8 +2,8 @@
 # Módulo Maestros (V5) - Tablas Base
 import uuid
 from sqlalchemy import Column, String, Boolean, Integer, Numeric, Enum
-from sqlalchemy.dialects.postgresql import UUID
-from backend.core.database import Base
+from sqlalchemy.dialects.postgresql import UUID as pgUUID
+from backend.core.database import Base, GUID
 
 class Provincia(Base):
     """
@@ -24,7 +24,7 @@ class CondicionIva(Base):
     """
     __tablename__ = "condiciones_iva"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
     nombre = Column(String, nullable=False, unique=True) # Ej: Responsable Inscripto
     
     def __repr__(self):
@@ -36,7 +36,7 @@ class ListaPrecios(Base):
     """
     __tablename__ = "listas_precios"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
     nombre = Column(String, nullable=False, unique=True) # Ej: Lista Mayorista
     coeficiente = Column(Numeric(10, 4), default=1.0) # Ej: 0.9000 (10% desc)
     tipo = Column(Enum('FISCAL', 'PRESUPUESTO', name='tipo_lista_enum'), default='PRESUPUESTO')
@@ -52,7 +52,7 @@ class Segmento(Base):
     """
     __tablename__ = "segmentos"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
     nombre = Column(String, nullable=False, unique=True)
     descripcion = Column(String, nullable=True)
     activo = Column(Boolean, default=True)
@@ -66,7 +66,7 @@ class Vendedor(Base):
     """
     __tablename__ = "vendedores"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
     nombre = Column(String, nullable=False)
     email = Column(String, nullable=True)
     telefono = Column(String, nullable=True)

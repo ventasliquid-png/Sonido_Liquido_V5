@@ -104,6 +104,7 @@
                  :is-new="isNewSegmento"
                  @close="closeInspector"
                  @save="handleSaveFromInspector"
+                 @delete="handleDeleteFromInspector"
                  @create="openNewSegmento"
             />
         </aside>
@@ -185,8 +186,15 @@ const handleSaveFromInspector = async (formData) => {
         closeInspector();
     } catch (error) {
         console.error('Error saving segmento', error);
-        // Toast handled by store? If not, we should have one.
-        // Assuming store or interceptor handles generic errors, but usually we need success feedback.
+    }
+};
+
+const handleDeleteFromInspector = async (id) => {
+    try {
+        await store.deleteSegmento(id);
+        closeInspector();
+    } catch (error) {
+        console.error('Error deleting segmento', error);
     }
 };
 

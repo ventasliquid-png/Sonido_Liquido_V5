@@ -2,9 +2,9 @@
 # Módulo Logística (V5) - Hub & Spoke
 import uuid
 from sqlalchemy import Column, String, Boolean, Enum, ForeignKey, Integer, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID as pgUUID
 from sqlalchemy.orm import relationship
-from backend.core.database import Base
+from backend.core.database import Base, GUID
 
 class EmpresaTransporte(Base):
     """
@@ -13,7 +13,7 @@ class EmpresaTransporte(Base):
     """
     __tablename__ = "empresas_transporte"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
     nombre = Column(String, nullable=False, unique=True) # Ej: "Expreso Cruz del Sur"
     
     # Datos Core (V5)
@@ -41,8 +41,8 @@ class NodoTransporte(Base):
     """
     __tablename__ = "nodos_transporte"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    empresa_id = Column(UUID(as_uuid=True), ForeignKey("empresas_transporte.id"), nullable=False)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
+    empresa_id = Column(GUID(), ForeignKey("empresas_transporte.id"), nullable=False)
     
     nombre_nodo = Column(String, nullable=False) # Ej: "Depósito Pompeya"
     direccion_completa = Column(String, nullable=True)

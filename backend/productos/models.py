@@ -1,8 +1,8 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text, Numeric
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID as pgUUID
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.sql import func
-from backend.core.database import Base
+from backend.core.database import Base, GUID
 
 class Rubro(Base):
     __tablename__ = "rubros"
@@ -37,7 +37,7 @@ class Producto(Base):
     rubro_id = Column(Integer, ForeignKey('rubros.id'), nullable=False)
     
     # Logística de Compra
-    proveedor_habitual_id = Column(UUID(as_uuid=True), ForeignKey('proveedores.id'), nullable=True)
+    proveedor_habitual_id = Column(GUID(), ForeignKey('proveedores.id'), nullable=True)
     
     # Fiscal
     tasa_iva_id = Column(Integer, ForeignKey('tasas_iva.id'), nullable=True)

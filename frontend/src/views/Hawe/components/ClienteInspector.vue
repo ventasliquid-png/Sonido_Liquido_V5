@@ -311,8 +311,11 @@
                 <span v-if="saving"><i class="fas fa-spinner fa-spin mr-2"></i>Guardando...</span>
                 <span v-else>Guardar (F10)</span>
             </button>
-            <button v-if="!isNew" @click="remove" class="px-3 bg-red-900/20 hover:bg-red-900/40 text-red-400 rounded border border-red-500/30 transition-colors" title="Dar de baja Cliente">
-                <i class="fas fa-trash"></i> <span class="ml-2 text-xs font-bold uppercase">Dar de Baja Cliente</span>
+            <button v-if="!isNew" @click="remove" class="px-3 bg-red-900/20 hover:bg-red-900/40 text-red-400 rounded border border-red-500/30 transition-colors" title="Dar de baja lógica">
+                <i class="fas fa-toggle-off"></i> <span class="ml-2 text-[10px] font-bold uppercase">Baja Lógica</span>
+            </button>
+            <button v-if="!isNew && !form.activo" @click="hardDelete" class="px-3 bg-red-600 hover:bg-red-500 text-white rounded shadow-lg shadow-red-900/40 transition-all active:scale-95" title="Eliminación Definitiva">
+                <i class="fas fa-trash-alt"></i> <span class="ml-2 text-[10px] font-bold uppercase">Baja Física</span>
             </button>
         </div>
     </div>
@@ -377,7 +380,7 @@ const props = defineProps({
     }
 })
 
-const emit = defineEmits(['update:modelValue', 'close', 'save', 'delete', 'manage-segmentos', 'switch-client'])
+const emit = defineEmits(['update:modelValue', 'close', 'save', 'delete', 'hard-delete', 'manage-segmentos', 'switch-client'])
 
 const isCompact = computed(() => props.mode === 'compact')
 
@@ -853,8 +856,14 @@ const toggleDomicilioActive = async (dom) => {
 }
 
 const remove = () => {
-    if (confirm('¿Seguro que desea dar de baja este cliente?')) {
+    if (confirm('¿Seguro que desea dar de baja LOGICA a este cliente? (Pasará a Inactivo)')) {
         emit('delete', form.value)
+    }
+}
+
+const hardDelete = () => {
+    if (confirm('⚠ ATENCION: ¿Está seguro de realizar la BAJA FISICA? Esta acción eliminará permanentemente al cliente de la base de datos y no se puede deshacer.')) {
+        emit('hard-delete', form.value)
     }
 }
 

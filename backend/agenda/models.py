@@ -2,9 +2,9 @@
 # Módulo Agenda Viva (V5) - CRM Relacional
 import uuid
 from sqlalchemy import Column, String, Text, ForeignKey, Boolean
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID as pgUUID
 from sqlalchemy.orm import relationship
-from backend.core.database import Base
+from backend.core.database import Base, GUID
 
 class Persona(Base):
     """
@@ -13,7 +13,7 @@ class Persona(Base):
     """
     __tablename__ = "personas"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
     nombre_completo = Column(String, nullable=False, index=True)
     
     # Contacto Personal (Vida Privada)
@@ -34,9 +34,9 @@ class VinculoComercial(Base):
     """
     __tablename__ = "vinculos_comerciales"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    cliente_id = Column(UUID(as_uuid=True), ForeignKey("clientes.id"), nullable=False)
-    persona_id = Column(UUID(as_uuid=True), ForeignKey("personas.id"), nullable=False)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
+    cliente_id = Column(GUID(), ForeignKey("clientes.id"), nullable=False)
+    persona_id = Column(GUID(), ForeignKey("personas.id"), nullable=False)
     tipo_contacto_id = Column(String, ForeignKey("tipos_contacto.id"), nullable=False)
     
     email_laboral = Column(String, nullable=True)

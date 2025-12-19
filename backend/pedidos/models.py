@@ -1,19 +1,22 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Boolean, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID as pgUUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
-from backend.core.database import Base
+from backend.core.database import Base, GUID
 
 class Pedido(Base):
     __tablename__ = "pedidos"
 
     id = Column(Integer, primary_key=True, index=True)
     fecha = Column(DateTime, default=datetime.now)
-    cliente_id = Column(UUID(as_uuid=True), ForeignKey("clientes.id"), nullable=False)
+    cliente_id = Column(GUID(), ForeignKey("clientes.id"), nullable=False)
     total = Column(Float, default=0.0)
     nota = Column(Text, nullable=True)
-    estado = Column(String, default="PENDIENTE") # PENDIENTE, CUMPLIDO, ANULADO, PRESUPUESTO, BORRADOR
-    tipo_comprobante = Column(String, default="FISCAL") # FISCAL, X
+    estado = Column(String, default="PENDIENTE") # PENDIENTE, RESERVADO, CUMPLIDO, ANULADO, BORRADOR
+    tipo_facturacion = Column(String, default="X") # A, B, X
+    origen = Column(String, default="DIRECTO") # MELI, TIENDA, DIRECTO
+    fecha_compromiso = Column(DateTime, nullable=True) # Para pedidos con entrega futura
+    liberado_despacho = Column(Boolean, default=False)
     oc = Column(String, nullable=True) # Orden de Compra
     
     # Metadata

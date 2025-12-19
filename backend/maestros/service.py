@@ -221,6 +221,15 @@ class MaestrosService:
         db.refresh(db_segmento)
         return db_segmento
 
+    @staticmethod
+    def delete_segmento(db: Session, id: UUID) -> bool:
+        db_segmento = MaestrosService.get_segmento(db, id)
+        if not db_segmento:
+            return False
+        db.delete(db_segmento)
+        db.commit()
+        return True
+
     # --- Vendedores ---
     @staticmethod
     def get_vendedores(db: Session, status: str = "active") -> List[models.Vendedor]:

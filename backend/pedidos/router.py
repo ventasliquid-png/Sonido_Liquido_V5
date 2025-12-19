@@ -55,7 +55,9 @@ def create_pedido_tactico(
             nota=pedido_data.nota,
             oc=pedido_data.oc,
             estado=pedido_data.estado or "PENDIENTE",
-            tipo_comprobante=pedido_data.tipo_comprobante or "FISCAL",
+            tipo_facturacion=pedido_data.tipo_facturacion or "X",
+            origen=pedido_data.origen or "DIRECTO",
+            fecha_compromiso=pedido_data.fecha_compromiso,
             total=0.0 # Se calcula abajo
         )
         db.add(nuevo_pedido)
@@ -411,8 +413,9 @@ def clone_pedido(pedido_id: int, db: Session = Depends(get_db)):
         nota=f"Clonado de Pedido #{original.id}. {original.nota or ''}",
         oc=original.oc,
         estado="BORRADOR",
-        tipo_comprobante=original.tipo_comprobante or "FISCAL",
-        total=original.total, # Initial total, assuming prices same. Ideally should fetch current prices but clone usually implies exact copy first.
+        tipo_facturacion=original.tipo_facturacion or "X",
+        origen=original.origen or "DIRECTO",
+        total=original.total, # Initial total
     )
     db.add(new_pedido)
     db.flush() # get ID

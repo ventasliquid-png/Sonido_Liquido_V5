@@ -275,6 +275,7 @@
             @close="closeInspector"
             @save="handleInspectorSave"
             @delete="handleInspectorDelete"
+            @hard-delete="handleHardDelete"
             @manage-segmentos="handleManageSegmentos"
             @switch-client="handleSwitchClient"
         />
@@ -531,10 +532,23 @@ const handleInspectorSave = async (clienteData) => {
 const handleInspectorDelete = async (clienteData) => {
     try {
         await clienteStore.updateCliente(clienteData.id, { ...clienteData, activo: false })
-        notificationStore.add('Cliente dado de baja', 'success')
+        notificationStore.add('Cliente dado de baja (Inactivo)', 'success')
         closeInspector()
     } catch (error) {
         notificationStore.add('Error al dar de baja', 'error')
+    }
+}
+
+const handleHardDelete = async (clienteData) => {
+    try {
+        await clienteStore.hardDeleteCliente(clienteData.id)
+        notificationStore.add('CLIENTE ELIMINADO DEFINITIVAMENTE', 'success')
+        
+        closeInspector()
+    } catch (error) {
+        console.error(error)
+        const detail = error.response?.data?.detail || 'Error en baja física'
+        notificationStore.add(detail, 'error')
     }
 }
 

@@ -1,56 +1,83 @@
-# --- backend/database.py (V10.7 - Base de Datos Completa) ---
-# --- [ACTUALIZADO V11.3 - FIX IP FANTASMA] ---
-from sqlalchemy import create_engine
+# --- backend/core/database.py (V11.4 - GUID Unified) ---
+from sqlalchemy import create_engine, TypeDecorator, CHAR
+from sqlalchemy.dialects.postgresql import UUID as pgUUID
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
+import uuid
 from urllib.parse import urlparse, quote_plus
 from dotenv import dotenv_values
 
 # --- [FIX IP FANTASMA] ---
-# No confiamos en os.environ["DATABASE_URL"] porque puede estar sucia.
-# Leemos directamente del archivo .env
 config = dotenv_values(".env")
 DATABASE_URL_FROM_ENV_FILE = config.get("DATABASE_URL")
+
+class GUID(TypeDecorator):
+    """Platform-independent GUID type.
+    Uses PostgreSQL's UUID type, otherwise uses CHAR(32), storing as string without dashes.
+    """
+    impl = CHAR
+    cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == 'postgresql':
+            return dialect.type_descriptor(pgUUID())
+        else:
+            return dialect.type_descriptor(CHAR(32))
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return value
+        elif dialect.name == 'postgresql':
+            return str(value)
+        else:
+            if not isinstance(value, uuid.UUID):
+                try:
+                    return "%.32x" % uuid.UUID(value).int
+                except ValueError:
+                    return value # Probablemente ya es un hex
+            else:
+                return "%.32x" % value.int
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return value
+        else:
+            if not isinstance(value, uuid.UUID):
+                return uuid.UUID(value)
+            else:
+                return value
 
 def _get_clean_database_url():
     """
     Construye la URL de conexión ignorando variables de entorno viciadas.
     Prioriza el archivo .env local.
     """
-    # 1. Intentar usar la del archivo .env
     url_candidate = DATABASE_URL_FROM_ENV_FILE
     
-    # [FIX] Si es SQLite, devolvemos directo (no intentamos parsear como Postgres)
     if url_candidate and url_candidate.startswith("sqlite"):
         print(f"[OK] CONEXION DB (LOCAL SQLITE): {url_candidate}")
         return url_candidate
     
-    # 2. Si no está en el archivo, usar hardcode de emergencia (Nueva IP)
     if not url_candidate:
-        # [GY-FIX] Hardcode de seguridad: Priorizar LOCAL si falla ENV
         print("⚠️  DATABASE_URL no encontrada en .env. Usando SQLITE LOCAL (pilot.db).")
         url_candidate = "sqlite:///./pilot.db"
-        # url_candidate = "postgresql://postgres:***SECRET***@104.197.57.226:5432/postgres?sslmode=require"
+        
+    if url_candidate.startswith("sqlite"):
+        return url_candidate
 
-    # 3. Parsear para asegurar que la contraseña esté bien (aunque venga del file)
     try:
         parsed = urlparse(url_candidate)
-        
-        # Extracción de componentes
         user = parsed.username or "postgres"
         password = parsed.password or os.getenv("DB_PASSWORD")
-        host = parsed.hostname or "104.197.57.226" # Forzar nueva IP si falla parseo
+        host = parsed.hostname or "104.197.57.226" 
         port = parsed.port or "5432"
         dbname = parsed.path.lstrip("/") or "postgres"
-        query = parsed.query # sslmode=require
+        query = parsed.query
 
-        # Validación anti-fantasma
         if host == "34.95.172.190":
-            print("🚨 ALERTA: IP Fantasma detectada en .env! Forzando corrección a 104.197.57.226")
             host = "104.197.57.226"
 
-        # Reconstrucción limpia
         password_escaped = quote_plus(password)
         netloc = f"{user}:{password_escaped}@{host}:{port}"
         
@@ -67,13 +94,13 @@ def _get_clean_database_url():
 
 # --- [INICIO] ---
 DATABASE_URL = _get_clean_database_url()
-# Actualizamos os.environ para que otras libs (como alembic o scripts) la vean correcta
 os.environ["DATABASE_URL"] = DATABASE_URL
 
 if "sqlite" in DATABASE_URL:
     engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 else:
     engine = create_engine(DATABASE_URL)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -84,4 +111,4 @@ def get_db():
     finally:
         db.close()
 
-print("--- [Atenea V10.7]: Capa ORM (SQLAlchemy) inicializada. ---")
+print("--- [Atenea V11.4]: Capa ORM (GUID Unified) inicializada. ---")

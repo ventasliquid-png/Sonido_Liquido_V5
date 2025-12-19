@@ -97,6 +97,14 @@
                     <i class="fas fa-save"></i>
                     <span>Guardar (F10)</span>
                 </button>
+                <button 
+                    v-if="!isNew"
+                    @click="handleDelete"
+                    class="w-full py-2 bg-red-900/20 hover:bg-red-900/40 text-red-400 rounded-lg font-bold border border-red-500/20 transition-all flex items-center justify-center gap-2 text-xs"
+                >
+                    <i class="fas fa-trash"></i>
+                    <span>ELIMINAR SEGMENTO</span>
+                </button>
             </div>
         </div>
     </div>
@@ -116,7 +124,7 @@ const props = defineProps({
     }
 })
 
-const emit = defineEmits(['close', 'save', 'create'])
+const emit = defineEmits(['close', 'save', 'create', 'delete'])
 
 const localForm = ref({
     id: '',
@@ -139,6 +147,12 @@ watch(() => props.modelValue, (newVal) => {
 
 const handleSave = () => {
     emit('save', localForm.value)
+}
+
+const handleDelete = () => {
+    if (confirm(`¿Está seguro de eliminar el segmento "${localForm.value.nombre}"?`)) {
+        emit('delete', localForm.value.id)
+    }
 }
 
 // Global Shortcuts handled by parent or here if focused?

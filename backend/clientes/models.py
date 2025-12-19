@@ -4,11 +4,11 @@
 import uuid
 import uuid
 from sqlalchemy import Column, String, Boolean, ForeignKey, Numeric, Text, DateTime, Integer, Sequence, JSON
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID as pgUUID
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 
-from backend.core.database import Base
+from backend.core.database import Base, GUID
 from backend.maestros.models import CondicionIva, ListaPrecios, Segmento, Provincia
 # Nota: Importamos Usuario como string o condicionalmente si hay riesgo de ciclo, 
 # pero Maestros son seguros.
@@ -20,7 +20,7 @@ class Cliente(Base):
     """
     __tablename__ = "clientes"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
     razon_social = Column(String, nullable=False, index=True)
     nombre_fantasia = Column(String, nullable=True)
     cuit = Column(String, unique=False, nullable=False, index=True)
@@ -37,9 +37,9 @@ class Cliente(Base):
     observaciones = Column(Text, nullable=True)
     
     # Referencias a otras tablas
-    condicion_iva_id = Column(UUID(as_uuid=True), ForeignKey("condiciones_iva.id"), nullable=True)
-    lista_precios_id = Column(UUID(as_uuid=True), ForeignKey("listas_precios.id"), nullable=True)
-    segmento_id = Column(UUID(as_uuid=True), ForeignKey("segmentos.id"), nullable=True)
+    condicion_iva_id = Column(GUID(), ForeignKey("condiciones_iva.id"), nullable=True)
+    lista_precios_id = Column(GUID(), ForeignKey("listas_precios.id"), nullable=True)
+    segmento_id = Column(GUID(), ForeignKey("segmentos.id"), nullable=True)
     vendedor_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True) # Account Manager
     
     # Motor de Precios V5
@@ -65,7 +65,7 @@ class Cliente(Base):
 
     # Relaciones
     domicilios = relationship("Domicilio", back_populates="cliente", cascade="all, delete-orphan")
-    vinculos = relationship("backend.agenda.models.VinculoComercial", back_populates="cliente")
+    vinculos = relationship("backend.agenda.models.VinculoComercial", back_populates="cliente", cascade="all, delete-orphan")
     condicion_iva = relationship(CondicionIva)
     lista_precios = relationship(ListaPrecios)
     segmento = relationship(Segmento)
@@ -117,8 +117,8 @@ class Domicilio(Base):
     """
     __tablename__ = "domicilios"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    cliente_id = Column(UUID(as_uuid=True), ForeignKey("clientes.id"), nullable=False)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
+    cliente_id = Column(GUID(), ForeignKey("clientes.id"), nullable=False)
     
     alias = Column(String, nullable=True) # "Depósito Norte"
     calle = Column(String, nullable=True)
@@ -133,9 +133,9 @@ class Domicilio(Base):
     es_entrega = Column(Boolean, default=False)
     
     # Logística
-    transporte_habitual_nodo_id = Column(UUID(as_uuid=True), ForeignKey("nodos_transporte.id"), nullable=True)
-    transporte_id = Column(UUID(as_uuid=True), ForeignKey("empresas_transporte.id"), nullable=True)
-    intermediario_id = Column(UUID(as_uuid=True), ForeignKey("empresas_transporte.id"), nullable=True)
+    transporte_habitual_nodo_id = Column(GUID(), ForeignKey("nodos_transporte.id"), nullable=True)
+    transporte_id = Column(GUID(), ForeignKey("empresas_transporte.id"), nullable=True)
+    intermediario_id = Column(GUID(), ForeignKey("empresas_transporte.id"), nullable=True)
     
     # Estrategia Logística (V5.2)
     metodo_entrega = Column(String, nullable=True) # RETIRO_LOCAL, TRANSPORTE, FLETE_MOTO, PLATAFORMA, DROPSHIPPING

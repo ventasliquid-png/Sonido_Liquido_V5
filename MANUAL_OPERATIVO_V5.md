@@ -255,5 +255,59 @@ Ingrese esa dirección exacta en el navegador de las otras computadoras.
 
 ### 8.4 Solución de Problemas
 *   **"Error al conectar":** Generalmente es el Firewall de Windows en la PC Principal. Ejecute el script `scripts\fix_access.ps1` como Administrador para abrir los puertos 8000 y 5173.
-*   **"Sitio no carga":** Verifique que ambas PC estén en la misma red WiFi.
+*   **"Sitio no carga":** Verifique que ambas PC estÃ©n en la misma red WiFi.
+
+---
+
+## CAPÍTULO 9: PROTOCOLO UNIVERSAL DE ARRANQUE (CROSS-PLATFORM)
+
+A partir de la fase de estandarización, el sistema abandona la dependencia exclusiva de PowerShell (`.ps1`) para el arranque del backend.
+
+### 9.1 Lanzamiento en Windows
+Abre una terminal (PowerShell o CMD) y ejecuta:
+```powershell
+python scripts/run_dev.py
+```
+*Tip: Puedes hacer clic derecho sobre `run_dev.py` y seleccionar "Abrir con PowerShell".*
+
+### 9.2 Lanzamiento en Mac / Linux
+Abre la **Terminal** (CMD + Espacio > "Terminal") y ejecuta:
+```bash
+python3 scripts/run_dev.py
+```
+*Nota: En Mac, usualmente el comando es `python3` en lugar de `python`.*
+
+### 9.3 Respaldos Cross-Platform
+Los comandos de respaldo también son universales:
+*   **Local:** `python3 scripts/backup.py`
+*   **Drive:** `python3 scripts/backup_drive.py`
+
+### 9.4 El Frontend
+Se lanza con el nuevo script universal:
+```bash
+python scripts/run_front.py
+```
+*Tip: Al igual que el backend, puedes hacer botón derecho sobre `run_front.py` y correrlo con Python.*
+
+### 9.5 Acceso Remoto (Modo LAN)
+Para que otros se conecten, el servidor debe estar en modo LAN. 
+*   **Acceso Rápido:** Use el icono **LAN_SERVER_V5.bat** creado en su Escritorio.
+*   **Manual:** Ejecute `python scripts/run_lan.py` desde la raíz.
+*   *Nota:* Este script configura automáticamente las IPs para que Tomás u otros operadores puedan ingresar desde sus puestos.
+
+---
+
+## CAPÍTULO 10: DOCTRINA DE PEDIDOS (V5 TÁCTICO)
+
+El nuevo Módulo de Pedidos integra la filosofía de alta velocidad del Comandante.
+
+### 10.1 Cargador Táctico (Speed-Grid)
+Diseñado para la toma de pedidos telefónica o presencial ultra-veloz.
+- **Magic Math:** El sistema autocompleta el precio basándose en la **última venta real** a ese cliente.
+- **Navegación:** Arreglo vertical optimizado para uso exclusivo del teclado.
+
+### 10.2 Identidad de Estados
+- **Verde Esmeralda:** Pedidos normales/pendientes.
+- **Rosa Chicle Fluo:** Alerta de **Entrega Comprometida a Futuro**. No pasar por alto en la logística diaria.
+- **Facturación:** Selector explícito entre Interno (X) y Fiscal (Facturable) integrado en el inspector.
 

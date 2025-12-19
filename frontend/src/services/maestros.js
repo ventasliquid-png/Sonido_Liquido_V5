@@ -66,6 +66,9 @@ export default {
     updateSegmento(id, data) {
         return api.put(`/maestros/segmentos/${id}`, data);
     },
+    deleteSegmento(id) {
+        return api.delete(`/maestros/segmentos/${id}`);
+    },
 
     // --- Vendedores ---
     getVendedores(params = {}) {
