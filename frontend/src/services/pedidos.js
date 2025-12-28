@@ -33,5 +33,10 @@ export default {
 
     async deleteItem(itemId) {
         await api.delete(`/pedidos/items/${itemId}`);
+    },
+
+    async cotizar(data) {
+        const response = await api.post('/pedidos/cotizar', data);
+        return response.data;
     }
 };

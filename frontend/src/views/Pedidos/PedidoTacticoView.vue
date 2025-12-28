@@ -18,6 +18,18 @@ const nota = ref('');
 const oc = ref('');
 const items = ref([]);
 const isSaving = ref(false);
+const isCalculatingPrice = ref(false);
+
+const evaluateExpression = (expr) => {
+    if (typeof expr !== 'string') return expr;
+    try {
+        // Simple safety check for arithmetic only
+        if (/[^0-9+\-*/().\s]/.test(expr)) return parseFloat(expr) || 0;
+        return Function(`'use strict'; return (${expr})`)();
+    } catch (e) {
+        return parseFloat(expr) || 0;
+    }
+};
 
 // Modals State
 const showLookup = ref(false);
@@ -90,11 +102,40 @@ const removeItem = (index) => {
     if (items.value.length === 0) addItem(); // Siempre una
 };
 
-const handleProductChange = (item, newId) => {
+const handleProductChange = async (item, newId) => {
     item.producto_id = newId;
-    const prod = productosStore.productos.find(p => p.id === newId);
-    if (prod) {
-        item.precio_unitario = prod.precio_minorista || prod.precio_sugerido || 0; 
+    if (!newId || !clienteId.value) return;
+
+    try {
+        isCalculatingPrice.value = true;
+        const res = await pedidosService.cotizar({
+            cliente_id: clienteId.value,
+            producto_id: newId,
+            cantidad: item.cantidad || 1
+        });
+        
+        if (res.precio_final_sugerido) {
+            item.precio_unitario = res.precio_final_sugerido;
+            item.info_precio = res.info_debug;
+        } else {
+            // Fallback
+            const prod = productosStore.productos.find(p => p.id === newId);
+            if (prod) item.precio_unitario = prod.precio_minorista || 0;
+        }
+    } catch (e) {
+        console.error("Error cotizando:", e);
+    } finally {
+        isCalculatingPrice.value = false;
+    }
+};
+
+const handleNumericInput = (item, field, value) => {
+    const evaluated = evaluateExpression(value);
+    item[field] = evaluated;
+    
+    // If quantity changed, maybe re-cotizar if it affects step-pricing (though V5 is linear mostly)
+    if (field === 'cantidad' && item.producto_id) {
+        // handleProductChange(item, item.producto_id); // Optional: overkill?
     }
 };
 
@@ -309,20 +350,25 @@ const onInspectorClose = async () => {
                             />
                         </td>
                         <td class="p-2">
-                            <input 
-                                type="number" 
-                                v-model.number="item.cantidad"
+                             <input 
+                                type="text" 
+                                :value="item.cantidad"
+                                @change="(e) => handleNumericInput(item, 'cantidad', e.target.value)"
                                 class="w-full bg-transparent border-b border-transparent hover:border-slate-600 focus:border-indigo-500 text-right p-1 outline-none font-mono text-emerald-300 font-bold"
-                                min="0.1" step="any"
+                                placeholder="0"
                             >
                         </td>
                         <td class="p-2">
-                             <input 
-                                type="number" 
-                                v-model.number="item.precio_unitario"
-                                class="w-full bg-transparent border-b border-transparent hover:border-slate-600 focus:border-indigo-500 text-right p-1 outline-none font-mono text-slate-300"
-                                min="0" step="0.01"
-                            >
+                              <input 
+                                 type="text" 
+                                 :value="item.precio_unitario"
+                                 @change="(e) => handleNumericInput(item, 'precio_unitario', e.target.value)"
+                                 class="w-full bg-transparent border-b border-transparent hover:border-slate-600 focus:border-indigo-500 text-right p-1 outline-none font-mono text-slate-300"
+                                 placeholder="0.00"
+                             >
+                             <div v-if="item.info_precio" class="text-[0.6rem] text-slate-500 text-right truncate" :title="item.info_precio">
+                                 {{ item.info_precio }}
+                             </div>
                         </td>
                         <td class="p-2 text-right font-mono font-bold text-white">
                             {{ (item.cantidad * item.precio_unitario).toLocaleString('es-AR', {minimumFractionDigits: 2}) }}

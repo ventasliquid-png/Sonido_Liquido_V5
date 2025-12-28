@@ -106,18 +106,17 @@ def create_pedido_tactico(
         db.commit()
         db.refresh(nuevo_pedido)
         
-        # 5. Respuesta JSON (Sin Excel)
-        return {
-            "id": nuevo_pedido.id,
-            "cliente": cliente.razon_social,
-            "total": total_pedido,
-            "items_count": len(items_excel_data),
-            "message": "Pedido creado exitosamente (Modo Táctico)"
-        }
-        """
-        # LEGACY EXCEL GENERATION (Disabled by User Request)
+        # 5. Generación de Excel (LEGACY BRIDGE)
         # Crear DataFrame
-        # Header data
+        items_excel_data = []
+        for item in nuevo_pedido.items:
+            items_excel_data.append({
+                "CANT": item.cantidad,
+                "DESCRIPCION": item.producto.nombre,
+                "P.UNIT": item.precio_unitario,
+                "SUBTOTAL": item.subtotal
+            })
+
         buffer = BytesIO()
         
         # Usamos pandas y XlsxWriter
@@ -136,11 +135,8 @@ def create_pedido_tactico(
             worksheet.write('A4', f"CUIT: {cliente.cuit or 'N/A'}")
             
             # Tabla Items
-            # Convertir a DF
             if items_excel_data:
                 df = pd.DataFrame(items_excel_data)
-                # Escribir tabla desde A6
-                # Header manual o automatico? Automatico
                 worksheet.write_row('A6', df.columns, bold)
                 
                 for i, row in enumerate(items_excel_data):
@@ -152,7 +148,7 @@ def create_pedido_tactico(
                 # Total
                 last_row = 6 + len(items_excel_data)
                 worksheet.write(last_row+1, 2, "TOTAL", bold)
-                worksheet.write(last_row+1, 3, total_pedido, money)
+                worksheet.write(last_row+1, 3, float(total_pedido), money)
             else:
                 worksheet.write('A6', "Sin items")
 
@@ -163,9 +159,11 @@ def create_pedido_tactico(
         return Response(
             content=buffer.getvalue(),
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Access-Control-Expose-Headers": "Content-Disposition"
+            }
         )
-        """
     except Exception as e:
         import traceback
         traceback.print_exc()

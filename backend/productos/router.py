@@ -276,24 +276,14 @@ def read_productos(
             query = query.filter(models.Producto.rubro_id == rubro_id)
 
         if search:
-            from sqlalchemy import or_
+            from sqlalchemy import or_, cast, String
             search_term = f"%{search}%"
-            # Try to convert to int for SKU search
-            sku_val = None
-            if search.isdigit():
-                sku_val = int(search)
             
-            if sku_val is not None:
-                 query = query.filter(or_(
-                    models.Producto.nombre.ilike(search_term),
-                    models.Producto.codigo_visual.ilike(search_term),
-                    models.Producto.sku == sku_val
-                ))
-            else:
-                query = query.filter(or_(
-                    models.Producto.nombre.ilike(search_term),
-                    models.Producto.codigo_visual.ilike(search_term)
-                ))
+            query = query.filter(or_(
+                models.Producto.nombre.ilike(search_term),
+                models.Producto.codigo_visual.ilike(search_term),
+                cast(models.Producto.sku, String).ilike(search_term)
+            ))
 
         productos = query.offset(skip).limit(limit).all()
         

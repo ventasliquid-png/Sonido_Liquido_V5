@@ -11,6 +11,7 @@ class RubroBase(BaseModel):
     nombre: str
     padre_id: Optional[int] = None
     activo: bool = True
+    margen_default: Decimal = Field(0.0, max_digits=6, decimal_places=2)
 
 class RubroCreate(RubroBase):
     @validator('codigo')
@@ -50,6 +51,8 @@ class ProductoCostoBase(BaseModel):
     margen_mayorista: Decimal = Field(..., max_digits=6, decimal_places=2)
     moneda_costo: str = 'ARS'
     iva_alicuota: Decimal = Field(21.00, max_digits=5, decimal_places=2)
+    precio_fijo_override: Optional[Decimal] = Field(None, max_digits=12, decimal_places=2)
+    cm_objetivo: Optional[Decimal] = Field(None, max_digits=6, decimal_places=2)
 
 class ProductoCostoCreate(ProductoCostoBase):
     pass

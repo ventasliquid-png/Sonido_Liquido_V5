@@ -72,8 +72,10 @@ const filteredOptions = computed(() => {
         const selected = props.options.find(o => o.id === props.modelValue);
         if (!selected || (selected.nombre || selected.descripcion).toLowerCase() !== query) {
             opts = props.options.filter(opt => {
-                const text = (opt.nombre || opt.descripcion || '').toLowerCase();
-                return text.includes(query);
+                const nombre = (opt.nombre || '').toLowerCase();
+                const desc = (opt.descripcion || '').toLowerCase();
+                const sku = opt.sku ? String(opt.sku).toLowerCase() : '';
+                return nombre.includes(query) || desc.includes(query) || sku.includes(query);
             });
         }
     }
@@ -302,6 +304,7 @@ onUnmounted(() => {
                             >
                                 <div class="flex items-center gap-2">
                                     <span v-if="opt._isPriority" class="text-xs">⭐</span>
+                                    <span v-if="opt.sku" class="text-[10px] font-mono bg-gray-100 text-gray-500 px-1 rounded border border-gray-200" :class="{'bg-white/20 text-white border-white/30': index === highlightedIndex}">{{ opt.sku }}</span>
                                     <span>{{ opt.nombre || opt.descripcion }}</span>
                                 </div>
                                 <span v-if="opt.id === modelValue" class="text-xs font-bold" :class="index === highlightedIndex ? 'text-white' : 'text-[#54cb9b]'">✓</span>

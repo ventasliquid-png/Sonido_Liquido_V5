@@ -60,25 +60,48 @@ class PricingEngine:
              return self._respuesta_error("E001", "Producto sin estructura de costos", 0)
 
         precio_fijo = costos.precio_fijo_override
+        cm_artesanal = costos.cm_objetivo # Ej: 80.00
         costo_repo = costos.costo_reposicion or Decimal('0')
-        margen = costos.margen_mayorista or Decimal('0') # Ej: 30.00
+        margen_propio = costos.margen_mayorista or Decimal('0') # Ej: 30.00
+        margen_rubro = producto.rubro.margen_default if producto.rubro else Decimal('0')
         
         es_override = False
         precio_base_rock = Decimal('0')
+        debug_info_orig = ""
 
         if precio_fijo and precio_fijo > 0:
-            # PRIORIDAD DIVINA
+            # PRIORIDAD 1: EL PRECIO FIJO (LA LEY)
             precio_base_rock = precio_fijo
             es_override = True
-        else:
-            # FORMULA STANDARD
-            # Rock = Costo * (1 + Margin%)
+            debug_info_orig = "FIJO"
+        elif cm_artesanal is not None and cm_artesanal > 0:
+            # PRIORIDAD 2: CM ARTESANAL (EL ORFEBRE)
+            # Rock = Costo / (1 - CM/100)
             if costo_repo == 0:
                 return self._respuesta_error("E002", "Costo Cero - Requiere precio manual", 0, alerta=True)
             
-            # Margen numerico (ej 30) a factor (1.30)
-            factor_margen = Decimal('1') + (margen / Decimal('100'))
+            # Evitar div zero si CM es 100
+            denom = Decimal('1') - (cm_artesanal / Decimal('100'))
+            if denom <= 0: denom = Decimal('0.01') # Margen extremo
+            
+            precio_base_rock = costo_repo / denom
+            debug_info_orig = f"CM:{cm_artesanal}%"
+        elif margen_rubro and margen_rubro > 0:
+            # PRIORIDAD 3: MARGEN POR RUBRO (ESCALABILIDAD)
+            if costo_repo == 0:
+                return self._respuesta_error("E002", "Costo Cero - Requiere precio manual", 0, alerta=True)
+            
+            factor_margen = Decimal('1') + (margen_rubro / Decimal('100'))
             precio_base_rock = costo_repo * factor_margen
+            debug_info_orig = f"RUBRO:{margen_rubro}%"
+        else:
+            # PRIORIDAD 4: MARGEN PROPIO/LEGACY
+            if costo_repo == 0:
+                return self._respuesta_error("E002", "Costo Cero - Requiere precio manual", 0, alerta=True)
+            
+            factor_margen = Decimal('1') + (margen_propio / Decimal('100'))
+            precio_base_rock = costo_repo * factor_margen
+            debug_info_orig = f"PROPIO:{margen_propio}%"
 
         # 3. Aplicar Escenario (Sabor del Cliente)
         estrategia = cliente.estrategia_precio or 'MAYORISTA_FISCAL'
@@ -131,7 +154,7 @@ class PricingEngine:
             "descuento_aplicado": float((1 - lista_coef) * 100),
             "precio_final_sugerido": float(precio_final_real), # Bolsillo
             "alerta": False,
-            "info_debug": f"Rock: {precio_base_rock:.2f} | K: {scenario_config.get('k_factor', 0)}"
+            "info_debug": f"Rock({debug_info_orig}): {precio_base_rock:.2f} | K: {scenario_config.get('k_factor', 0)}"
         }
 
     def _respuesta_error(self, codigo, msg, precio, alerta=False):

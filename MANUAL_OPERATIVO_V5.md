@@ -8,6 +8,7 @@
 
 ## Control de Cambios
 - **V5.3 (Vector Update):** Implementación de Historial Vectorial y Toggle de Excel en Carga Táctica.
+- **V6.0 (Hybrid Engine):** Motor de Precios Híbrido, Jerarquía de Rendimiento, Búsqueda por SKU y Protocolo de Higiene de Datos.
 
 ## 1. Carga Táctica (Tactical Loader)
 El módulo de carga rápida (`/ventas/loader`) permite la creación ágil de pedidos.
@@ -230,6 +231,36 @@ En el Cargador Táctico, los campos numéricos (Cantidad y Precio) funcionan com
 
 ### 7.3 Overrides (Excepciones)
 Si un producto tiene asignado un **Precio Fijo Override**, el motor ignorará cualquier cálculo de costo/margen y usará ese valor como base inamovible ("La Roca"). Esto es útil para ofertas puntuales o productos con precio regulado.
+
+### 7.4 Motor Híbrido V6 (Jerarquía de Poder)
+La versión 6 introduce el **CM Objetivo (Contribución Marginal)** y la **Propuesta por Rubro**. La jerarquía de decisión del motor es:
+
+1.  **PRECIO FIJO MANUAL:** Si hay un valor en `precio_fijo_override`, se usa sin preguntar.
+2.  **CM OBJETIVO (Artesanal):** Si no hay precio fijo, pero hay un `% CM Objetivo` en el producto, el sistema despeja el precio para garantizar ese margen sobre el costo.
+3.  **MARGEN POR RUBRO:** Si el producto no tiene CM propio, usa el `% Margen Default` del Rubro al que pertenece (ej: Todos los Guantes al 35%).
+4.  **MARGEN PRODUCTO (Legacy):** Si todo lo anterior falla, usa el margen mayorista individual de la ficha.
+
+---
+
+## CAPÍTULO 11: PROTOCOLO DE HIGIENE DE DATOS (ANTI-FRANKENSTEIN)
+
+Para evitar la desincronización de datos entre la PC local y la nube (IOWA), se deben seguir estas reglas de oro:
+
+### 11.1 El Local manda
+La base `pilot.db` es la fuente de verdad de la **operación diaria** y los **precios**. La nube (IOWA) es la fuente de verdad del **maestro purgado** (Rubros y SKUs).
+
+### 11.2 Sincronización Obligatoria
+Antes de iniciar una carga masiva o después de cambios estructurales en rubros, ejecute el script de reconciliación:
+```bash
+python scripts/reconcile_master_data.py
+```
+Este script asegura que:
+1.  Los rubros locales coincidan con los de la nube.
+2.  Los productos nuevos en local se informen a la nube.
+3.  Los SKUs se mantengan alineados.
+
+### 11.3 Prevención de Duplicados
+Al cargar productos nuevos, siempre verifique el **SKU**. No cree productos con el mismo nombre y SKU diferente; el sistema lo detectará como una anomalía en el próximo reporte de auditoría.
 
 ---
 

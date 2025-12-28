@@ -11,7 +11,6 @@
     <!-- Content -->
     <div v-if="localProducto" class="flex-1 flex flex-col overflow-hidden">
       <!-- Top Info -->
-      <!-- Top Info with Toggle -->
       <div class="p-6 pb-2 text-center shrink-0">
         <div class="mb-4 flex flex-col items-center gap-3">
           <!-- Toggle Switch -->
@@ -24,7 +23,7 @@
               <span 
                   class="inline-block h-3 w-3 transform rounded-full transition-transform shadow-sm"
                   :class="localProducto.activo ? 'translate-x-5 bg-green-400' : 'translate-x-1 bg-red-400'"
-              />
+              ></span>
           </button>
 
           <!-- Icon -->
@@ -251,6 +250,50 @@
                       </div>
                   </div>
               </div>
+                  
+              <!-- MOTOR HIBRIDO (NUEVO) -->
+              <div class="mt-4 p-4 rounded-lg bg-black/40 border border-white/10 space-y-4">
+                  <h4 class="text-rose-400 text-[0.6rem] font-bold uppercase tracking-widest flex items-center justify-between">
+                      <span>Estrategia Artesanal (V6)</span>
+                      <span class="text-white/20">Prioridad Alta</span>
+                  </h4>
+
+                  <div class="grid grid-cols-2 gap-4">
+                      <!-- CM Objetivo -->
+                      <div>
+                          <label class="text-[0.65rem] text-white/50 block mb-1 uppercase">CM Objetivo (%)</label>
+                          <div class="relative">
+                              <input 
+                                v-model.number="localCostos.cm_objetivo"
+                                type="number" 
+                                class="w-full bg-rose-500/5 border border-white/10 rounded px-3 py-2 text-white font-mono focus:border-rose-500 focus:outline-none text-right"
+                                placeholder="Libre"
+                              />
+                              <span class="absolute left-2 top-1/2 -translate-y-1/2 text-[0.6rem] text-rose-500/50 font-bold">CM</span>
+                          </div>
+                      </div>
+
+                      <!-- Precio Fijo -->
+                      <div>
+                          <label class="text-[0.65rem] text-white/50 block mb-1 uppercase text-right">Precio Fijo Manual</label>
+                          <div class="relative">
+                              <input 
+                                v-model.number="localCostos.precio_fijo_override"
+                                type="number" 
+                                class="w-full bg-rose-500/5 border border-white/10 rounded px-3 py-2 text-white font-mono focus:border-rose-500 focus:outline-none text-right"
+                                placeholder="Auto"
+                              />
+                              <span class="absolute left-2 top-1/2 -translate-y-1/2 text-[0.6rem] text-rose-500/50 font-bold">$</span>
+                          </div>
+                      </div>
+                  </div>
+
+                  <!-- Contexto Rubro -->
+                  <div v-if="selectedRubro" class="pt-2 flex justify-between items-center text-[0.65rem]">
+                      <span class="text-white/30 italic">Propuesta por Rubro ({{ selectedRubro.nombre }}):</span>
+                      <span class="text-rose-400 font-bold">{{ selectedRubro.margen_default || 0 }}%</span>
+                  </div>
+              </div>
 
               <!-- Simulador -->
               <div class="space-y-3 pt-2">
@@ -275,7 +318,6 @@
                   </div>
               </div>
           </div>
-
       </div>
 
       <!-- Footer Actions -->
@@ -323,7 +365,7 @@ const { unidades, tasasIva, proveedores } = storeToRefs(productosStore)
 const props = defineProps({
   producto: {
     type: Object,
-    default: null
+    default: () => null
   },
   rubros: {
     type: Array,
@@ -338,7 +380,9 @@ const localProducto = ref(null)
 const localCostos = ref({
     costo_reposicion: 0,
     margen_mayorista: 0,
-    iva_alicuota: 21
+    iva_alicuota: 21,
+    cm_objetivo: null,
+    precio_fijo_override: null
 })
 
 // Flatten rubros for select
@@ -359,6 +403,11 @@ const flattenedRubros = computed(() => {
     return result
 })
 
+const selectedRubro = computed(() => {
+    if (!localProducto.value?.rubro_id) return null
+    return flattenedRubros.value.find(r => r.id === localProducto.value.rubro_id)
+})
+
 // Watch for prop changes to update local state
 watch(() => props.producto, (newVal) => {
     if (newVal) {
@@ -367,7 +416,13 @@ watch(() => props.producto, (newVal) => {
             localCostos.value = { ...newVal.costos }
         } else {
             // Default costs if missing
-            localCostos.value = { costo_reposicion: 0, margen_mayorista: 30, iva_alicuota: 21 }
+            localCostos.value = { 
+                costo_reposicion: 0, 
+                margen_mayorista: 30, 
+                iva_alicuota: 21,
+                cm_objetivo: null,
+                precio_fijo_override: null
+            }
         }
     } else {
         localProducto.value = null
@@ -377,11 +432,26 @@ watch(() => props.producto, (newVal) => {
 // Simulated Prices
 const simulatedPrices = computed(() => {
     const costo = Number(localCostos.value.costo_reposicion) || 0
-    const margen = Number(localCostos.value.margen_mayorista) || 0
+    const margen_propio = Number(localCostos.value.margen_mayorista) || 0
     const iva = Number(localCostos.value.iva_alicuota) || 0
+    const cm = localCostos.value.cm_objetivo
+    const fijo = localCostos.value.precio_fijo_override
+    const margen_rubro = selectedRubro.value?.margen_default || 0
 
-    const neto = costo * (1 + margen / 100)
-    const mayorista = neto * (1 + iva / 100)
+    let base_rock = 0
+    
+    // HIERARCHY
+    if (fijo > 0) {
+        base_rock = fijo
+    } else if (cm > 0) {
+        base_rock = costo / (1 - cm / 100)
+    } else if (margen_rubro > 0) {
+        base_rock = costo * (1 + margen_rubro / 100)
+    } else {
+        base_rock = costo * (1 + margen_propio / 100)
+    }
+
+    const mayorista = base_rock * (1 + iva / 100)
     
     // Formulas from prompt
     const distribuidor = mayorista * 1.105

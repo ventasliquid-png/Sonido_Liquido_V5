@@ -256,6 +256,20 @@
                         <input v-model="form.nombre" type="text" class="w-full bg-black/30 border border-rose-900/30 rounded p-2 text-white focus:border-rose-500 outline-none">
                      </div>
 
+                     <!-- Margen Default (V6) -->
+                     <div class="p-3 bg-rose-500/5 rounded border border-rose-500/20">
+                        <label class="block text-[0.6rem] font-bold text-rose-400 mb-1 uppercase tracking-widest">Margen Propuesto (%)</label>
+                        <div class="flex items-center gap-3">
+                            <input 
+                                v-model.number="form.margen_default" 
+                                type="number" 
+                                step="0.5"
+                                class="w-24 bg-black/40 border border-rose-900/30 rounded p-2 text-white font-mono focus:border-rose-500 outline-none text-right"
+                            >
+                            <span class="text-[0.65rem] text-rose-400/50 italic">Este margen se aplicará a todos los productos de este rubro que no tengan una Cm artesanal definida.</span>
+                        </div>
+                     </div>
+
                       <!-- Activo Toggle -->
                      <div class="flex items-center gap-3 pt-2">
                          <button 
@@ -318,7 +332,8 @@ const form = ref({
     codigo: '',
     nombre: '',
     padre_id: null, // Always null in flat model
-    activo: true
+    activo: true,
+    margen_default: 0
 });
 
 const selectedRubro = computed(() => inspectorTarget.value);
@@ -364,7 +379,7 @@ const fetchRubros = async () => {
 const openNewInspector = () => {
     isCreating.value = true;
     inspectorTarget.value = {}; 
-    form.value = { codigo: '', nombre: '', padre_id: null, activo: true };
+    form.value = { codigo: '', nombre: '', padre_id: null, activo: true, margen_default: 0 };
 };
 
 const openEditInspector = (rubro) => {
