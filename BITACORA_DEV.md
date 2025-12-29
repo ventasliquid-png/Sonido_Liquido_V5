@@ -184,3 +184,8 @@ La base de datos activa (pilot.db) NO viaja sola. Para que el trabajo del día s
 
 - **Pre-Flight Check**: Se añadió la verificación obligatoria de IOWA al inicio de sesión para alertar sobre la disponibilidad de la memoria estratégica (RAG).
 
+
+> [!CAUTION]
+> **CAJA NEGRA - FALLO DE CIERRE (V6.1)**: El protocolo de cierre falló inicialmente porque el commit no incluyó archivos borrados/movidos. 
+> **CAUSA**: Confianza en git commit sin git add . previo o flag -a. 
+> **REMEDIACIÓN**: Rectificación manual ejecutada y comando de cierre actualizado en GY_IPL_V6.md para ser EXPLÍCITO.
