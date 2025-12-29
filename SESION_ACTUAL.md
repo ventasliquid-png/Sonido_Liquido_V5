@@ -26,3 +26,8 @@ Sesión enfocada en pulir la UX/UI del módulo de Clientes, específicamente la 
 *   `frontend/src/views/Clientes/components/DomicilioGrid.vue`
 *   `backend/clientes/models.py`
 *   `backend/clientes/service.py`
+
+
+## SESIÓN 2025-12-29 (Gy)
+- **FEATURE:** Módulo de Etiquetado PDF ARCA (Standalone + Core). (COMPLETO)
+- **DOCS:** Informe para Arquitecta, Bitácora y Manual Operativo. (ACTUALIZADOS)

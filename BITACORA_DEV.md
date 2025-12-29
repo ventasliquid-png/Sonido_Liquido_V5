@@ -144,3 +144,43 @@ La base de datos activa (pilot.db) NO viaja sola. Para que el trabajo del día s
 - **Schema Mismatch Fix**: Se resolvió el Error 500 inyectando las columnas faltantes en 'pilot.db'.
 - **GUID Unified**: Implementación del nuevo tipo de ID para evitar desajustes de guiones en SQLite.
 - **Cascade Delete**: Limpieza automática de contactos al borrar clientes.
+
+
+---
+
+## SESIÓN 2025-12-29: Integración de Módulo de Gestión de PDFs ARCA
+
+### Objetivos
+- Implementar una herramienta para añadir OC/PO a facturas ARCA no editables.
+- Integrar un motor de procesamiento de PDFs en el Core del Backend para futuras automatizaciones.
+- Crear una utilidad 'Standalone' para uso inmediato del equipo sin depender de la carga del sistema completo.
+
+### Logros e Implementación
+- **Engine de PDF (ackend/core/utils/pdf.py)**: Implementación robusta usando pikepdf, pypdf y eportlab. Resuelve el problema de las restricciones de edición de AFIP.
+- **Etiquetador Express (scripts/etiquetador_escritorio.py)**: Interfaz gráfica para etiquetado rápido. Soporta búsqueda de archivos, prefijos dinámicos (OC/PO) y renombrado automático con sufijo _etq.
+- **Lanzador de Escritorio**: Archivo ETIQUETADOR_PDF.bat para ejecución directa.
+- **Layout ARCA Finalizado**: Posicionamiento en cuadrante superior derecho (X:570, Y:808), alineación derecha, aplicado solo a la primera página.
+
+### 🧬 Doctrina V5: Avances
+- **Modularidad de Salida**: El sistema ya no solo gestiona datos, sino que empieza a intervenir en los documentos finales de salida (Legacy Bridge).
+- **Rastreo Invariante**: Se adoptó la política de mantener el nombre original del archivo de ARCA (_etq) para asegurar la trazabilidad contable.
+
+---
+
+
+> [!IMPORTANT]
+> **AISLAMIENTO DE SEGURIDAD (ARQUITECTO)**: Se ha movido el módulo de procesamiento de PDF a la carpeta 	ools/arca_oc_stamper/ para evitar conflictos en el Core durante la sincronización (Modo Standalone).
+> 
+> **ACTUALIZACIÓN DE FIRMA**: Se ha incorporado a Dario Ponce (Production Supervisor) en el pie de página de los documentos procesados.
+
+
+
+### 📜 HITO: Protocolo Raíz Refactorizado (IPL V6.1)
+- **Nuevo Estándar**: Se ha oficializado GY_IPL_V6.md como el nuevo cargador inicial.
+- **Manual de Estilo**: Integración de respuesta dinámica (Comandante vs Socrático).
+- **Seguridad Operativa**: Anclaje mandatorio a la raíz C:\dev\Sonido_Liquido_V5.
+- **Cierre Maestro**: Formalización de los 5 pasos de sincronización obligatoria.
+
+
+- **Pre-Flight Check**: Se añadió la verificación obligatoria de IOWA al inicio de sesión para alertar sobre la disponibilidad de la memoria estratégica (RAG).
+

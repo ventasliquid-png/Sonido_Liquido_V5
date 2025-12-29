@@ -11,13 +11,12 @@ def get_local_conn():
     return sqlite3.connect('pilot.db')
 
 def get_cloud_conn():
-    url = os.getenv("POSTGRES_URL")
+    url = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL")
     if url:
-        # Simple parsing for postgresql://user:pass@host:port/db
         return psycopg2.connect(url)
     
     return psycopg2.connect(
-        host=os.getenv("POSTGRES_SERVER", "104.197.57.226"),
+        host=os.getenv("POSTGRES_SERVER", "34.136.191.139"),
         database=os.getenv("POSTGRES_DB", "iowa"),
         user=os.getenv("POSTGRES_USER", "postgres"),
         password=os.getenv("POSTGRES_PASSWORD"),

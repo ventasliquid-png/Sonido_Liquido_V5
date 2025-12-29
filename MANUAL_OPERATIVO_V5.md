@@ -342,3 +342,23 @@ Diseñado para la toma de pedidos telefónica o presencial ultra-veloz.
 - **Rosa Chicle Fluo:** Alerta de **Entrega Comprometida a Futuro**. No pasar por alto en la logística diaria.
 - **Facturación:** Selector explícito entre Interno (X) y Fiscal (Facturable) integrado en el inspector.
 
+
+
+---
+
+## CAPÍTULO 11: GESTIÓN DE DOCUMENTOS (ETIQUETADO PDF)
+
+El sistema V5 incluye herramientas para la intervención de documentos generados por sistemas externos (como AFIP/ARCA) que requieren datos de gestión adicionales.
+
+### 11.1 Etiquetador Express de OC/PO
+Esta utilidad permite 'sellar' números de Orden de Compra o Purchase Order en facturas PDF que vienen bloqueadas para edición.
+
+*   **Ubicación de Acceso:** Carpeta `tools/arca_oc_stamper/` (**ETIQUETADOR_PDF.bat**).
+*   **Operación:**
+    1. Seleccione el archivo PDF original.
+    2. Elija el prefijo deseado (OC o PO).
+    3. Ingrese el número de referencia.
+    4. El sistema generará una copia con el sufijo _etq en el nombre.
+*   **Lógica de Posicionamiento:** El dato se inserta en la esquina superior derecha del documento (Original), alineado con la cabecera fiscal, asegurando visibilidad clínica sin interferir con la validez del comprobante.
+
+---
