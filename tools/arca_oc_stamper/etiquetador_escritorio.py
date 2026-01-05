@@ -11,9 +11,11 @@ if BASE_DIR not in sys.path:
 
 try:
     from backend.core.utils.pdf import add_oc_label
-except ImportError:
-    messagebox.showerror("Error de Configuración", f"No se pudo cargar el motor desde {BASE_DIR}")
-    sys.exit()
+except ImportError as e:
+    root_path = os.path.abspath(BASE_DIR)
+    messagebox.showerror("Error de Configuración", 
+                         f"No se pudo cargar el motor PDF.\n\nRuta: {root_path}\nError: {str(e)}")
+    sys.exit(1)
 
 # Configuración estética
 ctk.set_appearance_mode("System")
