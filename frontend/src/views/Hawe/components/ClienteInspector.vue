@@ -56,6 +56,27 @@
             
             <!-- TAB: GENERAL -->
             <div v-if="activeTab === 'general'" class="space-y-4">
+                
+                <!-- SELECCIÓN POR PLANTILLA (F4 Flow) -->
+                <div v-if="isNew" class="p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/20 mb-4">
+                    <label class="text-[0.65rem] font-bold text-cyan-400 uppercase tracking-widest mb-2 block">
+                        Cargar desde Plantilla / Cantera
+                    </label>
+                    <SmartSelect
+                        v-model="templateId"
+                        :options="clienteStore.clientes"
+                        canteraType="clientes"
+                        placeholder="Buscar cliente para clonar..."
+                        :allowCreate="false"
+                        @update:modelValue="handleTemplateSelect"
+                        @select-cantera="handleTemplateSelect"
+                        class="dark-smart-select"
+                    />
+                    <p class="text-[9px] text-cyan-400/30 mt-2 italic">
+                        Tip: Útil para cargar sedes de un mismo grupo rápidamente.
+                    </p>
+                </div>
+
                 <!-- Active Toggle -->
                 <div class="flex items-center justify-between bg-cyan-900/10 p-3 rounded-lg border border-cyan-900/20">
                     <span class="text-sm font-bold text-cyan-100">Estado</span>
@@ -79,12 +100,12 @@
                 <!-- Fields -->
                 <div>
                   <label class="block text-xs font-bold uppercase text-cyan-900/50 mb-1">Razón Social <span class="text-red-400">*</span></label>
-                  <input v-model="form.razon_social" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors placeholder-cyan-900/30" placeholder="Ej: Empresa S.A." />
+                  <input v-model="form.razon_social" autocomplete="off" spellcheck="false" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors placeholder-cyan-900/30" placeholder="Ej: Empresa S.A." />
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold uppercase text-cyan-900/50 mb-1">CUIT <span class="text-red-400">*</span></label>
-                    <input v-model="form.cuit" @input="formatCuitInput" @blur="checkCuitBackend" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors font-mono placeholder-cyan-900/30" placeholder="00-00000000-0" maxlength="13" />
+                    <input v-model="form.cuit" autocomplete="off" spellcheck="false" @input="formatCuitInput" @blur="checkCuitBackend" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors font-mono placeholder-cyan-900/30" placeholder="00-00000000-0" maxlength="13" />
                     
                     <!-- Alert: Duplicated CUIT -->
                     <div v-if="cuitWarningClients.length > 0 && !cuitWarningDismissed" class="mt-2 bg-yellow-900/20 border border-yellow-500/30 rounded p-3 text-xs animate-pulse-once">
@@ -364,6 +385,7 @@ import DomicilioForm from './DomicilioForm.vue'
 import CondicionIvaForm from '../../Maestros/CondicionIvaForm.vue'
 import ContextMenu from '../../../components/common/ContextMenu.vue'
 import SimpleAbmModal from '../../../components/common/SimpleAbmModal.vue'
+import SmartSelect from '../../../components/ui/SmartSelect.vue'
 
 const props = defineProps({
     modelValue: {
@@ -409,6 +431,8 @@ const activeTab = ref('general')
 const saving = ref(false)
 const form = ref({})
 const cuitError = ref(null)
+const templateId = ref(null)
+const pristineName = ref('')
 
 const headerTitle = computed(() => {
     if (!props.modelValue && !props.isNew) return 'Inspector'
@@ -643,8 +667,34 @@ watch(() => props.modelValue, (newVal) => {
             provincia_id: null,
             transporte_id: null
         }
+        templateId.value = null
+        pristineName.value = form.value.razon_social || ''
     }
 }, { immediate: true })
+
+const handleTemplateSelect = (itemOrId) => {
+    let template = null;
+    if (typeof itemOrId === 'object') {
+        template = itemOrId;
+    } else {
+        template = clienteStore.clientes.find(c => c.id === itemOrId);
+    }
+
+    if (template) {
+        // Inherit everything except ID, CUIT (usually differs for clones unless multi-sede)
+        form.value = {
+            ...JSON.parse(JSON.stringify(template)),
+            id: null,
+            // Keep current CUIT if user already typed it? or clear it?
+            // Usually if they search template, they want to KEEP their typed CUIT but get the REST.
+            cuit: form.value.cuit || '',
+             _isClone: true
+        };
+        pristineName.value = template.razon_social;
+        // If template has fiscal address, maybe load it too?
+        // Let's assume they want to change the address.
+    }
+}
 
 // --- ABM LOGIC ---
 const showAbm = ref(false)
@@ -705,6 +755,13 @@ const toggleActive = () => {
 const save = async () => {
     saving.value = true
     try {
+        // [DEOU Flow] If no changes in name for a new template-based item, cancel save
+        if (props.isNew && form.value.razon_social === pristineName.value && form.value._isClone) {
+            alert('No se detectaron cambios en el nombre. No se generará un nuevo registro.');
+            emit('close');
+            return;
+        }
+
         // Validation for New Client
         // Shared Validations (Create & Edit)
         if (!form.value.razon_social) {

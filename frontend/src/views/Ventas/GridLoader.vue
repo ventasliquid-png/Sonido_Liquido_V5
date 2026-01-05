@@ -23,6 +23,12 @@
                 <input 
                     ref="clientInput"
                     type="text" 
+                    name="client_search_v5"
+                    id="client_search_v5"
+                    autocomplete="new-password"
+                    spellcheck="false"
+                    autocorrect="off"
+                    autocapitalize="none"
                     class="w-full h-full bg-transparent pt-3 pb-0 px-1 outline-none text-emerald-100 font-bold placeholder-slate-600 focus:bg-slate-700/50 transition-colors cursor-text pr-6"
                     :class="{'bg-slate-700/50': focusedZone === 'CLIENT'}"
                     placeholder="BUSCAR CLIENTE..."
@@ -53,9 +59,10 @@
                     <i class="fa-solid fa-clock-rotate-left"></i>
                 </div>
 
-                <!-- RESULTADOS CLIENTE -->
-                <div v-if="showClientResults" 
-                        class="absolute top-full left-0 w-full bg-[#0d2623] text-emerald-100 shadow-xl rounded-b z-50 max-h-80 overflow-y-auto border border-emerald-900 border-t-0">
+                <Teleport to="body">
+                    <div v-if="showClientResults && focusedZone === 'CLIENT'" 
+                            class="fixed bg-[#0d2623] text-emerald-100 shadow-[0_20px_80px_rgba(0,0,0,0.8)] rounded-xl z-[9999] max-h-80 overflow-y-auto border border-emerald-900 border-t-0 animate-in fade-in slide-in-from-top-2 duration-150"
+                            :style="clientPopupStyle">
                         <div 
                         v-for="(c, idx) in filteredClients" :key="c.id"
                         class="px-3 py-1.5 border-b border-emerald-900/30 hover:bg-emerald-900/50 cursor-pointer flex justify-between items-center group relative select-none text-xs"
@@ -77,14 +84,41 @@
                         </div>
                         </div>
                         
-                        <!-- Empty State / Create New -->
-                        <div v-if="filteredClients.length === 0" class="p-2 text-center text-xs opacity-50 italic">
-                            <p>No hay coincidencias.</p>
-                            <p class="font-bold cursor-pointer text-blue-500 hover:underline mt-1" @mousedown="openInspectorNew">
-                                (F4) Crear Nuevo Cliente
+                        <!-- Empty State / Create New / Cantera -->
+                        <div v-if="filteredClients.length === 0 && clientCanteraResults.length === 0" class="p-3 text-center text-xs space-y-3">
+                            <p class="opacity-50 italic">No hay coincidencias locales.</p>
+                            <p v-if="isSearchingCanteraClient" class="text-emerald-500 animate-pulse">Buscando en maestros...</p>
+                            <p class="font-bold cursor-pointer text-blue-500 hover:underline mt-1 block" @mousedown="openInspectorNew">
+                                (F4) Crear Nuevo Cliente Local
                             </p>
                         </div>
+
+                        <!-- Cantera Results list (Automatic) -->
+                        <div v-if="clientCanteraResults.length > 0" class="border-t border-emerald-900/30 pt-0 text-left bg-black/10">
+                            <p class="text-[9px] uppercase text-emerald-500 font-bold px-3 py-1 bg-black/40 tracking-widest flex items-center justify-between">
+                                <span>Cantera de Maestros</span>
+                                <i v-if="isSearchingCanteraClient" class="fas fa-spinner fa-spin"></i>
+                            </p>
+                            <div 
+                                v-for="item in clientCanteraResults" 
+                                :key="item.id"
+                                @mousedown.stop="importAndSelectClient(item)"
+                                class="px-3 py-2 border-b border-white/5 hover:bg-emerald-900/50 cursor-pointer flex justify-between items-center group transition-colors"
+                            >
+                                <div class="min-w-0 flex-1">
+                                    <span class="font-bold text-emerald-100 group-hover:text-emerald-400 truncate block">{{ item.razon_social }}</span>
+                                    <span class="text-[9px] text-emerald-500 opacity-50 font-mono">{{ item.cuit }}</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-eye-slash text-red-500/50 hover:text-red-400 p-2 cursor-pointer transition-colors" 
+                                       title="Inactivar en Cantera (Mover a Sobrante)"
+                                       @mousedown.stop="inactivateClientCantera(item)"></i>
+                                    <i class="fas fa-plus-circle text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                                </div>
+                            </div>
+                        </div>
                 </div>
+                </Teleport>
             </div>
 
             <!-- A3. FECHA (Top Right) -->
@@ -274,50 +308,103 @@
                     :class="{'ring-1 ring-emerald-500 border-emerald-500': focusedZone === 'PRODUCT'}"
                     @click.stop
                 >
-                    <div class="w-10 text-center text-xs text-emerald-800 font-bold">+</div>
+                    <div class="w-10 text-center text-xs text-emerald-800 font-bold items-center flex justify-center h-full">
+                        <i class="fas fa-plus scale-75"></i>
+                    </div>
                     <div class="flex-1 relative">
                         <input 
                             ref="productInput"
                             type="text" 
+                            name="search_product_v5"
+                            id="search_product_v5"
+                            autocomplete="new-password"
+                            spellcheck="false"
+                            autocorrect="off"
+                            autocapitalize="none"
                             class="w-full bg-transparent outline-none placeholder-emerald-800 font-bold text-emerald-100"
                             :placeholder="productPlaceholder"
                             v-model="productQuery"
                             @focus="focusedZone = 'PRODUCT'"
                             @keydown="handleProductKeydown"
                         >
-                        <!-- POPUP RESULTADOS PRODUCTO -->
-                        <div v-if="showProductResults" 
-                             class="absolute bottom-full left-0 mb-3 w-full bg-[#0d2623] text-emerald-100 shadow-2xl rounded-lg border border-emerald-900 z-50 overflow-hidden">
-                            <div class="px-3 py-1.5 bg-black/30 backdrop-blur text-[10px] text-emerald-400 uppercase tracking-wider flex justify-between border-b border-emerald-900/30">
-                                <span>Coincidencias ({{ filteredProducts.length }}) <span class="text-emerald-500 ml-2">Use Flechas y Enter</span></span>
-                                <span class="text-xs font-bold text-amber-400">ESC para cerrar</span>
-                            </div>
-                            <div class="max-h-80 overflow-y-auto">
-                                <div 
-                                    v-for="(p, idx) in filteredProducts" :key="p.id"
-                                    class="px-4 py-2 border-b border-emerald-900/10 cursor-pointer flex justify-between items-center transition-colors gap-4 group"
-                                    :class="idx === selectedProdIdx ? 'bg-emerald-600 text-white' : 'hover:bg-white/5'"
-                                    @mousedown="addProduct(p)"
-                                    @mouseover="selectedProdIdx = idx"
-                                >
-                                    <div class="flex-1 min-w-0">
-                                        <div class="font-bold text-sm flex items-center gap-2 truncate">
-                                            {{ p.nombre }}
+                            <!-- POPUP RESULTADOS PRODUCTO (Teletransportado para evitar cortes de capa) -->
+                            <Teleport to="body">
+                                <div v-if="(showProductResults || productCanteraResults.length > 0) && focusedZone === 'PRODUCT'" 
+                                     class="fixed bg-[#112d2a] text-emerald-100 shadow-[0_30px_90px_rgba(0,0,0,0.9)] rounded-2xl border border-emerald-400/30 z-[9999] overflow-hidden backdrop-blur-3xl transition-all animate-in fade-in zoom-in-95 duration-200"
+                                     :style="productPopupStyle">
+                                    <div class="px-4 py-3 bg-emerald-950/80 text-[10px] text-emerald-300 uppercase tracking-widest flex items-center justify-between border-b border-white/5">
+                                        <div class="flex items-center gap-3">
+                                            <i class="fas fa-search text-emerald-500"></i>
+                                            <span v-if="filteredProducts.length > 0" class="font-bold">Sugerencias ({{ filteredProducts.length }})</span>
+                                            <span v-else class="font-bold">Buscando en Maestros...</span>
                                         </div>
-                                        <div class="text-[10px] opacity-60 font-mono flex gap-3 mt-0.5">
-                                            <span class="bg-white/10 px-1 rounded">{{ p.sku }}</span>
-                                            <span v-if="p.rubro_nombre">{{ p.rubro_nombre }}</span>
+                                        <div class="flex items-center gap-3">
+                                            <span class="text-[9px] opacity-30 lowercase italic font-normal">ESC para cerrar</span>
+                                            <button @click.stop="productQuery = ''" class="hover:bg-red-500/30 text-emerald-500 hover:text-red-400 w-7 h-7 rounded-lg flex items-center justify-center transition-all bg-white/5 border border-white/5 shadow-inner">
+                                                <i class="fas fa-times text-xs"></i>
+                                            </button>
                                         </div>
                                     </div>
-                                    <div class="text-right shrink-0">
-                                        <div class="font-mono font-bold text-emerald-400 group-hover:text-emerald-300">
-                                            {{ formatCurrency(p.precio_sugerido || 0) }}
+                                <div class="max-h-80 overflow-y-auto">
+                                    <!-- Local Results -->
+                                    <!-- Local Results -->
+                                    <div 
+                                        v-for="(p, idx) in filteredProducts" :key="p.id"
+                                        class="px-4 py-2 border-b border-emerald-900/10 cursor-pointer flex justify-between items-center transition-colors gap-4 group"
+                                        :class="idx === selectedProdIdx && focusedZone === 'PRODUCT' ? 'bg-emerald-600 text-white' : 'hover:bg-white/5'"
+                                        @mousedown="addProduct(p)"
+                                        @mouseover="selectedProdIdx = idx"
+                                    >
+                                        <div class="flex-1 min-w-0">
+                                            <div class="font-bold text-sm flex items-center gap-2 truncate">
+                                                {{ p.nombre }}
+                                            </div>
+                                            <div class="text-[10px] opacity-60 font-mono flex gap-3 mt-0.5">
+                                                <span class="bg-white/10 px-1 rounded">{{ p.sku }}</span>
+                                                <span v-if="p.rubro_nombre">{{ p.rubro_nombre }}</span>
+                                            </div>
                                         </div>
-                                        <div class="text-[10px] opacity-40">Lista</div>
+                                        <div class="text-right shrink-0">
+                                            <div class="font-mono font-bold text-emerald-400 group-hover:text-emerald-300">
+                                                {{ formatCurrency(p.precio_sugerido || 0) }}
+                                            </div>
+                                            <div class="text-[10px] opacity-40">Lista</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Product Cantera Results (Automatic) -->
+                                    <div v-if="productCanteraResults.length > 0" class="bg-black/20 border-t border-emerald-500/20">
+                                         <p class="text-[9px] uppercase text-emerald-500 font-bold px-4 py-1.5 bg-black/40 tracking-widest flex items-center justify-between">
+                                            <span>Cantera de Maestros</span>
+                                            <i v-if="isSearchingCanteraProduct" class="fas fa-spinner fa-spin"></i>
+                                        </p>
+                                        <div 
+                                            v-for="item in productCanteraResults" 
+                                            :key="item.id"
+                                            @mousedown.stop="importAndAddProduct(item)"
+                                            class="px-4 py-2 border-b border-white/5 hover:bg-emerald-900/40 cursor-pointer flex justify-between items-center group transition-colors"
+                                        >
+                                            <div class="min-w-0 flex-1">
+                                                <p class="font-bold text-emerald-100 text-sm truncate group-hover:text-emerald-400 transition-colors">{{ item.nombre }}</p>
+                                                <p class="text-[9px] opacity-50 font-mono text-emerald-500">{{ item.sku }}</p>
+                                            </div>
+                                            <div class="flex items-center gap-3">
+                                                 <i class="fas fa-eye-slash text-red-500/40 hover:text-red-400 p-2 cursor-pointer transition-colors" 
+                                                   title="Inactivar en Cantera"
+                                                   @mousedown.stop="inactivateProductCantera(item)"></i>
+                                                <i class="fas fa-plus-circle text-emerald-500 opacity-60 group-hover:opacity-100 transition-all transform group-hover:scale-110"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Empty / Loading State -->
+                                    <div v-if="filteredProducts.length === 0 && productCanteraResults.length === 0" class="p-8 text-center">
+                                        <p v-if="isSearchingCanteraProduct" class="text-emerald-500 animate-pulse">Consultando catálogos maestros...</p>
+                                        <p v-else class="text-white/20 italic text-xs">No se encontraron productos locales ni maestros coincidencias.</p>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </Teleport>
                     </div>
                 </div>
             </div>
@@ -380,11 +467,12 @@
                     <!-- BOTON LIMPIAR (Reset) -->
                     <button 
                         v-if="items.length > 0 || selectedClient"
-                        class="h-12 px-4 rounded-lg bg-slate-800 text-slate-400 hover:text-rose-400 hover:bg-slate-700 transition-colors font-bold text-xs uppercase tracking-wider flex items-center gap-2 border border-slate-700"
+                        class="h-12 px-4 rounded-lg bg-slate-800 text-slate-400 hover:text-rose-400 hover:bg-slate-700 transition-colors font-bold text-[10px] uppercase tracking-wider flex items-center gap-2 border border-slate-700 group"
                         @click="handleClearManual"
-                        title="Limpiar pantalla y borrar borrador"
+                        title="Limpiar pantalla y borrar borrador (Ctrl+Del sugerido)"
                     >
-                        <i class="fa-solid fa-trash"></i>
+                        <i class="fa-solid fa-trash group-hover:animate-bounce"></i>
+                        <span>LIMPIAR PANTALLA</span>
                     </button>
 
                     <!-- BOTON PROCESAR -->
@@ -443,6 +531,20 @@
                 </div>
             </div>
         </Teleport>
+        
+        <!-- Product Inspector (Overlay Mode) -->
+        <Teleport to="body">
+            <div v-if="showProductInspector" class="fixed inset-0 z-[60] flex justify-end bg-black/50 backdrop-blur-sm">
+                <div class="w-full max-w-lg h-full shadow-2xl overflow-y-auto transform transition-transform duration-300">
+                    <ProductoInspector 
+                        :producto="productForInspector"
+                        :rubros="productosStore.rubros"
+                        @close="closeProductInspector"
+                        @save="handleProductInspectorSave"
+                    />
+                </div>
+            </div>
+        </Teleport>
 
         <!-- Segmento ABM for Tactical Mode -->
         <Teleport to="body">
@@ -494,6 +596,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
+import _ from 'lodash';
 import { useClientesStore } from '@/stores/clientes';
 import { useProductosStore } from '@/stores/productos';
 import { usePedidosStore } from '@/stores/pedidos';
@@ -502,10 +605,14 @@ import apiClient from '@/services/api';
 import ContextMenu from '@/components/common/ContextMenu.vue';
 import ClientHistoryPopover from '@/components/common/ClientHistoryPopover.vue';
 import ClienteInspector from '../Hawe/components/ClienteInspector.vue';
+import ProductoInspector from '../Hawe/components/ProductoInspector.vue';
 import SimpleAbmModal from '@/components/common/SimpleAbmModal.vue';
 import MagicInput from '@/components/ui/MagicInput.vue';
+import canteraService from '@/services/canteraService';
+import { useNotificationStore } from '@/stores/notification';
 
 // STORES
+const notificationStore = useNotificationStore();
 const clientesStore = useClientesStore();
 const productosStore = useProductosStore(); 
 const pedidosStore = usePedidosStore();
@@ -522,6 +629,11 @@ const productQuery = ref('');
 const showClientResults = ref(false);
 const selectedClientIdx = ref(0);
 const selectedProdIdx = ref(0);
+
+// NEW: Product Inspector State
+const showProductInspector = ref(false);
+const productForInspector = ref(null);
+const isProductInspectorNew = ref(false);
 
 // HISTORY POPOVER
 const historyPopover = ref({
@@ -551,6 +663,116 @@ const contextMenu = ref({
 const showSegmentoAbm = ref(false);
 const userMaestros = useMaestrosStore();
 const segmentosList = computed(() => userMaestros.segmentos);
+
+// CANTERA INTEGRATION
+const clientCanteraResults = ref([]);
+const productCanteraResults = ref([]);
+const isSearchingCanteraClient = ref(false);
+const isSearchingCanteraProduct = ref(false);
+
+const handleClientCanteraSearch = _.debounce(async (val) => {
+    if (!val || val.length < 3) {
+        clientCanteraResults.value = [];
+        return;
+    }
+    isSearchingCanteraClient.value = true;
+    try {
+        const res = await canteraService.searchClientes(val);
+        // Deduplicación por CUIT (si ya existe localmente, no mostrar en maestros)
+        const localCuits = new Set(clientesStore.clientes.filter(c => c.activo).map(c => c.cuit).filter(Boolean));
+        clientCanteraResults.value = res.data.filter(c => !localCuits.has(c.cuit));
+    } catch (e) {
+        console.error("Cantera client search error", e);
+    } finally {
+        isSearchingCanteraClient.value = false;
+    }
+}, 400);
+
+const handleProductCanteraSearch = _.debounce(async (val) => {
+    if (!val || val.length < 3) {
+        productCanteraResults.value = [];
+        return;
+    }
+    isSearchingCanteraProduct.value = true;
+    try {
+        const res = await canteraService.searchProductos(val);
+        // Deduplicación por SKU
+        const localSkus = new Set(productosStore.productos.map(p => p.sku).filter(Boolean));
+        productCanteraResults.value = res.data.filter(p => !localSkus.has(p.sku));
+    } catch (e) {
+        console.error("Cantera product search error", e);
+    } finally {
+        isSearchingCanteraProduct.value = false;
+    }
+}, 400);
+
+// Auto-trigger Cantera Search
+watch(clientQuery, (newVal) => {
+    if (newVal.length >= 3) {
+        handleClientCanteraSearch(newVal);
+    } else {
+        clientCanteraResults.value = [];
+    }
+});
+
+watch(productQuery, (newVal) => {
+    if (newVal.length >= 3) {
+        handleProductCanteraSearch(newVal);
+    } else {
+        productCanteraResults.value = [];
+    }
+});
+
+const importAndSelectClient = async (item) => {
+    try {
+        notificationStore.add('Importando cliente...', 'info');
+        await canteraService.importCliente(item.id);
+        await clientesStore.fetchClientes();
+        const imported = clientesStore.clientes.find(c => c.id === item.id);
+        if (imported) selectClient(imported);
+        notificationStore.add('Cliente importado con éxito', 'success');
+        clientCanteraResults.value = [];
+    } catch (e) {
+        notificationStore.add('Error al importar cliente.', 'error');
+    }
+};
+
+const importAndAddProduct = async (item) => {
+    try {
+        notificationStore.add('Importando producto...', 'info');
+        await canteraService.importProducto(item.id); 
+        await productosStore.fetchProductos();
+        // Force string comparison for IDs if coming from SQLite
+        const imported = productosStore.productos.find(p => String(p.id) === String(item.id));
+        if (imported) addProduct(imported);
+        notificationStore.add('Producto importado con éxito', 'success');
+        productCanteraResults.value = [];
+    } catch (e) {
+        notificationStore.add('Error al importar producto.', 'error');
+    }
+};
+
+const inactivateClientCantera = async (item) => {
+    if(!confirm(`¿Desea marcar a "${item.razon_social}" como INACTIVO en la Cantera de Maestros?`)) return;
+    try {
+        await canteraService.inactivateCliente(item.id);
+        clientCanteraResults.value = clientCanteraResults.value.filter(c => c.id !== item.id);
+        notificationStore.add('Maestro inactivado correctamente.', 'success');
+    } catch(e) {
+        notificationStore.add('Error al inactivar maestro.', 'error');
+    }
+};
+
+const inactivateProductCantera = async (item) => {
+    if(!confirm(`¿Desea marcar el producto "${item.nombre}" como INACTIVO en la Cantera de Maestros?`)) return;
+    try {
+        await canteraService.inactivateProducto(item.id);
+        productCanteraResults.value = productCanteraResults.value.filter(p => p.id !== item.id);
+        notificationStore.add('Maestro inactivado correctamente.', 'success');
+    } catch(e) {
+        notificationStore.add('Error al inactivar maestro.', 'error');
+    }
+};
 
 const openSegmentoAbm = () => {
     showSegmentoAbm.value = true;
@@ -628,19 +850,23 @@ const filteredClients = computed(() => {
             if (!c.activo) return false;
             const name = normalizeText(c.razon_social);
             const cuit = c.cuit || "";
-            return name.includes(q) || cuit.includes(q);
+            const id = c.id ? c.id.toString() : "";
+            return name.includes(q) || cuit.includes(q) || id.includes(q);
         })
         .sort((a, b) => {
-            // Sort: Actives first, then Exact Match
-            if (a.activo && !b.activo) return -1;
-            if (!a.activo && b.activo) return 1;
-            
             const nameA = normalizeText(a.razon_social);
             const nameB = normalizeText(b.razon_social);
+            const cuitA = a.cuit || "";
+            const cuitB = b.cuit || "";
+            
+            // 1. Prioridad: Empieza con el texto buscado
+            const startsA = nameA.startsWith(q) || cuitA.startsWith(q);
+            const startsB = nameB.startsWith(q) || cuitB.startsWith(q);
+            if (startsA && !startsB) return -1;
+            if (!startsA && startsB) return 1;
 
-            if (nameA.startsWith(q) && !nameB.startsWith(q)) return -1;
-            if (!nameA.startsWith(q) && nameB.startsWith(q)) return 1;
-            return 0;
+            // 2. Orden alfabético por Razón Social
+            return nameA.localeCompare(nameB);
         })
         .slice(0, 15);
 });
@@ -693,6 +919,23 @@ const filteredProducts = computed(() => {
             const sku = normalizeText(p.sku);
             return name.includes(q) || sku.includes(q);
         })
+        .sort((a, b) => {
+            const skuA = normalizeText(a.sku);
+            const skuB = normalizeText(b.sku);
+            const nameA = normalizeText(a.nombre);
+            const nameB = normalizeText(b.nombre);
+
+            // 1. Prioridad: SKU exacto o que empieza con q
+            if (skuA.startsWith(q) && !skuB.startsWith(q)) return -1;
+            if (!skuA.startsWith(q) && skuB.startsWith(q)) return 1;
+
+            // 2. Prioridad: Nombre que empieza con q
+            if (nameA.startsWith(q) && !nameB.startsWith(q)) return -1;
+            if (!nameA.startsWith(q) && nameB.startsWith(q)) return 1;
+
+            // 3. Orden por SKU
+            return skuA.localeCompare(skuB);
+        })
         .slice(0, 50);
 });
 
@@ -705,12 +948,33 @@ const productPlaceholder = computed(() => {
     return count > 0 ? `+ Agregar Producto (F3 para buscar en ${count} ítems)` : 'Cargando catálogo...';
 });
 
+const productPopupStyle = computed(() => {
+    if (!productInput.value) return {};
+    const rect = productInput.value.getBoundingClientRect();
+    return {
+        left: `${rect.left}px`,
+        bottom: `${window.innerHeight - rect.top + 8}px`,
+        width: `${rect.width * 1.5}px`,
+        minWidth: '500px'
+    };
+});
+
 // Totals
 const totals = computed(() => {
     const neto = items.value.reduce((sum, item) => sum + (item.cantidad * item.precio_unitario), 0);
     // IVA Logic: Only for 'PENDIENTE' (Pedido Firme) - mimics old behavior where COTIZACION had no IVA in UI
     const iva = form.value.estado === 'PENDIENTE' ? neto * 0.21 : 0;
     return { neto, iva, final: neto + iva };
+});
+
+const clientPopupStyle = computed(() => {
+    if (!clientInput.value) return {};
+    const rect = clientInput.value.getBoundingClientRect();
+    return {
+        top: `${rect.bottom}px`,
+        left: `${rect.left}px`,
+        width: `${rect.width}px`
+    };
 });
 
 const logisticsLabel = computed(() => {
@@ -870,9 +1134,11 @@ const handleClientKeydown = (e) => {
         if (filteredClients.value.length > 0) {
             selectClient(filteredClients.value[selectedClientIdx.value]);
         }
-    } else if (e.key === 'Escape') {
         showClientResults.value = false;
         clientInput.value?.blur();
+    } else if (e.key === 'F4') {
+        e.preventDefault();
+        openInspectorNew();
     } else {
         // Default behavior: typing
         showClientResults.value = true;
@@ -987,6 +1253,50 @@ const switchToClient = (id) => {
     if(client) openInspectorEdit(client);
 };
 
+// --- PRODUCT INSPECTOR LOGIC ---
+
+const openProductInspectorNew = () => {
+    productForInspector.value = {
+        nombre: productQuery.value || '',
+        sku: 'AUTO',
+        activo: true,
+        costos: {
+            costo_reposicion: 0,
+            margen_mayorista: 30,
+            iva_alicuota: 21
+        }
+    };
+    isProductInspectorNew.value = true;
+    showProductInspector.value = true;
+};
+
+const closeProductInspector = () => {
+    showProductInspector.value = false;
+    productForInspector.value = null;
+    focusProductSearch();
+};
+
+const handleProductInspectorSave = async (productData) => {
+    try {
+        let savedProduct;
+        if (isProductInspectorNew.value) {
+            savedProduct = await productosStore.createProducto(productData);
+            notificationStore.add('Producto creado y clonado correctamente', 'success');
+        } else {
+            savedProduct = await productosStore.updateProducto(productData.id, productData);
+            notificationStore.add('Producto actualizado', 'success');
+        }
+        
+        // Auto-add the saved product to the grid
+        addProduct(savedProduct);
+        closeProductInspector();
+        
+    } catch (e) {
+        console.error(e);
+        alert('Error al guardar producto: ' + e.message);
+    }
+};
+
 // --- CONTEXT MENU LOGIC ---
 
 const openClientContextMenu = (e, client) => {
@@ -1069,9 +1379,11 @@ const handleProductKeydown = (e) => {
             addProduct(filteredProducts.value[selectedProdIdx.value]);
         }
     } else if (e.key === 'Escape') {
-
         productQuery.value = '';
         productInput.value?.blur();
+    } else if (e.key === 'F4') {
+        e.preventDefault();
+        openProductInspectorNew();
     }
 };
 

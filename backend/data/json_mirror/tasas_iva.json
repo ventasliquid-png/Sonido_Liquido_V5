@@ -1,0 +1,42 @@
+[
+    {
+        "id": 1,
+        "nombre": "General 21%",
+        "valor": 21.0
+    },
+    {
+        "id": 2,
+        "nombre": "Reducido 10.5%",
+        "valor": 10.5
+    },
+    {
+        "id": 3,
+        "nombre": "Exento 0%",
+        "valor": 0.0
+    },
+    {
+        "id": 4,
+        "nombre": "Super Reducido 2.5%",
+        "valor": 2.5
+    },
+    {
+        "id": 5,
+        "nombre": "General 27%",
+        "valor": 27.0
+    },
+    {
+        "id": 6,
+        "nombre": "IVA 21%",
+        "valor": 21.0
+    },
+    {
+        "id": 7,
+        "nombre": "IVA 10.5%",
+        "valor": 10.5
+    },
+    {
+        "id": 8,
+        "nombre": "Exento",
+        "valor": 0.0
+    }
+]

@@ -1,0 +1,10 @@
+[
+    {
+        "id": 4,
+        "username": "admin",
+        "email": "admin@sonidoliquido.com",
+        "hashed_password": "$2b$12$8AZPefttyCtfKVH3ksOP0uwWNg4YlRCAKYgXFPX/AvO0K0CVczC7m",
+        "is_active": 1,
+        "rol_id": 1
+    }
+]

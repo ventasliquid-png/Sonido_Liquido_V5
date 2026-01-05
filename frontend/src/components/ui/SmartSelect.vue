@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
+import canteraService from '@/services/canteraService';
 
 const props = defineProps({
     modelValue: {
@@ -29,10 +30,14 @@ const props = defineProps({
     required: {
         type: Boolean,
         default: false
+    },
+    canteraType: {
+        type: String, // 'clientes' or 'productos'
+        default: null
     }
 });
 
-const emit = defineEmits(['update:modelValue', 'create-new']);
+const emit = defineEmits(['update:modelValue', 'create-new', 'select-cantera']);
 
 const isOpen = ref(false);
 const searchQuery = ref('');
@@ -155,8 +160,41 @@ const triggerCreate = () => {
     close();
 };
 
+const handleCanteraSearch = async () => {
+    if (!searchQuery.value || !props.canteraType) return;
+    
+    canteraLoading.value = true;
+    canteraResults.value = [];
+    
+    try {
+        const res = props.canteraType === 'clientes' 
+            ? await canteraService.searchClientes(searchQuery.value)
+            : await canteraService.searchProductos(searchQuery.value);
+            
+        canteraResults.value = res.data.map(item => ({
+            ...item,
+            _isCantera: true,
+            nombre: item.razon_social || item.nombre,
+            descripcion: item.cuit || item.sku
+        }));
+    } catch (e) {
+        console.error("Error searching in cantera", e);
+    } finally {
+        canteraLoading.value = false;
+    }
+};
+
+const canteraLoading = ref(false);
+const canteraResults = ref([]);
+
+const selectCanteraItem = (item) => {
+    emit('select-cantera', item);
+    close();
+};
+
 const handleInput = (e) => {
     if (!isOpen.value) isOpen.value = true;
+    canteraResults.value = []; // Clear cantera results on new input
     if (e.target.value === '') {
         emit('update:modelValue', null);
     }
@@ -264,6 +302,7 @@ onUnmounted(() => {
                     class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none bg-white"
                     :placeholder="placeholder"
                     autocomplete="off"
+                    spellcheck="false"
                 />
                 
                 <div class="absolute inset-y-0 right-0 flex items-center px-2 text-gray-400 pointer-events-none">
@@ -272,7 +311,7 @@ onUnmounted(() => {
                     </svg>
                 </div>
 
-                <div v-if="isOpen" class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto" ref="listRef">
+                <div v-if="isOpen" class="absolute z-[100] w-full mt-1 bg-white border border-gray-200 rounded-md shadow-xl max-h-60 overflow-auto" ref="listRef">
                     <ul class="py-1">
                         <li 
                             v-if="allowCreate"
@@ -282,8 +321,24 @@ onUnmounted(() => {
                             <span>➕</span> Nuevo (F4)
                         </li>
                         
-                        <li v-if="filteredOptions.length === 0" class="px-3 py-2 text-sm text-gray-400 italic">
+                        <li v-if="filteredOptions.length === 0 && !canteraType" class="px-3 py-2 text-sm text-gray-400 italic">
                             No hay coincidencias
+                        </li>
+
+                        <!-- Cantera Search Trigger -->
+                        <li 
+                            v-if="canteraType && filteredOptions.length === 0 && canteraResults.length === 0"
+                            class="px-3 py-4 text-center"
+                        >
+                            <p class="text-xs text-gray-500 mb-2">No se encontraron registros locales</p>
+                            <button 
+                                @click.stop="handleCanteraSearch"
+                                :disabled="canteraLoading"
+                                class="w-full py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded flex items-center justify-center gap-2 transition-all"
+                            >
+                                <i class="fas" :class="canteraLoading ? 'fa-spinner fa-spin' : 'fa-search-plus'"></i>
+                                {{ canteraLoading ? 'Buscando en Maestros...' : 'Buscar en Maestros (Cantera)' }}
+                            </button>
                         </li>
 
                         <template v-for="(opt, index) in filteredOptions" :key="opt.id || index">
@@ -308,6 +363,26 @@ onUnmounted(() => {
                                     <span>{{ opt.nombre || opt.descripcion }}</span>
                                 </div>
                                 <span v-if="opt.id === modelValue" class="text-xs font-bold" :class="index === highlightedIndex ? 'text-white' : 'text-[#54cb9b]'">✓</span>
+                            </li>
+                        </template>
+
+                        <!-- Cantera Results -->
+                        <template v-if="canteraResults.length > 0">
+                            <li class="px-3 py-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 uppercase tracking-wider border-b border-emerald-100 mt-2">
+                                RESULTADOS EN MAESTROS (CANTERA)
+                            </li>
+                            <li 
+                                v-for="(item, cIdx) in canteraResults" 
+                                :key="'cantera-'+item.id"
+                                @click="selectCanteraItem(item)"
+                                class="px-3 py-2 text-sm cursor-pointer hover:bg-emerald-50 text-gray-700 flex justify-between items-center border-b border-gray-50 last:border-0"
+                            >
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] font-mono bg-emerald-100 text-emerald-700 px-1 rounded border border-emerald-200" title="Registro en Cantera">MAESTRO</span>
+                                    <span v-if="item.sku" class="text-[10px] font-mono bg-gray-100 text-gray-500 px-1 rounded border border-gray-200">{{ item.sku }}</span>
+                                    <span>{{ item.nombre }}</span>
+                                </div>
+                                <i class="fas fa-plus-circle text-emerald-400 text-xs"></i>
                             </li>
                         </template>
                     </ul>

@@ -1,0 +1,30 @@
+[
+    {
+        "id": "fc3a859d-1829-4d12-8b96-e92823084ca2",
+        "empresa_id": "5e47275c-1ad8-4f53-afed-5dd4a6e2bc90",
+        "nombre_nodo": "Sede Test Script",
+        "direccion_completa": "Av Test 123",
+        "provincia_id": "C",
+        "es_punto_despacho": 0,
+        "es_punto_retiro": 0,
+        "horario_operativo": "None",
+        "contacto_operativo": "None",
+        "localidad": "CABA",
+        "telefono": "123456",
+        "email": "test@test.com"
+    },
+    {
+        "id": "29498b55-4c71-441b-a0e5-149601a38754",
+        "empresa_id": "d1085e38-4c0c-4ec5-b08d-751c1ae51a43",
+        "nombre_nodo": "Sede Browser Test",
+        "direccion_completa": "Browser St 123",
+        "provincia_id": "C",
+        "es_punto_despacho": 0,
+        "es_punto_retiro": 0,
+        "horario_operativo": "None",
+        "contacto_operativo": "None",
+        "localidad": "Test City",
+        "telefono": "",
+        "email": "test@browser.com"
+    }
+]

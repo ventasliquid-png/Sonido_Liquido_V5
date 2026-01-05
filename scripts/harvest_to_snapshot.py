@@ -20,14 +20,25 @@ def harvest_to_sqlite():
             os.remove(SNAPSHOT_DB)
         engine_local = create_engine(f"sqlite:///{SNAPSHOT_DB}")
         
-        # 3. Descargar Tablas Críticas
-        tables = ['clientes', 'productos']
+        # 3. Descargar Tablas Críticas y Maestros
+        tables = [
+            'condiciones_iva', 'listas_precios', 'depositos', 'productos_costos', 
+            'vendedores', 'segmentos', 'tipos_contacto', 'empresas_transporte', 
+            'provincias', 'rubros', 'nodos_transporte', 'proveedores', 'tasas_iva', 
+            'unidades', 'productos', 'roles', 'usuarios', 'personas', 'clientes', 
+            'domicilios', 'vinculos_comerciales'
+        ]
         
         for table in tables:
             try:
                 print(f"📥 Descargando {table.upper()} de IOWA...")
                 df = pd.read_sql(f"SELECT * FROM {table}", engine_cloud)
                 if not df.empty:
+                    # Convert object columns (often UUIDs) to string for SQLite compatibility
+                    for col in df.columns:
+                        if df[col].dtype == 'object':
+                            df[col] = df[col].astype(str)
+                            
                     df.to_sql(table, engine_local, index=False)
                     print(f"   ✅ {len(df)} registros capturados.")
                 else:

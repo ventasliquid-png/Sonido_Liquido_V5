@@ -362,3 +362,12 @@ Esta utilidad permite 'sellar' nÃºmeros de Orden de Compra o Purchase Order en f
 *   **LÃ³gica de Posicionamiento:** El dato se inserta en la esquina superior derecha del documento (Original), alineado con la cabecera fiscal, asegurando visibilidad clÃ­nica sin interferir con la validez del comprobante.
 
 ---
+
+## APÉNDICE: HERRAMIENTAS DE ALTA VELOCIDAD (V5.2)
+### 1. Búsqueda en Maestros (Cantera)
+- Si un producto o cliente no aparece en la búsqueda local, haga clic en el botón naranja **'Buscar en Maestros'**.
+- Esto consultará la 'Cantera' (base de datos masiva). Al seleccionar un registro, el sistema lo importará automáticamente a su operativa local.
+
+### 2. Lanzador Multijugador
+- Use el ícono **'LAN_SERVER_V5'** para permitir que otros puestos de la oficina se conecten.
+- El script abrirá dos ventanas: una para el servidor de datos y otra para la interfaz web.

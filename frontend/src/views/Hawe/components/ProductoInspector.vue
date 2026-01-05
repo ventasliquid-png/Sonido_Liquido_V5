@@ -56,6 +56,26 @@
       <!-- Tabs Content -->
       <div class="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-track-black/20 scrollbar-thumb-rose-900/50">
           
+          <!-- SELECCIÓN POR PLANTILLA (F4 Flow) -->
+          <div v-if="!localProducto.id" class="mb-6 p-4 rounded-lg bg-rose-500/5 border border-rose-500/20">
+              <label class="text-[0.65rem] font-bold text-rose-400 uppercase tracking-widest mb-2 block">
+                  Cargar desde Plantilla / Cantera
+              </label>
+              <SmartSelect
+                v-model="templateId"
+                :options="productosStore.productos"
+                canteraType="productos"
+                placeholder="Buscar producto para clonar..."
+                :allowCreate="false"
+                @update:modelValue="handleTemplateSelect"
+                @select-cantera="handleTemplateSelect"
+                class="dark-smart-select"
+              />
+              <p class="text-[10px] text-white/30 mt-2 italic">
+                  Tip: Seleccione un producto similar para heredar costos y rubros.
+              </p>
+          </div>
+
           <!-- TAB GENERAL -->
           <div v-if="activeTab === 'general'" class="space-y-5">
               <!-- Nombre -->
@@ -66,6 +86,8 @@
                     type="text" 
                     class="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-rose-500 focus:outline-none transition-colors"
                     placeholder="Ej: Jabón Líquido 5L"
+                    autocomplete="off"
+                    spellcheck="false"
                   />
               </div>
 
@@ -358,6 +380,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useProductosStore } from '../../../stores/productos'
+import SmartSelect from '../../../components/ui/SmartSelect.vue'
 
 const productosStore = useProductosStore()
 const { unidades, tasasIva, proveedores } = storeToRefs(productosStore)
@@ -384,6 +407,9 @@ const localCostos = ref({
     cm_objetivo: null,
     precio_fijo_override: null
 })
+
+const templateId = ref(null)
+const pristineName = ref('')
 
 // Flatten rubros for select
 const flattenedRubros = computed(() => {
@@ -427,7 +453,42 @@ watch(() => props.producto, (newVal) => {
     } else {
         localProducto.value = null
     }
+    
+    // Track pristine name to detect changes for auto-cloning logic
+    pristineName.value = localProducto.value?.nombre || ''
+    templateId.value = null 
 }, { immediate: true })
+
+const handleTemplateSelect = (itemOrId) => {
+    let template = null;
+    if (typeof itemOrId === 'object') {
+        template = itemOrId;
+    } else {
+        template = productosStore.productos.find(p => p.id === itemOrId);
+    }
+
+    if (template) {
+        // Inherit everything except ID and SKU
+        const originalActive = localProducto.value.activo;
+        localProducto.value = {
+            ...JSON.parse(JSON.stringify(template)),
+            id: null,
+            sku: 'AUTO',
+            activo: originalActive // Maintain current intent
+        };
+        if (template.costos) {
+            localCostos.value = { ...template.costos };
+        }
+        // Update pristineName to template's name for comparison on save
+        pristineName.value = template.nombre;
+        
+        // Focus name to allow modification
+        nextTick(() => {
+            const nameInput = document.querySelector('input[placeholder="Ej: Jabón Líquido 5L"]');
+            if (nameInput) nameInput.focus();
+        });
+    }
+}
 
 // Simulated Prices
 const simulatedPrices = computed(() => {
@@ -470,6 +531,14 @@ const formatCurrency = (val) => {
 
 const save = () => {
     if (!localProducto.value) return
+    
+    // [DEOU Flow] If no changes in name for a new template-based item, cancel save
+    if (!localProducto.value.id && localProducto.value.nombre === pristineName.value) {
+        alert('No se detectaron cambios en el nombre. No se generará un nuevo registro.');
+        emit('close');
+        return;
+    }
+
     // Merge costs back into product
     const payload = {
         ...localProducto.value,

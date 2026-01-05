@@ -1,0 +1,14 @@
+[
+    {
+        "id": "d494193e-805e-47e9-95d6-532ec178a3f8",
+        "nombre": "GUA",
+        "descripcion": "Guantes",
+        "activo": 1
+    },
+    {
+        "id": "ddd5feaa-3d62-41bf-8580-55d5f126e024",
+        "nombre": "Papeles",
+        "descripcion": "",
+        "activo": 1
+    }
+]

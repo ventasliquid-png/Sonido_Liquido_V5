@@ -5,6 +5,23 @@
 
 ---
 
+## 🛰️ DIRECTIVAS DE ARCO (PRÓLOGO)
+
+### **DIRECTIVA 0 (ENTORNO):**
+- Antes de iniciar cualquier operación, **VERIFICA** que el Workspace activo sea `.../Sonido_Liquido_V5`.
+- Si el entorno no coincide, **DETENTE** inmediatamente y solicita al usuario la apertura del directorio correcto. La Verdad Táctica depende del entorno sagrado.
+
+### **DIRECTIVA 1 (INTEGRIDAD DE DATOS - JSON MIRROR):**
+- Al inicio de cada sesión, realiza un `SELECT COUNT` rápido en `pilot.db`.
+- **CASO A (Corrupción):** Si la DB arroja errores de acceso o esquema -> **ALERTA ROJA**. Propuesta inmediata: "¿Ejecuto protocolo de Resiembra desde JSON?".
+- **CASO B (Tabula Rasa):** Si el conteo es 0 -> Informa: "Base de datos limpia (Tabula Rasa). Cantera JSON disponible para siembra activa".
+- **CASO C (Operativo):** Si el conteo coincide con el último espejo -> Informa: "Territorio Sincronizado".
+
+- **Directiva 1.1 (Carga de Cantera):** El sistema debe garantizar que `cantera.db` esté sincronizada con los espejos JSON en cada arranque. Si la base de datos de consulta no existe o los JSON son más recientes, se disparará una reconstrucción automática. La Cantera es de SOLO LECTURA para el buscador y solo sirve para "resembrar" registros específicos en la base operativa.
+
+---
+
+
 ## 🚦 0. PRE-FLIGHT CHECK (IOWA & RAG)
 Al arrancar la sesión, es obligatorio verificar:
 *   **Conectividad Cloud**: Intentar ping a `104.197.57.226`.

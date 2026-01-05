@@ -79,6 +79,11 @@ const routes = [
                 path: 'tactico',
                 name: 'TacticalLoader',
                 component: () => import('../views/Ventas/GridLoader.vue')
+            },
+            {
+                path: 'cantera',
+                name: 'CanteraExplorer',
+                component: () => import('../views/Maestros/CanteraExplorer.vue')
             }
         ]
     },

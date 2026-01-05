@@ -61,6 +61,7 @@ from backend.productos.router import router as productos_router
 from backend.productos.router import router as productos_router
 from backend.proveedores.router import router as proveedores_router
 from backend.data_intel.router import router as data_intel_router
+from backend.cantera.router import router as cantera_router
 
 # --- 2. Importaciones de LangGraph (El Cerebro) ---
 from langgraph.graph import StateGraph, END
@@ -102,6 +103,15 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"❌ [SEED ERROR]: Falla crítica en siembra automática: {e}")
     # -----------------------------------------
+
+    # --- [CANTERA TÁCTICA]: Sincronización JSON Mirror -> Cantera.db ---
+    try:
+        from backend.cantera.service import CanteraService
+        print("--- [IPL V6.1]: Sincronizando Cantera.db (JSON Mirror)... ---")
+        CanteraService.sync_from_json()
+    except Exception as e:
+        print(f"❌ [CANTERA ERROR]: Falla en sincronización de cantera: {e}")
+    # ------------------------------------------------------------------
 
     # --- [Parche de Autenticación (ACTIVO)] ---
     # --- [INICIO PARCHE V10.12] ---
@@ -329,8 +339,7 @@ print(f"--- [CORS Config] Allowed Origins: {origins} ---")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins, # Use explicit list for credentials support
-    allow_origin_regex='https?://(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}).*', # [GY-FIX] LAN Support
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -360,6 +369,7 @@ app.include_router(productos_router)
 app.include_router(proveedores_router) 
 app.include_router(data_intel_router)
 app.include_router(pedidos_router) 
+app.include_router(cantera_router)
 
 # --- [SPA / STATIC FILES SUPPORT] ---
 # Sirve los archivos estáticos compilados de Vue (JS, CSS, Img)

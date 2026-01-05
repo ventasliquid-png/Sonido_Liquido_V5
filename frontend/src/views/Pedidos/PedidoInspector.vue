@@ -57,6 +57,8 @@
                             :options="clientOptions"
                             placeholder="Buscar cliente..."
                             :allowCreate="false"
+                            canteraType="clientes"
+                            @select-cantera="handleCanteraSelect"
                             class="mb-2"
                          />
                          <div class="flex justify-end gap-2 mt-2">
@@ -118,6 +120,8 @@
                                 :options="productOptions"
                                 placeholder="Buscar producto..."
                                 :allowCreate="false"
+                                canteraType="productos"
+                                @select-cantera="handleProductCanteraSelect"
                                 class="smart-select-container"
                             />
                         </div>
@@ -312,6 +316,7 @@ import clientesService from '@/services/clientes'
 import productosService from '@/services/productosApi' // Corrected path
 import { usePedidosStore } from '@/stores/pedidos' // Need store actions direct access
 import { useNotificationStore } from '@/stores/notification'
+import canteraService from '@/services/canteraService'
 
 const props = defineProps({
     modelValue: {
@@ -419,6 +424,68 @@ const updateTipo = async (tipo) => {
         notification.add('Error al cambiar tipo', 'error')
     }
 }
+
+const handleCanteraSelect = async (item) => {
+    try {
+        notification.add({
+            title: 'Resiembra Táctica',
+            message: `Importando ${item.razon_social} desde Cantera...`,
+            type: 'info'
+        });
+        
+        await canteraService.importCliente(item.id);
+        
+        // Recargar opciones para que el nuevo cliente aparezca en el select
+        await loadOptions();
+        
+        // Asignar el nuevo ID importado (coincide con el del mirror)
+        tempClientId.value = item.id;
+        
+        notification.add({
+            title: 'Éxito',
+            message: 'Cliente importado y listo para usar.',
+            type: 'success'
+        });
+    } catch (e) {
+        console.error("Error importing from cantera", e);
+        notification.add({
+            title: 'Error de Importación',
+            message: 'No se pudo importar el maestro.',
+            type: 'error'
+        });
+    }
+};
+
+const handleProductCanteraSelect = async (item) => {
+    try {
+        notification.add({
+            title: 'Resiembra Táctica',
+            message: `Importando ${item.nombre} desde Cantera...`,
+            type: 'info'
+        });
+        
+        await canteraService.importProducto(item.id);
+        
+        // Recargar opciones
+        await loadOptions();
+        
+        // Asignar el nuevo ID importado al item que se está agregando
+        newItem.value.producto_id = item.id;
+        
+        notification.add({
+            title: 'Éxito',
+            message: 'Producto importado y listo para agregar.',
+            type: 'success'
+        });
+    } catch (e) {
+        console.error("Error importing product from cantera", e);
+        notification.add({
+            title: 'Error de Importación',
+            message: 'No se pudo importar el producto maestro.',
+            type: 'error'
+        });
+    }
+};
 
 // Client Change Logic
 const startEditingClient = () => {

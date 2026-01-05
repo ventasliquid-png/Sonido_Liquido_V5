@@ -24,6 +24,7 @@ export default defineConfig({
       '/docs': { target: 'http://localhost:8000', changeOrigin: true },
       '/openapi.json': { target: 'http://localhost:8000', changeOrigin: true },
       '/atenea': { target: 'http://localhost:8000', changeOrigin: true },
+      '/cantera': { target: 'http://localhost:8000', changeOrigin: true },
     },
     watch: {
       // Ignorar directorios que generan "ruido" en la consola

@@ -151,6 +151,10 @@
                 <i class="fas fa-warehouse w-4"></i> 
                 <span>Depósitos</span>
             </a>
+            <a href="#" @click.prevent="navigate('CanteraExplorer')" class="nav-item-sub" :class="{ 'active-link-amber': isActive('CanteraExplorer') }">
+                <i class="fas fa-gem w-4 text-amber-500"></i> 
+                <span>Cantera de Maestros</span>
+            </a>
         </div>
       </div>
 
@@ -227,7 +231,7 @@ const isActive = (routeName) => {
 const isGroupActive = (group) => {
     if (group === 'CLIENTES') return ['HaweHome', 'Segmentos', 'Vendedores', 'HaweClientCanvas'].includes(route.name)
     if (group === 'PRODUCTOS') return ['Productos', 'Rubros', 'ListasPrecios'].includes(route.name)
-    if (group === 'MAESTROS') return ['Contactos', 'Transportes'].includes(route.name)
+    if (group === 'MAESTROS') return ['Contactos', 'Transportes', 'CanteraExplorer'].includes(route.name)
     if (group === 'PEDIDOS') return ['PedidoList', 'TacticalLoader'].includes(route.name)
     if (group === 'INTEL') return ['data-cleaner'].includes(route.name)
     return false

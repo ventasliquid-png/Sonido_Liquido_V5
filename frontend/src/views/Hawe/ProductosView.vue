@@ -564,6 +564,10 @@ const handleKeydown = (e) => {
     if (e.key === 'Escape') {
         if (showInspector.value) closeInspector()
     }
+    if (e.key === 'F4') {
+        e.preventDefault()
+        createNew()
+    }
 }
 
 onMounted(async () => {

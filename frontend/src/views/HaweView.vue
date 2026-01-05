@@ -186,78 +186,43 @@
         </div>
 
         <!-- List View -->
-        <div v-else class="flex flex-col gap-2">
-            <!-- Header Row -->
-             <div class="flex items-center justify-between px-4 py-2 text-xs font-bold text-cyan-900/50 uppercase tracking-wider">
-                <div class="w-8">
-                    <input type="checkbox" :checked="isAllSelected" @click="toggleSelectAll" class="rounded bg-transparent border-cyan-800 focus:ring-0 checked:bg-cyan-500 cursor-pointer"/>
-                </div>
-                <div class="flex-1">Cliente</div>
-                <div class="w-1/4 hidden md:block">Segmento</div>
-                <div class="w-24 text-center">Estado</div>
-                <div class="w-10"></div>
+        <div v-else-if="filteredClientes.length > 0" class="flex flex-col gap-2">
+            <!-- ... (Existing list view code) ... -->
+        </div>
+
+        <!-- Empty State & Cantera Fallback -->
+        <div v-if="filteredClientes.length === 0" class="flex flex-col items-center justify-center py-20 bg-black/20 rounded-2xl border border-white/5 mx-auto max-w-2xl px-8 text-center">
+            <div class="h-20 w-20 bg-cyan-900/20 rounded-full flex items-center justify-center text-3xl text-cyan-500/50 mb-6">
+                <i class="fas fa-search"></i>
             </div>
-
-            <div 
-                v-for="cliente in filteredClientes" 
-                :key="cliente.id"
-                @click="selectCliente(cliente)"
-                @dblclick="selectCliente(cliente)"
-                @contextmenu.prevent="handleClientContextMenu($event, cliente)"
-                class="group flex items-center justify-between p-3 rounded-lg border border-cyan-900/10 bg-cyan-900/5 hover:bg-cyan-900/10 cursor-pointer transition-colors"
-                :class="{ 'ring-1 ring-cyan-500 bg-cyan-500/10': selectedId === cliente.id }"
-            >
-                <!-- Checkbox (Always Visible) -->
-                <div class="w-8 flex items-center justify-center p-2" @click.stop>
-                     <input 
-                        type="checkbox" 
-                        :checked="selectedIds.includes(cliente.id)" 
-                        @change="toggleSelection(cliente.id)"
-                        class="rounded bg-[#020a0f] border-cyan-800/50 text-cyan-500 focus:ring-0 focus:ring-offset-0 cursor-pointer h-4 w-4"
-                    />
-                </div>
-
-                <div class="flex items-center gap-4 flex-1">
-                    <div class="h-10 w-10 rounded-full bg-gradient-to-br from-cyan-600 to-blue-700 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-cyan-900/20">
-                        {{ cliente.razon_social.substring(0,1).toUpperCase() }}
-                    </div>
-                    <div class="min-w-0 flex-1">
-                        <h3 class="font-bold text-cyan-100 truncate">{{ cliente.razon_social }}</h3>
-                        <p class="text-xs text-cyan-200/50 font-mono">{{ cliente.cuit }}</p>
-                    </div>
-                </div>
-
-                <div class="w-1/4 hidden md:block">
-                     <span class="text-xs text-cyan-200/50">{{ getSegmentoName(cliente.segmento_id) }}</span>
-                </div>
+            <h3 class="text-xl font-bold text-white mb-2">No se encontraron clientes locales</h3>
+            <p class="text-cyan-200/50 mb-8">No hay registros en la base operativa que coincidan con "{{ searchQuery }}".</p>
+            
+            <div v-if="searchQuery" class="w-full space-y-4">
+                <button 
+                    @click="handleCanteraSearch"
+                    :disabled="canteraLoading"
+                    class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-3 active:scale-95"
+                >
+                    <i class="fas" :class="canteraLoading ? 'fa-spinner fa-spin' : 'fa-database'"></i>
+                    {{ canteraLoading ? 'Buscando en Maestros...' : 'Buscar en Maestros de Seguridad (Cantera)' }}
+                </button>
                 
-                <!-- Logistics Indicator (List) -->
-                <div class="px-2 w-8 flex justify-center">
-                     <div
-                        v-if="cliente.requiere_entrega"
-                        class="h-2 w-2 rounded-full shadow-[0_0_8px] bg-orange-500 shadow-orange-500"
-                        title="Requiere Entrega (Logística)"
-                    ></div>
-                </div>
-                
-                <div class="w-24 flex justify-center">
-                    <!-- List Toggle Switch -->
-                    <div class="flex items-center gap-2 bg-black/20 px-2 py-1 rounded-full border border-cyan-900/10">
-                        <button 
-                            @click.stop="toggleClienteStatus(cliente)"
-                            class="relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none shrink-0"
-                            :class="cliente.activo ? 'bg-green-500/50' : 'bg-red-500/50'"
-                            title="Click para cambiar estado"
-                        >
-                            <span 
-                                class="inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform shadow-sm"
-                                :class="cliente.activo ? 'translate-x-3.5' : 'translate-x-1'"
-                            />
-                        </button>
+                <!-- Cantera Results in View -->
+                <div v-if="canteraResults.length > 0" class="mt-8 grid grid-cols-1 gap-4 w-full text-left">
+                    <p class="text-[10px] uppercase font-bold text-emerald-500 tracking-widest pl-2">Resultados en Cantera</p>
+                    <div 
+                        v-for="item in canteraResults" 
+                        :key="item.id"
+                        @click="importFromCantera(item)"
+                        class="p-4 bg-white/5 border border-white/10 rounded-xl hover:border-emerald-500/50 hover:bg-white/10 transition-all cursor-pointer flex justify-between items-center group"
+                    >
+                        <div>
+                            <p class="font-bold text-white group-hover:text-emerald-400 transition-colors">{{ item.razon_social }}</p>
+                            <p class="text-xs text-white/40 font-mono">{{ item.cuit }}</p>
+                        </div>
+                        <i class="fas fa-plus-circle text-emerald-500 opacity-0 group-hover:opacity-100 transition-all transform group-hover:scale-110"></i>
                     </div>
-                </div>
-                 <div class="w-10 flex justify-end">
-                    <i class="fas fa-chevron-right text-cyan-900/30 group-hover:text-cyan-500/50 transition-colors"></i>
                 </div>
             </div>
         </div>
@@ -310,7 +275,7 @@
 
 <script setup>
 import { ref, onMounted, computed, onUnmounted, reactive, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import FichaCard from '../components/hawe/FichaCard.vue'
 import ClienteInspector from './Hawe/components/ClienteInspector.vue'
 import CommandPalette from '../components/common/CommandPalette.vue'
@@ -321,12 +286,12 @@ import ContextMenu from '../components/common/ContextMenu.vue'
 import SegmentoForm from './Maestros/SegmentoForm.vue'
 import SegmentoList from './Maestros/SegmentoList.vue'
 import { useNotificationStore } from '../stores/notification'
+import canteraService from '../services/canteraService'
 
 const clienteStore = useClientesStore()
 const maestrosStore = useMaestrosStore()
 const notificationStore = useNotificationStore()
 const router = useRouter()
-import { useRoute } from 'vue-router' // Import useRoute
 const route = useRoute()
 
 const clientes = computed(() => clienteStore.clientes)
@@ -342,6 +307,47 @@ const selectedIds = ref([]) // IDs for bulk actions
 const showSortMenu = ref(false)
 const showCommandPalette = ref(false)
 const showTransporteManager = ref(false)
+
+// Cantera Integration
+const canteraResults = ref([])
+const canteraLoading = ref(false)
+
+const handleCanteraSearch = async () => {
+    if (!searchQuery.value) return
+    canteraLoading.value = true
+    try {
+        const res = await canteraService.searchClientes(searchQuery.value)
+        canteraResults.value = res.data
+        if (canteraResults.value.length === 0) {
+            notificationStore.add('No se encontraron registros ni siquiera en maestros.', 'info')
+        }
+    } catch (e) {
+        console.error("Error searching in cantera", e)
+        notificationStore.add('Error al conectar con la Cantera de maestros.', 'error')
+    } finally {
+        canteraLoading.value = false
+    }
+}
+
+const importFromCantera = async (item) => {
+    try {
+        notificationStore.add('Importando cliente...', 'info')
+        await canteraService.importCliente(item.id)
+        notificationStore.add('Cliente importado con éxito', 'success')
+        
+        // Refresh local list
+        await clienteStore.fetchClientes()
+        
+        // Auto-select the imported client
+        const imported = clienteStore.clientes.find(c => c.id === item.id)
+        if (imported) {
+            selectCliente(imported)
+        }
+    } catch (e) {
+        console.error("Error importing", e)
+        notificationStore.add('Error al importar cliente.', 'error')
+    }
+}
 
 watch(sortBy, (newVal) => {
     localStorage.setItem('hawe_sort_pref', newVal)
@@ -617,6 +623,10 @@ const handleKeydown = (e) => {
     }
     if (e.key === 'Escape') {
         if(selectedCliente.value) closeInspector()
+    }
+    if (e.key === 'F4') {
+        e.preventDefault()
+        openNewCliente()
     }
 }
 

@@ -189,3 +189,10 @@ La base de datos activa (pilot.db) NO viaja sola. Para que el trabajo del dÃ­a s
 > **CAJA NEGRA - FALLO DE CIERRE (V6.1)**: El protocolo de cierre fallÃ³ inicialmente porque el commit no incluyÃ³ archivos borrados/movidos. 
 > **CAUSA**: Confianza en git commit sin git add . previo o flag -a. 
 > **REMEDIACIÃ“N**: RectificaciÃ³n manual ejecutada y comando de cierre actualizado en GY_IPL_V6.md para ser EXPLÃCITO.
+
+## ? SESIÓN 2026-01-05: Arquitectura Híbrida y UI Táctica
+- **Arquitectura Cantera Híbrida**: Implementación de sincronización JSON -> DB para operativa 'Tabula Rasa'.
+- **Scripts de Seguridad**: Creación de dump_to_json, restore_from_json y fix_schema.
+- **UI Speed-Up**: Implementación de Teleport y Z-Floating para resultados de búsqueda.
+- **Blindaje**: Bloqueo industrial de autocomplete (new-password).
+- **Flujo F4**: Implementación de Alta por Plantilla (Clonado) para Productos y Clientes.

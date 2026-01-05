@@ -1,0 +1,18 @@
+[
+    {
+        "id": "COMPRAS",
+        "nombre": "Responsable de Compras"
+    },
+    {
+        "id": "PAGOS",
+        "nombre": "Responsable de Pagos"
+    },
+    {
+        "id": "DUEÑO",
+        "nombre": "Dueño / Socio"
+    },
+    {
+        "id": "CALIDAD",
+        "nombre": "Control de Calidad"
+    }
+]
