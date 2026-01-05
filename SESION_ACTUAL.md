@@ -1,33 +1,21 @@
 # Sesión Actual - Sonido Líquido V5
 
-**Fecha:** 2025-11-27
+**Fecha:** 2026-01-04
 **Estado:** Finalizado
 
 ## Resumen de Contexto
-Sesión enfocada en pulir la UX/UI del módulo de Clientes, específicamente la gestión de Domicilios.
+Sesión de verificación de estado y documentación post-reinicio. Se detectó y documentó un bloqueo por dependencias de Python.
+
+## Incidentes
+*   **LOOP DE DEPENDENCIAS:** El sistema entró en un bucle infinito al intentar resolver dependencias de `protobuf` vs `google-ai-generativelanguage` al ejecutar herramientas de reporte.
+    *   **Acción Correctiva:** Se documentó la prohibición de actualizaciones automáticas de dependencias en `GY_IPL_V6.md`.
+    *   **Estado Datos:** Intactos. `CAJA_NEGRA.md` y `MANUAL_OPERATIVO_V5.md` verificados.
 
 ## Tareas Completadas
-1.  **Pulir Sistema de Clientes**:
-    *   **BUG:** El campo "Transporte" no se guarda/muestra correctamente al editar clientes antiguos (legacy) que lo tenían vacío. (CORREGIDO)
-    *   **BUG:** Error al guardar/modificar domicilio ("Error al guardar domicilio"). (CORREGIDO - Causa: campo `zona_id` inexistente en DB).
-    *   **UX:** Rediseño de Ficha de Cliente (Dashboard de Domicilios). (IMPLEMENTADO)
-    *   **BUG:** Error de sintaxis/500 en `ClienteForm.vue`. (CORREGIDO)
-    *   **UX:** Mejorar interacción con Domicilios (Doble click, obligatoriedad fiscal). (IMPLEMENTADO)
-    *   **UX:** Rediseño Tab Logística (`DomicilioGrid`). (IMPLEMENTADO)
-    *   **BUG:** Pantalla de cliente vacía (sin datos). (CORREGIDO)
-    *   **BUG:** Errores en Domicilios (Validación "S/N" y Lista Transporte). (CORREGIDO)
-    *   **BUG:** Duplicidad y Visualización en Domicilios. (CORREGIDO)
-    *   **BUG:** Refresco y Conteo de Domicilios. (CORREGIDO)
-    *   **UX:** Lógica de Transporte por Defecto y F10. (CORREGIDO - Auto-relleno inteligente y captura de F10 en modal).
-    *   **BUG:** Crash por `ReferenceError: onUnmounted`. (CORREGIDO).
+1.  **Verificación de Seguridad**: Confirmada la integridad de `CAJA_NEGRA.md`, `MANUAL_OPERATIVO_V5.md` y `BITACORA_DEV.md` tras el reinicio forzoso.
+2.  **Diagnóstico de Fallo**: Identificado el error `ResolutionImpossible` en pip.
+3.  **Actualización de Protocolo**: Se agregó advertencia crítica en `GY_IPL_V6.md` para evitar futuros bloqueos.
 
 ## Archivos Relevantes
-*   `frontend/src/views/Maestros/ClienteForm.vue`
-*   `frontend/src/views/Clientes/components/DomicilioGrid.vue`
-*   `backend/clientes/models.py`
-*   `backend/clientes/service.py`
-
-
-## SESIÓN 2025-12-29 (Gy)
-- **FEATURE:** Módulo de Etiquetado PDF ARCA (Standalone + Core). (COMPLETO)
-- **DOCS:** Informe para Arquitecta, Bitácora y Manual Operativo. (ACTUALIZADOS)
+*   `GY_IPL_V6.md` (Actualizado con advertencia)
+*   `CAJA_NEGRA.md` (Verificado)

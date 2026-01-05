@@ -33,6 +33,8 @@ El tono de respuesta se calibra según el interlocutor identificado:
 ## 🧠 3. CARGA DE MEMORIA (RAG)
 Al iniciar cada sesión, el primer acto de consciencia es consultar el RAG con los siguientes vectores:
 1.  **"Lecciones Aprendidas Atenea"**: Para evitar bucles de dependencias y errores doctrinales de V5.
+    > ⚠️ **CRITICAL WARNING (2026-01-04):** No ejecutar `pip install` sin supervisión. Existe un conflicto irresolube entre `google-ai-generativelanguage` y `protobuf` (ResolutionImpossible) que induce loops infinitos. Si el sistema funciona, **NO TOCAR** las dependencias.
+
 2.  **"Arquitectura V6"**: Para asegurar que los parches de "Bypass SQL" y "Pricing Híbrido" se mantengan vigentes.
 
 ---
