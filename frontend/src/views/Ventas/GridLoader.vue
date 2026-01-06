@@ -1,5 +1,5 @@
 <template>
-    <div class="flex flex-col h-full font-sans bg-[#0b211f] text-emerald-50 transition-colors duration-500 ease-in-out">
+    <div class="flex flex-col h-full font-sans text-emerald-50 transition-colors duration-500 ease-in-out" :class="mainThemeClass">
         
         <!-- === ZONA A: CABECERA (CONTEXTO) === -->
         <header 
@@ -215,7 +215,7 @@
                     v-for="opt in statusOptions" :key="opt.value"
                     class="px-3 h-6 text-[10px] font-bold uppercase rounded transition-all mr-1 last:mr-0 flex items-center gap-1"
                     :class="form.estado === opt.value ? opt.activeClass : 'text-slate-500 hover:text-slate-300'"
-                    @click="form.estado = opt.value"
+                    @click="setStatus(opt.value)"
                     :title="opt.label"
                 >
                     <div class="w-2 h-2 rounded-full" :class="form.estado === opt.value ? 'bg-current' : opt.dotClass"></div>
@@ -235,7 +235,9 @@
                 <div class="flex-1 pl-2">Notas / Obs</div>
                 <div class="w-20 text-center">Cant.</div>
                 <div class="w-12 text-center">Unid.</div>
-                <div class="w-24 text-right">Unitario</div>
+                <div class="w-28 text-right">Unitario (4 dec)</div>
+                <div class="w-32 text-right">Descuento (%)</div>
+                <div class="w-32 text-right">Descuento ($)</div>
                 <div class="w-24 text-right">Subtotal</div>
                 <div class="w-8"></div>
             </div>
@@ -279,22 +281,46 @@
                             inputClass="w-16 text-center bg-transparent hover:bg-white/10 focus:bg-black/20 rounded outline-none focus:ring-1 focus:ring-emerald-500 font-mono font-bold text-white placeholder-emerald-800"
                             :decimals="0"
                             @focus="focusedRow = index"
+                            @update:modelValue="recalculateItemEngine(item, 'cantidad')"
                         />
                     </div>
                     
                     <div class="w-12 text-center text-[10px] text-emerald-600 uppercase select-none">{{ item.unidad || 'UN' }}</div>
                     
-                    <div class="w-24 text-right font-mono">
+                    <div class="w-28 text-right font-mono">
                         <MagicInput 
                             v-model.number="item.precio_unitario" 
-                            inputClass="w-20 text-right bg-transparent hover:bg-white/10 focus:bg-black/20 outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1 text-emerald-300 text-xs placeholder-emerald-800"
+                            inputClass="w-24 text-right bg-transparent hover:bg-white/10 focus:bg-black/20 outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1 text-emerald-300 text-xs placeholder-emerald-800"
+                            :decimals="4"
+                            @focus="focusedRow = index"
+                            @update:modelValue="recalculateItemEngine(item, 'precio')"
+                        />
+                    </div>
+
+                    <!-- DESCUENTO PORCENTAJE -->
+                    <div class="w-32 text-right font-mono">
+                        <MagicInput 
+                            v-model.number="item.descuento_porcentaje" 
+                            inputClass="w-20 text-right bg-transparent hover:bg-white/10 focus:bg-black/20 outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1 text-amber-400 text-xs"
                             :decimals="2"
                             @focus="focusedRow = index"
+                            @update:modelValue="recalculateItemEngine(item, 'porcentaje')"
+                        />
+                    </div>
+
+                    <!-- DESCUENTO IMPORTE -->
+                    <div class="w-32 text-right font-mono">
+                        <MagicInput 
+                            v-model.number="item.descuento_importe" 
+                            inputClass="w-24 text-right bg-transparent hover:bg-white/10 focus:bg-black/20 outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1 text-amber-500 text-xs"
+                            :decimals="4"
+                            @focus="focusedRow = index"
+                            @update:modelValue="recalculateItemEngine(item, 'importe')"
                         />
                     </div>
                     
                     <div class="w-24 text-right font-bold font-mono text-emerald-100 text-sm">
-                        {{ formatCurrency(item.cantidad * item.precio_unitario) }}
+                        {{ formatCurrency(item.subtotal) }}
                     </div>
                     
                     <div class="w-8 text-center opacity-0 group-hover:opacity-100 cursor-pointer text-emerald-700 hover:text-red-400 transition-opacity" @click.stop="removeItem(index)">
@@ -437,8 +463,28 @@
                 <!-- TOTALES -->
                 <div class="flex gap-8 items-end pb-1">
                     <div class="text-right space-y-0.5">
-                        <div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Subtotal</div>
-                        <div class="font-mono text-slate-500 text-sm">{{ formatCurrency(totals.neto) }}</div>
+                        <div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Subtotal Bruto</div>
+                        <div class="font-mono text-slate-500 text-sm">{{ formatCurrency(totals.bruto) }}</div>
+                    </div>
+
+                    <!-- DTO GLOBAL -->
+                    <div class="text-right space-y-0.5 border-l border-slate-700 pl-4">
+                        <div class="text-[10px] text-amber-600 uppercase font-bold tracking-wider">Dto Global (%)</div>
+                        <MagicInput 
+                            v-model.number="form.descuento_global_porcentaje" 
+                            inputClass="w-16 text-right bg-transparent border-b border-amber-900/30 text-amber-500 text-xs outline-none focus:border-amber-500 font-mono"
+                            :decimals="2"
+                            @update:modelValue="handleGlobalDiscountInputEngine('porcentaje')"
+                        />
+                    </div>
+                    <div class="text-right space-y-0.5">
+                        <div class="text-[10px] text-amber-600 uppercase font-bold tracking-wider">Dto Global ($)</div>
+                        <MagicInput 
+                            v-model.number="form.descuento_global_importe" 
+                            inputClass="w-24 text-right bg-transparent border-b border-amber-900/30 text-amber-600 text-xs outline-none focus:border-amber-600 font-mono"
+                            :decimals="4"
+                            @update:modelValue="handleGlobalDiscountInputEngine('importe')"
+                        />
                     </div>
                     
                     <div class="text-right space-y-0.5" v-if="totals.iva > 0">
@@ -447,7 +493,10 @@
                     </div>
 
                     <div class="text-right pl-6 border-l border-slate-200">
-                        <div class="text-[10px] uppercase font-bold tracking-wider mb-0.5" :class="form.tipo === 'PEDIDO' ? 'text-emerald-600' : 'text-purple-600'">Total Final</div>
+                        <div class="text-[10px] uppercase font-bold tracking-wider mb-0.5" 
+                             :class="form.estado === 'PENDIENTE' ? 'text-emerald-600' : 'text-purple-600'">
+                           {{ totals.iva > 0 ? 'TOTAL FINAL' : 'TOTAL NETO' }}
+                        </div>
                         <div class="text-3xl font-bold font-mono leading-none tracking-tight text-slate-800">
                             {{ formatCurrency(totals.final) }}
                         </div>
@@ -596,6 +645,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import _ from 'lodash';
 import { useClientesStore } from '@/stores/clientes';
 import { useProductosStore } from '@/stores/productos';
@@ -616,8 +666,11 @@ const notificationStore = useNotificationStore();
 const clientesStore = useClientesStore();
 const productosStore = useProductosStore(); 
 const pedidosStore = usePedidosStore();
+const route = useRoute();
+const router = useRouter();
 
 // UI STATE
+const isEditing = computed(() => !!route.query.edit);
 const focusedZone = ref('CLIENT'); 
 const focusedRow = ref(null);
 const clientInput = ref(null);
@@ -796,12 +849,18 @@ const form = ref({
     oc: '',
     nota: '',
     estado: 'PENDIENTE', // PENDIENTE (Pedido) | PRESUPUESTO
-    numero_manual: '' 
+    tipo_facturacion: 'B', // Default Fiscal (A/B) para coincidir con PENDIENTE
+    numero_manual: '',
+    descuento_global_porcentaje: 0,
+    descuento_global_importe: 0
 });
 
 const statusOptions = [
     { value: 'PRESUPUESTO', label: 'PRESUPUESTO', activeClass: 'bg-indigo-900/50 text-indigo-300 border border-indigo-500/50 shadow-sm', dotClass: 'bg-indigo-800' },
-    { value: 'PENDIENTE', label: 'PEDIDO FIRME', activeClass: 'bg-emerald-900/50 text-emerald-300 border border-emerald-500/50 shadow-sm', dotClass: 'bg-emerald-800' }
+    { value: 'PENDIENTE', label: 'PEDIDO FIRME', activeClass: 'bg-emerald-900/50 text-emerald-300 border border-emerald-500/50 shadow-sm', dotClass: 'bg-emerald-800' },
+    { value: 'CUMPLIDO', label: 'CUMPLIDO', activeClass: 'bg-yellow-900/50 text-yellow-300 border border-yellow-500/50 shadow-sm', dotClass: 'bg-yellow-800' },
+    { value: 'INTERNO', label: 'INTERNO / SIN IVA', activeClass: 'bg-pink-900/50 text-pink-300 border border-pink-500/50 shadow-sm', dotClass: 'bg-pink-600' },
+    { value: 'ANULADO', label: 'ANULADO', activeClass: 'bg-red-900/50 text-red-300 border border-red-500/50 shadow-sm', dotClass: 'bg-red-600' }
 ];
 
 const sugeridoId = ref(0); // To store valid next ID
@@ -816,19 +875,30 @@ const items = ref([]);
 // --- COMPUTED STYLES ---
 
 const headerThemeClass = computed(() => {
-    if (form.value.estado === 'PRESUPUESTO') return 'bg-[#1a0b1e] border-purple-900 text-purple-400'; // Lilac/Purple Theme
+    if (form.value.estado === 'PRESUPUESTO') return 'bg-[#1a0b1e] border-purple-900 text-purple-400';
     if (form.value.estado === 'PENDIENTE') return 'bg-[#061816] border-emerald-900 text-emerald-400';
-    return 'bg-[#0f0a1e] border-purple-900 text-purple-400'; // Default?
+    if (form.value.estado === 'CUMPLIDO') return 'bg-[#1d1d05] border-yellow-900 text-yellow-500';
+    if (form.value.estado === 'INTERNO') return 'bg-[#2b0515] border-pink-800 text-pink-400'; // Vibrant Pink
+    if (form.value.estado === 'ANULADO') return 'bg-[#2a0505] border-red-900 text-red-400'; // Red Theme
+    return 'bg-[#0f0a1e] border-purple-900 text-purple-400';
 });
 
 const mainThemeClass = computed(() => {
-    if (form.value.estado === 'PRESUPUESTO') return 'bg-[#2d1b36]'; // Lilac bg
-    return 'bg-[#0b211f]'; // Green bg
+    if (form.value.estado === 'PRESUPUESTO') return 'bg-[#2d1b36]';
+    if (form.value.estado === 'PENDIENTE') return 'bg-[#0b211f]';
+    if (form.value.estado === 'CUMPLIDO') return 'bg-[#1d1d0b]';
+    if (form.value.estado === 'INTERNO') return 'bg-[#2b0515]'; // Vibrant Pink
+    if (form.value.estado === 'ANULADO') return 'bg-[#1f0505]'; // Red Theme
+    return 'bg-[#0b211f]';
 });
 
 const activeTypeClass = (type) => {
     if (type === 'PENDIENTE') return 'bg-emerald-500 text-white shadow-sm';
-    return 'bg-purple-500 text-white shadow-sm';
+    if (type === 'CUMPLIDO') return 'bg-yellow-500 text-black shadow-sm';
+    if (type === 'PRESUPUESTO') return 'bg-purple-500 text-white shadow-sm';
+    if (type === 'INTERNO') return 'bg-pink-600 text-white shadow-sm';
+    if (type === 'ANULADO') return 'bg-red-600 text-white shadow-sm';
+    return 'bg-slate-500 text-white shadow-sm';
 };
 
 // --- DATA LOGIC ---
@@ -959,12 +1029,17 @@ const productPopupStyle = computed(() => {
     };
 });
 
-// Totals
 const totals = computed(() => {
-    const neto = items.value.reduce((sum, item) => sum + (item.cantidad * item.precio_unitario), 0);
-    // IVA Logic: Only for 'PENDIENTE' (Pedido Firme) - mimics old behavior where COTIZACION had no IVA in UI
-    const iva = form.value.estado === 'PENDIENTE' ? neto * 0.21 : 0;
-    return { neto, iva, final: neto + iva };
+    const bruto = items.value.reduce((sum, item) => sum + (item.subtotal || 0), 0);
+    const neto = bruto - (form.value.descuento_global_importe || 0);
+    
+    // IVA Logic synchronized with backend:
+    // PENDIENTE/PRESUPUESTO with Fiscal mode (A/B) -> +21%
+    const applyIva = (form.value.estado === 'PENDIENTE' || form.value.estado === 'PRESUPUESTO') && 
+                     (form.value.tipo_facturacion === 'A' || form.value.tipo_facturacion === 'B' || form.value.tipo_facturacion === 'FISCAL');
+    
+    const iva = applyIva ? neto * 0.21 : 0;
+    return { bruto, neto, iva, final: neto + iva };
 });
 
 const clientPopupStyle = computed(() => {
@@ -1012,8 +1087,15 @@ const handleClearManual = () => {
         form.value.oc = '';
         form.value.estado = 'PENDIENTE';
         clientQuery.value = '';
+        form.value.descuento_global_porcentaje = 0;
+        form.value.descuento_global_importe = 0;
         localStorage.removeItem('tactical_draft');
         
+        // Remove edit from query if present
+        if (route.query.edit) {
+            router.replace({ path: route.path, query: {} });
+        }
+
         // Ensure UI updates
         createEmptyRow(); 
         fetchNextId();
@@ -1025,6 +1107,22 @@ const handleClearManual = () => {
 
 const formatCurrency = (val) => {
     return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(val);
+};
+
+const setStatus = (newStatus) => {
+    form.value.estado = newStatus;
+    
+    // Doctrina Táctica v6.5: 
+    // Al cambiar a PENDIENTE (Verde) o PRESUPUESTO (Púrpura), 
+    // activamos modo FISCAL (B) por defecto si estaba en X.
+    if ((newStatus === 'PENDIENTE' || newStatus === 'PRESUPUESTO') && form.value.tipo_facturacion === 'X') {
+        form.value.tipo_facturacion = 'B'; 
+    }
+    
+    // Si el usuario elige explícitamente INTERNO o ANULADO, forzamos modo X (Sin IVA)
+    if (newStatus === 'INTERNO' || newStatus === 'ANULADO') {
+        form.value.tipo_facturacion = 'X';
+    }
 };
 
 const fetchNextId = async () => {
@@ -1057,51 +1155,189 @@ const clearDraft = () => {
     form.value.cliente_id = null;
     selectedClient.value = null;
     clientQuery.value = '';
+    
+    // Remove edit from query if present
+    if (route.query.edit) {
+        router.replace({ path: route.path, query: {} });
+    }
+
     createEmptyRow(); // Reset UI
 };
 
-onMounted(async () => {
-    focusedZone.value = 'CLIENT';
-    
-    // Restore Draft
-    const saved = localStorage.getItem('tactical_draft');
-    if (saved) {
-        try {
-            const draft = JSON.parse(saved);
-            // Valid for 24 hours
-            if (Date.now() - draft.timestamp < 24 * 60 * 60 * 1000) {
-                if (draft.items?.length > 0 || draft.selectedClient) {
-                    items.value = draft.items || [];
-                    form.value = { ...form.value, ...draft.form }; // Merge safely
-                    selectedClient.value = draft.selectedClient;
-                    clientQuery.value = draft.selectedClient?.razon_social || '';
+const resetAndFetchPedido = async (id) => {
+    if (!id) return;
+    try {
+        console.log(`[GridLoader] Intentando cargar pedido #${id} para edición...`);
+        notificationStore.add('Cargando pedido...', 'info');
+        
+        // Limpiamos estado previo para evitar mezclas
+        items.value = [];
+        selectedClient.value = null;
+        form.value.numero_manual = ''; 
+
+        const pedido = await pedidosStore.getPedidoById(id);
+        
+        if (pedido) {
+            console.log(`[GridLoader] Pedido cargado:`, pedido);
+            
+            // 1. Populate Form
+            form.value.fecha = pedido.fecha ? pedido.fecha.split('T')[0] : new Date().toISOString().split('T')[0];
+            form.value.oc = pedido.oc || '';
+            form.value.nota = pedido.nota || '';
+            form.value.estado = pedido.estado || 'PENDIENTE';
+            form.value.numero_manual = pedido.id;
+            form.value.descuento_global_porcentaje = pedido.descuento_global_porcentaje || 0;
+            form.value.descuento_global_importe = pedido.descuento_global_importe || 0;
+            
+            // Lógica de recuperación de Tipo Facturación (Doctrina Táctica v6.6)
+            // Auto-heal: Si es PENDIENTE/PRESUPUESTO, debe ser Fiscal (B) por defecto.
+            if (pedido.tipo_facturacion) {
+                form.value.tipo_facturacion = pedido.tipo_facturacion;
+                // PATCH: Si encontramos inconsistencia (PENDIENTE pero Facturacion X/Null), corregimos a B
+                if (['PENDIENTE', 'PRESUPUESTO'].includes(pedido.estado) && !['A', 'B', 'FISCAL'].includes(pedido.tipo_facturacion)) {
+                     form.value.tipo_facturacion = 'B';
                 }
+            } else {
+                form.value.tipo_facturacion = (pedido.estado === 'PENDIENTE' || pedido.estado === 'PRESUPUESTO') ? 'B' : 'X';
             }
-        } catch (e) {
-            console.error("Error restoring draft", e);
+
+            // 2. Populate Client
+            if (pedido.cliente) {
+                selectedClient.value = pedido.cliente;
+                clientQuery.value = pedido.cliente.razon_social || '';
+            }
+            
+            // 3. Populate Items
+            if (pedido.items && pedido.items.length > 0) {
+                items.value = pedido.items.map(i => ({
+                    _ui_id: Date.now() + Math.random() + (i.id || 0),
+                    id: i.id,
+                    producto_id: i.producto_id,
+                    sku: i.producto?.sku || '?',
+                    nombre: i.producto?.nombre || '?',
+                    unidad: i.producto?.unidad_medida || 'UN',
+                    cantidad: i.cantidad,
+                    precio_unitario: i.precio_unitario,
+                    descuento_porcentaje: i.descuento_porcentaje || 0,
+                    descuento_importe: i.descuento_importe || 0,
+                    subtotal: (i.cantidad * i.precio_unitario) - (i.descuento_importe || 0),
+                    nota: i.nota || ''
+                }));
+            } else {
+                items.value = [];
+                createEmptyRow();
+            }
+            
+            notificationStore.add(`Pedido #${pedido.id} cargado.`, 'success');
+            setTimeout(() => focusProductSearch(), 300);
+        } else {
+            throw new Error("El pedido no existe o vino vacío.");
+        }
+    } catch (e) {
+        console.error("[GridLoader] Error crítico al cargar pedido:", e);
+        notificationStore.add('Error al cargar pedido. Iniciando modo NUEVO.', 'error');
+        // Fallback a nuevo pedido para no dejar la pantalla en el limbo "NEW"
+        router.replace({ path: route.path, query: {} }); // Limpia ?edit=XX
+        // El watcher de route.query se encargará de resetear, pero por seguridad:
+        resetToNewOrder();
+    }
+}
+
+const resetToNewOrder = async () => {
+    console.log("[GridLoader] Reseteando a NUEVO PEDIDO");
+    items.value = [];
+    selectedClient.value = null;
+    form.value.nota = '';
+    form.value.oc = '';
+    form.value.estado = 'PENDIENTE';
+    form.value.tipo_facturacion = 'B'; // Default Fiscal
+    form.value.numero_manual = '';
+    form.value.descuento_global_porcentaje = 0;
+    form.value.descuento_global_importe = 0;
+    clientQuery.value = '';
+    createEmptyRow();
+    await fetchNextId();
+};
+
+onMounted(async () => {
+    // 1. Listeners Globales
+    window.addEventListener('keydown', handleGlobalKeydown);
+    window.addEventListener('keydown', handleGlobalKeys);
+
+    // 2. Carga de Datos Maestros
+    try {
+        await Promise.all([
+            clientesStore.fetchClientes(),
+            productosStore.fetchProductos(),
+            useMaestrosStore().fetchAll()
+        ]);
+    } catch (e) {
+        console.error("Error cargando maestros:", e);
+    }
+
+    // 3. Determinar Modo (Edición vs Nuevo)
+    // Usamos nextTick para asegurar que el router esté estabilizado
+    await nextTick();
+    const editId = route.query.edit;
+
+    if (editId) {
+        console.log("[GridLoader] Modo EDICIÓN detectado ID:", editId);
+        await resetAndFetchPedido(editId);
+    } else {
+        console.log("[GridLoader] Modo NUEVO detectado.");
+        // Intentar restaurar borrador
+        const saved = localStorage.getItem('tactical_draft');
+        let restored = false;
+        if (saved) {
+            try {
+                const draft = JSON.parse(saved);
+                if (Date.now() - draft.timestamp < 24 * 60 * 60 * 1000) { // 24h validez
+                    if (draft.items?.length > 0 || draft.selectedClient) {
+                        items.value = draft.items || [];
+                        form.value = { ...form.value, ...draft.form };
+                        selectedClient.value = draft.selectedClient;
+                        clientQuery.value = draft.selectedClient?.razon_social || '';
+                        restored = true;
+                        notificationStore.add('Borrador restaurado', 'info');
+                    }
+                }
+            } catch (e) { console.error("Error draft restore", e); }
+        }
+        
+        if (!restored) {
+            await fetchNextId();
+        } else {
+             // Si restauramos borrador, también necesitamos un ID nuevo si no tenía
+             if (!form.value.numero_manual) await fetchNextId();
         }
     }
 
     setTimeout(() => clientInput.value?.focus(), 100);
-    
-    // Parallel data loading
-    Promise.all([
-        clientesStore.fetchClientes(),
-        productosStore.fetchProductos(),
-        useMaestrosStore().fetchAll(), 
-        fetchNextId()
-    ]);
 });
 
-// Watch for changes to autosave
+// Watch para cambios en URL (Navegación dentro de la misma vista)
+watch(() => route.query.edit, async (newId, oldId) => {
+    if (newId === oldId) return; // Evitar disparos redundantes
+    if (newId) {
+        await resetAndFetchPedido(newId);
+    } else {
+        // Si se quita el query param, asumimos "Nuevo Pedido"
+        await resetToNewOrder();
+    }
+});
+
+// Autosave Draft (solo si no estamos editando un pedido existente guardado, o sea, si es nuevo)
+// OJO: Quizás queramos guardar draft de edición también? Por ahora solo para nuevos para no sobrescribir logic compleja
 watch([items, () => form.value, selectedClient], () => {
-    if (items.value.length > 0 || selectedClient.value) {
+    // Solo guardamos draft si NO estamos en modo edición (para no pisar trabajo de edición con borrador local sucio)
+    if (!route.query.edit && (items.value.length > 0 || selectedClient.value)) {
         autosaveDraft();
     }
 }, { deep: true });
 
 onUnmounted(() => {
-    // cleanup
+    window.removeEventListener('keydown', handleGlobalKeydown);
+    window.removeEventListener('keydown', handleGlobalKeys);
 });
 
 const createEmptyRow = () => ({
@@ -1110,6 +1346,9 @@ const createEmptyRow = () => ({
     nombre: '',
     cantidad: 1,
     precio_unitario: 0,
+    descuento_porcentaje: 0,
+    descuento_importe: 0,
+    subtotal: 0,
     unidad: '',
     nota: ''
 });
@@ -1151,6 +1390,11 @@ const handleGlobalKeydown = (e) => {
     if (e.key === 'F10') {
         e.preventDefault();
         handleSubmit();
+    } else if (e.key === 'Escape') {
+        // [GY-UX] Return to Order List if not in a critical input
+        if (focusedZone.value === 'CLIENT' || focusedZone.value === 'PRODUCT') {
+            router.push('/hawe/pedidos');
+        }
     }
 };
 
@@ -1391,6 +1635,10 @@ const addProduct = async (product) => {
     // 1. Determine Initial Price (Default to stored list price)
     let unitPrice = product.precio_sugerido || 0;
     let note = '';
+    
+    // Add version number for user visibility (as requested in PedidoTacticoView before)
+    // Actually, let's keep it clean since GridLoader doesn't have a version placeholder yet.
+
 
     // 2. Intelligence: Quote with Backend if Client is selected
     if (selectedClient.value && selectedClient.value.id) {
@@ -1421,6 +1669,9 @@ const addProduct = async (product) => {
         unidad: product.unidad_medida || 'UN',
         cantidad: 1,
         precio_unitario: unitPrice,
+        descuento_porcentaje: 0,
+        descuento_importe: 0,
+        subtotal: unitPrice, // Initial subtotal (1 * unitPrice - 0)
         nota: note
     };
 
@@ -1447,7 +1698,36 @@ const removeItem = (idx) => {
 // Main Submit
 const handleSubmit = async () => {
     if (!selectedClient.value) return alert('Por favor seleccione un cliente.');
-    if (items.value.length === 0) return alert('El pedido está vacío.');
+    
+    // Sync Fiscal Mode: PENDIENTE should be FISCAL by default
+    if (form.value.estado === 'PENDIENTE' && form.value.tipo_facturacion === 'X') {
+        form.value.tipo_facturacion = 'B'; 
+    }
+
+    // Special Logic: Zero items -> Annul?
+    if (items.value.length === 0) {
+        if (isEditing.value) {
+            if (confirm('El pedido no tiene renglones. ¿Desea ANULAR este pedido?')) {
+                try {
+                    isSubmitting.value = true;
+                    await pedidosStore.updatePedido(route.query.edit, { estado: 'ANULADO' });
+                    notificationStore.add('Pedido ANULADO correctamente', 'success');
+                    clearDraft();
+                    focusClient();
+                    return;
+                } catch (e) {
+                    alert('Error al anular: ' + e.message);
+                    return;
+                } finally {
+                    isSubmitting.value = false;
+                }
+            } else {
+                return; // User cancelled annulment but can't save zero items
+            }
+        } else {
+            return alert('El pedido está vacío.');
+        }
+    }
     
     isSubmitting.value = true;
     try {
@@ -1458,24 +1738,49 @@ const handleSubmit = async () => {
             oc: form.value.oc,
             estado: form.value.estado,
              items: items.value.map(i => ({
-                producto_id: i.id,
-                cantidad: i.cantidad,
-                precio_unitario: i.precio_unitario
-            }))
+                producto_id: i.producto_id,
+                cantidad: parseFloat(i.cantidad),
+                precio_unitario: parseFloat(i.precio_unitario),
+                descuento_porcentaje: parseFloat(i.descuento_porcentaje || 0),
+                descuento_importe: parseFloat(i.descuento_importe || 0),
+                nota: i.nota || ''
+            })),
+            tipo_facturacion: form.value.tipo_facturacion,
+            descuento_global_porcentaje: parseFloat(form.value.descuento_global_porcentaje || 0),
+            descuento_global_importe: parseFloat(form.value.descuento_global_importe || 0)
         };
         
-        const result = await pedidosStore.createPedidoTactico(payload);
+        let result;
+        if (isEditing.value) {
+            // Re-use updatePedido but with tactical payload structure if backend supports it
+            // Or better yet, create a dedicated updatePedidoTactico if needed.
+            // For now, let's use a generic PATCH /pedidos/{id} which should handle items if configured.
+            // Wait, the backend update_pedido might not handle items list replacement in a simple PATCH.
+            // I'll check the router.py again.
+            result = await pedidosStore.updatePedido(route.query.edit, payload);
+        } else {
+            result = await pedidosStore.createPedidoTactico(payload);
+        }
         
-        if(confirm(`Pedido #${result.id} generado con éxito.\n¿Limpiar pantalla?`)) {
+        if (downloadExcel.value) {
+            const filename = `Pedido_${result.id}_${selectedClient.value.razon_social.substring(0, 15)}.xlsx`;
+            await pedidosStore.downloadExcel(result.id, filename);
+        }
+
+        isSubmitting.value = false; // Reset before alert to stop spinner
+
+        notificationStore.add(isEditing.value ? 'Pedido actualizado' : 'Pedido generado', 'success');
+
+        if(confirm(`Pedido #${result.id} ${isEditing.value ? 'actualizado' : 'generado'} con éxito.\n¿Limpiar pantalla?`)) {
             clearDraft();
-            // clearDraft resets selectedClient too.
             focusClient();
-            fetchNextId(); // Refresh ID suggestion
+            fetchNextId();
         }
     } catch (e) {
-        alert('Error al guardar: ' + e.message);
-    } finally {
         isSubmitting.value = false;
+        alert('Error al guardar: ' + (e.response?.data?.detail || e.message));
+    } finally {
+        // isSubmitting already set to false above for better UX
     }
 };
 
@@ -1491,6 +1796,51 @@ const showHistoryPreview = async (e) => {
 
 const hideHistoryPreview = () => {
     historyPopover.value.show = false;
+};
+
+
+
+// Watch for bruto changes to update global discount amount if percentage is fixed
+watch(() => totals.value.bruto, (newBruto) => {
+    if (form.value.descuento_global_porcentaje > 0) {
+        form.value.descuento_global_importe = _.round(newBruto * (form.value.descuento_global_porcentaje / 100), 4);
+    }
+});
+
+// --- CALCULATIONS ENGINE ---
+
+const recalculateItemEngine = (item, trigger) => {
+    const cantidad = parseFloat(item.cantidad || 0);
+    const precio = parseFloat(item.precio_unitario || 0);
+    const base = cantidad * precio;
+    
+    if (trigger === 'porcentaje') {
+        const pct = parseFloat(item.descuento_porcentaje || 0);
+        item.descuento_importe = _.round(base * (pct / 100), 4);
+    } else if (trigger === 'importe') {
+        const imp = parseFloat(item.descuento_importe || 0);
+        item.descuento_porcentaje = base > 0 ? _.round((imp / base) * 100, 2) : 0;
+    }
+    
+    // Re-verify importe if base changed
+    if (trigger === 'cantidad' || trigger === 'precio') {
+        const pct = parseFloat(item.descuento_porcentaje || 0);
+        item.descuento_importe = _.round(base * (pct / 100), 4);
+    }
+    
+    const impFinal = parseFloat(item.descuento_importe || 0);
+    item.subtotal = _.round(base - impFinal, 4);
+};
+
+const handleGlobalDiscountInputEngine = (trigger) => {
+    const bruto = totals.value.bruto || 0;
+    if (trigger === 'porcentaje') {
+        const pct = parseFloat(form.value.descuento_global_porcentaje || 0);
+        form.value.descuento_global_importe = _.round(bruto * (pct / 100), 4);
+    } else if (trigger === 'importe') {
+        const imp = parseFloat(form.value.descuento_global_importe || 0);
+        form.value.descuento_global_porcentaje = bruto > 0 ? _.round((imp / bruto) * 100, 2) : 0;
+    }
 };
 
 // Lifecycle
@@ -1517,20 +1867,7 @@ const handleGlobalKeys = (e) => {
     }
 };
 
-onMounted(async () => {
-    window.addEventListener('keydown', handleGlobalKeys);
-    
-    // Load Catalogs
-    if (clientesStore.clientes.length === 0) await clientesStore.fetchClientes();
-    if (productosStore.productos.length === 0) await productosStore.fetchProductos();
-    
-    focusClient();
-    fetchNextId(); // Initialize ID
-});
-
-onUnmounted(() => {
-    window.removeEventListener('keydown', handleGlobalKeys);
-});
+// Lifecycle handlers removed. Consolidated into setup.
 
 </script>
 

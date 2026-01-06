@@ -7,11 +7,15 @@ class PedidoItemCreate(BaseModel):
     producto_id: int
     cantidad: float
     precio_unitario: float
+    descuento_porcentaje: Optional[float] = 0.0
+    descuento_importe: Optional[float] = 0.0
     nota: Optional[str] = None
 
 class PedidoItemUpdate(BaseModel):
     cantidad: Optional[float] = None
     precio_unitario: Optional[float] = None
+    descuento_porcentaje: Optional[float] = None
+    descuento_importe: Optional[float] = None
     nota: Optional[str] = None
 
 class PedidoCreate(BaseModel):
@@ -22,6 +26,8 @@ class PedidoCreate(BaseModel):
     estado: Optional[str] = "PENDIENTE"
     tipo_facturacion: Optional[str] = "X"
     origen: Optional[str] = "DIRECTO"
+    descuento_global_porcentaje: Optional[float] = 0.0
+    descuento_global_importe: Optional[float] = 0.0
     fecha_compromiso: Optional[datetime] = None
     items: List[PedidoItemCreate]
 
@@ -33,8 +39,11 @@ class PedidoUpdate(BaseModel):
     estado: Optional[str] = None
     tipo_facturacion: Optional[str] = None
     origen: Optional[str] = None
+    descuento_global_porcentaje: Optional[float] = None
+    descuento_global_importe: Optional[float] = None
     fecha_compromiso: Optional[datetime] = None
     liberado_despacho: Optional[bool] = None
+    items: Optional[List[PedidoItemCreate]] = None
 
 class ClienteSummary(BaseModel):
     id: UUID
@@ -70,6 +79,8 @@ class PedidoResponse(BaseModel):
     fecha_compromiso: Optional[datetime] = None
     liberado_despacho: bool = False
     oc: Optional[str] = None
+    descuento_global_porcentaje: float = 0.0
+    descuento_global_importe: float = 0.0
     items: List[PedidoItemResponse] = []
 
     class Config:

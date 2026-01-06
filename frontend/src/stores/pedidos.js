@@ -22,21 +22,45 @@ export const usePedidosStore = defineStore('pedidos', {
             }
         },
 
+        async getPedidoById(id) {
+            try {
+                const res = await apiClient.get(`/pedidos/${id}`);
+                return res.data;
+            } catch (error) {
+                console.error("Error fetching pedido:", error);
+                throw error;
+            }
+        },
+
         // [GY-MOD] Removed download logic. Now returns JSON.
         async createPedidoTactico(pedidoData) {
             this.isLoading = true;
             try {
-                // Return JSON { id, message, ... }
                 const response = await apiClient.post('/pedidos/tactico', pedidoData);
-
-                // Return the data so component can show Success Toast
                 return response.data;
-
             } catch (error) {
                 console.error("Error creating tactico order:", error);
                 throw error;
             } finally {
                 this.isLoading = false;
+            }
+        },
+
+        async downloadExcel(pedidoId, filename = 'pedido.xlsx') {
+            try {
+                const response = await apiClient.get(`/pedidos/${pedidoId}/excel`, {
+                    responseType: 'blob'
+                });
+                const url = window.URL.createObjectURL(new Blob([response.data]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', filename);
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+            } catch (error) {
+                console.error("Error downloading excel:", error);
+                throw error;
             }
         },
 

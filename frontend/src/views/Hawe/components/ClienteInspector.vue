@@ -15,6 +15,19 @@
         </button>
     </div>
 
+    <!-- Inconsistency Banner -->
+    <div v-if="hasInconsistency && !isNew" class="bg-red-500/10 border-b border-red-500/20 px-6 py-2 flex items-center justify-between group">
+        <div class="flex items-center gap-2 overflow-hidden">
+            <i class="fas fa-triangle-exclamation text-red-400 animate-pulse text-xs"></i>
+            <span class="text-[10px] font-bold text-red-200/80 uppercase tracking-tighter truncate">
+                Datos Inconsistentes: {{ formInconsistency.join(', ') }}
+            </span>
+        </div>
+        <div class="text-[9px] text-red-400/50 font-medium italic opacity-0 group-hover:opacity-100 transition-opacity">
+            Corregir para evitar errores fiscales
+        </div>
+    </div>
+
     <!-- Empty State -->
     <div v-if="!modelValue && !isNew" class="flex-1 flex flex-col items-center justify-center text-cyan-900/40 p-6 text-center">
         <i class="fas fa-user text-4xl mb-4"></i>
@@ -431,8 +444,37 @@ const activeTab = ref('general')
 const saving = ref(false)
 const form = ref({})
 const cuitError = ref(null)
-const templateId = ref(null)
 const pristineName = ref('')
+
+const formInconsistency = computed(() => {
+    const issues = []
+    
+    // Check CUIT (except for INT or Consumidor Final)
+    const isSpecial = form.value.razon_social?.toUpperCase().includes('CONSUMIDOR FINAL') || 
+                      form.value.condicion_iva_id === 'INT' // This assumes 'INT' is an ID or label, will verify
+    
+    if (!form.value.cuit && !isSpecial) {
+        issues.push('CUIT faltante')
+    }
+    
+    if (!form.value.condicion_iva_id) {
+        issues.push('Condición IVA faltante')
+    }
+    
+    if (!form.value.segmento_id && !isSpecial) {
+        issues.push('Segmento no definido')
+    }
+
+    // Check Fiscal Domicile
+    const hasFiscal = form.value.domicilios?.some(d => d.es_fiscal && d.activo)
+    if (!hasFiscal && !props.isNew) {
+        issues.push('Sin domicilio fiscal activo')
+    }
+
+    return issues
+})
+
+const hasInconsistency = computed(() => formInconsistency.value.length > 0)
 
 const headerTitle = computed(() => {
     if (!props.modelValue && !props.isNew) return 'Inspector'
@@ -574,13 +616,12 @@ const handleDomicilioSaved = async (domData) => {
             notificationStore.add('Domicilio creado', 'success')
         }
         
-        // Update local list
-        const idx = form.value.domicilios.findIndex(d => d.id === res.id)
-        if (idx !== -1) {
-            form.value.domicilios[idx] = res
-        } else {
-            form.value.domicilios.push(res)
-        }
+        // Update local state with the returned full client object
+        // This ensures all derived properties and lists are updated correctly.
+        form.value = { ...res }
+        
+        // Ensure UI indicators refresh by letting store know if needed 
+        // (Though usually form.value update is enough for this component)
         
         // Fix Dirty State: Identify that this change is persisted
         // We updated the local array, so the UI should reflect it immediately.
@@ -925,7 +966,7 @@ const hardDelete = () => {
 }
 
 const handleKeydown = (e) => {
-    if (e.key === 'F10') {
+    if (e.code === 'F10') {
         if (showDomicilioForm.value) return // Let modal handle it
         e.preventDefault()
         save()

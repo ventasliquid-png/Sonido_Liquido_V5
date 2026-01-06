@@ -70,21 +70,35 @@
 
                 <!-- Tipo Comprobante Toggle -->
                 <div class="mb-4">
-                    <label class="block text-[10px] uppercase tracking-wider font-bold text-emerald-500/70 mb-1.5 ml-1">Tipo de Comprobante</label>
-                    <div class="flex bg-[#051f15] rounded-lg p-1 border border-emerald-900/30">
+                    <label class="block text-[10px] uppercase tracking-wider font-bold text-emerald-500/70 mb-1.5 ml-1">Tipo de Comprobante / Modo</label>
+                    <div class="grid grid-cols-2 gap-2 bg-[#051f15] rounded-lg p-2 border border-emerald-900/30">
                         <button 
                             @click="updateTipo('FISCAL')"
-                            class="flex-1 py-1.5 rounded text-xs font-bold transition-all"
-                            :class="modelValue.tipo_comprobante === 'FISCAL' ? 'bg-emerald-600 text-white shadow-lg' : 'text-white/30 hover:text-white/50'"
+                            class="py-1.5 rounded text-[10px] font-bold transition-all border border-transparent"
+                            :class="modelValue.tipo_facturacion === 'FISCAL' || modelValue.tipo_facturacion === 'B' || modelValue.tipo_facturacion === 'A' ? 'bg-emerald-600 text-white shadow-lg border-emerald-400' : 'text-white/30 hover:text-white/50 bg-emerald-950/30'"
                         >
-                            FISCAL (A/B)
+                            <i class="fas fa-file-invoice-dollar mr-1"></i> FISCAL (A/B)
                         </button>
                         <button 
                             @click="updateTipo('X')"
-                            class="flex-1 py-1.5 rounded text-xs font-bold transition-all"
-                            :class="modelValue.tipo_comprobante === 'X' ? 'bg-purple-600/80 text-white shadow-lg' : 'text-white/30 hover:text-white/50'"
+                            class="py-1.5 rounded text-[10px] font-bold transition-all border border-transparent"
+                            :class="modelValue.tipo_facturacion === 'X' && modelValue.estado === 'PRESUPUESTO' ? 'bg-purple-600/80 text-white shadow-lg border-purple-400' : 'text-white/30 hover:text-white/50 bg-emerald-950/30'"
                         >
-                            PRESUPUESTO X
+                            <i class="fas fa-calculator mr-1"></i> PRESUPUESTO X
+                        </button>
+                        <button 
+                            @click="updateTipo('INT')"
+                            class="py-1.5 rounded text-[10px] font-bold transition-all border border-transparent"
+                            :class="modelValue.estado === 'INTERNO' ? 'bg-cyan-600/80 text-white shadow-lg border-cyan-400' : 'text-white/30 hover:text-white/50 bg-emerald-950/30'"
+                        >
+                            <i class="fas fa-microchip mr-1"></i> INTERNO (INT)
+                        </button>
+                        <button 
+                            @click="updateTipo('ANULADO')"
+                            class="py-1.5 rounded text-[10px] font-bold transition-all border border-transparent"
+                            :class="modelValue.estado === 'ANULADO' ? 'bg-red-600/80 text-white shadow-lg border-red-400' : 'text-white/30 hover:text-white/50 bg-emerald-950/30'"
+                        >
+                            <i class="fas fa-ban mr-1"></i> ANULADO
                         </button>
                     </div>
                 </div>
@@ -99,54 +113,31 @@
                             class="w-full bg-[#051f15] text-white border border-emerald-900/30 rounded-lg px-4 py-2.5 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/50 transition-all appearance-none font-bold uppercase tracking-wide"
                             :class="getStatusColorClass(modelValue.estado)"
                         >
-                            <option value="BORRADOR" class="text-gray-400 font-bold bg-white">BORRADOR (Trabajo en Progreso)</option>
                             <option value="PRESUPUESTO" class="text-purple-600 font-bold bg-white">PRESUPUESTO (Cotización)</option>
+                            <option value="INTERNO" class="text-cyan-600 font-bold bg-white">INTERNO (Manejo Propio)</option>
                             <option value="PENDIENTE" class="text-emerald-600 bg-white font-bold">PENDIENTE (Aprobado/En Curso)</option>
-                            <option value="CUMPLIDO" class="text-blue-600 bg-white font-bold">CUMPLIDO (Entregado)</option>
+                            <option value="CUMPLIDO" class="text-yellow-600 bg-white font-bold">CUMPLIDO (Entregado)</option>
                             <option value="ANULADO" class="text-red-600 bg-white font-bold">ANULADO</option>
                         </select>
                         <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none"></i>
                     </div>
                 </div>
 
-                <!-- Add Item Section -->
-                <div class="bg-emerald-900/5 p-4 rounded-lg border border-emerald-900/10 mb-4">
-                    <label class="block text-[10px] uppercase tracking-wider font-bold text-emerald-500/70 mb-2">Agregar Item</label>
-                     <div class="flex gap-2 mb-2">
-                        <div class="flex-1">
-                            <SmartSelect
-                                :modelValue="newItem.producto_id"
-                                @update:modelValue="newItem.producto_id = $event"
-                                :options="productOptions"
-                                placeholder="Buscar producto..."
-                                :allowCreate="false"
-                                canteraType="productos"
-                                @select-cantera="handleProductCanteraSelect"
-                                class="smart-select-container"
-                            />
-                        </div>
-                        <div class="w-16">
-                            <input 
-                                type="number" 
-                                v-model.number="newItem.cantidad" 
-                                min="1"
-                                class="w-full bg-white text-black border border-gray-300 rounded px-2 py-2 text-sm text-center font-bold focus:outline-none focus:border-emerald-500"
-                            />
-                        </div>
-                     </div>
-                     <button 
-                        @click="addItem"
-                        :disabled="!newItem.producto_id || newItem.cantidad < 1"
-                        class="w-full py-1.5 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white rounded text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                     >
-                        <i class="fas fa-plus mr-1"></i> Agregar
-                     </button>
+                <!-- QUICK EDIT ITEMS BUTTON -->
+                <div class="pt-2">
+                    <button 
+                        @click="editInGrid"
+                        class="w-full py-3 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500 text-emerald-400 rounded-lg font-bold text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 group/edit"
+                    >
+                        <i class="fas fa-th group-hover/edit:scale-110 transition-transform"></i>
+                        Editar Renglones en Grilla
+                    </button>
                 </div>
 
                 <!-- Items List -->
                 <div>
                     <label class="block text-[10px] uppercase tracking-wider font-bold text-emerald-500/70 mb-2 ml-1">Items del Pedido ({{ modelValue.items.length }})</label>
-                    <div class="space-y-2">
+                    <div class="space-y-2 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-emerald-900/30">
                         <div 
                             v-for="item in modelValue.items" 
                             :key="item.id"
@@ -155,42 +146,17 @@
                             <div class="flex-1 pr-4">
                                 <p class="text-xs text-white font-medium mb-1">{{ item.producto?.nombre || 'Producto' }}</p>
                                 <div class="flex items-center gap-2">
-                                    <input 
-                                        type="number" 
-                                        v-model.number="item.cantidad"
-                                        @change="updateItem(item)"
-                                        class="w-12 bg-emerald-900/30 text-emerald-100 border border-emerald-500/30 rounded px-1 py-0.5 text-[10px] text-center focus:outline-none focus:border-emerald-400 no-spinner"
-                                        min="1"
-                                    />
-                                    <span class="text-[10px] text-white/40">x</span>
-                                    <div class="relative">
-                                        <span class="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] text-emerald-500/50">$</span>
-                                        <input 
-                                            type="number" 
-                                            v-model.number="item.precio_unitario"
-                                            @change="updateItem(item)"
-                                            class="w-20 bg-emerald-900/30 text-emerald-100 border border-emerald-500/30 rounded pl-4 pr-1 py-0.5 text-[10px] text-right focus:outline-none focus:border-emerald-400 no-spinner"
-                                            min="0"
-                                            step="0.01"
-                                        />
-                                    </div>
+                                     <span class="text-[10px] text-emerald-400 font-bold">{{ item.cantidad }}</span>
+                                     <span class="text-[10px] text-white/40">x</span>
+                                     <span class="text-[10px] text-white/60">{{ formatCurrency(item.precio_unitario) }}</span>
                                 </div>
                             </div>
-                            <div class="text-right flex items-center gap-3">
+                            <div class="text-right">
                                 <p class="text-xs font-bold text-emerald-200">{{ formatCurrency(item.cantidad * item.precio_unitario) }}</p>
-                                <button 
-                                    @click="deleteItem(item.id)"
-                                    class="text-red-500/30 hover:text-red-400 opacity-0 group-hover/item:opacity-100 transition-all"
-                                    title="Eliminar Item"
-                                >
-                                    <i class="fas fa-trash"></i>
-                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
-
-
 
                 <!-- Nota (Editable) -->
                 <div class="bg-yellow-500/5 border-l-2 border-yellow-500/30 p-3 rounded-r relative group/nota">
@@ -311,12 +277,15 @@
 
 <script setup>
 import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import SmartSelect from '@/components/ui/SmartSelect.vue'
 import clientesService from '@/services/clientes'
 import productosService from '@/services/productosApi' // Corrected path
 import { usePedidosStore } from '@/stores/pedidos' // Need store actions direct access
 import { useNotificationStore } from '@/stores/notification'
 import canteraService from '@/services/canteraService'
+
+const router = useRouter()
 
 const props = defineProps({
     modelValue: {
@@ -395,11 +364,11 @@ const handleStatusChange = async (newStatus) => {
         try {
             await store.updatePedido(props.modelValue.id, { 
                 estado: 'PENDIENTE', 
-                tipo_comprobante: newType 
+                tipo_facturacion: newType 
             })
             // Manual optimistic update
             props.modelValue.estado = 'PENDIENTE'
-            props.modelValue.tipo_comprobante = newType
+            props.modelValue.tipo_facturacion = newType
             
             notification.add(`Activado como ${newType === 'FISCAL' ? 'FISCAL' : 'INTERNO (X)'}`, 'success')
         } catch(e) {
@@ -409,19 +378,36 @@ const handleStatusChange = async (newStatus) => {
     }
 
     // Normal change for other statuses (Borrador, Presupuesto, etc)
-    // Optimistic update
-    props.modelValue.estado = newStatus
-    emit('update-status', props.modelValue, newStatus)
+    try {
+        await store.updatePedido(props.modelValue.id, { estado: newStatus })
+        props.modelValue.estado = newStatus
+        emit('update-status', props.modelValue, newStatus)
+        notification.add(`Estado: ${newStatus}`, 'success')
+    } catch (e) {
+        notification.add('Error al cambiar estado', 'error')
+    }
 }
 
-const updateTipo = async (tipo) => {
-    if (tipo === props.modelValue.tipo_comprobante) return
+const updateTipo = async (mode) => {
+    let updateData = {}
+    
+    if (mode === 'FISCAL') {
+        updateData = { tipo_facturacion: 'FISCAL', estado: 'PENDIENTE' }
+    } else if (mode === 'X') {
+        updateData = { tipo_facturacion: 'X', estado: 'PRESUPUESTO' }
+    } else if (mode === 'INT') {
+        updateData = { tipo_facturacion: 'X', estado: 'INTERNO' }
+    } else if (mode === 'ANULADO') {
+        updateData = { estado: 'ANULADO' }
+    }
+
     try {
-        await store.updatePedido(props.modelValue.id, { tipo_comprobante: tipo })
-        props.modelValue.tipo_comprobante = tipo 
-        notification.add(`Tipo actualizado a ${tipo}`, 'success')
+        await store.updatePedido(props.modelValue.id, updateData)
+        // Optimistic update
+        Object.assign(props.modelValue, updateData)
+        notification.add(`Modo actualizado a ${mode}`, 'success')
     } catch (e) {
-        notification.add('Error al cambiar tipo', 'error')
+        notification.add('Error al cambiar modo', 'error')
     }
 }
 
@@ -628,13 +614,19 @@ const deleteItem = async (itemId) => {
     }
 }
 
+const editInGrid = () => {
+    router.push({
+        path: '/hawe/tactico',
+        query: { edit: props.modelValue.id }
+    })
+}
+
 // Close (Simply close, auto-save happens on input blur/change)
 const handleClose = () => {
     emit('close')
 }
 
 
-// Handlers
 // Handlers
 const handleKeydown = (e) => {
     // F10 - Save/Close
@@ -668,13 +660,13 @@ const getInitials = (name) => {
 
 const getStatusColorClass = (status) => {
     switch (status) {
-         case 'PENDIENTE': return 'text-white'
+         case 'PENDIENTE': return 'text-emerald-400'
          case 'CUMPLIDO': return 'text-yellow-400' 
          case 'ANULADO': return 'text-red-400'
          case 'PRESUPUESTO': return 'text-purple-300'
-         case 'BORRADOR': return 'text-gray-400'
-         case 'CLONADO': return 'text-pink-500' // Legacy support
-         case 'INTERNO': return 'text-purple-300' // Legacy support
+         case 'BORRADOR': return 'text-purple-300/50'
+         case 'CLONADO': return 'text-purple-300/50' // Legacy support
+         case 'INTERNO': return 'text-cyan-300'
          default: return 'text-white'
     }
 }

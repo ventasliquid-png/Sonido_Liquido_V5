@@ -34,10 +34,7 @@ class ClienteService:
             # Crear Domicilios
             try:
                 for dom_in in cliente_in.domicilios:
-                    dom_data = dom_in.model_dump(exclude={'provincia', 'transporte_id', 'zona_id'})
-                    
-                    if dom_in.provincia:
-                        dom_data['provincia_id'] = dom_in.provincia
+                    dom_data = dom_in.model_dump(exclude={'zona_id'})
                     
                     if dom_in.transporte_id:
                         dom_data['transporte_id'] = dom_in.transporte_id
@@ -274,14 +271,14 @@ class ClienteService:
     def create_domicilio(db: Session, cliente_id: UUID, domicilio_in: schemas.DomicilioCreate) -> Domicilio:
         # Validar Provincia
         from backend.maestros.models import Provincia
-        prov_id = domicilio_in.provincia
+        prov_id = domicilio_in.provincia_id
         if prov_id == "":
             prov_id = None
             
         if prov_id: 
              prov = db.query(Provincia).filter(Provincia.id == prov_id).first()
              if not prov:
-                 raise HTTPException(status_code=400, detail="Código de provincia inválido")
+                 raise HTTPException(status_code=400, detail=f"Código de provincia '{prov_id}' inválido")
         
         # Enforce Single Fiscal Domicile Logic
         if domicilio_in.es_fiscal:
@@ -291,15 +288,17 @@ class ClienteService:
                 Domicilio.es_fiscal == True
             ).update({"es_fiscal": False})
 
+        # Prepare data
+        dom_data = domicilio_in.model_dump(exclude={'provincia', 'zona_id', 'provincia_id'})
+        
         db_domicilio = Domicilio(
-            **domicilio_in.model_dump(exclude={'provincia', 'zona_id'}), # Exclude zona_id as it's not in model
+            **dom_data,
             provincia_id=prov_id,
             cliente_id=cliente_id
         )
         try:
             db.add(db_domicilio)
             db.commit()
-            db.refresh(db_domicilio)
             # [GY-FIX] Return the full CLIENT as expected by Router response_model=ClienteResponse
             return ClienteService.get_cliente(db, cliente_id)
         except Exception as e:
@@ -318,10 +317,6 @@ class ClienteService:
         # Remove fields not in model
         if 'zona_id' in update_data:
             update_data.pop('zona_id')
-            
-        if 'provincia' in update_data:
-             val = update_data.pop('provincia')
-             update_data['provincia_id'] = val if val != "" else None
 
         # Enforce Single Fiscal Domicile Logic
         if update_data.get('es_fiscal'):

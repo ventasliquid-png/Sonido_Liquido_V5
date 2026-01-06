@@ -8,16 +8,17 @@ import re
 
 # --- Domicilio Schemas ---
 class DomicilioBase(BaseModel):
+    alias: Optional[str] = None
     calle: Optional[str] = None
     numero: Optional[str] = None
+    cp: Optional[str] = None
     localidad: Optional[str] = None
-    provincia: Optional[str] = None
+    provincia_id: Optional[str] = None
     activo: bool = True
     es_fiscal: bool = False
     es_entrega: bool = False
     transporte_id: Optional[UUID] = None
     intermediario_id: Optional[UUID] = None
-    zona_id: Optional[UUID] = None
     metodo_entrega: Optional[str] = None
     modalidad_envio: Optional[str] = None
     origen_logistico: Optional[str] = None
@@ -26,16 +27,17 @@ class DomicilioCreate(DomicilioBase):
     pass
 
 class DomicilioUpdate(BaseModel):
+    alias: Optional[str] = None
     calle: Optional[str] = None
     numero: Optional[str] = None
+    cp: Optional[str] = None
     localidad: Optional[str] = None
-    provincia: Optional[str] = None
+    provincia_id: Optional[str] = None
     activo: Optional[bool] = None
     es_fiscal: Optional[bool] = None
     es_entrega: Optional[bool] = None
     transporte_id: Optional[UUID] = None
     intermediario_id: Optional[UUID] = None
-    zona_id: Optional[UUID] = None
     metodo_entrega: Optional[str] = None
     modalidad_envio: Optional[str] = None
     origen_logistico: Optional[str] = None
@@ -46,6 +48,7 @@ class DomicilioResponse(BaseModel):
     alias: Optional[str] = None
     calle: Optional[str] = None
     numero: Optional[str] = None
+    cp: Optional[str] = None
     localidad: Optional[str] = None
     provincia_id: Optional[str] = None
     activo: bool = True

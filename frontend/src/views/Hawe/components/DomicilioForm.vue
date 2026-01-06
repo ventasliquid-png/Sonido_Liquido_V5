@@ -125,12 +125,22 @@ const close = () => {
 const handleKeydown = (e) => {
     if (!props.show) return;
     if (e.key === 'Escape') close();
-    if (e.key === 'F10') {
+    if (e.code === 'F10') {
         e.preventDefault();
-        e.stopPropagation(); // Prevent parent from catching F10
+        e.stopPropagation(); 
         handleSave();
     }
 };
+
+const firstInput = ref(null);
+
+onMounted(() => {
+    window.addEventListener('keydown', handleKeydown);
+    // Auto-focus on show
+    if (props.show) {
+        setTimeout(() => firstInput.value?.focus(), 100);
+    }
+});
 
 const modalRef = ref(null);
 const isDragging = ref(false);
@@ -164,10 +174,6 @@ const stopDrag = () => {
     window.removeEventListener('mousemove', onDrag);
     window.removeEventListener('mouseup', stopDrag);
 };
-
-onMounted(() => {
-    window.addEventListener('keydown', handleKeydown);
-});
 
 onUnmounted(() => {
     window.removeEventListener('keydown', handleKeydown);

@@ -19,6 +19,10 @@ class Pedido(Base):
     liberado_despacho = Column(Boolean, default=False)
     oc = Column(String, nullable=True) # Orden de Compra
     
+    # Descuento Global
+    descuento_global_porcentaje = Column(Float, default=0.0)
+    descuento_global_importe = Column(Float, default=0.0)
+    
     # Metadata
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
@@ -36,6 +40,11 @@ class PedidoItem(Base):
     
     cantidad = Column(Float, default=1.0)
     precio_unitario = Column(Float, default=0.0)
+    
+    # Descuentos por ítem
+    descuento_porcentaje = Column(Float, default=0.0)
+    descuento_importe = Column(Float, default=0.0)
+    
     subtotal = Column(Float, default=0.0)
     nota = Column(String, nullable=True)
     
