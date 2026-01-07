@@ -269,9 +269,11 @@ def get_pedidos(
     # Ordenar por fecha descendente (más nuevos primero)
     q = q.order_by(models.Pedido.fecha.desc(), models.Pedido.id.desc())
 
+
     # Eager load cliente and items with products
     q = q.options(
-        joinedload(models.Pedido.cliente),
+        joinedload(models.Pedido.cliente).joinedload(models.Cliente.condicion_iva),
+        joinedload(models.Pedido.cliente).joinedload(models.Cliente.segmento),
         joinedload(models.Pedido.items).joinedload(models.PedidoItem.producto)
     )
     
@@ -312,7 +314,8 @@ def get_pedido_by_id(pedido_id: int, db: Session = Depends(get_db)):
     pedido = (
         db.query(models.Pedido)
         .options(
-            joinedload(models.Pedido.cliente),
+            joinedload(models.Pedido.cliente).joinedload(models.Cliente.condicion_iva),
+            joinedload(models.Pedido.cliente).joinedload(models.Cliente.segmento),
             joinedload(models.Pedido.items).joinedload(models.PedidoItem.producto)
         )
         .filter(models.Pedido.id == pedido_id)
@@ -407,7 +410,7 @@ def update_pedido(
     
     if status_changed or type_changed or discounts_changed or items_changed:
         # Recalcular Total según Doctrina Táctica v5.6
-        apply_iva = pedido.estado in ["PENDIENTE", "PRESUPUESTO"] and pedido.tipo_facturacion in ["A", "B", "FISCAL"]
+        apply_iva = pedido.tipo_facturacion in ["A", "B", "FISCAL", "M"]
         
         # [GY-FIX] Recalcular Total sumando directamente de la DB para evitar stale reads de la relación
         items_neto = db.query(func.sum(models.PedidoItem.subtotal)).filter(models.PedidoItem.pedido_id == pedido_id).scalar() or 0.0
@@ -459,7 +462,7 @@ def add_pedido_item(
     
     # Update Total (Recalculate with IVA logic)
     raw_neto = sum(i.subtotal for i in pedido.items) - (pedido.descuento_global_importe or 0.0)
-    if pedido.estado in ["PENDIENTE", "PRESUPUESTO"]:
+    if pedido.tipo_facturacion in ["A", "B", "FISCAL", "M"]:
         pedido.total = round(raw_neto * 1.21, 2)
     else:
         pedido.total = round(raw_neto, 2)
@@ -503,7 +506,7 @@ def update_pedido_item(
     db.flush() # Save item change first
     
     raw_neto = sum(i.subtotal for i in pedido.items) - (pedido.descuento_global_importe or 0)
-    if pedido.estado in ["PENDIENTE", "PRESUPUESTO"]:
+    if pedido.tipo_facturacion in ["A", "B", "FISCAL", "M"]:
         pedido.total = round(raw_neto * 1.21, 2)
     else:
         pedido.total = round(raw_neto, 2)
@@ -539,7 +542,7 @@ def delete_pedido_item(item_id: int, db: Session = Depends(get_db)):
     
     # Recalculate total with IVA logic
     raw_neto = sum(i.subtotal for i in pedido.items) - (pedido.descuento_global_importe or 0.0)
-    if pedido.estado in ["PENDIENTE", "PRESUPUESTO"]:
+    if pedido.tipo_facturacion in ["A", "B", "FISCAL", "M"]:
         pedido.total = round(raw_neto * 1.21, 2)
     else:
         pedido.total = round(raw_neto, 2)

@@ -333,7 +333,16 @@ app = FastAPI(
 # --- 2. CORS Config ---
 from backend.core import config as app_config
 
-origins = app_config.CORS_ORIGINS # [FIX] Remove wildcard to allow credentials
+
+# [GY-FIX] Hardcode LAN IP to solve CORS block
+origins = [
+    "http://localhost:5173",
+    "http://localhost:8000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:8000",
+    "http://192.168.0.34:5173", # Explicit User LAN IP
+    "http://192.168.0.34:8000"
+]
 
 print(f"--- [CORS Config] Allowed Origins: {origins} ---")
 

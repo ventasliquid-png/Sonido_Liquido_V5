@@ -605,6 +605,13 @@ const goBackToSource = () => {
     else router.push('/hawe')
 }
 const goToNew = () => router.push({ name: 'HaweClientCanvas', params: { id: 'new' } })
+</script>
+
+<!-- DEBUG OVERLAY -->
+<div class="fixed bottom-0 right-0 bg-red-900/90 text-white p-4 z-[99999] font-mono text-xs max-w-sm pointer-events-none opacity-80" v-if="!isNew">
+    <pre>{{ debugInfo }}</pre>
+</div>
+<script setup>
 
 // State
 const isNew = ref(false)
@@ -670,7 +677,12 @@ const handleKeydown = (e) => {
             activeTab.value = 'CLIENTE'
             return
         }
-        router.push('/hawe')
+        const returnUrl = route.query.returnUrl
+        if (returnUrl) {
+            router.push(decodeURIComponent(returnUrl))
+        } else {
+            router.push('/hawe')
+        }
     }
     if (e.key === 'F10') {
         e.preventDefault()
@@ -801,6 +813,17 @@ watch(() => route.params.id, async (newId) => {
     }
 })
 
+// [DEBUG] Visual Diagnostics
+const debugInfo = computed(() => {
+    return JSON.stringify({
+        id: form.value.id,
+        cuit: form.value.cuit,
+        razon_social: form.value.razon_social,
+        domicilios_count: domicilios.value.length,
+        params_id: route.params.id
+    }, null, 2)
+})
+
 onUnmounted(() => {
     window.removeEventListener('keydown', handleKeydown)
 })
@@ -829,17 +852,30 @@ const resetForm = () => {
 }
 
 const loadCliente = async (id) => {
+    console.log(`[ClientCanvas] loadCliente CALLED with ID: ${id}`)
     try {
         const client = await store.fetchClienteById(id)
+        console.log(`[ClientCanvas] Data received from Store:`, client)
+        
         if (client) {
             form.value = { ...client }
+            console.log(`[ClientCanvas] Form updated. Razon Social: ${form.value.razon_social}`)
+            
             // Ensure arrays exist
             domicilios.value = client.domicilios || []
             contactos.value = client.vinculos || [] // Store uses 'vinculos', mapping to 'contactos' for view compatibility
+            
+            // [DEBUG] Monitor inconsistent data loading
+            if (!client.cuit || client.cuit === '00-00000000-0') {
+                 notificationStore.add(`ADVERTENCIA: Cliente cargado con CUIT inválido/vacío: ${client.cuit}. ID: ${client.id}`, 'warning', 10000)
+            }
+        } else {
+            console.error(`[ClientCanvas] Client is NULL/UNDEFINED`)
+            notificationStore.add('Error: Cliente no encontrado (Data Null)', 'error')
         }
     } catch (e) {
+        console.error(`[ClientCanvas] Exception in loadCliente:`, e)
         notificationStore.add('Error al cargar cliente', 'error')
-        console.error(e)
     }
 }
 

@@ -97,40 +97,46 @@
               <div 
                   v-for="pedido in sortedAndFilteredPedidos" 
                   :key="pedido.id"
-                  class="group flex items-center justify-between p-3 rounded-lg border transition-all"
+                  class="group flex items-center justify-between p-4 mb-2 rounded-xl border transition-all relative overflow-hidden"
                   :class="[
                     selectedPedido?.id === pedido.id 
-                    ? 'border-emerald-500 bg-emerald-500/10 ring-1 ring-emerald-500/20 shadow-lg shadow-emerald-500/5' 
-                    : 'border-emerald-900/10 bg-emerald-900/5 hover:bg-emerald-900/10'
+                    ? 'border-emerald-500 bg-emerald-500/10 ring-1 ring-emerald-500/30 shadow-lg shadow-emerald-500/10 scale-[1.01]' 
+                    : 'border-emerald-900/20 bg-[#07241d] hover:bg-[#0a2e26] hover:border-emerald-500/30 hover:shadow-lg hover:shadow-black/40 hover:-translate-y-px'
                   ]"
                   @click="openPedido(pedido)"
                   @dblclick="editInTactical(pedido)"
                   @contextmenu.prevent="handleContextMenu($event, pedido)"
+                  @mouseenter="handleZoomEnter($event, pedido)"
+                  @mouseleave="handleZoomLeave"
+                  @mousemove="handleMouseMove"
               >
+                  <!-- Quick Actions (Hover) -->
+                  <div class="absolute right-0 top-0 bottom-0 w-1 bg-gradient-to-b from-transparent via-emerald-500/0 to-transparent group-hover:via-emerald-500/50 transition-all"></div>
+
                   <!-- ID -->
-                  <div class="w-20 font-mono text-emerald-500">
+                  <div class="w-20 font-mono text-emerald-500 font-bold text-sm">
                       #{{ pedido.id }}
                   </div>
 
                   <!-- Fecha -->
-                  <div class="w-32 text-sm text-emerald-200/70 flex flex-col leading-tight">
-                      <span>{{ formatDate(pedido.fecha).split(' ')[0] }}</span>
-                      <span class="text-[10px] text-emerald-200/40">{{ formatDate(pedido.fecha).split(' ')[1] }}</span>
+                  <div class="w-32 flex flex-col leading-tight">
+                      <span class="text-xs text-emerald-100 font-bold">{{ formatDate(pedido.fecha).split(' ')[0] }}</span>
+                      <span class="text-[10px] text-emerald-200/40 font-mono">{{ formatDate(pedido.fecha).split(' ')[1] }}</span>
                   </div>
 
                   <!-- Cliente -->
-                  <div class="flex items-center gap-4 flex-1 min-w-0">
-                      <div class="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-900 to-green-900 flex items-center justify-center text-white font-bold text-xs border border-emerald-500/20 shrink-0">
+                  <div class="flex items-center gap-4 flex-1 min-w-0 pr-4">
+                      <div class="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-900 to-green-950 flex items-center justify-center text-white font-bold text-sm border border-emerald-500/20 shrink-0 shadow-inner">
                            {{ getInitials(pedido.cliente?.razon_social) }}
                       </div>
                       <div class="min-w-0 flex-1">
-                          <h3 class="font-bold text-emerald-100 truncate">{{ pedido.cliente?.razon_social || 'Cliente Desconocido' }}</h3>
-                           <p v-if="pedido.nota" class="text-xs text-emerald-200/30 font-mono italic truncate">{{ pedido.nota }}</p>
+                          <h3 class="font-bold text-emerald-50 text-sm truncate group-hover:text-emerald-300 transition-colors">{{ pedido.cliente?.razon_social || 'Cliente Desconocido' }}</h3>
+                           <p v-if="pedido.nota" class="text-xs text-emerald-200/30 font-mono italic truncate max-w-[300px]">{{ pedido.nota }}</p>
                       </div>
                   </div>
 
                   <!-- Total -->
-                  <div class="w-32 text-right font-mono text-emerald-100 font-bold">
+                  <div class="w-32 text-right font-mono text-emerald-100 font-bold text-base tracking-tight">
                       {{ formatCurrency(pedido.total) }}
                   </div>
                   
@@ -138,25 +144,25 @@
                   <div class="w-32 flex justify-center relative group/status">
                       <div class="relative">
                           <button 
-                              class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border transition-all flex items-center gap-1.5"
+                              class="px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border transition-all flex items-center gap-2 shadow-sm"
                               :class="getStatusClass(pedido.estado)"
                               @click.stop="toggleStatusMenu(pedido)"
                           >
+                              <div class="w-1.5 h-1.5 rounded-full bg-current opacity-70"></div>
                               {{ pedido.estado }}
-                              <i class="fas fa-caret-down text-[8px] opacity-50"></i>
                           </button>
                           
                           <!-- Custom Colorful Dropdown Menu -->
                           <div 
                               v-if="statusMenuOpen === pedido.id" 
-                              class="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-50 bg-[#020f0a] border border-emerald-500/30 rounded-lg shadow-2xl py-1 min-w-[120px] backdrop-blur-md animate-in fade-in zoom-in-95 duration-150"
+                              class="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-50 bg-[#020f0a] border border-emerald-500/30 rounded-lg shadow-2xl py-1 min-w-[140px] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150"
                               v-click-outside="() => statusMenuOpen = null"
                           >
                               <button 
                                   v-for="status in availableStatuses" 
                                   :key="status"
                                   @click.stop="handleStatusChange(pedido, status)"
-                                  class="w-full px-3 py-1.5 text-left text-[10px] font-bold uppercase tracking-wider hover:bg-white/5 transition-colors flex items-center gap-2"
+                                  class="w-full px-4 py-2 text-left text-[10px] font-bold uppercase tracking-wider hover:bg-white/5 transition-colors flex items-center gap-2"
                                   :class="getStatusColorOnly(status)"
                               >
                                   <div class="w-1.5 h-1.5 rounded-full" :class="getStatusBgOnly(status)"></div>
@@ -166,10 +172,57 @@
                       </div>
                   </div>
 
-                   <div class="w-10 flex justify-end">
+                  <div class="w-10 flex justify-end">
                       <i class="fas fa-chevron-right text-emerald-900/30 group-hover:text-emerald-500/50 transition-colors"></i>
                   </div>
               </div>
+
+              <!-- ZOOM TOOLTIP (TELEPORTED) -->
+              <Teleport to="body">
+                  <div 
+                    v-if="zoomedPedido"
+                    class="fixed pointer-events-none z-[9999] bg-[#020a06]/95 backdrop-blur-xl border border-emerald-500/20 rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] p-4 w-72 animate-in fade-in zoom-in-95 duration-200"
+                    :style="{
+                        left: (mousePos.x + 20) + 'px',
+                        top: (mousePos.y + 20) + 'px'
+                    }"
+                  >
+                        <!-- Zoom Header -->
+                        <div class="flex justify-between items-start mb-3 border-b border-white/5 pb-2">
+                            <div>
+                                <span class="text-[10px] uppercase font-bold text-emerald-500 tracking-wider block">Pedido #{{ zoomedPedido.id }}</span>
+                                <span class="text-xs font-bold text-white">{{ zoomedPedido.cliente?.razon_social }}</span>
+                            </div>
+                            <span class="bg-emerald-900/50 text-emerald-300 px-1.5 py-0.5 rounded text-[10px] font-bold">{{ zoomedPedido.items.length }} Items</span>
+                        </div>
+                        
+                        <!-- Mini Items List -->
+                        <div class="space-y-1.5 mb-3">
+                            <div 
+                                v-for="(item, idx) in zoomedPedido.items.slice(0, 4)" 
+                                :key="idx"
+                                class="flex justify-between text-[11px] items-center"
+                            >
+                                <span class="text-emerald-100/70 truncate max-w-[160px]">{{ item.producto?.nombre }}</span>
+                                <div class="flex gap-2 font-mono text-emerald-500/50">
+                                    <span>x{{ item.cantidad }}</span>
+                                </div>
+                            </div>
+                            <div v-if="zoomedPedido.items.length > 4" class="text-[10px] text-emerald-500/50 italic text-center pt-1">
+                                + {{ zoomedPedido.items.length - 4 }} productos más...
+                            </div>
+                            <div v-if="zoomedPedido.items.length === 0" class="text-[10px] text-white/20 italic text-center py-2">
+                                Pedido vacío
+                            </div>
+                        </div>
+
+                        <!-- Zoom Footer -->
+                        <div class="border-t border-white/5 pt-2 flex justify-between items-center">
+                            <span class="text-[10px] text-white/40">Total Estimado</span>
+                            <span class="text-sm font-bold font-mono text-emerald-300">{{ formatCurrency(zoomedPedido.total) }}</span>
+                        </div>
+                  </div>
+              </Teleport>
 
               <!-- Empty State -->
               <div v-if="sortedAndFilteredPedidos.length === 0 && !store.isLoading" class="flex flex-col items-center justify-center py-20 text-emerald-900/40">
@@ -253,6 +306,35 @@ const contextMenu = ref({ visible: false, x: 0, y: 0, pedido: null })
 // Sort State
 const sortKey = ref('fecha')
 const sortOrder = ref('desc')
+
+// Zoom (Hover Preview) State
+const zoomedPedido = ref(null)
+const zoomTimer = ref(null)
+const mousePos = ref({ x: 0, y: 0 })
+
+const handleZoomEnter = (e, pedido) => {
+    // Clear any pending clear
+    if (zoomTimer.value) clearTimeout(zoomTimer.value)
+    
+    // Set position
+    mousePos.value = { x: e.clientX, y: e.clientY }
+    
+    // Delay show to avoid flickering
+    zoomTimer.value = setTimeout(() => {
+        zoomedPedido.value = pedido
+    }, 400) // 400ms delay for intentional hover
+}
+
+const handleZoomLeave = () => {
+    if (zoomTimer.value) clearTimeout(zoomTimer.value)
+    zoomedPedido.value = null
+}
+
+// Update position while moving inside the card to keep tooltip close
+const handleMouseMove = (e) => {
+    if (!zoomedPedido.value) return
+    mousePos.value = { x: e.clientX, y: e.clientY }
+}
 
 const availableStatuses = ['PENDIENTE', 'CUMPLIDO', 'ANULADO', 'PRESUPUESTO', 'INTERNO']
 

@@ -7,8 +7,11 @@ from backend.clientes.service import ClienteService
 from backend.clientes.schemas import ClienteCreate
 from backend.productos import models, schemas
 
+
+
+
 router = APIRouter(
-    prefix="/cantera",
+    prefix="/bridge",
     tags=["Cantera (Maestros)"],
 )
 

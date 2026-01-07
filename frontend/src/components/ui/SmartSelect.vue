@@ -72,13 +72,17 @@ const filteredOptions = computed(() => {
     
     // Filter by search
     if (searchQuery.value) {
-        const query = searchQuery.value.toLowerCase();
-        // If exact match, show all (user is browsing)
+        const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase(); 
+        const query = normalize(searchQuery.value);
+        
         const selected = props.options.find(o => o.id === props.modelValue);
-        if (!selected || (selected.nombre || selected.descripcion).toLowerCase() !== query) {
+        const selectedName = selected ? normalize(selected.nombre || selected.descripcion || '') : '';
+
+        // If exact match (normalized), show all (user is browsing)
+        if (!selected || selectedName !== query) {
             opts = props.options.filter(opt => {
-                const nombre = (opt.nombre || '').toLowerCase();
-                const desc = (opt.descripcion || '').toLowerCase();
+                const nombre = normalize(opt.nombre || '');
+                const desc = normalize(opt.descripcion || '');
                 const sku = opt.sku ? String(opt.sku).toLowerCase() : '';
                 return nombre.includes(query) || desc.includes(query) || sku.includes(query);
             });

@@ -223,6 +223,22 @@
                 </button>
             </div>
 
+            <!-- SEPARATOR -->
+            <div class="w-px h-6 bg-emerald-900/50 mx-2"></div>
+
+            <!-- TIPO FACTURACION (ABX) -->
+            <div class="h-8 flex items-center bg-[#0d1f1c] rounded-md px-1 border border-emerald-900/40">
+                <button 
+                    v-for="opt in typeOptions" :key="opt.value"
+                    class="w-6 h-6 text-[10px] font-bold rounded transition-all mr-1 last:mr-0 flex items-center justify-center font-mono"
+                    :class="form.tipo_facturacion === opt.value ? 'bg-emerald-500 text-black shadow-sm' : 'text-slate-500 hover:text-emerald-400 hover:bg-emerald-900/30'"
+                    @click="form.tipo_facturacion = opt.value"
+                    :title="opt.title"
+                >
+                    {{ opt.label }}
+                </button>
+            </div>
+
         </header>
 
         <!-- === ZONA B: CUERPO (GRILLA) === -->
@@ -761,7 +777,10 @@ const handleProductCanteraSearch = _.debounce(async (val) => {
 
 // Auto-trigger Cantera Search
 watch(clientQuery, (newVal) => {
-    if (newVal.length >= 3) {
+    // [FIX] Avoid auto-search if query matches the current client name (onload)
+    if (newVal === clientesStore.cliente?.razon_social) return
+
+    if (newVal && newVal.length >= 3) {
         handleClientCanteraSearch(newVal);
     } else {
         clientCanteraResults.value = [];
@@ -769,7 +788,7 @@ watch(clientQuery, (newVal) => {
 });
 
 watch(productQuery, (newVal) => {
-    if (newVal.length >= 3) {
+    if (newVal && newVal.length >= 3) {
         handleProductCanteraSearch(newVal);
     } else {
         productCanteraResults.value = [];
@@ -849,7 +868,7 @@ const form = ref({
     oc: '',
     nota: '',
     estado: 'PENDIENTE', // PENDIENTE (Pedido) | PRESUPUESTO
-    tipo_facturacion: 'B', // Default Fiscal (A/B) para coincidir con PENDIENTE
+    tipo_facturacion: 'A', // Default Fiscal (A) Mayoría Resp Insc
     numero_manual: '',
     descuento_global_porcentaje: 0,
     descuento_global_importe: 0
@@ -861,6 +880,13 @@ const statusOptions = [
     { value: 'CUMPLIDO', label: 'CUMPLIDO', activeClass: 'bg-yellow-900/50 text-yellow-300 border border-yellow-500/50 shadow-sm', dotClass: 'bg-yellow-800' },
     { value: 'INTERNO', label: 'INTERNO / SIN IVA', activeClass: 'bg-pink-900/50 text-pink-300 border border-pink-500/50 shadow-sm', dotClass: 'bg-pink-600' },
     { value: 'ANULADO', label: 'ANULADO', activeClass: 'bg-red-900/50 text-red-300 border border-red-500/50 shadow-sm', dotClass: 'bg-red-600' }
+];
+
+const typeOptions = [
+    { value: 'B', label: 'B', title: 'FACTURA B (Consumidor Final)' },
+    { value: 'A', label: 'A', title: 'FACTURA A (Resp. Inscripto)' },
+    { value: 'M', label: 'M', title: 'TICKET M (Monotributo)' },
+    { value: 'X', label: 'X', title: 'X (Interno / No Fiscal)' }
 ];
 
 const sugeridoId = ref(0); // To store valid next ID
@@ -1035,8 +1061,7 @@ const totals = computed(() => {
     
     // IVA Logic synchronized with backend:
     // PENDIENTE/PRESUPUESTO with Fiscal mode (A/B) -> +21%
-    const applyIva = (form.value.estado === 'PENDIENTE' || form.value.estado === 'PRESUPUESTO') && 
-                     (form.value.tipo_facturacion === 'A' || form.value.tipo_facturacion === 'B' || form.value.tipo_facturacion === 'FISCAL');
+    const applyIva = (form.value.tipo_facturacion === 'A' || form.value.tipo_facturacion === 'B' || form.value.tipo_facturacion === 'FISCAL' || form.value.tipo_facturacion === 'M');
     
     const iva = applyIva ? neto * 0.21 : 0;
     return { bruto, neto, iva, final: neto + iva };
@@ -1115,12 +1140,13 @@ const setStatus = (newStatus) => {
     // Doctrina Táctica v6.5: 
     // Al cambiar a PENDIENTE (Verde) o PRESUPUESTO (Púrpura), 
     // activamos modo FISCAL (B) por defecto si estaba en X.
-    if ((newStatus === 'PENDIENTE' || newStatus === 'PRESUPUESTO') && form.value.tipo_facturacion === 'X') {
+    if ((newStatus === 'PENDIENTE') && form.value.tipo_facturacion === 'X') {
         form.value.tipo_facturacion = 'B'; 
     }
     
-    // Si el usuario elige explícitamente INTERNO o ANULADO, forzamos modo X (Sin IVA)
-    if (newStatus === 'INTERNO' || newStatus === 'ANULADO') {
+    // Si el usuario elige INTERNO, forzamos modo X (Sin IVA). 
+    // PRESUPUESTO y ANULADO respetan lo que el usuario/historial diga.
+    if (newStatus === 'INTERNO') {
         form.value.tipo_facturacion = 'X';
     }
 };

@@ -65,7 +65,7 @@ class Cliente(Base):
 
     # Relaciones
     domicilios = relationship("Domicilio", back_populates="cliente", cascade="all, delete-orphan")
-    vinculos = relationship("backend.agenda.models.VinculoComercial", back_populates="cliente", cascade="all, delete-orphan")
+    vinculos = relationship("VinculoComercial", back_populates="cliente", cascade="all, delete-orphan")
     condicion_iva = relationship(CondicionIva)
     lista_precios = relationship(ListaPrecios)
     segmento = relationship(Segmento)

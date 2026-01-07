@@ -445,6 +445,7 @@ const saving = ref(false)
 const form = ref({})
 const cuitError = ref(null)
 const pristineName = ref('')
+const templateId = ref(null)
 
 const formInconsistency = computed(() => {
     const issues = []

@@ -31,10 +31,10 @@ export function useAuditSemaphore() {
         if (!cliente.cuit || cliente.cuit.length < 11) reasons.push('Falta CUIT válido');
 
         // IVA
-        if (!cliente.condicion_iva_id) reasons.push('Falta Condición IVA');
+        if (!cliente.condicion_iva_id && !cliente.condicion_iva) reasons.push('Falta Condición IVA');
 
         // SEGMENTO
-        if (!cliente.segmento_id) reasons.push('Falta Segmento');
+        if (!cliente.segmento_id && !cliente.segmento) reasons.push('Falta Segmento');
 
         // DIRECCION (Fiscal)
         // Check prop calculada O array de domicilios si está disponible

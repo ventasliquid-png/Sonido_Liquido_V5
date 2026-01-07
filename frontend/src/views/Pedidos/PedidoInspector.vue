@@ -28,8 +28,11 @@
             <!-- Content -->
             <div class="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-emerald-900/30 hover:scrollbar-thumb-emerald-900/50">
                 
-                <!-- Client Card (Editable) -->
-                <div class="bg-emerald-900/10 p-4 rounded-lg border border-emerald-900/20 relative group/client">
+                <div 
+                    class="bg-emerald-900/10 p-4 rounded-lg border border-emerald-900/20 relative group/client cursor-context-menu"
+                    @contextmenu.prevent="handleClientRightClick"
+                    title="Clic Derecho: Ver Ficha Cliente"
+                >
                     <div v-if="!isEditingClient" class="flex items-center justify-between">
                          <div class="flex items-center gap-3">
                              <div class="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-900 to-green-900 flex items-center justify-center text-white font-bold text-sm border border-emerald-500/20 shrink-0">
@@ -38,6 +41,16 @@
                             <div>
                                  <h3 class="font-bold text-emerald-100 text-sm">{{ modelValue.cliente?.razon_social }}</h3>
                                  <p class="text-xs text-emerald-500/50">ID: {{ modelValue.cliente?.id }}</p>
+                                 <p class="text-xs text-emerald-500/50">CUIT: {{ modelValue.cliente?.cuit || 'N/A' }}</p>
+                                 <div class="flex items-center gap-1 mt-0.5">
+                                    <span v-if="modelValue.cliente?.condicion_iva" class="text-[9px] px-1 bg-emerald-900/40 text-emerald-300 rounded border border-emerald-500/20 uppercase tracking-widest font-bold">
+                                        {{ modelValue.cliente?.condicion_iva.nombre }}
+                                    </span>
+                                    <span v-if="modelValue.cliente?.segmento" class="text-[9px] px-1 bg-blue-900/40 text-blue-300 rounded border border-blue-500/20 uppercase tracking-widest font-bold">
+                                        {{ modelValue.cliente?.segmento.nombre }}
+                                    </span>
+                                 </div>
+                                 <p class="text-xs text-emerald-500/50 mt-1">{{ modelValue.cliente?.domicilio_fiscal_resumen || 'Sin dirección de entrega' }}</p>
                             </div>
                         </div>
                         <button 
@@ -68,38 +81,61 @@
                     </div>
                 </div>
 
-                <!-- Tipo Comprobante Toggle -->
+                <!-- Navigation Context Menu Helper (Invisible) -->
+                <!-- We bind contextmenu directly to the card above -->
+                <div v-show="false"></div>
+
+                <!-- Tipo Comprobante Selector (ABX) -->
                 <div class="mb-4">
-                    <label class="block text-[10px] uppercase tracking-wider font-bold text-emerald-500/70 mb-1.5 ml-1">Tipo de Comprobante / Modo</label>
-                    <div class="grid grid-cols-2 gap-2 bg-[#051f15] rounded-lg p-2 border border-emerald-900/30">
+                    <label class="block text-[10px] uppercase tracking-wider font-bold text-emerald-500/70 mb-1.5 ml-1">Estrategia Fiscal (ABX)</label>
+                    <div class="flex items-center gap-1 bg-[#051f15] rounded-lg p-1.5 border border-emerald-900/30">
+                        
+                        <!-- FACTURA A -->
+                        <!-- Visible: Always. Enabled: Only if Client allows A. Active: if Current Type is A or FISCAL (and resolved to A) -->
                         <button 
-                            @click="updateTipo('FISCAL')"
-                            class="py-1.5 rounded text-[10px] font-bold transition-all border border-transparent"
-                            :class="modelValue.tipo_facturacion === 'FISCAL' || modelValue.tipo_facturacion === 'B' || modelValue.tipo_facturacion === 'A' ? 'bg-emerald-600 text-white shadow-lg border-emerald-400' : 'text-white/30 hover:text-white/50 bg-emerald-950/30'"
+                            @click="setFiscalMode"
+                            class="flex-1 py-2 rounded text-[10px] font-bold transition-all border flex items-center justify-center gap-1 relative"
+                            :class="getFiscalButtonClass('A')"
+                            :disabled="!canClientBeA"
+                            :title="canClientBeA ? 'Factura A (Automático)' : 'Bloqueado: Cliente no admite A'"
                         >
-                            <i class="fas fa-file-invoice-dollar mr-1"></i> FISCAL (A/B)
+                            <span class="font-mono text-xs">A</span>
+                            <i v-if="!canClientBeA" class="fas fa-lock text-[8px] absolute top-1 right-1 opacity-50"></i>
                         </button>
+
+                        <!-- FACTURA B -->
+                        <button 
+                            @click="setFiscalMode"
+                            class="flex-1 py-2 rounded text-[10px] font-bold transition-all border flex items-center justify-center gap-1 relative"
+                            :class="getFiscalButtonClass('B')"
+                            :disabled="!canClientBeB"
+                            :title="canClientBeB ? 'Factura B (Automático)' : 'Bloqueado: Cliente debe ser A'"
+                        >
+                            <span class="font-mono text-xs">B</span>
+                             <i v-if="!canClientBeB" class="fas fa-lock text-[8px] absolute top-1 right-1 opacity-50"></i>
+                        </button>
+
+                        <!-- TICKET M (Hidden/Disabled for now unless relevant) -->
+                        <!-- Keeping logic minimal -->
+
+                        <div class="w-px h-4 bg-emerald-900/50 mx-1"></div>
+
+                        <!-- X (NEGRO) -->
                         <button 
                             @click="updateTipo('X')"
-                            class="py-1.5 rounded text-[10px] font-bold transition-all border border-transparent"
-                            :class="modelValue.tipo_facturacion === 'X' && modelValue.estado === 'PRESUPUESTO' ? 'bg-purple-600/80 text-white shadow-lg border-purple-400' : 'text-white/30 hover:text-white/50 bg-emerald-950/30'"
+                            class="flex-1 py-2 rounded text-[10px] font-bold transition-all border border-purple-900/0 flex items-center justify-center gap-1"
+                            :class="modelValue.tipo_facturacion === 'X' ? 'bg-purple-600/80 text-white shadow-lg border-purple-400' : 'text-purple-500/50 hover:text-purple-300 hover:bg-purple-900/20'"
+                            title="Presupuesto X (Sin IVA)"
                         >
-                            <i class="fas fa-calculator mr-1"></i> PRESUPUESTO X
+                            <span class="font-mono text-xs">X</span>
                         </button>
-                        <button 
-                            @click="updateTipo('INT')"
-                            class="py-1.5 rounded text-[10px] font-bold transition-all border border-transparent"
-                            :class="modelValue.estado === 'INTERNO' ? 'bg-cyan-600/80 text-white shadow-lg border-cyan-400' : 'text-white/30 hover:text-white/50 bg-emerald-950/30'"
-                        >
-                            <i class="fas fa-microchip mr-1"></i> INTERNO (INT)
-                        </button>
-                        <button 
-                            @click="updateTipo('ANULADO')"
-                            class="py-1.5 rounded text-[10px] font-bold transition-all border border-transparent"
-                            :class="modelValue.estado === 'ANULADO' ? 'bg-red-600/80 text-white shadow-lg border-red-400' : 'text-white/30 hover:text-white/50 bg-emerald-950/30'"
-                        >
-                            <i class="fas fa-ban mr-1"></i> ANULADO
-                        </button>
+
+                    </div>
+                    <!-- Helper Text -->
+                    <div v-if="clientCondition" class="mt-1 px-1">
+                        <p class="text-[9px] text-emerald-500/40 uppercase tracking-widest text-right">
+                            Condición: <strong class="text-emerald-400">{{ clientCondition }}</strong>
+                        </p>
                     </div>
                 </div>
 
@@ -141,7 +177,9 @@
                         <div 
                             v-for="item in modelValue.items" 
                             :key="item.id"
-                            class="flex justify-between items-start p-3 bg-emerald-900/5 rounded border border-emerald-900/10 group/item hover:bg-emerald-900/10 transition-colors"
+                            class="flex justify-between items-start p-3 bg-emerald-900/5 rounded border border-emerald-900/10 group/item hover:bg-emerald-900/10 transition-colors cursor-context-menu"
+                            @contextmenu.prevent="handleProductContextMenu($event, item)"
+                            title="Clic Derecho: Ver Producto"
                         >
                             <div class="flex-1 pr-4">
                                 <p class="text-xs text-white font-medium mb-1">{{ item.producto?.nombre || 'Producto' }}</p>
@@ -151,8 +189,15 @@
                                      <span class="text-[10px] text-white/60">{{ formatCurrency(item.precio_unitario) }}</span>
                                 </div>
                             </div>
-                            <div class="text-right">
+                            <div class="text-right flex items-center gap-3">
                                 <p class="text-xs font-bold text-emerald-200">{{ formatCurrency(item.cantidad * item.precio_unitario) }}</p>
+                                <button 
+                                    @click.stop="handleProductContextMenu($event, item)"
+                                    class="h-6 w-6 flex items-center justify-center rounded bg-emerald-900/40 text-emerald-400 hover:bg-emerald-800 hover:text-white transition-colors border border-emerald-500/20"
+                                    title="Más acciones"
+                                >
+                                    <i class="fas fa-ellipsis-v text-xs"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -237,12 +282,27 @@
                         class="flex-1 py-3 bg-gradient-to-r from-emerald-800 to-emerald-700 hover:from-emerald-700 hover:to-emerald-600 text-white rounded-lg font-bold shadow-lg shadow-black/20 hover:shadow-emerald-500/10 transition-all active:scale-[0.98] text-xs uppercase"
                         title="Cerrar / Aceptar (F10)"
                     >
-                        <i class="fas fa-check mr-1"></i> Aceptar (F10)
+                        <i class="fas fa-check mr-1"></i> Aceptar y Volver (F10)
+                    </button>
+                    <!-- "Volver" as explicit alias for Close, just in case user distinguishes them -->
+                    <button 
+                        @click="handleClose"
+                        class="px-4 py-3 bg-white/5 hover:bg-white/10 text-emerald-200/50 hover:text-emerald-200 border border-white/5 hover:border-white/10 rounded-lg font-bold transition-all text-xs uppercase"
+                        title="Volver (F10 / ESC)"
+                    >
+                        Volver
                     </button>
                 </div>
             </div>
         </div>
     </div>
+    <ContextMenu 
+        v-model="contextMenu.show" 
+        :x="contextMenu.x" 
+        :y="contextMenu.y" 
+        :actions="contextMenu.actions"
+        @close="contextMenu.show = false"
+    />
 </template>
 
 <style scoped>
@@ -284,6 +344,7 @@ import productosService from '@/services/productosApi' // Corrected path
 import { usePedidosStore } from '@/stores/pedidos' // Need store actions direct access
 import { useNotificationStore } from '@/stores/notification'
 import canteraService from '@/services/canteraService'
+import ContextMenu from '@/components/common/ContextMenu.vue'
 
 const router = useRouter()
 
@@ -388,14 +449,65 @@ const handleStatusChange = async (newStatus) => {
     }
 }
 
+const clientCondition = computed(() => {
+    return props.modelValue.cliente?.condicion_iva?.nombre || ''
+})
+
+const canClientBeA = computed(() => {
+    const c = clientCondition.value.toUpperCase()
+    return c.includes('RESPONSABLE INSCRIPTO') || c.includes('MONOTRIBUTISTA')
+})
+
+const canClientBeB = computed(() => {
+    // If not A, then B
+    return !canClientBeA.value
+})
+
+const recommendedFiscalType = computed(() => {
+    return canClientBeA.value ? 'A' : 'B'
+})
+
+const getFiscalButtonClass = (btnType) => {
+    const isCurrent = props.modelValue.tipo_facturacion === btnType
+    const isRecommended = btnType === recommendedFiscalType.value
+    
+    // If we are in X mode, both fiscal buttons are dim
+    if (props.modelValue.tipo_facturacion === 'X') {
+        if (isRecommended) return 'text-emerald-500/50 hover:text-emerald-200 hover:bg-emerald-900/30 border-transparent'
+        return 'text-emerald-500/20 opacity-50 cursor-not-allowed border-transparent'
+    }
+
+    // Fiscal Mode
+    if (isCurrent) {
+        return 'bg-emerald-600 text-white shadow-lg border-emerald-400'
+    }
+    
+    // Not Current but Fiscal Mode active (e.g. Type is A, looking at B)
+    return 'text-emerald-500/30 opacity-50 cursor-not-allowed border-transparent'
+}
+
+const setFiscalMode = async () => {
+    const target = recommendedFiscalType.value
+    
+    // If already that type, do nothing
+    if (props.modelValue.tipo_facturacion === target) return
+    
+    await updateTipo(target)
+}
+
 const updateTipo = async (mode) => {
     let updateData = {}
     
-    if (mode === 'FISCAL') {
-        updateData = { tipo_facturacion: 'FISCAL', estado: 'PENDIENTE' }
+    // ABX Logic
+    if (['A', 'B', 'M', 'FISCAL'].includes(mode)) {
+        // Fiscal Types
+        const finalType = mode === 'FISCAL' ? recommendedFiscalType.value : mode 
+        updateData = { tipo_facturacion: finalType, estado: 'PENDIENTE' }
     } else if (mode === 'X') {
+        // Non-Fiscal
         updateData = { tipo_facturacion: 'X', estado: 'PRESUPUESTO' }
     } else if (mode === 'INT') {
+        // Internal
         updateData = { tipo_facturacion: 'X', estado: 'INTERNO' }
     } else if (mode === 'ANULADO') {
         updateData = { estado: 'ANULADO' }
@@ -619,6 +731,55 @@ const editInGrid = () => {
         path: '/hawe/tactico',
         query: { edit: props.modelValue.id }
     })
+}
+
+const handleClientRightClick = () => {
+    if (props.modelValue.cliente_id) {
+        // [GY-UX] Navigate to Client Canvas (Singular Route) using Named Route and Return URL
+        // Construct return URL to reopen this order
+        const returnUrl = `/hawe/tactico?edit=${props.modelValue.id}`
+        router.push({ 
+            name: 'HaweClientCanvas', 
+            params: { id: props.modelValue.cliente_id },
+            query: { returnUrl }
+        })
+    } else {
+        notification.add('Error: Pedido sin cliente vinculado', 'error')
+    }
+}
+
+// Context Menu State
+const contextMenu = ref({
+    show: false,
+    x: 0,
+    y: 0,
+    actions: []
+})
+
+const handleProductContextMenu = (e, item) => {
+    e.preventDefault() // Prevent Windows menu
+    if (!item.producto_id) return
+
+    contextMenu.value.x = e.clientX
+    contextMenu.value.y = e.clientY
+    contextMenu.value.actions = [
+        {
+            label: 'Ver Producto',
+            icon: '📦',
+            handler: () => {
+                const query = item.producto?.sku || item.producto?.nombre
+                if (query) {
+                    router.push({ path: '/hawe/productos', query: { search: query } })
+                }
+            }
+        },
+        {
+            label: 'Eliminar Item',
+            icon: '🗑️',
+            handler: () => confirmDeleteItem(item.id)
+        }
+    ]
+    contextMenu.value.show = true
 }
 
 // Close (Simply close, auto-save happens on input blur/change)

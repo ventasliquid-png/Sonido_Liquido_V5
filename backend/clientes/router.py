@@ -47,6 +47,10 @@ def read_cliente(cliente_id: UUID, db: Session = Depends(get_db)):
     db_cliente = ClienteService.get_cliente(db, cliente_id)
     if db_cliente is None:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    
+    # [DEBUG] Validate Data Integrity on Read
+    print(f"DEBUG CLIENTE {cliente_id}: Razón Social='{db_cliente.razon_social}' CUIT='{db_cliente.cuit}' Domicilios={len(db_cliente.domicilios)}")
+    
     return db_cliente
 
 @router.put("/{cliente_id}", response_model=ClienteResponse)

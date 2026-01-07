@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Union
 from datetime import datetime
 from uuid import UUID
 
@@ -45,15 +45,31 @@ class PedidoUpdate(BaseModel):
     liberado_despacho: Optional[bool] = None
     items: Optional[List[PedidoItemCreate]] = None
 
+class CondicionIvaSummary(BaseModel):
+    nombre: str
+    class Config:
+        from_attributes = True
+
+
+class SegmentoSummary(BaseModel):
+    nombre: str
+    class Config:
+        from_attributes = True
+
 class ClienteSummary(BaseModel):
     id: UUID
     razon_social: str
+    cuit: Optional[str] = None
+    domicilio_fiscal_resumen: Optional[str] = None
+    condicion_iva: Optional[CondicionIvaSummary] = None
+    segmento: Optional[SegmentoSummary] = None
     
     class Config:
         from_attributes = True
 
 class ProductoSummary(BaseModel):
     id: int
+    sku: Optional[Union[str, int]] = None
     nombre: str
     
     class Config:

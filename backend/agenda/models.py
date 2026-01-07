@@ -46,7 +46,7 @@ class VinculoComercial(Base):
     activo = Column(Boolean, default=True)
 
     # Relaciones
-    cliente = relationship("backend.clientes.models.Cliente", back_populates="vinculos")
+    cliente = relationship("Cliente", back_populates="vinculos")
     persona = relationship("Persona")
     tipo_contacto = relationship("backend.maestros.models.TipoContacto")
 
