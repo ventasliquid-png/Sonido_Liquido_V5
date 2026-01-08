@@ -18,10 +18,16 @@ class ClienteService:
             if existing:
                 cliente_in.requiere_auditoria = True
             
+            # Auto-assign Legacy ID (Internal Code)
+            from sqlalchemy import func
+            max_id = db.query(func.max(Cliente.codigo_interno)).scalar() or 0
+            next_id = max_id + 1
+
             # Crear Cliente
             db_cliente = Cliente(
                 razon_social=cliente_in.razon_social,
                 cuit=cliente_in.cuit,
+                codigo_interno=next_id, # Auto-assigned
                 condicion_iva_id=cliente_in.condicion_iva_id,
                 lista_precios_id=cliente_in.lista_precios_id,
                 activo=cliente_in.activo,

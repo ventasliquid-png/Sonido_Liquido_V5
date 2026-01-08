@@ -164,6 +164,7 @@
                     v-for="producto in sortedProductos" 
                     :key="producto.id"
                     class="relative min-h-[160px] group"
+                    @contextmenu.prevent="handleContextMenu($event, producto)"
                 >
                     <!-- Selection Checkbox -->
                     <div class="absolute top-2 left-2 z-20" @click.stop>
@@ -221,6 +222,7 @@
                     v-for="producto in sortedProductos" 
                     :key="producto.id"
                     @click="selectProducto(producto)"
+                    @contextmenu.prevent="handleContextMenu($event, producto)"
                     class="group flex items-center justify-between p-2 rounded-lg border border-transparent hover:bg-rose-900/10 hover:border-rose-900/20 cursor-pointer transition-all"
                     :class="{ 'bg-rose-900/20 border-rose-500/30': selectedId === producto.id }"
                 >
@@ -295,6 +297,17 @@
       />
     </aside>
 
+    <Teleport to="body">
+        <ContextMenu 
+            v-if="contextMenu.show"
+            v-model="contextMenu.show" 
+            :x="contextMenu.x" 
+            :y="contextMenu.y" 
+            :actions="contextMenu.actions" 
+            @close="contextMenu.show = false"
+        />
+    </Teleport>
+
   </div>
 </template>
 
@@ -305,6 +318,7 @@ import { useProductosStore } from '../../stores/productos'
 import { useNotificationStore } from '../../stores/notification'
 import ProductoCard from './components/ProductoCard.vue'
 import ProductoInspector from './components/ProductoInspector.vue'
+import ContextMenu from '../../components/common/ContextMenu.vue'
 
 const router = useRouter()
 const productosStore = useProductosStore()
@@ -312,12 +326,45 @@ const notificationStore = useNotificationStore()
 
 const showInspector = ref(false)
 const selectedId = ref(null)
-const selectedIds = ref([]) // IDs for bulk actions
+const selectedIds = ref([]) 
 const sortBy = ref('alpha_asc')
 const viewMode = ref('grid')
 const showSortMenu = ref(false)
-const filterStatus = ref('active') // all, active, inactive
+const filterStatus = ref('active')
 let searchTimeout = null
+
+const contextMenu = ref({
+    show: false,
+    x: 0,
+    y: 0,
+    actions: []
+})
+
+const handleContextMenu = (e, producto) => {
+    contextMenu.value = {
+        show: true,
+        x: e.clientX,
+        y: e.clientY,
+        actions: [
+            { 
+                label: 'Editar', 
+                icon: 'fas fa-edit', 
+                action: () => selectProducto(producto) 
+            },
+            { 
+                label: producto.activo ? 'Desactivar' : 'Activar', 
+                icon: producto.activo ? 'fas fa-eye-slash' : 'fas fa-eye', 
+                action: () => handleToggleActive(producto),
+                class: producto.activo ? 'text-red-400' : 'text-green-400'
+            },
+            {
+                label: 'Ver en Inspector',
+                icon: 'fas fa-search',
+                action: () => selectProducto(producto)
+            }
+        ]
+    }
+}
 
 const flattenedRubros = computed(() => {
     return productosStore.rubros;

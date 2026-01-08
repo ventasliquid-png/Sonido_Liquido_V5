@@ -51,8 +51,15 @@ class GUID(TypeDecorator):
 def _get_clean_database_url():
     """
     Construye la URL de conexión ignorando variables de entorno viciadas.
-    Prioriza el archivo .env local.
+    Prioriza os.environ (inyectado por main.py) y luego el archivo .env local.
     """
+    # 1. Prioridad: Variable de entorno explícita (fijada por main.py con path absoluto)
+    env_url = os.environ.get("DATABASE_URL")
+    if env_url:
+        print(f"--- [DATABASE] Usando DATABASE_URL de entorno: {env_url} ---")
+        return env_url
+
+    # 2. Prioridad: Archivo .env local (fallback)
     url_candidate = DATABASE_URL_FROM_ENV_FILE
     
     if url_candidate and url_candidate.startswith("sqlite"):
@@ -61,6 +68,7 @@ def _get_clean_database_url():
     
     if not url_candidate:
         print("⚠️  DATABASE_URL no encontrada en .env. Usando SQLITE LOCAL (pilot.db).")
+        # Default a pilot.db en el directorio actual (o raíz si se corre desde ahí)
         url_candidate = "sqlite:///./pilot.db"
         
     if url_candidate.startswith("sqlite"):

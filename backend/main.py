@@ -8,10 +8,25 @@ import json
 from contextlib import asynccontextmanager
 from typing import TypedDict, List, Literal
 
-# load_dotenv() # Desactivado temporalmente para asegurar modo offline si se desea
+# --- [BOOT STRATEGY V11] ---
+# Forzar carga de entorno desde el Root del proyecto para evitar errores de contexto.
 from dotenv import load_dotenv
-load_dotenv()
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # backend/
+ROOT_DIR = os.path.dirname(BASE_DIR) # root/
+ENV_PATH = os.path.join(ROOT_DIR, ".env")
+
+print(f"--- [BOOT] Cargando variables de entorno desde: {ENV_PATH} ---")
+load_dotenv(ENV_PATH, override=True)
+
+# FIX: Si es SQLite, forzar ruta absoluta a pilot.db en ROOT para evitar creación de DB vacía en backend/
+db_url = os.environ.get("DATABASE_URL")
+if db_url and "sqlite" in db_url and "pilot.db" in db_url:
+    # Asumimos que pilot.db vive en el ROOT siempre
+    abs_db_path = os.path.join(ROOT_DIR, "pilot.db")
+    os.environ["DATABASE_URL"] = f"sqlite:///{abs_db_path}"
+    print(f"--- [BOOT] DATABASE_URL corregida a absoluta: {os.environ['DATABASE_URL']} ---")
+    
 # FORCE DISABLE IOWA (Cloud Costs Saving)
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = ""
 os.environ["ENABLE_AI"] = "False"
@@ -39,11 +54,18 @@ import os
 backend_dir = os.path.dirname(os.path.abspath(__file__))
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
+
+# [GY-FIX-BOOT] Agregar directorio RAÍZ (Padre) para permitir 'import backend.x'
+# Esto es crítico para evitar duplicidad de módulos (sys.modules['auth'] vs sys.modules['backend.auth'])
+# y para que los 65+ archivos restantes funcionen sin cambios masivos.
+parent_dir = os.path.dirname(backend_dir)
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
 # --- [FIN REFACTOR V10.10] ---
 
 # Imports Core
-from core import config
-from core.database import engine, Base
+from backend.core import config
+from backend.core.database import engine, Base
 
 # Imports de Routers
 # Imports de Routers
@@ -52,15 +74,19 @@ from backend.proveedores import models as proveedores_models
 from backend.maestros import models as maestros_models
 from backend.productos import models as productos_models
 from backend.clientes import models as clientes_models # Added explicit import
+# [GY-FIX] Import models missing for ORM relationship resolution
+from backend.agenda import models as agenda_models
+from backend.logistica import models as logistica_models
+from backend.pedidos import models as pedidos_models
 from backend.auth.router import router as auth_router
 from backend.maestros.router import router as maestros_router
 from backend.clientes.router import router as clientes_router
 from backend.logistica.router import router as logistica_router
 from backend.agenda.router import router as agenda_router
 from backend.productos.router import router as productos_router
-from backend.productos.router import router as productos_router
 from backend.proveedores.router import router as proveedores_router
 from backend.data_intel.router import router as data_intel_router
+from backend.pedidos.router import router as pedidos_router # [GY-FIX] Restored missing import
 from backend.cantera.router import router as cantera_router
 
 # --- 2. Importaciones de LangGraph (El Cerebro) ---
@@ -330,21 +356,15 @@ app = FastAPI(
 )
 
 
-# --- 2. CORS Config ---
-from backend.core import config as app_config
-
-
-# [GY-FIX] Hardcode LAN IP to solve CORS block
-origins = [
-    "http://localhost:5173",
-    "http://localhost:8000",
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:8000",
-    "http://192.168.0.34:5173", # Explicit User LAN IP
-    "http://192.168.0.34:8000"
-]
-
-print(f"--- [CORS Config] Allowed Origins: {origins} ---")
+# --- 2. CORS Config (V11.5 - Permissive Debug Mode) ---
+# [GY-FIX] Allow ALL origins to prevent local dev blocking
+origins = ["*"]
+# origins = [
+#     "http://localhost:5173",
+#     "http://127.0.0.1:5173",
+#     "http://localhost:8000",
+#     "http://10.0.0.11:5173" # LAN Dev
+# ]
 
 app.add_middleware(
     CORSMiddleware,
@@ -355,18 +375,6 @@ app.add_middleware(
 )
 
 # --- 3. Endpoints y Routers ---
-
-# Imports de Routers (Unificados)
-from backend.auth import models as auth_models
-from backend.auth.router import router as auth_router
-from backend.maestros.router import router as maestros_router
-from backend.clientes.router import router as clientes_router
-from backend.logistica.router import router as logistica_router
-from backend.agenda.router import router as agenda_router
-from backend.productos.router import router as productos_router
-from backend.proveedores.router import router as proveedores_router
-from backend.data_intel.router import router as data_intel_router
-from backend.pedidos.router import router as pedidos_router
 
 # Inclusiones (Ordenadas)
 app.include_router(auth_router)

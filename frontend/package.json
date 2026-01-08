@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.1.0",
+    "html2canvas": "^1.4.1",
     "lodash": "^4.17.21",
     "pinia": "^3.0.4",
     "vue-router": "^4.6.3"

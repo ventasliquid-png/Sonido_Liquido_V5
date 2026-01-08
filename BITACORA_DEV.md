@@ -196,3 +196,54 @@ La base de datos activa (pilot.db) NO viaja sola. Para que el trabajo del dÃ­a s
 - **UI Speed-Up**: Implementación de Teleport y Z-Floating para resultados de búsqueda.
 - **Blindaje**: Bloqueo industrial de autocomplete (new-password).
 - **Flujo F4**: Implementación de Alta por Plantilla (Clonado) para Productos y Clientes.
+
+# 2026-01-07 | SESIÓN OMEGA (CRITICA) | CORS, Red LAN, Bridge
+**Estado Final:** ?? INESTABLE / NO FUNCIONAL
+**Auditoría Externa:** Grok 4 (Confirmada)
+
+## Resumen Ejecutivo
+Sesión dedicada a resolver bloqueos de Script (AdBlocker) y problemas de red (CORS).
+Se logró la estabilidad teórica del backend y frontend individualmente, pero la integración en red LAN falló debido a políticas de seguridad del navegador.
+
+## Cambios Realizados
+1.  **INFRAESTRUCTURA:** Renombrado endpoint /cantera -> /nexus -> **/bridge** para evadir bloqueadores.
+2.  **BACKEND:** Configuración CORS endurecida (IPs explícitas).
+3.  **FRONTEND:** Mejoras en PedidoInspector (Botón 3 puntos, Datos Fiscales).
+4.  **NAVEGACIÓN:** Fix teórico de tecla ESC (ReturnUrl), pendiente de validación de codificación.
+
+## Incidencias Abiertas (Bloqueantes)
+1.  **Grilla Pedidos:** Invisible (CORS).
+2.  **Edición:** No verificable por falta de grilla.
+3.  **Integridad:** No se pudo verificar conteo de registros (Fallo en scripts de conteo).
+
+## IOWA Status
+- **Estado:** DESCONECTADO (Variable de entorno inhabilitada).
+- **Razón:** Ahorro de costes / Orden superior.
+
+
+### [2026-01-08] Reparación Crítica UI, Modo Zen y Bloqueo IOWA
+
+**Objetivos:**
+1.  Recuperar la estabilidad del frontend tras error de compilación (script duplicado).
+2.  Implementar captura de presupuestos ('Modo Zen') para compartir por WhatsApp.
+3.  Conectar entorno local con IOWA (Google Cloud SQL).
+
+**Cambios:**
+*   **FIX Frontend:** Se eliminó código duplicado y basura en PedidoInspector.vue que causaba pantalla roja.
+*   **Feature Modo Zen:** Implementado botón de cámara y menú contextual.
+    *   **Hardening:** Se añadió fallback automático: si falla el portapapeles, descarga la imagen.
+    *   **UX:** Se ajustó CSS (.zen-active) para invertir colores (letras oscuras sobre fondo blanco) garantizando legibilidad en la captura.
+*   **Backend:** Diseño de lógica 'Roca y Máscara' (Precios) en implementation_plan.md.
+
+**Estado del Sistema:**
+*   **Frontend:** ? FUNCIONAL Y ESTABLE.
+*   **Backend:** ? PREPARADO PARA CAMBIOS DE PRECIOS.
+*   **Base de Datos:** ?? DESCONECTADA DE PROD (Timeout puerto 5432).
+
+**Incidencias:**
+*   **Bloqueo de Red:** Test-NetConnection confirma bloqueo de salida al puerto 5432 de GCP. Requiere revisión de Firewall/Router local o uso de Auth Proxy.
+
+**Próximos Pasos (Nemesis):**
+1.  Resolver conectividad IOWA (prioridad 1).
+2.  Implementar lógica de descuentos (27% Fiscal / 13.5% Blue) en router.backend.
+

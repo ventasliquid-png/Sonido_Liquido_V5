@@ -94,12 +94,55 @@
               <!-- Código Visual -->
               <div class="space-y-1">
                   <label class="text-xs font-bold text-white/60 uppercase">Código Visual</label>
-                  <input 
                     v-model="localProducto.codigo_visual"
                     type="text" 
                     class="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-rose-500 focus:outline-none transition-colors font-mono"
                     placeholder="Ej: JL-500"
                   />
+              </div>
+
+              <!-- CALCULADORA DE MÁSCARA (V5.7 SOCRATIC LOGIC) -->
+              <div class="mt-8 p-4 bg-emerald-900/10 border border-emerald-500/20 rounded-xl space-y-4">
+                  <div class="flex items-center gap-2 mb-2">
+                       <i class="fas fa-calculator text-emerald-400"></i>
+                       <h4 class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Calculadora de Máscara</h4>
+                  </div>
+                  
+                  <div class="grid grid-cols-2 gap-4">
+                      <!-- Input: LA ROCA -->
+                      <div class="col-span-2 space-y-1">
+                          <label class="text-[10px] uppercase font-bold text-white/50 block">Definir "La Roca" (Neto Base Real)</label>
+                          <div class="relative">
+                              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-white/30">$</span>
+                              <input 
+                                v-model.number="calculadora.roca" 
+                                type="number" 
+                                class="w-full bg-black/40 border border-white/10 rounded px-8 py-2 text-white font-mono font-bold text-right focus:border-emerald-500 focus:outline-none"
+                                placeholder="0.00"
+                              />
+                          </div>
+                      </div>
+
+                      <!-- Output: LISTA 1 (FISCAL) -->
+                      <div class="p-3 bg-black/20 rounded border border-white/5 relative group cursor-pointer" @click="aplicarMascara('FISCAL')">
+                           <div class="absolute top-1 right-2 text-[8px] text-white/30">CLICK PARA APLICAR</div>
+                           <label class="text-[9px] uppercase font-bold text-blue-400 block mb-1">Máscara Fiscal (20% OFF)</label>
+                           <div class="text-lg font-mono font-bold text-white text-right">{{ formatCurrency(calculadora.maskFiscal) }}</div>
+                           <div class="text-[9px] text-right text-white/40 mt-1">
+                               Neto: {{ formatCurrency(calculadora.roca) }} + IVA
+                           </div>
+                      </div>
+
+                      <!-- Output: LISTA 2 (BLUE) -->
+                      <div class="p-3 bg-black/20 rounded border border-white/5 relative group cursor-pointer" @click="aplicarMascara('BLUE')">
+                           <div class="absolute top-1 right-2 text-[8px] text-white/30">CLICK PARA APLICAR</div>
+                           <label class="text-[9px] uppercase font-bold text-purple-400 block mb-1">Máscara Blue (10% OFF)</label>
+                           <div class="text-lg font-mono font-bold text-white text-right">{{ formatCurrency(calculadora.maskBlue) }}</div>
+                           <div class="text-[9px] text-right text-white/40 mt-1">
+                               Final: {{ formatCurrency(calculadora.maskBlue * 0.90) }}
+                           </div>
+                      </div>
+                  </div>
               </div>
 
               <!-- Rubro -->
@@ -380,9 +423,11 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useProductosStore } from '../../../stores/productos'
+import { useNotificationStore } from '@/stores/notification' // Add Notification Store
 import SmartSelect from '../../../components/ui/SmartSelect.vue'
 
 const productosStore = useProductosStore()
+const notification = useNotificationStore() // Init Store
 const { unidades, tasasIva, proveedores } = storeToRefs(productosStore)
 
 const props = defineProps({
@@ -407,6 +452,59 @@ const localCostos = ref({
     cm_objetivo: null,
     precio_fijo_override: null
 })
+
+// --- CALCULADORA MÁSCARA (V5.7 SOCRATIC LOGIC) ---
+const calculadora = ref({
+    roca: 0, // Base Neta Real
+    maskFiscal: 0, // Precio Lista para Factura A (20% OFF)
+    maskBlue: 0 // Precio Lista para Blue (10% OFF)
+})
+
+// Auto-fill Roca when loading product
+watch(() => localCostos.value.costo_reposicion, (newVal) => {
+    // Solo si roca esta vacia o es igual al costo anterior
+    if (!calculadora.value.roca) {
+        calculadora.value.roca = Number(newVal) || 0
+    }
+}, { immediate: true })
+
+// Recalcular Máscaras cuando cambia La Roca
+watch(() => calculadora.value.roca, (newRoca) => {
+    const roca = Number(newRoca) || 0
+    if (roca <= 0) {
+        calculadora.value.maskFiscal = 0
+        calculadora.value.maskBlue = 0
+        return
+    }
+
+    // FISCAL: Queremos que (Máscara * 0.80) = Roca
+    // Entonces Máscara = Roca / 0.80
+    calculadora.value.maskFiscal = roca / 0.80
+
+    // BLUE: Queremos que (Máscara * 0.90) = Roca (o Roca + MargenBlue?)
+    // El usuario dijo: "Si lo quiere sin factura? Es $14.000 menos el 10%"
+    // Y verificó que $14.000 - 10% = $12.600 que es cercano a su objetivo.
+    // Asumiremos que la Máscara es única (Sugerida la Fiscal) y veremos cómo cae el Blue.
+    // PERO, en la UI mostramos DOS máscaras sugeridas.
+    // Si aplico Fiscal, el Blue cae en: MáscaraFiscal * 0.90 = (Roca/0.80)*0.90 = Roca * 1.125 (+12.5% sobre Roca)
+    
+    // Si quisiera forzar que el Blue sea diferente, tendría otra Máscara.
+    // Pero el precio de lista es UNO solo en el sistema.
+    // Así que calcularemos la "Máscara Blue Ideal" para referencia.
+    // Blue Ideal = Roca / 0.90 (Para caer EXACTO en la Roca con 10% descuento)
+    calculadora.value.maskBlue = roca / 0.90
+})
+
+const aplicarMascara = (tipo) => {
+    if (tipo === 'FISCAL') {
+        localCostos.value.precio_fijo_override = Math.ceil(calculadora.value.maskFiscal / 100) * 100 // Redondeo a 100
+        notification.add('Máscara Fiscal aplicada como Precio Fijo', 'success')
+    } else if (tipo === 'BLUE') {
+        localCostos.value.precio_fijo_override = Math.ceil(calculadora.value.maskBlue / 100) * 100 // Redondeo a 100
+        notification.add('Máscara Blue aplicada como Precio Fijo', 'success')
+    }
+}
+// --------------------------------------------------
 
 const templateId = ref(null)
 const pristineName = ref('')
@@ -564,6 +662,7 @@ const updateLocalIvaRate = () => {
 const handleKeydown = (e) => {
     if (e.key === 'F10') {
         e.preventDefault()
+        e.stopPropagation()
         save()
     }
 }

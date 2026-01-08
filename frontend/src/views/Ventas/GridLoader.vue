@@ -36,6 +36,7 @@
                     @input="handleClientInput"
                     @focus="focusedZone = 'CLIENT'"
                     @keydown="handleClientKeydown"
+                    @dblclick="selectedClient ? openClientCanvasEdit(selectedClient) : null"
                     @contextmenu.prevent="handleInputContextMenu"
                 >
                 
@@ -273,6 +274,8 @@
                     class="flex items-center py-1 border-b border-emerald-900/30 hover:bg-white/5 group transition-colors text-sm rounded px-1"
                     :class="{'bg-[#061816] ring-1 ring-emerald-500/50': focusedRow === index}"
                     @click.stop="focusedRow = index"
+                    @dblclick.prevent="editProduct(item)"
+                    @contextmenu.prevent="handleProductRowContextMenu($event, item)"
                 >
                     <div class="w-10 text-center text-xs text-emerald-800 font-mono select-none">{{ index + 1 }}</div>
                     <div class="w-24 font-bold text-emerald-400 text-xs truncate select-all">{{ item.sku }}</div>
@@ -579,22 +582,9 @@
         </Teleport>
 
         <!-- Cliente Inspector (Overlay Mode) -->
+        <!-- Cliente Inspector (Overlay Mode) - REMOVED (Redirection in use) -->
         <Teleport to="body">
-            <!-- click.self removed to prevent accidental close -->
-            <div v-if="showInspector" class="fixed inset-0 z-[60] flex justify-end bg-black/50 backdrop-blur-sm">
-                <div class="w-full max-w-lg h-full shadow-2xl overflow-y-auto transform transition-transform duration-300">
-                    <ClienteInspector 
-                        :modelValue="clienteForInspector"
-                        :isNew="isInspectorNew"
-                        mode="compact"
-                        @close="closeInspector"
-                        @save="handleInspectorSave"
-                        @delete="handleInspectorDelete"
-                        @switch-client="switchToClient"
-                        @manage-segmentos="openSegmentoAbm"
-                    />
-                </div>
-            </div>
+            <!-- Content Removed -->
         </Teleport>
         
         <!-- Product Inspector (Overlay Mode) -->
@@ -670,7 +660,7 @@ import { useMaestrosStore } from '@/stores/maestros';
 import apiClient from '@/services/api';
 import ContextMenu from '@/components/common/ContextMenu.vue';
 import ClientHistoryPopover from '@/components/common/ClientHistoryPopover.vue';
-import ClienteInspector from '../Hawe/components/ClienteInspector.vue';
+// import ClienteInspector from '../Hawe/components/ClienteInspector.vue';
 import ProductoInspector from '../Hawe/components/ProductoInspector.vue';
 import SimpleAbmModal from '@/components/common/SimpleAbmModal.vue';
 import MagicInput from '@/components/ui/MagicInput.vue';
@@ -717,9 +707,7 @@ const draftId = ref(null);
 const downloadExcel = ref(false); // Default false per user feedback, or persist? Let's default false.
 
 // INSPECTOR & CONTEXT MENU
-const showInspector = ref(false);
-const clienteForInspector = ref(null);
-const isInspectorNew = ref(false);
+// INSPECTOR DEAD VARIABLES REMOVED
 
 const contextMenu = ref({
     show: false,
@@ -1404,11 +1392,14 @@ const handleClientKeydown = (e) => {
     } else if (e.key === 'F4') {
         e.preventDefault();
         openInspectorNew();
+    } else if (e.key === 'F3') {
+        e.preventDefault();
+        if (selectedClient.value) {
+            openClientCanvasEdit(selectedClient.value);
+        }
     } else {
         // Default behavior: typing
         showClientResults.value = true;
-        // Reset index if typing new query
-        // selectedClientIdx.value = 0; // handled by watcher/computed usually
     }
 };
 
@@ -1416,12 +1407,53 @@ const handleGlobalKeydown = (e) => {
     if (e.key === 'F10') {
         e.preventDefault();
         handleSubmit();
+    } else if (e.key === 'F3') {
+         // Grid Product Edit Shortcut
+         if (items.value.length > 0 && focusedRow.value !== null && items.value[focusedRow.value]) {
+             e.preventDefault();
+             editProduct(items.value[focusedRow.value]);
+         }
     } else if (e.key === 'Escape') {
         // [GY-UX] Return to Order List if not in a critical input
         if (focusedZone.value === 'CLIENT' || focusedZone.value === 'PRODUCT') {
             router.push('/hawe/pedidos');
         }
     }
+};
+
+const editProduct = async (item) => {
+    if (!item || !item.producto_id) return;
+    try {
+        // Fetch fresh master data
+        const masterProduct = await productosStore.fetchProductoById(item.producto_id);
+        if (masterProduct) {
+             productForInspector.value = masterProduct;
+             showProductInspector.value = true;
+        } else {
+             alert('No se pudo recuperar la ficha maestra del producto.');
+        }
+    } catch (e) {
+        console.error("Error fetching product master:", e);
+    }
+};
+
+const handleProductRowContextMenu = (e, item) => {
+    contextMenu.value.x = e.clientX;
+    contextMenu.value.y = e.clientY;
+    contextMenu.value.actions = [
+        { 
+            label: 'Editar Producto Maestro', 
+            iconClass: 'fas fa-box-open', 
+            handler: () => editProduct(item) 
+        },
+        { 
+            label: 'Quitar Renglón', 
+            iconClass: 'fas fa-trash', 
+            handler: () => removeItem(items.value.indexOf(item)),
+            class: 'text-red-400'
+        }
+    ];
+    contextMenu.value.show = true;
 };
 
 const handleClientInput = () => {
@@ -1458,70 +1490,39 @@ const selectClient = async (client) => {
 
 // --- INSPECTOR LOGIC ---
 
+// --- Navigation Helpers ---
+const openClientCanvasEdit = (client) => {
+    if (!client || !client.id) return;
+    router.push({
+        name: 'HaweClientCanvas',
+        params: { id: client.id },
+        query: { returnUrl: route.fullPath }
+    });
+};
+
 const openInspectorNew = () => {
-    // [GY-UX] Pass current search query as initial data
-    clienteForInspector.value = { 
-        razon_social: clientQuery.value || '',
-        cuit: '',
-        activo: true // Defaults
-    };
-    isInspectorNew.value = true;
-    showInspector.value = true;
-    showClientResults.value = false;
+    // [GY-UX] Redirect to Client Module (Natural Habitat)
+    router.push({ 
+        name: 'HaweClientCanvas', 
+        params: { id: 'new' }, 
+        query: { 
+            returnUrl: route.fullPath,
+            search: clientQuery.value || '' 
+        } 
+    });
 };
 
 const openInspectorEdit = (client) => {
-    clienteForInspector.value = client;
-    isInspectorNew.value = false;
-    showInspector.value = true;
-    showClientResults.value = false;
+    // [GY-UX] Redirect to Client Module (Natural Habitat)
+    router.push({ 
+        name: 'HaweClientCanvas', 
+        params: { id: client.id }, 
+        query: { returnUrl: route.fullPath } 
+    });
 };
 
-const closeInspector = () => {
-    showInspector.value = false;
-    // Return focus if needed
-    if (!selectedClient.value) {
-        focusClient();
-    }
-};
-
-const handleInspectorSave = async (clientData) => {
-    // Process save/create
-    try {
-        let savedClient;
-        if (isInspectorNew.value) {
-            savedClient = await clientesStore.createCliente(clientData);
-        } else {
-            savedClient = await clientesStore.updateCliente(clientData.id, clientData);
-        }
-        
-        // Auto-select the saved client
-        selectClient(savedClient);
-        closeInspector();
-        
-    } catch (e) {
-        console.error(e);
-        alert('Error al guardar cliente: ' + e.message);
-    }
-};
-
-const handleInspectorDelete = async (clientData) => {
-   // Already handled by component soft delete logic usually, but here we can force purge
-   try {
-       await clientesStore.deleteCliente(clientData.id);
-       closeInspector();
-       // Refresh search if query exists
-       if (clientQuery.value) clientesStore.fetchClientes();
-   } catch(e) {
-       console.error(e);
-   }
-};
-
-const switchToClient = (id) => {
-    // Used when inspector switches context (e.g. duplicate detected)
-    const client = clientesStore.clientes.find(c => c.id === id);
-    if(client) openInspectorEdit(client);
-};
+// --- OPEN INSPECTOR (REDIRECT) --- 
+// Legacy functions removed. Logic moved to router.push above.
 
 // --- PRODUCT INSPECTOR LOGIC ---
 

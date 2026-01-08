@@ -1,15 +1,12 @@
+<!-- ClientCanvas.vue: Natural Habitat for Client Management -->
 <template>
   <div class="flex h-full w-full bg-[var(--hawe-bg-panel)] text-white overflow-hidden font-sans">
+    
     <!-- ZONE 1: STATIC DATA (Left Panel) -->
     <aside class="w-80 flex flex-col border-r border-white/10 bg-black/20 backdrop-blur-md z-20">
       <!-- Header -->
       <div class="h-14 flex items-center justify-between px-6 border-b border-white/10 shrink-0">
         <div class="flex items-center gap-4">
-
-            
-
-
-
             
             <!-- RETURN MODE -->
             <button 
@@ -159,11 +156,12 @@
     </aside>
 
     <!-- ZONE 3: DYNAMIC CANVAS (Center) -->
-    <main class="flex-1 flex flex-col relative bg-gradient-to-br from-[#0f344e] to-[#0a1f2e]">
+    <main class="flex-1 flex flex-col relative bg-gradient-to-br from-[#1e3a8a] to-[#0f172a]">
+
         
         <!-- TAB: CLIENTE (Main View) -->
         <template v-if="activeTab === 'CLIENTE'">
-            <!-- Top Dashboard (Mock Data for now) -->
+            <!-- Top Dashboard -->
             <header class="h-32 px-8 py-6 flex items-start justify-between border-b border-white/5 bg-white/5">
                 <div class="flex-1 mr-8">
                     <!-- NEW CLIENT HEADER MODE -->
@@ -204,7 +202,7 @@
                             </div>
                             
                             <span class="text-white/30 text-xs">•</span>
-                            <span class="text-white/50 text-xs">Cód: {{ form.codigo_interno || '---' }}</span>
+                            <span class="text-white/50 text-xs ml-1 font-mono">Nro: {{ form.codigo_interno || '---' }}</span>
                         </div>
                     </div>
                 </div>
@@ -249,11 +247,6 @@
                         </div>
                     </div>
                 </div>
-                
-                <!-- Navigation Tools (Go to New) -->
-                <div v-else class="flex items-start">
-                     <!-- Placeholder for any specific tools for new mode -->
-                </div>
             </header>
 
             <!-- Operational Body -->
@@ -297,8 +290,6 @@
                                 </div>
                              </div>
                         </div>
-                        
-    
                         
                         <div class="bg-white/5 p-6 rounded-xl border border-white/10 opacity-50">
                              <h3 class="text-sm font-bold text-white/90 mb-4 uppercase border-b border-white/10 pb-2">Próximos Pasos</h3>
@@ -406,11 +397,6 @@
 
     <!-- ZONE 2: REFERENCE (Right Panel) -->
     <aside class="w-80 flex flex-col border-l border-white/10 bg-black/20 backdrop-blur-md z-20">
-        <!-- Header REMOVED as per user request -->
-        <!-- <div class="h-14 flex items-center justify-center px-6 border-b border-white/10 shrink-0 relative">
-            <h2 class="font-outfit text-sm font-bold uppercase tracking-wider text-white/70">Logística & Contactos</h2>
-        </div> -->
-
         <div class="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin scrollbar-thumb-white/10">
             <!-- Domicilios -->
             <section>
@@ -493,6 +479,7 @@
             </section>
         </div>
     </aside>
+
     <!-- Quick Add Segmento Modal (Global) -->
     <div v-if="showAddSegmento" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
         <div class="bg-[#0a253a] border border-white/10 rounded-xl p-6 w-96 shadow-2xl">
@@ -511,6 +498,7 @@
             </div>
         </div>
     </div>
+    
     <!-- Modals & Context Menu -->
     <SegmentoForm 
         :show="showSegmentoModal" 
@@ -560,6 +548,7 @@
     />
   </div>
 </template>
+
 <script setup>
 import { ref, onMounted, onUnmounted, computed, watch, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -584,36 +573,7 @@ const notificationStore = useNotificationStore()
 
 // Audit Logic
 const { evaluateCliente } = useAuditSemaphore()
-const auditResult = computed(() => {
-    // Construct a temporary client object from form data to reactive check
-    // Need to mimic the structure expected by evaluateCliente
-    const tempClient = {
-        ...form.value,
-        domicilios: domicilios.value, // Pass current domicilios array
-        // Calculate dynamic properties manually if needed, or helper
-        domicilio_fiscal_resumen: null // Let helper check domicilios array
-    }
-    return evaluateCliente(tempClient)
-})
 
-const returnUrl = computed(() => route.query.returnUrl)
-
-const goToList = () => router.push('/hawe')
-const goBackToSource = () => {
-    console.log("DEBUG: Volviendo a", returnUrl.value)
-    if (returnUrl.value) router.push(returnUrl.value)
-    else router.push('/hawe')
-}
-const goToNew = () => router.push({ name: 'HaweClientCanvas', params: { id: 'new' } })
-</script>
-
-<!-- DEBUG OVERLAY -->
-<div class="fixed bottom-0 right-0 bg-red-900/90 text-white p-4 z-[99999] font-mono text-xs max-w-sm pointer-events-none opacity-80" v-if="!isNew">
-    <pre>{{ debugInfo }}</pre>
-</div>
-<script setup>
-
-// State
 const isNew = ref(false)
 const activeTab = ref('CLIENTE') // 'CLIENTE', 'DOMICILIO', 'CONTACTO'
 
@@ -635,148 +595,32 @@ const form = ref({
     fecha_ultima_compra: null,
     codigo_interno: ''
 })
-
 const domicilios = ref([])
 const contactos = ref([])
 
-const showAddSegmento = ref(false)
-const newSegmentoName = ref('')
-
-// Segmento ABM Logic
-const showSegmentoModal = ref(false)
-const showSegmentoList = ref(false)
-const editingSegmentoId = ref(null)
-
-// Domicilios State
-const selectedDomicilio = ref(null)
-const selectedDomicilioId = ref(null)
-const showDomicilioList = ref(false)
-const showTransporteManager = ref(false)
-
-// Contactos State
-const showContactoForm = ref(false)
-const selectedContacto = ref(null)
-
-const contextMenu = reactive({
-    show: false,
-    x: 0,
-    y: 0,
-    actions: []
-})
-
-// Computed properties for selects
-const listasPrecios = computed(() => maestrosStore.listasPrecios)
-const vendedores = computed(() => maestrosStore.vendedores)
-const segmentos = computed(() => maestrosStore.segmentos)
+// Computed Helpers
 const condicionesIva = computed(() => maestrosStore.condicionesIva)
+const segmentos = computed(() => maestrosStore.segmentos)
+const auditResult = computed(() => {
+    // Construct a temporary client object from form data to reactive check
+    const tempClient = {
+        ...form.value,
+        domicilios: domicilios.value, 
+        domicilio_fiscal_resumen: null 
+    }
+    return evaluateCliente(tempClient)
+})
+const returnUrl = computed(() => route.query.returnUrl)
 
-// Keyboard Shortcuts
-const handleKeydown = (e) => {
-    if (e.key === 'Escape') {
-        if (activeTab.value !== 'CLIENTE') {
-            activeTab.value = 'CLIENTE'
-            return
-        }
-        const returnUrl = route.query.returnUrl
-        if (returnUrl) {
-            router.push(decodeURIComponent(returnUrl))
-        } else {
-            router.push('/hawe')
-        }
-    }
-    if (e.key === 'F10') {
-        e.preventDefault()
-        if (activeTab.value === 'DOMICILIO') {
-            // DomicilioForm handles its own save via F10, but we need to ensure propagation if needed
-            // Actually, DomicilioForm captures F10 locally if focused, but global listener might catch it first
-            // We'll let the component handle it or trigger a save event
-            return 
-        }
-        saveCliente()
-    }
-    
-    // Navigation
-    if (!isNew.value && activeTab.value === 'CLIENTE') {
-        // Domicilio Navigation (Up/Down)
-        if (domicilios.value.length > 0 && selectedDomicilioId.value) {
-            const currentIndex = domicilios.value.findIndex(d => d.id === selectedDomicilioId.value)
-            
-            if (e.key === 'ArrowUp') {
-                e.preventDefault()
-                const newIndex = currentIndex > 0 ? currentIndex - 1 : domicilios.value.length - 1
-                selectDomicilio(domicilios.value[newIndex])
-                return
-            }
-            if (e.key === 'ArrowDown') {
-                e.preventDefault()
-                const newIndex = currentIndex < domicilios.value.length - 1 ? currentIndex + 1 : 0
-                selectDomicilio(domicilios.value[newIndex])
-                return
-            }
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                openDomicilioTab(domicilios.value[currentIndex])
-                return
-            }
-        }
-
-        // Client Navigation (Left/Right)
-        if (store.clientes.length > 0) {
-            if (e.key === 'ArrowLeft') {
-                navigateClient(-1)
-            }
-            if (e.key === 'ArrowRight') {
-                navigateClient(1)
-            }
-            if (e.key === 'Home') {
-                e.preventDefault()
-                navigateToIndex(0)
-            }
-            if (e.key === 'End') {
-                e.preventDefault()
-                navigateToIndex(store.clientes.length - 1)
-            }
-            if (e.key === 'PageUp') {
-                e.preventDefault()
-                navigateClient(-10) // Jump 10 back
-            }
-            if (e.key === 'PageDown') {
-                e.preventDefault()
-                navigateClient(10) // Jump 10 forward
-            }
-        }
-    }
+// --- Navigation Methods ---
+const goToList = () => router.push('/hawe')
+const goBackToSource = () => {
+    if (returnUrl.value) router.push(returnUrl.value)
+    else router.push('/hawe')
 }
+const goToNew = () => router.push({ name: 'HaweClientCanvas', params: { id: 'new' } })
 
-const navigateToIndex = (index) => {
-    if (index >= 0 && index < store.clientes.length) {
-        const nextClient = store.clientes[index]
-        router.push({ name: 'HaweClientCanvas', params: { id: nextClient.id } })
-    }
-}
-
-const navigateClient = (direction) => {
-    // Use loose equality to handle string/number ID mismatch
-    const currentIndex = store.clientes.findIndex(c => c.id == form.value.id)
-    if (currentIndex === -1) return
-
-    let newIndex = currentIndex + direction
-    
-    // Looping Logic for single steps
-    if (Math.abs(direction) === 1) {
-        if (newIndex < 0) newIndex = store.clientes.length - 1
-        if (newIndex >= store.clientes.length) newIndex = 0
-    } else {
-        // Clamping logic for page jumps
-        if (newIndex < 0) newIndex = 0
-        if (newIndex >= store.clientes.length) newIndex = store.clientes.length - 1
-    }
-
-    navigateToIndex(newIndex)
-}
-
-
-
+// --- Initialization ---
 onMounted(async () => {
     window.addEventListener('keydown', handleKeydown)
     
@@ -791,8 +635,6 @@ onMounted(async () => {
     if (route.params.id === 'new') {
         isNew.value = true
         resetForm()
-        
-        // [GY-UX] Auto-fill from search query if provided
         if (route.query.search) {
              form.value.razon_social = route.query.search
         }
@@ -802,7 +644,6 @@ onMounted(async () => {
     }
 })
 
-// Watch for route changes to reload data without remounting
 watch(() => route.params.id, async (newId) => {
     if (newId === 'new') {
         isNew.value = true
@@ -813,27 +654,17 @@ watch(() => route.params.id, async (newId) => {
     }
 })
 
-// [DEBUG] Visual Diagnostics
-const debugInfo = computed(() => {
-    return JSON.stringify({
-        id: form.value.id,
-        cuit: form.value.cuit,
-        razon_social: form.value.razon_social,
-        domicilios_count: domicilios.value.length,
-        params_id: route.params.id
-    }, null, 2)
-})
-
 onUnmounted(() => {
     window.removeEventListener('keydown', handleKeydown)
 })
 
+// --- Core Client Logic ---
 const resetForm = () => {
     form.value = {
         id: null,
         razon_social: '',
         cuit: '',
-        condicion_iva: 'Responsable Inscripto',
+        condicion_iva_id: null, // Should match 'Responsable Inscripto' ID ideally, or null
         lista_precios_id: null,
         vendedor_id: null,
         segmento_id: null,
@@ -852,26 +683,18 @@ const resetForm = () => {
 }
 
 const loadCliente = async (id) => {
-    console.log(`[ClientCanvas] loadCliente CALLED with ID: ${id}`)
     try {
         const client = await store.fetchClienteById(id)
-        console.log(`[ClientCanvas] Data received from Store:`, client)
-        
         if (client) {
             form.value = { ...client }
-            console.log(`[ClientCanvas] Form updated. Razon Social: ${form.value.razon_social}`)
-            
-            // Ensure arrays exist
             domicilios.value = client.domicilios || []
-            contactos.value = client.vinculos || [] // Store uses 'vinculos', mapping to 'contactos' for view compatibility
+            contactos.value = client.vinculos || [] 
             
-            // [DEBUG] Monitor inconsistent data loading
             if (!client.cuit || client.cuit === '00-00000000-0') {
-                 notificationStore.add(`ADVERTENCIA: Cliente cargado con CUIT inválido/vacío: ${client.cuit}. ID: ${client.id}`, 'warning', 10000)
+                 notificationStore.add(`ADVERTENCIA: Cliente cargado con CUIT inválido`, 'warning')
             }
         } else {
-            console.error(`[ClientCanvas] Client is NULL/UNDEFINED`)
-            notificationStore.add('Error: Cliente no encontrado (Data Null)', 'error')
+            notificationStore.add('Error: Cliente no encontrado', 'error')
         }
     } catch (e) {
         console.error(`[ClientCanvas] Exception in loadCliente:`, e)
@@ -881,7 +704,6 @@ const loadCliente = async (id) => {
 
 const saveCliente = async () => {
     try {
-        // Prepare payload with nested data
         const payload = {
             ...form.value,
             domicilios: domicilios.value,
@@ -896,11 +718,7 @@ const saveCliente = async () => {
             notificationStore.add('Cliente actualizado exitosamente', 'success')
         }
         
-        if (returnUrl.value) {
-            router.push(returnUrl.value)
-        } else {
-            router.push('/hawe')
-        }
+        goBackToSource()
     } catch (e) {
         notificationStore.add('Error al guardar cliente', 'error')
         console.error(e)
@@ -922,7 +740,6 @@ const activateCliente = async () => {
     try {
         form.value.activo = true
         await saveCliente()
-        // notificationStore.add('Cliente reactivado exitosamente', 'success') // saveCliente already notifies
     } catch (e) {
         notificationStore.add('Error al reactivar cliente', 'error')
         form.value.activo = false // Revert on error
@@ -930,7 +747,6 @@ const activateCliente = async () => {
 }
 
 const cloneCliente = () => {
-    // Clone logic: reset ID, keep data, set isNew
     form.value.id = null
     form.value.razon_social += ' (Copia)'
     form.value.codigo_interno = ''
@@ -939,25 +755,17 @@ const cloneCliente = () => {
     notificationStore.add('Cliente clonado. Edite y guarde.', 'info')
 }
 
-// Contactos Actions
-const addContacto = () => {
-    if (isNew.value) {
-        notificationStore.add('Guarde el cliente antes de agregar contactos', 'warning')
-        return
-    }
-    selectedContacto.value = null
-    showContactoForm.value = true
+// --- Specific Logic & UI Handlers ---
+const handleCuitInput = (e) => {
+    form.value.cuit = e.target.value.replace(/[^0-9]/g, '')
 }
 
-const editContacto = (c) => {
-    selectedContacto.value = c
-    showContactoForm.value = true
-}
-
-const handleContactoSaved = async () => {
-    // Refresh client data to get updated contacts
-    await loadCliente(form.value.id)
-}
+// Segmentos
+const showAddSegmento = ref(false)
+const newSegmentoName = ref('')
+const showSegmentoList = ref(false)
+const showSegmentoModal = ref(false)
+const editingSegmentoId = ref(null)
 
 const createSegmento = async () => {
     if (!newSegmentoName.value) return
@@ -969,7 +777,6 @@ const createSegmento = async () => {
         } else {
              notificationStore.add('Función crear segmento no implementada en store', 'warning')
         }
-
         showAddSegmento.value = false
         newSegmentoName.value = ''
     } catch (e) {
@@ -985,53 +792,47 @@ const handleSegmentoChange = () => {
     }
 }
 
-const handleCuitInput = (e) => {
-    // Basic CUIT formatting or validation could go here
-    // For now, just ensuring numeric input if needed, or leaving as is
-    form.value.cuit = e.target.value.replace(/[^0-9]/g, '')
-}
-
-// Context Menu Logic
-const openSegmentoModal = (segmento = null) => {
-    editingSegmentoId.value = segmento ? segmento.id : null
-    showSegmentoModal.value = true
+const handleSegmentoContextMenu = (e) => {
+    contextMenu.value.show = true
+    contextMenu.value.x = e.clientX
+    contextMenu.value.y = e.clientY
+    contextMenu.value.actions = [
+        {
+            label: 'Nuevo Segmento',
+            icon: 'plus', // FontAwesome class logic in component? Icon text for now
+            handler: () => { 
+                editingSegmentoId.value = null
+                showSegmentoModal.value = true 
+            }
+        },
+        {
+            label: 'Administrar Segmentos',
+            icon: 'list',
+            handler: () => { showSegmentoList.value = true }
+        }
+    ]
 }
 
 const closeSegmentoModal = () => {
     showSegmentoModal.value = false
     editingSegmentoId.value = null
 }
-
 const handleSegmentoSaved = async () => {
-    await maestrosStore.fetchSegmentos(null, true) // Force refresh
+    await maestrosStore.fetchSegmentos(null, true) 
 }
 
-const handleSegmentoContextMenu = (e) => {
-    contextMenu.show = true
-    contextMenu.x = e.clientX
-    contextMenu.y = e.clientY
-    contextMenu.actions = [
-        {
-            label: 'Nuevo Segmento',
-            icon: '➕',
-            handler: () => openSegmentoModal()
-        },
-        {
-            label: 'Administrar Segmentos',
-            icon: '📋',
-            handler: () => { showSegmentoList.value = true }
-        }
-    ]
-}
+// Domicilios
+const showDomicilioList = ref(false)
+const showTransporteManager = ref(false)
+const selectedDomicilio = ref(null)
+const selectedDomicilioId = ref(null)
 
-// --- Domicilios Logic ---
 const openDomicilioTab = (domicilio = null) => {
     selectedDomicilio.value = domicilio
     activeTab.value = 'DOMICILIO'
 }
 
 const handleDomicilioSaved = async (domicilioData) => {
-    // For both new and existing clients, domicilios are immediately persisted
     try {
         let savedDom;
         if (domicilioData.id) {
@@ -1042,8 +843,7 @@ const handleDomicilioSaved = async (domicilioData) => {
             notificationStore.add('Domicilio creado', 'success');
         }
         
-        // Update local state with response (ensure real ID is used)
-        if (!savedDom.activo) savedDom.activo = true; // Ensure default visibility
+        if (!savedDom.activo) savedDom.activo = true; 
         
         if (domicilioData.id) {
             const index = domicilios.value.findIndex(d => d.id === domicilioData.id);
@@ -1052,7 +852,6 @@ const handleDomicilioSaved = async (domicilioData) => {
             domicilios.value.push(savedDom);
         }
         
-        // Force list refresh just in case
         await store.fetchClientes(); 
     } catch (error) {
         console.error(error);
@@ -1065,59 +864,109 @@ const selectDomicilio = (dom) => {
     selectedDomicilioId.value = dom.id
 }
 
-const handleDomicilioContextMenu = (e, dom = null) => {
-    contextMenu.show = true
-    contextMenu.x = e.clientX
-    contextMenu.y = e.clientY
-    
-    if (dom) {
-        contextMenu.actions = [
-            {
-                label: 'Editar Domicilio',
-                icon: '✏️',
-                handler: () => openDomicilioTab(dom)
-            },
-            {
-                label: 'Eliminar',
-                icon: '🗑️',
-                handler: () => handleDomicilioDelete(dom)
-            }
-        ]
-    } else {
-        // Header context menu
-        contextMenu.actions = [
-            {
-                label: 'Nuevo Domicilio',
-                icon: '➕',
-                handler: () => openDomicilioTab()
-            },
-            {
-                label: 'Administrar Domicilios',
-                icon: '📋',
-                handler: () => { showDomicilioList.value = true }
-            }
-        ]
-    }
-}
-
 const handleDomicilioDelete = async (dom) => {
     if (!confirm('¿Está seguro de eliminar este domicilio?')) return;
-
-    // API delete for existing clients (and now for new clients too, as they are persisted immediately)
     try {
         await store.deleteDomicilio(form.value.id, dom.id);
-        // Store updates local state automatically via deleteDomicilio action if implemented correctly,
-        // but let's ensure UI updates:
         domicilios.value = domicilios.value.filter(d => d.id !== dom.id);
         notificationStore.add('Domicilio eliminado', 'success');
     } catch (error) {
         console.error(error);
         notificationStore.add('Error al eliminar domicilio', 'error');
     }
-
     if (selectedDomicilioId.value === dom.id) {
         selectedDomicilioId.value = null;
         selectedDomicilio.value = null;
     }
 }
+
+const handleDomicilioContextMenu = (e, dom = null) => {
+    contextMenu.value.show = true
+    contextMenu.value.x = e.clientX
+    contextMenu.value.y = e.clientY
+    
+    if (dom) {
+        contextMenu.value.actions = [
+            {
+                label: 'Editar Domicilio',
+                icon: 'edit',
+                handler: () => openDomicilioTab(dom)
+            },
+            {
+                label: 'Eliminar',
+                icon: 'trash',
+                handler: () => handleDomicilioDelete(dom)
+            }
+        ]
+    } else {
+        contextMenu.value.actions = [
+            {
+                label: 'Nuevo Domicilio',
+                icon: 'plus',
+                handler: () => openDomicilioTab()
+            },
+            {
+                label: 'Administrar Domicilios',
+                icon: 'list',
+                handler: () => { showDomicilioList.value = true }
+            }
+        ]
+    }
+}
+
+// Contactos
+const showContactoForm = ref(false)
+const selectedContacto = ref(null)
+
+const addContacto = () => {
+    if (isNew.value) {
+        notificationStore.add('Guarde el cliente antes de agregar contactos', 'warning')
+        return
+    }
+    selectedContacto.value = null
+    showContactoForm.value = true
+}
+
+const editContacto = (c) => {
+    selectedContacto.value = c
+    showContactoForm.value = true
+}
+
+const handleContactoSaved = async () => {
+    await loadCliente(form.value.id)
+}
+
+// Global UI
+const contextMenu = ref({
+    show: false,
+    x: 0,
+    y: 0,
+    actions: []
+})
+
+const handleKeydown = (e) => {
+    // Global shortcuts
+    if (e.key === 'Escape') {
+        if (activeTab.value === 'DOMICILIO') {
+             activeTab.value = 'CLIENTE'
+             return
+        }
+        goBackToSource()
+    }
+    if (e.key === 'F10') {
+        e.preventDefault()
+        saveCliente()
+    }
+}
+
+// Debug Info
+const debugInfo = computed(() => {
+    return JSON.stringify({
+        id: form.value.id,
+        cuit: form.value.cuit,
+        razon_social: form.value.razon_social,
+        domicilios_count: domicilios.value.length,
+        params_id: route.params.id
+    }, null, 2)
+})
 </script>

@@ -271,9 +271,10 @@ def get_pedidos(
 
 
     # Eager load cliente and items with products
+    # Eager load cliente and items with products
     q = q.options(
-        joinedload(models.Pedido.cliente).joinedload(models.Cliente.condicion_iva),
-        joinedload(models.Pedido.cliente).joinedload(models.Cliente.segmento),
+        joinedload(models.Pedido.cliente).joinedload(Cliente.condicion_iva),
+        joinedload(models.Pedido.cliente).joinedload(Cliente.segmento),
         joinedload(models.Pedido.items).joinedload(models.PedidoItem.producto)
     )
     
@@ -314,8 +315,8 @@ def get_pedido_by_id(pedido_id: int, db: Session = Depends(get_db)):
     pedido = (
         db.query(models.Pedido)
         .options(
-            joinedload(models.Pedido.cliente).joinedload(models.Cliente.condicion_iva),
-            joinedload(models.Pedido.cliente).joinedload(models.Cliente.segmento),
+            joinedload(models.Pedido.cliente).joinedload(Cliente.condicion_iva),
+            joinedload(models.Pedido.cliente).joinedload(Cliente.segmento),
             joinedload(models.Pedido.items).joinedload(models.PedidoItem.producto)
         )
         .filter(models.Pedido.id == pedido_id)

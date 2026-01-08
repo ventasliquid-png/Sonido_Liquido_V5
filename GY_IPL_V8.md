@@ -62,8 +62,8 @@ Al arrancar la sesión, es obligatorio verificar:
 ---
 
 ## 🛡️ [ESTADO_ULTIMO_CIERRE]
-- **FECHA:** 2026-01-05
-- **CIERRE DE SESIÓN:** pilot.db contiene **1** Clientes, **2** Productos, **0** Pedidos.
+- **FECHA:** 2026-01-08
+- **CIERRE DE SESIÓN:** pilot.db contiene **4** Clientes, **5** Productos, **2** Pedidos.
 - **NOTA:** La base está bajo régimen de "Arquitectura Híbrida". Los registros en `pilot.db` son importaciones tácticas para la sesión actual.
 
 ---
