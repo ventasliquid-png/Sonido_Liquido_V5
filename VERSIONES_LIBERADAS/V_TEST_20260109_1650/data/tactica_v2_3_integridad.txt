@@ -1,0 +1,20 @@
+﻿[Ingesta de Doctrina: Arquitectura V2.3 (Pilar de Integridad)]
+Módulo/Hito: Rubros y Sub-Rubros
+Doctrina Central: Verificación de Integridad en Vivo (VIL)
+Análisis Estratégico: La falla de V2.1 fue la corrupción de datos por "huérfanos". La V2.3 prohíbe la baja lógica de cualquier entidad "Padre" (como Rubro) si existen "Hijos" (Sub-Rubros) o "Clientes" (Productos) que aún lo referencian.
+Implementación Canónica (VIL):
+1. Se prohíbe el uso de contadores manuales (riesgo de desincronización).
+2. El service.py de Rubros (y cualquier módulo "Padre"), antes de ejecutar una baja_logica, DEBE ejecutar una consulta en vivo (query) a las tablas SubRubros y Productos para verificar si COUNT(*) WHERE rubro_id = self.id AND activo = true es mayor a cero.
+3. Se DEBEN crear índices en los campos de referencia (ej. productos.rubro_id) para asegurar que esta consulta VIL sea instantánea (alto rendimiento).
+4. Si el conteo es > 0, el backend DEBE devolver un 409 Conflict (Canon de Separación de Mensajes).
+
+Módulo/Hito: Productos
+Doctrina Central: SKU Bobo (DNI Ciego) y Alerta de Similitud
+Análisis Estratégico: La falla de V2.1 fue la corrupción de identidad (SKU manuales duplicados como 925 vs SurgiE25).
+Implementación Canónica (SKU Bobo):
+1. El service.py de Productos DEBE generar un SKU 100% automático (secuencial no inteligente, ej: P00001).
+2. El campo SKU en el frontend (ProductoForm.vue) DEBE ser de solo lectura (read-only). Queda prohibido el ingreso manual.
+Implementación Canónica (Alerta de Similitud):
+1. Al crear o editar, el frontend DEBE usar un endpoint de "fuzzy search" (/productos/buscar_similares).
+2. El backend DEBE buscar palabras clave (guante, nitrilo, negro) y devolver coincidencias probables.
+3. Si hay coincidencias, el frontend DEBE mostrar una Alerta de Duplicado al operador.
