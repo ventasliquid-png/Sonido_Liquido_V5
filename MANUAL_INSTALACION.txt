@@ -6,6 +6,18 @@
 Este paquete contiene todo lo necesario para ejecutar el sistema en su PC.
 
 ------------------------------------------------------------------------
+PASO 0: CONFIGURACIÓN DE NUBE (Opcional pero Recomendado)
+------------------------------------------------------------------------
+1. Este sistema puede guardar copias de seguridad en Google Drive (u otra carpeta).
+2. Busque el archivo llamado [.env] en esta carpeta.
+   - Si no lo ve, puede que se llame [.env.example] -> Renómbrelo a [.env]
+3. Ábralo con el Bloc de Notas.
+4. Busque la línea: PATH_DRIVE_BACKUP=
+5. Escriba la ruta de su carpeta de Drive después del igual.
+   Ejemplo: PATH_DRIVE_BACKUP=G:\Mi unidad\Backups_SonidoLiquido
+6. Guarde el archivo.
+
+------------------------------------------------------------------------
 PASO 1: INSTALACIÓN INICIAL (Solo la primera vez)
 ------------------------------------------------------------------------
 1. Asegúrese de tener instalado en su computadora:

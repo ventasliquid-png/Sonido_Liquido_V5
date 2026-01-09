@@ -4,6 +4,29 @@
 
 ---
 
+## 🔮 FUTURO: MIGRACIÓN A SQL SERVER (PROYECCIÓN TÉCNICA)
+
+### Cambio de Paradigma de Despliegue
+Cuando el sistema migre a una base de datos centralizada (SQL Server), el modelo de instalación cambiará radicalmente:
+
+1.  **El "Instalador" adelgaza:**
+    - Ya NO contendrá el archivo `pilot.db`.
+    - Solo transportará el código fuente (Frontend/Backend).
+
+2.  **Gestión de Credenciales (.env):**
+    - La variable `DATABASE_URL` dejará de apuntar a `sqlite:///pilot.db`.
+    - Pasará a apuntar al servidor: `postgresql://user:pass@192.168.1.X:5432/sonido_v5`.
+    - **Implicación:** Al instalar en una nueva máquina, solo se requerirá configurar este string de conexión una vez.
+
+3.  **Actualizaciones (Update Mode):**
+    - Serán mucho más seguras. Al no haber base de datos local, se puede sobrescribir toda la carpeta del sistema sin riesgo de borrar datos, ya que los datos viven en el servidor central.
+
+---
+**Documento Generado:** 2026-01-09 | **Versión:** V5.0 (Steel Core)
+**Estado:** VIVO
+
+---
+
 ## 🗺️ 1. MAPA DE ARCHIVOS CRÍTICOS
 
 ### 🛠️ Scripts Tácticos (Admin & Ops)
