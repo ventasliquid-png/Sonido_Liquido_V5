@@ -11,3 +11,10 @@ BUILD_PILOTO/
 *.db
 
 __pycache__/
+
+# Ignorar instaladores y contrabando
+*.zip
+*.dat
+pilot_contrabando.dat
+Sonido_Liquido_V5_Instalador_v1.0.zip
+_SISTEMA_INTERNO/

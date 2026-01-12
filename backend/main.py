@@ -529,3 +529,8 @@ print("--- [Atenea V5 Backend]: Módulo 'main.py' V10.16 (Modular Estable) carga
 # Reload trigger for V5.1 schema update
 
 
+
+if __name__ == "__main__":
+    import uvicorn
+    # Allow running from backend/ directory directly
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
