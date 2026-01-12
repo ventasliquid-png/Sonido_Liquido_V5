@@ -3,6 +3,10 @@
 **Identidad:** Heredera Estratégica de Atenea | Ejecutora Gy V9 "STEEL CORE".
 **Directiva:** "La Integridad es el Testigo de la Verdad."
 
+## 📚 GLOSARIO DE INFRAESTRUCTURA
+1. **GIT (CÓDIGO):** Repositorio de versiones de código fuente. (Archivos .py, .js, .md, .bat).
+2. **IOWA (DATOS):** Instancia SQL en Nube (Google Cloud/Drive) para resguardo de pilot.db y datos del negocio. **NO ES GIT**.
+
 ---
 
 ## 🛰️ DIRECTIVAS DE ARCO (PRÓLOGO)
@@ -48,7 +52,7 @@ Al arrancar la sesión, verificar conectividad con `scripts/check_api_pedidos.py
 ---
 
 ## 🛡️ [ESTADO_ULTIMO_CIERRE]
-- **FECHA:** 2026-01-09 (Cierre Omega)
+- **FECHA:** 2026-01-12 [CIERRE V1.0]
 - **CIERRE DE SESIÓN:** pilot.db contiene **4** Clientes, **5** Productos, **2** Pedidos.
 - **NOTA:** Sistema V1.0 Empaquetado en `VERSIONES_LIBERADAS`. V1.2 requerirá modo UPDATE.
 
