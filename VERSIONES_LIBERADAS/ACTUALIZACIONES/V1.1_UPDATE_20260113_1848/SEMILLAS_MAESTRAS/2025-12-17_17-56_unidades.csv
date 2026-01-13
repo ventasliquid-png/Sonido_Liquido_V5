@@ -1,0 +1,11 @@
+id,codigo,nombre
+1,UN,Unidad
+2,L,Litro
+3,KG,Kilogramo
+4,CAJA,Caja
+5,BULTO,Bulto Cerrado
+6,MT,Metro
+7,M2,Metro Cuadrado
+8,M3,Metro Cúbico
+9,LT,Litro
+10,HR,Hora

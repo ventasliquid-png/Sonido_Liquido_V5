@@ -41,7 +41,7 @@ Se ha completado la estabilización crítica de los flujos de alta manual en "Ma
 
 ### A. Paquete Generado
 - **Versión:** `v1.1`
-- **Ubicación:** `VERSIONES_LIBERADAS/ACTUALIZACIONES/V1.1_UPDATE_20260113_1742`
+- **Ubicación:** `VERSIONES_LIBERADAS/ACTUALIZACIONES/V1.1_UPDATE_20260113_1848`
 - **Contenido:** Código fuente Backend/Frontend parcheado + Base de Datos Cantera (vía modificación en `build_release.py`).
 
 ## 5. Próximos Pasos (Protocolo Omega)
