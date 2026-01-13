@@ -231,13 +231,14 @@
       </div>
     </main>
 
-    <!-- Right Inspector Panel (Fixed) -->
+    <!-- Right Inspector Panel (Browsing/Editing) -->
     <aside 
+        v-if="selectedId && selectedId !== 'new'"
         class="w-96 border-l border-cyan-900/30 bg-[#05151f]/95 flex flex-col z-30 shadow-2xl overflow-hidden shrink-0"
     >
         <ClienteInspector 
             :modelValue="selectedCliente" 
-            :isNew="selectedId === 'new'"
+            :isNew="false"
             @close="closeInspector"
             @save="handleInspectorSave"
             @delete="handleInspectorDelete"
@@ -246,6 +247,19 @@
             @switch-client="handleSwitchClient"
         />
     </aside>
+
+    <!-- Central Modal (New Client / Alta) -->
+    <div v-if="selectedId === 'new'" class="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" @click.self="closeInspector">
+        <div class="bg-[#05151f] w-full max-w-2xl h-[90vh] rounded-2xl shadow-2xl overflow-hidden border border-cyan-500/30 flex flex-col relative">
+            <ClienteInspector 
+                :modelValue="selectedCliente" 
+                :isNew="true"
+                @close="closeInspector"
+                @save="handleInspectorSave"
+                class="flex-1"
+            />
+        </div>
+    </div>
 
     <!-- Modals & Context Menu -->
     <SegmentoForm 

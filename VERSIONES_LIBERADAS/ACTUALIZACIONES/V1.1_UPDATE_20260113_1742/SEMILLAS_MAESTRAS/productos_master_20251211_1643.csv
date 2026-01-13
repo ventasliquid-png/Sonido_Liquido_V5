@@ -1,0 +1,3 @@
+﻿id,sku,codigo_visual,nombre,descripcion,rubro_id,proveedor_habitual_id,tasa_iva_id,tipo_producto,unidad_stock_id,unidad_compra_id,factor_compra,unidad_medida,activo,es_kit,created_at
+1,,,Cofias,,1,,,VENTA,,,1,UN,1,0,2025-12-11 18:35:16
+2,,,Alcohol 70 ° bidón por 5 litros,,1,,,VENTA,,,1,UN,1,0,2025-12-11 19:11:55

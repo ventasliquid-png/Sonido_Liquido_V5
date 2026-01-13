@@ -1,0 +1,66 @@
+ARQUITECTURA Y DOCTRINA V5 - SONIDO LÍQUIDO
+=============================================
+
+1. DOCTRINA DEOU (Diseño Eficiente Orientado al Usuario)
+--------------------------------------------------------
+El objetivo principal es la velocidad operativa y la reducción de clics.
+*   **F10 (Guardar y Cerrar):** Acción estándar para confirmar formularios. Debe cerrar el modal si es exitoso.
+*   **F4 (Alta Rápida):** En selectores (Combos), permite crear un nuevo registro sin salir del contexto actual (Stacked Modal).
+*   **Navegación por Teclado:** Prioridad absoluta. El mouse es secundario.
+*   **Feedback No Bloqueante:** Uso de Toasts para notificaciones de éxito/error. Evitar `alert()` nativos.
+
+### 9. Estándares UI/UX (V5)
+- **Filtros de Estado (Botones):**
+    - **Todos:** Indigo/Violeta (`bg-indigo-500/20 text-indigo-300`).
+    - **Activos:** Verde (`bg-green-500/20 text-green-300`).
+    - **Inactivos:** Rojo (`bg-red-500/20 text-red-300`).
+- **Cards:**
+    - Fondos oscuros (`bg-white/5` o `bg-black/20`).
+    - Bordes sutiles (`border-white/10`).
+    - Hover efectos claros pero no invasivos.
+
+2. ARQUITECTURA DEL SISTEMA
+---------------------------
+*   **Backend:** FastAPI (Python). Estructura modular por dominios (`clientes`, `logistica`, `maestros`, `agenda`).
+*   **Frontend:** Vue 3 + Vite + TailwindCSS.
+*   **Base de Datos:** PostgreSQL. Uso de SQLAlchemy ORM.
+*   **Estado:** Pinia para gestión de estado global en frontend.
+
+3. MODELO DE DATOS (Cambios Recientes)
+--------------------------------------
+*   **Clientes:**
+    *   Entidad central. Vinculada a `CondicionIva`, `ListaPrecios`, `Segmento`.
+    *   **Domicilios:** Tabla separada (`domicilios`). Un cliente tiene N domicilios.
+        *   Flags: `es_fiscal`, `es_entrega`.
+        *   **Logística:** Cada domicilio tiene un `transporte_id` (Empresa) y opcionalmente `intermediario_id`.
+*   **Logística:**
+    *   `EmpresaTransporte`: La entidad comercial (ej: Cruz del Sur).
+    *   `NodoTransporte`: Sucursales o puntos de la empresa (Deprecado/Oculto en V5 simplificada, se usa Empresa directa).
+*   **Maestros:**
+    *   `Segmento`: (Antes Ramo). Clasificación comercial del cliente.
+
+4. REGLAS DE NEGOCIO CRÍTICAS
+-----------------------------
+*   **Libertad Vigilada:** Se permite crear clientes con CUIT duplicado, pero se marcan con `requiere_auditoria = True` y se alerta visualmente. No se bloquea la operación.
+*   **Transporte Obligatorio:** Todo domicilio de entrega debe tener un transporte asignado. Default: "RETIRO EN LOCAL".
+*   **Persistencia:** La modificación del transporte en la ficha del cliente actualiza el domicilio predeterminado.
+
+5. FLUJO DE TRABAJO (DEV)
+-------------------------
+*   **Bitácora:** Registrar cambios en `BITACORA_DEV.md`.
+*   **Scripts:** Scripts de mantenimiento/migración en `backend/scripts/`.
+*   **Tests:** `test_clientes_api.py` para integración rápida.
+
+---
+Generado: 2025-11-26
+Estado: V5.0.1 (Stable)
+
+5. ROADMAP DE EXPERIENCIA DE USUARIO (UX)
+-----------------------------------------
+*   **Navegación Contextual ("Tablas Voladoras"):**
+    *   El sistema evolucionará hacia una navegación orientada a objetos, reduciendo la dependencia de menús laterales.
+    *   **Implementación:** Menús de Clic Derecho (Context Menus) sobre las grillas.
+    *   **Ejemplos:**
+        *   Click derecho en Cliente -> Opción "Nuevo Pedido" (Abre modal de venta pre-cargado).
+        *   Click derecho en Agenda -> Opción "WhatsApp" o "Agendar Reunión".
+    *   **Meta:** "Donde pongo el ojo, pongo la acción".

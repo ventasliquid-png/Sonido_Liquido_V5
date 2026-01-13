@@ -50,7 +50,7 @@ const containerRef = ref(null);
 watch(() => props.modelValue, (newVal) => {
     const selected = props.options.find(o => o.id === newVal);
     if (selected) {
-        searchQuery.value = selected.nombre || selected.descripcion;
+        searchQuery.value = selected.nombre || selected.razon_social || selected.descripcion;
     } else {
         // Only clear if options are loaded, otherwise keep it (might be loading)
         if (props.options.length > 0) {
@@ -63,7 +63,7 @@ watch(() => props.modelValue, (newVal) => {
 watch(() => props.options, () => {
     const selected = props.options.find(o => o.id === props.modelValue);
     if (selected) {
-        searchQuery.value = selected.nombre || selected.descripcion;
+        searchQuery.value = selected.nombre || selected.razon_social || selected.descripcion;
     }
 });
 
@@ -76,13 +76,13 @@ const filteredOptions = computed(() => {
         const query = normalize(searchQuery.value);
         
         const selected = props.options.find(o => o.id === props.modelValue);
-        const selectedName = selected ? normalize(selected.nombre || selected.descripcion || '') : '';
+        const selectedName = selected ? normalize(selected.nombre || selected.razon_social || selected.descripcion || '') : '';
 
         // If exact match (normalized), show all (user is browsing)
         if (!selected || selectedName !== query) {
             opts = props.options.filter(opt => {
-                const nombre = normalize(opt.nombre || '');
-                const desc = normalize(opt.descripcion || '');
+                const nombre = normalize(opt.nombre || opt.razon_social || '');
+                const desc = normalize(opt.descripcion || opt.cuit || '');
                 const sku = opt.sku ? String(opt.sku).toLowerCase() : '';
                 return nombre.includes(query) || desc.includes(query) || sku.includes(query);
             });
@@ -146,7 +146,7 @@ const close = () => {
     highlightedIndex.value = -1;
     const selected = props.options.find(o => o.id === props.modelValue);
     if (selected) {
-        searchQuery.value = selected.nombre || selected.descripcion;
+        searchQuery.value = selected.nombre || selected.razon_social || selected.descripcion;
     } else {
         searchQuery.value = '';
     }
@@ -155,12 +155,12 @@ const close = () => {
 const selectOption = (option) => {
     if (option._type === 'header') return;
     emit('update:modelValue', option.id);
-    searchQuery.value = option.nombre || option.descripcion;
+    searchQuery.value = option.nombre || option.razon_social || option.descripcion;
     isOpen.value = false;
 };
 
 const triggerCreate = () => {
-    emit('create-new');
+    emit('create-new', searchQuery.value);
     close();
 };
 
@@ -329,16 +329,18 @@ onUnmounted(() => {
                             No hay coincidencias
                         </li>
 
-                        <!-- Cantera Search Trigger -->
+                        <!-- Cantera Search Trigger (Always visible if search active) -->
                         <li 
-                            v-if="canteraType && filteredOptions.length === 0 && canteraResults.length === 0"
-                            class="px-3 py-4 text-center"
+                            v-if="canteraType && searchQuery && canteraResults.length === 0"
+                            class="px-3 py-4 text-center border-t border-gray-100 mt-2"
                         >
-                            <p class="text-xs text-gray-500 mb-2">No se encontraron registros locales</p>
+                            <p v-if="filteredOptions.length > 0" class="text-[10px] text-gray-400 mb-2">¿No es ninguno de estos?</p>
+                            <p v-else class="text-xs text-gray-500 mb-2">No se encontraron registros locales</p>
+                            
                             <button 
                                 @click.stop="handleCanteraSearch"
                                 :disabled="canteraLoading"
-                                class="w-full py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded flex items-center justify-center gap-2 transition-all"
+                                class="w-full py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded flex items-center justify-center gap-2 transition-all shadow-md"
                             >
                                 <i class="fas" :class="canteraLoading ? 'fa-spinner fa-spin' : 'fa-search-plus'"></i>
                                 {{ canteraLoading ? 'Buscando en Maestros...' : 'Buscar en Maestros (Cantera)' }}
@@ -364,7 +366,7 @@ onUnmounted(() => {
                                 <div class="flex items-center gap-2">
                                     <span v-if="opt._isPriority" class="text-xs">⭐</span>
                                     <span v-if="opt.sku" class="text-[10px] font-mono bg-gray-100 text-gray-500 px-1 rounded border border-gray-200" :class="{'bg-white/20 text-white border-white/30': index === highlightedIndex}">{{ opt.sku }}</span>
-                                    <span>{{ opt.nombre || opt.descripcion }}</span>
+                                    <span>{{ opt.nombre || opt.razon_social || opt.descripcion }}</span>
                                 </div>
                                 <span v-if="opt.id === modelValue" class="text-xs font-bold" :class="index === highlightedIndex ? 'text-white' : 'text-[#54cb9b]'">✓</span>
                             </li>

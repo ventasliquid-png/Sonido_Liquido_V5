@@ -255,6 +255,15 @@ const onLookupDelete = async (cliente) => {
     }
 };
 
+const onLookupRefreshAndSelect = async (newId) => {
+    await clientesStore.fetchClientes();
+    const cliente = clientesStore.clientes.find(c => c.id === newId);
+    if (cliente) {
+        onLookupSelect(cliente);
+        showLookup.value = false;
+    }
+};
+
 const onInspectorClose = async () => {
     showInspector.value = false;
     clienteForInspector.value = null;
@@ -423,7 +432,7 @@ const onInspectorClose = async () => {
         </section>
 
         <!-- Modals -->
-        <ClientLookup :show="showLookup" :clientes="clientesStore.clientes" @close="showLookup = false" @select="onLookupSelect" @edit="onLookupEdit" @delete="onLookupDelete" />
+        <ClientLookup :show="showLookup" :clientes="clientesStore.clientes" @close="showLookup = false" @select="onLookupSelect" @edit="onLookupEdit" @delete="onLookupDelete" @refresh-and-select="onLookupRefreshAndSelect" />
         <div v-if="showInspector" class="fixed inset-0 z-[60] flex justify-end bg-black/50 backdrop-blur-sm" @click.self="onInspectorClose">
             <div class="w-full max-w-2xl h-full bg-slate-900 border-l border-slate-700 shadow-2xl overflow-y-auto">
                 <ClienteInspector v-if="clienteForInspector" :cliente="clienteForInspector" @close="onInspectorClose" />

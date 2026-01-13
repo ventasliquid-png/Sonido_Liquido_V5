@@ -100,15 +100,61 @@ onUnmounted(() => {
     window.removeEventListener('keydown', handleKeydown);
 });
 
-// Watch show to focus input
+// Focus management
 import { watch } from 'vue';
+import canteraService from '@/services/canteraService';
+import { useNotificationStore } from '@/stores/notification';
+
+const notificationStore = useNotificationStore();
+const canteraLoading = ref(false);
+const canteraResults = ref([]);
+
 watch(() => props.show, (val) => {
     if (val) {
         searchQuery.value = '';
         selectedIndex.value = 0;
+        canteraResults.value = [];
         nextTick(() => searchInput.value?.focus());
     }
 });
+
+const handleCanteraSearch = async () => {
+    if (!searchQuery.value) return;
+    canteraLoading.value = true;
+    canteraResults.value = [];
+    
+    try {
+        const res = await canteraService.searchClientes(searchQuery.value);
+        canteraResults.value = res.data;
+        if (canteraResults.value.length === 0) {
+            notificationStore.add('No se encontraron registros en Cantera.', 'info');
+        }
+    } catch (e) {
+        console.error("Error searching in cantera", e);
+        notificationStore.add('Error al conectar con la Cantera.', 'error');
+    } finally {
+        canteraLoading.value = false;
+        // Focus back on list or something?
+    }
+};
+
+const selectCanteraItem = async (item) => {
+    try {
+        notificationStore.add('Importando cliente...', 'info');
+        await canteraService.importCliente(item.id);
+        notificationStore.add('Cliente importado con éxito', 'success');
+        
+        // We need to tell parent to refresh list and select this new client
+        // Emitting 'import' event or just 'select' with a flag?
+        // Parent (PedidoTactico) listens to 'select'. 
+        // But ClientLookup takes `clientes` as prop. We need to trigger a refresh in parent.
+        emit('refresh-and-select', item.id);
+        emit('close');
+    } catch (e) {
+        console.error("Error importing", e);
+        notificationStore.add('Error al importar cliente.', 'error');
+    }
+};
 
 </script>
 
@@ -185,11 +231,43 @@ watch(() => props.show, (val) => {
                                 <span v-else class="text-rose-500">REVISAR</span>
                             </td>
                         </tr>
-                        <tr v-if="filteredClientes.length === 0">
-                            <td colspan="5" class="p-8 text-center text-slate-500">
-                                No se encontraron resultados.
+                        <tr v-if="filteredClientes.length === 0 && canteraResults.length === 0">
+                            <td colspan="5" class="p-8 text-center text-slate-500 flex flex-col items-center gap-4">
+                                <div>No se encontraron resultados locales.</div>
+                                <button 
+                                    @click="handleCanteraSearch"
+                                    :disabled="canteraLoading"
+                                    class="px-4 py-2 bg-emerald-900/40 border border-emerald-500/30 text-emerald-400 rounded hover:bg-emerald-900/60 transition-colors flex items-center gap-2"
+                                >
+                                    <i class="fas" :class="canteraLoading ? 'fa-spinner fa-spin' : 'fa-database'"></i>
+                                    {{ canteraLoading ? 'Buscando...' : 'Buscar en Cantera' }}
+                                </button>
                             </td>
                         </tr>
+
+                        <!-- Cantera Results -->
+                        <template v-if="canteraResults.length > 0">
+                            <tr class="bg-emerald-900/20 border-b border-emerald-900/30">
+                                <td colspan="5" class="p-2 text-xs font-bold text-emerald-400 uppercase tracking-widest text-center">
+                                    Resultados en Cantera
+                                </td>
+                            </tr>
+                            <tr 
+                                v-for="(item, cIdx) in canteraResults" 
+                                :key="'cant-'+item.id"
+                                @click="selectCanteraItem(item)"
+                                class="cursor-pointer hover:bg-emerald-900/30 transition-colors border-b border-slate-800/50"
+                            >
+                                <td class="p-2 text-center">
+                                    <i class="fas fa-cloud-download-alt text-emerald-500"></i>
+                                </td>
+                                <td class="p-2 text-slate-300">
+                                    <div class="font-bold text-sm text-emerald-100">{{ item.razon_social }}</div>
+                                </td>
+                                <td class="p-2 text-slate-400 font-mono text-sm">{{ item.cuit }}</td>
+                                <td colspan="2" class="p-2 text-right text-xs text-emerald-500/70 italic">Click para importar</td>
+                            </tr>
+                        </template>
                     </tbody>
                 </table>
             </div>

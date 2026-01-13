@@ -42,4 +42,18 @@
 *   **Rutas:** Absolutas.
 
 ---
+
+## 📅 SESIÓN [2026-01-13] | Release V1.1 & UX Refactor
+- **Hito:** Lanzamiento de versión V1.1 y Refactorización UX Alta Clientes.
+- **Backend:** 
+    - Fix crítico en `clone_pedido`: Copia profunda de atributos financieros.
+    - Release Script: Inclusión de `cantera*.db` en paquetes de actualización.
+- **Frontend:**
+    - **Alta Clientes:** Migración a Modal Central (Canvas) en `HaweView` para mejorar usabilidad y visibilidad de controles.
+    - **SmartSelect:** Parche lógica de búsqueda para incluir `razon_social` y `cuit`.
+    - **Búsqueda Global:** Integración de "Buscar en Cantera" dentro de módulos operativos (Pedidos).
+- **Estado:** V1.1 Generada. Protocolo Omega Ejecutado.
+- **Métricas Cierre:** Clientes: 4 | Productos: 5 | Pedidos: 2
+
+---
 **Nota:** Para historial anterior, consultar `ARCHIVE_LOGS_LEGACY.md`.

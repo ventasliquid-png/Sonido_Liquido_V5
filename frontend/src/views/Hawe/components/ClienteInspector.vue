@@ -49,7 +49,6 @@
                 @click="activeTab = 'domicilios'"
                 class="flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2"
                 :class="activeTab === 'domicilios' ? 'border-cyan-400 text-cyan-400 bg-cyan-900/10' : 'border-transparent text-cyan-200/40 hover:text-cyan-200 hover:bg-cyan-900/5'"
-                :disabled="isNew"
             >
                 Domicilios
             </button>
@@ -57,14 +56,13 @@
                 @click="activeTab = 'contactos'"
                 class="flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2"
                 :class="activeTab === 'contactos' ? 'border-cyan-400 text-cyan-400 bg-cyan-900/10' : 'border-transparent text-cyan-200/40 hover:text-cyan-200 hover:bg-cyan-900/5'"
-                :disabled="isNew"
             >
                 Contactos
             </button>
         </div>
 
         <!-- Scrollable Body -->
-        <div class="flex-1 overflow-y-auto space-y-6 scrollbar-thin scrollbar-thumb-cyan-900/50 scrollbar-track-transparent"
+        <div class="flex-1 overflow-y-auto space-y-6 scrollbar-thin scrollbar-thumb-cyan-900/50 scrollbar-track-transparent pb-20"
              :class="isCompact ? 'p-3' : 'p-6'">
             
             <!-- TAB: GENERAL -->
@@ -80,9 +78,10 @@
                         :options="clienteStore.clientes"
                         canteraType="clientes"
                         placeholder="Buscar cliente para clonar..."
-                        :allowCreate="false"
+                        :allowCreate="true"
                         @update:modelValue="handleTemplateSelect"
                         @select-cantera="handleTemplateSelect"
+                        @create-new="handleManualTemplate"
                         class="dark-smart-select"
                     />
                     <p class="text-[9px] text-cyan-400/30 mt-2 italic">
@@ -339,8 +338,8 @@
             </div>
         </Teleport>
 
-        <!-- Footer Actions -->
-        <div class="p-6 border-t border-cyan-900/20 flex gap-3 shrink-0 bg-[#020a0f]">
+        <!-- Footer Actions (Sticky Bottom) -->
+        <div class="sticky bottom-0 left-0 right-0 p-6 border-t border-cyan-900/20 flex gap-3 shrink-0 bg-[#020a0f] z-50 shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
             <button @click="save" class="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white py-2 rounded font-bold transition-colors shadow-lg shadow-cyan-900/20">
                 <span v-if="saving"><i class="fas fa-spinner fa-spin mr-2"></i>Guardando...</span>
                 <span v-else>Guardar (F10)</span>
@@ -736,6 +735,16 @@ const handleTemplateSelect = (itemOrId) => {
         // If template has fiscal address, maybe load it too?
         // Let's assume they want to change the address.
     }
+}
+
+const handleManualTemplate = (name) => {
+    // [GY-MOD] Manual creation bypass if not found in Cantera
+    if (name) {
+        form.value.razon_social = name
+        // Set focus to CUIT field maybe? Or just leave it.
+    }
+    templateId.value = null
+    notificationStore.add('Alta Manual: Complete los datos', 'info')
 }
 
 // --- ABM LOGIC ---

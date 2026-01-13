@@ -52,9 +52,9 @@ Al arrancar la sesión, verificar conectividad con `scripts/check_api_pedidos.py
 ---
 
 ## 🛡️ [ESTADO_ULTIMO_CIERRE]
-- **FECHA:** 2026-01-12 [CIERRE V1.0]
+- **FECHA:** 2026-01-13 [CIERRE V1.1]
 - **CIERRE DE SESIÓN:** pilot.db contiene **4** Clientes, **5** Productos, **2** Pedidos.
-- **NOTA:** Sistema V1.0 Empaquetado en `VERSIONES_LIBERADAS`. V1.2 requerirá modo UPDATE.
+- **NOTA:** Sistema V1.1 Generado. Alta de Clientes via Canvas. Deep Copy Pedidos activo.
 
 ---
 **"Cimientos de Acero."** 🏗️🚀

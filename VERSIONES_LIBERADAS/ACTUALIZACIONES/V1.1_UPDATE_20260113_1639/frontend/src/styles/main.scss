@@ -1,0 +1,61 @@
+﻿@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* --- frontend/src/styles/main.scss --- */
+/*
+ * DOCTRINA CROMÁTICA V1 (DEOU)
+ * Definida por Atenea, Aprobada por Alto Mando.
+ */
+:root {
+  /* --- 1. Paleta de Chasis (Base) --- */
+  --color-fondo: #f8fafc;
+  /* Slate 50 */
+  --color-contenedor: #ffffff;
+  /* White */
+  --color-texto-general: #111827;
+  /* Gray 900 */
+  --color-borde: #e2e8f0;
+  /* Gray 200 */
+
+  /* --- 2. Paleta Funcional (Acción) --- */
+  --color-exito: #059669;
+  /* Verde */
+  --color-error: #dc2626;
+  /* Rojo */
+  --color-alerta: #f59e0b;
+  /* Ámbar */
+  --color-info: #3b82f6;
+  /* Azul */
+
+  /* --- 3. Paleta Modular (Contexto) --- */
+
+  /* Módulo: Guardián (Auth) */
+  --color-auth-acento: #0d9488;
+  /* Teal (Verde Azulado) */
+
+  /* Módulo: Rubro (Próximo) */
+  --color-rubro-acento: #FFBF00;
+  /* Ámbar */
+
+  /* --- 4. Paleta HAWE (Inmersiva) --- */
+  --hawe-bg-main: #0a1f2e;
+  --hawe-bg-panel: #165078;
+  --hawe-accent: #22d3ee;
+  /* Cyan 400 */
+  --hawe-text-primary: #ffffff;
+  --hawe-text-secondary: rgba(255, 255, 255, 0.7);
+  --hawe-border: rgba(255, 255, 255, 0.1);
+}
+
+/* --- Estilos Globales Base --- */
+body {
+  margin: 0;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
+    Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  background-color: var(--color-fondo);
+  color: var(--color-texto-general);
+}
