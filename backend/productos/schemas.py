@@ -48,11 +48,14 @@ RubroRead.update_forward_refs()
 
 class ProductoCostoBase(BaseModel):
     costo_reposicion: Decimal = Field(..., max_digits=12, decimal_places=4)
-    margen_mayorista: Decimal = Field(..., max_digits=6, decimal_places=2)
+    # Roca Sólida Fields
+    rentabilidad_target: Optional[Decimal] = Field(0.00, max_digits=6, decimal_places=2) # Antes margen
+    precio_roca: Optional[Decimal] = Field(0.00, max_digits=12, decimal_places=2) # Base Real
+    
     moneda_costo: str = 'ARS'
     iva_alicuota: Decimal = Field(21.00, max_digits=5, decimal_places=2)
-    precio_fijo_override: Optional[Decimal] = Field(None, max_digits=12, decimal_places=2)
-    cm_objetivo: Optional[Decimal] = Field(None, max_digits=6, decimal_places=2)
+    
+    # Deprecados eliminados del schema
 
 class ProductoCostoCreate(ProductoCostoBase):
     pass
@@ -80,6 +83,7 @@ class ProductoBase(BaseModel):
     unidad_stock_id: Optional[int] = None
     unidad_compra_id: Optional[int] = None
     factor_compra: Optional[Decimal] = 1.0
+    venta_minima: Optional[Decimal] = 1.0 # V1.1.2: Minimum selling quantity
     proveedor_habitual_id: Optional[UUID] = None
     tasa_iva_id: Optional[int] = None
 
@@ -96,6 +100,7 @@ class ProductoUpdate(ProductoBase):
     unidad_stock_id: Optional[int] = None
     unidad_compra_id: Optional[int] = None
     factor_compra: Optional[Decimal] = None
+    venta_minima: Optional[Decimal] = None
     proveedor_habitual_id: Optional[UUID] = None
     tasa_iva_id: Optional[int] = None
 

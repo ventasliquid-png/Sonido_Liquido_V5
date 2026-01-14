@@ -277,25 +277,19 @@
       </div>
     </main>
 
-    <!-- Right Inspector -->
-    <aside 
-      class="w-96 border-l border-white/10 bg-[#2e0a13]/95 flex flex-col z-50 shadow-xl overflow-hidden shrink-0"
-    >
-        <div v-if="!showInspector" class="flex flex-col items-center justify-center h-full text-white/30 p-6 text-center">
-             <i class="fas fa-box-open text-4xl mb-4"></i>
-             <p>Seleccione un producto para ver propiedades o presione "Nuevo"</p>
+    <!-- Central Inspector Modal -->
+    <div v-if="showInspector" class="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 md:p-8" @click.self="closeInspector">
+        <div class="w-full max-w-5xl h-[85vh] flex flex-col relative animate-fade-in-up">
+            <ProductoInspector 
+                class="h-full flex-1"
+                :producto="productosStore.currentProducto"
+                :rubros="productosStore.rubros"
+                @close="closeInspector"
+                @save="handleSave"
+                @toggle-active="handleToggleActive"
+            />
         </div>
-        
-        <ProductoInspector 
-            v-else
-            class="h-full flex flex-col"
-            :producto="productosStore.currentProducto"
-            :rubros="productosStore.rubros"
-            @close="closeInspector"
-            @save="handleSave"
-            @toggle-active="handleToggleActive"
-      />
-    </aside>
+    </div>
 
     <Teleport to="body">
         <ContextMenu 
@@ -348,18 +342,18 @@ const handleContextMenu = (e, producto) => {
         actions: [
             { 
                 label: 'Editar', 
-                icon: 'fas fa-edit', 
+                iconClass: 'fas fa-edit', 
                 action: () => selectProducto(producto) 
             },
             { 
                 label: producto.activo ? 'Desactivar' : 'Activar', 
-                icon: producto.activo ? 'fas fa-eye-slash' : 'fas fa-eye', 
+                iconClass: producto.activo ? 'fas fa-eye-slash' : 'fas fa-eye', 
                 action: () => handleToggleActive(producto),
                 class: producto.activo ? 'text-red-400' : 'text-green-400'
             },
             {
                 label: 'Ver en Inspector',
-                icon: 'fas fa-search',
+                iconClass: 'fas fa-search',
                 action: () => selectProducto(producto)
             }
         ]
@@ -526,7 +520,8 @@ const createNew = () => {
         es_kit: false,
         costos: {
             costo_reposicion: 0,
-            margen_mayorista: 30,
+            rentabilidad_target: 30,
+            precio_roca: 0,
             iva_alicuota: 21
         },
         // Industrial Fields Defaults

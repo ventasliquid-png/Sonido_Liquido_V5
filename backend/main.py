@@ -118,7 +118,7 @@ async def lifespan(app: FastAPI):
         Base.metadata.create_all(bind=engine)
         print("--- [V10.12]: Tablas ORM sincronizadas. ---")
     except Exception as e:
-        print(f"❌ ERROR DE ARRANQUE V10: Falla al sincronizar tablas ORM: {e}")
+        print(f"[X] ERROR DE ARRANQUE V10: Falla al sincronizar tablas ORM: {e}")
     # --- [FIN PARCHE V10.1] ---
 
     # --- [PROTOCOLO DE SIEMBRA AUTOMÁTICA] ---
@@ -127,7 +127,7 @@ async def lifespan(app: FastAPI):
         print("--- [Atenea V5 Seed]: Protocolo de Siembra Automática activado... ---")
         seed_all()
     except Exception as e:
-        print(f"❌ [SEED ERROR]: Falla crítica en siembra automática: {e}")
+        print(f"[X] [SEED ERROR]: Falla crítica en siembra automática: {e}")
     # -----------------------------------------
 
     # --- [CANTERA TÁCTICA]: Sincronización JSON Mirror -> Cantera.db ---
@@ -136,7 +136,7 @@ async def lifespan(app: FastAPI):
         print("--- [IPL V6.1]: Sincronizando Cantera.db (JSON Mirror)... ---")
         CanteraService.sync_from_json()
     except Exception as e:
-        print(f"❌ [CANTERA ERROR]: Falla en sincronización de cantera: {e}")
+        print(f"[X] [CANTERA ERROR]: Falla en sincronización de cantera: {e}")
     # ------------------------------------------------------------------
 
     # --- [RULE 4/6 SEGURO]: Session Counter & Backup ---
@@ -145,7 +145,7 @@ async def lifespan(app: FastAPI):
         triggered, count = SessionCounter.check_and_increment()
         print(f"--- [SESIÓN #{count}]: Contador verificado. Backup disparado: {triggered} ---")
     except Exception as e:
-        print(f"❌ [BACKUP ERROR]: Falla en lógica de sesión 4/6: {e}")
+        print(f"[X] [BACKUP ERROR]: Falla en lógica de sesión 4/6: {e}")
     # ---------------------------------------------------
 
     # --- [Parche de Autenticación (ACTIVO)] ---
@@ -229,14 +229,14 @@ async def rag_retrieval_node(state: AteneaV5State):
                 results = cursor.fetchall()
                 return [row[0] for row in results]
             except Exception as e:
-                print(f"❌ ERROR RAG (SQL Táctico): {e}")
+                print(f"[X] ERROR RAG (SQL Táctico): {e}")
                 return []
             finally:
                 if conn: conn.close()
 
         retrieved_docs_content = await asyncio.to_thread(sync_sql_search, query_embedding)
     except Exception as e:
-        print(f"❌ ERROR RAG (General Táctico): {e}")
+        print(f"[X] ERROR RAG (General Táctico): {e}")
         retrieved_docs_content = []
     
     print(f"Documentos recuperados (Táctica): {retrieved_docs_content}")
@@ -265,14 +265,14 @@ async def doctrinal_evaluation_node(state: AteneaV5State):
                 results = cursor.fetchall()
                 return [row[0] for row in results]
             except Exception as e:
-                print(f"❌ ERROR RAG (SQL Doctrinal): {e}")
+                print(f"[X] ERROR RAG (SQL Doctrinal): {e}")
                 return []
             finally:
                 if conn: conn.close()
 
         retrieved_docs_content = await asyncio.to_thread(sync_sql_search_doctrinal, query_embedding)
     except Exception as e:
-        print(f"❌ ERROR RAG (General Doctrinal): {e}")
+        print(f"[X] ERROR RAG (General Doctrinal): {e}")
         retrieved_docs_content = []
 
     print(f"Documentos recuperados (Doctrina): {retrieved_docs_content}")
@@ -532,5 +532,4 @@ print("--- [Atenea V5 Backend]: Módulo 'main.py' V10.16 (Modular Estable) carga
 
 if __name__ == "__main__":
     import uvicorn
-    # Allow running from backend/ directory directly
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

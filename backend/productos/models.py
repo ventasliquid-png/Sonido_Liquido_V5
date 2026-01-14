@@ -53,6 +53,7 @@ class Producto(Base):
     unidad_stock_id = Column(Integer, ForeignKey('unidades.id'), nullable=True)
     unidad_compra_id = Column(Integer, ForeignKey('unidades.id'), nullable=True)
     factor_compra = Column(Numeric(10, 2), default=1.0)
+    venta_minima = Column(Numeric(10, 2), default=1.0) # V1.1.2: Minimum selling quantity
 
     # Legacy (Deprecado pero mantenido por compatibilidad temporal)
     unidad_medida = Column(String(10), default='UN')
@@ -76,15 +77,18 @@ class ProductoCosto(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     producto_id = Column(Integer, ForeignKey('productos.id'), unique=True, nullable=False)
-    costo_reposicion = Column(Numeric(12, 4), nullable=False)
-    margen_mayorista = Column(Numeric(6, 2), nullable=False)
+    
+    # --- DOCTRINA ROCA SÓLIDA (V2) ---
+    costo_reposicion = Column(Numeric(12, 4), nullable=False, default=0)
+    rentabilidad_target = Column(Numeric(6, 2), nullable=False, default=30) # Antes margen_mayorista
+    precio_roca = Column(Numeric(12, 2), nullable=False, default=0) # El precio base real
+    
+    # Metadata
     moneda_costo = Column(String(3), default='ARS')
     iva_alicuota = Column(Numeric(5, 2), default=21.00)
     
-    # Motor de Precios V5/V6
-    precio_fijo_override = Column(Numeric(12, 2), nullable=True, default=None) # Prioridad Divina
-    cm_objetivo = Column(Numeric(6, 2), nullable=True, default=None) # CM Artesanal (%)
-    permitir_descuentos = Column(Boolean, default=True)
-
+    # Deprecados (Eliminados del modelo activo, mantenidos en DB por seguridad hasta limpieza final? 
+    # No, el usuario pidió limpieza. Eliminamos del ORM.)
+    
     # Relaciones
     producto = relationship("Producto", back_populates="costos")

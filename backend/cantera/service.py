@@ -17,10 +17,10 @@ class CanteraService:
     @staticmethod
     def sync_from_json():
         """Sincroniza los espejos JSON hacia cantera.db"""
-        print(f"📡 Cantera Sync: Sincronizando desde {MIRROR_DIR}...")
+        print(f"[CANTERA] Sync: Sincronizando desde {MIRROR_DIR}...")
         
         if not MIRROR_DIR.exists():
-            print("⚠️ Error: No existe el directorio de espejos JSON.")
+            print("[ERROR] No existe el directorio de espejos JSON.")
             return False
 
         conn = sqlite3.connect(str(CANTERA_DB_PATH))
@@ -66,7 +66,7 @@ class CanteraService:
                         "INSERT INTO clientes (id, razon_social, cuit, activo) VALUES (?, ?, ?, ?)",
                         (str(item.get("id")), str(item.get("razon_social")), str(item.get("cuit")), item.get("activo", 1))
                     )
-            print(f"   ✅ {len(data)} clientes cargados en Cantera.")
+            print(f"   [OK] {len(data)} clientes cargados en Cantera.")
 
         # 4. Importar Productos
         productos_file = MIRROR_DIR / "productos.json"
@@ -78,7 +78,7 @@ class CanteraService:
                         "INSERT INTO productos (id, sku, nombre, activo) VALUES (?, ?, ?, ?)",
                         (str(item.get("id")), str(item.get("sku")), str(item.get("nombre")), item.get("activo", 1))
                     )
-            print(f"   ✅ {len(data)} productos cargados en Cantera.")
+            print(f"   [OK] {len(data)} productos cargados en Cantera.")
 
         # 5. Importar Rubros
         rubros_file = MIRROR_DIR / "rubros.json"
@@ -90,7 +90,7 @@ class CanteraService:
                         "INSERT INTO rubros (id, nombre, activo) VALUES (?, ?, ?)",
                         (item.get("id"), str(item.get("nombre")), item.get("activo", 1))
                     )
-            print(f"   ✅ {len(data)} rubros cargados en Cantera.")
+            print(f"   [OK] {len(data)} rubros cargados en Cantera.")
 
         conn.commit()
         conn.close()

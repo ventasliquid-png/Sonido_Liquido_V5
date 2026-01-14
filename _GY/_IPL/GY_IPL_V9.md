@@ -14,6 +14,7 @@
 ### **DIRECTIVA 0 (ENTORNO):**
 - TU PRIMERA ACCIÓN al despertar: Verificar que estás en la carpeta `c:\dev\Sonido_Liquido_V5`.
 - **GLOSARIO:** Lee `GLOSARIO_TACTICO.md` para sintonizar terminología (IOWA, PILOT, CANTERA).
+- **REGLA DE ORDEN:** Mis archivos de trabajo (.md, .txt) van a `_GY/_MD`. La configuración de sistema va a `.agent` (Raíz). El código va a `src` o `raíz`.
 
 ### **DIRECTIVA 1 (PROTOCOLO ALFA - INICIO):**
 1.  **Test de Integridad:** Ejecuta `scripts/audit_counts.py`.
@@ -24,9 +25,6 @@
 ### **DIRECTIVA 2 (PROTOCOLO OMEGA - CIERRE):**
 Cada vez que recibas la orden "INICIAR PROTOCOLO DE CIERRE" o "OMEGA":
 
-**PASO 1: SINCRONIZACIÓN (El Puente)**
-- Ejecuta `python scripts/push_session_to_iowa.py`.
-- Valida que la salida confirme "PROTOCOLO FINALIZADO".
 
 **PASO 2: ACTUALIZACIÓN DOCUMENTAL (El Búnker)**
 - **BITACORA_DEV.md**: Registra hitos.
@@ -37,10 +35,16 @@ Cada vez que recibas la orden "INICIAR PROTOCOLO DE CIERRE" o "OMEGA":
 - Actualiza la sección `[ESTADO_ULTIMO_CIERRE]` abajo.
 - `git add .` -> `git commit -m "Cierre OMEGA V9: [Resumen]"` -> `git push`.
 
+### **DIRECTIVA 3 (PROTOCOLO DE MIGRACIÓN ESTRICTO - AMNESIA):**
+**CADA VEZ** que se modifique `backend/*/models.py`:
+1.  **NO BASTA** con modificar el código Python.
+2.  **OBLIGATORIO:** Agregar la sentencia SQL correspondiente (`ALTER TABLE`, `CREATE TABLE`) en `_GY/_MD/PENDING_SCHEMA_CHANGES.sql`.
+3.  Este archivo es la "Receta de Salvación" para la base de datos de producción.
+
 ---
 
-## 🚦 0. PRE-FLIGHT CHECK (IOWA & RAG)
-Al arrancar la sesión, verificar conectividad con `scripts/check_api_pedidos.py` o ping a IOWA `.226`.
+**PRE-FLIGHT CHECK (LOCAL)**
+Verificar `pilot.db` localmente.
 
 ---
 
@@ -52,9 +56,10 @@ Al arrancar la sesión, verificar conectividad con `scripts/check_api_pedidos.py
 ---
 
 ## 🛡️ [ESTADO_ULTIMO_CIERRE]
-- **FECHA:** 2026-01-13 [CIERRE V1.1]
-- **CIERRE DE SESIÓN:** pilot.db contiene **4** Clientes, **5** Productos, **2** Pedidos.
-- **NOTA:** Sistema V1.1 Generado. Alta de Clientes via Canvas. Deep Copy Pedidos activo.
+- **FECHA:** 2026-01-14 [RECUPERACIÓN V1.1.2]
+- **CIERRE DE SESIÓN:** 2026-01-14: Sistema recuperado de Crash. Operativo pero requiere revisión de fórmulas de negocio en próxima sesión.
+- **INTEGRIDAD:** 4 Clientes, 5 Productos, 2 Pedidos (OK).
+- **NOTA:** Hotfix Math Guard Clauses aplicado.
 
 ---
 **"Cimientos de Acero."** 🏗️🚀

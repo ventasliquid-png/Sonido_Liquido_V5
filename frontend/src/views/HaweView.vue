@@ -188,8 +188,83 @@
 
         <!-- List View -->
         <div v-else-if="filteredClientes.length > 0" class="flex flex-col gap-2">
-            <!-- ... (Existing list view code) ... -->
-        </div>
+            <div 
+                v-for="cliente in filteredClientes" 
+                :key="cliente.id"
+                class="group relative flex items-center justify-between gap-4 rounded-lg border border-cyan-900/10 bg-[#0a1f2e]/60 p-3 transition-all hover:bg-[#0f2d42] hover:border-cyan-500/30"
+                :class="{ 'ring-1 ring-cyan-500 bg-[#0f2d42]': selectedIds.includes(cliente.id) }"
+                @click="selectCliente(cliente)"
+                @dblclick="selectCliente(cliente)"
+            >
+                <!-- Checkbox -->
+                <div class="flex items-center pl-2" @click.stop>
+                     <input 
+                        type="checkbox" 
+                        :checked="selectedIds.includes(cliente.id)" 
+                        @change="toggleSelection(cliente.id)"
+                        class="rounded bg-[#020a0f] border-cyan-500/50 text-cyan-500 focus:ring-0 focus:ring-offset-0 cursor-pointer h-4 w-4"
+                    />
+                </div>
+
+                <!-- Main Info -->
+                <div class="flex-1 min-w-0 grid grid-cols-12 gap-4 items-center">
+                    <!-- Name & ID -->
+                    <div class="col-span-4 truncate">
+                        <div class="flex items-center gap-2">
+                            <span class="font-outfit font-bold text-white group-hover:text-cyan-400 transition-colors truncate">
+                                {{ cliente.razon_social }}
+                            </span>
+                             <span v-if="cliente.requiere_entrega" class="text-amber-500 text-xs" title="Logística Pendiente">
+                                <i class="fas fa-truck-loading"></i>
+                            </span>
+                        </div>
+                        <div class="text-xs text-cyan-500/50 font-mono">{{ cliente.cuit }}</div>
+                    </div>
+
+                    <!-- Meta Data -->
+                    <div class="col-span-3 truncate text-xs text-cyan-200/60 hidden sm:block">
+                        <div class="flex items-center gap-1">
+                            <i class="fas fa-layer-group text-cyan-500/40"></i>
+                            <span>{{ getSegmentoName(cliente.segmento_id) }}</span>
+                        </div>
+                    </div>
+
+                     <div class="col-span-3 truncate text-xs text-cyan-200/60 hidden md:block">
+                        <div class="flex items-center gap-1" v-if="cliente.domicilio_fiscal_resumen">
+                            <i class="fas fa-map-marker-alt text-cyan-500/40"></i>
+                            <span class="truncate">{{ cliente.domicilio_fiscal_resumen }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Status -->
+                    <div class="col-span-2 flex justify-end">
+                        <div 
+                            class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border"
+                            :class="cliente.activo ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'"
+                        >
+                            {{ cliente.activo ? 'Activo' : 'Inactivo' }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="flex items-center gap-2 pr-2 opacity-50 group-hover:opacity-100 transition-opacity">
+                     <button 
+                        @click.stop="toggleClienteStatus(cliente)"
+                        class="h-8 w-8 rounded-full flex items-center justify-center transition-colors hover:bg-cyan-500/20 active:scale-95"
+                        :class="cliente.activo ? 'text-red-400' : 'text-green-400'"
+                        :title="cliente.activo ? 'Desactivar' : 'Reactivar'"
+                    >
+                        <i :class="cliente.activo ? 'fas fa-toggle-on text-lg' : 'fas fa-toggle-off text-lg'"></i>
+                    </button>
+                    <button 
+                         @click.stop="handleClientContextMenu($event, cliente)"
+                         class="h-8 w-8 rounded-full flex items-center justify-center text-cyan-500/50 hover:text-cyan-400 hover:bg-cyan-500/20 transition-colors"
+                    >
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                </div>
+            </div>        </div>
 
         <!-- Empty State & Cantera Fallback -->
         <div v-if="filteredClientes.length === 0" class="flex flex-col items-center justify-center py-20 bg-black/20 rounded-2xl border border-white/5 mx-auto max-w-2xl px-8 text-center">

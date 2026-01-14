@@ -232,22 +232,37 @@ def calculate_prices(producto: models.Producto):
     if not producto.costos:
         return producto
     
+    # Roca Sólida Logic
+    roca = producto.costos.precio_roca
+    rentabilidad = producto.costos.rentabilidad_target
     costo = producto.costos.costo_reposicion
-    margen = producto.costos.margen_mayorista
     iva = producto.costos.iva_alicuota
     
-    # Cálculos Simples (Ejemplo)
-    # Precio Mayorista = Costo + Margen
-    precio_neto = costo * (1 + margen / 100)
-    precio_final = precio_neto * (1 + iva / 100)
+    # [PATCH] GUARD CLAUSES - DEFENSE AGAINST ZERO
+    if roca is None or roca == 0:
+        # Intento de rescate si hay costo
+        if costo is not None and costo > 0 and rentabilidad is not None:
+            roca = costo * (1 + rentabilidad / 100)
+        else:
+            # Si no hay roca ni costo, todo es 0
+            producto.precio_mayorista = Decimal(0)
+            producto.precio_distribuidor = Decimal(0)
+            producto.precio_minorista = Decimal(0)
+            return producto
+
+    # Precio "Mayorista" (Referencia interna) ahora sale de Roca
+    # Asumimos que Roca es NETO.
+    if roca is None: roca = Decimal(0)
+    if iva is None: iva = Decimal(0)
+
+    precio_final = roca * (1 + iva / 100)
     
-    # Asignamos atributos dinámicos al objeto (Pydantic los leerá)
-    producto.precio_mayorista = precio_final # Asumiendo que el precio mayorista es el final con IVA? O sin IVA?
-    # Usualmente Mayorista es con IVA.
+    # Asignamos atributos dinámicos
+    producto.precio_mayorista = precio_final
     
-    # Distri y Minorista (Placeholders por ahora)
-    producto.precio_distribuidor = precio_final * Decimal("1.10") # +10%
-    producto.precio_minorista = precio_final * Decimal("1.40") # +40%
+    # Distri y Minorista (Proyecciones desde Roca)
+    producto.precio_distribuidor = precio_final * Decimal("1.10") 
+    producto.precio_minorista = precio_final * Decimal("1.40") 
     
     return producto
 

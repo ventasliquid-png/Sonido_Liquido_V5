@@ -9,8 +9,10 @@ from urllib.parse import urlparse, quote_plus
 from dotenv import dotenv_values
 
 # --- [FIX IP FANTASMA & RUTA ABSOLUTA] ---
+# --- [FIX IP FANTASMA & RUTA ABSOLUTA] ---
 config = dotenv_values(".env")
-DATABASE_URL_FROM_ENV_FILE = config.get("DATABASE_URL")
+# DATABASE_URL_FROM_ENV_FILE = config.get("DATABASE_URL")
+DATABASE_URL_FROM_ENV_FILE = None # FORCE LOCAL FALLBACK
 
 class GUID(TypeDecorator):
     """Platform-independent GUID type.
@@ -55,10 +57,12 @@ def _get_clean_database_url():
     FALLBACK: Si falla, busca pilot.db en la RAÍZ DEL PROYECTO (absoluto).
     """
     # 1. Prioridad: Variable de entorno explícita (fijada por main.py con path absoluto)
-    env_url = os.environ.get("DATABASE_URL")
-    if env_url:
-        print(f"--- [DATABASE] Usando DATABASE_URL de entorno: {env_url} ---")
-        return env_url
+    # 1. Prioridad: Variable de entorno explícita (fijada por main.py con path absoluto)
+    # env_url = os.environ.get("DATABASE_URL")
+    # if env_url:
+    #     print(f"--- [DATABASE] Usando DATABASE_URL de entorno: {env_url} ---")
+    #     return env_url
+    pass
 
     # 2. Prioridad: Archivo .env local (fallback)
     url_candidate = DATABASE_URL_FROM_ENV_FILE
