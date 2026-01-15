@@ -307,21 +307,8 @@
     </main>
 
     <!-- Right Inspector Panel (Browsing/Editing) -->
-    <aside 
-        v-if="selectedId && selectedId !== 'new'"
-        class="w-96 border-l border-cyan-900/30 bg-[#05151f]/95 flex flex-col z-30 shadow-2xl overflow-hidden shrink-0"
-    >
-        <ClienteInspector 
-            :modelValue="selectedCliente" 
-            :isNew="false"
-            @close="closeInspector"
-            @save="handleInspectorSave"
-            @delete="handleInspectorDelete"
-            @hard-delete="handleHardDelete"
-            @manage-segmentos="handleManageSegmentos"
-            @switch-client="handleSwitchClient"
-        />
-    </aside>
+    <!-- Right Inspector Panel (DEPRECATED: Now using Central Canvas) -->
+    <!-- <aside ... > -->
 
     <!-- Central Modal (New Client / Alta) -->
     <div v-if="selectedId === 'new'" class="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" @click.self="closeInspector">
@@ -570,30 +557,13 @@ const getSegmentoName = (id) => {
 }
 
 const selectCliente = async (cliente) => {
-    // Single Click Selection
-    console.log("Selecting:", cliente.razon_social)
-    selectedId.value = cliente.id
-    
-    try {
-        const fullCliente = await clienteStore.fetchClienteById(cliente.id)
-        selectedCliente.value = { ...fullCliente }
-    } catch (e) {
-        console.error("Error fetching full client details", e)
-        selectedCliente.value = { ...cliente }
-    }
+    // Navigate to Central Canvas
+    console.log("Navigating to Canvas:", cliente.razon_social)
+    router.push({ name: 'HaweClientCanvas', params: { id: cliente.id } })
 }
 
 const openNewCliente = () => {
-    selectedId.value = 'new'
-    selectedCliente.value = {
-        razon_social: searchQuery.value || '', // [GY-UX] Auto-fill search term
-        cuit: '',
-        activo: true,
-        condicion_iva_id: null,
-        segmento_id: null,
-        domicilios: [],
-        vinculos: []
-    }
+    router.push({ name: 'HaweClientCanvas', params: { id: 'new' } })
 }
 
 const closeInspector = () => {

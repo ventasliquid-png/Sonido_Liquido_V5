@@ -30,8 +30,14 @@ const canteraService = {
         return axios.post(`${API_URL}/bridge/clientes/${clienteId}/import`)
     },
 
-    importProducto(productoId) {
-        return axios.post(`${API_URL}/bridge/productos/${productoId}/import`)
+    async importProducto(productoId) {
+        const response = await axios.post(`${API_URL}/bridge/productos/${productoId}/import`)
+        return response.data
+    },
+
+    async getProductoDetails(productoId) {
+        const response = await axios.get(`${API_URL}/bridge/productos/${productoId}/details`)
+        return response.data
     },
 
     inactivateCliente(clienteId) {

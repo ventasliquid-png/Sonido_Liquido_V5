@@ -23,3 +23,9 @@ ALTER TABLE productos_costos ADD COLUMN precio_roca FLOAT DEFAULT 0;
 -- [2026-01-14] SANITIZACIÓN (Error 500 Fix)
 -- Nota: Schemas de Producto ajustados para tolerar valores 0.0 (Sanitización) para tenerlo en cuenta en futuras migraciones.
 -- No requiere SQL DDL, es validación a nivel aplicación (Pydantic), pero se documenta aquí por protocolo.
+
+-- [2026-01-15] Add 'nivel' column to 'segmentos' table for V5 Pricing Engine
+ALTER TABLE segmentos ADD COLUMN nivel INTEGER DEFAULT 1;
+
+-- [2026-01-15] Add 'orden_calculo' to 'listas_precios' for Hard Logic Pricing
+ALTER TABLE listas_precios ADD COLUMN orden_calculo INTEGER;

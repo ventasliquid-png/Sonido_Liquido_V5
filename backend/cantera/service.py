@@ -12,6 +12,7 @@ CANTERA_DB_PATH = BASE_DIR / "backend" / "data" / "cantera.db"
 class CanteraService:
     @staticmethod
     def get_connection():
+        # print(f"[DEBUG] Connecting to Cantera: {CANTERA_DB_PATH}")
         return sqlite3.connect(str(CANTERA_DB_PATH))
 
     @staticmethod

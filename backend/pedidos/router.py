@@ -653,7 +653,7 @@ def delete_pedido(pedido_id: int, db: Session = Depends(get_db)):
     return None
 
 # --- MOTOR DE PRECIOS V5 ENDPOINTS ---
-from backend.pedidos.pricing import PricingEngine
+from backend.pricing_engine import get_virtual_price
 from pydantic import BaseModel
 
 class CotizacionRequest(BaseModel):
@@ -665,8 +665,37 @@ class CotizacionRequest(BaseModel):
 def cotizar_precio(req: CotizacionRequest, db: Session = Depends(get_db)):
     """
     Endpoint Táctico: Cotiza un producto para un cliente específico
-    usando la lógica 'La Roca y La Máscara'.
+    usando la lógica V5 'Hard Logic'.
     """
-    engine = PricingEngine(db)
-    resultado = engine.cotizar_producto(req.cliente_id, req.producto_id, req.cantidad)
-    return resultado
+    cliente = db.query(Cliente).get(req.cliente_id)
+    producto = db.query(Producto).get(req.producto_id)
+    
+    if not cliente or not producto:
+         raise HTTPException(status_code=404, detail="Cliente o Producto no encontrado")
+         
+    # Call new V5 Engine
+    # get_virtual_price expects (ProductoCosto, Cliente)
+    # Be careful: pricing_engine expects 'producto_costos' object, not 'producto'
+    
+    costos = producto.costos
+    # If no costs, engine handles it (returns 0), but let's pass None if necessary
+    
+    resultado = get_virtual_price(costos, cliente)
+    
+    if resultado.get("error"):
+        # Strict Mode Violation
+        raise HTTPException(
+            status_code=409, 
+            detail=f"CONFLICTO FISCAL: {resultado['error']}. Por favor asigne lista manual o verifique segmento."
+        )
+    
+    # Adapter to match frontend expected response format if needed?
+    # Frontend likely expects 'precio_final_sugerido'. 
+    # Current engine returns { "precio": Decimal, "lista_origen": Int }
+    
+    return {
+        "precio_final_sugerido": resultado["precio"],
+        "origen": f"LISTA_{resultado['lista_origen']}",
+        "estrategia": "HARD_LOGIC_V5",
+        "debug": resultado
+    }

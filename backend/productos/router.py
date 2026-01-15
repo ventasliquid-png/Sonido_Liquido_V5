@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from backend.core.database import get_db
 from backend.productos import models, schemas
+from backend.pricing_engine import calculate_lists
 
 router = APIRouter(
     prefix="/productos",
@@ -228,41 +229,21 @@ def bulk_move_rubro_items(move_data: schemas.RubroBulkMove, db: Session = Depend
 # --- PRODUCTOS ---
 
 def calculate_prices(producto: models.Producto):
-    """Helper para calcular precios basados en costos."""
+    """Helper para calcular precios basados en costos usando el MOTOR V5."""
     if not producto.costos:
+        producto.precio_mayorista = 0
+        producto.precio_distribuidor = 0
+        producto.precio_minorista = 0
         return producto
     
-    # Roca Sólida Logic
-    roca = producto.costos.precio_roca
-    rentabilidad = producto.costos.rentabilidad_target
-    costo = producto.costos.costo_reposicion
-    iva = producto.costos.iva_alicuota
+    # Motor V5: Cascada Clásica
+    # Calculamos todas las listas bases para referencia visual en el catálogo
+    listas = calculate_lists(producto.costos.costo_reposicion, producto.costos.rentabilidad_target)
     
-    # [PATCH] GUARD CLAUSES - DEFENSE AGAINST ZERO
-    if roca is None or roca == 0:
-        # Intento de rescate si hay costo
-        if costo is not None and costo > 0 and rentabilidad is not None:
-            roca = costo * (1 + rentabilidad / 100)
-        else:
-            # Si no hay roca ni costo, todo es 0
-            producto.precio_mayorista = Decimal(0)
-            producto.precio_distribuidor = Decimal(0)
-            producto.precio_minorista = Decimal(0)
-            return producto
-
-    # Precio "Mayorista" (Referencia interna) ahora sale de Roca
-    # Asumimos que Roca es NETO.
-    if roca is None: roca = Decimal(0)
-    if iva is None: iva = Decimal(0)
-
-    precio_final = roca * (1 + iva / 100)
-    
-    # Asignamos atributos dinámicos
-    producto.precio_mayorista = precio_final
-    
-    # Distri y Minorista (Proyecciones desde Roca)
-    producto.precio_distribuidor = precio_final * Decimal("1.10") 
-    producto.precio_minorista = precio_final * Decimal("1.40") 
+    # Mapeo de Referencia para UI (Aunque la UI debería pedir cotización puntual, esto es el "precio de lista")
+    producto.precio_mayorista = listas.get('lista_1', 0)    # Referencia Base
+    producto.precio_distribuidor = listas.get('lista_3', 0) # Referencia Distribuidor
+    producto.precio_minorista = listas.get('lista_5', 0)    # Referencia Público
     
     return producto
 

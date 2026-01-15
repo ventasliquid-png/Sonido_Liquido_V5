@@ -31,6 +31,14 @@ def search_productos_cantera(q: str = Query(..., min_length=2)):
 def list_productos_cantera(limit: int = 100, offset: int = 0):
     return CanteraService.get_productos(limit, offset)
 
+@router.get("/productos/{producto_id}/details")
+def get_producto_details_cantera(producto_id: str):
+    """Retorna los datos completos del JSON sin importar nada a la DB operativa."""
+    data = CanteraService.get_full_product_data(producto_id)
+    if not data:
+        raise HTTPException(status_code=404, detail="Producto no encontrado en Cantera")
+    return data
+
 @router.post("/clientes/{cliente_id}/import")
 def import_cliente_from_cantera(cliente_id: str, db: Session = Depends(get_db)):
     full_data = CanteraService.get_full_client_data(cliente_id)

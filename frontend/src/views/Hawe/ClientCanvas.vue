@@ -133,6 +133,24 @@
                     </button>
                 </div>
             </div>
+
+            <!-- LISTA DE PRECIOS (Hard Logic Override) -->
+            <div class="bg-white/5 rounded-lg p-3 border border-white/5">
+                <label class="block text-[10px] font-bold uppercase text-white/40 mb-1">
+                    LISTA DE PRECIOS <span class="text-cyan-400 text-[9px]">(Manual)</span>
+                </label>
+                <div class="w-full">
+                    <select 
+                        v-model="form.lista_precios_id" 
+                        class="w-full bg-transparent text-sm text-white focus:outline-none appearance-none [&>option]:bg-slate-900 border-b border-white/10 focus:border-cyan-400 pb-1"
+                    >
+                        <option :value="null">Automática (Según Segmento)</option>
+                        <option v-for="lp in listasPrecios" :key="lp.id" :value="lp.id">
+                            {{ lp.nombre }} (Orden {{ lp.orden_calculo }})
+                        </option>
+                    </select>
+                </div>
+            </div>
         </div>
 
         <!-- Payments & Admin -->
@@ -167,15 +185,39 @@
                     <!-- NEW CLIENT HEADER MODE -->
                     <div v-if="isNew" class="space-y-4">
                         <h1 class="font-outfit text-2xl font-bold text-white/50 mb-1 uppercase">Alta de Cliente</h1>
-                        <div class="bg-white/5 p-4 rounded-xl border border-white/10 shadow-lg backdrop-blur-sm">
+                        <div class="bg-white/5 p-4 rounded-xl border border-white/10 shadow-lg backdrop-blur-sm relative">
                             <label class="block text-xs font-bold uppercase text-cyan-400 mb-1">Razón Social <span class="text-red-400">*</span></label>
                             <input 
                                 v-model="form.razon_social" 
+                                @input="handleSearchCantera"
                                 type="text" 
                                 class="w-full bg-transparent text-2xl font-bold text-white focus:outline-none placeholder-white/20 border-b border-white/10 focus:border-cyan-400 transition-colors"
                                 placeholder="Ingrese el nombre del cliente..."
                                 autofocus
                             />
+                            <!-- Cantera Results Dropdown -->
+                            <div v-if="canteraResults.length > 0 && isNew" class="absolute left-0 right-0 top-full mt-2 bg-[#0a253a] border border-cyan-500/30 rounded-lg shadow-2xl z-50 overflow-hidden">
+                                <div class="px-3 py-2 bg-cyan-900/20 border-b border-cyan-500/20 flex justify-between items-center">
+                                    <span class="text-[10px] font-bold uppercase text-cyan-400">Resultados en Cantera (Maestros)</span>
+                                    <i v-if="isSearching" class="fa-solid fa-spinner fa-spin text-cyan-400 text-xs"></i>
+                                </div>
+                                <ul class="max-h-60 overflow-y-auto">
+                                    <li 
+                                        v-for="res in canteraResults" 
+                                        :key="res.id"
+                                        @click="importFromCantera(res)"
+                                        class="px-4 py-3 hover:bg-white/5 cursor-pointer border-b border-white/5 last:border-0 group transition-colors"
+                                    >
+                                        <div class="flex justify-between items-start">
+                                            <div>
+                                                <p class="font-bold text-white group-hover:text-cyan-300 transition-colors">{{ res.razon_social }}</p>
+                                                <p class="text-xs text-white/50 font-mono">CUIT: {{ res.cuit || 'S/D' }}</p>
+                                            </div>
+                                            <span class="text-[10px] px-2 py-0.5 rounded bg-cyan-900/30 text-cyan-400 border border-cyan-500/30">IMPORTAR</span>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
 
@@ -569,6 +611,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useClientesStore } from '../../stores/clientes'
 import { useMaestrosStore } from '../../stores/maestros'
 import { useNotificationStore } from '../../stores/notification'
+import canteraService from '../../services/canteraService' // [Cantera Integration]
 import ContextMenu from '../../components/common/ContextMenu.vue'
 import SegmentoForm from '../Maestros/SegmentoForm.vue'
 import SegmentoList from '../Maestros/SegmentoList.vue'
@@ -615,6 +658,8 @@ const contactos = ref([])
 // Computed Helpers
 const condicionesIva = computed(() => maestrosStore.condicionesIva)
 const segmentos = computed(() => maestrosStore.segmentos)
+const listasPrecios = computed(() => maestrosStore.listasPrecios)
+
 const auditResult = computed(() => {
     // Construct a temporary client object from form data to reactive check
     const tempClient = {
@@ -642,6 +687,59 @@ const goBackToSource = () => {
     else router.push('/hawe')
 }
 const goToNew = () => router.push({ name: 'HaweClientCanvas', params: { id: 'new' } })
+
+// --- Cantera Logic ---
+const canteraResults = ref([])
+const isSearching = ref(false)
+let searchTimeout = null
+
+const handleSearchCantera = () => {
+    if (!isNew.value) return
+    const query = form.value.razon_social
+    
+    // Clear debounce
+    if (searchTimeout) clearTimeout(searchTimeout)
+    
+    if (!query || query.length < 3) {
+        canteraResults.value = []
+        return
+    }
+
+    isSearching.value = true
+    searchTimeout = setTimeout(async () => {
+        try {
+            const res = await canteraService.searchClientes(query)
+            // Filter out already imported? Maybe not needed as ID check handles it or duplicate check
+            canteraResults.value = res.data
+        } catch (e) {
+            console.error("Error searching cantera", e)
+        } finally {
+            isSearching.value = false
+        }
+    }, 300)
+}
+
+const importFromCantera = async (canteraClient) => {
+    try {
+        isSearching.value = true
+        // Call Import Bridge
+        const res = await canteraService.importCliente(canteraClient.id) // Assuming .id is the ID in Cantera
+        
+        if (res.data.status === 'success') {
+            notificationStore.add(`Cliente importado desde Cantera exitosamente`, 'success')
+            // Navigate to the new imported client
+            // Router replace to switch from 'new' to actual ID
+            router.replace({ name: 'HaweClientCanvas', params: { id: res.data.imported_id } })
+        }
+    } catch (e) {
+        console.error("Error importing from cantera", e)
+        notificationStore.add('Error al importar cliente desde Cantera', 'error')
+    } finally {
+        isSearching.value = false
+        canteraResults.value = []
+    }
+}
+
 
 // --- Initialization ---
 onMounted(async () => {
@@ -726,6 +824,30 @@ const loadCliente = async (id) => {
 }
 
 const saveCliente = async () => {
+    // --- STRICT MODE VALIDATION ---
+    if (!form.value.razon_social || form.value.razon_social.length < 3) {
+        notificationStore.add('La razón social es obligatoria (min 3 chars)', 'error')
+        return
+    }
+
+    // Doctrina de Precios Strict Mode:
+    // Debe tener Lista Manual O Segmento Válido que mapee a lista.
+    // Como el backend solo mapea 'Mayorista', 'Distribuidor', 'Minorista', 'Tienda',
+    // debemos validar que si no hay lista manual, el segmento seleccionado sea uno de esos o avisar.
+    
+    /* 
+       Validación Simplificada: 
+       "El campo Lista de Precios... pasa a ser OBLIGATORIO"
+       Si el usuario deja "Automática", validamos que haya segmento.
+    */
+    if (!form.value.lista_precios_id && !form.value.segmento_id) {
+         notificationStore.add('STRICT MODE: Debe asignar un Segmento o una Lista de Precios Manual.', 'error')
+         return      
+    }
+
+    // Opcional: Validar que el segmento mapee a algo si es automático?
+    // Dejamos que el backend tire 409 si falla, pero el frontend avisa lo básico.
+
     try {
         const payload = {
             ...form.value,

@@ -86,10 +86,10 @@
                 v-model="templateId"
                 :options="productosStore.productos"
                 canteraType="productos"
-                placeholder="Buscar para clonar..."
+                placeholder="Buscar en Padrón o Cantera..."
                 :allowCreate="true"
                 @update:modelValue="handleTemplateSelect"
-                @select-cantera="handleTemplateSelect"
+                @select-cantera="handleCanteraSelect"
                 @create-new="handleManualTemplate"
                 class="dark-smart-select text-xs"
               />
@@ -344,6 +344,7 @@ import { storeToRefs } from 'pinia'
 import { useProductosStore } from '../../../stores/productos'
 import { useNotificationStore } from '@/stores/notification'
 import SmartSelect from '../../../components/ui/SmartSelect.vue'
+import canteraService from '@/services/canteraService'
 
 const productosStore = useProductosStore()
 const notification = useNotificationStore()
@@ -458,21 +459,60 @@ watch(() => props.producto, (newVal) => {
     templateId.value = null 
 }, { immediate: true })
 
+
+
+const handleCanteraSelect = async (item) => {
+    // 1. Fetch Full Details from Bridge
+    try {
+        // We use a new service method to get details without importing
+        // Or if not available, we assume item has basic info and use what we have, 
+        // but typically search result is lean.
+        // Let's assume we added getProductoDetails to canteraService
+        const fullData = await canteraService.getProductoDetails(item.id)
+        
+        if (fullData) {
+            handleTemplateSelect(fullData)
+            notification.add('Datos cargados desde Cantera (No guardado)', 'success')
+        }
+    } catch (e) {
+        console.error(e)
+        // Fallback or error
+        notification.add('Error cargando detalles de Cantera', 'error')
+    }
+}
+
 const handleTemplateSelect = (itemOrId) => {
-    let template = typeof itemOrId === 'object' ? itemOrId : productosStore.productos.find(p => p.id === itemOrId);
+    // Check if it's a direct object (from Cantera) or ID (from Local)
+    let template = null;
+    if (typeof itemOrId === 'object') {
+        template = itemOrId;
+    } else {
+        template = productosStore.productos.find(p => p.id === itemOrId);
+    }
+
     if (template) {
         const originalActive = localProducto.value.activo;
+        
+        // Mapeo Inteligente
         localProducto.value = {
-            ...JSON.parse(JSON.stringify(template)),
-            id: null,
-            sku: 'AUTO',
-            activo: originalActive,
-            venta_minima: template.venta_minima || 1.0
+            ...localProducto.value, // Keep existing defaults
+            nombre: template.nombre,
+            codigo_visual: template.codigo_visual || '',
+            rubro_id: template.rubro_id, // Might not match if IDs differ
+            unidad_medida: template.unidad_medida || 'UN',
+            tipo_producto: template.tipo_producto || 'VENTA',
+            venta_minima: template.venta_minima || 1.0,
+            factor_compra: template.factor_compra || 1.0,
+            es_kit: template.es_kit || false,
+            // Don't carry over ID or SKU, generate new
         };
+
         if (template.costos) {
             localCostos.value = { ...template.costos };
         }
+        
         pristineName.value = template.nombre;
+        
         nextTick(() => {
             const nameInput = document.querySelector('input[type="text"]');
             if (nameInput) nameInput.focus();

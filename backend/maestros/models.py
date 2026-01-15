@@ -38,6 +38,7 @@ class ListaPrecios(Base):
 
     id = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
     nombre = Column(String, nullable=False, unique=True) # Ej: Lista Mayorista
+    orden_calculo = Column(Integer, nullable=True) # 1=Mayorista, ..., 7=Tienda
     coeficiente = Column(Numeric(10, 4), default=1.0) # Ej: 0.9000 (10% desc)
     tipo = Column(Enum('FISCAL', 'PRESUPUESTO', name='tipo_lista_enum'), default='PRESUPUESTO')
     activo = Column(Boolean, default=True)
@@ -55,6 +56,7 @@ class Segmento(Base):
     id = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
     nombre = Column(String, nullable=False, unique=True)
     descripcion = Column(String, nullable=True)
+    nivel = Column(Integer, default=1) # 1=Mayorista Base, ..., 7=Tienda
     activo = Column(Boolean, default=True)
 
     def __repr__(self):
