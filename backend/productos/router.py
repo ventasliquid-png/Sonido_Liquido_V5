@@ -395,3 +395,40 @@ def hard_delete_producto(producto_id: int, db: Session = Depends(get_db)):
             detail="No se puede eliminar el producto porque tiene registros asociados (ventas)."
         )
     return None
+
+# --- PROVEEDORES ALTERNATIVOS (V5.4) ---
+
+@router.post("/{producto_id}/proveedores", response_model=schemas.ProductoProveedorRead)
+def create_producto_proveedor(producto_id: int, proveedor_data: schemas.ProductoProveedorCreate, db: Session = Depends(get_db)):
+    # Verify product exists
+    db_producto = db.query(models.Producto).get(producto_id)
+    if not db_producto:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    
+    # Verify provider exists
+    from backend.proveedores.models import Proveedor
+    db_proveedor = db.query(Proveedor).get(proveedor_data.proveedor_id)
+    if not db_proveedor:
+        raise HTTPException(status_code=404, detail="Proveedor no encontrado")
+
+    db_rel = models.ProductoProveedor(
+        producto_id=producto_id,
+        proveedor_id=proveedor_data.proveedor_id,
+        costo=proveedor_data.costo,
+        moneda=proveedor_data.moneda,
+        observaciones=proveedor_data.observaciones
+    )
+    db.add(db_rel)
+    db.commit()
+    db.refresh(db_rel)
+    return db_rel
+
+@router.delete("/proveedores/{costo_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_producto_proveedor(costo_id: int, db: Session = Depends(get_db)):
+    db_rel = db.query(models.ProductoProveedor).get(costo_id)
+    if not db_rel:
+        raise HTTPException(status_code=404, detail="Registro de costo no encontrado")
+    
+    db.delete(db_rel)
+    db.commit()
+    return None

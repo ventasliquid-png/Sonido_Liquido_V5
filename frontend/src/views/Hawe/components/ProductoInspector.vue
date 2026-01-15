@@ -1,324 +1,318 @@
 <template>
   <div class="flex h-full w-full flex-col bg-[#1a050b] text-gray-100 rounded-2xl shadow-2xl overflow-hidden border border-rose-900/40">
-    <!-- Header -->
-    <div class="flex items-center justify-between border-b border-rose-900/30 bg-rose-950/20 p-4 shrink-0">
-      <div class="flex items-center gap-3">
-          <div class="h-8 w-8 rounded-lg bg-rose-500/10 flex items-center justify-center text-rose-500 border border-rose-500/20">
-             <i class="fas fa-box"></i>
+    <!-- Header with Breadcrumb Style -->
+    <div class="flex items-center justify-between border-b border-rose-900/30 bg-rose-950/20 p-4 shrink-0 transition-height">
+      <div class="flex items-center gap-4">
+          <!-- Icon -->
+          <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-rose-500/20 to-black flex items-center justify-center text-rose-500 border border-rose-500/20 shadow-lg shadow-rose-900/20">
+             <i class="fas fa-box text-lg"></i>
           </div>
+          
+          <!-- Title & Meta -->
           <div>
-              <h2 class="font-outfit text-lg font-bold text-white leading-none">{{ localProducto?.nombre || 'Nuevo Producto' }}</h2>
-              <p class="font-mono text-xs text-rose-400/60">{{ localProducto?.sku || '---' }}</p>
+              <div v-if="localProducto && !localProducto.id" class="flex items-center gap-2">
+                 <span class="text-xs font-bold bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded border border-rose-500/30 uppercase tracking-wider">Nuevo Producto</span>
+              </div>
+              <h2 class="font-outfit text-xl font-bold text-white tracking-tight leading-none mt-1">
+                  {{ localProducto?.nombre || 'Definir Nombre...' }}
+              </h2>
+              <div class="flex items-center gap-3 mt-1 text-xs font-mono text-rose-200/40">
+                  <span v-if="localProducto && localProducto.id">ID: {{ localProducto.id }}</span>
+                  <span v-if="localProducto && localProducto.sku" class="flex items-center gap-1"><i class="fas fa-barcode"></i> {{ localProducto.sku }}</span>
+              </div>
           </div>
       </div>
-      <button @click="$emit('close')" class="h-8 w-8 rounded-full hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors">
-        <i class="fas fa-times"></i>
-      </button>
+      
+      <div class="flex items-center gap-3">
+          <!-- Active Toggle -->
+            <button 
+                v-if="localProducto"
+                @click="$emit('toggle-active', localProducto)"
+                class="flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all"
+                :class="localProducto.activo ? 'bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/20' : 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20'"
+            >
+                <div class="h-2 w-2 rounded-full" :class="localProducto.activo ? 'bg-green-500 shadow-lg shadow-green-500/50' : 'bg-red-500 shadow-lg shadow-red-500/50'"></div>
+                <span class="text-xs font-bold uppercase">{{ localProducto.activo ? 'Activo' : 'Inactivo' }}</span>
+          </button>
+
+          <div class="h-8 w-px bg-white/10 mx-1"></div>
+
+          <button @click="$emit('close')" class="h-9 w-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors">
+             <i class="fas fa-times"></i>
+          </button>
+      </div>
     </div>
 
-    <!-- Content Grid -->
-    <div v-if="localProducto" class="flex-1 flex overflow-hidden">
+    <!-- MAIN CANVAS (3 Columns) -->
+    <div v-if="localProducto && localProducto.nombre !== undefined" class="flex-1 flex overflow-hidden">
         
-      <!-- Left Column: Basic Info (30%) -->
-      <div class="w-1/3 border-r border-rose-900/30 bg-[#2e0a13]/30 p-6 overflow-y-auto space-y-6">
-          
-          <!-- Image / Icon Placeholder -->
-          <div class="flex justify-center">
-            <div class="relative group">
-                <div class="h-40 w-40 rounded-2xl bg-gradient-to-br from-[#3f0e1a] to-black flex items-center justify-center text-6xl text-rose-600 shadow-xl border border-rose-500/20 group-hover:border-rose-500/50 transition-colors">
-                    <i class="fas fa-box-open"></i>
-                </div>
-                <div class="absolute bottom-2 right-2">
-                     <button 
-                        @click="$emit('toggle-active', localProducto)"
-                        class="h-8 w-8 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-110 active:scale-95"
-                        :class="localProducto.activo ? 'bg-green-500 text-white' : 'bg-red-500 text-white'"
-                        :title="localProducto.activo ? 'Desactivar' : 'Activar'"
-                    >
-                        <i :class="localProducto.activo ? 'fas fa-check' : 'fas fa-ban'"></i>
-                    </button>
+        <!-- COLUMN 1: Identity & Tax Nature (30%) -->
+        <div class="w-[30%] border-r border-rose-900/30 bg-[#2e0a13]/20 flex flex-col overflow-y-auto custom-scrollbar p-6 space-y-8">
+            
+            <!-- Image / Avatar -->
+            <div class="flex justify-center">
+                <div class="relative group cursor-pointer">
+                     <!-- Placeholder -->
+                    <div class="h-40 w-40 rounded-2xl bg-gradient-to-br from-[#3f0e1a] to-black flex items-center justify-center text-6xl text-rose-600/50 shadow-2xl border border-rose-500/20 group-hover:border-rose-500/50 transition-all duration-300">
+                        <i class="fas fa-cube transform group-hover:scale-110 transition-transform duration-300"></i>
+                    </div>
                 </div>
             </div>
-          </div>
 
-          <!-- Basic Fields -->
-          <div class="space-y-4">
-               <div>
-                  <label class="text-xs font-bold text-rose-200/50 uppercase block mb-1">Nombre del Producto</label>
-                  <input 
-                    v-model="localProducto.nombre"
-                    type="text" 
-                    class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-rose-500 focus:outline-none focus:bg-black/60 transition-colors text-sm font-bold"
-                    placeholder="Ej: Jabón Líquido 5L"
-                  />
-               </div>
-               
-               <div>
-                  <label class="text-xs font-bold text-rose-200/50 uppercase block mb-1">Código Visual (Corto)</label>
-                  <input 
-                    v-model="localProducto.codigo_visual"
-                    type="text" 
-                    class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-rose-500 focus:outline-none focus:bg-black/60 transition-colors font-mono text-sm"
-                    placeholder="Ej: JL-500"
-                  />
-               </div>
+            <!-- Basic Data Form -->
+            <div class="space-y-5">
+                <!-- Nombre -->
+                <div class="space-y-1 group">
+                   <label class="text-[10px] font-bold text-rose-200/40 uppercase tracking-widest group-focus-within:text-rose-400 transition-colors">Nombre Oficial</label>
+                   <input 
+                     v-model="localProducto.nombre"
+                     type="text" 
+                     class="w-full bg-black/20 border border-white/5 rounded-lg px-3 py-2.5 text-white font-bold tracking-wide focus:border-rose-500/50 focus:bg-black/40 focus:outline-none transition-all placeholder-white/5"
+                     placeholder="Ej: Barbijo Recto"
+                   />
+                </div>
 
-                <div>
-                  <label class="text-xs font-bold text-rose-200/50 uppercase block mb-1">Rubro / Categoría</label>
-                  <select 
-                    v-model="localProducto.rubro_id"
-                    class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-rose-500 focus:outline-none transition-colors appearance-none text-sm"
-                  >
-                      <option :value="null" disabled>Seleccione un Rubro</option>
-                      <option v-for="rubro in flattenedRubros" :key="rubro.id" :value="rubro.id">
-                          {{ rubro.indent }}{{ rubro.nombre }}
-                      </option>
-                  </select>
-               </div>
-          </div>
-          
-           <!-- Template Selection (Only for New) -->
-          <div v-if="!localProducto.id" class="p-4 rounded-xl bg-rose-500/5 border border-rose-500/10">
-              <label class="text-[0.65rem] font-bold text-rose-400 uppercase tracking-widest mb-2 block">
-                  <i class="fas fa-magic mr-1"></i> Usar Plantilla
-              </label>
-              <SmartSelect
-                v-model="templateId"
-                :options="productosStore.productos"
-                canteraType="productos"
-                placeholder="Buscar en Padrón o Cantera..."
-                :allowCreate="true"
-                @update:modelValue="handleTemplateSelect"
-                @select-cantera="handleCanteraSelect"
-                @create-new="handleManualTemplate"
-                class="dark-smart-select text-xs"
-              />
-          </div>
+                    <div class="space-y-1">
+                       <label class="text-[10px] font-bold text-rose-200/40 uppercase tracking-widest">Código Visual</label>
+                       <input 
+                         v-model="localProducto.codigo_visual"
+                         type="text" 
+                         class="w-full bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-white font-mono text-sm focus:border-rose-500/50 focus:outline-none transition-colors"
+                         placeholder="CODE-01"
+                       />
+                     </div>
 
-      </div>
+                <!-- Rubro (Validated) -->
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-rose-200/40 uppercase tracking-widest">Rubro / Categoría <span class="text-rose-500">*</span></label>
+                    <select 
+                        v-model="localProducto.rubro_id"
+                        class="w-full bg-black/20 border border-white/5 rounded-lg px-3 py-2.5 text-white text-sm focus:border-rose-500/50 focus:outline-none appearance-none transition-colors"
+                        :class="!localProducto.rubro_id ? 'border-rose-500/30' : ''"
+                    >
+                        <option :value="null" disabled>Seleccionar...</option>
+                        <option v-for="rubro in flattenedRubros" :key="rubro.id" :value="rubro.id">
+                            {{ rubro.indent }}{{ rubro.nombre }}
+                        </option>
+                    </select>
+                </div>
 
-      <!-- Right Column: Details Tabs (70%) -->
-      <div class="w-2/3 flex flex-col bg-black/20">
-          
-          <!-- Tabs Navigation -->
-          <div class="flex border-b border-white/5 px-6 pt-4 bg-[#2e0a13]/10">
-              <button 
-                @click="activeTab = 'general'"
-                class="pb-3 px-6 text-xs font-bold uppercase tracking-wider transition-colors border-b-2"
-                :class="activeTab === 'general' ? 'border-rose-500 text-white' : 'border-transparent text-white/40 hover:text-white'"
-              >
-                <i class="fas fa-sliders-h mr-2"></i> Propiedades
-              </button>
-              <button 
-                @click="activeTab = 'costos'"
-                class="pb-3 px-6 text-xs font-bold uppercase tracking-wider transition-colors border-b-2"
-                :class="activeTab === 'costos' ? 'border-rose-500 text-white' : 'border-transparent text-white/40 hover:text-white'"
-              >
-                <i class="fas fa-coins mr-2"></i> Costos
-              </button>
-          </div>
+                <!-- Insumo Switch -->
+                <div class="pt-4 border-t border-white/5">
+                     <div class="flex items-center gap-2 p-2 rounded bg-white/5 border border-white/5 cursor-pointer" @click="localProducto.tipo_producto = localProducto.tipo_producto === 'INSUMO' ? 'VENTA' : 'INSUMO'">
+                          <div class="w-8 h-4 rounded-full relative transition-colors" :class="localProducto.tipo_producto === 'INSUMO' ? 'bg-orange-500' : 'bg-gray-700'">
+                              <div class="absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform" :class="localProducto.tipo_producto === 'INSUMO' ? 'translate-x-4' : ''"></div>
+                          </div>
+                          <span class="text-xs font-bold uppercase transition-colors" :class="localProducto.tipo_producto === 'INSUMO' ? 'text-orange-400' : 'text-gray-400'">
+                              {{ localProducto.tipo_producto === 'INSUMO' ? 'Es Insumo Interno' : 'Producto de Venta' }}
+                          </span>
+                     </div>
+                </div>
+            </div>
+        </div>
 
-          <!-- Tab Content Scrollable Area -->
-          <div class="flex-1 overflow-y-auto p-8 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-rose-900/30">
-              
-               <!-- TAB GENERAL -->
-               <div v-if="activeTab === 'general'" class="space-y-8 animate-fadeIn">
-                   <!-- Grid Logic -->
-                   <div class="grid grid-cols-2 gap-6">
-                       
-                        <!-- Tipo Producto -->
-                       <div class="space-y-1">
-                          <label class="text-xs font-bold text-rose-200/50 uppercase">Tipo de Bien</label>
-                          <select 
-                            v-model="localProducto.tipo_producto"
-                            class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-rose-500 focus:outline-none transition-colors appearance-none text-sm"
-                          >
-                              <option value="VENTA">Venta (Mercadería)</option>
-                              <option value="INSUMO">Insumo Interno</option>
-                              <option value="MATERIA_PRIMA">Materia Prima</option>
-                              <option value="SERVICIO">Servicio</option>
-                          </select>
-                       </div>
+        <!-- COLUMN 2: FINANCIAL BRAIN (40%) -->
+        <div class="w-[40%] flex flex-col overflow-y-auto custom-scrollbar bg-gradient-to-b from-[#1a050b] to-black/40">
+             <div class="p-6 space-y-8">
+                 <h3 class="text-lg font-outfit font-bold text-white/50 flex items-center gap-2 border-b border-white/5 pb-2">
+                     <i class="fas fa-brain text-rose-500"></i> Estructura de Costos
+                 </h3>
 
-                       <!-- Unidad Medida -->
-                       <div class="space-y-1">
-                          <label class="text-xs font-bold text-rose-200/50 uppercase">Unidad Base</label>
-                          <select 
+                 <!-- 1. COSTO DE REPOSICION -->
+                 <div class="space-y-2">
+                      <div class="flex justify-between items-end px-1">
+                          <label class="text-xs font-bold text-rose-500 uppercase tracking-widest">Costo de Reposición (Neto)</label>
+                          <div class="text-[10px] font-mono text-rose-500/40 uppercase" v-if="lastCostUpdate">
+                              <i class="fas fa-clock mr-1"></i>Act: {{ lastCostUpdate }}
+                          </div>
+                      </div>
+                      <div class="relative group">
+                          <span class="absolute left-4 top-1/2 -translate-y-1/2 text-rose-500/50 text-xl font-light">$</span>
+                          <input 
+                              v-model.number="localCostos.costo_reposicion"
+                              @input="updateCostTimestamp"
+                              type="number" step="0.01" min="0"
+                              class="w-full bg-rose-950/10 border border-rose-500/20 rounded-xl px-4 py-4 pl-8 text-3xl font-mono font-bold text-white text-right focus:border-rose-500/50 focus:shadow-[0_0_20px_rgba(244,63,94,0.1)] focus:outline-none transition-all placeholder-white/5"
+                              placeholder="0.00"
+                          />
+                      </div>
+                 </div>
+
+                 <!-- 2. RENTABILIDAD & PRECIO ROCA (ESPEJO) -->
+                 <div class="bg-cyan-900/5 border border-cyan-500/20 rounded-2xl p-6 space-y-6 relative shadow-lg shadow-black/20">
+                      <!-- Link Visual -->
+                      <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-cyan-500/20 text-4xl pointer-events-none">
+                          <i class="fas fa-arrows-alt-h"></i>
+                      </div>
+
+                      <div class="grid grid-cols-2 gap-8">
+                          <!-- Margin Input -->
+                           <div class="space-y-2 relative z-10">
+                              <label class="text-[10px] font-bold text-cyan-500/70 uppercase tracking-widest text-center block">Margin %</label>
+                              <div class="relative group">
+                                 <input 
+                                     v-model.number="localCostos.rentabilidad_target"
+                                     @input="updateRocaFromRent"
+                                     type="number" step="0.1"
+                                     class="w-full bg-black/40 border border-cyan-500/30 rounded-xl px-2 py-3 text-xl font-mono font-bold text-cyan-400 text-center focus:border-cyan-400 focus:outline-none transition-all"
+                                 />
+                                 <span class="absolute right-3 top-1/2 -translate-y-1/2 text-cyan-500/30 font-bold text-xs">%</span>
+                              </div>
+                           </div>
+
+                          <!-- Roca Input -->
+                           <div class="space-y-2 relative z-10">
+                              <label class="text-[10px] font-bold text-white/70 uppercase tracking-widest text-center block">Precio Roca (Neto)</label>
+                              <div class="relative group">
+                                 <input 
+                                     v-model.number="localCostos.precio_roca"
+                                     @input="updateRentFromRoca"
+                                     type="number" step="0.01"
+                                     class="w-full bg-white/5 border border-white/20 rounded-xl px-2 py-3 text-xl font-mono font-bold text-white text-center focus:border-white/50 focus:outline-none transition-all"
+                                 />
+                              </div>
+                           </div>
+                      </div>
+                 </div>
+
+                 <!-- 3. PRECIO FINAL (TRIDIRECCIONAL) -->
+                 <div class="pt-4 border-t border-white/5 space-y-4">
+                      <!-- Grid for IVA Selector and Label -->
+                      <div class="flex items-center justify-between">
+                          <div class="space-y-1 w-1/2">
+                                <label class="text-[10px] font-bold text-white/30 uppercase tracking-widest">Tasa IVA</label>
+                                <select 
+                                     v-model="localProducto.tasa_iva_id"
+                                     @change="updateLocalIvaRate"
+                                     class="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-white font-mono text-xs focus:border-rose-500/50 focus:outline-none"
+                                 >
+                                    <option v-for="t in tasasIva" :key="t.id" :value="t.id">
+                                       {{ t.valor }}% ({{ t.nombre }})
+                                    </option>
+                                 </select>
+                           </div>
+                           <label class="text-xs font-bold text-green-400 uppercase tracking-widest text-right">Precio Final (Con IVA)</label>
+                      </div>
+
+                      <div class="relative group">
+                          <span class="absolute left-4 top-1/2 -translate-y-1/2 text-green-500/30 text-xl font-light">$</span>
+                          <input 
+                              :value="finalPrice"
+                              @input="updateNetFromFinal($event.target.value)"
+                              type="number" step="0.01"
+                              class="w-full bg-green-900/5 border border-green-500/20 rounded-xl px-4 py-3 pl-8 text-3xl font-mono font-bold text-green-400 text-right focus:border-green-500/50 focus:shadow-[0_0_20px_rgba(74,222,128,0.1)] focus:outline-none transition-all"
+                          />
+                           <div class="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-green-500/30 pointer-events-none">
+                               Final
+                          </div>
+                      </div>
+                 </div>
+
+             </div>
+        </div>
+
+        <!-- COLUMN 3: SUPPLIERS & LOGISTICS (30%) -->
+         <div class="w-[30%] border-l border-rose-900/30 bg-[#2e0a13]/10 flex flex-col overflow-y-auto custom-scrollbar p-6 space-y-6">
+             <!-- Suppliers Panel (Table) -->
+             <div class="bg-[#1a1a1a] rounded-xl border border-white/5 flex flex-col h-[280px]">
+                 <div class="p-3 border-b border-white/5 flex justify-between items-center bg-white/5">
+                     <h4 class="text-xs font-bold text-white/50 uppercase flex items-center gap-2">
+                         <i class="fas fa-truck text-rose-500"></i> Proveedores
+                     </h4>
+                     <button @click="isAddingSupplier = !isAddingSupplier" class="text-xs bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded hover:bg-rose-500/30 transition-colors">
+                         <i class="fas fa-plus"></i>
+                     </button>
+                 </div>
+                 
+                 <!-- Add Form -->
+                 <div v-if="isAddingSupplier" class="p-3 bg-rose-900/10 border-b border-rose-500/20 space-y-2 animate-in fade-in slide-in-from-top-2">
+                     <select v-model="newSupplier.proveedor_id" class="w-full bg-black/50 border border-rose-500/30 rounded px-2 py-1 text-xs text-white">
+                         <option :value="null">Seleccionar Proveedor...</option>
+                         <option v-for="p in (proveedores || [])" :key="p.id" :value="p.id">{{ p.razon_social }}</option>
+                     </select>
+                     <div class="flex gap-2">
+                         <input v-model.number="newSupplier.costo" type="number" class="w-2/3 bg-black/50 border border-rose-500/30 rounded px-2 py-1 text-xs text-white" placeholder="Costo">
+                         <button @click="saveSupplier" class="w-1/3 bg-rose-600 text-white text-xs rounded font-bold hover:bg-rose-500">Add</button>
+                     </div>
+                 </div>
+
+                 <!-- Table List -->
+                 <div class="flex-1 overflow-y-auto custom-scrollbar p-0">
+                     <table class="w-full text-left border-collapse">
+                         <thead class="sticky top-0 bg-[#0f0f0f] text-[10px] text-white/30 uppercase tracking-wider font-bold z-10">
+                             <tr>
+                                 <th class="px-3 py-2 font-light">Proveedor</th>
+                                 <th class="px-3 py-2 font-light text-right">Costo</th>
+                                 <th class="px-3 py-2 font-light text-right">Action</th>
+                             </tr>
+                         </thead>
+                         <tbody class="divide-y divide-white/5">
+                             <tr v-for="prov in localProveedoresList" :key="prov.id" class="group hover:bg-white/5 transition-colors">
+                                 <td class="px-3 py-2 text-xs text-white/80 truncate max-w-[100px]" :title="getProvName(prov.proveedor_id)">
+                                     {{ getProvName(prov.proveedor_id) }}
+                                     <div class="text-[9px] text-white/30 font-mono">{{ formatDate(prov.fecha) }}</div>
+                                 </td>
+                                 <td class="px-3 py-2 text-xs font-mono font-bold text-rose-400 text-right">
+                                     ${{ prov.costo }}
+                                 </td>
+                                 <td class="px-3 py-2 text-right">
+                                     <button @click="removeSupplier(prov.id)" class="text-white/20 hover:text-red-500 transition-colors p-1">
+                                         <i class="fas fa-trash text-[10px]"></i>
+                                     </button>
+                                 </td>
+                             </tr>
+                             <tr v-if="localProveedoresList.length === 0">
+                                 <td colspan="3" class="px-3 py-8 text-center text-xs text-white/20 italic">
+                                     Sin historial de proveedores
+                                 </td>
+                             </tr>
+                         </tbody>
+                     </table>
+                 </div>
+             </div>
+
+             <!-- Logistics Panel -->
+             <div class="pt-4 border-t border-white/5 space-y-4">
+                 <h4 class="text-xs font-bold text-white/50 uppercase flex items-center gap-2">
+                     <i class="fas fa-boxes text-blue-400"></i> Logística
+                 </h4>
+
+                 <div class="grid grid-cols-2 gap-3">
+                     <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-white/30 uppercase">Unidad</label>
+                        <select 
                             v-model="localProducto.unidad_medida"
-                            class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-rose-500 focus:outline-none transition-colors appearance-none text-sm"
-                          >
-                              <option value="UN">Unidad (u)</option>
-                              <option value="LT">Litros (l)</option>
-                              <option value="KG">Kilogramos (kg)</option>
-                              <option value="MT">Metros (m)</option>
-                          </select>
-                       </div>
-                   </div>
-                   
-                   <!-- Logistics Box -->
-                   <div class="p-5 rounded-xl bg-white/5 border border-white/5 space-y-4">
-                       <h3 class="text-rose-400 text-xs font-bold uppercase tracking-widest flex items-center gap-2 pb-2 border-b border-white/5">
-                           <i class="fas fa-truck-loading"></i> Logística Avanzada (Docs V5.7)
-                       </h3>
-                       <div class="grid grid-cols-3 gap-6">
-                           <div class="space-y-1">
-                               <label class="text-[10px] uppercase font-bold text-white/40 block">Factor Compra</label>
-                               <div class="relative">
-                                   <input 
-                                        v-model.number="localProducto.factor_compra"
-                                        type="number" step="0.01"
-                                        class="w-full bg-black/40 border border-white/10 rounded px-2 py-1.5 text-white text-sm font-mono text-center focus:border-rose-500 focus:outline-none" 
-                                   />
-                                   <div class="text-[9px] text-white/30 text-center mt-1">Unid. por Bulto</div>
-                               </div>
-                           </div>
-                           
-                           <!-- Minimum Sale Qty -->
-                           <div class="space-y-1">
-                               <label class="text-[10px] uppercase font-bold text-white/40 block">Venta Mínima</label>
-                               <div class="relative">
-                                   <input 
-                                        v-model.number="localProducto.venta_minima"
-                                        type="number" step="0.01"
-                                        class="w-full bg-black/40 border border-white/10 rounded px-2 py-1.5 text-white text-sm font-mono text-center focus:border-rose-500 focus:outline-none" 
-                                   />
-                                   <div class="text-[9px] text-white/30 text-center mt-1">Min. Fraccionable</div>
-                               </div>
-                           </div>
-                           
-                           <div class="flex items-center justify-center">
-                                <label class="flex items-center gap-3 cursor-pointer group bg-black/20 px-4 py-2 rounded-lg border border-white/5 hover:border-white/20 transition-all w-full justify-center">
-                                    <div class="relative">
-                                        <input type="checkbox" v-model="localProducto.es_kit" class="peer sr-only" />
-                                        <div class="h-5 w-9 rounded-full bg-white/10 peer-checked:bg-rose-500 transition-colors"></div>
-                                        <div class="absolute left-1 top-1 h-3 w-3 rounded-full bg-white transition-transform peer-checked:translate-x-4"></div>
-                                    </div>
-                                    <span class="text-xs font-bold text-white/70 group-hover:text-white transition-colors">Es Kit</span>
-                                </label>
-                           </div>
-                       </div>
-                   </div>
+                            class="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-white text-xs focus:border-blue-500/50 focus:outline-none appearance-none"
+                        >
+                            <option value="UN">Unidad</option>
+                            <option value="KG">Kilos</option>
+                            <option value="LT">Litros</option>
+                            <option value="MT">Metros</option>
+                        </select>
+                    </div>
+                     <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-white/30 uppercase">Venta Mínima</label>
+                        <input 
+                         v-model.number="localProducto.venta_minima"
+                         type="number" step="1"
+                         class="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-white text-xs focus:border-blue-500/50 focus:outline-none"
+                       />
+                    </div>
+                 </div>
 
-               </div>
+                 <div class="flex items-center gap-2 p-2 rounded bg-white/5 border border-white/5">
+                      <input type="checkbox" v-model="localProducto.es_kit" class="rounded bg-black/50 border-white/20 text-rose-500 focus:ring-0 cursor-pointer">
+                      <span class="text-xs text-white/70 font-bold uppercase">Es Kit / Combo</span>
+                 </div>
+             </div>
+         </div>
 
-               <!-- TAB COSTOS -->
-               <div v-if="activeTab === 'costos'" class="space-y-6 animate-fadeIn">
-                   
-                   <!-- Costo Base -->
-                   <div class="grid grid-cols-2 gap-8 items-start">
-                        <div class="space-y-2">
-                             <label class="text-xs font-bold text-rose-200/50 uppercase block">Costo de Reposición (Neto)</label>
-                             <div class="relative group">
-                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-white/30 text-lg group-focus-within:text-rose-500">$</span>
-                                <input 
-                                    v-model.number="localCostos.costo_reposicion"
-                                    type="number" 
-                                    step="0.01"
-                                    class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 pl-8 text-white font-mono text-xl font-bold focus:border-rose-500 focus:outline-none transition-colors"
-                                    placeholder="0.00"
-                                />
-                             </div>
-                             <p class="text-[10px] text-white/30 pl-1">Precio de compra sin IVA al proveedor habitual.</p>
-                        </div>
-                        
-                        <div class="space-y-1">
-                           <label class="text-xs font-bold text-rose-200/50 uppercase block">Proveedor Habitual</label>
-                           <select 
-                             v-model="localProducto.proveedor_habitual_id"
-                             class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-3 text-white focus:border-rose-500 focus:outline-none appearance-none text-sm"
-                           >
-                               <option :value="null">Seleccionar Proveedor...</option>
-                               <option v-for="p in proveedores" :key="p.id" :value="p.id">
-                                   {{ p.razon_social || p.nombre }}
-                               </option>
-                           </select>
-                        </div>
-                   </div>
-
-                   <hr class="border-white/5" />
-
-                   <!-- Margenes y Precios (BIDIRECCIONAL ROCA SÓLIDA) -->
-                   <div class="grid grid-cols-3 gap-6">
-                        <!-- Col 1: Rentabilidad Target % -->
-                        <div class="space-y-2">
-                            <label class="text-xs font-bold text-cyan-400 uppercase block">Rentabilidad Target %</label>
-                            <div class="relative">
-                                <input 
-                                    v-model.number="localCostos.rentabilidad_target"
-                                    @input="updateRocaFromRent"
-                                    type="number" step="0.1"
-                                    class="w-full bg-cyan-900/10 border border-cyan-500/30 rounded-lg px-3 py-2 pl-3 pr-8 text-cyan-400 font-mono text-right font-bold focus:border-cyan-500 focus:outline-none focus:bg-cyan-900/20 transition-colors"
-                                />
-                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-cyan-500/50 text-xs">%</span>
-                            </div>
-                        </div>
-
-                        <!-- Col 2: Arrow Indicator -->
-                        <div class="flex items-center justify-center pt-6 opacity-30">
-                            <i class="fas fa-arrow-right text-white"></i>
-                        </div>
-
-                        <!-- Col 3: Precio Roca (Base Real) -->
-                        <div class="space-y-2">
-                             <label class="text-xs font-bold text-white uppercase block">Precio Roca (Base)</label>
-                             <div class="relative group">
-                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 text-xs">$</span>
-                                <input 
-                                    v-model.number="localCostos.precio_roca"
-                                    @input="updateRentFromRoca"
-                                    type="number" 
-                                    step="0.01"
-                                    class="w-full bg-white/5 border border-white/20 rounded-lg px-3 py-2 pl-6 text-white font-mono text-right font-bold focus:border-white/40 focus:outline-none transition-colors border-l-4 border-l-white"
-                                />
-                             </div>
-                        </div>
-                   </div>
-
-                   <!-- Calculadora de Máscara (Visual Only) -->
-                   <div class="mt-6 p-6 bg-[#0a1f2e]/50 border border-cyan-500/20 rounded-2xl relative shadow-lg">
-                       <div class="absolute -top-3 left-6 px-2 bg-[#1a050b] text-cyan-400 text-xs font-bold tracking-widest uppercase border border-cyan-500/20 rounded">
-                           Proyecciones de Mercado
-                       </div>
-                       
-                       <div class="grid grid-cols-2 gap-8 mt-2">
-                            <!-- IVA -->
-                            <div class="space-y-2">
-                                 <label class="text-[10px] uppercase font-bold text-white/50 block">Alícuota IVA</label>
-                                 <select 
-                                    v-model="localProducto.tasa_iva_id"
-                                    class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white font-mono focus:border-rose-500 focus:outline-none appearance-none"
-                                    @change="updateLocalIvaRate"
-                                  >
-                                      <option :value="null">Seleccionar...</option>
-                                      <option v-for="t in tasasIva" :key="t.id" :value="t.id">
-                                          {{ t.nombre }} ({{ t.valor }}%)
-                                      </option>
-                                  </select>
-                            </div>
-
-                            <!-- Opciones de Máscara OUTPUTS -->
-                            <div class="space-y-3">
-                                <div class="flex justify-between items-center p-2 border-b border-white/5">
-                                    <div class="text-[10px] text-white/50">Precio Final (C/IVA)</div>
-                                    <div class="text-lg font-mono font-bold text-white">
-                                        {{ formatCurrency((localCostos.precio_roca || 0) * (1 + (localCostos.iva_alicuota || 21)/100)) }}
-                                    </div>
-                                </div>
-                            </div>
-                       </div>
-                   </div>
-                   
-               </div>
-          </div>
-
-      </div>
-        
     </div>
-    
-    <!-- Sticky Footer Actions -->
-    <div class="shrink-0 p-4 border-t border-rose-900/30 bg-[#2e0a13]/50 flex justify-end items-center gap-4 backdrop-blur-md z-50">
+
+    <!-- Sticky Footer -->
+    <div class="shrink-0 p-4 border-t border-rose-900/30 bg-[#2e0a13]/90 flex justify-end items-center gap-4 backdrop-blur-md z-50">
         <div class="mr-auto text-xs text-white/30 hidden md:block">
-            <span class="font-bold">TIP:</span> Use <span class="bg-white/10 px-1 rounded text-white/60">Tab</span> para navegar y <span class="bg-white/10 px-1 rounded text-white/60">F10</span> para guardar.
+            <span class="font-bold">TIP:</span> Precio Final es calculado. El <span class="text-white">Precio Roca</span> es la base imponible.
         </div>
         
         <button 
@@ -335,6 +329,7 @@
             <span>Guardar (F10)</span>
         </button>
     </div>
+
   </div>
 </template>
 
@@ -342,80 +337,35 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useProductosStore } from '../../../stores/productos'
+import productosApi from '../../../services/productosApi' // Direct import for sub-resources
 import { useNotificationStore } from '@/stores/notification'
-import SmartSelect from '../../../components/ui/SmartSelect.vue'
-import canteraService from '@/services/canteraService'
+import dayjs from 'dayjs'
 
 const productosStore = useProductosStore()
 const notification = useNotificationStore()
 const { unidades, tasasIva, proveedores } = storeToRefs(productosStore)
 
 const props = defineProps({
-  producto: {
-    type: Object,
-    default: () => null
-  },
-  rubros: {
-    type: Array,
-    default: () => []
-  }
+  producto: { type: Object, default: () => null },
+  rubros: { type: Array, default: () => [] }
 })
 
 const emit = defineEmits(['close', 'save', 'toggle-active'])
 
-const activeTab = ref('general')
-const localProducto = ref(null)
+// SAFE OBJECT PATTERN
+const localProducto = ref({}) 
+const pristineName = ref('')
+
+// FINANCIAL STATE
 const localCostos = ref({
     costo_reposicion: 0,
     rentabilidad_target: 30, 
     precio_roca: 0,
-    iva_alicuota: 21,
+    iva_alicuota: 21, // Default IVA alicuota
     moneda_costo: 'ARS'
 })
-
-// --- DUAL OUTPUT LOGIC (ROCA SÓLIDA) ---
-const isUpdating = ref(false)
-
-// 1. Cost + Rent -> Roca
-const updateRocaFromRent = () => {
-    if (isUpdating.value) return
-    isUpdating.value = true
-    
-    const costo = Number(localCostos.value.costo_reposicion) || 0
-    const rent = Number(localCostos.value.rentabilidad_target) || 0
-    
-    // Formula: Roca = Costo * (1 + Rent/100)
-    localCostos.value.precio_roca = parseFloat((costo * (1 + rent / 100)).toFixed(2))
-    
-    nextTick(() => { isUpdating.value = false })
-}
-
-// 2. Cost + Roca -> Rent
-const updateRentFromRoca = () => {
-    if (isUpdating.value) return
-    isUpdating.value = true
-    
-    const costo = Number(localCostos.value.costo_reposicion) || 0
-    const roca = Number(localCostos.value.precio_roca) || 0
-    
-    if (costo > 0) {
-        // Formula: Rent = ((Roca / Costo) - 1) * 100
-        localCostos.value.rentabilidad_target = parseFloat((((roca / costo) - 1) * 100).toFixed(2))
-    } else {
-        localCostos.value.rentabilidad_target = 0
-    }
-    
-    nextTick(() => { isUpdating.value = false })
-}
-
-// Watch Costo Reposicion -> Update Roca by default (maintaining Rent)
-watch(() => localCostos.value.costo_reposicion, () => {
-    updateRocaFromRent()
-})
-// ----------------------------
-
-const templateId = ref(null)
-const pristineName = ref('')
+const lastCostUpdate = ref('')
+const lastRentUpdate = ref('')
 
 const flattenedRubros = computed(() => {
     const result = []
@@ -432,126 +382,236 @@ const flattenedRubros = computed(() => {
     return result
 })
 
+// --- BRAIN LOGIC (TRIDIRECCIONAL) ---
+const isUpdating = ref(false)
+
+// Computed for Final Price (Display)
+const finalPrice = computed(() => {
+    const roca = Number(localCostos.value.precio_roca) || 0
+    const alicuota = Number(localCostos.value.iva_alicuota) || 21
+    return parseFloat((roca * (1 + alicuota/100)).toFixed(2))
+})
+
+const updateCostTimestamp = () => {
+    lastCostUpdate.value = dayjs().format('DD/MM HH:mm')
+    // If Cost changes, and we want to keep Rent fixed? or Price fixed?
+    // Standard: Keep Rent, Recalc Price Roca
+    // localCostos.value.precio_roca = cost * (1+rent) -> This is standard
+    // BUT here we have updateRentFromRoca logic which implies Roca is dominant?
+    // Let's stick to: Change Cost -> Keep Rent -> Update Roca
+    if (isUpdating.value) return
+    isUpdating.value = true
+    
+    const costo = Number(localCostos.value.costo_reposicion) || 0
+    const rent = Number(localCostos.value.rentabilidad_target) || 0
+    localCostos.value.precio_roca = parseFloat((costo * (1 + rent / 100)).toFixed(2))
+    
+    nextTick(() => { isUpdating.value = false })
+}
+
+const updateRocaFromRent = () => {
+    if (isUpdating.value) return
+    isUpdating.value = true
+    
+    lastRentUpdate.value = dayjs().format('DD/MM HH:mm')
+    
+    const costo = Number(localCostos.value.costo_reposicion) || 0
+    const rent = Number(localCostos.value.rentabilidad_target) || 0
+    
+    localCostos.value.precio_roca = parseFloat((costo * (1 + rent / 100)).toFixed(2))
+    
+    nextTick(() => { isUpdating.value = false })
+}
+
+const updateRentFromRoca = () => {
+    if (isUpdating.value) return
+    isUpdating.value = true
+    
+    lastRentUpdate.value = dayjs().format('DD/MM HH:mm')
+
+    const costo = Number(localCostos.value.costo_reposicion) || 0
+    const roca = Number(localCostos.value.precio_roca) || 0
+    
+    if (costo > 0) {
+        localCostos.value.rentabilidad_target = parseFloat((((roca / costo) - 1) * 100).toFixed(2))
+    }
+    
+    nextTick(() => { isUpdating.value = false })
+}
+
+const updateNetFromFinal = (finalVal) => {
+    if (isUpdating.value) return
+    isUpdating.value = true
+    
+    const priceFinal = parseFloat(finalVal) || 0
+    const alicuota = Number(localCostos.value.iva_alicuota) || 21
+    
+    // Reverse Engineering: Roca = Final / (1 + IVA)
+    const newRoca = parseFloat((priceFinal / (1 + alicuota/100)).toFixed(2))
+    
+    localCostos.value.precio_roca = newRoca
+    
+    // Now trigger Rent recalc immediately
+    const costo = Number(localCostos.value.costo_reposicion) || 0
+    if (costo > 0) {
+         localCostos.value.rentabilidad_target = parseFloat((((newRoca / costo) - 1) * 100).toFixed(2))
+    }
+    
+    nextTick(() => { isUpdating.value = false })
+}
+// -----------------------------------
+
+const updateLocalIvaRate = () => {
+    const selectedTasa = tasasIva.value.find(t => t.id === localProducto.value.tasa_iva_id)
+    if (selectedTasa) {
+        localCostos.value.iva_alicuota = Number(selectedTasa.valor)
+        // When IVA rate changes, the final price changes, which means the Roca price (net)
+        // should remain the same, and the final price computed property will update.
+        // No need to explicitly call updateNetFromFinal or updateRocaFromRent here,
+        // as the finalPrice computed property will react to localCostos.iva_alicuota change.
+        // However, if we want to keep the *final price* fixed and recalculate Roca,
+        // we would call updateNetFromFinal with the current finalPrice.
+        // For now, let's assume Roca is the anchor when IVA changes.
+    }
+}
+
+
 watch(() => props.producto, (newVal) => {
     if (newVal) {
         localProducto.value = JSON.parse(JSON.stringify(newVal))
+        // Default Safety
+        if (localProducto.value.venta_minima === undefined) localProducto.value.venta_minima = 1.0;
         
-        // Ensure default venta_minima
-        if (localProducto.value.venta_minima === undefined || localProducto.value.venta_minima === null) {
-            localProducto.value.venta_minima = 1.0;
-        }
-
+        // Sync IVA ID if missing or populate localCostos iva from it?
+        // Priority: localProducto.tasa_iva_id determines localCostos.iva_alicuota
+        
         if (newVal.costos) {
             localCostos.value = { ...newVal.costos }
         } else {
             localCostos.value = { 
                 costo_reposicion: 0, 
-                margen_mayorista: 30, 
+                rentabilidad_target: 30, 
+                precio_roca: 0, 
                 iva_alicuota: 21,
-                cm_objetivo: null,
-                precio_fijo_override: null
+                moneda_costo: 'ARS'
             }
         }
+        
+        if (newVal.costos) {
+            localCostos.value = { ...newVal.costos }
+        } else {
+            localCostos.value = { 
+                costo_reposicion: 0, 
+                rentabilidad_target: 30, 
+                precio_roca: 0, 
+                iva_alicuota: 21,
+                moneda_costo: 'ARS'
+            }
+        }
+        
+        // Ensure tipo_producto has default
+        if (!localProducto.value.tipo_producto) localProducto.value.tipo_producto = 'VENTA'
+
+        // Find correct alicuota based on ID if possible
+        if (localProducto.value.tasa_iva_id && tasasIva.value?.length) {
+            const tasa = tasasIva.value.find(t => t.id === localProducto.value.tasa_iva_id)
+            if (tasa) localCostos.value.iva_alicuota = Number(tasa.valor)
+        } else if (!localProducto.value.tasa_iva_id && tasasIva.value?.length) {
+            // If no tasa_iva_id is set, try to default to the first one or a common one (e.g., 21%)
+            const defaultTasa = tasasIva.value.find(t => t.valor === 21) || tasasIva.value[0];
+            if (defaultTasa) {
+                localProducto.value.tasa_iva_id = defaultTasa.id;
+                localCostos.value.iva_alicuota = Number(defaultTasa.valor);
+            }
+        }
+
     } else {
-        localProducto.value = null
+        localProducto.value = {}
+        localCostos.value = { 
+            costo_reposicion: 0, 
+            rentabilidad_target: 30, 
+            precio_roca: 0,
+            iva_alicuota: 21,
+            moneda_costo: 'ARS'
+        }
     }
     pristineName.value = localProducto.value?.nombre || ''
-    templateId.value = null 
+    lastCostUpdate.value = ''
+    lastRentUpdate.value = ''
+    
+    // Sync Suppliers List
+    localProveedoresList.value = localProducto.value.proveedores ? [...localProducto.value.proveedores] : []
 }, { immediate: true })
 
 
+// --- SUPPLIER MANAGEMENT ---
+const localProveedoresList = ref([])
+const isAddingSupplier = ref(false)
+const newSupplier = ref({ proveedor_id: null, costo: '', observaciones: '' })
 
-const handleCanteraSelect = async (item) => {
-    // 1. Fetch Full Details from Bridge
+const getProvName = (id) => {
+    if (!proveedores.value) return 'Loading...'
+    const p = proveedores.value.find(x => x.id === id)
+    return p ? (p.razon_social || p.nombre) : 'Unknown'
+}
+const formatDate = (date) => dayjs(date).format('MM/MM/YY')
+
+const saveSupplier = async () => {
+    if (!newSupplier.value.proveedor_id || !newSupplier.value.costo) return
     try {
-        // We use a new service method to get details without importing
-        // Or if not available, we assume item has basic info and use what we have, 
-        // but typically search result is lean.
-        // Let's assume we added getProductoDetails to canteraService
-        const fullData = await canteraService.getProductoDetails(item.id)
-        
-        if (fullData) {
-            handleTemplateSelect(fullData)
-            notification.add('Datos cargados desde Cantera (No guardado)', 'success')
+        const payload = {
+            proveedor_id: newSupplier.value.proveedor_id,
+            costo: Number(newSupplier.value.costo),
+            observaciones: newSupplier.value.observaciones
         }
+        const res = await productosApi.addProveedor(localProducto.value.id, payload)
+        
+        // Add to local list
+        localProveedoresList.value.unshift(res.data)
+        
+        // Reset form
+        newSupplier.value = { proveedor_id: null, costo: '', observaciones: '' }
+        isAddingSupplier.value = false
+        notification.add('Proveedor agregado', 'success')
     } catch (e) {
         console.error(e)
-        // Fallback or error
-        notification.add('Error cargando detalles de Cantera', 'error')
+        notification.add('Error al agregar proveedor', 'error')
     }
 }
 
-const handleTemplateSelect = (itemOrId) => {
-    // Check if it's a direct object (from Cantera) or ID (from Local)
-    let template = null;
-    if (typeof itemOrId === 'object') {
-        template = itemOrId;
-    } else {
-        template = productosStore.productos.find(p => p.id === itemOrId);
-    }
-
-    if (template) {
-        const originalActive = localProducto.value.activo;
-        
-        // Mapeo Inteligente
-        localProducto.value = {
-            ...localProducto.value, // Keep existing defaults
-            nombre: template.nombre,
-            codigo_visual: template.codigo_visual || '',
-            rubro_id: template.rubro_id, // Might not match if IDs differ
-            unidad_medida: template.unidad_medida || 'UN',
-            tipo_producto: template.tipo_producto || 'VENTA',
-            venta_minima: template.venta_minima || 1.0,
-            factor_compra: template.factor_compra || 1.0,
-            es_kit: template.es_kit || false,
-            // Don't carry over ID or SKU, generate new
-        };
-
-        if (template.costos) {
-            localCostos.value = { ...template.costos };
-        }
-        
-        pristineName.value = template.nombre;
-        
-        nextTick(() => {
-            const nameInput = document.querySelector('input[type="text"]');
-            if (nameInput) nameInput.focus();
-        });
+const removeSupplier = async (costoId) => {
+    if (!confirm('Eliminar registro?')) return
+    try {
+        await productosApi.removeProveedor(costoId)
+        localProveedoresList.value = localProveedoresList.value.filter(x => x.id !== costoId)
+        notification.add('Eliminado', 'success')
+    } catch (e) {
+        console.error(e)
+        notification.add('Error al eliminar', 'error')
     }
 }
 
-const handleManualTemplate = (name) => {
-    if (name) {
-        localProducto.value.nombre = name
-        pristineName.value = name
-        // Initialize simple default
-        if (!localProducto.value.venta_minima) localProducto.value.venta_minima = 1.0;
-        
-        nextTick(() => {
-             const nameInput = document.querySelector('input[type="text"]');
-             if (nameInput) nameInput.focus();
-        });
-    }
-    templateId.value = null
-    notification.add('Alta Manual: Complete los datos', 'info')
-}
-
-const simulatedPrices = computed(() => {
-    const costo = Number(localCostos.value.costo_reposicion) || 0
-    const margen = Number(localCostos.value.margen_mayorista) || 0
-    // Simplified calculation for display
-    const mayoristaByMargin = costo * (1 + margen/100)
-    return { mayoristaByMargin }
-})
-
-const formatCurrency = (val) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(val)
 
 const save = () => {
-    if (!localProducto.value) return
-    if (!localProducto.value.id && localProducto.value.nombre === pristineName.value) {
-        notification.add('Modifique el nombre para crear un nuevo producto.', 'warning')
-        return;
+    if (!localProducto.value || !localProducto.value.nombre) return
+    
+    if (!localProducto.value.nombre) {
+        notification.add('El nombre del producto es obligatorio', 'error')
+        return
     }
+
+    if (!localProducto.value.rubro_id) {
+        notification.add('Debe seleccionar un Rubro / Categoría', 'error')
+        return
+    }
+
+    const costo = Number(localCostos.value.costo_reposicion) || 0
+    if (costo <= 0) {
+        if (!confirm('⚠ ALERTA DE COSTOS: El Costo de Reposición es $0.00.\n\n¿Está SEGURO que desea continuar?')) {
+             return
+        }
+    }
+
     const payload = {
         ...localProducto.value,
         costos: { ...localCostos.value }
@@ -559,16 +619,15 @@ const save = () => {
     emit('save', payload)
 }
 
-const updateLocalIvaRate = () => {
-    const selectedTasa = tasasIva.value.find(t => t.id === localProducto.value.tasa_iva_id)
-    if (selectedTasa) localCostos.value.iva_alicuota = Number(selectedTasa.valor)
-}
+const formatCurrency = (val) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(val || 0)
 
 const handleKeydown = (e) => {
     if (e.key === 'F10') {
         e.preventDefault()
-        e.stopPropagation()
         save()
+    }
+    if (e.key === 'Escape') {
+         emit('close')
     }
 }
 
@@ -582,11 +641,21 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
 </script>
 
 <style scoped>
-.animate-fadeIn {
-    animation: fadeIn 0.3s ease-out;
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
 }
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.bg-dotted-pattern {
+  background-image: radial-gradient(#ffffff 1px, transparent 1px);
+  background-size: 20px 20px;
 }
 </style>

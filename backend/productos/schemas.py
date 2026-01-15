@@ -67,7 +67,25 @@ class ProductoCostoRead(ProductoCostoBase):
     class Config:
         from_attributes = True
 
+
 # --- PRODUCTOS ---
+
+class ProductoProveedorBase(BaseModel):
+    proveedor_id: UUID
+    costo: Decimal = Field(..., max_digits=12, decimal_places=4)
+    moneda: str = 'ARS'
+    observaciones: Optional[str] = None
+
+class ProductoProveedorCreate(ProductoProveedorBase):
+    pass
+
+class ProductoProveedorRead(ProductoProveedorBase):
+    id: int
+    fecha: datetime
+    # Optional: Nested Provider info if needed via service fetch
+    
+    class Config:
+        from_attributes = True
 
 class ProductoBase(BaseModel):
     codigo_visual: Optional[str] = None
@@ -110,6 +128,9 @@ class ProductoRead(ProductoBase):
     created_at: datetime
     rubro: Optional[RubroRead] = None
     costos: Optional[ProductoCostoRead] = None
+    
+    # New V5.4
+    proveedores: List[ProductoProveedorRead] = []
 
     # Campos Calculados
     precio_mayorista: Optional[Decimal] = None
@@ -121,16 +142,8 @@ class ProductoRead(ProductoBase):
 
     @validator('precio_mayorista', always=True, pre=True)
     def calculate_precio_mayorista(cls, v, values):
-        # Si viene del ORM, 'costos' estará en values (si se cargó)
-        # Nota: values contiene los datos crudos del objeto ORM si from_orm es True? 
-        # No, en Pydantic v1 values es un dict de campos ya validados.
-        # Pero si usamos orm_mode, pydantic trata de sacar los datos del objeto.
-        # Para campos calculados que dependen de relaciones, es mejor usar un getter property en el modelo o un validator que acceda al objeto original si es posible.
-        # En Pydantic v1 con orm_mode, es complejo acceder al objeto original en validator.
-        # Simplificación: El cálculo se hará en el servicio o se asume que el backend lo entrega.
-        # O mejor, usamos un @root_validator(pre=True) para interceptar el objeto ORM.
         return v
-
+    
     # NOTA: Para simplificar, los precios calculados se deberían computar en el Service 
     # antes de pasar al Schema, o usar propiedades en el Modelo SQLAlchemy.
     # Por ahora los definimos como opcionales.

@@ -84,15 +84,15 @@ const routes = [
                 path: 'cantera',
                 name: 'CanteraExplorer',
                 component: () => import('../views/Maestros/CanteraExplorer.vue')
+            },
+            {
+                path: 'intel/cleaner',
+                name: 'data-cleaner',
+                component: DataCleaner
             }
         ]
     },
-    {
-        path: '/data-cleaner',
-        name: 'data-cleaner',
-        component: DataCleaner,
-        meta: { layout: 'hawe' }
-    },
+
     {
         path: '/:pathMatch(.*)*',
         redirect: '/hawe'

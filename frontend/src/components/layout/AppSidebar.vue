@@ -1,7 +1,11 @@
 <template>
   <aside class="flex w-64 flex-col border-r border-white/10 h-full transition-colors duration-300 bg-[#0a0a0a] z-50 shrink-0">
     <!-- Logo Area -->
-    <div class="flex h-16 items-center px-6 border-b border-white/10 shrink-0">
+    <div 
+        class="flex h-16 items-center px-6 border-b border-white/10 shrink-0 cursor-pointer select-none"
+        @dblclick="router.push('/')"
+        title="Doble click para ir al Inicio"
+    >
       <div class="h-8 w-8 rounded bg-gradient-to-br from-gray-700 to-gray-900 mr-3 shadow-lg flex items-center justify-center">
         <i class="fas fa-bolt text-cyan-400"></i>
       </div>

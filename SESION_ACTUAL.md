@@ -1,21 +1,22 @@
-# Sesión Actual - Sonido Líquido V5
+# Sesión Actual - Sonido Líquido V5 [EMERGENCY MODE]
 
-**Fecha:** 2026-01-04
-**Estado:** Finalizado
+**Fecha:** 2026-01-15
+**Estado:** EN ALERTA METEOROLÓGICA (RIESGO DE BLACKOUT)
 
-## Resumen de Contexto
-Sesión de verificación de estado y documentación post-reinicio. Se detectó y documentó un bloqueo por dependencias de Python.
+## CONTEXTO DE RESCATE (LEER AL REINICIAR)
+Si estás leyendo esto tras un reinicio:
+1.  **Estado:** Estábamos reparando el sistema tras un primer corte de luz.
+2.  **Base de Datos:**
+    *   `pilot.db` (Raíz): SANO (4 Clientes).
+    *   `backend/data/pilot.db`: RESTAURADO desde Raíz (Copia OK).
+3.  **Código:**
+    *   Frontend: Fix aplicado en `ProductoInspector.vue` (Syntax Error).
+    *   Backend: Funcionando.
+    *   Rama Git: `backup-emergencia-calor` (SYNCED).
+4.  **Tarea Pendiente:** Validación de Bloqueo de Precios (Lógica Dura) en Frontend.
 
-## Incidentes
-*   **LOOP DE DEPENDENCIAS:** El sistema entró en un bucle infinito al intentar resolver dependencias de `protobuf` vs `google-ai-generativelanguage` al ejecutar herramientas de reporte.
-    *   **Acción Correctiva:** Se documentó la prohibición de actualizaciones automáticas de dependencias en `GY_IPL_V6.md`.
-    *   **Estado Datos:** Intactos. `CAJA_NEGRA.md` y `MANUAL_OPERATIVO_V5.md` verificados.
-
-## Tareas Completadas
-1.  **Verificación de Seguridad**: Confirmada la integridad de `CAJA_NEGRA.md`, `MANUAL_OPERATIVO_V5.md` y `BITACORA_DEV.md` tras el reinicio forzoso.
-2.  **Diagnóstico de Fallo**: Identificado el error `ResolutionImpossible` en pip.
-3.  **Actualización de Protocolo**: Se agregó advertencia crítica en `GY_IPL_V6.md` para evitar futuros bloqueos.
-
-## Archivos Relevantes
-*   `GY_IPL_V6.md` (Actualizado con advertencia)
-*   `CAJA_NEGRA.md` (Verificado)
+## Log de Emergencia
+*   [x] Diagnóstico de Daños (Database Integrity check).
+*   [x] Restauración de `backend/data/pilot.db`.
+*   [x] Corrección Syntax Error Vue.
+*   [x] **BACKUP GIT DE EMERGENCIA EJECUTADO.**

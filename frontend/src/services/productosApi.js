@@ -18,5 +18,11 @@ export default {
     },
     hardDelete(id) {
         return api.delete(`/productos/${id}/hard`);
+    },
+    addProveedor(id, data) {
+        return api.post(`/productos/${id}/proveedores`, data);
+    },
+    removeProveedor(costoId) {
+        return api.delete(`/productos/proveedores/${costoId}`);
     }
 };

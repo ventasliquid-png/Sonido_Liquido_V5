@@ -71,6 +71,25 @@ class Producto(Base):
     tasa_iva = relationship("TasaIVA")
     unidad_stock = relationship("Unidad", foreign_keys=[unidad_stock_id])
     unidad_compra = relationship("Unidad", foreign_keys=[unidad_compra_id])
+    
+    # Proveedores Alternativos (V5.4)
+    proveedores = relationship("ProductoProveedor", back_populates="producto", cascade="all, delete-orphan")
+
+class ProductoProveedor(Base):
+    __tablename__ = "productos_proveedores"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    producto_id = Column(Integer, ForeignKey('productos.id'), nullable=False)
+    proveedor_id = Column(GUID(), ForeignKey('proveedores.id'), nullable=False)
+    
+    costo = Column(Numeric(12, 4), nullable=False, default=0)
+    moneda = Column(String(3), default='ARS')
+    fecha = Column(DateTime(timezone=True), server_default=func.now())
+    observaciones = Column(String(255), nullable=True)
+    
+    # Relaciones
+    producto = relationship("Producto", back_populates="proveedores")
+    proveedor = relationship("Proveedor")
 
 class ProductoCosto(Base):
     __tablename__ = "productos_costos"

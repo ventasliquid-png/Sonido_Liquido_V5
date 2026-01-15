@@ -178,6 +178,20 @@
                         <option :value="null">Sin Segmento</option>
                         <option v-for="seg in segmentos" :key="seg.id" :value="seg.id">{{ seg.nombre }}</option>
                     </select>
+
+                </div>
+
+                <div>
+                    <div class="flex justify-between mb-1">
+                        <label class="block text-xs font-bold uppercase text-cyan-900/50">Lista de Precios <span class="text-red-400">*</span></label>
+                         <button @click="router.push({name: 'ListasPrecios'})" class="text-[10px] uppercase font-bold text-cyan-500 hover:text-cyan-400 focus:outline-none" title="Ir a Gestión de Listas">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                    </div>
+                    <select v-model="form.lista_precios_id" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors appearance-none">
+                        <option :value="null" disabled>Seleccione Lista...</option>
+                        <option v-for="lista in listasPrecios" :key="lista.id" :value="lista.id">{{ lista.nombre }}</option>
+                    </select>
                 </div>
 
 
@@ -427,6 +441,8 @@ const segmentos = computed(() => maestrosStore.segmentos)
 const condicionesIva = computed(() => maestrosStore.condicionesIva)
 const provincias = computed(() => maestrosStore.provincias)
 const transportes = computed(() => maestrosStore.transportes)
+
+const listasPrecios = computed(() => maestrosStore.listasPrecios)
 const sortedDomicilios = computed(() => {
     if (!form.value.domicilios) return []
     // [GY-FIX] Filter only active domicilios (Soft Delete View)
@@ -760,12 +776,15 @@ const openAbm = (type) => {
 
 const handleAbmCreate = async (name) => {
     try {
+        let res;
         if (abmType.value === 'IVA') {
-            await maestrosStore.createCondicionIva({ nombre: name })
+            res = await maestrosStore.createCondicionIva({ nombre: name })
+            if (res && res.id) form.value.condicion_iva_id = res.id
         } else {
-            await maestrosStore.createSegmento({ nombre: name })
+            res = await maestrosStore.createSegmento({ nombre: name })
+            if (res && res.id) form.value.segmento_id = res.id
         }
-        notificationStore.add('Elemento creado', 'success')
+        notificationStore.add('Elemento creado y seleccionado', 'success')
     } catch (e) {
         console.error(e)
         notificationStore.add('Error al crear elemento', 'error')
@@ -839,6 +858,11 @@ const save = async () => {
 
         if (!form.value.segmento_id && !isGenericCuit) {
             alert('El Segmento es obligatorio.')
+            saving.value = false
+            return
+        }
+        if (!form.value.lista_precios_id) {
+            alert('La Lista de Precios es obligatoria.')
             saving.value = false
             return
         }
@@ -918,6 +942,14 @@ const save = async () => {
         
         emit('save', form.value)
         notificationStore.add(`Cliente ${props.isNew ? 'creado' : 'actualizado'} con éxito`, 'success')
+        emit('save', form.value)
+        notificationStore.add(`Cliente ${props.isNew ? 'creado' : 'actualizado'} con éxito`, 'success')
+        
+        // [GY-UX] Auto-close on new client success or reset?
+        // User requested: "que el formulario se limpie o cierre"
+        if (props.isNew) {
+             emit('close')
+        }
     } catch(e) {
         console.error(e)
     } finally {
