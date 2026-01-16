@@ -105,6 +105,10 @@ class ProductoBase(BaseModel):
     proveedor_habitual_id: Optional[UUID] = None
     tasa_iva_id: Optional[int] = None
 
+    # Metadata Logística (V5.5)
+    presentacion_compra: Optional[str] = None
+    unidades_bulto: Optional[Decimal] = 1.0
+
 class ProductoCreate(ProductoBase):
     costos: ProductoCostoCreate
 
@@ -121,6 +125,8 @@ class ProductoUpdate(ProductoBase):
     venta_minima: Optional[Decimal] = None
     proveedor_habitual_id: Optional[UUID] = None
     tasa_iva_id: Optional[int] = None
+    presentacion_compra: Optional[str] = None
+    unidades_bulto: Optional[Decimal] = None
 
 class ProductoRead(ProductoBase):
     id: int

@@ -278,8 +278,27 @@
                  </h4>
 
                  <div class="grid grid-cols-2 gap-3">
+                     <!-- ROW 1: COMPRA (V5.5) -->
                      <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-white/30 uppercase">Unidad</label>
+                        <label class="text-[10px] font-bold text-white/30 uppercase">Pres. Compra</label>
+                        <input 
+                            v-model="localProducto.presentacion_compra"
+                            class="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-white text-xs focus:border-blue-500/50 focus:outline-none placeholder-white/10"
+                            placeholder="Ej: Bulto, Pack"
+                        />
+                     </div>
+                     <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-white/30 uppercase">Unid. x Bulto</label>
+                        <input 
+                            v-model.number="localProducto.unidades_bulto"
+                            type="number" step="1"
+                            class="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-white text-xs focus:border-blue-500/50 focus:outline-none"
+                        />
+                     </div>
+
+                     <!-- ROW 2: VENTA (EXISTING) -->
+                     <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-white/30 uppercase">Unidad Venta</label>
                         <select 
                             v-model="localProducto.unidad_medida"
                             class="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-white text-xs focus:border-blue-500/50 focus:outline-none appearance-none"
@@ -526,6 +545,8 @@ const syncLocalState = () => {
              
              // Defaults
              if (localProducto.value.venta_minima === undefined) localProducto.value.venta_minima = 1.0;
+             if (localProducto.value.unidades_bulto === undefined || localProducto.value.unidades_bulto === null) localProducto.value.unidades_bulto = 1.0;
+             if (!localProducto.value.presentacion_compra) localProducto.value.presentacion_compra = ''; // Visual cleanup
              if (!localProducto.value.tipo_producto) localProducto.value.tipo_producto = 'VENTA'
 
              // Costos

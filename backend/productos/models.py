@@ -40,9 +40,11 @@ class Producto(Base):
     descripcion = Column(Text, nullable=True)
     rubro_id = Column(Integer, ForeignKey('rubros.id'), nullable=False)
     
-    # Logística de Compra
+    # Logística de Compra (Metadata V5.5)
     proveedor_habitual_id = Column(GUID(), ForeignKey('proveedores.id'), nullable=True)
-    
+    presentacion_compra = Column(String, nullable=True) # Ej: "Cajón", "Pack x 24"
+    unidades_bulto = Column(Numeric(10, 2), default=1.0) # Ej: 24.0
+
     # Fiscal
     tasa_iva_id = Column(Integer, ForeignKey('tasas_iva.id'), nullable=True)
     
