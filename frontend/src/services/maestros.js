@@ -98,5 +98,11 @@ export default {
     },
     getUnidades() {
         return api.get('/maestros/unidades');
+    },
+    createUnidad(payload) {
+        return api.post('/maestros/unidades', payload);
+    },
+    createTasaIva(payload) {
+        return api.post('/maestros/tasas-iva', payload);
     }
 };

@@ -272,7 +272,49 @@ class MaestrosService:
     def get_tasas_iva(db: Session) -> List[models.TasaIVA]:
         return db.query(models.TasaIVA).all()
 
+    @staticmethod
+    def create_tasa_iva(db: Session, tasa: schemas.TasaIVACreate) -> models.TasaIVA:
+        # Smart Logic: If valor is None, try to parse from nombre (e.g., "IVA 21%")
+        val = tasa.valor
+        if val is None:
+             import re
+             # Extract first float/int from string
+             match = re.search(r"(\d+(\.\d+)?)", tasa.nombre)
+             if match:
+                 val = float(match.group(1))
+             else:
+                 val = 0.0
+        
+        db_tasa = models.TasaIVA(nombre=tasa.nombre, valor=val)
+        db.add(db_tasa)
+        db.commit()
+        db.refresh(db_tasa)
+        return db_tasa
+
     # --- Unidades ---
     @staticmethod
     def get_unidades(db: Session) -> List[models.Unidad]:
         return db.query(models.Unidad).all()
+
+    @staticmethod
+    def create_unidad(db: Session, unidad: schemas.UnidadCreate) -> models.Unidad:
+        # Smart Logic: Generate Code from Nombre if missing
+        code = unidad.codigo
+        if not code:
+            # First 3 chars upper, e.g. "Bolsón" -> "BOL"
+            # Handle collision? For now, keep it simple (Occam).
+            import text_unidecode
+            clean_name = text_unidecode.unidecode(unidad.nombre).upper()
+            code = clean_name[:3]
+            
+            # Simple collision reference check (not perfect but helpful)
+            exists = db.query(models.Unidad).filter(models.Unidad.codigo == code).first()
+            if exists:
+                import random
+                code = f"{code}{random.randint(10,99)}"
+
+        db_unidad = models.Unidad(nombre=unidad.nombre, codigo=code)
+        db.add(db_unidad)
+        db.commit()
+        db.refresh(db_unidad)
+        return db_unidad

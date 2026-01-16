@@ -181,15 +181,16 @@
                       <div class="flex items-center justify-between">
                           <div class="space-y-1 w-1/2">
                                 <label class="text-[10px] font-bold text-white/30 uppercase tracking-widest">Tasa IVA</label>
-                                <select 
+                                <SelectorCreatable
                                      v-model="localProducto.tasa_iva_id"
-                                     @change="updateLocalIvaRate"
-                                     class="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-white font-mono text-xs focus:border-rose-500/50 focus:outline-none"
-                                 >
-                                    <option v-for="t in tasasIva" :key="t.id" :value="t.id">
-                                       {{ t.valor }}% ({{ t.nombre }})
-                                    </option>
-                                 </select>
+                                     :options="tasasIva"
+                                     item-key="id"
+                                     display-key="nombre"
+                                     placeholder="Seleccione..."
+                                     @create="handleCreateTasaIva"
+                                     @update:modelValue="handleUpdateTasaIva"
+                                     class="w-full"
+                                 />
                            </div>
                            <label class="text-xs font-bold text-green-400 uppercase tracking-widest text-right">Precio Final (Con IVA)</label>
                       </div>
@@ -299,15 +300,14 @@
                      <!-- ROW 2: VENTA (EXISTING) -->
                      <div class="space-y-1">
                         <label class="text-[10px] font-bold text-white/30 uppercase">Unidad Venta</label>
-                        <select 
-                            v-model="localProducto.unidad_medida"
-                            class="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-white text-xs focus:border-blue-500/50 focus:outline-none appearance-none"
-                        >
-                            <option value="UN">Unidad</option>
-                            <option value="KG">Kilos</option>
-                            <option value="LT">Litros</option>
-                            <option value="MT">Metros</option>
-                        </select>
+                        <SelectorCreatable
+                             v-model="localProducto.unidad_medida"
+                             :options="unidades"
+                             item-key="codigo"
+                             display-key="nombre"
+                             placeholder="Seleccione..."
+                             @create="handleCreateUnidad"
+                        />
                     </div>
                      <div class="space-y-1">
                         <label class="text-[10px] font-bold text-white/30 uppercase">Venta Mínima</label>
@@ -357,6 +357,8 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useProductosStore } from '../../../stores/productos'
 import productosApi from '../../../services/productosApi' // Direct import for sub-resources
+import maestrosApi from '@/services/maestros' // V5.5 Dynamic Masters
+import SelectorCreatable from '@/components/common/SelectorCreatable.vue'
 import { useNotificationStore } from '@/stores/notification'
 import dayjs from 'dayjs'
 
@@ -408,7 +410,8 @@ const isUpdating = ref(false)
 // Computed for Final Price (Display)
 const finalPrice = computed(() => {
     const roca = Number(localCostos.value.precio_roca) || 0
-    const alicuota = Number(localCostos.value.iva_alicuota) || 21
+    const val = localCostos.value.iva_alicuota
+    const alicuota = (val !== null && val !== undefined && !isNaN(val)) ? Number(val) : 21
     return parseFloat((roca * (1 + alicuota/100)).toFixed(2))
 })
 
@@ -459,7 +462,8 @@ const updateNetFromFinal = (finalVal) => {
     isUpdating.value = true
     
     const priceFinal = parseFloat(finalVal) || 0
-    const alicuota = Number(localCostos.value.iva_alicuota) || 21
+    const val = localCostos.value.iva_alicuota
+    const alicuota = (val !== null && val !== undefined && !isNaN(val)) ? Number(val) : 21
     
     // Reverse Engineering: Roca = Final / (1 + IVA)
     const newRoca = parseFloat((priceFinal / (1 + alicuota/100)).toFixed(2))
@@ -632,6 +636,42 @@ const save = () => {
         costos: { ...localCostos.value }
     }
     emit('save', payload)
+}
+
+// --- Dynamic Masters Handlers (V5.5) ---
+const handleCreateUnidad = async (newVal) => {
+    try {
+        const res = await maestrosApi.createUnidad({ nombre: newVal })
+        notification.add(`Unidad "${res.data.nombre}" creada`, 'success')
+        await productosStore.fetchUnidades() 
+        localProducto.value.unidad_medida = res.data.codigo
+    } catch (e) {
+        console.error(e)
+        notification.add('Error al crear unidad', 'error')
+    }
+}
+
+const handleCreateTasaIva = async (newVal) => {
+    try {
+        const res = await maestrosApi.createTasaIva({ nombre: newVal })
+        notification.add(`Tasa "${res.data.nombre}" creada`, 'success')
+        await productosStore.fetchTasasIva()
+        localProducto.value.tasa_iva_id = res.data.id
+        localCostos.value.iva_alicuota = Number(res.data.valor)
+    } catch (e) {
+        console.error(e)
+        notification.add('Error al crear Tasa IVA', 'error')
+    }
+}
+
+const handleUpdateTasaIva = (val) => {
+    // Sync localCostos.iva_alicuota when Selector changes
+    if (tasasIva.value) {
+        const tasa = tasasIva.value.find(t => t.id === val)
+        if (tasa) {
+            localCostos.value.iva_alicuota = Number(tasa.valor)
+        }
+    }
 }
 
 const formatCurrency = (val) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(val || 0)

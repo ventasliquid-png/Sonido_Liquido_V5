@@ -183,7 +183,15 @@ def update_vendedor(id: UUID, vendedor: schemas.VendedorUpdate, db: Session = De
 def read_tasas_iva(db: Session = Depends(get_db)):
     return service.MaestrosService.get_tasas_iva(db)
 
+@router.post("/tasas-iva", response_model=schemas.TasaIVAResponse, status_code=status.HTTP_201_CREATED)
+def create_tasa_iva(tasa: schemas.TasaIVACreate, db: Session = Depends(get_db)):
+    return service.MaestrosService.create_tasa_iva(db, tasa)
+
 # --- Unidades ---
 @router.get("/unidades", response_model=List[schemas.UnidadResponse])
 def read_unidades(db: Session = Depends(get_db)):
     return service.MaestrosService.get_unidades(db)
+
+@router.post("/unidades", response_model=schemas.UnidadResponse, status_code=status.HTTP_201_CREATED)
+def create_unidad(unidad: schemas.UnidadCreate, db: Session = Depends(get_db)):
+    return service.MaestrosService.create_unidad(db, unidad)

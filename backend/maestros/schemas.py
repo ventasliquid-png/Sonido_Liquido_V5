@@ -123,6 +123,10 @@ class TasaIVABase(BaseModel):
     nombre: str
     valor: Decimal
 
+class TasaIVACreate(BaseModel):
+    nombre: str
+    valor: Optional[Decimal] = None # Optional, will try to parse from name if missing
+
 class TasaIVAResponse(TasaIVABase):
     id: int
     class Config:
@@ -132,6 +136,10 @@ class TasaIVAResponse(TasaIVABase):
 class UnidadBase(BaseModel):
     codigo: str
     nombre: str
+
+class UnidadCreate(BaseModel):
+    nombre: str
+    codigo: Optional[str] = None # Optional, will generate from name
 
 class UnidadResponse(UnidadBase):
     id: int
