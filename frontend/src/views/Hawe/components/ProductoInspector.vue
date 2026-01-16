@@ -368,6 +368,7 @@ const lastCostUpdate = ref('')
 const lastRentUpdate = ref('')
 
 const flattenedRubros = computed(() => {
+    if (!props.rubros) return [] // Guard Clause
     const result = []
     const traverse = (items, level = 0) => {
         for (const item of items) {
@@ -394,11 +395,6 @@ const finalPrice = computed(() => {
 
 const updateCostTimestamp = () => {
     lastCostUpdate.value = dayjs().format('DD/MM HH:mm')
-    // If Cost changes, and we want to keep Rent fixed? or Price fixed?
-    // Standard: Keep Rent, Recalc Price Roca
-    // localCostos.value.precio_roca = cost * (1+rent) -> This is standard
-    // BUT here we have updateRentFromRoca logic which implies Roca is dominant?
-    // Let's stick to: Change Cost -> Keep Rent -> Update Roca
     if (isUpdating.value) return
     isUpdating.value = true
     
@@ -465,86 +461,10 @@ const updateLocalIvaRate = () => {
     const selectedTasa = tasasIva.value.find(t => t.id === localProducto.value.tasa_iva_id)
     if (selectedTasa) {
         localCostos.value.iva_alicuota = Number(selectedTasa.valor)
-        // When IVA rate changes, the final price changes, which means the Roca price (net)
-        // should remain the same, and the final price computed property will update.
-        // No need to explicitly call updateNetFromFinal or updateRocaFromRent here,
-        // as the finalPrice computed property will react to localCostos.iva_alicuota change.
-        // However, if we want to keep the *final price* fixed and recalculate Roca,
-        // we would call updateNetFromFinal with the current finalPrice.
-        // For now, let's assume Roca is the anchor when IVA changes.
     }
 }
 
-
-watch(() => props.producto, (newVal) => {
-    if (newVal) {
-        localProducto.value = JSON.parse(JSON.stringify(newVal))
-        // Default Safety
-        if (localProducto.value.venta_minima === undefined) localProducto.value.venta_minima = 1.0;
-        
-        // Sync IVA ID if missing or populate localCostos iva from it?
-        // Priority: localProducto.tasa_iva_id determines localCostos.iva_alicuota
-        
-        if (newVal.costos) {
-            localCostos.value = { ...newVal.costos }
-        } else {
-            localCostos.value = { 
-                costo_reposicion: 0, 
-                rentabilidad_target: 30, 
-                precio_roca: 0, 
-                iva_alicuota: 21,
-                moneda_costo: 'ARS'
-            }
-        }
-        
-        if (newVal.costos) {
-            localCostos.value = { ...newVal.costos }
-        } else {
-            localCostos.value = { 
-                costo_reposicion: 0, 
-                rentabilidad_target: 30, 
-                precio_roca: 0, 
-                iva_alicuota: 21,
-                moneda_costo: 'ARS'
-            }
-        }
-        
-        // Ensure tipo_producto has default
-        if (!localProducto.value.tipo_producto) localProducto.value.tipo_producto = 'VENTA'
-
-        // Find correct alicuota based on ID if possible
-        if (localProducto.value.tasa_iva_id && tasasIva.value?.length) {
-            const tasa = tasasIva.value.find(t => t.id === localProducto.value.tasa_iva_id)
-            if (tasa) localCostos.value.iva_alicuota = Number(tasa.valor)
-        } else if (!localProducto.value.tasa_iva_id && tasasIva.value?.length) {
-            // If no tasa_iva_id is set, try to default to the first one or a common one (e.g., 21%)
-            const defaultTasa = tasasIva.value.find(t => t.valor === 21) || tasasIva.value[0];
-            if (defaultTasa) {
-                localProducto.value.tasa_iva_id = defaultTasa.id;
-                localCostos.value.iva_alicuota = Number(defaultTasa.valor);
-            }
-        }
-
-    } else {
-        localProducto.value = {}
-        localCostos.value = { 
-            costo_reposicion: 0, 
-            rentabilidad_target: 30, 
-            precio_roca: 0,
-            iva_alicuota: 21,
-            moneda_costo: 'ARS'
-        }
-    }
-    pristineName.value = localProducto.value?.nombre || ''
-    lastCostUpdate.value = ''
-    lastRentUpdate.value = ''
-    
-    // Sync Suppliers List
-    localProveedoresList.value = localProducto.value.proveedores ? [...localProducto.value.proveedores] : []
-}, { immediate: true })
-
-
-// --- SUPPLIER MANAGEMENT ---
+// --- SUPPLIER MANAGEMENT (MOVED UP FOR HOISTING) ---
 const localProveedoresList = ref([])
 const isAddingSupplier = ref(false)
 const newSupplier = ref({ proveedor_id: null, costo: '', observaciones: '' })
@@ -591,6 +511,80 @@ const removeSupplier = async (costoId) => {
     }
 }
 
+// --- SYNC ENGINE (DATA RACE FIX) ---
+// Centralized logic to sync local state with props AND store data
+const syncLocalState = () => {
+    const newVal = props.producto
+    
+    if (newVal) {
+        // Deep copy only if ID changed or we are initializing
+        // But be careful not to overwrite user edits if this runs on store update
+        // We only full-sync if localProducto is empty or ID differs
+        if (!localProducto.value.id || localProducto.value.id !== newVal.id) {
+             localProducto.value = JSON.parse(JSON.stringify(newVal))
+             pristineName.value = localProducto.value.nombre || ''
+             
+             // Defaults
+             if (localProducto.value.venta_minima === undefined) localProducto.value.venta_minima = 1.0;
+             if (!localProducto.value.tipo_producto) localProducto.value.tipo_producto = 'VENTA'
+
+             // Costos
+             localCostos.value = newVal.costos ? { ...newVal.costos } : { 
+                 costo_reposicion: 0, 
+                 rentabilidad_target: 30, 
+                 precio_roca: 0, 
+                 iva_alicuota: 21,
+                 moneda_costo: 'ARS'
+             }
+             
+             // Suppliers Sync
+             localProveedoresList.value = localProducto.value.proveedores ? [...localProducto.value.proveedores] : []
+             
+             lastCostUpdate.value = ''
+             lastRentUpdate.value = ''
+        } else {
+            // If just store updated, we might preserve local edits, but we MUST fix IVA if it was missing logic
+        }
+
+        // IVA LOGIC: Retry on every sync (Store might have loaded now)
+        // Only run this if we are not user-dirty? No, alicuota should follow ID always unless user changed it
+        if (tasasIva.value?.length) {
+            if (localProducto.value.tasa_iva_id) {
+                // If we have an ID, ensure alicuota matches
+                const tasa = tasasIva.value.find(t => t.id === localProducto.value.tasa_iva_id)
+                if (tasa) localCostos.value.iva_alicuota = Number(tasa.valor)
+            } else {
+                // If undefined, set default
+                const defaultTasa = tasasIva.value.find(t => t.valor === 21) || tasasIva.value[0];
+                if (defaultTasa) {
+                    localProducto.value.tasa_iva_id = defaultTasa.id;
+                    localCostos.value.iva_alicuota = Number(defaultTasa.valor);
+                }
+            }
+        }
+        
+    } else {
+        // Reset
+        localProducto.value = {}
+         localCostos.value = { 
+            costo_reposicion: 0, 
+            rentabilidad_target: 30, 
+            precio_roca: 0,
+            iva_alicuota: 21,
+            moneda_costo: 'ARS'
+        }
+        pristineName.value = ''
+        localProveedoresList.value = []
+    }
+}
+
+// Watch both Product Prop AND Store Data (TasasIva)
+// This fixes the "F5" Data Race where props load before Store
+watch(
+    [() => props.producto, tasasIva], 
+    () => { syncLocalState() },
+    { immediate: true, deep: true } 
+)
 
 const save = () => {
     if (!localProducto.value || !localProducto.value.nombre) return

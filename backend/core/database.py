@@ -81,7 +81,7 @@ def _get_clean_database_url():
         return url_candidate
     
     if not url_candidate:
-        print(f"⚠️  DATABASE_URL no encontrada en .env. Usando SQLITE ROOT: {pilot_db_path}")
+        print(f"[ALERTA] DATABASE_URL no encontrada en .env. Usando SQLITE ROOT: {pilot_db_path}")
         # FORZAMOS LA RUTA ABSOLUTA
         url_candidate = f"sqlite:///{pilot_db_path}"
         
@@ -107,11 +107,11 @@ def _get_clean_database_url():
         if query:
             clean_url += f"?{query}"
             
-        print(f"✅ CONEXIÓN DB: {host}:{port} ({dbname})")
+        print(f"[OK] CONEXION DB: {host}:{port} ({dbname})")
         return clean_url
 
     except Exception as e:
-        print(f"❌ Error parseando URL de DB: {e}")
+        print(f"[ERROR] Error parseando URL de DB: {e}")
         return url_candidate
 
 # --- [INICIO] ---
