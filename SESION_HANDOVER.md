@@ -1,25 +1,28 @@
 # Protocolo de Transición (Handover)
-**Fecha:** 11 de Diciembre de 2025
-**Estado:** Sistema Piloto Operativo / Diseño de Cargador Aprobado
+**Fecha:** 15 de Enero de 2026
+**Estado:** BLOQUEADO (Frontend Crash en ProductoInspector)
 
 ## Estado Situacional
-1.  **Piloto V5 (`BUILD_PILOTO`):**
-    *   **DB:** `produccion.db` (SQLite) operativa con datos limpios de Clientes y Productos.
-    *   **IOWA (Cloud):** Sincronizada y actualizada con `scripts/migrate_to_iowa.py`.
-    *   **Backup:** Carpeta `SEMILLAS_MAESTRAS` generada con `scripts/export_master_seeds.py`.
-
-2.  **Nueva Funcionalidad (En Cola):**
-    *   **Cargador Táctico (Grid V5):** Diseño aprobado en `DISEÑO_CARGADOR_TACTICO.md`.
+1.  **Backend (V5.4):**
+    *   Implementado soporte para Proveedores Alternativos (`ProductoProveedor`) y flag `tipo_producto` (Insumos).
+    *   Router y Modelos actualizados. Endpoint de proveedores probado manualmente OK.
+2.  **Frontend (Inspector):**
+    *   Layout de 3 columnas implementado.
+    *   **CRASH:** El componente `ProductoInspector.vue` falla al montar.
+    *   **Sospecha:** La prop `producto` o el store `productos` (tasasIva, proveedores) no están sincronizados al momento de montar, causando error en el watcher `immediate: true`.
 
 ## Próxima Tarea (Immediate Next Action)
-**Objetivo:** Iniciar Fase 1 del Cargador Táctico.
-**Referencia:** Tarea ID 33 en `task.md`.
+**Objetivo:** Reparar `ProductoInspector.vue` y Verificar Fase 3.
+**Referencia:** Tarea "Phase 3" en `task.md`.
 
-### Pasos Sugeridos:
-1.  Crear `frontend/src/views/Ventas/GridLoader.vue`.
-2.  Implementar el Layout base (Cabecera + Grilla vacía).
-3.  Configurar la ruta en `frontend/src/router/index.js`.
-4.  Crear `frontend/src/stores/pedidoStore.js`.
+### Pasos Obligatorios:
+1.  **NO asumir que funciona.** El componente está roto.
+2.  Revisar `frontend/src/views/Hawe/components/ProductoInspector.vue`.
+3.  Implementar defensas robustas en `onMounted` y `watch` para manejar `tasasIva` vacías.
+4.  Una vez reparado, verificar:
+    *   Switch "Es Insumo".
+    *   Selector IVA (Centro).
+    *   Tabla Proveedores (Derecha).
 
-> [!NOTE]
-> El usuario prefiere trabajar en "Modo Híbrido". Si trabaja en casa, usará IOWA. Si trabaja en oficina, usa Local y sincroniza. Comprueba siempre estado de migración si cambias de lugar.
+> [!WARNING]
+> No avanzar con nuevas features hasta que el Inspector abra correctamente sin errores de consola.
