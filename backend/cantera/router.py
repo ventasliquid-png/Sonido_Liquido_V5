@@ -104,8 +104,22 @@ def import_producto_from_cantera(producto_id: str, db: Session = Depends(get_db)
         )
         db.add(new_costo)
         
+        # [FIX V5.6.1] Logistics Defaults
+        new_prod.unidades_bulto = 1.0
+        new_prod.presentacion_compra = "Unidad"
+        
         db.commit()
-        return {"status": "success", "imported_id": str(new_prod.id)}
+        
+        # [FIX V5.6.1] Return full structure for GridLoader
+        return {
+            "status": "success", 
+            "imported_id": str(new_prod.id),
+            "id": new_prod.id,
+            "descripcion": new_prod.nombre,
+            "precio_unitario": 0.00,
+            "alicuota_iva": 21.00, # Defaulting to 21%
+            "unidad_venta": "UN" # Defaulting to UN
+        }
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error importing product: {str(e)}")

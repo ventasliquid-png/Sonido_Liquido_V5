@@ -11,6 +11,10 @@ export default {
     updateCondicionIva(id, data) {
         return api.put(`/maestros/condiciones-iva/${id}`, data);
     },
+    // Rubros (V5.6.1 Dynamic)
+    createRubro(data) {
+        return api.post('/productos/rubros', data);
+    },
     deleteCondicionIva(id) {
         return api.delete(`/maestros/condiciones-iva/${id}`);
     },

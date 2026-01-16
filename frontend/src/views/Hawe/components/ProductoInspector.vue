@@ -50,7 +50,7 @@
         <div class="w-[30%] border-r border-rose-900/30 bg-[#2e0a13]/20 flex flex-col overflow-y-auto custom-scrollbar p-6 space-y-8">
             
             <!-- Image / Avatar -->
-            <div class="flex justify-center">
+            <div class="flex justify-center" v-if="false">
                 <div class="relative group cursor-pointer">
                      <!-- Placeholder -->
                     <div class="h-40 w-40 rounded-2xl bg-gradient-to-br from-[#3f0e1a] to-black flex items-center justify-center text-6xl text-rose-600/50 shadow-2xl border border-rose-500/20 group-hover:border-rose-500/50 transition-all duration-300">
@@ -85,16 +85,14 @@
                 <!-- Rubro (Validated) -->
                 <div class="space-y-1">
                     <label class="text-[10px] font-bold text-rose-200/40 uppercase tracking-widest">Rubro / Categoría <span class="text-rose-500">*</span></label>
-                    <select 
-                        v-model="localProducto.rubro_id"
-                        class="w-full bg-black/20 border border-white/5 rounded-lg px-3 py-2.5 text-white text-sm focus:border-rose-500/50 focus:outline-none appearance-none transition-colors"
-                        :class="!localProducto.rubro_id ? 'border-rose-500/30' : ''"
-                    >
-                        <option :value="null" disabled>Seleccionar...</option>
-                        <option v-for="rubro in flattenedRubros" :key="rubro.id" :value="rubro.id">
-                            {{ rubro.indent }}{{ rubro.nombre }}
-                        </option>
-                    </select>
+                    <SelectorCreatable
+                         v-model="localProducto.rubro_id"
+                         :options="flattenedRubros"
+                         item-key="id"
+                         display-key="nombre"
+                         placeholder="Seleccione Rubro..."
+                         @create="handleCreateRubro"
+                    />
                 </div>
 
                 <!-- Insumo Switch -->
@@ -281,7 +279,7 @@
                  <div class="grid grid-cols-2 gap-3">
                      <!-- ROW 1: COMPRA (V5.5) -->
                      <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-white/30 uppercase">Pres. Compra</label>
+                        <label class="text-[10px] font-bold text-white/30 uppercase">UNIDAD DE COMPRA</label>
                         <input 
                             v-model="localProducto.presentacion_compra"
                             class="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-white text-xs focus:border-blue-500/50 focus:outline-none placeholder-white/10"
@@ -653,14 +651,38 @@ const handleCreateUnidad = async (newVal) => {
 
 const handleCreateTasaIva = async (newVal) => {
     try {
-        const res = await maestrosApi.createTasaIva({ nombre: newVal })
-        notification.add(`Tasa "${res.data.nombre}" creada`, 'success')
+        const val = parseFloat(newVal)
+        if (isNaN(val)) return notification.add('Ingrese un valor numérico para la Tasa', 'warning')
+        
+        const res = await maestrosApi.createTasaIva({ nombre: `IVA ${val}%`, valor: val })
+        notification.add(`Tasa IVA ${res.data.nombre} creada`, 'success')
+        
+        // Refresh store
         await productosStore.fetchTasasIva()
+        
         localProducto.value.tasa_iva_id = res.data.id
         localCostos.value.iva_alicuota = Number(res.data.valor)
+        
+    } catch (e) {
+        notification.add('Error al crear Tasa IVA: ' + e.message, 'error')
+    }
+}
+
+const handleCreateRubro = async (newVal) => {
+    try {
+        // V5.6.1 Dynamic Rubro creation
+        const res = await maestrosApi.createRubro({ nombre: newVal })
+        notification.add(`Rubro "${res.data.nombre}" creado`, 'success')
+        
+        // Refresh Store
+        await productosStore.fetchRubros()
+        
+        // Select new val
+        localProducto.value.rubro_id = res.data.id
+        
     } catch (e) {
         console.error(e)
-        notification.add('Error al crear Tasa IVA', 'error')
+        notification.add('Error al crear Rubro: ' + e.message, 'error')
     }
 }
 

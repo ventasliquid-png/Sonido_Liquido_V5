@@ -37,4 +37,23 @@ Se detectó y documentó retroactivamente el parche de emergencia 'Math Guard Cl
 **Próximos Pasos (Protocolo Omega):**
 1.  Debuggear inicio de `ProductoInspector` (Store vs Props).
 2.  Verificar persistencia de "Es Insumo".
-3.  Verificar tabla de proveedores.
+3.
+# [V5.6.1] 2026-01-16 - Reparación Integral Pedidos (Orders Bridge)
+
+> **ESTADO:** ESTABLE
+> **TIPO:** HOTFIX / UX RECOVERY
+
+**Objetivo:** Restaurar funcionalidad crítica de Pedidos, Importación y Alta de Productos, bloqueada por errores de integración y UX "rota".
+
+**Intervenciones:**
+1.  **Backend (Bridge):** Corregido `router.py` para devolver JSON completo y defaults en importación (`500 Internal Error` Solucionado).
+2.  **Frontend (GridLoader):**
+    *   **Layout:** Cambiado inspector a `max-w-7xl` (Modal Central) para corregir visualización "aplastada".
+    *   **Integridad:** Implementada captura de hora local en payload de pedidos.
+    *   **Seguridad:** Implementado **Guard Clause** (`isSubmitting`) en F10/Click para evitar pedidos duplicados.
+3.  **Frontend (ProductoInspector):**
+    *   **Rubros:** Implementado `SelectorCreatable` + `handleCreateRubro` + `fetchRubros` para ABM dinámico en el alta.
+
+**Métricas Finales:**
+*   Alta de Productos: OK (Full Screen)
+*   Integridad Pedidos: OK (No Duplicados, Hora Correcta)

@@ -589,8 +589,8 @@
         
         <!-- Product Inspector (Overlay Mode) -->
         <Teleport to="body">
-            <div v-if="showProductInspector" class="fixed inset-0 z-[60] flex justify-end bg-black/50 backdrop-blur-sm">
-                <div class="w-full max-w-lg h-full shadow-2xl overflow-y-auto transform transition-transform duration-300">
+            <div v-if="showProductInspector" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-6">
+                <div class="w-full max-w-7xl h-[90vh] shadow-2xl overflow-hidden rounded-2xl transform transition-all duration-300">
                     <ProductoInspector 
                         :producto="productForInspector"
                         :rubros="productosStore.rubros"
@@ -1283,6 +1283,7 @@ onMounted(async () => {
         await Promise.all([
             clientesStore.fetchClientes(),
             productosStore.fetchProductos(),
+            productosStore.fetchRubros(), // [FIX] Ensure Rubros are loaded for Inspector
             useMaestrosStore().fetchAll()
         ]);
     } catch (e) {
@@ -1724,6 +1725,7 @@ const removeItem = (idx) => {
 
 // Main Submit
 const handleSubmit = async () => {
+    if (isSubmitting.value) return; // [FIX Guard]
     if (!selectedClient.value) return alert('Por favor seleccione un cliente.');
     
     // Sync Fiscal Mode: PENDIENTE should be FISCAL by default
@@ -1760,7 +1762,8 @@ const handleSubmit = async () => {
     try {
         const payload = {
             cliente_id: selectedClient.value.id,
-            fecha: form.value.fecha,
+            // [FIX] Append current time to preserve creation timestamp (Naive Local)
+            fecha: `${form.value.fecha}T${new Date().toTimeString().split(' ')[0]}`,
             nota: form.value.nota,
             oc: form.value.oc,
             estado: form.value.estado,
@@ -1884,7 +1887,8 @@ const handleGlobalKeys = (e) => {
     } 
     else if (e.key === 'F10') {
         e.preventDefault();
-        if (!showInspector.value) handleSubmit(); 
+        if (isSubmitting.value) return; // [FIX] Prevent double submission
+        if (!showProductInspector.value) handleSubmit(); 
     } 
     else if (e.key === 'F4') {
         if (focusedZone.value === 'CLIENT') {
