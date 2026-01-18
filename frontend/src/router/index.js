@@ -19,16 +19,8 @@ const routes = [
         name: 'Home',
         redirect: '/hawe'
     },
-    {
-        path: '/vendedores',
-        name: 'Vendedores',
-        component: VendedorList
-    },
-    {
-        path: '/listas-precios',
-        name: 'ListasPrecios',
-        component: ListaPreciosList
-    },
+
+
     {
         path: '/agenda',
         name: 'Agenda',
@@ -86,9 +78,29 @@ const routes = [
                 component: () => import('../views/Maestros/CanteraExplorer.vue')
             },
             {
+                path: 'transportes',
+                name: 'Transportes',
+                component: () => import('../views/Hawe/components/TransporteManager.vue')
+            },
+            {
                 path: 'intel/cleaner',
                 name: 'data-cleaner',
                 component: DataCleaner
+            },
+            {
+                path: 'listas-precios',
+                name: 'ListasPrecios',
+                component: ListaPreciosList
+            },
+            {
+                path: 'vendedores',
+                name: 'Vendedores',
+                component: VendedorList
+            },
+            {
+                path: 'pedidos/nuevo',
+                name: 'PedidoCanvas',
+                component: () => import('../views/Ventas/PedidoCanvas.vue')
             }
         ]
     },

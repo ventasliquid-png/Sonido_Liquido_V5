@@ -50,7 +50,7 @@ class ProductoCostoBase(BaseModel):
     costo_reposicion: Decimal = Field(..., max_digits=12, decimal_places=4)
     # Roca Sólida Fields
     rentabilidad_target: Optional[Decimal] = Field(0.00, max_digits=6, decimal_places=2) # Antes margen
-    precio_roca: Optional[Decimal] = Field(0.00, max_digits=12, decimal_places=2) # Base Real
+    precio_roca: Optional[Decimal] = Field(0.00, max_digits=12, decimal_places=4) # Base Real
     
     moneda_costo: str = 'ARS'
     iva_alicuota: Decimal = Field(21.00, max_digits=5, decimal_places=2)

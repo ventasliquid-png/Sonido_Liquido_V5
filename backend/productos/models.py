@@ -102,7 +102,7 @@ class ProductoCosto(Base):
     # --- DOCTRINA ROCA SÓLIDA (V2) ---
     costo_reposicion = Column(Numeric(12, 4), nullable=False, default=0)
     rentabilidad_target = Column(Numeric(6, 2), nullable=False, default=30) # Antes margen_mayorista
-    precio_roca = Column(Numeric(12, 2), nullable=False, default=0) # El precio base real
+    precio_roca = Column(Numeric(12, 4), nullable=False, default=0) # El precio base real
     
     # Metadata
     moneda_costo = Column(String(3), default='ARS')

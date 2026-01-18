@@ -28,8 +28,8 @@ def create_cliente(cliente: ClienteCreate, db: Session = Depends(get_db)):
     return ClienteService.create_cliente(db, cliente)
 
 @router.get("/", response_model=List[schemas.ClienteListResponse])
-def read_clientes(skip: int = 0, limit: int = 1000, db: Session = Depends(get_db)):
-    return ClienteService.get_clientes(db, skip=skip, limit=limit)
+def read_clientes(skip: int = 0, limit: int = 1000, q: str = None, db: Session = Depends(get_db)):
+    return ClienteService.get_clientes(db, skip=skip, limit=limit, q=q)
 
 @router.get("/top", response_model=List[ClienteResponse])
 def get_top_clients(limit: int = 8, db: Session = Depends(get_db)):

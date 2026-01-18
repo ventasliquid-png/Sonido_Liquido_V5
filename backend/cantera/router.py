@@ -46,10 +46,31 @@ def import_cliente_from_cantera(cliente_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Cliente no encontrado en Cantera")
     
     try:
+        # [GY-FIX V5.6.12] Importar también el domicilio principal
+        domicilios_in = []
+        
+        # Mapeo de campos legacy (ajustar según JSON real de Cantera)
+        calle = full_data.get("domicilio") or full_data.get("calle")
+        localidad = full_data.get("ciudad") or full_data.get("localidad")
+        if calle:
+            from backend.clientes.schemas import DomicilioCreate
+            new_dom = DomicilioCreate(
+                calle=calle,
+                numero=str(full_data.get("numero") or "S/N"),
+                localidad=localidad,
+                cp=str(full_data.get("cp") or ""),
+                es_fiscal=True,  # Default to Fiscal for immediate use
+                es_entrega=True,
+                activo=True,
+                alias="Domicilio Importado"
+            )
+            domicilios_in.append(new_dom)
+
         cliente_in = ClienteCreate(
             razon_social=full_data.get("razon_social"),
             cuit=full_data.get("cuit"),
-            activo=full_data.get("activo", 1)
+            activo=full_data.get("activo", 1),
+            domicilios=domicilios_in
         )
         new_client = ClienteService.create_cliente(db, cliente_in)
         return {"status": "success", "imported_id": str(new_client.id)}

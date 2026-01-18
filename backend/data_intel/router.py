@@ -213,6 +213,8 @@ def commit_candidates(type: str, db: Session = Depends(get_db)):
                  db.add(rubro_default)
                  db.commit()
                  db.refresh(rubro_default)
+            
+             next_sku_counter = None
                  
              for index, row in df_import.iterrows():
                 try:
@@ -222,11 +224,30 @@ def commit_candidates(type: str, db: Session = Depends(get_db)):
                         df.at[index, 'estado'] = 'EXISTENTE'
                         continue
                         
+                    # [AUTO SKU] Generate Next SKU
+                    # Buscamos el max SKU actual en la DB (solo la primera vez del loop es ineficiente, 
+                    # pero seguro. Idealmente cachear fuera del loop si son muchos).
+                    # Para seguridad transaccional simple en piloto:
+                    max_sku_db = db.query(func.max(Producto.sku)).scalar() or 9999
+                    # Si acabamos de agregar un producto en este commit (pero no flush commit total), 
+                    # el SKU podria chocar si no lo incrementamos localmente.
+                    # Pero como hacemos db.add() y db.flush(), el item ya está en la sesión?
+                    # No, el flush manda el ID, pero el commit final asegura la persistencia.
+                    # Mejor estrategia simple: Buscar max, sumar 1 + index loop (pero index es relativo a df).
+                    # Mas seguro: Query real-time o un contador manual. 
+                    # Usaremos contador manual iniciado fuera del loop.
+                    
+                    if next_sku_counter is None:
+                         next_sku_counter = max_sku_db + 1
+                    else:
+                         next_sku_counter += 1
+
                     nuevo_prod = Producto(
                         nombre=nombre,
                         rubro_id=rubro_default.id,
                         activo=True,
-                        sku=None 
+                        sku=next_sku_counter,
+                        tipo_producto='VENTA' 
                     )
                     db.add(nuevo_prod)
                     db.flush() # ID for Costo
@@ -235,7 +256,7 @@ def commit_candidates(type: str, db: Session = Depends(get_db)):
                     costo_def = ProductoCosto(
                         producto_id=nuevo_prod.id,
                         costo_reposicion=Decimal(0),
-                        margen_mayorista=Decimal(30),
+                        rentabilidad_target=Decimal(30),
                         iva_alicuota=Decimal(21)
                     )
                     db.add(costo_def)

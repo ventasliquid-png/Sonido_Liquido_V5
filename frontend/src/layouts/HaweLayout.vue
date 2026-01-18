@@ -6,7 +6,7 @@
     <!-- Main Content Area -->
     <main class="flex-1 relative overflow-hidden flex flex-col">
       <!-- Global Stats Bar -->
-      <GlobalStatsBar />
+      <GlobalStatsBar v-if="route.name !== 'PedidoCanvas'" />
 
       <div class="flex-1 relative overflow-hidden">
         <router-view v-slot="{ Component }">

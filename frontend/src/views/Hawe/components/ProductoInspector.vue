@@ -129,7 +129,7 @@
                           <input 
                               v-model.number="localCostos.costo_reposicion"
                               @input="updateCostTimestamp"
-                              type="number" step="0.01" min="0"
+                              type="number" step="0.0001" min="0"
                               class="w-full bg-rose-950/10 border border-rose-500/20 rounded-xl px-4 py-4 pl-8 text-3xl font-mono font-bold text-white text-right focus:border-rose-500/50 focus:shadow-[0_0_20px_rgba(244,63,94,0.1)] focus:outline-none transition-all placeholder-white/5"
                               placeholder="0.00"
                           />
@@ -165,7 +165,7 @@
                                  <input 
                                      v-model.number="localCostos.precio_roca"
                                      @input="updateRentFromRoca"
-                                     type="number" step="0.01"
+                                     type="number" step="0.0001"
                                      class="w-full bg-white/5 border border-white/20 rounded-xl px-2 py-3 text-xl font-mono font-bold text-white text-center focus:border-white/50 focus:outline-none transition-all"
                                  />
                               </div>
@@ -420,7 +420,7 @@ const updateCostTimestamp = () => {
     
     const costo = Number(localCostos.value.costo_reposicion) || 0
     const rent = Number(localCostos.value.rentabilidad_target) || 0
-    localCostos.value.precio_roca = parseFloat((costo * (1 + rent / 100)).toFixed(2))
+    localCostos.value.precio_roca = parseFloat((costo * (1 + rent / 100)).toFixed(4))
     
     nextTick(() => { isUpdating.value = false })
 }
@@ -434,7 +434,7 @@ const updateRocaFromRent = () => {
     const costo = Number(localCostos.value.costo_reposicion) || 0
     const rent = Number(localCostos.value.rentabilidad_target) || 0
     
-    localCostos.value.precio_roca = parseFloat((costo * (1 + rent / 100)).toFixed(2))
+    localCostos.value.precio_roca = parseFloat((costo * (1 + rent / 100)).toFixed(4))
     
     nextTick(() => { isUpdating.value = false })
 }
@@ -464,7 +464,7 @@ const updateNetFromFinal = (finalVal) => {
     const alicuota = (val !== null && val !== undefined && !isNaN(val)) ? Number(val) : 21
     
     // Reverse Engineering: Roca = Final / (1 + IVA)
-    const newRoca = parseFloat((priceFinal / (1 + alicuota/100)).toFixed(2))
+    const newRoca = parseFloat((priceFinal / (1 + alicuota/100)).toFixed(4))
     
     localCostos.value.precio_roca = newRoca
     
@@ -609,7 +609,7 @@ watch(
     { immediate: true, deep: true } 
 )
 
-const save = () => {
+const save = async () => {
     if (!localProducto.value || !localProducto.value.nombre) return
     
     if (!localProducto.value.nombre) {
@@ -633,7 +633,35 @@ const save = () => {
         ...localProducto.value,
         costos: { ...localCostos.value }
     }
-    emit('save', payload)
+
+    // [GY-FIX] AUTONOMOUS SAVE (Direct Store Call)
+    // Mirrors the architecture of ClienteInspector for consistency.
+    try {
+        let result;
+        if (localProducto.value.id) {
+             result = await productosStore.updateProducto(localProducto.value.id, payload)
+             notification.add('Producto actualizado correctamente', 'success')
+        } else {
+             result = await productosStore.createProducto(payload)
+             notification.add('Producto creado correctamente', 'success')
+             
+             // If new, emit close to return to parent? Or just update ID?
+             // User preference: "que devuelva el paquete correcto"
+             // If we stay open, we must update local ID.
+             localProducto.value.id = result.id; 
+             // But usually for "New" from external context, we want to close and select it.
+             emit('close'); 
+        }
+        
+        // Emit save for parent refresh (GridLoader needs to reload list)
+        emit('save', result)
+
+    } catch (e) {
+        console.error(e)
+        // Extract error message safely
+        const msg = e.response?.data?.detail || e.message || 'Error desconocido';
+        notification.add('Error al guardar: ' + msg, 'error')
+    }
 }
 
 // --- Dynamic Masters Handlers (V5.5) ---

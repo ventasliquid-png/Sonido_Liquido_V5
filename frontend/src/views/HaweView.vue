@@ -700,10 +700,11 @@ const logout = () => {
 onMounted(async () => {
     window.addEventListener('keydown', handleKeydown)
     try {
-        await Promise.all([
-            clienteStore.fetchClientes(),
-            maestrosStore.fetchSegmentos()
-        ])
+        const promises = []
+        if (clienteStore.clientes.length === 0) promises.push(clienteStore.fetchClientes())
+        if (maestrosStore.segmentos.length === 0) promises.push(maestrosStore.fetchSegmentos())
+        
+        await Promise.all(promises)
         
         // Check for Auto-Inspect
         if (route.query.inspectId) {

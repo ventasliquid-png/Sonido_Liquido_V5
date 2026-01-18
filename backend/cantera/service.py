@@ -9,11 +9,24 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 MIRROR_DIR = BASE_DIR / "backend" / "data" / "json_mirror"
 CANTERA_DB_PATH = BASE_DIR / "backend" / "data" / "cantera.db"
 
+import unicodedata
+
 class CanteraService:
+    @staticmethod
+    def remove_accents(input_str):
+        if input_str is None:
+            return ""
+        # Normalize to NFD form (decomposing characters) and filter out non-spacing marks
+        nfkd_form = unicodedata.normalize('NFKD', str(input_str))
+        return "".join([c for c in nfkd_form if not unicodedata.combining(c)])
+
     @staticmethod
     def get_connection():
         # print(f"[DEBUG] Connecting to Cantera: {CANTERA_DB_PATH}")
-        return sqlite3.connect(str(CANTERA_DB_PATH))
+        conn = sqlite3.connect(str(CANTERA_DB_PATH))
+        # Registrar funcion para ignorar acentos en SQL
+        conn.create_function("unaccent", 1, CanteraService.remove_accents)
+        return conn
 
     @staticmethod
     def sync_from_json():
@@ -24,7 +37,7 @@ class CanteraService:
             print("[ERROR] No existe el directorio de espejos JSON.")
             return False
 
-        conn = sqlite3.connect(str(CANTERA_DB_PATH))
+        conn = CanteraService.get_connection() # Use get_connection to have consistent env
         cursor = conn.cursor()
 
         # 1. Crear Tablas de Consulta
@@ -103,9 +116,18 @@ class CanteraService:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
-        search_term = f"%{query}%"
+        # [GY-FIX] Normalizar query (quitar acentos) para la comparacion
+        normalized_query = CanteraService.remove_accents(query)
+        search_term = f"%{normalized_query}%"
+        
+        # Usar funcion SQL 'unaccent' en las columnas
         cursor.execute(
-            "SELECT * FROM clientes WHERE (razon_social LIKE ? OR cuit LIKE ?) AND activo = 1 LIMIT ?",
+            """
+            SELECT * FROM clientes 
+            WHERE (unaccent(razon_social) LIKE ? OR unaccent(cuit) LIKE ?) 
+            AND activo = 1 
+            LIMIT ?
+            """,
             (search_term, search_term, limit)
         )
         results = [dict(row) for row in cursor.fetchall()]
@@ -128,9 +150,16 @@ class CanteraService:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
-        search_term = f"%{query}%"
+        normalized_query = CanteraService.remove_accents(query)
+        search_term = f"%{normalized_query}%"
+
         cursor.execute(
-            "SELECT * FROM productos WHERE (nombre LIKE ? OR sku LIKE ?) AND activo = 1 LIMIT ?",
+            """
+            SELECT * FROM productos 
+            WHERE (unaccent(nombre) LIKE ? OR unaccent(sku) LIKE ?) 
+            AND activo = 1 
+            LIMIT ?
+            """,
             (search_term, search_term, limit)
         )
         results = [dict(row) for row in cursor.fetchall()]

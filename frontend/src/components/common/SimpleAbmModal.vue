@@ -16,15 +16,17 @@
             v-model="newItemName" 
             @keyup.enter="handleCreate"
             type="text" 
-            class="flex-1 bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-500 outline-none focus:border-emerald-500 transition-colors"
+            :disabled="isLoading"
+            class="flex-1 bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-500 outline-none focus:border-emerald-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             placeholder="Nuevo ítem..."
         >
         <button 
             @click="handleCreate"
-            class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            :disabled="!newItemName.trim()"
+            class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[50px] flex justify-center items-center"
+            :disabled="!newItemName.trim() || isLoading"
         >
-            <i class="fas fa-plus"></i>
+            <i v-if="isLoading" class="fas fa-spinner fa-spin"></i>
+            <i v-else class="fas fa-plus"></i>
         </button>
       </div>
 
@@ -59,7 +61,8 @@ import { ref } from 'vue';
 
 const props = defineProps({
     title: { type: String, default: 'Administrar' },
-    items: { type: Array, default: () => [] }
+    items: { type: Array, default: () => [] },
+    isLoading: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['close', 'create', 'delete']);
@@ -67,8 +70,15 @@ const emit = defineEmits(['close', 'create', 'delete']);
 const newItemName = ref('');
 
 const handleCreate = () => {
-    if (!newItemName.value.trim()) return;
+    if (!newItemName.value.trim() || props.isLoading) return;
     emit('create', newItemName.value.trim());
+    // Note: Do not clear strictly here if we want to preserve input on error?
+    // But per user request we want to clear or close. 
+    // We will clear it in the parent or if successful the modal closes.
+    // For now keep it as is, but maybe wait? 
+    // actually, let's keep clearing it only if we assume success, 
+    // but better to let the parent handle the flow or just clear it. 
+    // If the parent closes the modal, it doesn't matter.
     newItemName.value = '';
 };
 

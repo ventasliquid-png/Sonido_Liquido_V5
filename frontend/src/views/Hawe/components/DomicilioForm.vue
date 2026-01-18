@@ -295,8 +295,8 @@ onUnmounted(() => {
                     <div class="col-span-5">
                         <label class="block text-[10px] font-bold text-cyan-400 uppercase mb-0.5">Provincia <span class="text-red-400">*</span></label>
                         <select v-model="form.provincia_id" class="w-full bg-black/20 border border-white/10 rounded px-3 py-1.5 text-white focus:border-cyan-500 outline-none text-sm appearance-none">
-                            <option :value="null" class="bg-gray-900">Seleccionar...</option>
-                            <option v-for="prov in store.provincias" :key="prov.id" :value="prov.id" class="bg-gray-900">
+                            <option :value="null" class="bg-gray-900 text-white">Seleccionar...</option>
+                            <option v-for="prov in store.provincias" :key="prov.id" :value="prov.id" class="bg-gray-900 text-white">
                                 {{ prov.nombre }}
                             </option>
                         </select>

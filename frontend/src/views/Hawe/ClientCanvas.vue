@@ -85,7 +85,7 @@
                     type="text" 
                     class="w-full bg-transparent text-sm font-mono text-white focus:outline-none" 
                     placeholder="00000000000" 
-                    maxlength="11"
+                    maxlength="13"
                 />
             </div>
             
@@ -321,7 +321,7 @@
                                         type="text" 
                                         class="w-full bg-black/20 text-lg font-mono text-white focus:outline-none p-2 rounded border border-white/10 focus:border-cyan-400" 
                                         placeholder="00000000000" 
-                                        maxlength="11"
+                                        maxlength="13"
                                     />
                                     <p class="text-[10px] text-white/30 mt-1 text-right">{{ form.cuit ? form.cuit.length : 0 }}/11</p>
                                 </div>

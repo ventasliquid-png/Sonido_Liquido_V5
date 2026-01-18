@@ -14,6 +14,7 @@ export const useClientesStore = defineStore('clientes', {
         async fetchClientes(params = {}) {
             this.loading = true;
             try {
+                // Pass params (like { q: 'Bio' }) to the service
                 const response = await clientesService.getAll(params);
                 if (Array.isArray(response.data)) {
                     this.clientes = response.data;
@@ -68,9 +69,11 @@ export const useClientesStore = defineStore('clientes', {
         async updateCliente(id, data) {
             try {
                 const response = await clientesService.update(id, data);
+                // [GY-FIX] Use splice to guarantee Reactivity in Vue 3/Pinia for Array updates
+                // Direct assignment (this.clientes[index] = ...) sometimes fails to trigger deep watchers
                 const index = this.clientes.findIndex(c => c.id === id);
                 if (index !== -1) {
-                    this.clientes[index] = response.data;
+                    this.clientes.splice(index, 1, response.data);
                 }
                 return response.data;
             } catch (error) {
@@ -85,7 +88,9 @@ export const useClientesStore = defineStore('clientes', {
                 // Usually re-fetch or set active=false locally
                 const index = this.clientes.findIndex(c => c.id === id);
                 if (index !== -1) {
-                    this.clientes[index].activo = false;
+                    // clone to ensure reactivity
+                    const updated = { ...this.clientes[index], activo: false };
+                    this.clientes.splice(index, 1, updated);
                 }
             } catch (error) {
                 throw error;
@@ -116,7 +121,11 @@ export const useClientesStore = defineStore('clientes', {
         async createDomicilio(clienteId, data) {
             try {
                 const response = await clientesService.createDomicilio(clienteId, data);
-                // Update local client if needed? Usually parent view handles it via re-fetch or nested list update
+                // [GY-FIX] Update local cache to reflect changes immediately in UI
+                const index = this.clientes.findIndex(c => c.id === clienteId);
+                if (index !== -1) {
+                    this.clientes.splice(index, 1, response.data);
+                }
                 return response.data;
             } catch (error) {
                 throw error;
@@ -126,6 +135,11 @@ export const useClientesStore = defineStore('clientes', {
         async updateDomicilio(clienteId, domicilioId, data) {
             try {
                 const response = await clientesService.updateDomicilio(clienteId, domicilioId, data);
+                // [GY-FIX] Update local cache to reflect changes immediately in UI
+                const index = this.clientes.findIndex(c => c.id === clienteId);
+                if (index !== -1) {
+                    this.clientes.splice(index, 1, response.data);
+                }
                 return response.data;
             } catch (error) {
                 throw error;
@@ -135,6 +149,8 @@ export const useClientesStore = defineStore('clientes', {
         async deleteDomicilio(clienteId, domicilioId) {
             try {
                 await clientesService.deleteDomicilio(clienteId, domicilioId);
+                // [GY-FIX] Refetch client to ensure state consistency (Backend returns 204)
+                await this.fetchClienteById(clienteId);
             } catch (error) {
                 throw error;
             }

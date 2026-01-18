@@ -264,13 +264,20 @@ const onLookupRefreshAndSelect = async (newId) => {
     }
 };
 
+const onInspectorSave = (result) => {
+    // [GY-UX] If we saved a client, select it immediately to reflect changes
+    if (result && result.id) {
+        clienteId.value = result.id;
+    }
+};
+
 const onInspectorClose = async () => {
     showInspector.value = false;
     clienteForInspector.value = null;
-    await clientesStore.fetchClientes();
+    // [GY-FIX] Removed redundant fetchClientes() which was overwriting updated store data with stale cache
+    // await clientesStore.fetchClientes();
     if (!clienteId.value) showLookup.value = true;
 };
-
 </script>
 
 <template>
@@ -435,7 +442,7 @@ const onInspectorClose = async () => {
         <ClientLookup :show="showLookup" :clientes="clientesStore.clientes" @close="showLookup = false" @select="onLookupSelect" @edit="onLookupEdit" @delete="onLookupDelete" @refresh-and-select="onLookupRefreshAndSelect" />
         <div v-if="showInspector" class="fixed inset-0 z-[60] flex justify-end bg-black/50 backdrop-blur-sm" @click.self="onInspectorClose">
             <div class="w-full max-w-2xl h-full bg-slate-900 border-l border-slate-700 shadow-2xl overflow-y-auto">
-                <ClienteInspector v-if="clienteForInspector" :cliente="clienteForInspector" @close="onInspectorClose" />
+                <ClienteInspector v-if="clienteForInspector" :cliente="clienteForInspector" @close="onInspectorClose" @save="onInspectorSave" />
             </div>
         </div>
     </div>

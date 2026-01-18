@@ -287,7 +287,7 @@ const markChanged = () => {
 
 const getRowClass = (item) => {
     if (item.estado === 'IGNORAR') return 'opacity-40 bg-red-900/10 grayscale line-through decoration-red-500/50 decoration-2';
-    if (item.estado === 'IMPORTAR') return 'bg-gray-800/50 text-gray-500 grayscale'; // Grisado
+    if (item.estado === 'IMPORTAR') return 'bg-green-900/10 border-l-2 border-green-500'; // Active/Green
     return '';
 };
 

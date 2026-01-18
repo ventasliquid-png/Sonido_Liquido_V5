@@ -381,6 +381,7 @@
             v-if="showAbm"
             :title="abmTitle"
             :items="abmItems"
+            :isLoading="abmLoading"
             @close="showAbm = false"
             @create="handleAbmCreate"
             @delete="handleAbmDelete"
@@ -623,25 +624,18 @@ const openDomicilioForm = (dom = null) => {
 
 const handleDomicilioSaved = async (domData) => {
     try {
-        let res;
         if (domData.id) {
-            res = await clienteStore.updateDomicilio(form.value.id, domData.id, domData)
+            await clienteStore.updateDomicilio(form.value.id, domData.id, domData)
             notificationStore.add('Domicilio actualizado', 'success')
         } else {
-            res = await clienteStore.createDomicilio(form.value.id, domData)
+            await clienteStore.createDomicilio(form.value.id, domData)
             notificationStore.add('Domicilio creado', 'success')
         }
         
-        // Update local state with the returned full client object
-        // This ensures all derived properties and lists are updated correctly.
-        form.value = { ...res }
-        
-        // Ensure UI indicators refresh by letting store know if needed 
-        // (Though usually form.value update is enough for this component)
-        
-        // Fix Dirty State: Identify that this change is persisted
-        // We updated the local array, so the UI should reflect it immediately.
-        // DO NOT emit switch-client here, as it triggers a reload from the (potentially stale) store list in the parent.
+        // [GY-FIX] Force Refresh from Backend to ensure Full Consistency
+        // Bypass return value optimization to guarantee relationships (active/fiscal) are 100% synced
+        const freshClient = await clienteStore.fetchClienteById(form.value.id)
+        form.value = JSON.parse(JSON.stringify(freshClient)) // Deep copy to reset form state
         
         showDomicilioForm.value = false
     } catch (error) {
@@ -765,6 +759,7 @@ const handleManualTemplate = (name) => {
 
 // --- ABM LOGIC ---
 const showAbm = ref(false)
+const abmLoading = ref(false)
 const abmType = ref(null) // 'IVA' | 'SEGMENTO'
 const abmTitle = computed(() => abmType.value === 'IVA' ? 'Condiciones de IVA' : 'Segmentos')
 const abmItems = computed(() => abmType.value === 'IVA' ? condicionesIva.value : segmentos.value)
@@ -775,6 +770,14 @@ const openAbm = (type) => {
 }
 
 const handleAbmCreate = async (name) => {
+    // [GY-UX] Duplicate Validation (Frontend)
+    const exists = abmItems.value.some(item => item.nombre.toLowerCase() === name.toLowerCase())
+    if (exists) {
+        notificationStore.add(`"${name}" ya existe en la lista`, 'warning')
+        return
+    }
+
+    abmLoading.value = true
     try {
         let res;
         if (abmType.value === 'IVA') {
@@ -785,9 +788,12 @@ const handleAbmCreate = async (name) => {
             if (res && res.id) form.value.segmento_id = res.id
         }
         notificationStore.add('Elemento creado y seleccionado', 'success')
+        showAbm.value = false
     } catch (e) {
         console.error(e)
         notificationStore.add('Error al crear elemento', 'error')
+    } finally {
+        abmLoading.value = false
     }
 }
 
@@ -940,9 +946,15 @@ const save = async () => {
             form.value.cuit = form.value.cuit.replace(/[^0-9]/g, '')
         }
         
-        emit('save', form.value)
-        notificationStore.add(`Cliente ${props.isNew ? 'creado' : 'actualizado'} con éxito`, 'success')
-        emit('save', form.value)
+        // [GY-FIX] ACTUALLY SAVE TO STORE/BACKEND
+        let result;
+        if (props.isNew) {
+            result = await clienteStore.createCliente(form.value)
+        } else {
+            result = await clienteStore.updateCliente(form.value.id, form.value)
+        }
+
+        emit('save', result)
         notificationStore.add(`Cliente ${props.isNew ? 'creado' : 'actualizado'} con éxito`, 'success')
         
         // [GY-UX] Auto-close on new client success or reset?
@@ -952,6 +964,8 @@ const save = async () => {
         }
     } catch(e) {
         console.error(e)
+        // Show clearer error
+        alert('Error al guardar: ' + (e.response?.data?.detail || e.message))
     } finally {
         saving.value = false
     }

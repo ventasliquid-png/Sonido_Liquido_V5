@@ -3,7 +3,7 @@
         
         <!-- === ZONA A: CABECERA (CONTEXTO) === -->
         <header 
-            class="grid grid-cols-[100px_1fr_120px_180px] grid-rows-2 gap-px bg-slate-800 border-b border-slate-700 shrink-0 select-none text-xs"
+            class="grid grid-cols-[90px_1fr_100px_110px_260px] grid-rows-2 gap-px bg-slate-800 border-b border-slate-700 shrink-0 select-none text-xs"
         >
             <!-- A1. NRO PEDIDO (Top Left) -->
             <div class="bg-[#0f172a] text-slate-400 flex flex-col justify-center px-2 py-1">
@@ -29,7 +29,7 @@
                     spellcheck="false"
                     autocorrect="off"
                     autocapitalize="none"
-                    class="w-full h-full bg-transparent pt-3 pb-0 px-1 outline-none text-emerald-100 font-bold placeholder-slate-600 focus:bg-slate-700/50 transition-colors cursor-text pr-6"
+                    class="w-full h-full bg-transparent pt-3 pb-0 px-1 outline-none text-emerald-100 font-bold text-lg placeholder-slate-600 focus:bg-slate-700/50 transition-colors cursor-text pr-6"
                     :class="{'bg-slate-700/50': focusedZone === 'CLIENT'}"
                     placeholder="BUSCAR CLIENTE..."
                     v-model="clientQuery"
@@ -122,8 +122,21 @@
                 </Teleport>
             </div>
 
-            <!-- A3. FECHA (Top Right) -->
-            <div class="bg-[#0f172a] flex flex-col justify-center px-2 py-1">
+            <!-- A3. OC (Moved Up) -->
+            <div class="bg-[#1e293b] flex flex-col justify-center relative border-l border-slate-700">
+                <span class="text-[9px] uppercase font-bold tracking-widest text-slate-500 px-2">OC / REF</span>
+                <input 
+                    type="text" 
+                    v-model="form.oc"
+                    placeholder="---"
+                    autocomplete="off"
+                    class="w-full bg-transparent text-sm text-white font-bold outline-none px-2 placeholder-slate-600 focus:bg-slate-700/50 transition-colors"
+                    title="Orden de Compra"
+                >
+            </div>
+
+            <!-- A4. FECHA (Top Right) -->
+            <div class="bg-[#0f172a] flex flex-col justify-center px-2 py-1 border-l border-slate-700">
                 <span class="text-[9px] uppercase font-bold tracking-widest text-slate-500">FECHA</span>
                 <input 
                     type="date" 
@@ -132,13 +145,13 @@
                 >
             </div>
 
-            <!-- A4. TOTAL (Top Right - Big) -->
-            <div class="bg-[#020617] text-right flex flex-col justify-center px-3 row-span-2 border-l border-slate-700">
-                <span class="text-[9px] uppercase font-bold tracking-widest text-emerald-600 mb-1">TOTAL ESTIMADO</span>
-                <span class="text-2xl font-mono font-bold text-emerald-400 tracking-tight leading-none">
+            <!-- A5. TOTAL (Top Right - Big - Rowspan 2) -->
+            <div class="bg-[#020617] text-right flex flex-col justify-center px-4 row-span-2 border-l border-slate-700">
+                <span class="text-[10px] uppercase font-bold tracking-widest text-emerald-600 mb-1">TOTAL ESTIMADO</span>
+                <span class="text-5xl font-mono font-bold text-emerald-400 tracking-tighter leading-none scale-110 origin-right py-2">
                     {{ formatCurrency(totals.final) }}
                 </span>
-                <span class="text-[10px] text-slate-600 mt-1 font-mono">
+                <span class="text-[11px] text-slate-500 mt-2 font-mono">
                     {{ items.length }} ITEM(S) | {{ formatCurrency(totals.iva) }} IVA
                 </span>
             </div>
@@ -151,19 +164,17 @@
                 </span>
             </div>
 
-            <!-- B2. LOGISTICA + COND IVA (Bottom Center) -->
-            <!-- B2. LOGISTICA + NOTAS (Bottom Center - Span 2) -->
-            <!-- B2. LOGISTICA + NOTAS (Bottom Center - Span 2) -->
-            <div class="bg-[#1e293b] flex items-center col-span-2 border-t border-slate-700 divide-x divide-slate-700 relative z-30">
+            <!-- B2. LOGISTICA + NOTAS / EXTRA INFO (Bottom Center - Span 3) -->
+            <div class="bg-[#1e293b] flex items-center col-span-3 border-t border-slate-700 divide-x divide-slate-700 relative z-30">
                 
-                <!-- 1. Logistica (Width: Auto / Approx 40%) -->
+                <!-- 1. Logistica -->
                 <div 
-                    class="flex items-center gap-1 px-3 cursor-pointer hover:text-emerald-400 transition-colors h-full min-w-[30%] max-w-[40%]" 
+                    class="flex items-center gap-2 px-3 cursor-pointer hover:text-emerald-400 transition-colors h-full w-1/3" 
                     title="Cambiar Logística / Domicilio"
                     @click="showLogisticaModal = true"
                 >
-                    <i class="fa-solid fa-truck text-[10px] text-slate-500 shrink-0"></i>
-                    <div class="flex flex-col leading-none ml-1 overflow-hidden">
+                    <i class="fa-solid fa-truck text-xs text-slate-500 shrink-0"></i>
+                    <div class="flex flex-col leading-none overflow-hidden">
                         <span class="font-bold truncate text-slate-300 text-[10px]">
                             {{ logisticsLabel }}
                         </span>
@@ -171,73 +182,51 @@
                             {{ selectedClient?.domicilio_entrega || 'Sin dirección de entrega' }}
                         </span>
                     </div>
-                    <i class="fa-solid fa-caret-down text-[10px] text-slate-600 ml-auto pl-2"></i>
                 </div>
 
-                <!-- 2. OC (Width: Fixed 80px) -->
-                <div class="w-20 h-full bg-slate-200 relative border-r border-slate-300">
-                    <input 
-                        type="text" 
-                        v-model="form.oc"
-                        placeholder="O.C."
-                        autocomplete="off"
-                        class="w-full h-full px-2 text-[10px] text-slate-900 placeholder-slate-500 font-bold outline-none transition-colors text-center border-none bg-transparent"
-                        title="Orden de Compra"
-                    >
-                </div>
-
-                <!-- 3. Nota (Width: Flex) -->
-                <div class="flex-1 h-full bg-slate-200 relative">
+                <!-- 2. Notas / Obs -->
+                <div class="flex-1 h-full bg-slate-800/50 relative">
                     <input 
                         type="text" 
                         v-model="form.nota"
                         placeholder="Observaciones del Pedido..."
                         autocomplete="off"
-                        class="w-full h-full px-3 text-[10px] text-slate-900 placeholder-slate-500 font-bold outline-none transition-colors border-none bg-transparent"
-                        style="color: #0f172a !important;"
+                        class="w-full h-full px-3 text-[10px] text-slate-300 placeholder-slate-600 font-bold outline-none transition-colors border-none bg-transparent"
                     >
                 </div>
 
-                 <!-- 4. Cond IVA (Fixed - End) -->
-                <div class="flex items-center gap-1 shrink-0 px-2 bg-[#1e293b]">
+                 <!-- 3. Cond IVA -->
+                <div class="flex items-center gap-1 shrink-0 px-3 bg-[#1e293b]">
                     <span class="text-[9px] font-bold text-slate-500">IVA:</span>
-                    <span class="font-bold text-slate-300 truncate max-w-[80px]" :title="selectedClient?.condicion_iva_nombre">
+                    <span class="font-bold text-slate-300 truncate max-w-[100px]" :title="selectedClient?.condicion_iva_nombre">
                          {{ selectedClient?.condicion_iva_nombre || '-' }}
                     </span>
                 </div>
-            </div>
 
-             <!-- B3. NOTA/OC (Bottom Right) -->
+                <!-- 4. Semáforo / Estado -->
+                <div class="flex items-center px-1 gap-1 border-r border-slate-700 pr-2 mr-2">
+                    <button 
+                        v-for="opt in statusOptions" :key="opt.value"
+                        class="w-5 h-5 rounded-full flex items-center justify-center transition-all opacity-50 hover:opacity-100"
+                        :class="[form.estado === opt.value ? 'bg-white opacity-100 ring-2 ring-emerald-500' : '', opt.dotClass]"
+                        @click="setStatus(opt.value)"
+                        :title="opt.label"
+                    >
+                    </button>
+                </div>
 
-            
-            <!-- SEMÁFORO (ESTADO) -->
-            <div class="h-8 flex items-center bg-[#0d1f1c] rounded-md mx-2 px-1 border border-emerald-900/40">
-                <button 
-                    v-for="opt in statusOptions" :key="opt.value"
-                    class="px-3 h-6 text-[10px] font-bold uppercase rounded transition-all mr-1 last:mr-0 flex items-center gap-1"
-                    :class="form.estado === opt.value ? opt.activeClass : 'text-slate-500 hover:text-slate-300'"
-                    @click="setStatus(opt.value)"
-                    :title="opt.label"
-                >
-                    <div class="w-2 h-2 rounded-full" :class="form.estado === opt.value ? 'bg-current' : opt.dotClass"></div>
-                    {{ opt.label }}
-                </button>
-            </div>
-
-            <!-- SEPARATOR -->
-            <div class="w-px h-6 bg-emerald-900/50 mx-2"></div>
-
-            <!-- TIPO FACTURACION (ABX) -->
-            <div class="h-8 flex items-center bg-[#0d1f1c] rounded-md px-1 border border-emerald-900/40">
-                <button 
-                    v-for="opt in typeOptions" :key="opt.value"
-                    class="w-6 h-6 text-[10px] font-bold rounded transition-all mr-1 last:mr-0 flex items-center justify-center font-mono"
-                    :class="form.tipo_facturacion === opt.value ? 'bg-emerald-500 text-black shadow-sm' : 'text-slate-500 hover:text-emerald-400 hover:bg-emerald-900/30'"
-                    @click="form.tipo_facturacion = opt.value"
-                    :title="opt.title"
-                >
-                    {{ opt.label }}
-                </button>
+                <!-- 5. Tipo Facturacion (Restored) -->
+                <div class="flex items-center px-1 gap-1 bg-[#0f172a] h-full">
+                    <button 
+                        v-for="opt in typeOptions" :key="opt.value"
+                        class="w-5 h-5 text-[9px] font-bold rounded flex items-center justify-center font-mono border border-slate-700 hover:border-emerald-500 transition-colors"
+                        :class="form.tipo_facturacion === opt.value ? 'bg-emerald-500 text-black shadow-sm' : 'text-slate-500 hover:text-emerald-400 bg-slate-800'"
+                        @click="form.tipo_facturacion = opt.value"
+                        :title="opt.title"
+                    >
+                        {{ opt.label }}
+                    </button>
+                </div>
             </div>
 
         </header>
@@ -252,10 +241,10 @@
                 <div class="flex-1 pl-2">Notas / Obs</div>
                 <div class="w-20 text-center">Cant.</div>
                 <div class="w-12 text-center">Unid.</div>
-                <div class="w-28 text-right">Unitario (4 dec)</div>
+                <div class="w-32 text-right">Unitario (4 dec)</div>
                 <div class="w-32 text-right">Descuento (%)</div>
                 <div class="w-32 text-right">Descuento ($)</div>
-                <div class="w-24 text-right">Subtotal</div>
+                <div class="w-32 text-right">Subtotal</div>
                 <div class="w-8"></div>
             </div>
 
@@ -306,10 +295,10 @@
                     
                     <div class="w-12 text-center text-[10px] text-emerald-600 uppercase select-none">{{ item.unidad || 'UN' }}</div>
                     
-                    <div class="w-28 text-right font-mono">
+                    <div class="w-32 text-right font-mono">
                         <MagicInput 
                             v-model.number="item.precio_unitario" 
-                            inputClass="w-24 text-right bg-transparent hover:bg-white/10 focus:bg-black/20 outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1 text-emerald-300 text-xs placeholder-emerald-800"
+                            inputClass="w-28 text-right bg-transparent hover:bg-white/10 focus:bg-black/20 outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1 text-emerald-300 text-sm font-bold placeholder-emerald-800"
                             :decimals="4"
                             @focus="focusedRow = index"
                             @update:modelValue="recalculateItemEngine(item, 'precio')"
@@ -320,7 +309,7 @@
                     <div class="w-32 text-right font-mono">
                         <MagicInput 
                             v-model.number="item.descuento_porcentaje" 
-                            inputClass="w-20 text-right bg-transparent hover:bg-white/10 focus:bg-black/20 outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1 text-amber-400 text-xs"
+                            inputClass="w-24 text-right bg-transparent hover:bg-white/10 focus:bg-black/20 outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1 text-amber-400 text-xs"
                             :decimals="2"
                             @focus="focusedRow = index"
                             @update:modelValue="recalculateItemEngine(item, 'porcentaje')"
@@ -338,7 +327,7 @@
                         />
                     </div>
                     
-                    <div class="w-24 text-right font-bold font-mono text-emerald-100 text-sm">
+                    <div class="w-32 text-right font-bold font-mono text-emerald-100 text-lg">
                         {{ formatCurrency(item.subtotal) }}
                     </div>
                     
@@ -735,9 +724,9 @@ const handleClientCanteraSearch = _.debounce(async (val) => {
     isSearchingCanteraClient.value = true;
     try {
         const res = await canteraService.searchClientes(val);
-        // Deduplicación por CUIT (si ya existe localmente, no mostrar en maestros)
-        const localCuits = new Set(clientesStore.clientes.filter(c => c.activo).map(c => c.cuit).filter(Boolean));
-        clientCanteraResults.value = res.data.filter(c => !localCuits.has(c.cuit));
+        // Deduplicación por ID (Database Key) explícita (String Safe)
+        const localIds = new Set(clientesStore.clientes.map(c => String(c.id)));
+        clientCanteraResults.value = res.data.filter(c => !localIds.has(String(c.id)));
     } catch (e) {
         console.error("Cantera client search error", e);
     } finally {
@@ -753,9 +742,9 @@ const handleProductCanteraSearch = _.debounce(async (val) => {
     isSearchingCanteraProduct.value = true;
     try {
         const res = await canteraService.searchProductos(val);
-        // Deduplicación por SKU
-        const localSkus = new Set(productosStore.productos.map(p => p.sku).filter(Boolean));
-        productCanteraResults.value = res.data.filter(p => !localSkus.has(p.sku));
+        // [GY-FIX] Deduplicación por ID (Database Key) explícita (String Safe)
+        const localIds = new Set(productosStore.productos.map(p => String(p.id)));
+        productCanteraResults.value = res.data.filter(p => !localIds.has(String(p.id)));
     } catch (e) {
         console.error("Cantera product search error", e);
     } finally {
@@ -1875,10 +1864,16 @@ const handleGlobalDiscountInputEngine = (trigger) => {
 
 // Lifecycle
 const handleGlobalKeys = (e) => {
-    // F3: BÚSQUEDA GLOBAL (CLIENTES) - DOCTRINA DEOU
+    // F3: BÚSQUEDA CONTEXTUAL (CLIENTES/PRODUCTOS)
     if (e.key === 'F3') {
         e.preventDefault();
-        focusClient();
+        // Si el foco está en productos (grilla o input), queremos buscar productos
+        if (focusedZone.value === 'PRODUCT') {
+             focusProductSearch();
+        } else {
+             // Caso contrario (Default): Buscar Clientes
+             focusClient();
+        }
     } 
     // F2: BÚSQUEDA PRODUCTO (SECUNDARIO)
     else if (e.key === 'F2') {

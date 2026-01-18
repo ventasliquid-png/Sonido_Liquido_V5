@@ -104,18 +104,34 @@ onUnmounted(() => {
 import { watch } from 'vue';
 import canteraService from '@/services/canteraService';
 import { useNotificationStore } from '@/stores/notification';
+// [GY-FIX] Import main store to trigger server-side search
+import { useClientesStore } from '@/stores/clientes';
 
 const notificationStore = useNotificationStore();
+const clientesStore = useClientesStore();
 const canteraLoading = ref(false);
 const canteraResults = ref([]);
+
+let debounceTimer = null;
 
 watch(() => props.show, (val) => {
     if (val) {
         searchQuery.value = '';
         selectedIndex.value = 0;
         canteraResults.value = [];
+        // Reset query on open to show defaults
+        clientesStore.fetchClientes(); 
         nextTick(() => searchInput.value?.focus());
     }
+});
+
+watch(searchQuery, (newVal) => {
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        // Trigger server-side search if query is long enough, else fetch default page
+        // If empty, backend returns first 1000
+        clientesStore.fetchClientes({ q: newVal });
+    }, 300);
 });
 
 const handleCanteraSearch = async () => {
@@ -125,7 +141,9 @@ const handleCanteraSearch = async () => {
     
     try {
         const res = await canteraService.searchClientes(searchQuery.value);
-        canteraResults.value = res.data;
+        // [GY-FIX] Deduplicación por ID para no mostrar los que ya están importados
+        const localIds = new Set(clientesStore.clientes.map(c => c.id));
+        canteraResults.value = res.data.filter(c => !localIds.has(c.id));
         if (canteraResults.value.length === 0) {
             notificationStore.add('No se encontraron registros en Cantera.', 'info');
         }
@@ -231,19 +249,7 @@ const selectCanteraItem = async (item) => {
                                 <span v-else class="text-rose-500">REVISAR</span>
                             </td>
                         </tr>
-                        <tr v-if="filteredClientes.length === 0 && canteraResults.length === 0">
-                            <td colspan="5" class="p-8 text-center text-slate-500 flex flex-col items-center gap-4">
-                                <div>No se encontraron resultados locales.</div>
-                                <button 
-                                    @click="handleCanteraSearch"
-                                    :disabled="canteraLoading"
-                                    class="px-4 py-2 bg-emerald-900/40 border border-emerald-500/30 text-emerald-400 rounded hover:bg-emerald-900/60 transition-colors flex items-center gap-2"
-                                >
-                                    <i class="fas" :class="canteraLoading ? 'fa-spinner fa-spin' : 'fa-database'"></i>
-                                    {{ canteraLoading ? 'Buscando...' : 'Buscar en Cantera' }}
-                                </button>
-                            </td>
-                        </tr>
+                        <!-- Cantera Search Row Removed - Moved to Footer Area -->
 
                         <!-- Cantera Results -->
                         <template v-if="canteraResults.length > 0">
@@ -270,6 +276,18 @@ const selectCanteraItem = async (item) => {
                         </template>
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Cantera Action Bar (Always Visible if Searching) -->
+            <div v-if="searchQuery && canteraResults.length === 0" class="p-2 bg-emerald-900/10 border-t border-emerald-900/30 text-center">
+                 <button 
+                    @click="handleCanteraSearch"
+                    :disabled="canteraLoading"
+                    class="w-full py-2 px-4 rounded border border-emerald-500/20 bg-emerald-900/20 text-emerald-400 hover:bg-emerald-900/40 hover:text-emerald-300 transition-all text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2"
+                >
+                    <i class="fas" :class="canteraLoading ? 'fa-spinner fa-spin' : 'fa-database'"></i>
+                    {{ canteraLoading ? 'Buscando en Base Histórica...' : '¿No encuentra el cliente? Buscar en Cantera' }}
+                </button>
             </div>
 
             <!-- Footer -->

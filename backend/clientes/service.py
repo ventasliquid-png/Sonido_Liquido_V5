@@ -83,16 +83,28 @@ class ClienteService:
         ).filter(Cliente.id == cliente_id).first()
 
     @staticmethod
-    def get_clientes(db: Session, skip: int = 0, limit: int = 100, include_inactive: bool = False) -> List[Cliente]:
+    def get_clientes(db: Session, skip: int = 0, limit: int = 100, include_inactive: bool = False, q: str = None) -> List[Cliente]:
         from sqlalchemy.orm import joinedload
-        # Modified to allow fetching inactive clients if needed, or by default just return all and let frontend filter
-        # User requested: "SI un cliente está de baja lógica, no es mostrado en el listado cuando se one 'todos' en el encabezado"
-        # So we should probably return ALL clients by default or have a flag.
-        # The prompt said: "Verifica que el filtro 'Todos' en la lista traiga también a los inactivos."
-        # So I will remove the filter(Cliente.activo == True).
-        return db.query(Cliente).options(
+        from sqlalchemy import or_
+        
+        query = db.query(Cliente).options(
             joinedload(Cliente.domicilios)
-        ).offset(skip).limit(limit).all()
+        )
+
+        if q:
+            search = f"%{q}%"
+            query = query.filter(
+                or_(
+                    Cliente.razon_social.ilike(search),
+                    Cliente.nombre_fantasia.ilike(search),
+                    Cliente.cuit.ilike(search)
+                )
+            )
+        
+        # Determine sorting? Usually by name
+        query = query.order_by(Cliente.razon_social)
+
+        return query.offset(skip).limit(limit).all()
 
     @staticmethod
     def update_cliente(db: Session, cliente_id: UUID, cliente_in: schemas.ClienteUpdate) -> Optional[Cliente]:

@@ -61,6 +61,10 @@
                 <i class="fas fa-plus w-4"></i> 
                 <span>Nuevo Pedido (Táctico)</span>
             </a>
+            <a href="#" @click.prevent="navigate('PedidoCanvas')" class="nav-item-sub" :class="{ 'active-link-emerald': isActive('PedidoCanvas') }">
+                <i class="fas fa-palette w-4"></i> 
+                <span>Nuevo Pedido (Canvas)</span>
+            </a>
             <a href="#" @click.prevent="navigate('PedidoList')" class="nav-item-sub" :class="{ 'active-link-emerald': isActive('PedidoList') }">
                 <i class="fas fa-list w-4"></i> 
                 <span>Tablero Pedidos</span>
