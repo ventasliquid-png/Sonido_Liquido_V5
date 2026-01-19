@@ -3,7 +3,7 @@
         <!-- DRAWER TOGGLE BUTTON (Floating right edge when closed) -->
         <button v-if="!modelValue"
                 @click="toggle" 
-                class="fixed right-0 top-1/2 transform -translate-y-1/2 bg-[#151515] border-l border-t border-b border-white/20 text-gray-400 hover:text-orange-400 hover:bg-white/10 p-2 rounded-l-lg shadow-lg z-40 transition-all flex items-center gap-2 group"
+                class="fixed right-0 top-1/2 transform -translate-y-1/2 bg-[#151515] border-l border-t border-b border-white/20 text-gray-400 hover:text-orange-400 hover:bg-white/10 p-2 rounded-l-lg shadow-lg z-[100] transition-all flex items-center gap-2 group"
                 title="Ver Rentabilidad (F8)">
             <i class="fas fa-chevron-left group-hover:-translate-x-1 transition-transform"></i>
         </button>

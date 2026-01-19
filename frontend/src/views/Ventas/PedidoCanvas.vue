@@ -1,27 +1,28 @@
 <template>
-    <div class="min-h-screen w-full bg-[#0f172a] p-8 flex justify-center items-start">
-        <div class="w-full max-w-[98%] bg-[#0f172a] rounded-2xl border-2 border-emerald-500 shadow-[0_0_40px_-10px_rgba(16,185,129,0.5)] overflow-hidden relative flex flex-col h-[90vh]">
+    <div class="min-h-screen w-full bg-[#0f172a] p-2 flex justify-center items-start">
+        <div class="w-full max-w-[98%] bg-[#0f172a] rounded-2xl border-2 border-emerald-500 shadow-[0_0_40px_-10px_rgba(16,185,129,0.5)] overflow-hidden relative flex flex-col h-screen">
             <!-- HEADER (User Provided Style) -->
-            <div class="w-full bg-emerald-950/30 border-b border-emerald-500/20 p-6 flex justify-between items-center backdrop-blur-sm shrink-0">
+            <!-- HEADER (Compact Mode) -->
+            <div class="w-full bg-emerald-950/30 border-b border-emerald-500/20 py-2 px-4 flex justify-between items-center backdrop-blur-sm shrink-0">
                 <div class="flex items-center gap-4">
                     <button @click="$router.push({ name: 'PedidoList' })" class="text-emerald-500/50 hover:text-emerald-400 transition-colors">
                         <i class="fas fa-arrow-left"></i>
                     </button>
-                    <h1 class="text-2xl font-bold text-emerald-400 tracking-wider flex items-center gap-3">
+                    <h1 class="text-lg font-bold text-emerald-400 tracking-wider flex items-center gap-3">
                         <i class="fas fa-file-invoice"></i> NUEVO PEDIDO
                     </h1>
                 </div>
                 <div class="flex gap-3">
-                     <button @click="resetPedido" class="text-emerald-500 hover:text-emerald-400 font-bold flex items-center gap-2 transition-colors uppercase tracking-wider text-sm">
+                     <button @click="resetPedido" class="text-emerald-500 hover:text-emerald-400 font-bold flex items-center gap-2 transition-colors uppercase tracking-wider text-xs">
                         <i class="fas fa-plus-circle"></i> Resetear
                     </button>
                 </div>
             </div>
 
             <!-- BODY (Existing Content) -->
-            <div class="flex-1 flex flex-col overflow-hidden relative">
+            <div class="flex-1 flex flex-col overflow-hidden relative min-h-0">
                 <!-- Inner content wrapper to maintain existing flex behavior -->
-                 <div class="flex-1 flex flex-col transition-all duration-300 ease-in-out"
+                 <div class="flex-1 flex flex-col min-h-0 overflow-hidden transition-all duration-300 ease-in-out"
                      :class="showCostDrawer ? 'mr-96' : ''">
 
             <!-- SECTION 1: HEADER (Refinado: Dense Mode) -->
@@ -210,35 +211,34 @@
             </header>
 
             <!-- SECTION 2: BODY (Grid Productos) -->
-            <main class="flex-1 overflow-auto p-4 flex flex-col">
+            <main class="flex-1 overflow-hidden p-2 flex flex-col">
                 <div class="bg-black/30 rounded-xl border border-white/5 overflow-hidden flex-1 flex flex-col relative">
                     
                     <!-- Table Header -->
                     <div class="shrink-0 grid grid-cols-12 bg-white/5 px-4 py-3 gap-2 border-b border-white/5 text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                        <div class="col-span-1">#</div>
-                        <div class="col-span-2">SKU</div>
-                        <div class="col-span-2">Descripción</div>
+                        <div class="col-span-1 text-center">#</div>
+                        <div class="col-span-1">SKU</div>
+                        <div class="col-span-4">Descripción</div>
                         <div class="col-span-1 text-center">Cant.</div>
-                        <div class="col-span-2 text-right">Precio</div>
+                        <div class="col-span-1 text-right">Precio</div>
                         <div class="col-span-1 text-right">Desc %</div>
                         <div class="col-span-1 text-right">Desc $</div>
-                        <div class="col-span-1 text-right">Subtotal</div>
-                        <div class="col-span-1 text-center">Acción</div>
+                        <div class="col-span-2 text-right">Subtotal</div>
                     </div>
 
                     <!-- Table Rows -->
-                    <div class="overflow-y-auto flex-1 p-2 space-y-1">
+                    <div ref="itemsContainerRef" class="overflow-y-auto flex-1 p-2 space-y-1">
                         
                         <!-- INLINE ENTRY ROW (Always Visible at Top) -->
-                        <div class="grid grid-cols-12 px-4 py-2 gap-2 bg-emerald-500/5 rounded-lg items-center border border-emerald-500/20 shadow-lg relative z-30">
+                        <div class="grid grid-cols-12 px-4 py-4 gap-2 bg-emerald-500/5 rounded-lg items-center border border-emerald-500/20 shadow-lg relative z-30 min-h-[70px]">
                             
-                            <!-- Row Number / Status -->
-                            <div class="col-span-1 flex items-center justify-center">
-                                <span class="text-[10px] font-bold bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded border border-emerald-500/30">NUEVO</span>
+                            <!-- Index Placeholder -->
+                            <div class="col-span-1 text-center font-bold text-emerald-500/50 text-xs">
+                                <i class="fas fa-plus"></i>
                             </div>
 
                             <!-- SKU Input -->
-                            <div class="col-span-2 relative">
+                            <div class="col-span-1 relative">
                                 <input type="text"
                                     ref="inputSkuRef"
                                     v-model="newItem.sku"
@@ -252,7 +252,7 @@
                             </div>
 
                             <!-- Descripción Input -->
-                            <div class="col-span-2 relative">
+                            <div class="col-span-4 relative">
                                 <input type="text"
                                     ref="inputDescRef"
                                     v-model="newItem.descripcion"
@@ -263,7 +263,7 @@
                                     placeholder="Buscar producto..."
                                     class="w-full bg-transparent border-none text-white placeholder-gray-600 focus:outline-none font-medium"
                                 >
-                                <!-- DROPDOWN RESULTADOS (Shared Position) -->
+                                <!-- DROPDOWN RESULTS (Keep existing dropdown) -->
                                 <div v-if="(showProductResults && (filteredProductos.length > 0 || productCanteraResults.length > 0 || isSearchingCanteraProduct))" 
                                      class="absolute top-full left-0 w-[400px] mt-2 bg-[#151515] border border-white/10 rounded-xl shadow-2xl max-h-80 overflow-y-auto z-50">
                                     <div v-for="(prod, index) in filteredProductos" :key="prod.id"
@@ -309,6 +309,7 @@
                             <!-- Cantidad -->
                             <div class="col-span-1">
                                 <input type="number" 
+                                    ref="inputQtyRef"
                                     v-model.number="newItem.cantidad" 
                                     @input="updateRowTotal"
                                     @keydown.enter.prevent="commitRow"
@@ -317,7 +318,7 @@
                             </div>
 
                             <!-- Precio Unit. -->
-                            <div class="col-span-2 text-right">
+                            <div class="col-span-1 text-right">
                                 <input type="number" 
                                     v-model.number="newItem.precio" 
                                     @input="updateRowTotal"
@@ -333,109 +334,128 @@
                                     @input="updateRowDescPct"
                                     @keydown.enter.prevent="commitRow"
                                     placeholder="%"
-                                    class="w-full bg-transparent border-b border-emerald-500/30 text-yellow-500 font-mono text-right focus:outline-none focus:border-emerald-500 text-xs"
+                                    class="w-full bg-transparent border-b border-emerald-500/30 text-yellow-500 font-mono text-right focus:outline-none focus:border-emerald-500"
                                 >
                             </div>
-                            <!-- Descuento $ -->
+                            <!-- Descuento $ (Restored) -->
                             <div class="col-span-1 text-right">
                                 <input type="number" 
                                     v-model.number="newItem.descuento_valor" 
                                     @input="updateRowDescVal"
                                     @keydown.enter.prevent="commitRow"
                                     placeholder="$"
-                                    class="w-full bg-transparent border-b border-emerald-500/30 text-yellow-500 font-mono text-right focus:outline-none focus:border-emerald-500 text-xs"
+                                    class="w-full bg-transparent border-b border-emerald-500/30 text-yellow-500 font-mono text-right focus:outline-none focus:border-emerald-500"
                                 >
                             </div>
-
-                            <!-- Total -->
-                            <div class="col-span-1 text-right">
+                            
+                            <!-- Subtotal (Replaces Desc $ + Total) -->
+                            <div class="col-span-2 text-right">
                                 <span class="font-mono font-bold text-white text-lg">$ {{ newItem.total.toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</span>
                             </div>
-                            <!-- Action Placeholder -->
-                            <div class="col-span-1"></div>
 
                         </div>
 
                         <!-- SAVED ROWS -->
-                        <div v-for="(item, index) in items" :key="item.sku || index" 
-                             class="grid grid-cols-12 px-4 py-3 gap-2 bg-white/[0.02] hover:bg-white/5 rounded-lg items-center group transition-colors border border-transparent hover:border-white/5">
+                        <div v-for="(item, index) in items" :key="item.sku || index" :class="{'bg-white/10': expandedRows.has(index)}">
+                            <div class="grid grid-cols-12 px-4 py-3 gap-2 bg-white/[0.02] hover:bg-white/5 rounded-lg items-center group transition-colors border border-transparent hover:border-white/5 relative">
                             
-                            <!-- Index -->
-                            <div class="col-span-1 flex justify-center text-gray-600 font-mono text-xs relative">
-                                <span>{{ items.length - index }}</span>
-                            </div>
+                                <!-- Index -->
+                                <div class="col-span-1 text-center font-mono text-gray-500 text-xs select-none">
+                                    {{ index + 1 }}
+                                </div>
 
-                            <!-- SKU (Editable) -->
-                            <div class="col-span-2">
-                                <input type="text" v-model="item.sku" 
-                                    class="w-full bg-transparent border-none text-gray-400 font-mono text-xs focus:text-white focus:outline-none truncate">
-                            </div>
-                            
-                            <!-- Descripcion (Editable) -->
-                            <div class="col-span-2 flex items-center gap-2">
-                                <input type="text" v-model="item.descripcion" 
-                                    class="w-full bg-transparent border-none text-gray-300 font-medium text-sm focus:text-white focus:outline-none truncate">
+                                <!-- SKU (Editable) -->
+                                <div class="col-span-1">
+                                    <input type="text" v-model="item.sku" 
+                                        class="w-full bg-transparent border-none text-gray-400 font-mono text-xs focus:text-white focus:outline-none truncate">
+                                </div>
                                 
-                                <!-- ZERO COST ALERT -->
-                                <div v-if="item.producto_obj?.costos?.costo_reposicion === 0" class="shrink-0" title="ALERTA: Costo de Reposición Cero">
-                                    <i class="fas fa-exclamation-triangle text-orange-500 animate-pulse"></i>
+                                <!-- Descripcion (Editable) + Chevron -->
+                                <div class="col-span-4 flex items-center gap-2">
+                                     <button @click="toggleDetails(index)" class="text-gray-500 hover:text-white transition-colors focus:outline-none z-10 p-1">
+                                        <i class="fas" :class="expandedRows.has(index) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                                    </button>
+                                    <input type="text" v-model="item.descripcion" 
+                                        class="w-full bg-transparent border-none text-gray-300 font-medium text-sm focus:text-white focus:outline-none truncate">
+                                    
+                                    <div v-if="item.producto_obj?.costos?.costo_reposicion === 0" class="shrink-0" title="ALERTA: Costo de Reposición Cero">
+                                        <i class="fas fa-exclamation-triangle text-orange-500 animate-pulse"></i>
+                                    </div>
+                                </div>
+                                
+                                <!-- Cantidad (Editable) -->
+                                <div class="col-span-1">
+                                    <input type="number" 
+                                        v-model.number="item.cantidad"
+                                        @input="updateItemTotal(item)"
+                                        class="w-full bg-transparent border-b border-transparent hover:border-white/20 focus:border-emerald-500 text-center font-bold text-white text-sm focus:outline-none transition-colors"
+                                    >
+                                </div>
+
+                                <!-- Precio (Editable) -->
+                                <div class="col-span-1 text-right relative">
+                                    <span class="absolute left-0 text-gray-600 font-mono text-xs">$</span>
+                                    <input type="number" 
+                                        v-model.number="item.precio" 
+                                        @input="updateItemTotal(item)"
+                                        class="w-full bg-transparent border-b border-transparent hover:border-white/20 focus:border-emerald-500 text-right font-mono text-gray-300 text-sm focus:outline-none transition-colors"
+                                    >
+                                </div>
+
+                               <!-- Descuento % (Editable) -->
+                                <div class="col-span-1 text-right">
+                                    <input type="number" 
+                                        :value="item.descuento_porcentaje" 
+                                        @input="(e) => { item.descuento_porcentaje = parseFloat(e.target.value); updateItemDescPct(item); }"
+                                        class="w-full bg-transparent border-b border-transparent hover:border-white/20 focus:border-emerald-500 text-right font-mono text-yellow-500 text-sm focus:outline-none transition-colors"
+                                        step="0.01"
+                                    >
+                                </div>
+
+                                <!-- Descuento $ (Editable - Restored) -->
+                                <div class="col-span-1 text-right">
+                                    <input type="number" 
+                                        v-model.number="item.descuento_valor" 
+                                        @input="updateItemDescVal(item)"
+                                        class="w-full bg-transparent border-b border-transparent hover:border-white/20 focus:border-emerald-500 text-right font-mono text-yellow-500 text-sm focus:outline-none transition-colors"
+                                    >
+                                </div>
+                                
+                                <!-- Total -->
+                                <div class="col-span-2 text-right font-mono font-semibold text-white text-sm">
+                                    $ {{ item.total.toLocaleString('es-AR', {minimumFractionDigits: 2}) }}
+                                </div>
+
+                                <!-- Actions (Floating) -->
+                                <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 px-2 py-1 rounded-lg border border-white/10 shadow-xl z-20">
+                                    <button @click="editItem(index)" class="text-blue-500 hover:text-blue-300 transition-colors" title="Editar">
+                                        <i class="fas fa-pencil-alt"></i>
+                                    </button>
+                                    <button @click="removeItem(index)" class="text-red-500 hover:text-red-400 transition-colors" title="Eliminar">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
                                 </div>
                             </div>
                             
-                            <!-- Cantidad (Editable) -->
-                            <div class="col-span-1">
-                                <input type="number" 
-                                    v-model.number="item.cantidad"
-                                    @input="updateItemTotal(item)"
-                                    class="w-full bg-transparent border-b border-transparent hover:border-white/20 focus:border-emerald-500 text-center font-bold text-white text-sm focus:outline-none transition-colors"
-                                >
-                            </div>
-
-                            <!-- Precio (Editable) -->
-                            <div class="col-span-2 text-right">
-                                <input type="number" 
-                                    v-model.number="item.precio" 
-                                    @input="updateItemTotal(item)"
-                                    class="w-full bg-transparent border-b border-transparent hover:border-white/20 focus:border-emerald-500 text-right font-mono text-gray-300 text-sm focus:outline-none transition-colors"
-                                >
-                            </div>
-
-                           <!-- Descuento % (Editable) -->
-                            <div class="col-span-1 text-right">
-                                <input type="number" 
-                                    v-model.number="item.descuento_porcentaje" 
-                                    @input="updateItemDescPct(item)"
-                                    class="w-full bg-transparent border-b border-transparent hover:border-white/20 focus:border-emerald-500 text-right font-mono text-yellow-500 text-sm focus:outline-none transition-colors"
-                                >
-                            </div>
-                            <!-- Descuento $ (Editable) -->
-                            <div class="col-span-1 text-right">
-                                <input type="number" 
-                                    v-model.number="item.descuento_valor" 
-                                    @input="updateItemDescVal(item)"
-                                    class="w-full bg-transparent border-b border-transparent hover:border-white/20 focus:border-emerald-500 text-right font-mono text-yellow-500 text-sm focus:outline-none transition-colors"
-                                >
-                            </div>
-                            
-                            <!-- Total -->
-                            <div class="col-span-1 text-right font-mono font-bold text-white text-lg">
-                                $ {{ item.total.toLocaleString('es-AR', {minimumFractionDigits: 2}) }}
-                            </div>
-
-                            <!-- Actions -->
-                            <div class="col-span-1 flex justify-center items-center gap-2">
-                                <button @click="editItem(index)" class="text-blue-500 hover:text-blue-300 transition-colors" title="Editar (Mover a carga)">
-                                    <i class="fas fa-pencil-alt"></i>
-                                </button>
-                                <button @click="removeItem(index)" class="text-red-500 hover:text-red-400 transition-colors" title="Eliminar">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                            <!-- DETAILS ROW (Rentabilidad) -->
+                            <div v-if="expandedRows.has(index)" class="px-4 py-2 bg-black/40 border-b border-white/5 text-xs text-gray-400 font-mono flex gap-8 pl-12">
+                                <div>
+                                    <span class="text-gray-600 block text-[9px] uppercase">Costo Unit.</span>
+                                    <span>$ {{ (item.producto_obj?.costo || 0).toLocaleString('es-AR') }}</span>
+                                </div>
+                                 <div class="text-xs">
+                                     <span class="text-gray-600 block text-[9px] uppercase">Rentabilidad</span>
+                                     <span :class="(item.precio - (item.producto_obj?.costo || 0) * (1 - item.descuento_porcentaje/100)) > 0 ? 'text-green-500' : 'text-red-500'">
+                                         {{ (((item.precio * (1 - item.descuento_porcentaje/100)) / (item.producto_obj?.costo || 1)) - 1).toLocaleString(undefined, {style: 'percent', minimumFractionDigits: 1}) }}
+                                     </span>
+                                 </div>
                             </div>
                         </div>
 
                     </div>
                 </div>
             </main>
+            </div> <!-- End of overflow-hidden relative wrapper -->
 
             <!-- SECTION 3: FOOTER -->
             <footer class="shrink-0 bg-[#0e0e0e] border-t border-white/10 p-4 relative z-40">
@@ -493,28 +513,36 @@
                         <div class="font-mono text-gray-300">$ {{ ((subtotal - descuentoGlobalValor) * 0.21).toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</div>
                     </div>
 
-                    <div class="text-right pl-6 border-l border-white/10">
-                        <div class="text-xs font-bold uppercase tracking-widest text-emerald-500 mb-1">Total Final</div>
-                        <div class="flex items-baseline gap-2 justify-end">
-                             <span class="text-sm text-gray-500 font-bold">ARS</span>
-                             <span class="font-outfit text-3xl font-bold text-white tracking-tight">$ {{ totalFinal.toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</span>
-                        </div>
+
+                    
+                    <!-- SAVE BUTTON BLOCK -->
+                    <div class="text-right pl-6 border-l border-white/10 flex flex-col justify-end gap-2">
+                         <div class="text-xs font-bold uppercase tracking-widest text-emerald-500 mb-1">Total Final</div>
+                         <div class="flex items-baseline gap-2 justify-end mb-2">
+                              <span class="text-sm text-gray-500 font-bold">ARS</span>
+                              <span class="font-outfit text-3xl font-bold text-white tracking-tight">$ {{ totalFinal.toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</span>
+                         </div>
+                         <button @click="savePedido" 
+                                 :disabled="isSaving || items.length === 0 || !clienteSeleccionado"
+                                 class="bg-emerald-500 hover:bg-emerald-400 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 uppercase tracking-wider text-sm">
+                            <i v-if="isSaving" class="fas fa-spinner fa-spin"></i>
+                            <i v-else class="fas fa-save"></i>
+                            {{ isSaving ? 'Guardando...' : 'Guardar Pedido' }}
+                         </button>
                     </div>
                 </div>
+
             </footer>
-        </div>
-
-                 <!-- RENTABILIDAD PANEL -->
-                <RentabilidadPanel v-model="showCostDrawer" />
-            </div>
-
-            <!-- FOOTER (User Provided Style - replacing old footer container if needed, or appending) -->
-            <!-- Note: The existing footer is inside the flex-col above. We can keep it there or move it to the card footer. -->
-            <!-- For minimal disruption logic-wise, I'll keep the inner footer but wrap the whole thing. -->
-            <div class="w-full bg-[#0b1120] border-t border-emerald-900/50 p-2 text-center text-xs text-emerald-500/30 font-mono">
+            
+            </div> <!-- End of Parent -->
+            
+            <div class="w-full bg-[#0b1120] border-t border-emerald-900/50 p-2 text-center text-xs text-emerald-500/30 font-mono shrink-0 relative z-50">
                 SISTEMA TÁCTICO DE PEDIDOS V5 - OPERACIÓN SEGURA
             </div>
         </div>
+        
+        <!-- RENTABILIDAD PANEL (Moving to Root for Fixed Positioning Safety) -->
+        <RentabilidadPanel v-model="showCostDrawer" />
     </div>
 </template>
 
@@ -660,6 +688,16 @@ const fechaPedido = ref(new Date().toISOString().split('T')[0]);
 const fechaEntrega = ref('');
 const nroOC = ref('');
 const notas = ref('');
+const expandedRows = ref(new Set());
+const toggleDetails = (index) => {
+    const newSet = new Set(expandedRows.value);
+    if (newSet.has(index)) {
+        newSet.delete(index);
+    } else {
+        newSet.add(index);
+    }
+    expandedRows.value = newSet;
+};
 
 // --- LOGISTICA STATE ---
 const clienteSeleccionado = ref(null);
@@ -792,7 +830,11 @@ const irAFicha = () => {
 
 // Deprecated: contextMenu object removed in favor of flat refs
 // Deprecated: openMenu removed
+// Deprecated: contextMenu object removed in favor of flat refs
+// Deprecated: openMenu removed
 const clientInputRef = ref(null);
+const inputQtyRef = ref(null);
+const itemsContainerRef = ref(null); // Ref for auto-scroll
 // Deprecated: clientEditUrl removed in favor of irAFicha method
 
 
@@ -923,9 +965,9 @@ const filteredProductos = computed(() => {
     // Unified Search Term: Determines what to search for based on active field
     let term = '';
     if (activeSearchField.value === 'sku') {
-        term = (newItem.value.sku || '').toLowerCase().trim();
+        term = String(newItem.value.sku || '').toLowerCase().trim();
     } else {
-        term = (newItem.value.descripcion || '').toLowerCase().trim();
+        term = String(newItem.value.descripcion || '').toLowerCase().trim();
     }
 
     if (productosStore.productos.length === 0) return [];
@@ -1000,6 +1042,9 @@ const navigateProductResults = (direction) => {
 const selectProductHighlighted = () => {
     if (filteredProductos.value.length) {
         selectProduct(filteredProductos.value[selectedProductIndex.value]);
+    } else {
+        // Fallback for manual entry: Move focus to Quantity
+        inputQtyRef.value?.focus();
     }
 };
 
@@ -1046,6 +1091,12 @@ const selectProduct = (prod) => {
     
     newItem.value.total = price;
     showProductResults.value = false;
+    
+    // Auto-focus Quantity for speed
+    setTimeout(() => {
+        inputQtyRef.value?.focus();
+        inputQtyRef.value?.select();
+    }, 50);
 };
 
 // --- INLINE ROW DISCOUNT HANDLERS ---
@@ -1128,28 +1179,53 @@ const updateGlobalDescVal = () => {
 const commitRow = () => {
     if (!newItem.value.producto_obj && !newItem.value.descripcion) return;
 
-    items.value.unshift({ 
+    // Validation: Must have product object (prevents empty/ghost rows)
+    if (!newItem.value.producto_obj) {
+        notificationStore.add('Seleccione un producto válido.', 'warning');
+        return;
+    }
+
+    if (newItem.value.cantidad <= 0) {
+        notificationStore.add('La cantidad debe ser mayor a 0.', 'warning');
+        return;
+    }
+
+    // Use PUSH instead of UNSHIFT per user request
+    items.value.push({ 
         ...newItem.value,
-        id: newItem.value.producto_obj?.id || Date.now(),
+        id: newItem.value.producto_obj?.id || Date.now(), // Ensure a unique ID for the item in the list
         cantidad: Number(newItem.value.cantidad),
         precio: Number(newItem.value.precio),
         descuento_porcentaje: Number(newItem.value.descuento_porcentaje || 0),
         descuento_valor: Number(newItem.value.descuento_valor || 0),
         total: Number(newItem.value.total)
-     });
-
+    }); 
+    
+    // Reset but keep some logical defaults if needed
     newItem.value = {
         sku: '',
         descripcion: '',
         cantidad: 1,
-        precio: '',
-        descuento_porcentaje: '',
-        descuento_valor: '',
+        precio: 0,
+        descuento_porcentaje: 0,
+        descuento_valor: 0,
         total: 0,
         producto_obj: null
     };
     showProductResults.value = false;
-    setTimeout(() => inputSkuRef.value?.focus(), 50);
+    
+    // Focus back to Desc or SKU? User flow usually SKU -> Desc -> Qty -> Enter -> New SKU
+    // Let's focus SKU
+    // Focus back to Desc or SKU? User flow usually SKU -> Desc -> Qty -> Enter -> New SKU
+    // Let's focus SKU
+    setTimeout(() => {
+        inputSkuRef.value?.focus();
+        
+        // Auto-scroll to bottom to show new item
+        if (itemsContainerRef.value) {
+            itemsContainerRef.value.scrollTop = itemsContainerRef.value.scrollHeight;
+        }
+    }, 50);
 };
 
 
@@ -1228,6 +1304,53 @@ const resetPedido = async () => {
         const clientInput = document.querySelector('input[placeholder="Buscar Cliente..."]');
         if (clientInput) clientInput.focus();
     }, 100);
+};
+
+const isSaving = ref(false);
+
+const savePedido = async () => {
+    if (!clienteSeleccionado.value) return notificationStore.add('Seleccione un cliente.', 'error');
+    if (items.value.length === 0) return notificationStore.add('Agregue al menos un producto.', 'error');
+
+    isSaving.value = true;
+    try {
+        const payload = {
+            cliente_id: clienteSeleccionado.value.id || clienteSeleccionado.value._id,
+            fecha: new Date(fechaPedido.value).toISOString(),
+            items: items.value.map(i => ({
+                producto_id: i.id || i.producto_obj?.id,
+                cantidad: i.cantidad,
+                precio_unitario: i.precio,
+                total: i.total
+                // TODO: Add discounts to backend schema if needed
+            })),
+            nota: notas.value,
+            descuento_global_porcentaje: descuentoGlobalPorcentaje.value || 0,
+            domicilio_id: selectedDomicilioId.value,
+            transporte_id: selectedTransporteId.value
+        };
+
+        // Check if editing existing or new
+        // Ideally we use POST for new, PUT for edit.
+        // Assuming simple POST for now based on instructions "Logic: Guardar Pedido -> POST"
+        
+        await api.post('/pedidos/', payload);
+        
+        notificationStore.add('Pedido guardado exitosamente.', 'success');
+        
+        // Reset or Redirect
+        setTimeout(() => {
+             // resetPedido(); 
+             // Or redirect to list
+             router.push({ name: 'PedidoList' });
+        }, 1000);
+
+    } catch (e) {
+        console.error(e);
+        notificationStore.add('Error al guardar pedido: ' + (e.response?.data?.detail || e.message), 'error');
+    } finally {
+        isSaving.value = false;
+    }
 };
 
 </script>

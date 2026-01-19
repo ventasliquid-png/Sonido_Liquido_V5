@@ -286,3 +286,27 @@ Se detectó y documentó retroactivamente el parche de emergencia 'Math Guard Cl
     *   **Layout:** Grilla restaurada a 12 columnas.
 
 **Resultado:** Carga de pedidos fluida ("Mouse-less experience") y funcionalidad de importación backend restaurada.
+
+# [V5.6.15] 2026-01-19 - Refactorización UI PedidoCanvas y Fix Compilador
+
+> **ESTADO:** DEPLOYED
+> **TIPO:** UX / HOTFIX / VUE COMPILER
+
+**Objetivo:** Estabilizar layout de "Nuevo Pedido", corregir error crítico de compilación y pulir UX de carga.
+
+**Problemas:**
+*   **Compilador:** Error persistente `Invalid end tag` causado por `divs` huérfanos.
+*   **Layout:** El pie de página se perdía al hacer scroll, y el panel de rentabilidad quedaba atrapado en contextos de apilamiento (z-index) incorrectos.
+*   **UX:** Inputs de descuento desalineados y falta de scroll automático al cargar ítems.
+
+**Intervenciones:**
+1.  **HTML/CSS:**
+    *   Limpieza estructura y corrección de tags de cierre.
+    *   Layout "Sandwich" (Header Fijo + Body Flexible + Footer Fijo) reforzado con `overflow-hidden` y `min-h-0`.
+    *   Componente `RentabilidadPanel` movido a la raíz del template (fuera de contenedores relativos).
+2.  **Lógica UI:**
+    *   **Auto-Scroll:** Implementado `scrollTop = scrollHeight` tras commit.
+    *   **Chevron:** Invertida dirección de íconos en panel lateral para coincidir con modelo mental del usuario.
+    *   **Grilla:** Numeración visual, orden cronológico de carga y alineación de inputs.
+
+**Resultado:** PedidoCanvas estable, con footer persistente y experiencia de carga fluida.
