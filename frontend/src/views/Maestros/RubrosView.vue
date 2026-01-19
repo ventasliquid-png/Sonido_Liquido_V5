@@ -1,11 +1,11 @@
 <template>
-  <div class="flex h-full w-full bg-[#1a050b] text-gray-200 overflow-hidden font-sans">
+  <div class="flex h-full w-full bg-[#0f172a] text-gray-200 overflow-hidden font-sans hud-border-amber">
     
     <!-- Main Content Area -->
     <main class="flex flex-1 flex-col relative min-w-0 z-10">
       
       <!-- Top Bar -->
-      <header class="relative z-20 flex h-16 items-center justify-between border-b border-rose-900/20 bg-[#2e0a13]/50 px-6 backdrop-blur-sm shrink-0">
+      <header class="relative z-20 flex h-16 items-center justify-between border-b border-rose-900/20 bg-black/20 px-6 backdrop-blur-sm shrink-0">
         <!-- Title -->
         <div class="flex items-center gap-3">
             <h1 class="font-outfit text-xl font-semibold text-rose-100">
@@ -217,7 +217,7 @@
     </main>
 
     <!-- INSPECTOR -->
-    <aside class="w-96 border-l border-rose-900/20 bg-[#150305] flex flex-col shrink-0 custom-scrollbar overflow-hidden shadow-2xl relative z-30">
+    <aside class="w-96 border-l border-rose-900/20 bg-[#1e293b] flex flex-col shrink-0 custom-scrollbar overflow-hidden shadow-2xl relative z-30">
         
         <div v-if="!inspectorTarget && !isCreating" class="h-full flex flex-col items-center justify-center text-rose-900/20 p-8 text-center select-none">
             <i class="fas fa-pencil text-6xl mb-4"></i>

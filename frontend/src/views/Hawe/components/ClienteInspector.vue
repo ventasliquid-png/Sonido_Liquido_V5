@@ -1,8 +1,8 @@
 <template>
-  <div class="flex flex-col h-full w-full backdrop-blur-xl transition-all" 
-       :class="isCompact ? 'bg-[#05151f]/80 border-l border-cyan-900/50' : 'bg-[#05151f]/95'">
+  <div class="flex flex-col h-full w-full backdrop-blur-xl transition-all hud-border-cyan rounded-xl" 
+       :class="isCompact ? 'bg-[#0f172a]/90 border-l border-cyan-500' : 'bg-[#0f172a]'">
     <!-- Persistent Header -->
-    <div class="flex justify-between items-center border-b border-cyan-900/20 bg-[#0a253a]/30 shrink-0 transition-all"
+    <div class="flex justify-between items-center border-b border-cyan-500/30 bg-black/20 shrink-0 transition-all"
          :class="isCompact ? 'p-3 py-2' : 'p-6'">
         <div>
             <h2 class="text-lg font-bold text-cyan-100 leading-tight">
@@ -37,7 +37,7 @@
     <!-- Form Content -->
     <div v-else class="flex-1 flex flex-col min-h-0">
         <!-- Tabs -->
-        <div class="flex border-b border-cyan-900/20 shrink-0 bg-[#0a253a]/10">
+        <div class="flex border-b border-cyan-900/20 shrink-0 bg-black/10">
             <button 
                 @click="activeTab = 'general'"
                 class="flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2"
@@ -353,7 +353,7 @@
         </Teleport>
 
         <!-- Footer Actions (Sticky Bottom) -->
-        <div class="sticky bottom-0 left-0 right-0 p-6 border-t border-cyan-900/20 flex gap-3 shrink-0 bg-[#020a0f] z-50 shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
+        <div class="sticky bottom-0 left-0 right-0 p-6 border-t border-cyan-900/20 flex gap-3 shrink-0 bg-black/40 z-50 shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
             <button @click="save" class="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white py-2 rounded font-bold transition-colors shadow-lg shadow-cyan-900/20">
                 <span v-if="saving"><i class="fas fa-spinner fa-spin mr-2"></i>Guardando...</span>
                 <span v-else>Guardar (F10)</span>

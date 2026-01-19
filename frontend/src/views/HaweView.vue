@@ -701,7 +701,7 @@ onMounted(async () => {
     window.addEventListener('keydown', handleKeydown)
     try {
         const promises = []
-        if (clienteStore.clientes.length === 0) promises.push(clienteStore.fetchClientes())
+        promises.push(clienteStore.fetchClientes())
         if (maestrosStore.segmentos.length === 0) promises.push(maestrosStore.fetchSegmentos())
         
         await Promise.all(promises)

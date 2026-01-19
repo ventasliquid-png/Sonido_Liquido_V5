@@ -13,11 +13,13 @@ onMounted(async () => {
 });
 
 const menuItems = [
-    { name: 'Clientes', path: '/clientes', icon: '👥' },
-    { name: 'Transportes', path: '/transportes', icon: '🚚' },
-    { name: 'Segmentos', path: '/segmentos', icon: '🏷️' },
-    { name: 'Vendedores', path: '/vendedores', icon: '💼' },
-    { name: 'Listas Precios', path: '/listas-precios', icon: '💲' },
+    { name: 'Clientes', path: '/hawe/clientes', icon: '👥' },
+    { name: 'Productos', path: '/hawe/productos', icon: '📦' },
+    { name: 'Pedidos', path: '/hawe/pedidos', icon: '🛒' },
+    { name: 'Transportes', path: '/hawe/transportes', icon: '🚚' },
+    { name: 'Segmentos', path: '/hawe/segmentos', icon: '🏷️' },
+    { name: 'Rubros', path: '/hawe/rubros', icon: '📚' },
+    { name: 'Vendedores', path: '/hawe/vendedores', icon: '💼' },
     { name: 'Agenda', path: '/agenda', icon: '📒' },
 ];
 
@@ -36,12 +38,12 @@ const logout = () => {
 <template>
   <div v-if="ready">
     <!-- HAWE LAYOUT (Isolated) -->
-    <div v-if="route.path.startsWith('/hawe') || route.path.startsWith('/agenda')" class="h-screen w-screen overflow-hidden bg-[#165078]">
+    <div v-if="route.path.startsWith('/hawe') || route.path.startsWith('/agenda')" class="h-screen w-screen overflow-hidden bg-[#0f172a]">
         <router-view />
     </div>
 
     <!-- STANDARD LAYOUT -->
-    <div v-else class="flex h-screen w-screen overflow-hidden bg-slate-100">
+    <div v-else class="flex h-screen w-screen overflow-hidden bg-[#0f172a]">
         <ToastNotification />
         <!-- SIDEBAR -->
         <aside v-if="!isLoginPage" class="w-16 md:w-64 bg-slate-900 text-white flex flex-col transition-all duration-300">
@@ -78,8 +80,8 @@ const logout = () => {
             </div>
         </aside>
 
-        <!-- MAIN CONTENT -->
-        <main class="flex-1 flex flex-col overflow-hidden relative">
+        <!-- MAIN CONTENT (With Padding for Floating Effect) -->
+        <main class="flex-1 flex flex-col overflow-hidden relative p-4 bg-black">
             <router-view v-slot="{ Component }">
                 <transition name="fade" mode="out-in">
                     <component :is="Component" />
@@ -99,5 +101,26 @@ const logout = () => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* --- HUD BORDER UTILITIES (HYPER GLOW - GLOBAL INJECTION) --- */
+.hud-border-red {
+    border: 3px solid #f43f5e !important;
+    box-shadow: 0 0 25px rgba(244, 63, 94, 0.5), inset 0 0 15px rgba(244, 63, 94, 0.3) !important;
+}
+
+.hud-border-cyan {
+    border: 3px solid #06b6d4 !important;
+    box-shadow: 0 0 25px rgba(6, 182, 212, 0.5), inset 0 0 15px rgba(6, 182, 212, 0.3) !important;
+}
+
+.hud-border-green {
+    border: 3px solid #10b981 !important;
+    box-shadow: 0 0 25px rgba(16, 185, 129, 0.5), inset 0 0 15px rgba(16, 185, 129, 0.3) !important;
+}
+
+.hud-border-amber {
+    border: 3px solid #f59e0b !important;
+    box-shadow: 0 0 25px rgba(245, 158, 11, 0.5), inset 0 0 15px rgba(245, 158, 11, 0.3) !important;
 }
 </style>

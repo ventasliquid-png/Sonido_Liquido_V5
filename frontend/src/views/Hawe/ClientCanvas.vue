@@ -1,6 +1,15 @@
-<!-- ClientCanvas.vue: Natural Habitat for Client Management -->
 <template>
-  <div class="flex h-full w-full bg-[var(--hawe-bg-panel)] text-white overflow-hidden font-sans">
+  <div class="flex flex-col h-full w-full bg-[#0f172a] rounded-2xl border-2 border-cyan-500 shadow-[0_0_30px_rgba(6,182,212,0.4)] overflow-hidden relative tokyo-bg neon-cyan">
+      
+      <!-- HEADER (Cyan Style) -->
+      <div class="w-full bg-cyan-950/30 border-b border-cyan-500/20 p-6 flex justify-between items-center backdrop-blur-sm shrink-0">
+          <h1 class="text-2xl font-bold text-cyan-400 tracking-wider flex items-center gap-3">
+          <i class="fas fa-users"></i> EXPLORADOR DE CLIENTES
+      </h1>
+      </div>
+
+      <!-- BODY (Three Pane Layout) -->
+      <div class="flex-1 flex overflow-hidden relative">
     
     <!-- ZONE 1: STATIC DATA (Left Panel) -->
     <aside class="w-80 flex flex-col border-r border-white/10 bg-black/20 backdrop-blur-md z-20">
@@ -174,7 +183,7 @@
     </aside>
 
     <!-- ZONE 3: DYNAMIC CANVAS (Center) -->
-    <main class="flex-1 flex flex-col relative bg-gradient-to-br from-[#1e3a8a] to-[#0f172a]">
+    <main class="flex-1 flex flex-col relative bg-[#0f172a]">
 
         
         <!-- TAB: CLIENTE (Main View) -->
@@ -602,6 +611,7 @@
         :actions="contextMenu.actions"
         @close="contextMenu.show = false"
     />
+      </div>
   </div>
 </template>
 
@@ -683,6 +693,10 @@ const computedFiscalAddress = computed(() => {
 // --- Navigation Methods ---
 const goToList = () => router.push('/hawe')
 const goBackToSource = () => {
+    if (route.query.mode === 'satellite') {
+        window.close();
+        return;
+    }
     if (returnUrl.value) router.push(returnUrl.value)
     else router.push('/hawe')
 }

@@ -36,10 +36,7 @@
             <i class="fas fa-plus-circle text-green-400"></i>
             <span class="truncate">Nuevo Cliente</span>
         </a>
-        <a href="#" @click.prevent="navigate('TacticalLoader')" class="nav-item-compact">
-            <i class="fas fa-cart-plus text-yellow-400"></i>
-            <span class="truncate">Nuevo Pedido (Táctico)</span>
-        </a>
+
       </div>
 
       <!-- PEDIDOS Group -->
@@ -57,13 +54,10 @@
         </button>
         
         <div v-show="expandedGroups.includes('PEDIDOS')" class="pl-4 space-y-1">
-            <a href="#" @click.prevent="navigate('TacticalLoader')" class="nav-item-sub" :class="{ 'active-link-emerald': isActive('TacticalLoader') }">
-                <i class="fas fa-plus w-4"></i> 
-                <span>Nuevo Pedido (Táctico)</span>
-            </a>
+
             <a href="#" @click.prevent="navigate('PedidoCanvas')" class="nav-item-sub" :class="{ 'active-link-emerald': isActive('PedidoCanvas') }">
-                <i class="fas fa-palette w-4"></i> 
-                <span>Nuevo Pedido (Canvas)</span>
+                <i class="fas fa-file-invoice w-4"></i> 
+                <span>Nuevo Pedido (Táctico)</span>
             </a>
             <a href="#" @click.prevent="navigate('PedidoList')" class="nav-item-sub" :class="{ 'active-link-emerald': isActive('PedidoList') }">
                 <i class="fas fa-list w-4"></i> 

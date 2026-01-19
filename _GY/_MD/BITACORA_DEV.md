@@ -261,3 +261,28 @@ Se detectó y documentó retroactivamente el parche de emergencia 'Math Guard Cl
 *   Esto garantiza que el UI muestre exactamente lo que está en la base de datos, eliminando problemas de reactividad o respuestas parciales.
 
 **Resultado:** Edición de domicilios robusta y confiable.
+
+# [V5.6.14] 2026-01-18 - Optimización UX Pedidos y Fix Backend
+
+> **ESTADO:** DEPLOYED
+> **TIPO:** FEATURE / UX / BUGFIX
+
+**Objetivo:** Refinamiento de UX en Carga de Pedidos (Canvas) y corrección de error crítico en Limpieza de Datos.
+
+**Diagnóstico:**
+*   **Backend:** Error 500 (`NameError`) al importar productos en Data Cleaner por falta de importación `func` de SQLAlchemy.
+*   **Frontend:** Fricción en la carga de pedidos: Ceros iniciales molestos, falta de tecla Enter para confirmar, búsqueda confusa al usar TAB, y falta de edición/eliminación explícita (botones).
+
+**Intervenciones:**
+1.  **Backend (Hotfix):**
+    *   Agregado `from sqlalchemy import func` en `backend/data_intel/router.py`.
+2.  **Frontend (PedidoCanvas.vue):**
+    *   **Enter Workflow:** Commit de renglón con `ENTER` desde cualquier input numérico.
+    *   **Inputs Limpios:** Campos inician vacíos (no `0`).
+    *   **Búsqueda Unificada:** Search SKU/Desc simultáneo.
+    *   **Foco Inteligente:** Eliminado popup de búsqueda al navegar con TAB.
+    *   **Gestión Renglones:** Agregada columna Acciones (Editar/Eliminar).
+    *   **Edit Logic:** Refactorizado `editItem` (Deep Copy + NextTick) para mover datos al input sin pérdidas.
+    *   **Layout:** Grilla restaurada a 12 columnas.
+
+**Resultado:** Carga de pedidos fluida ("Mouse-less experience") y funcionalidad de importación backend restaurada.

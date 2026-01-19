@@ -1,12 +1,12 @@
 <template>
-  <div class="flex h-screen w-full overflow-hidden bg-[#1a050b]">
+  <div class="flex h-full w-full bg-[#0f172a] overflow-hidden tokyo-bg neon-red rounded-2xl border-2 border-rose-500 shadow-[0_0_30px_rgba(244,63,94,0.4)] p-6 relative">
     <!-- Sidebar is handled by Layout -->
 
     <!-- Main Content -->
     <main class="flex flex-1 flex-col min-w-0 relative">
       
       <!-- Top Bar -->
-      <div class="flex items-center justify-between border-b border-white/10 bg-[#2e0a13]/90 px-6 py-4 backdrop-blur-md z-30 shrink-0">
+      <div class="flex items-center justify-between border-b border-white/10 bg-black/10 backdrop-blur-md px-6 py-4 z-30 shrink-0">
         <div class="flex items-center gap-4">
           <h1 class="font-outfit text-2xl font-bold text-white">
             <i class="fas fa-boxes mr-2 text-rose-500"></i> Productos
@@ -46,10 +46,10 @@
           <select 
             v-model="productosStore.filters.rubro_id"
             @change="productosStore.fetchProductos()"
-            class="rounded-lg border border-white/10 bg-[#1a050b] text-white px-3 py-2 text-sm focus:border-rose-500 focus:outline-none"
+            class="rounded-lg border border-white/10 bg-[#0f172a] text-white px-3 py-2 text-sm focus:border-rose-500 focus:outline-none"
           >
-            <option :value="null" class="bg-[#1a050b] text-white">Todos los Rubros</option>
-            <option v-for="rubro in flattenedRubros" :key="rubro.id" :value="rubro.id" class="bg-[#1a050b] text-white">
+            <option :value="null" class="bg-[#0f172a] text-white">Todos los Rubros</option>
+            <option v-for="rubro in flattenedRubros" :key="rubro.id" :value="rubro.id" class="bg-[#0f172a] text-white">
                 {{ rubro.indent }}{{ rubro.nombre }}
             </option>
           </select>

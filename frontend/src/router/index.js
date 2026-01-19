@@ -68,8 +68,8 @@ const routes = [
                 component: () => import('../views/Pedidos/PedidoList.vue')
             },
             {
-                path: 'tactico',
-                name: 'TacticalLoader',
+                path: 'tactico-legacy',
+                name: 'TacticalLoaderLegacy',
                 component: () => import('../views/Ventas/GridLoader.vue')
             },
             {
@@ -100,6 +100,11 @@ const routes = [
             {
                 path: 'pedidos/nuevo',
                 name: 'PedidoCanvas',
+                component: () => import('../views/Ventas/PedidoCanvas.vue')
+            },
+            {
+                path: 'pedidos/editar/:id',
+                name: 'PedidoEditar',
                 component: () => import('../views/Ventas/PedidoCanvas.vue')
             }
         ]

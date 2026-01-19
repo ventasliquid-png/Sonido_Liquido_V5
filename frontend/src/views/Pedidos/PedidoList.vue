@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-screen w-full bg-[#021812] text-gray-200 overflow-hidden font-sans">
+  <div class="flex h-full w-full bg-[#0f172a] text-gray-200 overflow-hidden font-sans tokyo-bg neon-green rounded-2xl border-2 border-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.4)] p-6">
     
     <!-- Main Content Area -->
     <main class="flex flex-1 flex-row relative min-w-0">
@@ -7,7 +7,7 @@
       <!-- List Section -->
       <div class="flex-1 flex flex-col min-w-0 border-r border-emerald-900/10">
         <!-- Top Bar -->
-        <header class="relative z-20 flex h-16 items-center justify-between border-b border-emerald-900/20 bg-[#052e1e]/50 px-6 backdrop-blur-sm shrink-0">
+        <header class="relative z-20 flex h-16 items-center justify-between border-b border-emerald-900/20 bg-black/20 px-6 backdrop-blur-sm shrink-0">
           <!-- Title -->
           <div>
               <h1 class="font-outfit text-xl font-semibold text-white">
@@ -474,7 +474,7 @@ const openPedido = (pedido) => {
 }
 
 const editInTactical = (pedido) => {
-    router.push(`/hawe/tactico?edit=${pedido.id}`)
+    router.push({ name: 'PedidoEditar', params: { id: pedido.id } })
 }
 
 const handleContextMenu = (e, pedido) => {

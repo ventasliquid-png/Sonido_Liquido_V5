@@ -8,15 +8,15 @@
  * Definida por Atenea, Aprobada por Alto Mando.
  */
 :root {
-  /* --- 1. Paleta de Chasis (Base) --- */
-  --color-fondo: #f8fafc;
+  /* --- 1. Paleta de Chasis (Base - Tokyo Blue) --- */
+  --color-fondo: #0f172a;
+  /* Slate 900 */
+  --color-contenedor: #1e293b;
+  /* Slate 800 */
+  --color-texto-general: #f8fafc;
   /* Slate 50 */
-  --color-contenedor: #ffffff;
-  /* White */
-  --color-texto-general: #111827;
-  /* Gray 900 */
-  --color-borde: #e2e8f0;
-  /* Gray 200 */
+  --color-borde: #334155;
+  /* Slate 700 */
 
   /* --- 2. Paleta Funcional (Acción) --- */
   --color-exito: #059669;
@@ -29,23 +29,70 @@
   /* Azul */
 
   /* --- 3. Paleta Modular (Contexto) --- */
-
   /* Módulo: Guardián (Auth) */
   --color-auth-acento: #0d9488;
-  /* Teal (Verde Azulado) */
+  /* Teal */
 
-  /* Módulo: Rubro (Próximo) */
-  --color-rubro-acento: #FFBF00;
-  /* Ámbar */
-
-  /* --- 4. Paleta HAWE (Inmersiva) --- */
-  --hawe-bg-main: #0a1f2e;
-  --hawe-bg-panel: #165078;
+  /* --- 4. Paleta HAWE (Legacy Refs) --- */
+  --hawe-bg-main: #0f172a;
+  --hawe-bg-panel: #1e293b;
   --hawe-accent: #22d3ee;
-  /* Cyan 400 */
   --hawe-text-primary: #ffffff;
   --hawe-text-secondary: rgba(255, 255, 255, 0.7);
   --hawe-border: rgba(255, 255, 255, 0.1);
+}
+
+/* --- HUD BORDER UTILITIES (HIGH GLOW PROTOCOL) --- */
+/* (Older classes deprecated by Master Class below) */
+
+/* MASTER CLASS HUD (FINAL VISUAL CORRECTION) */
+.tokyo-bg {
+  background-color: #0f172a !important;
+  /* Slate 900 Puro */
+  background-image: none !important;
+}
+
+/* NEONES DE ALTA POTENCIA */
+.neon-red {
+  border: 2px solid #f43f5e;
+  /* Rose 500 */
+  box-shadow: 0 0 15px rgba(244, 63, 94, 0.6), inset 0 0 10px rgba(244, 63, 94, 0.3) !important;
+}
+
+.neon-cyan {
+  border: 2px solid #06b6d4;
+  /* Cyan 500 */
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.6), inset 0 0 10px rgba(6, 182, 212, 0.3) !important;
+}
+
+.neon-green {
+  border: 2px solid #10b981;
+  /* Emerald 500 */
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.7), inset 0 0 15px rgba(16, 185, 129, 0.4) !important;
+}
+
+.hud-border-red {
+  border: 2px solid #f43f5e;
+  /* Rose-500 */
+  box-shadow: 0 0 15px rgba(244, 63, 94, 0.6), inset 0 0 10px rgba(244, 63, 94, 0.3);
+}
+
+.hud-border-cyan {
+  border: 2px solid #06b6d4;
+  /* Cyan-500 */
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.6), inset 0 0 10px rgba(6, 182, 212, 0.3);
+}
+
+.hud-border-green {
+  border: 2px solid #10b981;
+  /* Emerald-500 */
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.6), inset 0 0 10px rgba(16, 185, 129, 0.3);
+}
+
+.hud-border-amber {
+  border: 2px solid #f59e0b;
+  /* Amber-500 */
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.6), inset 0 0 10px rgba(245, 158, 11, 0.3);
 }
 
 /* --- Estilos Globales Base --- */

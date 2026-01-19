@@ -1,12 +1,12 @@
 <template>
   <div class="flex h-screen w-screen bg-[#0a0a0a] overflow-hidden">
     <!-- Global Sidebar -->
-    <AppSidebar :theme="currentTheme" />
+    <AppSidebar v-if="route.query.mode !== 'satellite'" :theme="currentTheme" />
 
     <!-- Main Content Area -->
     <main class="flex-1 relative overflow-hidden flex flex-col">
       <!-- Global Stats Bar -->
-      <GlobalStatsBar v-if="route.name !== 'PedidoCanvas'" />
+      <GlobalStatsBar v-if="route.name !== 'PedidoCanvas' && route.query.mode !== 'satellite'" />
 
       <div class="flex-1 relative overflow-hidden">
         <router-view v-slot="{ Component }">

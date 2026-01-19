@@ -95,6 +95,7 @@ def save_candidates(type: str, payload: CleanPayload):
         raise HTTPException(status_code=500, detail=str(e))
 from fastapi import Depends
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from backend.core.database import get_db
 from backend.clientes.models import Cliente
 from backend.clientes.models import Cliente, Domicilio

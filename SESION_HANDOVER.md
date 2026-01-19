@@ -1,28 +1,27 @@
 # Protocolo de Transición (Handover)
-**Fecha:** 15 de Enero de 2026
-**Estado:** BLOQUEADO (Frontend Crash en ProductoInspector)
+**Fecha:** 19 de Enero de 2026
+**Estado:** ESTABLE (PedidoCanvas Refactorizado)
 
 ## Estado Situacional
-1.  **Backend (V5.4):**
-    *   Implementado soporte para Proveedores Alternativos (`ProductoProveedor`) y flag `tipo_producto` (Insumos).
-    *   Router y Modelos actualizados. Endpoint de proveedores probado manualmente OK.
-2.  **Frontend (Inspector):**
-    *   Layout de 3 columnas implementado.
-    *   **CRASH:** El componente `ProductoInspector.vue` falla al montar.
-    *   **Sospecha:** La prop `producto` o el store `productos` (tasasIva, proveedores) no están sincronizados al momento de montar, causando error en el watcher `immediate: true`.
+1.  **Frontend (PedidoCanvas):**
+    *   **Refactorización Completa:** Layout denso, ID sugerido, Logística integrada.
+    *   **Ventana Satélite:** Funcional (1700px), cierra correctamente, sincroniza datos.
+    *   **Errores Corregidos:** ReferenceError en logística, ID nulo.
+2.  **Backend:**
+    *   Endpoint `/pedidos/sugerir_id` activo.
+    *   Router de pedidos listo para recibir estructura V5.
 
-## Próxima Tarea (Immediate Next Action)
-**Objetivo:** Reparar `ProductoInspector.vue` y Verificar Fase 3.
-**Referencia:** Tarea "Phase 3" en `task.md`.
+## Mensaje para la Próxima Sesión (Yo del Futuro)
+> "Debemos seguir con implementar un pedido (Confirmar Guardado y POST).
+> Debemos ver cómo se invoca un pedido ya existente para su modificación y que abra una ficha como esta (PedidoCanvas) para que se pueda modificar lo que haya que modificar."
 
-### Pasos Obligatorios:
-1.  **NO asumir que funciona.** El componente está roto.
-2.  Revisar `frontend/src/views/Hawe/components/ProductoInspector.vue`.
-3.  Implementar defensas robustas en `onMounted` y `watch` para manejar `tasasIva` vacías.
-4.  Una vez reparado, verificar:
-    *   Switch "Es Insumo".
-    *   Selector IVA (Centro).
-    *   Tabla Proveedores (Derecha).
+### Próxima Tarea (Immediate Next Action)
+**Objetivo:** Finalizar Ciclo de Vida del Pedido (Alta y Edición).
+**Referencia:** Tarea "Order Implementation" en `task.md`.
 
-> [!WARNING]
-> No avanzar con nuevas features hasta que el Inspector abra correctamente sin errores de consola.
+### Pasos Recomendados:
+1.  **Verificar POST:** Asegurar que el botón "Crear Pedido" envía correctamente `domicilio_entrega_id` y `transporte_id` al backend y que se guarda.
+2.  **Conectar Listado -> Edición:**
+    *   Ir a `PedidoList.vue`.
+    *   Verificar que al hacer clic en un pedido (o botón editar), navegue a `PedidoCanvas` pasando el ID (`/pedidos/edit/:id`).
+    *   Verificar que `loadPedido` hidrate todos los campos (incluyendo selectores de logística y totales).

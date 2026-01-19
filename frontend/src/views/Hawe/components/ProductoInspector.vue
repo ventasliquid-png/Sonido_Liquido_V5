@@ -1,7 +1,7 @@
 <template>
-  <div class="flex h-full w-full flex-col bg-[#1a050b] text-gray-100 rounded-2xl shadow-2xl overflow-hidden border border-rose-900/40">
+  <div class="flex h-full w-full flex-col bg-[#0f172a] text-gray-100 rounded-xl shadow-2xl overflow-hidden hud-border-red">
     <!-- Header with Breadcrumb Style -->
-    <div class="flex items-center justify-between border-b border-rose-900/30 bg-rose-950/20 p-4 shrink-0 transition-height">
+    <div class="flex items-center justify-between border-b border-rose-900/30 bg-black/20 p-4 shrink-0 transition-height">
       <div class="flex items-center gap-4">
           <!-- Icon -->
           <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-rose-500/20 to-black flex items-center justify-center text-rose-500 border border-rose-500/20 shadow-lg shadow-rose-900/20">
@@ -47,7 +47,7 @@
     <div v-if="localProducto && localProducto.nombre !== undefined" class="flex-1 flex overflow-hidden">
         
         <!-- COLUMN 1: Identity & Tax Nature (30%) -->
-        <div class="w-[30%] border-r border-rose-900/30 bg-[#2e0a13]/20 flex flex-col overflow-y-auto custom-scrollbar p-6 space-y-8">
+        <div class="w-[30%] border-r border-rose-900/30 bg-black/10 flex flex-col overflow-y-auto custom-scrollbar p-6 space-y-8">
             
             <!-- Image / Avatar -->
             <div class="flex justify-center" v-if="false">
@@ -110,7 +110,7 @@
         </div>
 
         <!-- COLUMN 2: FINANCIAL BRAIN (40%) -->
-        <div class="w-[40%] flex flex-col overflow-y-auto custom-scrollbar bg-gradient-to-b from-[#1a050b] to-black/40">
+        <div class="w-[40%] flex flex-col overflow-y-auto custom-scrollbar bg-gradient-to-b from-[#0f172a] to-black/40">
              <div class="p-6 space-y-8">
                  <h3 class="text-lg font-outfit font-bold text-white/50 flex items-center gap-2 border-b border-white/5 pb-2">
                      <i class="fas fa-brain text-rose-500"></i> Estructura de Costos
@@ -211,7 +211,7 @@
         </div>
 
         <!-- COLUMN 3: SUPPLIERS & LOGISTICS (30%) -->
-         <div class="w-[30%] border-l border-rose-900/30 bg-[#2e0a13]/10 flex flex-col overflow-y-auto custom-scrollbar p-6 space-y-6">
+         <div class="w-[30%] border-l border-rose-900/30 bg-black/10 flex flex-col overflow-y-auto custom-scrollbar p-6 space-y-6">
              <!-- Suppliers Panel (Table) -->
              <div class="bg-[#1a1a1a] rounded-xl border border-white/5 flex flex-col h-[280px]">
                  <div class="p-3 border-b border-white/5 flex justify-between items-center bg-white/5">
@@ -327,7 +327,7 @@
     </div>
 
     <!-- Sticky Footer -->
-    <div class="shrink-0 p-4 border-t border-rose-900/30 bg-[#2e0a13]/90 flex justify-end items-center gap-4 backdrop-blur-md z-50">
+    <div class="shrink-0 p-4 border-t border-rose-900/30 bg-black/40 flex justify-end items-center gap-4 backdrop-blur-md z-50">
         <div class="mr-auto text-xs text-white/30 hidden md:block">
             <span class="font-bold">TIP:</span> Precio Final es calculado. El <span class="text-white">Precio Roca</span> es la base imponible.
         </div>
