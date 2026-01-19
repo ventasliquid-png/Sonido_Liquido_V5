@@ -25,3 +25,12 @@
     *   Ir a `PedidoList.vue`.
     *   Verificar que al hacer clic en un pedido (o botón editar), navegue a `PedidoCanvas` pasando el ID (`/pedidos/edit/:id`).
     *   Verificar que `loadPedido` hidrate todos los campos (incluyendo selectores de logística y totales).
+
+## Protocolo Omega (Cierre Sesión)
+**Integridad de Base de Datos:**
+*   **Clientes:** 11
+*   **Productos:** 14
+*   **Pedidos:** 5 (Secuencia lista para #6) (Ojo: Sugerencia devolvió ID dinámico)
+
+---
+**Hash de Sesión:** (Commit Git en proceso)
