@@ -1,3 +1,0 @@
-Clientes: 4
-Productos: 5
-Pedidos: 2

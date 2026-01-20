@@ -1,3 +1,0 @@
-id,username,email,hashed_password,is_active,rol_id
-1,admin,admin@sonidoliquido.com,$2b$12$jBjqleaqnzTLpMMFcmKwE.SJ6pKfF8EBZqgdLZY.BxEUu8/13UfEy,1,1
-2,operador,operador@sonidoliquido.com,$2b$12$QeewVy56v/wzkzHVwEA23eWT3WEnbDetTCeiw9CPFT1MUM18/cVP6,1,1

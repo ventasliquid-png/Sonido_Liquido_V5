@@ -1,6 +1,0 @@
-Available Products:
-- Surgizime O3 botella x 1 Lt (ID: 1)
-- Cofias (ID: 2)
-- Guante nitrilo caja por 100 Un Talle L (ID: 3)
-- Surgibac PA Plus bidon x 5 Lts (ID: 4)
-- Guante veterinario bolsa por 100 (ID: 5)

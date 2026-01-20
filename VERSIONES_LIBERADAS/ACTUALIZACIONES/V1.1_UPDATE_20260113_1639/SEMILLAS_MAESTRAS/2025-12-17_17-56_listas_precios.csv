@@ -1,5 +1,0 @@
-id,nombre,coeficiente,tipo,activo
-0ead0c99-1ac8-44f3-af37-ed4824d07b89,Lista Mayorista,1,PRESUPUESTO,1
-ce388f81-4d74-4e4b-843e-d4779fe0772a,Lista Minorista,1,PRESUPUESTO,1
-568cc4cd-ca37-4042-b872-1ce1172a5c2a,Lista Distribuidor,1,PRESUPUESTO,1
-603694fda4794b8398e1afaeaa11452f,LISTA TEST -20,0.8,PRESUPUESTO,1
