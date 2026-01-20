@@ -1274,6 +1274,46 @@ const handleGlobalKeys = (e) => {
         e.preventDefault();
         inputDescRef.value?.focus();
     }
+    
+    if (e.key === 'F10') {
+        e.preventDefault();
+        // Prevent double trigger if already saving or conditions not met
+        if (!isSaving.value && items.value.length > 0 && clienteSeleccionado.value) {
+            savePedido();
+        }
+    }
+
+    if (e.key === 'F4') {
+        e.preventDefault();
+        const active = document.activeElement;
+        
+        // Dimensions for Satellite
+        const width = 1700;
+        const height = 900;
+        const left = (window.screen.width - width) / 2;
+        const top = (window.screen.height - height) / 2;
+        const features = `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,status=no,menubar=no,toolbar=no,location=no`;
+
+        // 1. Check CLIENT Focus
+        if (active === clientInputRef.value) {
+            const { href } = router.resolve({ 
+                name: 'HaweClientCanvas', 
+                params: { id: 'new' },
+                query: { search: busquedaCliente.value, mode: 'satellite' }
+            });
+            window.open(href, 'AltaClienteSalto', features);
+        }
+        
+        // 2. Check PRODUCT Focus
+        if (active === inputSkuRef.value || active === inputDescRef.value) {
+            const searchTerm = active === inputSkuRef.value ? newItem.value.sku : newItem.value.descripcion;
+            const { href } = router.resolve({ 
+                name: 'Productos', 
+                query: { action: 'new', search: searchTerm, mode: 'satellite' }
+            });
+            window.open(href, 'AltaProductoSalto', features);
+        }
+    }
 };
 
 const resetPedido = async () => {
@@ -1318,23 +1358,24 @@ const savePedido = async () => {
             cliente_id: clienteSeleccionado.value.id || clienteSeleccionado.value._id,
             fecha: new Date(fechaPedido.value).toISOString(),
             items: items.value.map(i => ({
-                producto_id: i.id || i.producto_obj?.id,
+                producto_id: i.producto_obj?.id || i.id,
                 cantidad: i.cantidad,
                 precio_unitario: i.precio,
-                total: i.total
-                // TODO: Add discounts to backend schema if needed
+                descuento_porcentaje: Number(i.descuento_porcentaje) || 0,
+                descuento_importe: Number(i.descuento_valor) || 0,
+                nota: "" // Future use
             })),
             nota: notas.value,
-            descuento_global_porcentaje: descuentoGlobalPorcentaje.value || 0,
-            domicilio_id: selectedDomicilioId.value,
+            oc: nroOC.value,
+            fecha_compromiso: fechaEntrega.value ? new Date(fechaEntrega.value).toISOString() : null,
+            descuento_global_porcentaje: Number(descuentoGlobalPorcentaje.value) || 0,
+            descuento_global_importe: Number(descuentoGlobalValor.value) || 0,
+            domicilio_entrega_id: selectedDomicilioId.value,
             transporte_id: selectedTransporteId.value
         };
 
-        // Check if editing existing or new
-        // Ideally we use POST for new, PUT for edit.
-        // Assuming simple POST for now based on instructions "Logic: Guardar Pedido -> POST"
-        
-        await api.post('/pedidos/', payload);
+        // Tactical Mode Order Creation
+        await api.post('/pedidos/tactico', payload);
         
         notificationStore.add('Pedido guardado exitosamente.', 'success');
         

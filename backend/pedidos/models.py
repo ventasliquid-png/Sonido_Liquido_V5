@@ -23,6 +23,10 @@ class Pedido(Base):
     descuento_global_porcentaje = Column(Float, default=0.0)
     descuento_global_importe = Column(Float, default=0.0)
     
+    # Logística (V5.6)
+    domicilio_entrega_id = Column(GUID(), ForeignKey("domicilios.id"), nullable=True)
+    transporte_id = Column(GUID(), ForeignKey("empresas_transporte.id"), nullable=True)
+    
     # Metadata
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
@@ -30,6 +34,8 @@ class Pedido(Base):
     # Relaciones
     cliente = relationship("Cliente", back_populates="pedidos")
     items = relationship("PedidoItem", back_populates="pedido", cascade="all, delete-orphan")
+    domicilio_entrega = relationship("backend.clientes.models.Domicilio")
+    transporte = relationship("backend.logistica.models.EmpresaTransporte")
 
 class PedidoItem(Base):
     __tablename__ = "pedidos_items"

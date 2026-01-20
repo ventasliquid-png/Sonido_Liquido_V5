@@ -618,6 +618,18 @@ onMounted(async () => {
         productosStore.fetchRubros(),
         productosStore.fetchProductos()
     ])
+
+    // DEOU: Check for auto-trigger new
+    if (route.query.action === 'new') {
+        setTimeout(() => {
+            createNew();
+            if (route.query.search) {
+                productosStore.currentProducto.nombre = route.query.search;
+                // Also put it in the filter to show context
+                productosStore.filters.search = route.query.search;
+            }
+        }, 300);
+    }
 })
 
 onUnmounted(() => {

@@ -29,6 +29,11 @@ class PedidoCreate(BaseModel):
     descuento_global_porcentaje: Optional[float] = 0.0
     descuento_global_importe: Optional[float] = 0.0
     fecha_compromiso: Optional[datetime] = None
+    
+    # Logística
+    domicilio_entrega_id: Optional[UUID] = None
+    transporte_id: Optional[UUID] = None
+    
     items: List[PedidoItemCreate]
 
 class PedidoUpdate(BaseModel):
@@ -43,6 +48,11 @@ class PedidoUpdate(BaseModel):
     descuento_global_importe: Optional[float] = None
     fecha_compromiso: Optional[datetime] = None
     liberado_despacho: Optional[bool] = None
+
+    # Logística
+    domicilio_entrega_id: Optional[UUID] = None
+    transporte_id: Optional[UUID] = None
+
     items: Optional[List[PedidoItemCreate]] = None
 
 class CondicionIvaSummary(BaseModel):
@@ -97,6 +107,11 @@ class PedidoResponse(BaseModel):
     oc: Optional[str] = None
     descuento_global_porcentaje: float = 0.0
     descuento_global_importe: float = 0.0
+
+    # Logística
+    domicilio_entrega_id: Optional[UUID] = None
+    transporte_id: Optional[UUID] = None
+
     items: List[PedidoItemResponse] = []
 
     class Config:

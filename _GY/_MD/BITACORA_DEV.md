@@ -310,3 +310,25 @@ Se detectó y documentó retroactivamente el parche de emergencia 'Math Guard Cl
     *   **Grilla:** Numeración visual, orden cronológico de carga y alineación de inputs.
 
 **Resultado:** PedidoCanvas estable, con footer persistente y experiencia de carga fluida.
+# [V10.0] 2026-01-20 - Evolución IPL V10 e Integración Logística
+
+> **ESTADO:** NOMINAL
+> **TIPO:** PROTOCOLO RAÍZ / FEATURE / UX
+
+**Objetivo:** Evolucionar el protocolo de arranque a V10, implementar infraestructura de logística en pedidos y habilitar la doctrina DEOU (F4/F10).
+
+**Intervenciones:**
+1.  **Protocolo:** Creado `GY_IPL_V10.md` con Directiva 1 de Seguridad ALFA (Handover Check).
+2.  **Backend (Expandido):**
+    *   **Models:** Agregadas columnas `domicilio_entrega_id` y `transporte_id` a la tabla `pedidos`.
+    *   **Schemas:** Alineados esquemas para soportar envíos y descuentos globales.
+    *   **Router:** Patcheado `create_pedido_tactico` para persistencia de datos de entrega.
+3.  **Frontend (PedidoCanvas.vue):**
+    *   **POST:** Botón guardar conectado al Cargador Táctico.
+    *   **DEOU F10:** Implementado guardado rápido por teclado.
+    *   **DEOU F4:** Implementado salto a Ventana Satélite (Alta Cliente/Producto) contextual al foco.
+4.  **Base de Datos:** Aplicadas migraciones críticas a `pilot.db`.
+
+**Métricas Finales:**
+*   **Integridad:** 11 Clientes, 14 Productos, 5 Pedidos (OK).
+*   **Protocolo Omega:** Generado Informe Histórico.

@@ -95,6 +95,8 @@ def create_pedido_tactico(
             fecha_compromiso=pedido_data.fecha_compromiso,
             descuento_global_porcentaje=pedido_data.descuento_global_porcentaje or 0.0,
             descuento_global_importe=pedido_data.descuento_global_importe or 0.0,
+            domicilio_entrega_id=pedido_data.domicilio_entrega_id,
+            transporte_id=pedido_data.transporte_id,
             total=0.0 # Se calcula abajo
         )
         db.add(nuevo_pedido)
