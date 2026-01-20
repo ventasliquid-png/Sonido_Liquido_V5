@@ -19,13 +19,11 @@ ENV_PATH = os.path.join(ROOT_DIR, ".env")
 print(f"--- [BOOT] Cargando variables de entorno desde: {ENV_PATH} ---")
 load_dotenv(ENV_PATH, override=True)
 
-# FIX: Si es SQLite, forzar ruta absoluta a pilot.db en ROOT para evitar creación de DB vacía en backend/
-db_url = os.environ.get("DATABASE_URL")
-if db_url and "sqlite" in db_url and "pilot.db" in db_url:
-    # Asumimos que pilot.db vive en el ROOT siempre
-    abs_db_path = os.path.join(ROOT_DIR, "pilot.db")
-    os.environ["DATABASE_URL"] = f"sqlite:///{abs_db_path}"
-    print(f"--- [BOOT] DATABASE_URL corregida a absoluta: {os.environ['DATABASE_URL']} ---")
+# FIX: Forzar siempre pilot.db en ROOT para evitar duplicidad o bases vacías en backend/
+# Independientemente de lo que diga el .env (que puede tener Postgres remotos viciados)
+abs_db_path = os.path.join(ROOT_DIR, "pilot.db")
+os.environ["DATABASE_URL"] = f"sqlite:///{abs_db_path}"
+print(f"--- [BOOT] DATABASE_URL inhabilitada. Forzando SQLITE LOCAL: {os.environ['DATABASE_URL']} ---")
     
 # FORCE DISABLE IOWA (Cloud Costs Saving)
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = ""
@@ -532,4 +530,5 @@ print("--- [Atenea V5 Backend]: Módulo 'main.py' V10.16 (Modular Estable) carga
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    # [GY-LAN-FIX] Binding to 0.0.0.0 to allow LAN access and bypass localhost IPv4/v6 issues
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

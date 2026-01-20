@@ -1,0 +1,4 @@
+PARA ACTUALIZAR:
+1. Copie todo el contenido de esta carpeta.
+2. Péguelo en su carpeta de sistema reemplazando los archivos.
+3. NO SE PERDERÁN SUS DATOS (pilot.db no está aquí).

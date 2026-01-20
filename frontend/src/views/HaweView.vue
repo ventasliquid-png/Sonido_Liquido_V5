@@ -700,13 +700,16 @@ const logout = () => {
 onMounted(async () => {
     window.addEventListener('keydown', handleKeydown)
     try {
-        const promises = []
-        promises.push(clienteStore.fetchClientes())
-        if (maestrosStore.segmentos.length === 0) promises.push(maestrosStore.fetchSegmentos())
+        // [STABILITY-FIX] Data is now pre-loaded by App.vue boot sequence.
+        // We only fetch if for some reason the store is empty or we need a refresh.
+        if (clientes.value.length === 0) {
+            await clienteStore.fetchClientes()
+        }
+        if (maestrosStore.segmentos.length === 0) {
+            await maestrosStore.fetchSegmentos()
+        }
         
-        await Promise.all(promises)
-        
-        // Check for Auto-Inspect
+        // Check for Auto-Inspect (existing logic)
         if (route.query.inspectId) {
             console.log("Auto-inspecting:", route.query.inspectId)
             // Buscar el cliente en la lista cargada para tener info básica

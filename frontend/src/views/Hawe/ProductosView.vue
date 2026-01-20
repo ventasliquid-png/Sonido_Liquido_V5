@@ -307,7 +307,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useProductosStore } from '../../stores/productos'
 import { useNotificationStore } from '../../stores/notification'
 import ProductoCard from './components/ProductoCard.vue'
@@ -315,6 +315,7 @@ import ProductoInspector from './components/ProductoInspector.vue'
 import ContextMenu from '../../components/common/ContextMenu.vue'
 
 const router = useRouter()
+const route = useRoute()
 const productosStore = useProductosStore()
 const notificationStore = useNotificationStore()
 
@@ -344,6 +345,11 @@ const handleContextMenu = (e, producto) => {
                 label: 'Editar', 
                 iconClass: 'fas fa-edit', 
                 action: () => selectProducto(producto) 
+            },
+            { 
+                label: 'Clonar (Copiar datos)', 
+                iconClass: 'fas fa-clone', 
+                action: () => handleClone(producto) 
             },
             { 
                 label: producto.activo ? 'Desactivar' : 'Activar', 
@@ -535,6 +541,28 @@ const createNew = () => {
     showInspector.value = true
 }
 
+const handleClone = async (producto) => {
+    try {
+        // Fetch full product details including costs
+        const fullData = await productosStore.fetchProductoById(producto.id);
+        
+        // Prepare clone
+        productosStore.currentProducto = {
+            ...fullData,
+            id: null, // Critical: ensure it's a NEW item
+            nombre: `CLON - ${fullData.nombre}`,
+            sku: 'AUTO',
+            activo: true
+        };
+        
+        selectedId.value = null;
+        showInspector.value = true;
+        notificationStore.add('Cargando datos para clonar...', 'info');
+    } catch (e) {
+        notificationStore.add('Error al preparar clon: ' + e.message, 'error');
+    }
+}
+
 const closeInspector = () => {
     showInspector.value = false
     selectedId.value = null
@@ -543,14 +571,31 @@ const closeInspector = () => {
 
 const handleSave = async (payload) => {
     try {
+        let savedItem;
         if (payload.id) {
-            await productosStore.updateProducto(payload.id, payload)
+            savedItem = await productosStore.updateProducto(payload.id, payload)
+            notificationStore.add('Producto actualizado', 'success')
         } else {
-            await productosStore.createProducto(payload)
+            savedItem = await productosStore.createProducto(payload)
+            notificationStore.add('Producto creado correctamente', 'success')
         }
-        closeInspector()
+        
+        // Logic for Satellite Mode
+        if (route.query.mode === 'satellite') {
+            console.log('[Satellite] Notify parent and closing...');
+            if (window.opener) {
+                window.opener.postMessage({ 
+                    type: 'PRODUCTO_CREADO', 
+                    producto: savedItem 
+                }, '*');
+            }
+            setTimeout(() => window.close(), 500);
+        } else {
+            closeInspector()
+        }
     } catch (e) {
-        // Error handled in store
+        // Error handled in store but we can add UI feedback
+        console.error('[Frontend] Save error:', e);
     }
 }
 
@@ -614,10 +659,14 @@ const handleKeydown = (e) => {
 
 onMounted(async () => {
     window.addEventListener('keydown', handleKeydown)
-    await Promise.all([
-        productosStore.fetchRubros(),
-        productosStore.fetchProductos()
-    ])
+    
+    // [STABILITY-FIX] Data is now pre-loaded by App.vue boot sequence.
+    // We only fetch if stores are empty.
+    const promises = []
+    if (productosStore.rubros.length === 0) promises.push(productosStore.fetchRubros())
+    if (productosStore.productos.length === 0) promises.push(productosStore.fetchProductos())
+    
+    if (promises.length > 0) await Promise.all(promises)
 
     // DEOU: Check for auto-trigger new
     if (route.query.action === 'new') {

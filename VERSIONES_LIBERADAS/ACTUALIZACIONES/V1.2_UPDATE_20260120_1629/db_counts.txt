@@ -1,0 +1,4 @@
+Conteos en pilot.db:
+Clientes: 11
+Productos: 14
+Pedidos: 5

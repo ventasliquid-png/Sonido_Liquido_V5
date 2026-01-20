@@ -57,11 +57,10 @@ def _get_clean_database_url():
     FALLBACK: Si falla, busca pilot.db en la RAÍZ DEL PROYECTO (absoluto).
     """
     # 1. Prioridad: Variable de entorno explícita (fijada por main.py con path absoluto)
-    # 1. Prioridad: Variable de entorno explícita (fijada por main.py con path absoluto)
-    # env_url = os.environ.get("DATABASE_URL")
-    # if env_url:
-    #     print(f"--- [DATABASE] Usando DATABASE_URL de entorno: {env_url} ---")
-    #     return env_url
+    env_url = os.environ.get("DATABASE_URL")
+    if env_url:
+        print(f"--- [DATABASE] Usando DATABASE_URL de entorno: {env_url} ---")
+        return env_url
     pass
 
     # 2. Prioridad: Archivo .env local (fallback)

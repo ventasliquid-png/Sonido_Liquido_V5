@@ -2,14 +2,79 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import ToastNotification from './components/ui/ToastNotification.vue';
+import { useClientesStore } from './stores/clientes';
+import { useProductosStore } from './stores/productos';
+import { useMaestrosStore } from './stores/maestros';
 
 const router = useRouter();
 const route = useRoute();
+const clientesStore = useClientesStore();
+const productosStore = useProductosStore();
+const maestrosStore = useMaestrosStore();
+
 const ready = ref(false);
+const booting = ref(true);
+const bootStatus = ref('INICIALIZANDO SISTEMA...');
+
+const initSystem = async () => {
+    console.log('[Boot] Starting system initialization...');
+    
+    // Safety release: After 15 seconds, we release the UI no matter what.
+    const safetyRelease = setTimeout(() => {
+        if (booting.value) {
+            console.warn('[Boot] Safety timeout reached. Releasing UI...');
+            booting.value = false;
+        }
+    }, 15000);
+
+    try {
+        bootStatus.value = 'HIVE-MIND: CONECTANDO...';
+        
+        // Sequential fetch with detailed status
+        await maestrosStore.fetchSegmentos();
+        bootStatus.value = `SEGMENTOS: ${maestrosStore.segmentos.length} OK`;
+        await new Promise(r => setTimeout(r, 200));
+
+        bootStatus.value = 'Buscando Productos...';
+        await productosStore.fetchProductos();
+        bootStatus.value = `PRODUCTOS: ${productosStore.productos.length} OK`;
+        await new Promise(r => setTimeout(r, 200));
+        
+        bootStatus.value = 'Buscando Rubros...';
+        await productosStore.fetchRubros();
+        bootStatus.value = `RUBROS: ${productosStore.rubros.length} OK`;
+        await new Promise(r => setTimeout(r, 200));
+
+        bootStatus.value = 'Buscando Clientes...';
+        await clientesStore.fetchClientes();
+        bootStatus.value = `CLIENTES: ${clientesStore.clientes.length} OK`;
+        await new Promise(r => setTimeout(r, 200));
+        
+        bootStatus.value = 'SISTEMA OPERATIVO';
+        setTimeout(() => {
+            booting.value = false;
+            clearTimeout(safetyRelease);
+            console.log('[Boot] System fully synced and ready.');
+        }, 800);
+    } catch (e) {
+        console.error('[Boot] Critical error during init:', e);
+        bootStatus.value = 'FALLA TÁCTICA - VERIFIQUE BACKEND';
+        setTimeout(() => {
+            booting.value = false;
+            clearTimeout(safetyRelease);
+        }, 5000);
+    }
+};
 
 onMounted(async () => {
+    console.log('[App] Mounting...');
     await router.isReady();
-    ready.value = true;
+    ready.value = true; 
+    
+    // Give Vue a moment to render the Splash screen before blocking with async calls
+    setTimeout(async () => {
+        await initSystem();
+    }, 100);
 });
 
 const menuItems = [
@@ -37,6 +102,43 @@ const logout = () => {
 
 <template>
   <div v-if="ready">
+    <!-- GLOBAL SPLASH / BOOT SCREEN -->
+    <transition name="fade">
+        <div v-if="booting" class="fixed inset-0 z-[100] bg-[#020617] flex flex-col items-center justify-center overflow-hidden">
+            <!-- HUD Background Effect -->
+            <div class="absolute inset-0 opacity-20 pointer-events-none">
+                <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-emerald-500/20 via-transparent to-transparent"></div>
+                <div class="w-full h-full bg-[linear-gradient(rgba(16,185,129,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.05)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+            </div>
+
+            <!-- Central Content -->
+            <div class="relative flex flex-col items-center gap-8">
+                <!-- Glowing Orb / Core -->
+                <div class="relative h-24 w-24">
+                    <div class="absolute inset-0 rounded-full bg-emerald-500/20 blur-xl animate-pulse"></div>
+                    <div class="relative h-24 w-24 rounded-full border-2 border-emerald-500 flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.4)]">
+                        <i class="fas fa-microchip text-3xl text-emerald-500 animate-pulse"></i>
+                    </div>
+                </div>
+
+                <!-- Boot Text -->
+                <div class="flex flex-col items-center gap-2">
+                    <h2 class="text-xs font-mono font-bold tracking-[0.3em] text-emerald-500/60 uppercase">System Bootstrap v5.10</h2>
+                    <div class="h-[2px] w-48 bg-emerald-950 rounded-full overflow-hidden">
+                        <div class="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,1)] animate-[loading_2s_infinite]"></div>
+                    </div>
+                    <p class="text-[10px] font-mono font-bold text-emerald-400 mt-2 animate-pulse">{{ bootStatus }}</p>
+                </div>
+            </div>
+
+            <!-- Decorative HUD corners -->
+            <div class="absolute top-8 left-8 w-12 h-12 border-t-2 border-l-2 border-emerald-500/30"></div>
+            <div class="absolute top-8 right-8 w-12 h-12 border-t-2 border-r-2 border-emerald-500/30"></div>
+            <div class="absolute bottom-8 left-8 w-12 h-12 border-b-2 border-l-2 border-emerald-500/30"></div>
+            <div class="absolute bottom-8 right-8 w-12 h-12 border-b-2 border-r-2 border-emerald-500/30"></div>
+        </div>
+    </transition>
+
     <!-- HAWE LAYOUT (Isolated) -->
     <div v-if="route.path.startsWith('/hawe') || route.path.startsWith('/agenda')" class="h-screen w-screen overflow-hidden bg-[#0f172a]">
         <router-view />
@@ -93,9 +195,15 @@ const logout = () => {
 </template>
 
 <style>
+@keyframes loading {
+    0% { transform: translateX(-100%); }
+    50% { transform: translateX(0); }
+    100% { transform: translateX(100%); }
+}
+
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.2s ease;
+  transition: opacity 0.5s ease;
 }
 
 .fade-enter-from,
