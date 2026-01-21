@@ -344,23 +344,23 @@ const handleContextMenu = (e, producto) => {
             { 
                 label: 'Editar', 
                 iconClass: 'fas fa-edit', 
-                action: () => selectProducto(producto) 
+                handler: () => selectProducto(producto) 
             },
             { 
                 label: 'Clonar (Copiar datos)', 
                 iconClass: 'fas fa-clone', 
-                action: () => handleClone(producto) 
+                handler: () => handleClone(producto) 
             },
             { 
                 label: producto.activo ? 'Desactivar' : 'Activar', 
                 iconClass: producto.activo ? 'fas fa-eye-slash' : 'fas fa-eye', 
-                action: () => handleToggleActive(producto),
+                handler: () => handleToggleActive(producto),
                 class: producto.activo ? 'text-red-400' : 'text-green-400'
             },
             {
                 label: 'Ver en Inspector',
                 iconClass: 'fas fa-search',
-                action: () => selectProducto(producto)
+                handler: () => selectProducto(producto)
             }
         ]
     }
@@ -543,23 +543,47 @@ const createNew = () => {
 
 const handleClone = async (producto) => {
     try {
-        // Fetch full product details including costs
+        // [GY-UX] Show feedback immediately
+        notificationStore.add('Preparando clon...', 'info');
+        
+        // Fetch full product details (Costos, etc.)
         const fullData = await productosStore.fetchProductoById(producto.id);
         
-        // Prepare clone
+        if (!fullData) throw new Error('No se pudieron cargar los datos del origen.');
+
+        // Deep Copy & Clean IDs
+        const cloneData = JSON.parse(JSON.stringify(fullData));
+        
+        // Set up the clone object for the Inspector
         productosStore.currentProducto = {
-            ...fullData,
-            id: null, // Critical: ensure it's a NEW item
-            nombre: `CLON - ${fullData.nombre}`,
-            sku: 'AUTO',
-            activo: true
+            ...cloneData,
+            id: null, // Critical: New Product
+            sku: null, // Reset SKU to generate new
+            codigo_visual: null, // Reset Visual Code to avoid collision
+            nombre: `${cloneData.nombre} (Copia)`,
+            activo: true,
+            created_at: null,
+            // Clean Costos ID to ensure new insertion
+            costos: cloneData.costos ? {
+                ...cloneData.costos,
+                id: null,
+                producto_id: null
+            } : {
+                costo_reposicion: 0,
+                rentabilidad_target: 30,
+                precio_roca: 0
+            },
+            // Reset complex relations that are likely not cloneable directly via simple save
+            proveedores: [],
+            pedidos: [] 
         };
         
-        selectedId.value = null;
-        showInspector.value = true;
-        notificationStore.add('Cargando datos para clonar...', 'info');
+        selectedId.value = null; // Ensure grid deselects
+        showInspector.value = true; // Open Modal
+        
     } catch (e) {
-        notificationStore.add('Error al preparar clon: ' + e.message, 'error');
+        console.error('Clone Error:', e);
+        notificationStore.add('Error al clonar: ' + e.message, 'error');
     }
 }
 
@@ -674,8 +698,8 @@ onMounted(async () => {
             createNew();
             if (route.query.search) {
                 productosStore.currentProducto.nombre = route.query.search;
-                // Also put it in the filter to show context
-                productosStore.filters.search = route.query.search;
+                // [FIX] Do NOT set the filter, as it triggers 'handleSearch' debounce -> fetchProductos -> View Refresh/Navigation
+                // productosStore.filters.search = route.query.search;
             }
         }, 300);
     }

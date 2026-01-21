@@ -74,6 +74,26 @@ def approve_cliente(cliente_id: UUID, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
     return db_cliente
 
+@router.get("/{cliente_id}/integrity_check")
+def check_cliente_integrity(cliente_id: UUID, db: Session = Depends(get_db)):
+    """
+    Verifica si es seguro eliminar físicamente un cliente.
+    Retorna conteo de dependencias (Pedidos).
+    """
+    from backend.pedidos.models import Pedido
+    
+    # Count orders associated with this client
+    dependency_count = db.query(Pedido).filter(Pedido.cliente_id == cliente_id).count()
+    
+    is_safe = dependency_count == 0
+    message = "Sin dependencias. Seguro para eliminar." if is_safe else f"Tiene {dependency_count} pedidos históricos asociados."
+    
+    return {
+        "safe": is_safe,
+        "dependencies": dependency_count,
+        "message": message
+    }
+
 @router.delete("/{cliente_id}/hard")
 def hard_delete_cliente(cliente_id: UUID, db: Session = Depends(get_db)):
     from sqlalchemy.exc import IntegrityError

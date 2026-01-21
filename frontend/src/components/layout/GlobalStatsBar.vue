@@ -13,11 +13,11 @@
             <div class="h-8 w-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-500 group-hover:scale-110 transition-transform">
                 <i class="fas fa-users"></i>
             </div>
-            <div>
+             <div>
                 <p class="text-[9px] mb-0.5">Clientes</p>
                 <div class="flex items-baseline gap-1">
-                    <span class="text-lg font-bold text-white">{{ stats.clientes.active }}</span>
-                    <span class="text-[9px] text-cyan-500/50">/ {{ stats.clientes.total }}</span>
+                    <span class="text-lg font-bold text-white">{{ stats.clientes?.active || 0 }}</span>
+                    <span class="text-[9px] text-cyan-500/50">/ {{ stats.clientes?.total || 0 }}</span>
                 </div>
             </div>
         </div>
@@ -36,7 +36,7 @@
             <div>
                 <p class="text-[9px] mb-0.5">Productos</p>
                 <div class="flex items-baseline gap-1">
-                    <span class="text-lg font-bold text-white">{{ stats.productos.total }}</span>
+                    <span class="text-lg font-bold text-white">{{ stats.productos?.total || 0 }}</span>
                     <span class="text-[9px] text-emerald-500/50">SKUs</span>
                 </div>
             </div>
@@ -56,7 +56,7 @@
              <div>
                 <p class="text-[9px] mb-0.5">Pedidos Hoy</p>
                 <div class="flex items-baseline gap-1">
-                     <span class="text-lg font-bold text-white">{{ stats.pedidos.pending }}</span>
+                     <span class="text-lg font-bold text-white">{{ stats.pedidos?.pending || 0 }}</span>
                      <span class="text-[9px] text-amber-500/50">Pendientes</span>
                 </div>
              </div>

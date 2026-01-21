@@ -63,6 +63,7 @@
                                 @keydown.down.prevent="navigateResults(1)"
                                 @keydown.up.prevent="navigateResults(-1)"
                                 @keydown.enter.prevent="selectHighlighted"
+                                @keydown.tab.prevent="selectHighlighted"
                                 placeholder="Buscar Cliente..." 
                                 :class="[
                                     'w-full bg-black/50 border rounded-xl py-2 pl-10 pr-4 text-base font-medium placeholder-gray-600 focus:outline-none transition-all',
@@ -224,7 +225,7 @@
                         <div class="col-span-1 text-center">#</div>
                         <div class="col-span-1">SKU</div>
                         <div class="col-span-4">Descripción</div>
-                        <div class="col-span-1 text-center">Cant.</div>
+                        <div class="col-span-1 text-center">CANTIDAD</div>
                         <div class="col-span-1 text-right">Precio</div>
                         <div class="col-span-1 text-right">Desc %</div>
                         <div class="col-span-1 text-right">Desc $</div>
@@ -251,6 +252,7 @@
                                     @keydown.down.prevent="navigateProductResults(1)"
                                     @keydown.up.prevent="navigateProductResults(-1)"
                                     @keydown.enter.prevent="selectProductHighlighted"
+                                    @keydown.tab.prevent="selectProductHighlighted"
                                     placeholder="SKU"
                                     class="w-full bg-transparent border-b border-emerald-500/30 text-white font-mono text-xs focus:outline-none focus:border-emerald-500"
                                 >
@@ -265,6 +267,7 @@
                                     @keydown.down.prevent="navigateProductResults(1)"
                                     @keydown.up.prevent="navigateProductResults(-1)"
                                     @keydown.enter.prevent="selectProductHighlighted"
+                                    @keydown.tab.prevent="selectProductHighlighted"
                                     placeholder="Buscar producto..."
                                     class="w-full bg-transparent border-none text-white placeholder-gray-600 focus:outline-none font-medium"
                                     @contextmenu.prevent="handleProductContextMenu($event)"
@@ -347,7 +350,7 @@
                                     ref="inputQtyRef"
                                     v-model.number="newItem.cantidad" 
                                     @input="updateRowTotal"
-                                    @keydown.enter.prevent="commitRow"
+                                    @keydown.enter.prevent="focusPrice"
                                     class="w-full bg-transparent border-b border-emerald-500/30 text-emerald-400 font-bold text-center focus:outline-none focus:border-emerald-500"
                                 >
                             </div>
@@ -355,9 +358,10 @@
                             <!-- Precio Unit. -->
                             <div class="col-span-1 text-right">
                                 <input type="number" 
+                                    ref="inputPriceRef"
                                     v-model.number="newItem.precio" 
                                     @input="updateRowTotal"
-                                    @keydown.enter.prevent="commitRow"
+                                    @keydown.enter.prevent="focusDescPct"
                                     class="w-full bg-transparent border-b border-emerald-500/30 text-gray-300 font-mono text-right focus:outline-none focus:border-emerald-500"
                                 >
                             </div>
@@ -365,6 +369,7 @@
                             <!-- Descuento % -->
                             <div class="col-span-1 text-right">
                                 <input type="number" 
+                                    ref="inputDescPctRef"
                                     v-model.number="newItem.descuento_porcentaje" 
                                     @input="updateRowDescPct"
                                     @keydown.enter.prevent="commitRow"
@@ -399,32 +404,26 @@
                                     {{ index + 1 }}
                                 </div>
 
-                                <!-- SKU (Editable) -->
+                                <!-- SKU (Locked) -->
                                 <div class="col-span-1">
-                                    <input type="text" v-model="item.sku" 
-                                        class="w-full bg-transparent border-none text-gray-400 font-mono text-xs focus:text-white focus:outline-none truncate">
+                                    <span class="text-gray-400 font-mono text-xs truncate block" title="SKU Inmutable">{{ item.sku }}</span>
                                 </div>
                                 
-                                <!-- Descripcion (Editable) + Chevron -->
+                                <!-- Descripcion (Locked) + Chevron -->
                                 <div class="col-span-4 flex items-center gap-2">
                                      <button @click="toggleDetails(index)" class="text-gray-500 hover:text-white transition-colors focus:outline-none z-10 p-1">
                                         <i class="fas" :class="expandedRows.has(index) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
                                     </button>
-                                    <input type="text" v-model="item.descripcion" 
-                                        class="w-full bg-transparent border-none text-gray-300 font-medium text-sm focus:text-white focus:outline-none truncate">
+                                    <span class="text-gray-300 font-medium text-sm truncate block" title="Descripción Inmutable">{{ item.descripcion }}</span>
                                     
                                     <div v-if="item.producto_obj?.costos?.costo_reposicion === 0" class="shrink-0" title="ALERTA: Costo de Reposición Cero">
                                         <i class="fas fa-exclamation-triangle text-orange-500 animate-pulse"></i>
                                     </div>
                                 </div>
                                 
-                                <!-- Cantidad (Editable) -->
-                                <div class="col-span-1">
-                                    <input type="number" 
-                                        v-model.number="item.cantidad"
-                                        @input="updateItemTotal(item)"
-                                        class="w-full bg-transparent border-b border-transparent hover:border-white/20 focus:border-emerald-500 text-center font-bold text-white text-sm focus:outline-none transition-colors"
-                                    >
+                                <!-- Cantidad (Locked) -->
+                                <div class="col-span-1 text-center">
+                                    <span class="font-bold text-white text-sm">{{ item.cantidad }}</span>
                                 </div>
 
                                 <!-- Precio (Editable) -->
@@ -433,6 +432,7 @@
                                     <input type="number" 
                                         v-model.number="item.precio" 
                                         @input="updateItemTotal(item)"
+                                        @keydown.enter="$event.target.blur()"
                                         class="w-full bg-transparent border-b border-transparent hover:border-white/20 focus:border-emerald-500 text-right font-mono text-gray-300 text-sm focus:outline-none transition-colors"
                                     >
                                 </div>
@@ -442,6 +442,7 @@
                                     <input type="number" 
                                         :value="item.descuento_porcentaje" 
                                         @input="(e) => { item.descuento_porcentaje = parseFloat(e.target.value); updateItemDescPct(item); }"
+                                        @keydown.enter="$event.target.blur()"
                                         class="w-full bg-transparent border-b border-transparent hover:border-white/20 focus:border-emerald-500 text-right font-mono text-yellow-500 text-sm focus:outline-none transition-colors"
                                         step="0.01"
                                     >
@@ -452,6 +453,7 @@
                                     <input type="number" 
                                         v-model.number="item.descuento_valor" 
                                         @input="updateItemDescVal(item)"
+                                        @keydown.enter="$event.target.blur()"
                                         class="w-full bg-transparent border-b border-transparent hover:border-white/20 focus:border-emerald-500 text-right font-mono text-yellow-500 text-sm focus:outline-none transition-colors"
                                     >
                                 </div>
@@ -591,6 +593,7 @@ import RentabilidadPanel from './components/RentabilidadPanel.vue';
 import api from '../../services/api'; // Import API service
 import _ from 'lodash';
 import canteraService from '@/services/canteraService';
+import pedidosService from '@/services/pedidos';
 import { useNotificationStore } from '@/stores/notification';
 
 import { useRoute } from 'vue-router'; // Add useRoute
@@ -683,20 +686,28 @@ const loadPedido = async (id) => {
 
         // Hydrate Items
         items.value = p.items.map(i => ({
-            id: i.producto_id, // Use product ID or item ID? Local uses Prod ID usually.
+            id: i.producto_id,
             sku: i.producto?.sku || '???',
             descripcion: i.producto?.nombre || 'Producto Desconocido',
             cantidad: Number(i.cantidad),
             precio: Number(i.precio_unitario),
-            descuento_porcentaje: 0, // Backend output format dependent
-            descuento_valor: 0, // Backend output format dependent
-            total: Number(i.total),
+            descuento_porcentaje: Number(i.descuento_porcentaje || 0),
+            descuento_valor: Number(i.descuento_importe || 0),
+            total: Number(i.subtotal),
             producto_obj: i.producto
         }));
         
-        // TODO: Backend 'items' usually don't carry discount breakdown per line in simple schemas.
-        // If V5 schema supports line discounts, map them here. 
-        // Assuming simple migration for now.
+        // Hydrate Discounts Global
+        descuentoGlobalPorcentaje.value = p.descuento_global_porcentaje || '';
+        descuentoGlobalValor.value = p.descuento_global_importe || '';
+
+        // Hydrate Logistics (Override Defaults)
+        if (p.domicilio_entrega_id) {
+             selectedDomicilioId.value = p.domicilio_entrega_id;
+        }
+        if (p.transporte_id) {
+             selectedTransporteId.value = p.transporte_id;
+        }
 
         notificationStore.add('Pedido cargado para edición.', 'success');
 
@@ -933,7 +944,19 @@ const altaProductoContext = () => {
 // Deprecated: openMenu removed
 const clientInputRef = ref(null);
 const inputQtyRef = ref(null);
+const inputPriceRef = ref(null);
+const inputDescPctRef = ref(null);
 const itemsContainerRef = ref(null); // Ref for auto-scroll
+
+const focusPrice = () => {
+    inputPriceRef.value?.focus();
+    inputPriceRef.value?.select();
+};
+
+const focusDescPct = () => {
+    inputDescPctRef.value?.focus();
+    inputDescPctRef.value?.select();
+};
 // Deprecated: clientEditUrl removed in favor of irAFicha method
 
 
@@ -1046,7 +1069,9 @@ const filteredClientes = computed(() => {
     // If no term but results are forced open (eg F3), show first 10
     if (!busquedaCliente.value || busquedaCliente.value.length < 1) {
         if (showClienteResults.value) {
-            return clientesStore.clientes.slice(0, 10);
+            return clientesStore.clientes
+                .filter(c => c.activo !== false)
+                .slice(0, 15);
         }
         selectedIndex.value = -1;
         return [];
@@ -1147,7 +1172,11 @@ const selectProductHighlighted = () => {
     if (filteredProductos.value.length) {
         selectProduct(filteredProductos.value[selectedProductIndex.value]);
     } else {
-        // Fallback for manual entry: Move focus to Quantity
+        // [GY-FIX] Validation: Block exit if product is invalid
+        if (!newItem.value.producto_obj) {
+             notificationStore.add('Producto inválido o no seleccionado.', 'warning');
+             return;
+        }
         inputQtyRef.value?.focus();
     }
 };
@@ -1181,22 +1210,44 @@ const activateSearch = (field) => {
     selectedProductIndex.value = 0;
 };
 
-const selectProduct = (prod) => {
+const selectProduct = async (prod) => {
     newItem.value.producto_obj = prod;
-    newItem.value.sku = prod.sku;
+    newItem.value.sku = prod.sku; 
     newItem.value.descripcion = prod.nombre;
-    const price = prod.precio_sugerido || prod.precio_lista || 0;
-    newItem.value.precio = price || ''; // Handle 0 prices as empty for cleaner UI? Or keep 0 if it's real price? User said "no lo pongamos". Let's try keeping real price if > 0.
-    newItem.value.cantidad = 1;
     
-    // Reset discounts
+    // [HARD LOGIC V5] Get price for THIS client
+    if (clienteSeleccionado.value) {
+        try {
+            const res = await pedidosService.cotizar({
+                cliente_id: clienteSeleccionado.value.id,
+                producto_id: prod.id,
+                cantidad: newItem.value.cantidad || 1
+            });
+            newItem.value.precio = res.precio_final_sugerido;
+            console.log(`[V5 Engine] Cotización: ${res.origen} -> $${res.precio_final_sugerido}`);
+        } catch (e) {
+            console.error("[V5 Engine] Error cotizando:", e);
+            const msg = e.response?.data?.detail || 'Error al cotizar precio';
+            notificationStore.add(msg, 'warning');
+            
+            // Fallback to basic price if it fails but we want to allow continue?
+            // User requested strict mode, so we keep 0 if it fails or use a generic one?
+            // For now, let's keep 0 to force user attention.
+            newItem.value.precio = 0;
+        }
+    } else {
+        // No client selected? Use suggested price as placeholder
+        newItem.value.precio = Number(prod.precio_sugerido) || Number(prod.precio_lista) || 0;
+        notificationStore.add('Seleccione un cliente para cotizar precio exacto', 'info');
+    }
+
+    newItem.value.cantidad = 1;
     newItem.value.descuento_porcentaje = '';
     newItem.value.descuento_valor = '';
-    
-    newItem.value.total = price;
+    newItem.value.total = newItem.value.precio; 
+
     showProductResults.value = false;
     
-    // Auto-focus Quantity for speed
     setTimeout(() => {
         inputQtyRef.value?.focus();
         inputQtyRef.value?.select();
@@ -1295,14 +1346,20 @@ const commitRow = () => {
     }
 
     // Use PUSH instead of UNSHIFT per user request
+    const payload = { ...newItem.value };
+    console.log("Committing Row:", payload);
+
     items.value.push({ 
-        ...newItem.value,
-        id: newItem.value.producto_obj?.id || Date.now(), // Ensure a unique ID for the item in the list
-        cantidad: Number(newItem.value.cantidad),
-        precio: Number(newItem.value.precio),
-        descuento_porcentaje: Number(newItem.value.descuento_porcentaje || 0),
-        descuento_valor: Number(newItem.value.descuento_valor || 0),
-        total: Number(newItem.value.total)
+        ...payload, // Spread first to get basic properties
+        id: payload.producto_obj?.id || Date.now(),
+        // [DEBUG] Force SKU preservation from multiple sources
+        sku: String(payload.sku || payload.producto_obj?.sku || ''), 
+        descripcion: payload.descripcion, 
+        cantidad: Number(payload.cantidad),
+        precio: Number(payload.precio),
+        descuento_porcentaje: Number(payload.descuento_porcentaje || 0),
+        descuento_valor: Number(payload.descuento_valor || 0),
+        total: Number(payload.total)
     }); 
     
     // Reset but keep some logical defaults if needed
@@ -1348,6 +1405,8 @@ const editItem = async (index) => {
     // (Though strictly not necessary for state, good for finding inputs)
     newItem.value = {
         ...itemData,
+        // [GY-FIX] Ensure SKU is explicitly restored to the input model
+        sku: itemData.sku || itemData.producto_obj?.sku || '',
         // Ensure numbers are reactive/correct types
         cantidad: Number(itemData.cantidad),
         precio: Number(itemData.precio),

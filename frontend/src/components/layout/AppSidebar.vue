@@ -153,10 +153,6 @@
                 <i class="fas fa-warehouse w-4"></i> 
                 <span>Depósitos</span>
             </a>
-            <a href="#" @click.prevent="navigate('CanteraExplorer')" class="nav-item-sub" :class="{ 'active-link-amber': isActive('CanteraExplorer') }">
-                <i class="fas fa-gem w-4 text-amber-500"></i> 
-                <span>Cantera de Maestros</span>
-            </a>
         </div>
       </div>
 
@@ -183,6 +179,18 @@
       </div>
 
     </nav>
+
+    <!-- Master Tools (Fixed) -->
+    <div class="px-4 py-2 shrink-0 border-t border-white/5">
+        <a href="#" 
+           @click.prevent="navigate('MasterTools')" 
+           class="flex items-center gap-3 px-4 py-3 rounded-lg border border-red-500/20 bg-red-900/10 hover:bg-red-900/20 text-red-400 transition-all font-bold tracking-wide text-sm group"
+           :class="{ 'bg-red-900/30 border-red-500/50': isActive('MasterTools') }"
+        >
+            <i class="fas fa-shield-alt w-5 text-center group-hover:scale-110 transition-transform"></i>
+            <span>Utilidades Maestras</span>
+        </a>
+    </div>
 
     <!-- User Profile -->
     <div 
@@ -233,7 +241,7 @@ const isActive = (routeName) => {
 const isGroupActive = (group) => {
     if (group === 'CLIENTES') return ['HaweHome', 'Segmentos', 'Vendedores', 'HaweClientCanvas'].includes(route.name)
     if (group === 'PRODUCTOS') return ['Productos', 'Rubros', 'ListasPrecios'].includes(route.name)
-    if (group === 'MAESTROS') return ['Contactos', 'Transportes', 'CanteraExplorer'].includes(route.name)
+    if (group === 'MAESTROS') return ['Contactos', 'Transportes', 'CanteraExplorer', 'MasterTools'].includes(route.name)
     if (group === 'PEDIDOS') return ['PedidoList', 'TacticalLoader'].includes(route.name)
     if (group === 'INTEL') return ['data-cleaner'].includes(route.name)
     return false

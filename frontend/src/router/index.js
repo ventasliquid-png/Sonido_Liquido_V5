@@ -88,6 +88,11 @@ const routes = [
                 component: DataCleaner
             },
             {
+                path: 'master-tools',
+                name: 'MasterTools',
+                component: () => import('../views/Admin/MasterToolsView.vue')
+            },
+            {
                 path: 'listas-precios',
                 name: 'ListasPrecios',
                 component: ListaPreciosList

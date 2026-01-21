@@ -113,7 +113,7 @@ const handleSave = () => {
     }
     
     console.log('DomicilioForm saving:', { ...form, id: props.domicilio?.id });
-    emit('saved', { ...form, id: props.domicilio?.id });
+    emit('saved', { ...props.domicilio, ...form });
     emit('close');
 };
 
@@ -124,7 +124,11 @@ const close = () => {
 // Keyboard Shortcuts
 const handleKeydown = (e) => {
     if (!props.show) return;
-    if (e.key === 'Escape') close();
+    if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        close();
+    }
     if (e.code === 'F10') {
         e.preventDefault();
         e.stopPropagation(); 

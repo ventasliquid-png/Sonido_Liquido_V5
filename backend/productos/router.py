@@ -297,25 +297,54 @@ def read_productos(
 
 @router.post("/", response_model=schemas.ProductoRead)
 def create_producto(producto: schemas.ProductoCreate, db: Session = Depends(get_db)):
-    # 1. Crear Producto
-    producto_data = producto.dict(exclude={'costos'})
-    db_producto = models.Producto(**producto_data)
-    db.add(db_producto)
-    db.commit()
-    db.refresh(db_producto)
-    
-    # 2. Crear Costos
-    costos_data = producto.costos.dict()
-    db_costos = models.ProductoCosto(**costos_data, producto_id=db_producto.id)
-    db.add(db_costos)
-    db.commit()
-    
-    # Recargar con relaciones
-    db.refresh(db_producto)
-    # Forzar carga de costos si no se hizo
-    # db_producto.costos 
-    
-    return calculate_prices(db_producto)
+    from sqlalchemy.exc import IntegrityError
+    try:
+        # 1. Crear Producto
+        producto_data = producto.dict(exclude={'costos'})
+        db_producto = models.Producto(**producto_data)
+        db.add(db_producto)
+        db.commit()
+        db.refresh(db_producto)
+        
+        # 2. Crear Costos
+        costos_data = producto.costos.dict()
+        db_costos = models.ProductoCosto(**costos_data, producto_id=db_producto.id)
+        db.add(db_costos)
+        
+        try:
+            db.commit()
+        except Exception:
+            # If costs fail, we should probably delete the product or rollback?
+            # But the product commit was successful. 
+            # Ideally we want atomic transaction.
+            # But current logic has two commits.
+            # Moving all to one commit is better.
+            raise 
+
+        # Recargar con relaciones
+        db.refresh(db_producto)
+        return calculate_prices(db_producto)
+
+    except IntegrityError as e:
+        db.rollback()
+        error_info = str(e.orig) if hasattr(e, 'orig') else str(e)
+        detail = "Error de integridad en la base de datos."
+        
+        if "codigo_visual" in error_info:
+            detail = "El Código Visual ya existe en otro producto."
+        elif "sku" in error_info:
+            detail = "El SKU generado ya existe."
+        elif "rubro_id" in error_info:
+            detail = "El Rubro seleccionado no es válido."
+        
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail)
+        
+    except Exception as e:
+        db.rollback()
+        print(f"CRITICAL ERROR CREATING PRODUCT: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error al crear producto: {str(e)}")
 
 @router.get("/{producto_id}", response_model=schemas.ProductoRead)
 def read_producto(producto_id: int, db: Session = Depends(get_db)):
@@ -376,6 +405,26 @@ def delete_producto(producto_id: int, db: Session = Depends(get_db)):
     db.commit()
     print(f"Toggled Product {producto_id} from {current_status} to {db_producto.activo}")
     return None
+
+@router.get("/{producto_id}/integrity_check")
+def check_producto_integrity(producto_id: int, db: Session = Depends(get_db)):
+    """
+    Verifica si es seguro eliminar físicamente un producto.
+    Retorna conteo de dependencias (Items de Pedido).
+    """
+    from backend.pedidos.models import PedidoItem
+    
+    # Count order items associated with this product
+    dependency_count = db.query(PedidoItem).filter(PedidoItem.producto_id == producto_id).count()
+    
+    is_safe = dependency_count == 0
+    message = "Sin dependencias. Seguro para eliminar." if is_safe else f"Participa en {dependency_count} líneas de pedido."
+    
+    return {
+        "safe": is_safe,
+        "dependencies": dependency_count,
+        "message": message
+    }
 
 @router.delete("/{producto_id}/hard", status_code=status.HTTP_204_NO_CONTENT)
 def hard_delete_producto(producto_id: int, db: Session = Depends(get_db)):

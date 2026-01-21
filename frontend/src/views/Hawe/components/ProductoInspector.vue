@@ -1,30 +1,81 @@
 <template>
-  <div class="flex h-full w-full flex-col bg-[#0f172a] text-gray-100 rounded-xl shadow-2xl overflow-hidden hud-border-red">
+  <div class="flex h-[92vh] w-[1300px] max-w-[95vw] flex-col bg-[#0f172a] text-gray-100 rounded-xl shadow-2xl overflow-hidden hud-border-red">
     <!-- Header with Breadcrumb Style -->
-    <div class="flex items-center justify-between border-b border-rose-900/30 bg-black/20 p-4 shrink-0 transition-height">
-      <div class="flex items-center gap-4">
+    <div class="flex items-center justify-between border-b border-rose-900/30 bg-black/40 p-3 shrink-0 backdrop-blur-md sticky top-0 z-50">
+      <div class="flex items-center gap-4 flex-1">
           <!-- Icon -->
           <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-rose-500/20 to-black flex items-center justify-center text-rose-500 border border-rose-500/20 shadow-lg shadow-rose-900/20">
-             <i class="fas fa-box text-lg"></i>
+             <i class="fas fa-box-open text-lg"></i>
           </div>
           
-          <!-- Title & Meta -->
-          <div>
-              <div v-if="localProducto && !localProducto.id" class="flex items-center gap-2">
-                 <span class="text-xs font-bold bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded border border-rose-500/30 uppercase tracking-wider">Nuevo Producto</span>
+          <!-- Identity Fields (UNIFIED HEADER) -->
+          <div class="flex-1 grid grid-cols-12 gap-x-4 gap-y-1 items-end">
+              <!-- Nombre -->
+              <div class="col-span-5">
+                  <div class="flex items-baseline gap-2">
+                      <span v-if="localProducto && !localProducto.id" class="text-[9px] font-bold bg-orange-500/80 text-white px-1.5 py-0.5 rounded uppercase tracking-wider animate-pulse">CLON / NUEVO</span>
+                      <label class="text-[9px] font-bold text-rose-400/40 uppercase tracking-widest">Nombre Oficial</label>
+                  </div>
+                  <input 
+                    v-model="localProducto.nombre"
+                    type="text" 
+                    class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-lg font-bold text-white focus:border-rose-500/50 focus:outline-none transition-all"
+                    placeholder="Nombre del Producto..."
+                  />
               </div>
-              <h2 class="font-outfit text-xl font-bold text-white tracking-tight leading-none mt-1">
-                  {{ localProducto?.nombre || 'Definir Nombre...' }}
-              </h2>
-              <div class="flex items-center gap-3 mt-1 text-xs font-mono text-rose-200/40">
-                  <span v-if="localProducto && localProducto.id">ID: {{ localProducto.id }}</span>
-                  <span v-if="localProducto && localProducto.sku" class="flex items-center gap-1"><i class="fas fa-barcode"></i> {{ localProducto.sku }}</span>
+
+              <!-- SKU/ID (View only or auto) -->
+              <div class="col-span-1">
+                   <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-1">SKU / ID</label>
+                   <div class="bg-black/40 border border-white/5 rounded-lg px-2 py-1.5 text-center font-mono text-sm text-gray-400">
+                       {{ localProducto?.id || 'AUTO' }}
+                   </div>
+              </div>
+
+              <!-- Código Visual -->
+              <div class="col-span-2">
+                   <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Cod. Visual</label>
+                   <input 
+                     v-model="localProducto.codigo_visual"
+                     type="text" 
+                     class="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-white font-mono text-sm focus:border-rose-500/50 focus:outline-none transition-all"
+                     placeholder="Ej: KOD-123"
+                   />
+              </div>
+
+              <!-- Rubro -->
+              <div class="col-span-2">
+                   <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Rubro</label>
+                   <SelectorCreatable
+                        v-model="localProducto.rubro_id"
+                        :options="flattenedRubros"
+                        item-key="id"
+                        display-key="nombre"
+                        size="sm"
+                        placeholder="Rubro..."
+                        @create="handleCreateRubro"
+                   />
+              </div>
+
+              <!-- IVA -->
+              <div class="col-span-2">
+                   <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Tasa IVA</label>
+                   <SelectorCreatable
+                        v-model="localProducto.tasa_iva_id"
+                        :options="tasasIva"
+                        item-key="id"
+                        display-key="nombre"
+                        size="sm"
+                        placeholder="IVA..."
+                        @create="handleCreateTasaIva"
+                        @update:modelValue="handleUpdateTasaIva"
+                   />
               </div>
           </div>
       </div>
       
-      <div class="flex items-center gap-3">
-          <!-- Active Toggle -->
+      <div class="flex items-center gap-3 ml-4">
+            <!-- Active Toggle -->
             <button 
                 v-if="localProducto"
                 @click="$emit('toggle-active', localProducto)"
@@ -32,318 +83,257 @@
                 :class="localProducto.activo ? 'bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/20' : 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20'"
             >
                 <div class="h-2 w-2 rounded-full" :class="localProducto.activo ? 'bg-green-500 shadow-lg shadow-green-500/50' : 'bg-red-500 shadow-lg shadow-red-500/50'"></div>
-                <span class="text-xs font-bold uppercase">{{ localProducto.activo ? 'Activo' : 'Inactivo' }}</span>
-          </button>
+                <span class="text-[10px] font-bold uppercase">{{ localProducto.activo ? 'Activo' : 'Baja' }}</span>
+            </button>
 
-          <div class="h-8 w-px bg-white/10 mx-1"></div>
-
-          <button @click="$emit('close')" class="h-9 w-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors">
-             <i class="fas fa-times"></i>
-          </button>
+            <button @click="$emit('close')" class="h-9 w-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors">
+               <i class="fas fa-times"></i>
+            </button>
       </div>
     </div>
 
-    <!-- MAIN CANVAS (3 Columns) -->
-    <div v-if="localProducto && localProducto.nombre !== undefined" class="flex-1 flex overflow-hidden">
+    <!-- MAIN CANVAS (STACKED BLOCKS) -->
+    <div v-if="localProducto && localProducto.nombre !== undefined" class="flex-1 overflow-y-auto custom-scrollbar bg-[#0f172a] p-4 space-y-4">
         
-        <!-- COLUMN 1: Identity & Tax Nature (30%) -->
-        <div class="w-[30%] border-r border-rose-900/30 bg-black/10 flex flex-col overflow-y-auto custom-scrollbar p-6 space-y-8">
+        <!-- BLOCK 1: ESTRUCTURA DE COSTOS (Horizontal) -->
+        <section class="bg-black/20 border border-rose-500/10 rounded-2xl p-4 shadow-xl">
+            <h3 class="text-xs font-bold text-rose-500/50 uppercase tracking-widest flex items-center gap-2 mb-4">
+                <i class="fas fa-brain text-rose-500"></i> Estructura de Costos & Precios
+            </h3>
             
-            <!-- Image / Avatar -->
-            <div class="flex justify-center" v-if="false">
-                <div class="relative group cursor-pointer">
-                     <!-- Placeholder -->
-                    <div class="h-40 w-40 rounded-2xl bg-gradient-to-br from-[#3f0e1a] to-black flex items-center justify-center text-6xl text-rose-600/50 shadow-2xl border border-rose-500/20 group-hover:border-rose-500/50 transition-all duration-300">
-                        <i class="fas fa-cube transform group-hover:scale-110 transition-transform duration-300"></i>
+            <div class="flex items-center gap-8">
+                <!-- Costo Rep -->
+                <div class="flex-1 space-y-2">
+                    <label class="text-[10px] font-bold text-rose-400/60 uppercase tracking-widest block">Costo de Reposición (Neto)</label>
+                    <div class="relative group">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-rose-500/50 text-xl font-light">$</span>
+                        <input 
+                            v-model.number="localCostos.costo_reposicion"
+                            @input="updateCostTimestamp"
+                            type="number" step="0.0001" min="0"
+                            class="w-full bg-black/40 border border-rose-500/20 rounded-xl px-3 py-3 pl-8 text-2xl font-mono font-bold text-white text-right focus:border-rose-500/50 focus:outline-none transition-all"
+                        />
+                    </div>
+                    <div class="flex justify-between items-center px-1">
+                        <span class="text-[10px] font-mono text-rose-500/40 uppercase">Act: {{ lastCostUpdate || 'Hoy' }}</span>
+                        <span class="text-[10px] font-mono font-bold text-rose-400/40">
+                             c/IVA: {{ formatCurrency(localCostos.costo_reposicion * (1 + (localCostos.iva_alicuota || 21)/100)) }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="shrink-0 text-white/10 text-xl"><i class="fas fa-plus"></i></div>
+
+                <!-- Mirror Component (Margin & Roca) -->
+                <div class="flex-[1.5] bg-cyan-900/10 border border-cyan-500/10 rounded-xl p-4 flex items-center gap-6">
+                    <div class="flex-1 space-y-2">
+                        <label class="text-[9px] font-bold text-cyan-500/70 uppercase tracking-widest text-center block">Margin %</label>
+                        <div class="relative">
+                           <input 
+                               v-model.number="localCostos.rentabilidad_target"
+                               @input="updateRocaFromRent"
+                               type="number" step="0.1"
+                               class="w-full bg-black/40 border border-cyan-500/30 rounded-lg py-2 text-xl font-mono font-bold text-cyan-400 text-center focus:border-cyan-400 focus:outline-none"
+                           />
+                           <span class="absolute right-2 top-1/2 -translate-y-1/2 text-cyan-500/30 font-bold text-xs">%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="shrink-0 text-cyan-500/20 text-2xl"><i class="fas fa-exchange-alt"></i></div>
+
+                    <div class="flex-1 space-y-2">
+                        <label class="text-[9px] font-bold text-white/50 uppercase tracking-widest text-center block">Precio Roca (Neto)</label>
+                        <input 
+                            v-model.number="localCostos.precio_roca"
+                            @input="updateRentFromRoca"
+                            type="number" step="0.0001"
+                            class="w-full bg-white/5 border border-white/10 rounded-lg py-2 text-xl font-mono font-bold text-white text-center focus:border-white/40 focus:outline-none"
+                        />
+                    </div>
+                </div>
+
+                <div class="shrink-0 text-white/10 text-xl"><i class="fas fa-arrow-right"></i></div>
+
+                <!-- Final Result -->
+                <div class="flex-1 space-y-2">
+                    <label class="text-[10px] font-bold text-green-500 uppercase tracking-widest text-right block">Precio Final (C/ IVA)</label>
+                    <div class="relative group">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-green-500/30 text-xl font-light">$</span>
+                        <input 
+                            :value="finalPrice"
+                            @input="updateNetFromFinal($event.target.value)"
+                            type="number" step="0.01"
+                            class="w-full bg-green-500/5 border border-green-500/30 rounded-xl px-3 py-3 pl-8 text-3xl font-mono font-bold text-green-400 text-right focus:border-green-500/50 focus:outline-none transition-all"
+                        />
                     </div>
                 </div>
             </div>
+        </section>
 
-            <!-- Basic Data Form -->
-            <div class="space-y-5">
-                <!-- Nombre -->
-                <div class="space-y-1 group">
-                   <label class="text-[10px] font-bold text-rose-200/40 uppercase tracking-widest group-focus-within:text-rose-400 transition-colors">Nombre Oficial</label>
-                   <input 
-                     v-model="localProducto.nombre"
-                     type="text" 
-                     class="w-full bg-black/20 border border-white/5 rounded-lg px-3 py-2.5 text-white font-bold tracking-wide focus:border-rose-500/50 focus:bg-black/40 focus:outline-none transition-all placeholder-white/5"
-                     placeholder="Ej: Barbijo Recto"
-                   />
-                </div>
 
-                    <div class="space-y-1">
-                       <label class="text-[10px] font-bold text-rose-200/40 uppercase tracking-widest">Código Visual</label>
-                       <input 
-                         v-model="localProducto.codigo_visual"
-                         type="text" 
-                         class="w-full bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-white font-mono text-sm focus:border-rose-500/50 focus:outline-none transition-colors"
-                         placeholder="CODE-01"
-                       />
-                     </div>
-
-                <!-- Rubro (Validated) -->
+        <!-- BLOCK 2: LOGÍSTICA (Horizontal Row) -->
+        <section class="bg-black/10 border border-white/5 rounded-2xl p-4 flex items-center justify-between gap-6 shadow-lg">
+            <h3 class="text-[10px] font-bold text-blue-400/50 uppercase tracking-widest flex items-center gap-2 shrink-0">
+                <i class="fas fa-boxes text-blue-400"></i> Logística
+            </h3>
+            
+            <div class="flex-1 grid grid-cols-4 gap-4">
                 <div class="space-y-1">
-                    <label class="text-[10px] font-bold text-rose-200/40 uppercase tracking-widest">Rubro / Categoría <span class="text-rose-500">*</span></label>
-                    <SelectorCreatable
-                         v-model="localProducto.rubro_id"
-                         :options="flattenedRubros"
-                         item-key="id"
-                         display-key="nombre"
-                         placeholder="Seleccione Rubro..."
-                         @create="handleCreateRubro"
+                    <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Unidad Compra</label>
+                    <input 
+                        v-model="localProducto.presentacion_compra"
+                        class="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs focus:border-blue-500/50 focus:outline-none"
+                        placeholder="Ej: Bulto, Pack"
                     />
                 </div>
-
-                <!-- Insumo Switch -->
-                <div class="pt-4 border-t border-white/5">
-                     <div class="flex items-center gap-2 p-2 rounded bg-white/5 border border-white/5 cursor-pointer" @click="localProducto.tipo_producto = localProducto.tipo_producto === 'INSUMO' ? 'VENTA' : 'INSUMO'">
-                          <div class="w-8 h-4 rounded-full relative transition-colors" :class="localProducto.tipo_producto === 'INSUMO' ? 'bg-orange-500' : 'bg-gray-700'">
-                              <div class="absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform" :class="localProducto.tipo_producto === 'INSUMO' ? 'translate-x-4' : ''"></div>
-                          </div>
-                          <span class="text-xs font-bold uppercase transition-colors" :class="localProducto.tipo_producto === 'INSUMO' ? 'text-orange-400' : 'text-gray-400'">
-                              {{ localProducto.tipo_producto === 'INSUMO' ? 'Es Insumo Interno' : 'Producto de Venta' }}
-                          </span>
-                     </div>
+                <div class="space-y-1">
+                    <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Unid. x Bulto</label>
+                    <input 
+                        v-model.number="localProducto.unidades_bulto"
+                        type="number"
+                        class="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs font-mono focus:border-blue-500/50 focus:outline-none"
+                    />
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Unidad Venta</label>
+                    <SelectorCreatable
+                         v-model="localProducto.unidad_medida"
+                         :options="unidades"
+                         item-key="codigo"
+                         display-key="nombre"
+                         size="sm"
+                         placeholder="Selec..."
+                         @create="handleCreateUnidad"
+                    />
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Venta Mínima</label>
+                    <input 
+                      v-model.number="localProducto.venta_minima"
+                      type="number"
+                      class="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs font-mono focus:border-blue-500/50 focus:outline-none"
+                    />
                 </div>
             </div>
-        </div>
 
-        <!-- COLUMN 2: FINANCIAL BRAIN (40%) -->
-        <div class="w-[40%] flex flex-col overflow-y-auto custom-scrollbar bg-gradient-to-b from-[#0f172a] to-black/40">
-             <div class="p-6 space-y-8">
-                 <h3 class="text-lg font-outfit font-bold text-white/50 flex items-center gap-2 border-b border-white/5 pb-2">
-                     <i class="fas fa-brain text-rose-500"></i> Estructura de Costos
-                 </h3>
-
-                 <!-- 1. COSTO DE REPOSICION -->
-                 <div class="space-y-2">
-                      <div class="flex justify-between items-end px-1">
-                          <label class="text-xs font-bold text-rose-500 uppercase tracking-widest">Costo de Reposición (Neto)</label>
-                          <div class="text-[10px] font-mono text-rose-500/40 uppercase" v-if="lastCostUpdate">
-                              <i class="fas fa-clock mr-1"></i>Act: {{ lastCostUpdate }}
-                          </div>
+            <div class="shrink-0 flex items-center gap-2 p-2 rounded bg-white/5 border border-white/10 transition-colors" :class="localProducto.es_kit ? 'border-rose-500/30 bg-rose-500/5' : ''">
+                 <input type="checkbox" v-model="localProducto.es_kit" class="rounded bg-black/50 border-white/20 text-rose-500 focus:ring-0 cursor-pointer">
+                 <span class="text-[9px] text-white/50 font-bold uppercase">Es Kit / Combo</span>
+            </div>
+            
+            <div class="shrink-0 pt-1">
+                 <div class="flex items-center gap-2 p-1.5 rounded bg-black/20 border border-white/5 cursor-pointer" @click="localProducto.tipo_producto = localProducto.tipo_producto === 'INSUMO' ? 'VENTA' : 'INSUMO'">
+                      <div class="w-6 h-3 rounded-full relative transition-colors" :class="localProducto.tipo_producto === 'INSUMO' ? 'bg-orange-500' : 'bg-gray-700'">
+                          <div class="absolute top-0.5 left-0.5 w-2 h-2 rounded-full bg-white transition-transform" :class="localProducto.tipo_producto === 'INSUMO' ? 'translate-x-3' : ''"></div>
                       </div>
-                      <div class="relative group">
-                          <span class="absolute left-4 top-1/2 -translate-y-1/2 text-rose-500/50 text-xl font-light">$</span>
-                          <input 
-                              v-model.number="localCostos.costo_reposicion"
-                              @input="updateCostTimestamp"
-                              type="number" step="0.0001" min="0"
-                              class="w-full bg-rose-950/10 border border-rose-500/20 rounded-xl px-4 py-4 pl-8 text-3xl font-mono font-bold text-white text-right focus:border-rose-500/50 focus:shadow-[0_0_20px_rgba(244,63,94,0.1)] focus:outline-none transition-all placeholder-white/5"
-                              placeholder="0.00"
-                          />
-                      </div>
+                      <span class="text-[9px] font-bold uppercase" :class="localProducto.tipo_producto === 'INSUMO' ? 'text-orange-400' : 'text-gray-500'">
+                          {{ localProducto.tipo_producto === 'INSUMO' ? 'Insumo' : 'Venta' }}
+                      </span>
                  </div>
+            </div>
+        </section>
 
-                 <!-- 2. RENTABILIDAD & PRECIO ROCA (ESPEJO) -->
-                 <div class="bg-cyan-900/5 border border-cyan-500/20 rounded-2xl p-6 space-y-6 relative shadow-lg shadow-black/20">
-                      <!-- Link Visual -->
-                      <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-cyan-500/20 text-4xl pointer-events-none">
-                          <i class="fas fa-arrows-alt-h"></i>
-                      </div>
+        <!-- BLOCK 3: PROVEEDORES (Compact) -->
+        <section class="bg-black/20 border border-white/5 rounded-2xl p-4 shadow-lg overflow-hidden flex flex-col">
+            <div class="flex justify-between items-center mb-2">
+                <h3 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                    <i class="fas fa-truck text-rose-500"></i> Historial de Proveedores
+                </h3>
+                <button @click="isAddingSupplier = !isAddingSupplier" class="text-[9px] bg-rose-500/20 text-rose-400 px-2 py-1 rounded hover:bg-rose-500/30 transition-colors uppercase font-bold tracking-widest">
+                    <i class="fas" :class="isAddingSupplier ? 'fa-times' : 'fa-plus mr-1'"></i> {{ isAddingSupplier ? 'Cerrar' : 'Agregar' }}
+                </button>
+            </div>
 
-                      <div class="grid grid-cols-2 gap-8">
-                          <!-- Margin Input -->
-                           <div class="space-y-2 relative z-10">
-                              <label class="text-[10px] font-bold text-cyan-500/70 uppercase tracking-widest text-center block">Margin %</label>
-                              <div class="relative group">
-                                 <input 
-                                     v-model.number="localCostos.rentabilidad_target"
-                                     @input="updateRocaFromRent"
-                                     type="number" step="0.1"
-                                     class="w-full bg-black/40 border border-cyan-500/30 rounded-xl px-2 py-3 text-xl font-mono font-bold text-cyan-400 text-center focus:border-cyan-400 focus:outline-none transition-all"
-                                 />
-                                 <span class="absolute right-3 top-1/2 -translate-y-1/2 text-cyan-500/30 font-bold text-xs">%</span>
-                              </div>
-                           </div>
-
-                          <!-- Roca Input -->
-                           <div class="space-y-2 relative z-10">
-                              <label class="text-[10px] font-bold text-white/70 uppercase tracking-widest text-center block">Precio Roca (Neto)</label>
-                              <div class="relative group">
-                                 <input 
-                                     v-model.number="localCostos.precio_roca"
-                                     @input="updateRentFromRoca"
-                                     type="number" step="0.0001"
-                                     class="w-full bg-white/5 border border-white/20 rounded-xl px-2 py-3 text-xl font-mono font-bold text-white text-center focus:border-white/50 focus:outline-none transition-all"
-                                 />
-                              </div>
-                           </div>
-                      </div>
-                 </div>
-
-                 <!-- 3. PRECIO FINAL (TRIDIRECCIONAL) -->
-                 <div class="pt-4 border-t border-white/5 space-y-4">
-                      <!-- Grid for IVA Selector and Label -->
-                      <div class="flex items-center justify-between">
-                          <div class="space-y-1 w-1/2">
-                                <label class="text-[10px] font-bold text-white/30 uppercase tracking-widest">Tasa IVA</label>
-                                <SelectorCreatable
-                                     v-model="localProducto.tasa_iva_id"
-                                     :options="tasasIva"
-                                     item-key="id"
-                                     display-key="nombre"
-                                     placeholder="Seleccione..."
-                                     @create="handleCreateTasaIva"
-                                     @update:modelValue="handleUpdateTasaIva"
-                                     class="w-full"
-                                 />
-                           </div>
-                           <label class="text-xs font-bold text-green-400 uppercase tracking-widest text-right">Precio Final (Con IVA)</label>
-                      </div>
-
-                      <div class="relative group">
-                          <span class="absolute left-4 top-1/2 -translate-y-1/2 text-green-500/30 text-xl font-light">$</span>
-                          <input 
-                              :value="finalPrice"
-                              @input="updateNetFromFinal($event.target.value)"
-                              type="number" step="0.01"
-                              class="w-full bg-green-900/5 border border-green-500/20 rounded-xl px-4 py-3 pl-8 text-3xl font-mono font-bold text-green-400 text-right focus:border-green-500/50 focus:shadow-[0_0_20px_rgba(74,222,128,0.1)] focus:outline-none transition-all"
-                          />
-                           <div class="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-green-500/30 pointer-events-none">
-                               Final
-                          </div>
-                      </div>
-                 </div>
-
-             </div>
-        </div>
-
-        <!-- COLUMN 3: SUPPLIERS & LOGISTICS (30%) -->
-         <div class="w-[30%] border-l border-rose-900/30 bg-black/10 flex flex-col overflow-y-auto custom-scrollbar p-6 space-y-6">
-             <!-- Suppliers Panel (Table) -->
-             <div class="bg-[#1a1a1a] rounded-xl border border-white/5 flex flex-col h-[280px]">
-                 <div class="p-3 border-b border-white/5 flex justify-between items-center bg-white/5">
-                     <h4 class="text-xs font-bold text-white/50 uppercase flex items-center gap-2">
-                         <i class="fas fa-truck text-rose-500"></i> Proveedores
-                     </h4>
-                     <button @click="isAddingSupplier = !isAddingSupplier" class="text-xs bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded hover:bg-rose-500/30 transition-colors">
-                         <i class="fas fa-plus"></i>
-                     </button>
-                 </div>
-                 
-                 <!-- Add Form -->
-                 <div v-if="isAddingSupplier" class="p-3 bg-rose-900/10 border-b border-rose-500/20 space-y-2 animate-in fade-in slide-in-from-top-2">
-                     <select v-model="newSupplier.proveedor_id" class="w-full bg-black/50 border border-rose-500/30 rounded px-2 py-1 text-xs text-white">
-                         <option :value="null">Seleccionar Proveedor...</option>
-                         <option v-for="p in (proveedores || [])" :key="p.id" :value="p.id">{{ p.razon_social }}</option>
-                     </select>
-                     <div class="flex gap-2">
-                         <input v-model.number="newSupplier.costo" type="number" class="w-2/3 bg-black/50 border border-rose-500/30 rounded px-2 py-1 text-xs text-white" placeholder="Costo">
-                         <button @click="saveSupplier" class="w-1/3 bg-rose-600 text-white text-xs rounded font-bold hover:bg-rose-500">Add</button>
-                     </div>
-                 </div>
-
-                 <!-- Table List -->
-                 <div class="flex-1 overflow-y-auto custom-scrollbar p-0">
-                     <table class="w-full text-left border-collapse">
-                         <thead class="sticky top-0 bg-[#0f0f0f] text-[10px] text-white/30 uppercase tracking-wider font-bold z-10">
-                             <tr>
-                                 <th class="px-3 py-2 font-light">Proveedor</th>
-                                 <th class="px-3 py-2 font-light text-right">Costo</th>
-                                 <th class="px-3 py-2 font-light text-right">Action</th>
-                             </tr>
-                         </thead>
-                         <tbody class="divide-y divide-white/5">
-                             <tr v-for="prov in localProveedoresList" :key="prov.id" class="group hover:bg-white/5 transition-colors">
-                                 <td class="px-3 py-2 text-xs text-white/80 truncate max-w-[100px]" :title="getProvName(prov.proveedor_id)">
-                                     {{ getProvName(prov.proveedor_id) }}
-                                     <div class="text-[9px] text-white/30 font-mono">{{ formatDate(prov.fecha) }}</div>
-                                 </td>
-                                 <td class="px-3 py-2 text-xs font-mono font-bold text-rose-400 text-right">
-                                     ${{ prov.costo }}
-                                 </td>
-                                 <td class="px-3 py-2 text-right">
-                                     <button @click="removeSupplier(prov.id)" class="text-white/20 hover:text-red-500 transition-colors p-1">
-                                         <i class="fas fa-trash text-[10px]"></i>
-                                     </button>
-                                 </td>
-                             </tr>
-                             <tr v-if="localProveedoresList.length === 0">
-                                 <td colspan="3" class="px-3 py-8 text-center text-xs text-white/20 italic">
-                                     Sin historial de proveedores
-                                 </td>
-                             </tr>
-                         </tbody>
-                     </table>
-                 </div>
-             </div>
-
-             <!-- Logistics Panel -->
-             <div class="pt-4 border-t border-white/5 space-y-4">
-                 <h4 class="text-xs font-bold text-white/50 uppercase flex items-center gap-2">
-                     <i class="fas fa-boxes text-blue-400"></i> Logística
-                 </h4>
-
-                 <div class="grid grid-cols-2 gap-3">
-                     <!-- ROW 1: COMPRA (V5.5) -->
-                     <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-white/30 uppercase">UNIDAD DE COMPRA</label>
-                        <input 
-                            v-model="localProducto.presentacion_compra"
-                            class="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-white text-xs focus:border-blue-500/50 focus:outline-none placeholder-white/10"
-                            placeholder="Ej: Bulto, Pack"
-                        />
-                     </div>
-                     <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-white/30 uppercase">Unid. x Bulto</label>
-                        <input 
-                            v-model.number="localProducto.unidades_bulto"
-                            type="number" step="1"
-                            class="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-white text-xs focus:border-blue-500/50 focus:outline-none"
-                        />
-                     </div>
-
-                     <!-- ROW 2: VENTA (EXISTING) -->
-                     <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-white/30 uppercase">Unidad Venta</label>
-                        <SelectorCreatable
-                             v-model="localProducto.unidad_medida"
-                             :options="unidades"
-                             item-key="codigo"
-                             display-key="nombre"
-                             placeholder="Seleccione..."
-                             @create="handleCreateUnidad"
-                        />
+            <!-- Add Form (Inline) -->
+            <transition name="fade-slide-up">
+                <div v-if="isAddingSupplier" class="mb-3 p-3 bg-rose-900/10 border border-rose-500/20 rounded-xl flex gap-3 items-end animate-in fade-in slide-in-from-top-2">
+                    <div class="flex-1 space-y-1">
+                        <label class="text-[8px] font-bold text-rose-400/50 uppercase">Proveedor</label>
+                        <select v-model="newSupplier.proveedor_id" class="w-full bg-black/50 border border-rose-500/30 rounded-lg px-2 py-1 text-xs text-white focus:outline-none">
+                            <option :value="null">Seleccionar...</option>
+                            <option v-for="p in (proveedores || [])" :key="p.id" :value="p.id">{{ p.razon_social }}</option>
+                        </select>
                     </div>
-                     <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-white/30 uppercase">Venta Mínima</label>
-                        <input 
-                         v-model.number="localProducto.venta_minima"
-                         type="number" step="1"
-                         class="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-white text-xs focus:border-blue-500/50 focus:outline-none"
-                       />
+                    <div class="w-32 space-y-1">
+                        <label class="text-[8px] font-bold text-rose-400/50 uppercase">Costo (Neto)</label>
+                        <input v-model.number="newSupplier.costo" type="number" class="w-full bg-black/50 border border-rose-500/30 rounded-lg px-2 py-1 text-xs text-white focus:outline-none" placeholder="$ 0.00">
                     </div>
-                 </div>
+                    <button @click="saveSupplier" class="bg-rose-600 text-white text-[10px] px-4 py-1.5 rounded-lg font-bold hover:bg-rose-500 shadow-lg shadow-rose-900/20 transition-all uppercase tracking-widest">Vincular</button>
+                </div>
+            </transition>
 
-                 <div class="flex items-center gap-2 p-2 rounded bg-white/5 border border-white/5">
-                      <input type="checkbox" v-model="localProducto.es_kit" class="rounded bg-black/50 border-white/20 text-rose-500 focus:ring-0 cursor-pointer">
-                      <span class="text-xs text-white/70 font-bold uppercase">Es Kit / Combo</span>
-                 </div>
-             </div>
-         </div>
+            <!-- Table (Scrollable 3 rows) -->
+            <div class="max-h-[140px] overflow-y-auto custom-scrollbar border border-white/5 rounded-lg">
+                <table class="w-full text-[11px] text-left">
+                    <thead class="bg-white/5 text-[9px] uppercase text-gray-500 sticky top-0">
+                        <tr>
+                            <th class="px-4 py-2 font-bold tracking-widest">Proveedor</th>
+                            <th class="px-4 py-2 font-bold tracking-widest text-right">Costo Neto</th>
+                            <th class="px-4 py-2 font-bold tracking-widest text-center">Últ. Act</th>
+                            <th class="px-4 py-2 font-bold tracking-widest text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/5">
+                        <tr v-for="prov in localProveedoresList" :key="prov.id" class="hover:bg-white/[0.02] transition-colors">
+                            <td class="px-4 py-2 text-white font-medium italic">{{ getProvName(prov.proveedor_id) }}</td>
+                            <td class="px-4 py-2 text-right font-mono text-rose-400 font-bold">$ {{ Number(prov.costo).toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</td>
+                            <td class="px-4 py-2 text-center text-gray-500">{{ formatDate(prov.fecha) }}</td>
+                            <td class="px-4 py-2 text-center">
+                                <button @click="removeSupplier(prov.id)" class="text-gray-600 hover:text-red-500 transition-colors p-1">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr v-if="!localProveedoresList?.length">
+                            <td colspan="4" class="px-4 py-8 text-center text-gray-600 italic">No hay historial de proveedores vinculado.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- BLOCK 4: NOTAS (Estilo Pedido) -->
+        <section class="rounded-2xl border transition-all duration-300"
+                 :class="localProducto.descripcion && localProducto.descripcion.trim() !== '' 
+                    ? 'bg-orange-500/10 border-orange-500/40 shadow-[0_0_20px_rgba(249,115,22,0.05)]' 
+                    : 'bg-black/20 border-white/5'">
+            <div class="px-4 py-2 border-b transition-colors flex items-center justify-between"
+                 :class="localProducto.descripcion && localProducto.descripcion.trim() !== '' ? 'border-orange-500/20' : 'border-white/5'">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-sticky-note text-xs" :class="localProducto.descripcion && localProducto.descripcion.trim() !== '' ? 'text-orange-500' : 'text-gray-500'"></i>
+                    <h3 class="text-[10px] font-bold uppercase tracking-widest" :class="localProducto.descripcion && localProducto.descripcion.trim() !== '' ? 'text-orange-200' : 'text-gray-500'">
+                        Notas y Observaciones Internas
+                    </h3>
+                </div>
+                <div v-if="localProducto.descripcion && localProducto.descripcion.trim() !== ''" class="text-[8px] font-black bg-orange-500 text-white px-1 rounded animate-pulse">CONTENIDO ACTIVO</div>
+            </div>
+            <textarea 
+                v-model="localProducto.descripcion"
+                class="w-full bg-transparent p-4 text-sm text-gray-200 focus:outline-none placeholder-white/5 resize-none min-h-[120px]"
+                placeholder="Escribe aquí notas sobre logística, calidad, o detalles del producto que todo el equipo deba conocer..."
+            ></textarea>
+        </section>
 
     </div>
 
     <!-- Sticky Footer -->
     <div class="shrink-0 p-4 border-t border-rose-900/30 bg-black/40 flex justify-end items-center gap-4 backdrop-blur-md z-50">
-        <div class="mr-auto text-xs text-white/30 hidden md:block">
-            <span class="font-bold">TIP:</span> Precio Final es calculado. El <span class="text-white">Precio Roca</span> es la base imponible.
+        <div class="mr-auto text-[10px] text-white/20 hidden md:block italic">
+            <span class="font-bold text-rose-500/50">SISTEMA V5</span> - Los cambios en la Estructura de Costos se recalculan en tiempo real.
         </div>
         
         <button 
             @click="$emit('close')"
-            class="px-6 py-2.5 rounded-xl text-white/50 font-bold text-sm hover:text-white hover:bg-white/5 transition-colors"
+            class="px-6 py-2.5 rounded-xl text-white/50 font-bold text-sm hover:text-white hover:bg-white/5 transition-colors uppercase tracking-widest"
         >
             Cancelar
         </button>
         <button 
             @click="save"
-            class="bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white font-bold py-2.5 px-8 rounded-xl shadow-lg shadow-rose-900/40 transition-all active:scale-95 flex items-center gap-2"
+            class="bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white font-bold py-2.5 px-8 rounded-xl shadow-lg shadow-rose-900/40 transition-all active:scale-95 flex items-center gap-2 uppercase tracking-widest text-xs"
         >
             <i class="fas fa-save"></i>
-            <span>Guardar (F10)</span>
+            <span>Guardar Producto (F10)</span>
         </button>
     </div>
 
@@ -610,14 +600,18 @@ watch(
 )
 
 const save = async () => {
-    if (!localProducto.value || !localProducto.value.nombre) return
+    console.log('[ProductoInspector] Start Save...');
+    // Debug
+    console.log('LocalProducto:', localProducto.value);
     
-    if (!localProducto.value.nombre) {
+    if (!localProducto.value || !localProducto.value.nombre) {
+        console.warn('[ProductoInspector] Validation Failed: Name missing');
         notification.add('El nombre del producto es obligatorio', 'error')
         return
     }
 
     if (!localProducto.value.rubro_id) {
+        console.warn('[ProductoInspector] Validation Failed: Rubro missing');
         notification.add('Debe seleccionar un Rubro / Categoría', 'error')
         return
     }
@@ -629,36 +623,46 @@ const save = async () => {
         }
     }
 
+    // Sanitize Unique Fields (Prevent collision on empty strings)
+    // [GY-FIX] Empty string "" violates unique constraint in some DBs or conflicts if multiple have "".
+    if (!localProducto.value.codigo_visual || localProducto.value.codigo_visual.trim() === '') {
+        localProducto.value.codigo_visual = null;
+    }
+
     const payload = {
         ...localProducto.value,
         costos: { ...localCostos.value }
     }
+    console.log('[ProductoInspector] Payload ready:', payload);
 
-    // [GY-FIX] AUTONOMOUS SAVE (Direct Store Call)
-    // Mirrors the architecture of ClienteInspector for consistency.
     try {
         let result;
         if (localProducto.value.id) {
+             console.log('[ProductoInspector] Updating ID:', localProducto.value.id);
              result = await productosStore.updateProducto(localProducto.value.id, payload)
+             console.log('[ProductoInspector] Update Success:', result);
              notification.add('Producto actualizado correctamente', 'success')
         } else {
+             console.log('[ProductoInspector] Creating New Product...');
              result = await productosStore.createProducto(payload)
+             console.log('[ProductoInspector] Create Success:', result);
              notification.add('Producto creado correctamente', 'success')
              
-             // If new, emit close to return to parent? Or just update ID?
-             // User preference: "que devuelva el paquete correcto"
-             // If we stay open, we must update local ID.
+             // Update local state to avoid "create again" if clicked again
              localProducto.value.id = result.id; 
-             // But usually for "New" from external context, we want to close and select it.
+             
+             // If triggered from "New Product" mode, we usually want to close or reset.
+             // But if we close, we lose the context. The user expects it to be "Saved".
+             // We emit 'close' to return to grid, OR we wait for user to close.
+             // User preference: "que devuelva el paquete correcto" implies functionality works.
+             // The PREVIOUS behavior (before my fix) was likely closing on success.
              emit('close'); 
         }
         
-        // Emit save for parent refresh (GridLoader needs to reload list)
         emit('save', result)
 
     } catch (e) {
-        console.error(e)
-        // Extract error message safely
+        console.error('[ProductoInspector] Save Error:', e)
         const msg = e.response?.data?.detail || e.message || 'Error desconocido';
         notification.add('Error al guardar: ' + msg, 'error')
     }
