@@ -580,6 +580,22 @@
         
         <!-- RENTABILIDAD PANEL (Moving to Root for Fixed Positioning Safety) -->
         <RentabilidadPanel v-model="showCostDrawer" />
+
+        <!-- [GY-UX] CLIENTE INSPECTOR MODAL -->
+        <Teleport to="body">
+            <div v-if="showClientModal" class="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-8 animate-in fade-in duration-200">
+                <div class="w-full max-w-4xl h-full max-h-[90vh] bg-[#0f172a] rounded-2xl shadow-2xl border border-cyan-500/30 flex flex-col overflow-hidden relative">
+                    <!-- Inspector Component -->
+                    <ClienteInspector 
+                        :modelValue="newClientData" 
+                        :isNew="true" 
+                        mode="full"
+                        @close="handleClientModalClose" 
+                        @save="handleClientSaved"
+                    />
+                </div>
+            </div>
+        </Teleport>
     </div>
 </template>
 
@@ -604,6 +620,33 @@ const notificationStore = useNotificationStore();
 const clientesStore = useClientesStore();
 const productosStore = useProductosStore();
 const maestrosStore = useMaestrosStore();
+
+// [GY-UX] Modal Imports
+import ClienteInspector from '../Hawe/components/ClienteInspector.vue';
+import { shallowRef } from 'vue'; // Optimization
+
+// --- MODAL STATE ---
+const showClientModal = ref(false);
+const newClientData = ref(null);
+
+const handleClientSaved = (client) => {
+    // 1. Close Modal
+    showClientModal.value = false;
+    
+    // 2. Refresh List (Store usually handles it, but let's be safe)
+    // 3. Select New Client
+    if (client) {
+         selectCliente(client);
+         notificationStore.add(`Cliente ${client.razon_social} seleccionado.`, 'success');
+    }
+};
+
+const handleClientModalClose = () => {
+    showClientModal.value = false;
+    newClientData.value = null; // Reset
+    // Focus back to search?
+    setTimeout(() => clientInputRef.value?.focus(), 100);
+};
 
 // --- LIFECYCLE ---
 onMounted(async () => {
@@ -879,21 +922,21 @@ const irAFicha = () => {
 };
 
 const altaClienteContext = () => {
-    const { href } = router.resolve({ 
-        name: 'HaweClientCanvas', 
-        params: { id: 'new' },
-        query: { search: busquedaCliente.value, mode: 'satellite' }
-    });
-    
-    const width = 1700;
-    const height = 900;
-    const left = (window.screen.width - width) / 2;
-    const top = (window.screen.height - height) / 2;
-    const features = `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,status=no,menubar=no,toolbar=no,location=no`;
-
-    window.open(href, 'AltaClienteContext', features);
+    // [GY-UX] Integrated Modal instead of Window.open
+    newClientData.value = {
+        razon_social: busquedaCliente.value,
+        cuit: '',
+        activo: true
+    };
+    showClientModal.value = true;
     showContextMenu.value = false;
 };
+
+// ... (existing product context handlers) ...
+
+
+// ... (existing product context handlers) ...
+
 
 const handleProductContextMenu = (event) => {
     showProductResults.value = false;
@@ -1469,26 +1512,30 @@ const handleGlobalKeys = (e) => {
         e.preventDefault();
         const active = document.activeElement;
         
-        // Dimensions for Satellite
-        const width = 1700;
-        const height = 900;
-        const left = (window.screen.width - width) / 2;
-        const top = (window.screen.height - height) / 2;
-        const features = `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,status=no,menubar=no,toolbar=no,location=no`;
-
-        // 1. Check CLIENT Focus
-        if (active === clientInputRef.value) {
-            const { href } = router.resolve({ 
-                name: 'HaweClientCanvas', 
-                params: { id: 'new' },
-                query: { search: busquedaCliente.value, mode: 'satellite' }
-            });
-            window.open(href, 'AltaClienteSalto', features);
+        // 1. Check CLIENT Focus - Trigger Modal
+        if (active === clientInputRef.value || !active || active === document.body) {
+             newClientData.value = {
+                razon_social: busquedaCliente.value,
+                cuit: '',
+                activo: true
+            };
+            showClientModal.value = true;
+            return;
         }
+
+        // 2. Product Focus (Keep Satellite for now)
+        const activeSku = active === inputSkuRef.value;
+        const activeDesc = active === inputDescRef.value;
         
-        // 2. Check PRODUCT Focus
-        if (active === inputSkuRef.value || active === inputDescRef.value) {
-            const searchTerm = active === inputSkuRef.value ? newItem.value.sku : newItem.value.descripcion;
+        if (activeSku || activeDesc) {
+            // Dimensions for Satellite
+            const width = 1700;
+            const height = 900;
+            const left = (window.screen.width - width) / 2;
+            const top = (window.screen.height - height) / 2;
+            const features = `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,status=no,menubar=no,toolbar=no,location=no`;
+
+            const searchTerm = activeSku ? newItem.value.sku : newItem.value.descripcion;
             const { href } = router.resolve({ 
                 name: 'Productos', 
                 query: { action: 'new', search: searchTerm, mode: 'satellite' }

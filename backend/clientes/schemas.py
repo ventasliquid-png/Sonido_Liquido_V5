@@ -3,6 +3,7 @@ from uuid import UUID
 from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field, field_validator
 import re
+from backend.agenda.schemas import VinculoComercialCreate, VinculoComercialUpdate
 
 
 
@@ -11,6 +12,8 @@ class DomicilioBase(BaseModel):
     alias: Optional[str] = None
     calle: Optional[str] = None
     numero: Optional[str] = None
+    piso: Optional[str] = None
+    depto: Optional[str] = None
     cp: Optional[str] = None
     localidad: Optional[str] = None
     provincia_id: Optional[str] = None
@@ -30,6 +33,8 @@ class DomicilioUpdate(BaseModel):
     alias: Optional[str] = None
     calle: Optional[str] = None
     numero: Optional[str] = None
+    piso: Optional[str] = None
+    depto: Optional[str] = None
     cp: Optional[str] = None
     localidad: Optional[str] = None
     provincia_id: Optional[str] = None
@@ -48,6 +53,8 @@ class DomicilioResponse(BaseModel):
     alias: Optional[str] = None
     calle: Optional[str] = None
     numero: Optional[str] = None
+    piso: Optional[str] = None
+    depto: Optional[str] = None
     cp: Optional[str] = None
     localidad: Optional[str] = None
     provincia_id: Optional[str] = None
@@ -91,6 +98,7 @@ class ClienteBase(BaseModel):
 
 class ClienteCreate(ClienteBase):
     domicilios: List[DomicilioCreate] = []
+    vinculos: List[VinculoComercialCreate] = []
 
 class ClienteUpdate(BaseModel):
     razon_social: Optional[str] = None

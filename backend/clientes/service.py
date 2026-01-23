@@ -57,6 +57,18 @@ class ClienteService:
                     )
                     db.add(db_domicilio)
 
+                # [GY-FIX-V12] Crear Vinculos (Contactos)
+                for vinc_in in cliente_in.vinculos:
+                     # Convert Pydantic model to dict
+                     vinc_data = vinc_in.model_dump()
+                     vinc_data['cliente_id'] = db_cliente.id
+                     
+                     # Check critical fields (Persona ID is UUID, handled by Schema)
+                     # Add to session
+                     from backend.agenda.models import VinculoComercial
+                     db_vinculo = VinculoComercial(**vinc_data)
+                     db.add(db_vinculo)
+
                 db.commit()
                 db.refresh(db_cliente)
                 return db_cliente
@@ -88,7 +100,9 @@ class ClienteService:
         from sqlalchemy import or_
         
         query = db.query(Cliente).options(
-            joinedload(Cliente.domicilios)
+            joinedload(Cliente.domicilios),
+            # joinedload(Cliente.vinculos).joinedload(agenda_models.VinculoComercial.persona),
+            # joinedload(Cliente.vinculos).joinedload(agenda_models.VinculoComercial.tipo_contacto)
         )
 
         # Filter by active status unless requested otherwise
@@ -311,7 +325,19 @@ class ClienteService:
             ).update({"es_fiscal": False})
 
         # Prepare data
-        dom_data = domicilio_in.model_dump(exclude={'provincia', 'zona_id', 'provincia_id'})
+        # [GY-FUSION] Extract piso/depto to merge into address line
+        piso = getattr(domicilio_in, 'piso', None)
+        depto = getattr(domicilio_in, 'depto', None)
+        
+        dom_data = domicilio_in.model_dump(exclude={'provincia', 'zona_id', 'provincia_id', 'piso', 'depto'})
+        
+        if piso or depto:
+             extra = []
+             if piso: extra.append(f"Piso {piso}")
+             if depto: extra.append(f"Dpto {depto}")
+             # Append to calle
+             current_calle = dom_data.get('calle', '')
+             dom_data['calle'] = f"{current_calle} ({', '.join(extra)})"
         
         db_domicilio = Domicilio(
             **dom_data,
@@ -321,8 +347,9 @@ class ClienteService:
         try:
             db.add(db_domicilio)
             db.commit()
-            # [GY-FIX] Return the full CLIENT as expected by Router response_model=ClienteResponse
-            return ClienteService.get_cliente(db, cliente_id)
+            db.refresh(db_domicilio)
+            # [GY-FIX-V12] Return the DOMICILIO object, not the Client. Frontend expects Domicilio.
+            return db_domicilio
         except Exception as e:
             db.rollback()
             print(f"❌ ERROR CREATE_DOMICILIO: {str(e)}")
@@ -336,6 +363,17 @@ class ClienteService:
         
         update_data = domicilio_in.model_dump(exclude_unset=True)
         
+        # [GY-FUSION] Merge piso/depto if present
+        piso = update_data.pop('piso', None)
+        depto = update_data.pop('depto', None)
+        
+        if piso or depto:
+            current_calle = update_data.get('calle', db_domicilio.calle)
+            extra = []
+            if piso: extra.append(f"Piso {piso}")
+            if depto: extra.append(f"Dpto {depto}")
+            update_data['calle'] = f"{current_calle} ({', '.join(extra)})"
+
         # Remove fields not in model
         if 'zona_id' in update_data:
             update_data.pop('zona_id')
@@ -345,7 +383,7 @@ class ClienteService:
             # Demote others
             db.query(Domicilio).filter(
                 Domicilio.cliente_id == db_domicilio.cliente_id,
-                Domicilio.id != domicilio_id, # Don't demote self (though it's about to be True anyway)
+                Domicilio.id != domicilio_id, # Don't demote self
                 Domicilio.es_fiscal == True
             ).update({"es_fiscal": False})
 
@@ -353,10 +391,10 @@ class ClienteService:
             setattr(db_domicilio, key, value)
             
         db.commit()
-        # Removed refresh, better to re-fetch with relationships
+        db.refresh(db_domicilio)
         
-        # Return fully loaded client
-        return ClienteService.get_cliente(db, db_domicilio.cliente_id)
+        # Return Domicilio object
+        return db_domicilio
 
     @staticmethod
     def delete_domicilio(db: Session, domicilio_id: UUID):

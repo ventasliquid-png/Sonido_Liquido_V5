@@ -315,7 +315,7 @@ onUnmounted(() => {
                     </svg>
                 </div>
 
-                <div v-if="isOpen" class="absolute z-[100] w-full mt-1 bg-white border border-gray-200 rounded-md shadow-xl max-h-60 overflow-auto" ref="listRef">
+                <div v-if="isOpen" class="absolute z-[100] w-full mt-1 bg-white border border-gray-200 rounded-md shadow-xl max-h-96 overflow-auto" ref="listRef">
                     <ul class="py-1">
                         <li 
                             v-if="allowCreate"

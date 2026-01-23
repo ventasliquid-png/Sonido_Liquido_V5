@@ -700,11 +700,9 @@ const logout = () => {
 onMounted(async () => {
     window.addEventListener('keydown', handleKeydown)
     try {
-        // [STABILITY-FIX] Data is now pre-loaded by App.vue boot sequence.
-        // We only fetch if for some reason the store is empty or we need a refresh.
-        if (clientes.value.length === 0) {
-            await clienteStore.fetchClientes()
-        }
+        // [GY-FIX] Always fetch to ensure fresh data after returns from Canvas
+        await clienteStore.fetchClientes()
+
         if (maestrosStore.segmentos.length === 0) {
             await maestrosStore.fetchSegmentos()
         }

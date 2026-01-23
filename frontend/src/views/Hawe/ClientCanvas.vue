@@ -24,7 +24,7 @@
       <div class="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-cyan-500/20 p-4 space-y-4">
           
           <!-- BLOCK 1: IDENTITY & MASTER DATA (LOGICAL REORDER V5.3) -->
-          <section class="bg-black/40 border border-white/10 rounded-2xl p-4 backdrop-blur-md shadow-xl relative overflow-hidden group">
+          <section class="bg-black/40 border border-white/10 rounded-2xl p-4 backdrop-blur-md shadow-xl relative group">
               <div class="absolute top-0 left-0 w-1 h-full bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.8)]"></div>
               
               <div class="space-y-4">
@@ -32,17 +32,18 @@
                   <div class="grid grid-cols-12 gap-3 items-end">
                       <!-- Razón Social -->
                       <div class="col-span-12 lg:col-span-3 relative">
-                          <label class="text-[9px] font-bold text-cyan-400 uppercase tracking-widest block mb-0.5">Razón Social</label>
+                          <label class="text-[9px] font-bold text-cyan-400 uppercase tracking-widest block mb-0.5">Razón Social <span class="text-red-400">*</span></label>
                           <input 
                               v-model="form.razon_social" 
                               @input="handleSearchCantera"
                               type="text" 
-                              class="w-full bg-transparent text-lg font-bold text-white focus:outline-none border-b border-white/5 focus:border-cyan-400 transition-all placeholder-white/10"
+                              class="w-full bg-transparent text-lg font-bold text-white focus:outline-none border-b transition-all placeholder-white/10"
+                              :class="errors.razon_social ? 'border-red-500 placeholder-red-500/50' : 'border-white/5 focus:border-cyan-400'"
                               placeholder="Empresa..."
                           />
                           <!-- Cantera Results -->
                           <div v-if="canteraResults.length > 0 && isNew" class="absolute left-0 right-0 top-full mt-2 bg-[#0a253a] border border-cyan-500/30 rounded-lg shadow-2xl z-[100] overflow-hidden">
-                                <ul class="max-h-60 overflow-y-auto">
+                                <ul class="max-h-96 overflow-y-auto">
                                     <li v-for="res in canteraResults" :key="res.id" @click="importFromCantera(res)" class="px-4 py-3 hover:bg-white/5 cursor-pointer border-b border-white/5 last:border-0 group transition-colors">
                                         <div class="flex justify-between items-start">
                                             <div>
@@ -63,9 +64,9 @@
                       </div>
 
                       <!-- Domicilio Fiscal -->
-                      <div class="col-span-12 lg:col-span-3 bg-cyan-950/10 border border-cyan-500/10 rounded-lg p-1.5 relative group/fiscal">
+                      <div class="col-span-12 lg:col-span-3 bg-cyan-950/10 border rounded-lg p-1.5 relative group/fiscal" :class="errors.domicilio ? 'border-red-500 bg-red-900/10' : 'border-cyan-500/10'">
                           <div class="flex justify-between items-center mb-0.5">
-                              <label class="text-[8px] font-bold text-cyan-400/50 uppercase tracking-widest"><i class="fas fa-file-invoice mr-1"></i> D. FISCAL</label>
+                              <label class="text-[8px] font-bold text-cyan-400/50 uppercase tracking-widest" :class="errors.domicilio ? 'text-red-400' : ''"><i class="fas fa-file-invoice mr-1"></i> DOMICILIO <span class="text-red-400">*</span></label>
                               <button @click="openFiscalEditor" class="text-[10px] text-cyan-400 hover:text-white opacity-0 group-hover/fiscal:opacity-100 transition-opacity">
                                   <i class="fas fa-edit"></i>
                               </button>
@@ -75,8 +76,8 @@
 
                       <!-- Segmento -->
                       <div class="col-span-12 lg:col-span-2">
-                          <label class="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-1">Segmento</label>
-                          <select v-model="form.segmento_id" @change="handleSegmentoChange" class="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none appearance-none [&>option]:bg-slate-900">
+                          <label class="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-1">Segmento <span class="text-red-400">*</span></label>
+                          <select v-model="form.segmento_id" @change="handleSegmentoChange" class="w-full bg-white/5 border rounded px-2 py-1 text-xs text-white focus:outline-none appearance-none [&>option]:bg-slate-900" :class="errors.segmento_id ? 'border-red-500' : 'border-white/10'">
                                <option :value="null">Sin Segmento</option>
                                <option value="__NEW__" class="text-green-400 font-bold">+ Nuevo</option>
                                <option v-for="seg in segmentos" :key="seg.id" :value="seg.id">{{ seg.nombre }}</option>
@@ -99,19 +100,19 @@
                   <!-- LINE 2: FISCAL & COMMERCIAL (CUIT / IVA / Lista de Precios) -->
                   <div class="grid grid-cols-12 gap-4 items-end border-t border-white/5 pt-3">
                       <div class="col-span-4">
-                          <label class="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-0.5">CUIT</label>
-                          <input v-model="form.cuit" @input="handleCuitInput" type="text" class="w-full bg-white/5 border border-white/5 rounded px-2 py-1 text-xs font-mono text-white focus:outline-none" />
+                          <label class="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-0.5">CUIT <span class="text-red-400">*</span></label>
+                          <input v-model="form.cuit" @input="handleCuitInput" type="text" class="w-full bg-white/5 border rounded px-2 py-1 text-xs font-mono text-white focus:outline-none" :class="errors.cuit ? 'border-red-500' : 'border-white/5'" />
                       </div>
                       <div class="col-span-4">
-                          <label class="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-1">Condición IVA</label>
-                          <select v-model="form.condicion_iva_id" class="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none appearance-none [&>option]:bg-slate-900">
+                          <label class="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-1">Condición IVA <span class="text-red-400">*</span></label>
+                          <select v-model="form.condicion_iva_id" class="w-full bg-white/5 border rounded px-2 py-1 text-xs text-white focus:outline-none appearance-none [&>option]:bg-slate-900" :class="errors.condicion_iva_id ? 'border-red-500' : 'border-white/10'">
                               <option :value="null">IVA...</option>
                               <option v-for="iva in condicionesIva" :key="iva.id" :value="iva.id">{{ iva.nombre }}</option>
                           </select>
                       </div>
                       <div class="col-span-4">
-                          <label class="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-1">Lista de Precios</label>
-                          <select v-model="form.lista_precios_id" class="w-full bg-cyan-900/10 border border-cyan-500/20 rounded px-2 py-1 text-xs text-cyan-300 font-bold focus:outline-none appearance-none [&>option]:bg-slate-900">
+                          <label class="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-1">Lista de Precios <span class="text-red-400">*</span></label>
+                          <select v-model="form.lista_precios_id" class="w-full bg-cyan-900/10 border rounded px-2 py-1 text-xs text-cyan-300 font-bold focus:outline-none appearance-none [&>option]:bg-slate-900" :class="errors.lista_precios_id ? 'border-red-500' : 'border-cyan-500/20'">
                               <option :value="null">Lista Automática</option>
                               <option v-for="lp in listasPrecios" :key="lp.id" :value="lp.id">{{ lp.nombre }}</option>
                           </select>
@@ -288,7 +289,7 @@
       </div>
 
       <!-- FOOTER TOOLS (Cyan Style) -->
-      <footer class="h-20 bg-cyan-950/20 border-t border-cyan-500/20 px-8 flex items-center justify-between shrink-0 backdrop-blur-md z-30">
+      <footer v-if="activeTab === 'CLIENTE'" class="h-20 bg-cyan-950/20 border-t border-cyan-500/20 px-8 flex items-center justify-between shrink-0 backdrop-blur-md z-30">
           <div class="flex items-center gap-6">
               <div class="flex items-center gap-4 text-[10px] font-mono text-cyan-500/50 uppercase tracking-widest border-r border-white/10 pr-6">
                   <span>F10: Guardar</span>
@@ -396,7 +397,14 @@ const returnUrl = computed(() => route.query.returnUrl)
 const computedFiscalAddress = computed(() => {
     if (domicilios.value && domicilios.value.length > 0) {
         const fiscal = domicilios.value.find(d => d.es_fiscal)
-        if (fiscal) return `${fiscal.calle} ${fiscal.numero}, ${fiscal.localidad}`
+        if (fiscal) {
+            let addr = `${fiscal.calle} ${fiscal.numero}`
+            if (fiscal.piso) addr += ` ${fiscal.piso}`
+            if (fiscal.depto) addr += ` ${fiscal.depto}`
+            // Add comma before locality
+            addr += `, ${fiscal.localidad}`
+            return addr
+        }
     }
     return 'Definir Domicilio Fiscal'
 })
@@ -540,30 +548,64 @@ const loadCommercialIntel = () => {
     ]
 }
 
-const saveCliente = async () => {
-    if (!form.value.razon_social) {
-        notificationStore.add('La razón social es obligatoria', 'error')
-        return
+// Validation State
+const errors = ref({});
+
+const validateForm = () => {
+    errors.value = {};
+    let isValid = true;
+    
+    if (!form.value.razon_social) { errors.value.razon_social = true; isValid = false; }
+    if (!form.value.cuit) { errors.value.cuit = true; isValid = false; }
+    if (!form.value.segmento_id) { errors.value.segmento_id = true; isValid = false; }
+    if (!form.value.condicion_iva_id) { errors.value.condicion_iva_id = true; isValid = false; }
+    if (!form.value.lista_precios_id) { errors.value.lista_precios_id = true; isValid = false; }
+    
+    // Validate Fiscal Domicile
+    const hasFiscal = domicilios.value.some(d => d.es_fiscal && d.activo !== false);
+    if (!hasFiscal) {
+        errors.value.domicilio = true;
+        isValid = false;
     }
+    
+    return isValid;
+};
+
+const saveCliente = async () => {
+    if (!validateForm()) {
+        notificationStore.add('Complete los campos obligatorios indicados en rojo.', 'error');
+        // Shake animation or sound could go here
+        return;
+    }
+
     try {
         const payload = {
             ...form.value,
-            domicilios: domicilios.value,
             vinculos: contactos.value
         }
+        
+        // [GY-FIX] For updates, Domicilios are handled independently via sub-form.
+        // We exclude them from the main payload to prevent 'updateCliente' from overwriting 
+        // granular changes with stale data or partial objects.
+        // For CREATE, we usually need them.
         if (isNew.value) {
+            payload.domicilios = domicilios.value;
             await store.createCliente(payload)
             notificationStore.add('Cliente creado exitosamente', 'success')
         } else {
+            // Explicitly do NOT send domicilios allow backend to keep current state
+            delete payload.domicilios; 
             await store.updateCliente(form.value.id, payload)
             notificationStore.add('Cliente actualizado exitosamente', 'success')
         }
         goBackToSource()
     } catch (e) {
         console.error(e)
-        notificationStore.add('Error al guardar cliente', 'error')
+        const msg = e.response?.data?.detail || 'Error al guardar cliente';
+        notificationStore.add(msg, 'error')
     }
 }
+
 
 const cloneCliente = () => {
     form.value.id = null
@@ -609,12 +651,27 @@ const openFiscalEditor = () => {
 }
 const handleDomicilioSaved = async (domicilioData) => {
     try {
+        // Sanitize Payload (Strict Whitelist)
+        const allowedFields = [
+            'calle', 'numero', 'piso', 'depto', 'cp', 'localidad', 
+            'provincia_id', 'transporte_id', 'es_fiscal', 'es_entrega', 'activo',
+            'metodo_entrega', 'modalidad_envio', 'origen_logistico', 'observaciones',
+            'id', 'cliente_id' 
+        ];
+        
+        const payload = {};
+        for (const key of allowedFields) {
+            if (domicilioData[key] !== undefined) {
+                payload[key] = domicilioData[key];
+            }
+        }
+
         if (isNew.value) {
             // Local saving for new clients
             if (domicilioData.local_id || domicilioData.id) {
                 const idx = domicilios.value.findIndex(d => (d.local_id && d.local_id === domicilioData.local_id) || (d.id && d.id === domicilioData.id))
                 if (idx !== -1) {
-                    domicilios.value[idx] = { ...domicilioData }
+                    domicilios.value[idx] = { ...domicilioData } // Update Local
                 }
             } else {
                 const newDom = { ...domicilioData, local_id: Date.now() }
@@ -623,17 +680,47 @@ const handleDomicilioSaved = async (domicilioData) => {
             notificationStore.add('Domicilio añadido localmente', 'info')
         } else {
             // Persistent saving for existing clients
-            if (domicilioData.id) {
-                await store.updateDomicilio(form.value.id, domicilioData.id, domicilioData)
-            } else {
-                await store.createDomicilio(form.value.id, domicilioData)
+            // 1. Optimistic Update (Immediate Feedback)
+            // [GY-FIX] Loose equality for ID to handle String/Number mismatch
+            const idx = domicilios.value.findIndex(d => String(d.id) === String(domicilioData.id));
+            if (idx !== -1) {
+                // Use splice to guarantee reactivity
+                const updatedDom = { ...domicilios.value[idx], ...domicilioData };
+                domicilios.value.splice(idx, 1, updatedDom);
             }
-            await loadCliente(form.value.id)
+            
+            // 2. Server Update (Wait for confirmation)
+            let savedDom;
+            console.log("Saving Domicilio Payload:", payload); // [GY-DEBUG]
+            if (domicilioData.id) {
+                // Return value from store is the Server Object
+                savedDom = await store.updateDomicilio(form.value.id, domicilioData.id, payload)
+            } else {
+                savedDom = await store.createDomicilio(form.value.id, payload)
+            }
+            console.log("Server Saved Domicilio:", savedDom); // [GY-DEBUG]
+
+            // 3. Authoritative Update (Replace Optimistic with Server Truth)
+            // This ensures if server sanitized/rejected something (like Piso), UI reflects it immediately
+            if (savedDom) {
+                 const authIdx = domicilios.value.findIndex(d => String(d.id) === String(savedDom.id));
+                 if (authIdx !== -1) {
+                     domicilios.value.splice(authIdx, 1, savedDom);
+                 } else {
+                     domicilios.value.push(savedDom);
+                 }
+            }
+            
+            // Reload to ensuring consistency (Background)
+            await loadCliente(form.value.id) // [GY-FIX] Re-enabled to ensure Fiscal Flag sync
             notificationStore.add('Domicilio guardado en servidor', 'success')
         }
     } catch (e) {
         console.error(e)
+        // Revert? For now just error.
         notificationStore.add('Error al gestionar domicilio', 'error')
+        // Force reload to restore true state
+        await loadCliente(form.value.id)
     }
     activeTab.value = 'CLIENTE'
 }

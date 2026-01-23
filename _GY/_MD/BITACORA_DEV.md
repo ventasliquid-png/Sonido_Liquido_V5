@@ -341,3 +341,9 @@ Se detectÃ³ y documentÃ³ retroactivamente el parche de emergencia 'Math Guard Cl
 **Operación:** Se ejecutó Rollback al commit `8230154` (Miércoles 21) para eliminar inestabilidad estructural (Imports Anti-Pattern) introducida el Jueves.
 **Identidad:** Sintetizada V12 ("Phoenix") basada en V10.
 **Limpieza:** Eliminada línea temporal fallida V11.
+
+## [2026-01-23] PROTOCOLO OMEGA - SECTOR DOMICILIOS
+**Estado:** ESTABLE / FIX FINALIZADO
+**Informe Detallado:** [Ver Reporte OMEGA](../INFORMES_HISTORICOS/2026-01-23_PROTOCOLO_OMEGA_DOMICILIOS.md)
+**Resumen:** Se solucionó el crash de lista de clientes, se implementó la fusión de Piso/Depto en string, y se corrigió la sincronización visual del flag Fiscal.
+

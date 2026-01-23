@@ -112,12 +112,12 @@
                 <!-- Fields -->
                 <div>
                   <label class="block text-xs font-bold uppercase text-cyan-900/50 mb-1">Razón Social <span class="text-red-400">*</span></label>
-                  <input v-model="form.razon_social" autocomplete="off" spellcheck="false" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors placeholder-cyan-900/30" placeholder="Ej: Empresa S.A." />
+                  <input v-model="form.razon_social" autocomplete="off" spellcheck="false" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-colors placeholder-cyan-900/30" placeholder="Ej: Empresa S.A." />
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold uppercase text-cyan-900/50 mb-1">CUIT <span class="text-red-400">*</span></label>
-                    <input v-model="form.cuit" autocomplete="off" spellcheck="false" @input="formatCuitInput" @blur="checkCuitBackend" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors font-mono placeholder-cyan-900/30" placeholder="00-00000000-0" maxlength="13" />
+                    <input v-model="form.cuit" autocomplete="off" spellcheck="false" @input="formatCuitInput" @blur="checkCuitBackend" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-colors font-mono placeholder-cyan-900/30" placeholder="00-00000000-0" maxlength="13" />
                     
                     <!-- Alert: Duplicated CUIT -->
                     <div v-if="cuitWarningClients.length > 0 && !cuitWarningDismissed" class="mt-2 bg-yellow-900/20 border border-yellow-500/30 rounded p-3 text-xs animate-pulse-once">
@@ -134,7 +134,7 @@
                             Este CUIT ya existe. Doble click para editar el existente, o "Ok" para crear nueva sede.
                         </p>
 
-                        <ul class="space-y-1 max-h-32 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-yellow-700/50">
+                        <ul class="space-y-1 max-h-60 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-yellow-700/50">
                             <li 
                                 v-for="dup in cuitWarningClients" 
                                 :key="dup.id" 
@@ -203,7 +203,7 @@
                     <div class="space-y-3">
                         <div>
                             <label class="block text-[10px] font-bold uppercase text-cyan-900/50 mb-1">Calle <span class="text-red-400">*</span></label>
-                            <input v-model="fiscalForm.calle" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors placeholder-cyan-900/30" placeholder="Ej: San Martin" />
+                            <input v-model="fiscalForm.calle" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-colors placeholder-cyan-900/30" placeholder="Ej: San Martin" />
                         </div>
                         <div class="flex gap-2">
                              <div class="w-1/3">

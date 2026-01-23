@@ -123,6 +123,8 @@ class Domicilio(Base):
     alias = Column(String, nullable=True) # "Depósito Norte"
     calle = Column(String, nullable=True)
     numero = Column(String, nullable=True)
+    # piso = Column(String, nullable=True) # [GY-ROLLBACK] Removed to fix crash
+    # depto = Column(String, nullable=True) # [GY-ROLLBACK] Removed to fix crash
     cp = Column(String, nullable=True)
     localidad = Column(String, nullable=True)
     provincia_id = Column(String(5), ForeignKey("provincias.id"), nullable=True)

@@ -136,10 +136,17 @@ export const useClientesStore = defineStore('clientes', {
         async updateDomicilio(clienteId, domicilioId, data) {
             try {
                 const response = await clientesService.updateDomicilio(clienteId, domicilioId, data);
-                // [GY-FIX] Update local cache to reflect changes immediately in UI
-                const index = this.clientes.findIndex(c => c.id === clienteId);
-                if (index !== -1) {
-                    this.clientes.splice(index, 1, response.data);
+                // [GY-FIX] Correctly update the Domicilio within the Client object in the list
+                const clientIndex = this.clientes.findIndex(c => c.id === clienteId);
+                if (clientIndex !== -1) {
+                    const client = this.clientes[clientIndex];
+                    if (client.domicilios) {
+                        const domIndex = client.domicilios.findIndex(d => d.id === domicilioId);
+                        if (domIndex !== -1) {
+                            // Update specific domicile
+                            client.domicilios.splice(domIndex, 1, response.data);
+                        }
+                    }
                 }
                 return response.data;
             } catch (error) {
