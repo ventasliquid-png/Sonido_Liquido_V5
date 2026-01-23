@@ -42,6 +42,7 @@ class VinculoComercialCreate(VinculoComercialBase):
     pass
 
 class VinculoComercialUpdate(BaseModel):
+    id: Optional[UUID] = None
     tipo_contacto_id: Optional[str] = None
     email_laboral: Optional[EmailStr] = None
     telefono_escritorio: Optional[str] = None

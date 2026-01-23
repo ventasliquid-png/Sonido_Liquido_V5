@@ -367,6 +367,7 @@ import canteraService from '../services/canteraService'
 
 const clienteStore = useClientesStore()
 const maestrosStore = useMaestrosStore()
+const statsStore = import.meta.env.DEV ? null : null; // Reserved for future use if needed
 const notificationStore = useNotificationStore()
 const router = useRouter()
 const route = useRoute()
@@ -701,13 +702,11 @@ onMounted(async () => {
     window.addEventListener('keydown', handleKeydown)
     try {
         // [STABILITY-FIX] Data is now pre-loaded by App.vue boot sequence.
-        // We only fetch if for some reason the store is empty or we need a refresh.
-        if (clientes.value.length === 0) {
-            await clienteStore.fetchClientes()
-        }
+        // We ensure segments are present for UI helper functions.
         if (maestrosStore.segmentos.length === 0) {
             await maestrosStore.fetchSegmentos()
         }
+        segmentos.value = maestrosStore.segmentos
         
         // Check for Auto-Inspect (existing logic)
         if (route.query.inspectId) {

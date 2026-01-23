@@ -62,7 +62,7 @@
 
                 <Teleport to="body">
                     <div v-if="showClientResults && focusedZone === 'CLIENT'" 
-                            class="fixed bg-[#0d2623] text-emerald-100 shadow-[0_20px_80px_rgba(0,0,0,0.8)] rounded-xl z-[9999] max-h-80 overflow-y-auto border border-emerald-900 border-t-0 animate-in fade-in slide-in-from-top-2 duration-150"
+                            class="fixed bg-[#0d2623] text-emerald-100 shadow-[0_20px_80px_rgba(0,0,0,0.8)] rounded-xl z-[9999] max-h-[500px] overflow-y-auto border border-emerald-900 border-t-0 animate-in fade-in slide-in-from-top-2 duration-150"
                             :style="clientPopupStyle">
                         <div 
                         v-for="(c, idx) in filteredClients" :key="c.id"
@@ -1486,7 +1486,7 @@ const openClientCanvasEdit = (client) => {
     router.push({
         name: 'HaweClientCanvas',
         params: { id: client.id },
-        query: { returnUrl: route.fullPath }
+        query: { mode: 'satellite', returnUrl: route.fullPath }
     });
 };
 
@@ -1496,6 +1496,7 @@ const openInspectorNew = () => {
         name: 'HaweClientCanvas', 
         params: { id: 'new' }, 
         query: { 
+            mode: 'satellite',
             returnUrl: route.fullPath,
             search: clientQuery.value || '' 
         } 
@@ -1507,7 +1508,7 @@ const openInspectorEdit = (client) => {
     router.push({ 
         name: 'HaweClientCanvas', 
         params: { id: client.id }, 
-        query: { returnUrl: route.fullPath } 
+        query: { mode: 'satellite', returnUrl: route.fullPath } 
     });
 };
 

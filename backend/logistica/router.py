@@ -3,7 +3,7 @@ from typing import List, Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from core.database import get_db
+from backend.core.database import get_db
 from backend.auth.dependencies import get_current_user
 from backend.logistica import schemas, service
 

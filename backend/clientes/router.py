@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from core.database import get_db
+from backend.core.database import get_db
 from backend.clientes.schemas import ClienteCreate, ClienteResponse, ClienteUpdate
 from backend.clientes import schemas
 from backend.clientes.service import ClienteService

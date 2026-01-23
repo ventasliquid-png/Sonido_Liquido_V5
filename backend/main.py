@@ -48,14 +48,10 @@ from langchain_core.output_parsers import StrOutputParser
 import sys
 import os
 
-# Agregar directorio backend al path para imports absolutos
-backend_dir = os.path.dirname(os.path.abspath(__file__))
-if backend_dir not in sys.path:
-    sys.path.insert(0, backend_dir)
-
 # [GY-FIX-BOOT] Agregar directorio RAÍZ (Padre) para permitir 'import backend.x'
 # Esto es crítico para evitar duplicidad de módulos (sys.modules['auth'] vs sys.modules['backend.auth'])
 # y para que los 65+ archivos restantes funcionen sin cambios masivos.
+backend_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(backend_dir)
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
@@ -452,7 +448,7 @@ class QueryInput(BaseModel):
 
 # --- Bypass Endpoint for Rubro Dependencies ---
 from backend.productos import models as prod_models
-from core.database import get_db
+from backend.core.database import get_db
 from sqlalchemy.orm import Session
 from fastapi import Depends, HTTPException
 

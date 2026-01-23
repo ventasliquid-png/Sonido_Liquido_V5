@@ -76,19 +76,19 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import statsService from '../../services/statsService'
+import { useStatsStore } from '../../stores/stats'
 
-const stats = ref(null)
 const router = useRouter()
+const statsStore = useStatsStore()
+
+const stats = computed(() => statsStore.stats)
 
 onMounted(async () => {
-    try {
-        const res = await statsService.getDashboardStats()
-        stats.value = res.data
-    } catch (e) {
-        console.error("Stats Bar Error:", e)
+    // If stats are not loaded (first run) or we want to ensure fresh data
+    if (!statsStore.stats) {
+        await statsStore.fetchStats()
     }
 })
 </script>

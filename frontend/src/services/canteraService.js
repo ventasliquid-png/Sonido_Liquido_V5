@@ -1,51 +1,50 @@
-import axios from 'axios'
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+import api from './api'
 
 const canteraService = {
     searchClientes(query) {
-        return axios.get(`${API_URL}/bridge/clientes/search`, {
+        return api.get(`/bridge/clientes/search`, {
             params: { q: query }
         })
     },
 
     searchProductos(query) {
-        return axios.get(`${API_URL}/bridge/productos/search`, {
+        return api.get(`/bridge/productos/search`, {
             params: { q: query }
         })
     },
 
     getClientes(limit = 100, offset = 0) {
-        return axios.get(`${API_URL}/bridge/clientes`, {
+        return api.get(`/bridge/clientes`, {
             params: { limit, offset }
         })
     },
 
     getProductos(limit = 100, offset = 0) {
-        return axios.get(`${API_URL}/bridge/productos`, {
+        return api.get(`/bridge/productos`, {
             params: { limit, offset }
         })
     },
 
     importCliente(clienteId) {
-        return axios.post(`${API_URL}/bridge/clientes/${clienteId}/import`)
+        return api.post(`/bridge/clientes/${clienteId}/import`)
     },
 
     async importProducto(productoId) {
-        const response = await axios.post(`${API_URL}/bridge/productos/${productoId}/import`)
+        const response = await api.post(`/bridge/productos/${productoId}/import`)
         return response.data
     },
 
     async getProductoDetails(productoId) {
-        const response = await axios.get(`${API_URL}/bridge/productos/${productoId}/details`)
+        const response = await api.get(`/bridge/productos/${productoId}/details`)
         return response.data
     },
 
     inactivateCliente(clienteId) {
-        return axios.post(`${API_URL}/bridge/clientes/${clienteId}/inactivate`)
+        return api.post(`/bridge/clientes/${clienteId}/inactivate`)
     },
 
     inactivateProducto(productoId) {
-        return axios.post(`${API_URL}/bridge/productos/${productoId}/inactivate`)
+        return api.post(`/bridge/productos/${productoId}/inactivate`)
     }
 }
 

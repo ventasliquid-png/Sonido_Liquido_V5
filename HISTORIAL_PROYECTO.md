@@ -14,5 +14,21 @@ Impacto Consolidado:
 *   **Pedidos:** 5
 *   **Productos:** 14
 
+
 ---
 *Fin del reporte del domingo.*
+
+## 📅 La Recuperación del Jueves (22/01/2026) - Protocolo Omega V5.4 Beta
+
+### 🛡️ Estabilización de Arquitectura Backend
+Se erradicó el "Error 500" masivo unificando el espacio de nombres de Python.
+*   **Problema:** Colisión de metadatos en SQLAlchemy por doble importación (`clientes` vs `backend.clientes`).
+*   **Solución:** Normalización estricta a prefijo `backend.` en todos los módulos y limpieza de `sys.path`.
+
+### 🎹 Fix de Usabilidad F10
+*   **Problema:** Presionar F10 en un modal cerraba toda la pantalla.
+*   **Solución:** Aislamiento del evento (`stopImmediatePropagation`) en componentes hijos.
+
+### 📦 Entregables
+*   **Rama:** `v5.4-beta-fix`
+*   **Estado:** Sistema operativo y listo para pruebas de carga.

@@ -22,8 +22,8 @@ from jose import JWTError, jwt
 
 from backend.auth import models
 from backend.auth import service
-from core.database import get_db
-from core.config import SECRET_KEY, ALGORITHM
+from backend.core.database import get_db
+from backend.core.config import SECRET_KEY, ALGORITHM
 
 # OAuth2PasswordBearer maneja automáticamente el header "Authorization: Bearer <token>"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")

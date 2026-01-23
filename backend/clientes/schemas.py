@@ -3,6 +3,7 @@ from uuid import UUID
 from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field, field_validator
 import re
+from backend.agenda.schemas import VinculoComercialResponse, VinculoComercialUpdate
 
 
 
@@ -27,6 +28,7 @@ class DomicilioCreate(DomicilioBase):
     pass
 
 class DomicilioUpdate(BaseModel):
+    id: Optional[UUID] = None
     alias: Optional[str] = None
     calle: Optional[str] = None
     numero: Optional[str] = None
@@ -107,6 +109,8 @@ class ClienteUpdate(BaseModel):
     datos_acceso_pagos: Optional[str] = None
     observaciones: Optional[str] = None
     transporte_id: Optional[UUID] = None
+    domicilios: List[DomicilioUpdate] = []
+    vinculos: List[VinculoComercialUpdate] = []
 
     @field_validator('cuit')
     @classmethod
@@ -115,7 +119,6 @@ class ClienteUpdate(BaseModel):
             return re.sub(r'[^0-9]', '', v)
         return v
 
-from backend.agenda.schemas import VinculoComercialResponse
 
 class ClienteResponse(ClienteBase):
     id: UUID

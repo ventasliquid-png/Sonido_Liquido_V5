@@ -5,12 +5,14 @@ import ToastNotification from './components/ui/ToastNotification.vue';
 import { useClientesStore } from './stores/clientes';
 import { useProductosStore } from './stores/productos';
 import { useMaestrosStore } from './stores/maestros';
+import { useStatsStore } from './stores/stats';
 
 const router = useRouter();
 const route = useRoute();
 const clientesStore = useClientesStore();
 const productosStore = useProductosStore();
 const maestrosStore = useMaestrosStore();
+const statsStore = useStatsStore();
 
 const ready = ref(false);
 const booting = ref(true);
@@ -49,6 +51,9 @@ const initSystem = async () => {
         await clientesStore.fetchClientes();
         bootStatus.value = `CLIENTES: ${clientesStore.clientes.length} OK`;
         await new Promise(r => setTimeout(r, 200));
+
+        bootStatus.value = 'ACTUALIZANDO ESTADÍSTICAS...';
+        await statsStore.fetchStats();
         
         bootStatus.value = 'SISTEMA OPERATIVO';
         setTimeout(() => {
@@ -139,57 +144,60 @@ const logout = () => {
         </div>
     </transition>
 
-    <!-- HAWE LAYOUT (Isolated) -->
-    <div v-if="route.path.startsWith('/hawe') || route.path.startsWith('/agenda')" class="h-screen w-screen overflow-hidden bg-[#0f172a]">
-        <router-view />
-    </div>
-
-    <!-- STANDARD LAYOUT -->
-    <div v-else class="flex h-screen w-screen overflow-hidden bg-[#0f172a]">
+    <!-- MAIN SYSTEM CONTENT (Blocked until booting is false) -->
+    <div v-if="!booting">
         <ToastNotification />
-        <!-- SIDEBAR -->
-        <aside v-if="!isLoginPage" class="w-16 md:w-64 bg-slate-900 text-white flex flex-col transition-all duration-300">
-            <div class="h-16 flex items-center justify-center md:justify-start md:px-6 border-b border-slate-800">
-                <span class="text-2xl">💧</span>
-                <span class="hidden md:block ml-3 font-bold tracking-wider text-sm">SONIDO LÍQUIDO</span>
-            </div>
+        <!-- HAWE LAYOUT (Isolated) -->
+        <div v-if="route.path.startsWith('/hawe') || route.path.startsWith('/agenda')" class="h-screen w-screen overflow-hidden bg-[#0f172a]">
+            <router-view />
+        </div>
 
-            <nav class="flex-1 py-6 space-y-2">
-                <a 
-                    v-for="item in menuItems" 
-                    :key="item.path"
-                    @click="navigate(item.path)"
-                    class="flex items-center px-4 py-3 cursor-pointer transition-colors border-l-4"
-                    :class="route.path.startsWith(item.path) ? 'bg-slate-800 border-[#54cb9b] text-white' : 'border-transparent text-slate-400 hover:bg-slate-800 hover:text-white'"
-                >
-                    <span class="text-xl">{{ item.icon }}</span>
-                    <span class="hidden md:block ml-3 text-sm font-medium">{{ item.name }}</span>
-                </a>
-            </nav>
-
-            <div class="p-4 border-t border-slate-800">
-                <div class="flex items-center justify-center md:justify-start mb-2">
-                    <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold">U</div>
-                    <div class="hidden md:block ml-3">
-                        <p class="text-xs font-bold">Admin</p>
-                        <p class="text-[10px] text-slate-500">Administrador</p>
-                    </div>
+        <!-- STANDARD LAYOUT -->
+        <div v-else class="flex h-screen w-screen overflow-hidden bg-[#0f172a]">
+            <!-- SIDEBAR -->
+            <aside v-if="!isLoginPage" class="w-16 md:w-64 bg-slate-900 text-white flex flex-col transition-all duration-300">
+                <div class="h-16 flex items-center justify-center md:justify-start md:px-6 border-b border-slate-800">
+                    <span class="text-2xl">💧</span>
+                    <span class="hidden md:block ml-3 font-bold tracking-wider text-sm">SONIDO LÍQUIDO</span>
                 </div>
-                <button @click="logout" class="w-full flex items-center justify-center md:justify-start text-red-400 hover:text-red-300 text-sm">
-                    <span class="text-xl">🚪</span>
-                    <span class="hidden md:block ml-3">Cerrar Sesión</span>
-                </button>
-            </div>
-        </aside>
 
-        <!-- MAIN CONTENT (With Padding for Floating Effect) -->
-        <main class="flex-1 flex flex-col overflow-hidden relative p-4 bg-black">
-            <router-view v-slot="{ Component }">
-                <transition name="fade" mode="out-in">
-                    <component :is="Component" />
-                </transition>
-            </router-view>
-        </main>
+                <nav class="flex-1 py-6 space-y-2">
+                    <a 
+                        v-for="item in menuItems" 
+                        :key="item.path"
+                        @click="navigate(item.path)"
+                        class="flex items-center px-4 py-3 cursor-pointer transition-colors border-l-4"
+                        :class="route.path.startsWith(item.path) ? 'bg-slate-800 border-[#54cb9b] text-white' : 'border-transparent text-slate-400 hover:bg-slate-800 hover:text-white'"
+                    >
+                        <span class="text-xl">{{ item.icon }}</span>
+                        <span class="hidden md:block ml-3 text-sm font-medium">{{ item.name }}</span>
+                    </a>
+                </nav>
+
+                <div class="p-4 border-t border-slate-800">
+                    <div class="flex items-center justify-center md:justify-start mb-2">
+                        <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold">U</div>
+                        <div class="hidden md:block ml-3">
+                            <p class="text-xs font-bold">Admin</p>
+                            <p class="text-[10px] text-slate-500">Administrador</p>
+                        </div>
+                    </div>
+                    <button @click="logout" class="w-full flex items-center justify-center md:justify-start text-red-400 hover:text-red-300 text-sm">
+                        <span class="text-xl">🚪</span>
+                        <span class="hidden md:block ml-3">Cerrar Sesión</span>
+                    </button>
+                </div>
+            </aside>
+
+            <!-- MAIN CONTENT (With Padding for Floating Effect) -->
+            <main class="flex-1 flex flex-col overflow-hidden relative p-4 bg-black">
+                <router-view v-slot="{ Component }">
+                    <transition name="fade" mode="out-in">
+                        <component :is="Component" />
+                    </transition>
+                </router-view>
+            </main>
+        </div>
     </div>
   </div>
 </template>

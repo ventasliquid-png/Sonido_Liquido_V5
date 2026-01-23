@@ -34,6 +34,7 @@
                       <div class="col-span-12 lg:col-span-3 relative">
                           <label class="text-[9px] font-bold text-cyan-400 uppercase tracking-widest block mb-0.5">Razón Social</label>
                           <input 
+                              ref="canteraInput"
                               v-model="form.razon_social" 
                               @input="handleSearchCantera"
                               type="text" 
@@ -41,19 +42,21 @@
                               placeholder="Empresa..."
                           />
                           <!-- Cantera Results -->
-                          <div v-if="canteraResults.length > 0 && isNew" class="absolute left-0 right-0 top-full mt-2 bg-[#0a253a] border border-cyan-500/30 rounded-lg shadow-2xl z-[100] overflow-hidden">
-                                <ul class="max-h-60 overflow-y-auto">
-                                    <li v-for="res in canteraResults" :key="res.id" @click="importFromCantera(res)" class="px-4 py-3 hover:bg-white/5 cursor-pointer border-b border-white/5 last:border-0 group transition-colors">
-                                        <div class="flex justify-between items-start">
-                                            <div>
-                                                <p class="font-bold text-white group-hover:text-cyan-300 text-sm">{{ res.razon_social }}</p>
-                                                <p class="text-[9px] text-white/30 font-mono">CUIT: {{ res.cuit }}</p>
-                                            </div>
-                                            <span class="text-[8px] px-1.5 py-0.5 rounded bg-cyan-900/30 text-cyan-400 border border-cyan-500/30">CANTERA</span>
-                                        </div>
-                                    </li>
-                                </ul>
-                          </div>
+                          <Teleport to="body">
+                            <div v-if="canteraResults.length > 0 && isNew" :style="canteraResultsStyle" class="fixed bg-[#0a253a] border border-cyan-500/30 rounded-lg shadow-2xl z-[100] overflow-hidden">
+                                  <ul class="overflow-y-auto h-full">
+                                      <li v-for="res in canteraResults" :key="res.id" @click="importFromCantera(res)" class="px-4 py-3 hover:bg-white/5 cursor-pointer border-b border-white/5 last:border-0 group transition-colors">
+                                          <div class="flex justify-between items-start">
+                                              <div>
+                                                  <p class="font-bold text-white group-hover:text-cyan-300 text-sm">{{ res.razon_social }}</p>
+                                                  <p class="text-[9px] text-white/30 font-mono">CUIT: {{ res.cuit }}</p>
+                                              </div>
+                                              <span class="text-[8px] px-1.5 py-0.5 rounded bg-cyan-900/30 text-cyan-400 border border-cyan-500/30">CANTERA</span>
+                                          </div>
+                                      </li>
+                                  </ul>
+                            </div>
+                          </Teleport>
                       </div>
 
                       <!-- Fantasía -->
@@ -310,12 +313,15 @@
                   <i class="fas fa-copy mr-2"></i> Clonar
               </button>
               
-              <button 
-                  @click="saveCliente"
-                  class="px-10 py-3 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transition-all flex items-center gap-3 active:scale-95"
-              >
-                  Actualizar Registro <i class="fas fa-check"></i>
-              </button>
+               <button 
+                   @click="saveCliente"
+                   :disabled="guardLoading"
+                   class="px-10 py-3 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transition-all flex items-center gap-3 active:scale-95 disabled:opacity-50 disabled:cursor-wait"
+               >
+                   <i v-if="guardLoading" class="fas fa-spinner fa-spin"></i>
+                   <span v-else>{{ isNew ? 'Crear Cliente' : 'Actualizar Registro' }}</span>
+                   <i v-if="!guardLoading" class="fas fa-check"></i>
+               </button>
           </div>
       </footer>
 
@@ -411,8 +417,24 @@ const visibleLogistics = computed(() => {
 })
 
 // --- Navigation Methods ---
+const canteraInput = ref(null)
+const canteraResultsStyle = computed(() => {
+    if (!canteraInput.value) return {}
+    const rect = canteraInput.value.getBoundingClientRect()
+    return {
+        top: `${rect.bottom + 8}px`,
+        left: `${rect.left}px`,
+        width: `${rect.width}px`,
+        maxHeight: '500px'
+    }
+})
+
 const goBackToSource = () => {
     if (route.query.mode === 'satellite') {
+        // [GY-FIX] Tratar de cerrar la ventana y avisar al padre si existe
+        if (window.opener) {
+            window.opener.postMessage({ type: 'SATELLITE_CLOSED' }, '*');
+        }
         window.close()
         return
     }
@@ -424,12 +446,17 @@ const goToNew = () => {
     isNew.value = true
     activeTab.value = 'CLIENTE'
     showContactoForm.value = false
-    router.replace({ name: 'HaweClientCanvas', params: { id: 'new' } })
+    router.replace({ 
+        name: 'HaweClientCanvas', 
+        params: { id: 'new' },
+        query: { ...route.query } 
+    })
 }
 
 // --- Cantera Logic ---
 const canteraResults = ref([])
 const isSearching = ref(false)
+const guardLoading = ref(false)
 let searchTimeout = null
 
 const handleSearchCantera = () => {
@@ -456,16 +483,39 @@ const handleSearchCantera = () => {
 const importFromCantera = async (canteraClient) => {
     try {
         isSearching.value = true
+        guardLoading.value = true
         const res = await canteraService.importCliente(canteraClient.id)
-        if (res.data.status === 'success') {
+        if (res.data && res.data.status === 'success') {
             notificationStore.add(`Cliente importado desde Cantera exitosamente`, 'success')
-            router.replace({ name: 'HaweClientCanvas', params: { id: res.data.imported_id } })
+            
+            const imported = res.data.cliente
+            if (imported) {
+                form.value = { ...imported }
+                domicilios.value = imported.domicilios || []
+                contactos.value = imported.vinculos || []
+                isNew.value = false
+            }
+
+            router.replace({ 
+                name: 'HaweClientCanvas', 
+                params: { id: res.data.imported_id },
+                query: { ...route.query }
+            })
+        } else {
+            throw new Error(res.data?.detail || 'Fallo en la respuesta del servidor')
         }
     } catch (e) {
         console.error("Error importing from cantera", e)
-        notificationStore.add('Error al importar cliente desde Cantera', 'error')
+        const msg = e.response?.data?.detail || e.message || 'Error desconocido'
+        notificationStore.add(`Fallo la importación: ${msg}. Podés completar los datos manualmente.`, 'error')
+        
+        // [GY-FIX] Si falla, al menos dejamos el nombre que el usuario quería
+        if (!form.value.razon_social && canteraClient.razon_social) {
+            form.value.razon_social = canteraClient.razon_social
+        }
     } finally {
         isSearching.value = false
+        guardLoading.value = false
         canteraResults.value = []
     }
 }
@@ -546,22 +596,35 @@ const saveCliente = async () => {
         return
     }
     try {
+        guardLoading.value = true
+        console.log("Saving client...", { isNew: isNew.value, id: form.value.id })
+        
         const payload = {
             ...form.value,
             domicilios: domicilios.value,
             vinculos: contactos.value
         }
+        
         if (isNew.value) {
-            await store.createCliente(payload)
+            const res = await store.createCliente(payload)
+            console.log("Create client success:", res)
             notificationStore.add('Cliente creado exitosamente', 'success')
         } else {
-            await store.updateCliente(form.value.id, payload)
+            const res = await store.updateCliente(form.value.id, payload)
+            console.log("Update client success:", res)
             notificationStore.add('Cliente actualizado exitosamente', 'success')
         }
-        goBackToSource()
+        
+        // Pequeño delay para que se vea la notificación antes de cerrar
+        setTimeout(() => {
+            goBackToSource()
+        }, 500)
     } catch (e) {
-        console.error(e)
-        notificationStore.add('Error al guardar cliente', 'error')
+        console.error("Save client error:", e)
+        const errorMsg = e.response?.data?.detail || e.message || 'Error desconocido'
+        notificationStore.add(`Error al guardar: ${errorMsg}`, 'error')
+    } finally {
+        guardLoading.value = false
     }
 }
 
@@ -657,7 +720,10 @@ const handleKeydown = (e) => {
 
     // IMPORTANTE: Si hay un sub-formulario abierto (Domicilio, Contacto), 
     // ignoramos el evento para que no se dispare el guardado/cierre del cliente principal.
-    if (activeTab.value !== 'CLIENTE' || showContactoForm.value) return
+    if (activeTab.value !== 'CLIENTE' || showContactoForm.value) {
+        console.log("Global hotkey ignored: sub-form active", { activeTab: activeTab.value, showContactoForm: showContactoForm.value })
+        return
+    }
 
     if (e.key === 'Escape') {
         e.preventDefault()

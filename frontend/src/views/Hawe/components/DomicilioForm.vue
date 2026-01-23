@@ -126,12 +126,12 @@ const handleKeydown = (e) => {
     if (!props.show) return;
     if (e.key === 'Escape') {
         e.preventDefault();
-        e.stopPropagation();
+        e.stopImmediatePropagation();
         close();
     }
-    if (e.code === 'F10') {
+    if (e.key === 'F10') {
         e.preventDefault();
-        e.stopPropagation(); 
+        e.stopImmediatePropagation(); 
         handleSave();
     }
 };

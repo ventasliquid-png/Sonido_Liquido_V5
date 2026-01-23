@@ -108,17 +108,20 @@
                             </Teleport>
 
                              <!-- Results List -->
-                             <div v-if="showClienteResults && filteredClientes.length > 0" 
-                                  class="absolute top-full left-0 w-full mt-1 bg-[#151515] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden max-h-60 overflow-y-auto">
-                                 <div v-for="(cliente, index) in filteredClientes" 
-                                      :key="cliente.id"
-                                      @click="selectCliente(cliente)"
-                                      :class="{'bg-emerald-600 text-white': index === selectedIndex, 'hover:bg-emerald-500/10 hover:text-emerald-400': index !== selectedIndex}"
-                                      class="px-4 py-2 cursor-pointer border-b border-white/5 last:border-0 transition-colors flex justify-between items-center text-sm">
-                                     <span class="font-medium">{{ cliente.razon_social }}</span>
-                                     <span class="text-xs font-mono text-gray-400 ml-2" :class="{'text-emerald-200': index === selectedIndex}">{{ cliente.cuit }}</span>
-                                 </div>
-                             </div>
+                             <Teleport to="body">
+                               <div v-if="showClienteResults && filteredClientes.length > 0" 
+                                    :style="clientPopupStyle"
+                                    class="fixed bg-[#151515] border border-white/10 rounded-xl shadow-2xl z-[100] overflow-hidden">
+                                   <div v-for="(cliente, index) in filteredClientes" 
+                                        :key="cliente.id"
+                                        @click="selectCliente(cliente)"
+                                        :class="{'bg-emerald-600 text-white': index === selectedIndex, 'hover:bg-emerald-500/10 hover:text-emerald-400': index !== selectedIndex}"
+                                        class="px-4 py-2 cursor-pointer border-b border-white/5 last:border-0 transition-colors flex justify-between items-center text-sm">
+                                       <span class="font-medium">{{ cliente.razon_social }}</span>
+                                       <span class="text-xs font-mono text-gray-400 ml-2" :class="{'text-emerald-200': index === selectedIndex}">{{ cliente.cuit }}</span>
+                                   </div>
+                               </div>
+                             </Teleport>
                         </div>
                     </div>
 
@@ -301,47 +304,52 @@
                                         </div>
                                     </div>
                                 </Teleport>
-                                <!-- DROPDOWN RESULTS (Keep existing dropdown) -->
-                                <div v-if="(showProductResults && (filteredProductos.length > 0 || productCanteraResults.length > 0 || isSearchingCanteraProduct))" 
-                                     class="absolute top-full left-0 w-[400px] mt-2 bg-[#151515] border border-white/10 rounded-xl shadow-2xl max-h-80 overflow-y-auto z-50">
-                                    <div v-for="(prod, index) in filteredProductos" :key="prod.id"
-                                         @click="selectProduct(prod)"
-                                         :class="{'bg-emerald-500/20 text-emerald-400': index === selectedProductIndex, 'hover:bg-emerald-500/10 hover:text-emerald-400': index !== selectedProductIndex}"
-                                         class="px-4 py-2 cursor-pointer border-b border-white/5 last:border-0 transition-colors flex justify-between items-center">
-                                        <div class="flex flex-col">
-                                            <span class="font-medium text-sm">{{ prod.nombre }}</span>
-                                            <span class="text-[10px] text-gray-500">{{ prod.sku }}</span>
-                                        </div>
-                                        <span class="font-mono text-xs text-emerald-400 font-bold">$ {{ (prod.precio_sugerido || prod.precio_lista || 0).toLocaleString('es-AR') }}</span>
-                                    </div>
+                                <!-- DROPDOWN RESULTS (Teleport to Body) -->
+                                <Teleport to="body">
+                                    <div v-if="(showProductResults && (filteredProductos.length > 0 || productCanteraResults.length > 0 || isSearchingCanteraProduct))" 
+                                        :style="productPopupStyle"
+                                        class="fixed bg-[#151515] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[100]">
+                                        <div class="max-h-[500px] overflow-y-auto">
+                                            <div v-for="(prod, index) in filteredProductos" :key="prod.id"
+                                                @click="selectProduct(prod)"
+                                                :class="{'bg-emerald-500/20 text-emerald-400': index === selectedProductIndex, 'hover:bg-emerald-500/10 hover:text-emerald-400': index !== selectedProductIndex}"
+                                                class="px-4 py-2 cursor-pointer border-b border-white/5 last:border-0 transition-colors flex justify-between items-center">
+                                                <div class="flex flex-col">
+                                                    <span class="font-medium text-sm">{{ prod.nombre }}</span>
+                                                    <span class="text-[10px] text-gray-500">{{ prod.sku }}</span>
+                                                </div>
+                                                <span class="font-mono text-xs text-emerald-400 font-bold">$ {{ (prod.precio_sugerido || prod.precio_lista || 0).toLocaleString('es-AR') }}</span>
+                                            </div>
 
-                                    <!-- CANTERA RESULTS SECTION -->
-                                    <div v-if="productCanteraResults.length > 0" class="bg-black/40 border-t border-emerald-500/30">
-                                        <div class="px-4 py-1 flex items-center justify-between text-[9px] uppercase font-bold tracking-widest text-emerald-600 bg-black/60">
-                                            <span>Cantera de Maestros (Nube)</span>
-                                            <i v-if="isSearchingCanteraProduct" class="fas fa-spinner fa-spin"></i>
-                                        </div>
-                                        <div v-for="item in productCanteraResults" :key="item.id"
-                                             @click="importAndAddProduct(item)"
-                                             class="px-4 py-2 cursor-pointer border-b border-white/5 last:border-0 hover:bg-indigo-900/30 transition-colors flex justify-between items-center group">
-                                            <div class="flex flex-col min-w-0">
-                                                <span class="font-medium text-sm text-indigo-200 group-hover:text-indigo-100 flex items-center gap-2">
-                                                    {{ item.nombre }}
-                                                    <i class="fas fa-cloud-download-alt text-[10px] opacity-50"></i>
-                                                </span>
-                                                <span class="text-[10px] text-indigo-400/50">{{ item.sku || 'Sin SKU' }}</span>
+                                            <!-- CANTERA RESULTS SECTION -->
+                                            <div v-if="productCanteraResults.length > 0" class="bg-black/40 border-t border-emerald-500/30">
+                                                <div class="px-4 py-1 flex items-center justify-between text-[9px] uppercase font-bold tracking-widest text-emerald-600 bg-black/60">
+                                                    <span>Cantera de Maestros (Nube)</span>
+                                                    <i v-if="isSearchingCanteraProduct" class="fas fa-spinner fa-spin"></i>
+                                                </div>
+                                                <div v-for="item in productCanteraResults" :key="item.id"
+                                                    @click="importAndAddProduct(item)"
+                                                    class="px-4 py-2 cursor-pointer border-b border-white/5 last:border-0 hover:bg-indigo-900/30 transition-colors flex justify-between items-center group">
+                                                    <div class="flex flex-col min-w-0">
+                                                        <span class="font-medium text-sm text-indigo-200 group-hover:text-indigo-100 flex items-center gap-2">
+                                                            {{ item.nombre }}
+                                                            <i class="fas fa-cloud-download-alt text-[10px] opacity-50"></i>
+                                                        </span>
+                                                        <span class="text-[10px] text-indigo-400/50">{{ item.sku || 'Sin SKU' }}</span>
+                                                    </div>
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="text-[9px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-500/30">IMPORTAR</span>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div class="flex items-center gap-2">
-                                                 <span class="text-[9px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-500/30">IMPORTAR</span>
+                                            
+                                            <!-- LOADING STATE -->
+                                            <div v-if="filteredProductos.length === 0 && productCanteraResults.length === 0 && isSearchingCanteraProduct" class="px-4 py-3 text-center">
+                                                <span class="text-xs text-emerald-500/70 animate-pulse">Buscando en catálogo global...</span>
                                             </div>
                                         </div>
                                     </div>
-                                    
-                                    <!-- LOADING STATE -->
-                                    <div v-if="filteredProductos.length === 0 && productCanteraResults.length === 0 && isSearchingCanteraProduct" class="px-4 py-3 text-center">
-                                        <span class="text-xs text-emerald-500/70 animate-pulse">Buscando en catálogo global...</span>
-                                    </div>
-                                </div>
+                                </Teleport>
                             </div>
 
                             <!-- Cantidad -->
@@ -1113,6 +1121,30 @@ const filteredProductos = computed(() => {
         // This fulfills: "en cualquiera de los dos lugares que se empiece a tipear aparezca el valor a elegir"
         return pSku.includes(termNorm) || pNombre.includes(termNorm);
     }).slice(0, 50);
+});
+
+// --- TELEPORT POSITIONING ---
+const clientPopupStyle = computed(() => {
+    if (!clientInputRef.value) return {};
+    const rect = clientInputRef.value.getBoundingClientRect();
+    return {
+        top: `${rect.bottom + 4}px`,
+        left: `${rect.left}px`,
+        width: `${rect.width}px`,
+        maxHeight: '500px'
+    };
+});
+
+const productPopupStyle = computed(() => {
+    if (!inputDescRef.value) return {};
+    // Calculate best position (below input)
+    const rect = inputDescRef.value.getBoundingClientRect();
+    return {
+        top: `${rect.bottom + 4}px`,
+        left: `${rect.left}px`,
+        width: '450px',
+        maxHeight: '500px'
+    };
 });
 
 // --- COMPUTED TOTALS ---

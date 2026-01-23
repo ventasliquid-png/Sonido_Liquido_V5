@@ -761,7 +761,7 @@ const handleClientRightClick = () => {
         router.push({ 
             name: 'HaweClientCanvas', 
             params: { id: props.modelValue.cliente_id },
-            query: { returnUrl }
+            query: { mode: 'satellite', returnUrl }
         })
     } else {
         notification.add('Error: Pedido sin cliente vinculado', 'error')

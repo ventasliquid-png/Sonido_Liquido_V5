@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from backend.core.database import get_db
 from backend.cantera.service import CanteraService
 from backend.clientes.service import ClienteService
-from backend.clientes.schemas import ClienteCreate
+from backend.clientes.schemas import ClienteCreate, ClienteResponse, DomicilioCreate
 from backend.productos import models, schemas
 
 
@@ -53,7 +53,6 @@ def import_cliente_from_cantera(cliente_id: str, db: Session = Depends(get_db)):
         calle = full_data.get("domicilio") or full_data.get("calle")
         localidad = full_data.get("ciudad") or full_data.get("localidad")
         if calle:
-            from backend.clientes.schemas import DomicilioCreate
             new_dom = DomicilioCreate(
                 calle=calle,
                 numero=str(full_data.get("numero") or "S/N"),
@@ -66,15 +65,33 @@ def import_cliente_from_cantera(cliente_id: str, db: Session = Depends(get_db)):
             )
             domicilios_in.append(new_dom)
 
+        razon_social = full_data.get("razon_social") or "CLIENTE IMPORTADO"
+        cuit = full_data.get("cuit") or "00000000000"
+        
         cliente_in = ClienteCreate(
-            razon_social=full_data.get("razon_social"),
-            cuit=full_data.get("cuit"),
+            razon_social=razon_social,
+            cuit=cuit,
             activo=full_data.get("activo", 1),
             domicilios=domicilios_in
         )
         new_client = ClienteService.create_cliente(db, cliente_in)
-        return {"status": "success", "imported_id": str(new_client.id)}
+        db.flush()
+        
+        # [GY-FIX] Re-obtener el cliente completo para validación y retorno
+        full_client = ClienteService.get_cliente(db, new_client.id)
+        if not full_client:
+             raise Exception("Error al recuperar el cliente recién creado")
+             
+        print(f"[CANTERA-IMPORT] Éxito importando {new_client.id}")
+        
+        return {
+            "status": "success", 
+            "imported_id": str(new_client.id),
+            "cliente": ClienteResponse.model_validate(full_client)
+        }
     except Exception as e:
+        db.rollback()
+        print(f"[CANTERA-IMPORT] Error crítico: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/productos/{producto_id}/import")
