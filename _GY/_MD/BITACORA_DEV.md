@@ -332,3 +332,12 @@ Se detectÃ³ y documentÃ³ retroactivamente el parche de emergencia 'Math Guard Cl
 **MÃ©tricas Finales:**
 *   **Integridad:** 11 Clientes, 14 Productos, 5 Pedidos (OK).
 *   **Protocolo Omega:** Generado Informe HistÃ³rico.
+
+# [RECUPERACIÓN] 2026-01-23 - Protocolo Forense (Rollback & Clean)
+
+> **ESTADO:** ESTABLE
+> **TIPO:** SYSTEM RECOVERY / IDENTITY V12
+
+**Operación:** Se ejecutó Rollback al commit `8230154` (Miércoles 21) para eliminar inestabilidad estructural (Imports Anti-Pattern) introducida el Jueves.
+**Identidad:** Sintetizada V12 ("Phoenix") basada en V10.
+**Limpieza:** Eliminada línea temporal fallida V11.
