@@ -3,130 +3,128 @@
     
     <!-- Main Content Area -->
     <main class="flex flex-1 flex-col relative min-w-0">
-      <!-- Top Bar -->
-      <header class="relative z-20 flex h-16 items-center justify-between border-b border-cyan-900/20 bg-[#0a253a]/50 px-6 backdrop-blur-sm shrink-0">
-        <!-- Breadcrumbs / Title -->
-        <h1 class="font-outfit text-xl font-semibold text-white">
-            Explorador de Clientes
-            <span v-if="selectedSegmento" class="ml-2 text-sm font-normal text-cyan-400">
-                / {{ getSegmentoName(selectedSegmento) }}
-            </span>
-            <!-- Bulk Action Indicator -->
-            <span v-if="selectedIds.length > 0" class="ml-4 text-xs font-bold text-red-400 bg-red-900/20 px-2 py-1 rounded border border-red-500/30 animate-pulse">
-                {{ selectedIds.length }} SELECCIONADOS
-            </span>
-        </h1>
-
-        <!-- Search & Tools -->
-        <div class="flex items-center gap-4">
-          <div class="relative">
-            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-cyan-500/50"></i>
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="Buscar..."
-              class="h-9 w-64 rounded-full border border-cyan-900/30 bg-[#020a0f] pl-10 pr-4 text-sm text-cyan-100 placeholder-cyan-900/50 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
-            />
-          </div>
-          <div class="h-6 w-px bg-cyan-900/20"></div>
-          
-          <!-- Status Filter -->
-          <div class="flex bg-cyan-900/10 rounded-lg p-1 border border-cyan-900/20">
-            <button 
-                @click="filterStatus = 'all'"
-                class="px-3 py-1 text-xs font-bold rounded-md transition-all"
-                :class="filterStatus === 'all' ? 'bg-indigo-600/70 text-white shadow-md ring-1 ring-indigo-500' : 'text-cyan-100/40 hover:text-cyan-100 hover:bg-cyan-500/10'"
-            >
-                Todos
-            </button>
-            <button 
-                @click="filterStatus = 'active'"
-                class="px-3 py-1 text-xs font-bold rounded-md transition-all"
-                :class="filterStatus === 'active' ? 'bg-green-600/70 text-white shadow-md ring-1 ring-green-500' : 'text-cyan-100/40 hover:text-cyan-100 hover:bg-cyan-500/10'"
-            >
-                Activos
-            </button>
-            <button 
-                @click="filterStatus = 'inactive'"
-                class="px-3 py-1 text-xs font-bold rounded-md transition-all"
-                :class="filterStatus === 'inactive' ? 'bg-red-600/70 text-white shadow-md ring-1 ring-red-500' : 'text-cyan-100/40 hover:text-cyan-100 hover:bg-cyan-500/10'"
-            >
-                Inactivos
-            </button>
-          </div>
-
-          <div class="h-6 w-px bg-cyan-900/20"></div>
-
-          <!-- Sort Menu -->
-          <div class="relative">
-            <button 
-                @click="showSortMenu = !showSortMenu" 
-                class="flex items-center gap-2 rounded-lg border border-cyan-900/20 bg-cyan-900/10 px-3 py-1.5 text-xs font-medium text-cyan-200 hover:bg-cyan-900/20 transition-colors" 
-                title="Ordenar"
-            >
-                <i class="fas fa-sort-amount-down"></i>
-                <span v-if="sortBy === 'usage'">POPULARIDAD</span>
-                <span v-else-if="sortBy === 'alpha_asc'">A-Z</span>
-                <span v-else-if="sortBy === 'alpha_desc'">Z-A</span>
-                <span v-else>ordenar</span>
-            </button>
+      <!-- Global Header Injection -->
+      <Teleport to="#global-header-center" v-if="isMounted">
+        <div class="flex items-center gap-6 animate-in fade-in duration-300">
+            <h1 class="font-outfit text-xl font-bold text-white flex items-center gap-3 whitespace-nowrap">
+                <i class="fas fa-users text-cyan-500"></i>
+                <span class="hidden xl:inline">Explorador de </span>Clientes
+            </h1>
             
-            <!-- Dropdown -->
-            <div v-if="showSortMenu" class="absolute right-0 mt-2 w-48 bg-[#0a253a] border border-cyan-500/30 rounded-lg shadow-xl z-50 overflow-hidden">
-                <div class="fixed inset-0 z-40" @click="showSortMenu = false"></div>
-                <div class="relative z-50 py-1">
-                    <button @click="sortBy = 'usage'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-cyan-100 hover:bg-cyan-500/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'usage' }">Más Usados</button>
-                    <button @click="sortBy = 'alpha_asc'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-cyan-100 hover:bg-cyan-500/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'alpha_asc' }">A-Z Alfabético</button>
-                    <button @click="sortBy = 'alpha_desc'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-cyan-100 hover:bg-cyan-500/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'alpha_desc' }">Z-A Alfabético</button>
-                    <button @click="sortBy = 'id_desc'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-cyan-100 hover:bg-cyan-500/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'id_desc' }">Más Recientes</button>
-                </div>
+            <!-- Search -->
+            <div class="relative w-96 group">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-cyan-500/30 group-focus-within:text-cyan-400 transition-colors"></i>
+                <input 
+                  v-model="searchQuery"
+                  type="text" 
+                  placeholder="Buscar Cliente, CUIT, Fantasía..." 
+                  class="w-full h-10 rounded-xl border border-white/5 bg-black/20 py-2 pl-10 pr-4 text-sm text-white placeholder-cyan-500/30 focus:border-cyan-500/50 focus:bg-black/40 focus:outline-none transition-all shadow-inner"
+                />
             </div>
+        </div>
+      </Teleport>
+
+      <!-- Local Toolbar (User Order 1-9) -->
+      <div class="flex items-center gap-4 px-6 py-3 border-b border-cyan-900/20 bg-[#0a253a]/30 shrink-0 overflow-x-auto">
+          
+          <!-- 1. Checkbox Todos -->
+          <div class="flex items-center gap-2 cursor-pointer group shrink-0" @click="toggleSelectAll" title="Seleccionar Todos">
+              <input 
+                  type="checkbox" 
+                  :checked="isAllSelected"
+                  class="rounded bg-[#020a0f] border-cyan-500/50 text-cyan-500 focus:ring-0 focus:ring-offset-0 cursor-pointer h-5 w-5 shadow-sm"
+              />
+              <span class="text-sm font-bold text-white/50 group-hover:text-white select-none">Todos</span>
           </div>
 
-          <div class="h-6 w-px bg-cyan-900/20"></div>
-
-          <!-- View Toggle -->
-          <div class="flex bg-cyan-900/10 rounded-lg p-1 border border-cyan-900/20">
-            <button 
-                @click="viewMode = 'grid'"
-                class="p-1.5 rounded-md transition-all"
-                :class="viewMode === 'grid' ? 'bg-cyan-500/20 text-cyan-400' : 'text-cyan-900/50 hover:text-cyan-200'"
-                title="Vista Cuadrícula"
-            >
-                <i class="fas fa-border-all"></i>
-            </button>
-            <button 
-                @click="viewMode = 'list'"
-                class="p-1.5 rounded-md transition-all"
-                :class="viewMode === 'list' ? 'bg-cyan-500/20 text-cyan-400' : 'text-cyan-900/50 hover:text-cyan-200'"
-                title="Vista Lista"
-            >
-                <i class="fas fa-list"></i>
-            </button>
+          <!-- 2. XX Seleccionados -->
+          <div v-if="selectedIds.length > 0" class="shrink-0 animate-in fade-in slide-in-from-left-2 px-2">
+               <span class="text-xs font-bold text-cyan-400 bg-cyan-900/30 px-3 py-1.5 rounded-full border border-cyan-500/30 shadow-[0_0_10px_rgba(6,182,212,0.2)]">
+                  {{ selectedIds.length }}
+                  <span class="opacity-60 text-[10px] uppercase ml-1">SELECCIONADOS</span>
+              </span>
           </div>
 
-          <!-- Dynamic Bulk Button -->
+          <!-- Divider -->
+          <div class="h-6 w-px bg-white/5 shrink-0"></div>
+
+          <!-- 3. Segmento Filter -->
+          <select 
+            v-model="selectedSegmento"
+            class="h-9 rounded-lg border border-white/10 bg-[#0f172a] text-cyan-100/80 px-3 text-xs font-bold focus:border-cyan-500 focus:outline-none min-w-[160px]"
+          >
+            <option :value="null">Todos los Segmentos</option>
+            <option v-for="seg in segmentos" :key="seg.id" :value="seg.id">{{ seg.nombre }}</option>
+            <option value="manage" class="font-bold text-cyan-400">+ Gestionar</option>
+          </select>
+
+          <!-- 4. Status Filter (Group) -->
+          <div class="flex bg-black/20 rounded-lg p-1 border border-white/10 shrink-0">
+              <button @click="filterStatus = 'all'" class="px-3 py-1 text-[10px] font-bold rounded uppercase transition-all" :class="filterStatus === 'all' ? 'bg-indigo-600 text-white shadow' : 'text-white/30 hover:text-white'">Todos</button>
+              <button @click="filterStatus = 'active'" class="px-3 py-1 text-[10px] font-bold rounded uppercase transition-all" :class="filterStatus === 'active' ? 'bg-green-600 text-white shadow' : 'text-white/30 hover:text-white'">Activos</button>
+              <button @click="filterStatus = 'inactive'" class="px-3 py-1 text-[10px] font-bold rounded uppercase transition-all" :class="filterStatus === 'inactive' ? 'bg-red-600 text-white shadow' : 'text-white/30 hover:text-white'">Inactivos</button>
+          </div>
+
+          <!-- 5. Sort Button -->
+           <button 
+                @click="showSortMenu = !showSortMenu" 
+                class="flex items-center gap-2 h-9 rounded-lg border border-white/10 bg-black/20 px-3 text-xs font-bold text-cyan-100 hover:bg-white/5 transition-colors shrink-0 relative"
+            >
+                <i class="fas fa-sort-amount-down text-cyan-500"></i>
+                <span class="max-w-[80px] truncate hidden xl:inline">
+                    {{ sortBy === 'usage' ? 'Populares' : (sortBy === 'alpha_asc' ? 'A-Z' : 'Orden') }}
+                </span>
+                
+                <!-- Dropdown -->
+                <div v-if="showSortMenu" class="absolute top-full left-0 mt-2 w-48 bg-[#0a253a] border border-cyan-500/30 rounded-lg shadow-xl z-50 overflow-hidden text-left">
+                    <div class="fixed inset-0 z-40" @click.stop="showSortMenu = false"></div>
+                    <div class="relative z-50 py-1">
+                        <button @click="sortBy = 'usage'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-cyan-100 hover:bg-cyan-500/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'usage' }">Más Usados</button>
+                        <button @click="sortBy = 'alpha_asc'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-cyan-100 hover:bg-cyan-500/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'alpha_asc' }">A-Z Alfabético</button>
+                        <button @click="sortBy = 'id_desc'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-cyan-100 hover:bg-cyan-500/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'id_desc' }">Más Recientes</button>
+                    </div>
+                </div>
+            </button>
+
+          <!-- 6. View Toggle -->
+          <div class="flex bg-white/5 rounded-lg p-1 border border-white/10 shrink-0">
+            <button @click="viewMode = 'grid'" class="p-1 rounded transition-all" :class="viewMode === 'grid' ? 'bg-cyan-500/20 text-cyan-400' : 'text-white/30 hover:text-white'"><i class="fas fa-border-all text-xs"></i></button>
+            <button @click="viewMode = 'list'" class="p-1 rounded transition-all" :class="viewMode === 'list' ? 'bg-cyan-500/20 text-cyan-400' : 'text-white/30 hover:text-white'"><i class="fas fa-list text-xs"></i></button>
+          </div>
+
+          <div class="flex-1"></div>
+
+          <!-- 7. Baja (Bulk) -->
           <button 
             v-if="selectedIds.length > 0"
             @click="handleBulkAction"
-            class="ml-2 flex items-center gap-2 rounded-lg px-4 py-1.5 text-sm font-bold text-white shadow-lg transition-transform active:scale-95"
-            :class="filterStatus === 'inactive' ? 'bg-red-600 hover:bg-red-500 shadow-red-500/20' : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-500/20'"
-            :title="filterStatus === 'inactive' ? 'Eliminar Definitivamente' : 'Desactivar (Baja Lógica)'"
+            class="flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold text-white shadow-lg transition-transform active:scale-95 shrink-0"
+            :class="filterStatus === 'inactive' ? 'bg-gradient-to-r from-red-600 to-red-500 shadow-red-500/20' : 'bg-gradient-to-r from-indigo-600 to-violet-600 shadow-indigo-500/20'"
           >
-            <i :class="filterStatus === 'inactive' ? 'fas fa-trash-alt' : 'fas fa-toggle-off'"></i>
-            <span class="hidden sm:inline">{{ filterStatus === 'inactive' ? `Eliminar (${selectedIds.length})` : `Desactivar (${selectedIds.length})` }}</span>
+            <i :class="filterStatus === 'inactive' ? 'fas fa-trash-alt' : 'fas fa-archive'"></i>
+            <span>{{ filterStatus === 'inactive' ? `Eliminar` : `Baja` }}</span>
           </button>
 
+          <!-- 8. Modificar -->
+          <button 
+            v-if="selectedIds.length === 1"
+            @click="handleModifySelected"
+            class="flex items-center gap-2 rounded-lg bg-[#0f2430] border border-cyan-500/30 px-5 py-2 text-xs font-bold text-cyan-100 shadow-lg hover:bg-cyan-900/40 hover:text-white hover:border-cyan-400/50 transition-all shrink-0"
+          >
+            <i class="fas fa-pencil-alt"></i>
+            <span>Modificar</span>
+          </button>
+
+           <!-- 9. Nuevo -->
           <button 
             @click="openNewCliente"
-            class="ml-2 flex items-center gap-2 rounded-lg bg-cyan-600 px-4 py-1.5 text-sm font-bold text-white shadow-lg shadow-cyan-500/20 transition-all hover:bg-cyan-500 hover:shadow-cyan-500/40"
+            class="flex items-center gap-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 px-6 py-2 text-xs font-black text-black uppercase tracking-wider shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:shadow-[0_0_30px_rgba(6,182,212,0.6)] transition-all active:scale-95 shrink-0"
           >
             <i class="fas fa-plus"></i>
-            <span class="hidden sm:inline">Nuevo</span>
+            <span>Nuevo</span>
           </button>
 
-        </div>
-      </header>
+      </div>
 
       <!-- Content List -->
       <div class="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-track-cyan-900/10 scrollbar-thumb-cyan-900/30">
@@ -136,27 +134,28 @@
         <div v-if="viewMode === 'grid'" class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
           <div v-for="cliente in filteredClientes" :key="cliente.id" class="relative w-full min-h-[140px] group">
             <!-- Selection Checkbox -->
-            <div class="absolute top-2 left-2 z-20" @click.stop>
+            <div class="absolute top-0 right-0 z-[60] p-3 cursor-pointer" @click.stop="toggleSelection(cliente.id)">
                 <input 
                     type="checkbox" 
                     :checked="selectedIds.includes(cliente.id)" 
+                    class="rounded bg-[#020a0f] border-cyan-500/50 text-cyan-500 focus:ring-0 focus:ring-offset-0 cursor-pointer h-5 w-5 shadow-lg shadow-black/50 transition-opacity"
+                    :class="{ 'opacity-100': selectedIds.includes(cliente.id), 'opacity-50 group-hover:opacity-100': !selectedIds.includes(cliente.id) }"
+                    @click.stop
                     @change="toggleSelection(cliente.id)"
-                    class="rounded bg-[#020a0f] border-cyan-500/50 text-cyan-500 focus:ring-0 focus:ring-offset-0 cursor-pointer h-5 w-5 shadow-lg shadow-black/50 opacity-50 group-hover:opacity-100 transition-opacity"
-                    :class="{ 'opacity-100': selectedIds.includes(cliente.id) }"
                 />
             </div>
             <FichaCard
                 class="w-full"
                 :title="cliente.razon_social"
                 :subtitle="cliente.cuit"
-                :selected="selectedId === cliente.id"
+                :selected="selectedIds.includes(cliente.id)"
                 :hasLogisticsAlert="cliente.requiere_entrega"
+                :hasTransport="cliente.domicilios?.some(d => d.transporte_id)"
                 :extraData="{
                     segmento: getSegmentoName(cliente.segmento_id),
                     domicilio: cliente.domicilio_fiscal_resumen,
                     contacto: cliente.contacto_principal_nombre
                 }"
-                @click="selectCliente(cliente)"
                 @dblclick="selectCliente(cliente)"
                 @contextmenu.prevent="handleClientContextMenu($event, cliente)"
             >
@@ -164,23 +163,36 @@
                     <i class="fas fa-user"></i>
                 </template>
                 <template #actions>
-                    <!-- Toggle Switch -->
-                    <button 
-                        @click.stop="toggleClienteStatus(cliente)"
-                        v-if="cliente.activo"
-                        class="relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none shrink-0 ml-2 bg-green-500/50"
-                        title="Desactivar"
-                    >
-                        <span class="inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform shadow-sm translate-x-3.5" />
-                    </button>
-                     <button 
-                        @click.stop="toggleClienteStatus(cliente)"
-                        v-else
-                        class="relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none shrink-0 ml-2 bg-red-500/50"
-                        title="Activar"
-                    >
-                        <span class="inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform shadow-sm translate-x-1" />
-                    </button>
+                    <div class="flex items-center gap-1 bg-black/40 rounded-full p-1 backdrop-blur-sm border border-white/5">
+                        <!-- Edit Button -->
+                        <button 
+                            @click.stop="selectCliente(cliente)"
+                            class="h-6 w-6 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/20 transition-colors"
+                            title="Modificar"
+                        >
+                            <i class="fas fa-pencil-alt text-xs"></i>
+                        </button>
+
+                        <div class="w-px h-3 bg-white/20"></div>
+
+                        <!-- Toggle Switch -->
+                        <button 
+                            @click.stop="toggleClienteStatus(cliente)"
+                            v-if="cliente.activo"
+                            class="relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none shrink-0 bg-green-500/50 hover:bg-green-500/70"
+                            title="Desactivar"
+                        >
+                            <span class="inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform shadow-sm translate-x-3.5" />
+                        </button>
+                        <button 
+                            @click.stop="toggleClienteStatus(cliente)"
+                            v-else
+                            class="relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none shrink-0 bg-red-500/50 hover:bg-red-500/70"
+                            title="Activar"
+                        >
+                            <span class="inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform shadow-sm translate-x-1" />
+                        </button>
+                    </div>
                 </template>
             </FichaCard>
           </div>
@@ -193,14 +205,14 @@
                 :key="cliente.id"
                 class="group relative flex items-center justify-between gap-4 rounded-lg border border-cyan-900/10 bg-[#0a1f2e]/60 p-3 transition-all hover:bg-[#0f2d42] hover:border-cyan-500/30"
                 :class="{ 'ring-1 ring-cyan-500 bg-[#0f2d42]': selectedIds.includes(cliente.id) }"
-                @click="selectCliente(cliente)"
                 @dblclick="selectCliente(cliente)"
             >
                 <!-- Checkbox -->
-                <div class="flex items-center pl-2" @click.stop>
+                <div class="flex items-center pl-2 p-2 cursor-pointer z-20" @click.stop="toggleSelection(cliente.id)">
                      <input 
                         type="checkbox" 
                         :checked="selectedIds.includes(cliente.id)" 
+                        @click.stop
                         @change="toggleSelection(cliente.id)"
                         class="rounded bg-[#020a0f] border-cyan-500/50 text-cyan-500 focus:ring-0 focus:ring-offset-0 cursor-pointer h-4 w-4"
                     />
@@ -304,6 +316,15 @@
         </div>
 
       </div>
+       <!-- Context Menu -->
+       <ContextMenu 
+            v-if="contextMenuState.show" 
+            v-model="contextMenuState.show"
+            :x="contextMenuState.x"
+            :y="contextMenuState.y"
+            :actions="contextMenuProps.actions"
+            @close="contextMenuState.show = false"
+       />
     </main>
 
     <!-- Right Inspector Panel (Browsing/Editing) -->
@@ -510,6 +531,12 @@ const handleBulkHardDelete = async () => {
 // Segmento ABM Logic
 const showSegmentoModal = ref(false)
 const showSegmentoList = ref(false)
+
+// Context Menu State
+const contextMenuState = ref({ show: false, x: 0, y: 0 })
+const contextMenuProps = ref({ actions: [] })
+
+
 const editingSegmentoId = ref(null)
 
 // Context Menu Logic
@@ -579,6 +606,8 @@ const closeInspector = () => {
         })
     }
 }
+
+const isMounted = ref(false)
 
 const handleInspectorSave = async (clienteData) => {
     try {
@@ -673,8 +702,65 @@ const handleSwitchClient = async (clientId) => {
 }
 
 const handleClientContextMenu = (e, client) => {
-    // TODO: Implement Context Menu if really needed, or remove. 
-    // Re-added for feature parity.
+    contextMenuState.value = {
+        show: true,
+        x: e.clientX,
+        y: e.clientY
+    }
+    contextMenuProps.value.actions = [
+        { 
+            label: 'Editar Ficha (Doble Clic)', 
+            iconClass: 'fas fa-edit', 
+            handler: () => selectCliente(client)
+        },
+        { 
+            label: 'Clonar Cliente', 
+            iconClass: 'fas fa-copy', 
+            handler: () => handleCloneCliente(client)
+        },
+        { 
+            label: client.activo ? 'Dar de Baja (Desactivar)' : 'Reactivar Cliente', 
+            iconClass: client.activo ? 'fas fa-ban' : 'fas fa-check-circle',
+            handler: () => toggleClienteStatus(client)
+        }
+    ]
+}
+
+const handleCloneCliente = async (client) => {
+    try {
+        const fullCliente = await clienteStore.fetchClienteById(client.id)
+        
+        const clone = { 
+            ...fullCliente, 
+            id: null, 
+            razon_social: `${fullCliente.razon_social} (COPIA)`,
+            cuit: '', 
+            domicilios: fullCliente.domicilios ? fullCliente.domicilios.map(d => ({ ...d, id: null, cliente_id: null })) : [],
+            vinculos: fullCliente.vinculos ? fullCliente.vinculos.map(v => ({ ...v, id: null, cliente_id: null })) : [],
+            activo: true,
+            contador_uso: 0,
+            fecha_ultima_compra: null
+        }
+        
+        // Use Store Draft to pass data to ClientCanvas
+        clienteStore.setDraft(clone);
+        
+        // Navigate to 'new' which will trigger ClientCanvas to check draft
+        router.push({ name: 'HaweClientCanvas', params: { id: 'new' } })
+        
+    } catch (e) {
+        console.error("Clone failed", e)
+        notificationStore.add("Error al preparar clonado", "error")
+    }
+}
+
+const handleModifySelected = () => {
+    if (selectedIds.value.length === 1) {
+        const client = clientes.value.find(c => c.id === selectedIds.value[0])
+        if (client) {
+            selectCliente(client)
+        }
+    }
 }
 
 const handleKeydown = (e) => {
@@ -698,6 +784,7 @@ const logout = () => {
 }
 
 onMounted(async () => {
+    isMounted.value = true
     window.addEventListener('keydown', handleKeydown)
     try {
         // [GY-FIX] Always fetch to ensure fresh data after returns from Canvas

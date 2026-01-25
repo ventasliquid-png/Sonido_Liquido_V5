@@ -4,24 +4,41 @@
     :class="[
         { 'ring-2 ring-cyan-400 bg-white/20': selected },
         { 'border-red-500 ring-4 ring-red-500': debugClick }, 
-        isExpanded ? 'absolute top-0 left-0 w-full z-50 scale-110 bg-[#0f344e] shadow-2xl shadow-black/50 h-auto min-h-[160px]' : 'overflow-hidden h-[140px]'
+        isExpanded ? 'absolute top-0 left-0 w-full z-50 scale-110 bg-[#0f344e] shadow-2xl shadow-black/50 h-auto min-h-[160px] pb-12' : 'overflow-hidden h-[140px]'
     ]"
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
-    @dblclick.stop=""
+    @dblclick="handleDblClick"
   >
-    <!-- Logistics Indicator -->
-    <div
-      v-if="hasLogisticsAlert"
-      class="absolute right-3 top-3 h-2 w-2 rounded-full shadow-[0_0_8px] bg-orange-500 shadow-orange-500"
-      title="Requiere Entrega (Logística)"
-    ></div>
+    <!-- Header Row: Avatar + Status Stack -->
+    <div class="mb-4 flex gap-3 items-start">
+        <!-- Avatar -->
+        <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-gray-800 text-2xl text-gray-400 group-hover:text-cyan-400 transition-colors shrink-0">
+          <slot name="icon">
+            <i class="fas fa-cube"></i>
+          </slot>
+        </div>
 
-    <!-- Icon / Thumbnail -->
-    <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-gray-800 text-2xl text-gray-400 group-hover:text-cyan-400 transition-colors shrink-0">
-      <slot name="icon">
-        <i class="fas fa-cube"></i>
-      </slot>
+        <!-- Status Stack (Semáforo) -->
+        <div class="flex flex-col gap-1 pt-1">
+            <!-- Fiscal (Purple) -->
+            <div class="flex items-center gap-1.5 opacity-80" title="Condición Fiscal Verificada">
+                <div class="h-2 w-2 rounded-full bg-purple-500 shadow-[0_0_5px] shadow-purple-500/50"></div>
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-none">Fiscal</span>
+            </div>
+
+            <!-- Entrega (Orange) - Logistics Alert -->
+            <div v-if="hasLogisticsAlert" class="flex items-center gap-1.5" title="Requiere Entrega (Logística)">
+                <div class="h-2 w-2 rounded-full bg-orange-500 shadow-[0_0_8px] shadow-orange-500"></div>
+                <span class="text-[10px] font-bold text-orange-200 uppercase tracking-wider leading-none">Envíos</span>
+            </div>
+
+            <!-- Transporte (Yellow) -->
+            <div v-if="hasTransport" class="flex items-center gap-1.5" title="Transporte Asignado">
+                <div class="h-2 w-2 rounded-full bg-yellow-400 shadow-[0_0_5px] shadow-yellow-400/50"></div>
+                <span class="text-[10px] font-bold text-yellow-200 uppercase tracking-wider leading-none">Transp.</span>
+            </div>
+        </div>
     </div>
 
     <!-- Content -->
@@ -35,7 +52,7 @@
           
           <div v-if="extraData.domicilio" class="flex items-start gap-2">
             <i class="fas fa-map-marker-alt mt-0.5 text-white/30"></i>
-            <span class="leading-tight">{{ extraData.domicilio }}</span>
+            <span class="leading-tight">{{ formatAddress(extraData.domicilio) }}</span>
           </div>
 
           <div v-if="extraData.contacto" class="flex items-center gap-2">
@@ -71,6 +88,10 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  hasTransport: {
+    type: Boolean,
+    default: false
+  },
   extraData: {
     type: Object,
     default: () => ({})
@@ -103,6 +124,11 @@ const handleDblClick = (e) => {
     debugClick.value = true
     emit('dblclick', e)
     setTimeout(() => debugClick.value = false, 500)
+}
+
+const formatAddress = (address) => {
+    if (!address) return ''
+    return address.replace(/\|/g, ', ')
 }
 </script>
 

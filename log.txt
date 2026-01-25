@@ -1,0 +1,91 @@
+Traceback (most recent call last):
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlite3.OperationalError: no such column: pedidos.domicilio_entrega_id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\dev\Sonido_Liquido_V5\scripts\debug_service_v4.py", line 79, in <module>
+    count = db.query(Pedido).filter(Pedido.cliente_id == c.id).count()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\query.py", line 3146, in count
+    self._legacy_from_self(col).enable_eagerloads(False).scalar()
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\query.py", line 2835, in scalar
+    ret = self.one()
+          ^^^^^^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\query.py", line 2808, in one
+    return self._iter().one()  # type: ignore
+           ^^^^^^^^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\query.py", line 2857, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+                                                  ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py", line 2351, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+             ^^^^^^^^^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute
+    return meth(
+           ^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\sql\elements.py", line 526, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py", line 2355, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such column: pedidos.domicilio_entrega_id
+[SQL: SELECT count(*) AS count_1 
+FROM (SELECT pedidos.id AS pedidos_id, pedidos.fecha AS pedidos_fecha, pedidos.cliente_id AS pedidos_cliente_id, pedidos.total AS pedidos_total, pedidos.nota AS pedidos_nota, pedidos.estado AS pedidos_estado, pedidos.tipo_facturacion AS pedidos_tipo_facturacion, pedidos.origen AS pedidos_origen, pedidos.fecha_compromiso AS pedidos_fecha_compromiso, pedidos.liberado_despacho AS pedidos_liberado_despacho, pedidos.oc AS pedidos_oc, pedidos.descuento_global_porcentaje AS pedidos_descuento_global_porcentaje, pedidos.descuento_global_importe AS pedidos_descuento_global_importe, pedidos.domicilio_entrega_id AS pedidos_domicilio_entrega_id, pedidos.transporte_id AS pedidos_transporte_id, pedidos.created_at AS pedidos_created_at, pedidos.updated_at AS pedidos_updated_at 
+FROM pedidos 
+WHERE pedidos.cliente_id = ?) AS anon_1]
+[parameters: ('850b3c3388f4470bb6ac616236acf84c',)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+Path configured. Forcing SQLite: sqlite:///C:\dev\Sonido_Liquido_V5\pilot.db
+Step 0: Importing Models (Emulating main.py)...
+--- [DATABASE] Usando DATABASE_URL de entorno: sqlite:///C:\dev\Sonido_Liquido_V5\pilot.db ---
+--- [Atenea V11.4]: Capa ORM (GUID Unified) inicializada. ---
+--- [Atenea V10.10]: Auth/Models ('Usuario', 'Rol') definidos. ---
+OK Models Imported
+Step 1: Importing Service & Router...
+--- [DATABASE] Usando DATABASE_URL de entorno: sqlite:///C:\dev\Sonido_Liquido_V5\pilot.db ---
+--- [Atenea V11.4]: Capa ORM (GUID Unified) inicializada. ---
+--- [Atenea V10.E]: Core/Config (IA, Seguridad JWT, CORS) cargado. ---
+--- [Atenea V10.E]: Auth/Service (L¾gica AuthN/AuthZ y Tokens) definida. ---
+--- [Atenea V10.E]: Core/Config (IA, Seguridad JWT, CORS) cargado. ---
+--- [Atenea V10.E]: Auth/Dependencies (Seguridad JWT) definidas. ---
+OK Service/Router Imported
+Step 2: Simulating read_clientes...
+Attempting to fetch clients (limit=5)...
+Fetched 5 clients.
+Client: ALFAJORES JORGITO SA
+Domicilio Fiscal Resumen: Treinta y Tres Orientales 1840, CABA
+Testing Pydantic List Response...
+OK Pydantic List Validation
+Raw Domicilio Calle: Treinta y Tres Orientales 
+Parsed Domicilio Calle: Treinta y Tres Orientales  | Floor: None | Dept: None
+Testing Integrity Check calculation...
+FAIL Simulation Logic: (sqlite3.OperationalError) no such column: pedidos.domicilio_entrega_id
+[SQL: SELECT count(*) AS count_1 
+FROM (SELECT pedidos.id AS pedidos_id, pedidos.fecha AS pedidos_fecha, pedidos.cliente_id AS pedidos_cliente_id, pedidos.total AS pedidos_total, pedidos.nota AS pedidos_nota, pedidos.estado AS pedidos_estado, pedidos.tipo_facturacion AS pedidos_tipo_facturacion, pedidos.origen AS pedidos_origen, pedidos.fecha_compromiso AS pedidos_fecha_compromiso, pedidos.liberado_despacho AS pedidos_liberado_despacho, pedidos.oc AS pedidos_oc, pedidos.descuento_global_porcentaje AS pedidos_descuento_global_porcentaje, pedidos.descuento_global_importe AS pedidos_descuento_global_importe, pedidos.domicilio_entrega_id AS pedidos_domicilio_entrega_id, pedidos.transporte_id AS pedidos_transporte_id, pedidos.created_at AS pedidos_created_at, pedidos.updated_at AS pedidos_updated_at 
+FROM pedidos 
+WHERE pedidos.cliente_id = ?) AS anon_1]
+[parameters: ('850b3c3388f4470bb6ac616236acf84c',)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)

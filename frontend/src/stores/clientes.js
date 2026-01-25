@@ -7,7 +7,8 @@ export const useClientesStore = defineStore('clientes', {
         topClients: [],
         loading: false,
         error: null,
-        total: 0
+        total: 0,
+        draft: null, // For cloning/pre-filling
     }),
 
     actions: {
@@ -212,6 +213,14 @@ export const useClientesStore = defineStore('clientes', {
             } catch (error) {
                 console.error(error);
             }
+        },
+
+        setDraft(data) {
+            this.draft = data;
+        },
+
+        clearDraft() {
+            this.draft = null;
         }
     }
 });

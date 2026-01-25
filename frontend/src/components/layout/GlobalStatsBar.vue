@@ -1,8 +1,8 @@
 <template>
-  <div v-if="stats" class="w-full bg-[#0a151b] border-b border-cyan-900/30 px-6 py-3 flex items-center justify-between shrink-0 h-20 shadow-xl z-20">
+  <div class="w-full bg-[#0a151b] border-b border-cyan-900/30 px-6 py-3 flex items-center justify-between shrink-0 h-20 shadow-xl z-20">
     
     <!-- Left: Stats Ticker -->
-    <div class="flex items-center gap-8 text-xs font-outfit uppercase tracking-widest text-white/50">
+    <div v-if="stats" class="flex items-center gap-8 text-xs font-outfit uppercase tracking-widest text-white/50">
         
         <!-- Clientes -->
         <div 
@@ -62,6 +62,9 @@
              </div>
         </div>
     </div>
+
+    <!-- Center: Portal Target -->
+    <div id="global-header-center" class="flex-1 flex items-center justify-center px-12 min-w-0"></div>
 
     <!-- Right: Context Info -->
     <div class="flex items-center gap-3">

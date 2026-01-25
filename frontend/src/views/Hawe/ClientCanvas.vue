@@ -485,7 +485,15 @@ onMounted(async () => {
     
     if (route.params.id === 'new') {
         isNew.value = true
-        resetForm()
+        if (store.draft) {
+             form.value = { ...store.draft }
+             domicilios.value = store.draft.domicilios || []
+             contactos.value = store.draft.vinculos || []
+             store.clearDraft() // Consume draft
+             notificationStore.add('Datos clonados precargados', 'info')
+        } else {
+             resetForm()
+        }
     } else {
         isNew.value = false
         await loadCliente(route.params.id)

@@ -11,12 +11,23 @@
             <h2 class="text-2xl font-bold text-white mb-2">UTILIDADES MAESTRAS</h2>
             <p class="text-gray-400 mb-8 text-sm">Zona restringida (Nivel 4).<br>Ingrese Clave de Administrador.</p>
             
+            <!-- HONEYPOT (Catch browser autofill) -->
+            <div class="h-0 w-0 overflow-hidden opacity-0">
+                 <input type="text" name="username_honey" tabindex="-1" aria-hidden="true" />
+                 <input type="password" name="password_honey" tabindex="-1" aria-hidden="true" />
+            </div>
+            
+            <!-- ACTUAL PIN INPUT (Type=text + CSS Masking) -->
             <input 
                 ref="pinInputRef"
-                type="password" 
+                type="text" 
+                inputmode="numeric"
+                pattern="[0-9]*"
+                autocomplete="off"
                 v-model="pinInput" 
                 @keydown.enter="verifyPin"
                 class="w-full bg-black/50 border border-gray-700 rounded-xl px-4 py-3 text-center text-2xl tracking-[0.5em] text-white font-mono focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all mb-4"
+                style="-webkit-text-security: disc;"
                 placeholder="PIN"
                 maxlength="8"
             />

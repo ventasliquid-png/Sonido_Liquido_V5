@@ -1,7 +1,7 @@
 from typing import List, Optional
 from uuid import UUID
 from datetime import datetime
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 import re
 from backend.agenda.schemas import VinculoComercialCreate, VinculoComercialUpdate
 
@@ -70,6 +70,17 @@ class DomicilioResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+    @model_validator(mode='after')
+    def parse_calle_pipe(self) -> 'DomicilioResponse':
+        if self.calle and '|' in self.calle:
+            parts = self.calle.split('|')
+            self.calle = parts[0]
+            if len(parts) > 1:
+                self.piso = parts[1]
+            if len(parts) > 2:
+                self.depto = parts[2]
+        return self
 
 # --- Cliente Schemas ---
 class ClienteBase(BaseModel):

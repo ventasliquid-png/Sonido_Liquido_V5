@@ -42,6 +42,39 @@
          </div>
       </div>
 
+      <!-- ACTION TOOLBAR -->
+      <div v-if="items.length > 0" class="flex items-center gap-4 mb-4 bg-gray-800/50 p-2 rounded-lg border border-gray-700">
+          <div class="flex items-center gap-2 px-2 cursor-pointer" @click="toggleSelectAll">
+                <input 
+                    type="checkbox" 
+                    :checked="isAllSelected"
+                    class="rounded bg-[#020a0f] border-cyan-500/50 text-cyan-500 focus:ring-0 focus:ring-offset-0 cursor-pointer h-5 w-5"
+                />
+                <span class="text-xs font-bold text-gray-400 select-none">Seleccionar Todos</span>
+          </div>
+
+          <div class="h-4 w-px bg-gray-700"></div>
+
+          <!-- BULK ACTIONS -->
+           <button 
+            v-if="selectedIds.length > 0"
+            @click="handleBulkRescue"
+            class="flex items-center gap-2 rounded-lg bg-emerald-600/20 px-4 py-1.5 text-sm font-bold text-emerald-400 shadow-lg border border-emerald-500/30 hover:bg-emerald-600/40 transition-all"
+          >
+            <i class="fas fa-life-ring"></i>
+            <span>RESCATAR ({{ selectedIds.length }})</span>
+          </button>
+
+          <button 
+            v-if="selectedIds.length > 0"
+            @click="handleBulkHardDelete"
+            class="flex items-center gap-2 rounded-lg bg-red-600/20 px-4 py-1.5 text-sm font-bold text-red-500 shadow-lg border border-red-500/30 hover:bg-red-600/40 transition-all ml-auto"
+          >
+            <i class="fas fa-dumpster-fire"></i>
+            <span>ELIMINAR SELECCIONADOS ({{ selectedIds.length }})</span>
+          </button>
+      </div>
+
       <!-- MAIN TABLE -->
       <div>
           <div v-if="items.length === 0 && !loading" class="flex flex-col items-center justify-center h-64 text-gray-500">
@@ -51,11 +84,20 @@
 
           <div v-else class="grid gap-2">
              <div v-for="item in items" :key="item.id" 
-                  class="bg-[#1e293b]/50 border border-white/5 rounded-lg p-4 flex items-center justify-between hover:bg-[#1e293b] transition-colors group">
+                  class="bg-[#1e293b]/50 border border-white/5 rounded-lg p-4 flex items-center justify-between hover:bg-[#1e293b] transition-colors group cursor-pointer"
+                  @click="toggleSelection(item.id)">
                  
-                 <!-- INFO -->
+                 <!-- CHECKBOX + INFO -->
                  <div class="flex items-center gap-4">
-                     <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs"
+                     <div class="p-2" @click.stop="">
+                        <input 
+                            type="checkbox" 
+                            :checked="selectedIds.includes(item.id)" 
+                            @change="toggleSelection(item.id)"
+                            class="rounded bg-[#020a0f] border-cyan-500/50 text-cyan-500 focus:ring-0 focus:ring-offset-0 cursor-pointer h-5 w-5"
+                        />
+                     </div>
+                     <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shrink-0"
                           :class="item.integrity?.safe ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'">
                          <i :class="item.integrity?.safe ? 'fas fa-check' : 'fas fa-link'"></i>
                      </div>
@@ -81,9 +123,17 @@
                          </span>
                      </div>
 
-                     <!-- ACTION BUTTON -->
+                     <!-- ACTION BUTTONS -->
                      <button 
-                        @click="confirmHardDelete(item)"
+                        @click.stop="rescueItem(item)"
+                        class="w-10 h-10 rounded-lg flex items-center justify-center transition-all border bg-emerald-500/10 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500 hover:text-white"
+                        title="Rescatar (Volver a Padrón)"
+                     >
+                         <i class="fas fa-undo"></i>
+                     </button>
+
+                     <button 
+                        @click.stop="confirmHardDelete(item)"
                         :disabled="!item.integrity?.safe"
                         class="w-10 h-10 rounded-lg flex items-center justify-center transition-all border"
                         :class="[
@@ -105,25 +155,51 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import api from '../../services/api';
 import { useClientesStore } from '../../stores/clientes';
 import { useProductosStore } from '../../stores/productos';
+import { useNotificationStore } from '../../stores/notification';
 
 const clientesStore = useClientesStore();
 const productosStore = useProductosStore();
+const notificationStore = useNotificationStore();
 
 // --- DATA STATE ---
 const currentType = ref('clientes');
 const items = ref([]);
 const loading = ref(false);
+const selectedIds = ref([]); // SELECTION STATE
 
 const reloadData = () => loadData(currentType.value);
 
+// --- SELECTION LOGIC ---
+const isAllSelected = computed(() => {
+    return items.value.length > 0 && selectedIds.value.length === items.value.length;
+});
+
+const toggleSelectAll = () => {
+    if (isAllSelected.value) {
+        selectedIds.value = [];
+    } else {
+        selectedIds.value = items.value.map(i => i.id);
+    }
+};
+
+const toggleSelection = (id) => {
+    if (selectedIds.value.includes(id)) {
+        selectedIds.value = selectedIds.value.filter(i => i !== id);
+    } else {
+        selectedIds.value.push(id);
+    }
+};
+
+// --- DATA LOADING ---
 const loadData = async (type) => {
     currentType.value = type;
     loading.value = true;
     items.value = [];
+    selectedIds.value = []; // Reset selection on type change
     
     try {
         let endpoint = type === 'clientes' ? '/clientes/' : '/productos/';
@@ -154,34 +230,120 @@ const loadData = async (type) => {
     }
 };
 
+// --- ACTION LOGIC ---
+
+// 1. RESCUE (Reactivar)
+const rescueItem = async (item) => {
+    try {
+        if (!confirm(`¿Restaurar "${currentType.value === 'clientes' ? item.razon_social : item.nombre}" al padrón activo?`)) return;
+        
+        loading.value = true;
+        if (currentType.value === 'clientes') {
+            await clientesStore.updateCliente(item.id, { ...item, activo: true });
+        } else {
+            // Products
+            await productosStore.updateProducto(item.id, { ...item, activo: true });
+        }
+        
+        // Remove from list
+        items.value = items.value.filter(i => i.id !== item.id);
+        selectedIds.value = selectedIds.value.filter(id => id !== item.id);
+        
+        notificationStore.add('Registro rescatado exitosamente', 'success');
+        
+    } catch (e) {
+        console.error(e);
+        alert('Error al rescatar: ' + e.message);
+    } finally {
+        loading.value = false;
+    }
+};
+
+const handleBulkRescue = async () => {
+    if (!confirm(`¿Restaurar ${selectedIds.value.length} registros seleccionados?`)) return;
+    
+    loading.value = true;
+    let successCount = 0;
+    
+    for (const id of selectedIds.value) {
+        try {
+            const item = items.value.find(i => i.id === id);
+            if (!item) continue;
+            
+            if (currentType.value === 'clientes') {
+                await clientesStore.updateCliente(id, { ...item, activo: true });
+            } else {
+                await productosStore.updateProducto(id, { ...item, activo: true });
+            }
+            successCount++;
+        } catch (e) {
+            console.error(`Failed to rescue ${id}`, e);
+        }
+    }
+    
+    // Refresh list (easier than filtering array for bulk)
+    await loadData(currentType.value);
+    notificationStore.add(`${successCount} registros rescatados`, 'success');
+};
+
+
+// 2. HARD DELETE (Eliminar Definitivamente)
 const confirmHardDelete = async (item) => {
     if (!confirm(`⚠️ PELIGRO ⚠️\n\n¿Confirma la ELIMINACIÓN FÍSICA de:\n${currentType.value === 'clientes' ? item.razon_social : item.nombre}?\n\nEsta acción NO se puede deshacer.`)) return;
     
     try {
         loading.value = true;
-        
-        if (currentType.value === 'clientes') {
-            // Use Store Action to ensure Global State Update
-            await clientesStore.hardDeleteCliente(item.id);
-        } else {
-            // Manual API call for products if store action missing, or add to store.
-            // Let's assume store might not have it yet, so use mixed approach if needed.
-            // But productsStore usually has delete. Let's check or safe-fail to API.
-            // For now, let's use API for products if we are not sure, but for clients we use Store.
-            // Actually, let's use API + Store Refresh for products to be safe if `hardDelete` isn't in store.
-             await api.delete(`/productos/${item.id}/hard`);
-             // Force refresh products store to remove from list
-             productosStore.fetchProductos();
-        }
+        await executeHardDelete(item.id);
         
         // Remove from local list
         items.value = items.value.filter(i => i.id !== item.id);
+        selectedIds.value = selectedIds.value.filter(id => id !== item.id);
         
     } catch (e) {
         console.error(e);
         alert("Error al eliminar: " + (e.response?.data?.detail || e.message));
     } finally {
         loading.value = false;
+    }
+};
+
+const handleBulkHardDelete = async () => {
+    const safeToDeleteIds = items.value.filter(i => selectedIds.value.includes(i.id) && i.integrity?.safe).map(i => i.id);
+    const blockedCount = selectedIds.value.length - safeToDeleteIds.length;
+    
+    if (safeToDeleteIds.length === 0) {
+        alert("Ninguno de los elementos seleccionados es seguro para eliminar (tienen dependencias).");
+        return;
+    }
+    
+    let msg = `⚠️ PELIGRO MASIVO ⚠️\n\nSe eliminarán DEFINITIVAMENTE ${safeToDeleteIds.length} registros.\n`;
+    if (blockedCount > 0) msg += `(Se omitirán ${blockedCount} registros bloqueados por dependencias)\n`;
+    msg += `\n¿ESTÁ COMPLETAMENTE SEGURO?`;
+    
+    if (!confirm(msg)) return;
+    
+    loading.value = true;
+    let successCount = 0;
+    
+    for (const id of safeToDeleteIds) {
+        try {
+            await executeHardDelete(id);
+            successCount++;
+        } catch (e) {
+            console.error(`Failed to delete ${id}`, e);
+        }
+    }
+    
+    await loadData(currentType.value);
+    notificationStore.add(`${successCount} registros eliminados definitivamente`, 'success');
+};
+
+const executeHardDelete = async (id) => {
+    if (currentType.value === 'clientes') {
+        await clientesStore.hardDeleteCliente(id);
+    } else {
+        await api.delete(`/productos/${id}/hard`);
+        productosStore.fetchProductos();
     }
 };
 

@@ -37,6 +37,11 @@ Cada vez que recibas la orden explícita:
 1.  **NO BASTA** con modificar el código Python.
 2.  **OBLIGATORIO:** Agregar la sentencia SQL correspondiente en `_GY/_MD/PENDING_SCHEMA_CHANGES.sql`.
 
+
+### **DIRECTIVA 4 (PROTOCOLO IDIOMÁTICO):**
+> [!IMPORTANT]
+> **IDIOMA OBLIGATORIO**: Todas las respuestas e interacciones con el usuario deben ser **SIEMPRE EN ESPAÑOL**, salvo que el usuario solicite explícitamente otro idioma o se trate de logs técnicos literales.
+
 ---
 
 ## 🧠 1. CARGA DE MEMORIA (RAG)

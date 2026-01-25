@@ -85,7 +85,13 @@ class Cliente(Base):
         if fiscal:
             numero = f" {fiscal.numero}" if fiscal.numero else ""
             localidad = f", {fiscal.localidad}" if fiscal.localidad else ""
-            return f"{fiscal.calle}{numero}{localidad}"
+            provincia = ""
+            if fiscal.provincia:
+                provincia = f" ({fiscal.provincia.nombre})"
+            elif fiscal.provincia_id:
+                provincia = f" ({fiscal.provincia_id})"
+                
+            return f"{fiscal.calle}{numero}{localidad}{provincia}"
         return None
 
     @property

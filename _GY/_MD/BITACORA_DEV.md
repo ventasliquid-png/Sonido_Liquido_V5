@@ -347,3 +347,24 @@ Se detectó y documentó retroactivamente el parche de emergencia 'Math Guard Cl
 **Informe Detallado:** [Ver Reporte OMEGA](../INFORMES_HISTORICOS/2026-01-23_PROTOCOLO_OMEGA_DOMICILIOS.md)
 **Resumen:** Se solucion� el crash de lista de clientes, se implement� la fusi�n de Piso/Depto en string, y se corrigi� la sincronizaci�n visual del flag Fiscal.
 
+
+## SESION 781: UX Clientes & Hardening Seguridad
+**Fecha:** 2026-01-24
+**Objetivo:** Finalizar refactorización de Header Clientes, arreglar visualización de domicilios y solucionar alertas de contraseña en navegador.
+
+### Hito 1: Refactor Header HaweView (Teleport Fix)
+Se completó la migración del header de Clientes para usar el sistema Teleport hacia GlobalStatsBar.
+**CRÍTICO:** Se documentó y solucionó una *race condition*. El componente HaweView intentaba teleportar antes de que el target #global-header-center existiera.
+*   **Solución:** Se implementó gate v-if='isMounted' en el Teleport y se aseguró la renderización síncrona de la estructura en GlobalStatsBar.
+*   **Lección:** Para futuros módulos (Productos), es MANDATORIO usar isMounted al usar Teleport.
+
+### Hito 2: UX Clientes
+*   **Toolbar:** Reordenada según especificación (9 items: Checkbox -> ... -> Nuevo).
+*   **Domicilios:** Se eliminó el uso de pipes | en la visualización. Se integró la visualización de Provincia para desambiguar localidades. Backend actualizado (domicilio_fiscal_resumen) para soportar esto.
+
+### Hito 3: Seguridad Admin (Password Prompt Bypass)
+Los navegadores modernos (Brave/Chromium) ignoran autocomplete='off'/new-password.
+*   **Fix Definitivo:** Se cambió el input del PIN de administrador a type='text' y se aplicó CSS -webkit-text-security: disc;. Esto elimina completamente la heurística de guardado de contraseñas del navegador mientras mantiene la privacidad visual.
+
+**Estado:** Módulo Clientes VERIFICADO y CERRADO.
+
