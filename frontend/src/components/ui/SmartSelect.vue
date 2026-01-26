@@ -48,22 +48,24 @@ const containerRef = ref(null);
 
 // Initialize search query based on modelValue
 watch(() => props.modelValue, (newVal) => {
-    const selected = props.options.find(o => o.id === newVal);
-    if (selected) {
-        searchQuery.value = selected.nombre || selected.razon_social || selected.descripcion;
-    } else {
-        // Only clear if options are loaded, otherwise keep it (might be loading)
-        if (props.options.length > 0) {
-            searchQuery.value = '';
+    // Only update search query if we have a value selected
+    // If newVal is null, we do NOT clear the query, allowing the user to type to search
+    // We only clear if explicitly needed (e.g. form reset), but here we prioritize preserving user input
+    if (newVal) {
+        const selected = props.options.find(o => o.id === newVal);
+        if (selected) {
+            searchQuery.value = selected.nombre || selected.razon_social || selected.descripcion;
         }
     }
 }, { immediate: true });
 
 // Update query if options change
 watch(() => props.options, () => {
-    const selected = props.options.find(o => o.id === props.modelValue);
-    if (selected) {
-        searchQuery.value = selected.nombre || selected.razon_social || selected.descripcion;
+    if (props.modelValue) {
+        const selected = props.options.find(o => o.id === props.modelValue);
+        if (selected) {
+            searchQuery.value = selected.nombre || selected.razon_social || selected.descripcion;
+        }
     }
 });
 
@@ -152,6 +154,15 @@ const close = () => {
     }
 };
 
+watch(() => props.options, (newOpts) => {
+    if (props.modelValue) {
+        const selected = props.options.find(o => o.id === props.modelValue);
+        if (selected) {
+            searchQuery.value = selected.nombre || selected.razon_social || selected.descripcion;
+        }
+    }
+}, { immediate: true });
+
 const selectOption = (option) => {
     if (option._type === 'header') return;
     emit('update:modelValue', option.id);
@@ -198,9 +209,11 @@ const selectCanteraItem = (item) => {
 
 const handleInput = (e) => {
     if (!isOpen.value) isOpen.value = true;
-    canteraResults.value = []; // Clear cantera results on new input
-    if (e.target.value === '') {
-        emit('update:modelValue', null);
+    canteraResults.value = []; 
+    // If user is typing, we deselect the current ID so we can search freely
+    // But we keeping the text in searchQuery
+    if (props.modelValue && e.target.value !== searchQuery.value) {
+         emit('update:modelValue', null);
     }
 };
 
@@ -303,7 +316,7 @@ onUnmounted(() => {
                     @input="handleInput"
                     @keydown="handleKeydown"
                     @focus="open"
-                    class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none bg-white"
+                    class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-[#54cb9b] focus:ring-1 focus:ring-[#54cb9b] focus:outline-none bg-white text-gray-900"
                     :placeholder="placeholder"
                     autocomplete="off"
                     spellcheck="false"
@@ -317,7 +330,7 @@ onUnmounted(() => {
 
                 <div v-if="isOpen" class="absolute z-[100] w-full mt-1 bg-white border border-gray-200 rounded-md shadow-xl max-h-96 overflow-auto" ref="listRef">
                     <ul class="py-1">
-                        <li 
+                        <li  
                             v-if="allowCreate"
                             @click="triggerCreate"
                             class="px-3 py-2 text-sm text-[#54cb9b] font-bold hover:bg-green-50 cursor-pointer border-b border-gray-100 flex items-center gap-2"
@@ -349,18 +362,20 @@ onUnmounted(() => {
 
                         <template v-for="(opt, index) in filteredOptions" :key="opt.id || index">
                             <!-- Header -->
-                            <li v-if="opt._type === 'header'" class="px-3 py-1 text-[10px] font-bold text-gray-400 bg-gray-50 uppercase tracking-wider border-b border-gray-100 mt-1 first:mt-0">
+                            <li 
+                                v-if="opt._type === 'header'"
+                                class="px-3 py-1 text-[10px] font-bold text-gray-400 bg-gray-50 uppercase tracking-wider"
+                            >
                                 {{ opt.label }}
                             </li>
-                            
                             <!-- Option -->
                             <li 
                                 v-else
                                 :data-index="index"
                                 data-selectable="true"
                                 @click="selectOption(opt)"
-                                class="px-3 py-2 text-sm cursor-pointer transition-colors flex justify-between items-center"
-                                :class="{'bg-[#54cb9b] text-white': index === highlightedIndex, 'text-gray-700 hover:bg-gray-100': index !== highlightedIndex}"
+                                class="px-3 py-2 text-sm cursor-pointer transition-colors flex justify-between items-center text-gray-900 hover:bg-gray-100"
+                                :class="{'bg-[#54cb9b] text-white': index === highlightedIndex, 'text-gray-900': index !== highlightedIndex}"
                                 @mouseenter="highlightedIndex = index"
                             >
                                 <div class="flex items-center gap-2">

@@ -2,17 +2,29 @@
   <div class="flex flex-col h-full w-full backdrop-blur-xl transition-all hud-border-cyan rounded-xl" 
        :class="isCompact ? 'bg-[#0f172a]/90 border-l border-cyan-500' : 'bg-[#0f172a]'">
     <!-- Persistent Header -->
-    <div class="flex justify-between items-center border-b border-cyan-500/30 bg-black/20 shrink-0 transition-all"
+    <div class="flex flex-col border-b border-cyan-500/30 bg-black/20 shrink-0 transition-all gap-2"
          :class="isCompact ? 'p-3 py-2' : 'p-6'">
-        <div>
-            <h2 class="text-lg font-bold text-cyan-100 leading-tight">
-                {{ modelValue?.razon_social || (isNew ? 'Nuevo Cliente' : 'Seleccione Cliente') }}
-            </h2>
-            <p class="text-xs text-cyan-400/50 font-mono mt-1">{{ headerSubtitle }}</p>
+        <div class="flex justify-between items-start">
+             <!-- Center Title Effect in Inspector -->
+            <div class="flex-1 text-center">
+                 <h2 class="text-lg font-black text-cyan-500 uppercase tracking-[0.2em] transform skew-x-[-10deg] drop-shadow-[0_0_8px_rgba(6,182,212,0.5)] leading-tight pl-1">
+                    {{ isNew ? 'Formulario de Alta' : 'Edición Rápida' }}
+                </h2>
+            </div>
+            
+            <button v-if="modelValue || isNew" @click="$emit('close')" class="absolute right-3 top-3 text-cyan-900/50 hover:text-cyan-100 transition-colors">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
-        <button v-if="modelValue || isNew" @click="$emit('close')" class="text-cyan-900/50 hover:text-cyan-100 transition-colors">
-            <i class="fas fa-times"></i>
-        </button>
+        
+        <!-- Razón Social Input (Header) -->
+        <input 
+            v-model="form.razon_social" 
+            autocomplete="off" 
+            spellcheck="false" 
+            class="bg-black/40 border border-white/20 rounded-md px-3 py-1.5 text-xl font-bold text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition-all placeholder-white/20 w-full" 
+            placeholder="Ingrese Razón Social..." 
+        />
     </div>
 
     <!-- Inconsistency Banner -->
@@ -89,147 +101,139 @@
                     </p>
                 </div>
 
-                <!-- Active Toggle -->
-                <div class="flex items-center justify-between bg-cyan-900/10 p-3 rounded-lg border border-cyan-900/20">
-                    <span class="text-sm font-bold text-cyan-100">Estado</span>
-                    <div class="flex items-center gap-2">
-                        <span class="text-[10px] font-bold uppercase" :class="form.activo ? 'text-green-400' : 'text-red-400'">
-                            {{ form.activo ? 'ACTIVO' : 'INACTIVO' }}
-                        </span>
-                        <button 
-                            @click="toggleActive"
-                            class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none"
-                            :class="form.activo ? 'bg-green-500/50' : 'bg-red-500/50'"
-                        >
-                            <span 
-                                class="inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm"
-                                :class="form.activo ? 'translate-x-4.5' : 'translate-x-1'"
-                            />
-                        </button>
+                <!-- Row 1: Addresses (Fiscal & Delivery) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Domicilio Fiscal -->
+                    <div class="bg-cyan-900/10 border border-cyan-900/30 rounded-lg p-3 relative group">
+                         <div class="flex justify-between items-center mb-2 border-b border-cyan-900/20 pb-1">
+                            <label class="text-[10px] font-bold text-cyan-400 uppercase tracking-widest"><i class="fas fa-file-invoice mr-1"></i> Domicilio Fiscal <span class="text-red-400">*</span></label>
+                         </div>
+                         <div class="space-y-2">
+                            <div class="grid grid-cols-3 gap-2">
+                                <div class="col-span-2">
+                                    <input v-model="fiscalForm.calle" class="w-full bg-black/20 border border-cyan-900/30 rounded px-2 py-1 text-xs text-cyan-100 focus:border-cyan-500 outline-none placeholder-cyan-900/30" placeholder="Calle Fiscal" />
+                                </div>
+                                <div class="col-span-1">
+                                    <input v-model="fiscalForm.numero" class="w-full bg-black/20 border border-cyan-900/30 rounded px-2 py-1 text-xs text-cyan-100 focus:border-cyan-500 outline-none placeholder-cyan-900/30" placeholder="Nro" />
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input v-model="fiscalForm.localidad" class="w-full bg-black/20 border border-cyan-900/30 rounded px-2 py-1 text-xs text-cyan-100 focus:border-cyan-500 outline-none placeholder-cyan-900/30" placeholder="Localidad" />
+                                <select v-model="fiscalForm.provincia_id" class="w-full bg-black/20 border border-cyan-900/30 rounded px-2 py-1 text-[10px] text-cyan-100 focus:border-cyan-500 outline-none appearance-none">
+                                    <option :value="null">Provincia...</option>
+                                    <option v-for="prov in provincias" :key="prov.id" :value="prov.id">{{ prov.nombre }}</option>
+                                </select>
+                            </div>
+                         </div>
+                    </div>
+
+                    <!-- Domicilio Entrega (Simplified) -->
+                    <div class="bg-emerald-900/10 border border-emerald-900/30 rounded-lg p-3 relative group">
+                         <div class="flex justify-between items-center mb-2 border-b border-emerald-900/20 pb-1">
+                            <label class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest"><i class="fas fa-truck mr-1"></i> Entrega / Logística</label>
+                            <label class="flex items-center gap-1 cursor-pointer">
+                                <input type="checkbox" v-model="useFiscalAsDelivery" class="accent-emerald-500 h-3 w-3" />
+                                <span class="text-[9px] text-emerald-300/50 uppercase">Igual a Fiscal</span>
+                            </label>
+                         </div>
+                         <div class="space-y-2" :class="{ 'opacity-50 pointer-events-none': useFiscalAsDelivery }">
+                             <!-- Show Fields only if different, or grayed out -->
+                            <div class="grid grid-cols-3 gap-2">
+                                <div class="col-span-2">
+                                    <input v-model="deliveryForm.calle" class="w-full bg-black/20 border border-emerald-900/30 rounded px-2 py-1 text-xs text-emerald-100 focus:border-emerald-500 outline-none placeholder-emerald-900/30" placeholder="Calle Entrega" />
+                                </div>
+                                <div class="col-span-1">
+                                    <input v-model="deliveryForm.numero" class="w-full bg-black/20 border border-emerald-900/30 rounded px-2 py-1 text-xs text-emerald-100 focus:border-emerald-500 outline-none placeholder-emerald-900/30" placeholder="Nro" />
+                                </div>
+                            </div>
+                            <!-- Transporte linked here -->
+                            <div class="pointer-events-auto" @contextmenu.prevent="openTransportContextMenu">
+                                <SmartSelect
+                                    v-model="quickTransportId"
+                                    :options="transportes"
+                                    placeholder="Transporte Habitual..."
+                                    :allowCreate="false"
+                                    class="dark-smart-select"
+                                />
+                            </div>
+                         </div>
                     </div>
                 </div>
 
-                <!-- Fields -->
-                <div>
-                  <label class="block text-xs font-bold uppercase text-cyan-900/50 mb-1">Razón Social <span class="text-red-400">*</span></label>
-                  <input v-model="form.razon_social" autocomplete="off" spellcheck="false" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-colors placeholder-cyan-900/30" placeholder="Ej: Empresa S.A." />
-                </div>
+                <!-- Row 2: Tax & Classification -->
+                <div class="grid grid-cols-12 gap-3 items-end pt-2">
+                    <!-- CUIT (15 chars approx) -->
+                    <div class="col-span-2">
+                         <label class="block text-[10px] font-bold uppercase text-cyan-900/50 mb-1">CUIT <span class="text-red-400">*</span></label>
+                         <input v-model="form.cuit" autocomplete="off" spellcheck="false" @input="formatCuitInput" @blur="checkCuitBackend" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-xs text-cyan-100 focus:border-cyan-500 outline-none transition-colors font-mono placeholder-cyan-900/30" placeholder="00-00000000-0" maxlength="13" />
+                    </div>
 
-                <div>
-                    <label class="block text-xs font-bold uppercase text-cyan-900/50 mb-1">CUIT <span class="text-red-400">*</span></label>
-                    <input v-model="form.cuit" autocomplete="off" spellcheck="false" @input="formatCuitInput" @blur="checkCuitBackend" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-colors font-mono placeholder-cyan-900/30" placeholder="00-00000000-0" maxlength="13" />
-                    
-                    <!-- Alert: Duplicated CUIT -->
-                    <div v-if="cuitWarningClients.length > 0 && !cuitWarningDismissed" class="mt-2 bg-yellow-900/20 border border-yellow-500/30 rounded p-3 text-xs animate-pulse-once">
-                        <div class="flex justify-between items-start mb-2">
-                            <p class="text-yellow-400 font-bold flex items-center gap-2">
-                                <i class="fas fa-exclamation-triangle"></i> CUIT compartido:
-                            </p>
-                            <button @click="dismissCuitWarning" class="text-[10px] bg-yellow-500/20 hover:bg-yellow-500/40 text-yellow-200 px-2 py-0.5 rounded border border-yellow-500/30 transition-colors uppercase font-bold" title="Ignorar advertencia y continuar creación">
-                                Ok, Nueva Sede
+                    <!-- Condicion IVA (20 chars approx) -->
+                    <div class="col-span-3" @contextmenu.prevent="openIvaContextMenu">
+                        <div class="flex justify-between mb-1">
+                            <label class="block text-[10px] font-bold uppercase text-cyan-900/50">Condición IVA <span class="text-red-400">*</span></label>
+                            <button @click="openAbm('IVA')" class="text-[9px] uppercase font-bold text-cyan-500 hover:text-cyan-400 focus:outline-none opacity-50 hover:opacity-100">
+                                <i class="fas fa-cog"></i> ABM
                             </button>
                         </div>
-                        
-                        <p class="text-[10px] text-yellow-500/70 mb-2 italic">
-                            Este CUIT ya existe. Doble click para editar el existente, o "Ok" para crear nueva sede.
-                        </p>
+                        <select v-model="form.condicion_iva_id" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-xs text-cyan-100 focus:border-cyan-500 outline-none transition-colors appearance-none truncate">
+                            <option :value="null">Seleccionar...</option>
+                            <option v-for="cond in condicionesIva" :key="cond.id" :value="cond.id">{{ cond.nombre }}</option>
+                        </select>
+                    </div>
 
-                        <ul class="space-y-1 max-h-60 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-yellow-700/50">
-                            <li 
-                                v-for="dup in cuitWarningClients" 
-                                :key="dup.id" 
-                                @dblclick="selectExistingClient(dup)"
-                                class="text-yellow-200/70 hover:text-yellow-100 hover:bg-yellow-500/10 cursor-pointer bg-black/20 p-2 rounded border border-transparent hover:border-yellow-500/30 transition-all select-none"
-                                title="Doble click para cargar este cliente"
+                    <!-- Lista Precios (20 chars approx) -->
+                    <div class="col-span-3">
+                         <div class="flex justify-between mb-1">
+                            <label class="block text-[10px] font-bold uppercase text-cyan-900/50">Lista Precios <span class="text-red-400">*</span></label>
+                        </div>
+                        <select v-model="form.lista_precios_id" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-xs text-cyan-100 focus:border-cyan-500 outline-none transition-colors appearance-none truncate">
+                            <option :value="null" disabled>Seleccione Lista...</option>
+                            <option v-for="lista in listasPrecios" :key="lista.id" :value="lista.id">{{ lista.nombre }}</option>
+                        </select>
+                    </div>
+
+                    <!-- Segmento (15 chars approx) -->
+                    <div class="col-span-2">
+                         <div class="flex justify-between mb-1">
+                            <label class="block text-[10px] font-bold uppercase text-cyan-900/50">Segmento <span class="text-red-400">*</span></label>
+                             <button @click="openAbm('SEGMENTO')" class="text-[9px] uppercase font-bold text-cyan-500 hover:text-cyan-400 focus:outline-none opacity-50 hover:opacity-100">
+                                <i class="fas fa-cog"></i>
+                            </button>
+                        </div>
+                        <select v-model="form.segmento_id" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-xs text-cyan-100 focus:border-cyan-500 outline-none transition-colors appearance-none truncate">
+                            <option :value="null">Sin Segmento</option>
+                            <option v-for="seg in segmentos" :key="seg.id" :value="seg.id">{{ seg.nombre }}</option>
+                        </select>
+                    </div>
+
+                    <!-- Operativo (Small) -->
+                    <div class="col-span-2 flex flex-col justify-end pb-1">
+                        <div class="flex items-center justify-between bg-white/5 p-1.5 rounded border border-white/10">
+                            <label class="text-[9px] font-bold text-cyan-900/70 uppercase mr-2">Operativo</label>
+                            <button 
+                                @click="toggleActive"
+                                class="relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none"
+                                :class="form.activo ? 'bg-green-500/50' : 'bg-red-500/50'"
                             >
-                                <div class="flex justify-between items-center">
-                                    <span class="font-bold">{{ dup.razon_social }}</span>
-                                    <i class="fas fa-external-link-alt text-[10px] opacity-50"></i>
-                                </div>
-                                <div class="text-[10px] opacity-70 mt-0.5">{{ dup.domicilio_principal || 'Sin domicilio registrado' }}</div>
-                            </li>
-                        </ul>
-                    </div>
-
-                    <p v-if="cuitError" class="text-[10px] text-red-400 mt-1">{{ cuitError }}</p>
-                </div>
-
-                <div @contextmenu.prevent="openIvaContextMenu" class="cursor-context-menu">
-                    <div class="flex justify-between mb-1">
-                        <label class="block text-xs font-bold uppercase text-cyan-900/50">Condición IVA <span class="text-red-400">*</span></label>
-                        <button @click="openAbm('IVA')" class="text-[10px] uppercase font-bold text-cyan-500 hover:text-cyan-400 focus:outline-none" title="Administrar Condiciones">
-                            <i class="fas fa-cog"></i> ABM
-                        </button>
-                    </div>
-                    <select v-model="form.condicion_iva_id" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors appearance-none">
-                        <option :value="null">Seleccionar...</option>
-                        <option v-for="cond in condicionesIva" :key="cond.id" :value="cond.id">{{ cond.nombre }}</option>
-                    </select>
-                </div>
-
-                <div>
-                    <div class="flex justify-between mb-1">
-                        <label class="block text-xs font-bold uppercase text-cyan-900/50">Segmento <span class="text-red-400">*</span></label>
-                        <button @click="openAbm('SEGMENTO')" class="text-[10px] uppercase font-bold text-cyan-500 hover:text-cyan-400 focus:outline-none" title="Administrar Segmentos">
-                            <i class="fas fa-cog"></i> ABM
-                        </button>
-                    </div>
-                    <select v-model="form.segmento_id" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors appearance-none">
-                        <option :value="null">Sin Segmento</option>
-                        <option v-for="seg in segmentos" :key="seg.id" :value="seg.id">{{ seg.nombre }}</option>
-                    </select>
-
-                </div>
-
-                <div>
-                    <div class="flex justify-between mb-1">
-                        <label class="block text-xs font-bold uppercase text-cyan-900/50">Lista de Precios <span class="text-red-400">*</span></label>
-                         <button @click="router.push({name: 'ListasPrecios'})" class="text-[10px] uppercase font-bold text-cyan-500 hover:text-cyan-400 focus:outline-none" title="Ir a Gestión de Listas">
-                            <i class="fas fa-external-link-alt"></i>
-                        </button>
-                    </div>
-                    <select v-model="form.lista_precios_id" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors appearance-none">
-                        <option :value="null" disabled>Seleccione Lista...</option>
-                        <option v-for="lista in listasPrecios" :key="lista.id" :value="lista.id">{{ lista.nombre }}</option>
-                    </select>
-                </div>
-
-
-                <!-- DOMICILIO FISCAL (Solo Alta) -->
-                <div v-if="isNew" class="pt-4 border-t border-cyan-900/20">
-                    <h3 class="text-xs font-bold text-cyan-400 mb-3 flex items-center gap-2">
-                        <i class="fas fa-map-marker-alt"></i> DOMICILIO FISCAL (Obligatorio)
-                    </h3>
-                    <div class="space-y-3">
-                        <div>
-                            <label class="block text-[10px] font-bold uppercase text-cyan-900/50 mb-1">Calle <span class="text-red-400">*</span></label>
-                            <input v-model="fiscalForm.calle" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-colors placeholder-cyan-900/30" placeholder="Ej: San Martin" />
-                        </div>
-                        <div class="flex gap-2">
-                             <div class="w-1/3">
-                                <label class="block text-[10px] font-bold uppercase text-cyan-900/50 mb-1">Altura <span class="text-red-400">*</span></label>
-                                <input v-model="fiscalForm.numero" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors placeholder-cyan-900/30" />
-                             </div>
-                             <div class="w-2/3">
-                                <label class="block text-[10px] font-bold uppercase text-cyan-900/50 mb-1">Localidad <span class="text-red-400">*</span></label>
-                                <input v-model="fiscalForm.localidad" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors placeholder-cyan-900/30" />
-                             </div>
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold uppercase text-cyan-900/50 mb-1">Provincia <span class="text-red-400">*</span></label>
-                            <select v-model="fiscalForm.provincia_id" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors appearance-none text-xs">
-                                <option :value="null">Seleccionar...</option>
-                                <option v-for="prov in provincias" :key="prov.id" :value="prov.id">{{ prov.nombre }}</option>
-                            </select>
-                        </div>
-                         <div>
-                            <select v-model="fiscalForm.transporte_id" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-cyan-100 focus:border-cyan-500 outline-none transition-colors appearance-none text-xs">
-                                <option :value="null">Transporte Sugerido</option>
-                                <option v-for="trans in transportes" :key="trans.id" :value="trans.id">{{ trans.nombre }}</option>
-                            </select>
+                                <span 
+                                    class="inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform shadow-sm"
+                                    :class="form.activo ? 'translate-x-3.5' : 'translate-x-1'"
+                                />
+                            </button>
                         </div>
                     </div>
                 </div>
+
+                <!-- CUIT Warning Banner (Moved here) -->
+                <div v-if="cuitWarningClients.length > 0 && !cuitWarningDismissed" class="mt-1 bg-yellow-900/20 border border-yellow-500/30 rounded p-2 text-xs">
+                    <div class="flex justify-between items-center">
+                         <p class="text-yellow-400 font-bold text-[10px]"><i class="fas fa-exclamation-triangle mr-1"></i> CUIT Duplicado</p>
+                         <button @click="dismissCuitWarning" class="text-[9px] bg-yellow-500/20 text-yellow-200 px-2 py-0.5 rounded border border-yellow-500/30 uppercase font-bold">Ignorar</button>
+                    </div>
+                </div>
+                <p v-if="cuitError" class="text-[10px] text-red-400 mt-1">{{ cuitError }}</p>
+
 
                 <div v-if="isNew" class="pt-2 text-[10px] text-red-400/80 italic text-right">
                     * Campos Obligatorios
@@ -399,6 +403,17 @@
             @close="contextMenu.show = false"
         />
     </Teleport>
+
+    <!-- Transport Context Menu Modal -->
+    <Teleport to="body">
+         <TransporteAbmModal
+            v-if="showTransporteAbm"
+            :show="showTransporteAbm"
+            :transport-id="selectedTransporteId"
+            @close="showTransporteAbm = false"
+            @saved="handleTransporteAbmCreate"
+        />
+    </Teleport>
 </div>
 </template>
 
@@ -412,7 +427,9 @@ import DomicilioForm from './DomicilioForm.vue'
 import CondicionIvaForm from '../../Maestros/CondicionIvaForm.vue'
 import ContextMenu from '../../../components/common/ContextMenu.vue'
 import SimpleAbmModal from '../../../components/common/SimpleAbmModal.vue'
+import TransporteAbmModal from '../../Logistica/components/TransporteAbmModal.vue'
 import SmartSelect from '../../../components/ui/SmartSelect.vue'
+import { useLogisticaStore } from '../../../stores/logistica'
 
 const props = defineProps({
     modelValue: {
@@ -436,12 +453,14 @@ const isCompact = computed(() => props.mode === 'compact')
 
 const maestrosStore = useMaestrosStore()
 const clienteStore = useClientesStore()
+const logisticaStore = useLogisticaStore()
 const notificationStore = useNotificationStore()
 
 const segmentos = computed(() => maestrosStore.segmentos)
 const condicionesIva = computed(() => maestrosStore.condicionesIva)
 const provincias = computed(() => maestrosStore.provincias)
-const transportes = computed(() => maestrosStore.transportes)
+const terminosPago = computed(() => maestrosStore.terminosPago || []) // Assuming it exists or will add
+const transportes = computed(() => logisticaStore.empresas) // Use Logistica Store
 
 const listasPrecios = computed(() => maestrosStore.listasPrecios)
 const sortedDomicilios = computed(() => {
@@ -454,6 +473,35 @@ const sortedDomicilios = computed(() => {
             if (!a.es_fiscal && b.es_fiscal) return 1
             return (a.alias || a.calle || '').localeCompare(b.alias || b.calle || '')
         })
+})
+
+// [GY-UX] Quick Transport Access (Linked to Main Address)
+const quickTransportId = computed({
+    get() {
+        if (!form.value.domicilios || form.value.domicilios.length === 0) return null
+        // 1. Try to find "Entrega" address
+        const delivery = form.value.domicilios.find(d => d.es_entrega && d.activo !== false)
+        if (delivery) return delivery.transporte_id
+        // 2. Fallback to "Fiscal" address
+        const fiscal = form.value.domicilios.find(d => d.es_fiscal && d.activo !== false)
+        if (fiscal) return fiscal.transporte_id
+        // 3. Fallback to first
+        return form.value.domicilios[0].transporte_id
+    },
+    set(val) {
+        if (!form.value.domicilios) return
+        // Update PRIORITY address
+        const target = form.value.domicilios.find(d => d.es_entrega && d.activo !== false) || 
+                       form.value.domicilios.find(d => d.es_fiscal && d.activo !== false) ||
+                       form.value.domicilios[0]
+        
+        if (target) {
+            target.transporte_id = val
+            // Mark as dirty/modified? Form binding handles it.
+        } else {
+             notificationStore.add('No hay domicilio activo para asignar transporte', 'warning')
+        }
+    }
 })
 
 const activeTab = ref('general')
@@ -605,12 +653,28 @@ const validateCuit = (cuit) => {
 }
 
 // Fiscal Form for New Client
+// Fiscal Form for New Client
 const fiscalForm = ref({
     calle: '',
     numero: '',
     localidad: '',
     provincia_id: null,
-    transporte_id: null
+    // transposte moved to delivery
+})
+
+// Delivery Form logic (Alta Refactor)
+const useFiscalAsDelivery = ref(true)
+const deliveryForm = ref({
+    calle: '',
+    numero: '',
+    // Localidad/Provincia inferred or duplicated if needed, keeping simple text for now
+})
+
+watch(() => useFiscalAsDelivery.value, (val) => {
+    if (val) {
+        // Sync Logic could happen on save, or reactive?
+        // Let's keep deliveryForm distinct but ignore it on save if flag is true
+    }
 })
 
 // Domicilio Management (Editing)
@@ -715,9 +779,10 @@ watch(() => props.modelValue, (newVal) => {
             calle: '',
             numero: '',
             localidad: '',
-            provincia_id: null,
-            transporte_id: null
+            provincia_id: null
         }
+        useFiscalAsDelivery.value = true
+        deliveryForm.value = { calle: '', numero: '' }
         templateId.value = null
         pristineName.value = form.value.razon_social || ''
     }
@@ -795,6 +860,63 @@ const handleAbmCreate = async (name) => {
     } finally {
         abmLoading.value = false
     }
+}
+
+
+
+// [GY-UX] Transport ABM Context Menu
+const showTransporteAbm = ref(false)
+const selectedTransporteId = ref(null) // For editing if needed
+
+const openTransportContextMenu = (e) => {
+    // Determine if we are clicking on an existing transport or just the dropdown
+    const currentId = quickTransportId.value
+    
+    const actions = [
+        { 
+            label: 'Nuevo Transporte (F4)', 
+            iconClass: 'fas fa-plus', 
+            handler: () => { 
+                selectedTransporteId.value = null
+                showTransporteAbm.value = true 
+            } 
+        }
+    ]
+
+    if (currentId) {
+        actions.push({
+            label: 'Editar Seleccionado',
+            iconClass: 'fas fa-pencil-alt',
+            handler: () => {
+                selectedTransporteId.value = currentId
+                showTransporteAbm.value = true
+            }
+        })
+    }
+
+    actions.push({ 
+        label: 'Administrar Transportes', 
+        iconClass: 'fas fa-truck', 
+        handler: () => { 
+             // Ideally navigation to Manager, but for now reuse modal or add TODO
+             notificationStore.add('Para administrar, ir al menú Maestros', 'info')
+        } 
+    })
+
+    contextMenu.value = {
+        show: true,
+        x: e.clientX,
+        y: e.clientY,
+        actions: actions
+    }
+}
+
+const handleTransporteAbmCreate = async (data) => {
+    // If created via Context Menu
+    await logisticaStore.fetchEmpresas()
+    if (data.id) quickTransportId.value = data.id
+    notificationStore.add('Transporte creado y asignado', 'success')
+    showTransporteAbm.value = false
 }
 
 const handleAbmDelete = async (id) => {
@@ -930,19 +1052,46 @@ const save = async () => {
                 }
             }
 
-            // Add Fiscal Address to payload
-            form.value.domicilios = [{
+            // New Client Logic (With Dual Address)
+            const payload = { ...form.value }
+            
+            // 1. Prepare Fiscal Domicilio
+            const fiscalDom = {
                 ...fiscalForm.value,
                 es_fiscal: true,
-                es_entrega: true,
+                // Logic: A fiscal address CAN be delivery too. 
+                // But V5 model allows multiple.
+                // If "Use Fiscal As Delivery" is true -> Fiscal is ALSO Delivery.
+                // If false -> Fiscal is NOT Delivery (another one is).
+                es_entrega: useFiscalAsDelivery.value, 
                 activo: true,
-                tipo: 'FISCAL'
-            }]
-        }
+                transporte_id: useFiscalAsDelivery.value ? quickTransportId.value : null // Link transport if it is delivery
+            }
 
-        // [GY-FIX] Sanitize CUIT: Remove all separators before saving
-        // User Requirement: Allow delimiters in UI but SAVE only digits.
-        if (form.value.cuit) {
+            payload.domicilios = [fiscalDom]
+
+            // 2. Prepare Delivery Domicilio (if separate)
+            if (!useFiscalAsDelivery.value) {
+                const deliveryDom = {
+                    calle: deliveryForm.value.calle || fiscalForm.value.calle, // Fallback?
+                    numero: deliveryForm.value.numero || fiscalForm.value.numero,
+                    localidad: fiscalForm.value.localidad, // Assume same locality for simplicity in "Alta Rapida"
+                    provincia_id: fiscalForm.value.provincia_id,
+                    es_fiscal: false,
+                    es_entrega: true,
+                    activo: true,
+                    transporte_id: quickTransportId.value
+                }
+                payload.domicilios.push(deliveryDom)
+            }
+            
+            await clienteStore.createCliente(payload)
+
+            emit('save', payload)
+            notificationStore.add('Cliente creado con éxito', 'success')
+            emit('close')
+        } else {
+            // Existing logic...(form.value.cuit) {
             form.value.cuit = form.value.cuit.replace(/[^0-9]/g, '')
         }
         

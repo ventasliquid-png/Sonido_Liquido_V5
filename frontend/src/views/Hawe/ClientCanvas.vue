@@ -7,13 +7,36 @@
               <button @click="goBackToSource" class="text-white/50 hover:text-cyan-400 transition-colors">
                   <i class="fas fa-arrow-left"></i>
               </button>
-              <h1 class="text-xl font-bold text-cyan-400 tracking-wider flex items-center gap-3 uppercase">
-                  <i class="fas fa-user-tie"></i> Ficha de Cliente V5
+              <div class="relative group">
+                  <span class="absolute -top-3 left-1 text-[9px] font-bold text-cyan-900/50 uppercase tracking-widest transition-colors group-hover:text-cyan-500/50">Razón Social</span>
+                  <input 
+                      v-model="form.razon_social" 
+                      type="text" 
+                      class="bg-black/40 border border-white/20 rounded-md px-3 py-1.5 text-xl font-bold text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition-all placeholder-white/20 w-[300px] lg:w-[450px]"
+                      placeholder="Ingrese Razón Social..."
+                  />
+              </div>
+          </div>
+          
+          <!-- CENTER TITLE -->
+          <div class="flex-1 flex justify-center items-center pointer-events-none">
+              <h1 class="text-2xl font-black text-cyan-500 uppercase tracking-[0.2em] transform skew-x-[-10deg] select-none shadow-cyan-500/50 drop-shadow-[0_0_10px_rgba(6,182,212,0.5)]">
+                  {{ isNew ? 'Formulario de Alta' : 'Ficha de Cliente' }}
               </h1>
           </div>
+          
           <div class="flex items-center gap-4">
-              <span v-if="form.codigo_interno" class="font-mono text-xs text-cyan-500/50">#{{ form.codigo_interno }}</span>
-              <div class="h-6 w-px bg-white/10"></div>
+              <span v-if="form.codigo_interno" class="font-mono text-xs text-cyan-500/50 mr-4">#{{ form.codigo_interno }}</span>
+              <!-- Status Switch (Header) -->
+              <div class="flex items-center justify-between bg-black/40 rounded-lg px-2 py-1 border border-white/10 h-[26px]">
+                   <span class="text-[8px] font-bold uppercase truncate mr-2" :class="form.activo ? 'text-green-400' : 'text-red-400'">
+                       {{ form.activo ? 'OPERATIVO' : 'INACTIVO' }}
+                   </span>
+                   <button @click="form.activo = !form.activo" class="relative inline-flex h-3 w-6 items-center rounded-full transition-colors focus:outline-none bg-white/10 shrink-0" :class="form.activo ? 'bg-green-500/50' : 'bg-red-500/50'">
+                       <span class="inline-block h-2 w-2 transform rounded-full bg-white transition-transform" :class="form.activo ? 'translate-x-3' : 'translate-x-0.5'" />
+                   </button>
+               </div>
+              <div class="h-6 w-px bg-white/10 mx-2"></div>
               <button v-if="!isNew" @click="goToNew" class="text-xs font-bold text-white/40 hover:text-white uppercase tracking-tighter">
                   <i class="fas fa-plus mr-1"></i> Nuevo
               </button>
@@ -28,93 +51,97 @@
               <div class="absolute top-0 left-0 w-1 h-full bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.8)]"></div>
               
               <div class="space-y-4">
-                  <!-- LINE 1: OPERATIONS (Razón Social / Fantasía / Fiscal / Segmento / Activo) -->
-                  <div class="grid grid-cols-12 gap-3 items-end">
-                      <!-- Razón Social -->
-                      <div class="col-span-12 lg:col-span-3 relative">
-                          <label class="text-[9px] font-bold text-cyan-400 uppercase tracking-widest block mb-0.5">Razón Social <span class="text-red-400">*</span></label>
-                          <input 
-                              v-model="form.razon_social" 
-                              @input="handleSearchCantera"
-                              type="text" 
-                              class="w-full bg-transparent text-lg font-bold text-white focus:outline-none border-b transition-all placeholder-white/10"
-                              :class="errors.razon_social ? 'border-red-500 placeholder-red-500/50' : 'border-white/5 focus:border-cyan-400'"
-                              placeholder="Empresa..."
-                          />
-                          <!-- Cantera Results -->
-                          <div v-if="canteraResults.length > 0 && isNew" class="absolute left-0 right-0 top-full mt-2 bg-[#0a253a] border border-cyan-500/30 rounded-lg shadow-2xl z-[100] overflow-hidden">
-                                <ul class="max-h-96 overflow-y-auto">
-                                    <li v-for="res in canteraResults" :key="res.id" @click="importFromCantera(res)" class="px-4 py-3 hover:bg-white/5 cursor-pointer border-b border-white/5 last:border-0 group transition-colors">
-                                        <div class="flex justify-between items-start">
-                                            <div>
-                                                <p class="font-bold text-white group-hover:text-cyan-300 text-sm">{{ res.razon_social }}</p>
-                                                <p class="text-[9px] text-white/30 font-mono">CUIT: {{ res.cuit }}</p>
-                                            </div>
-                                            <span class="text-[8px] px-1.5 py-0.5 rounded bg-cyan-900/30 text-cyan-400 border border-cyan-500/30">CANTERA</span>
-                                        </div>
-                                    </li>
-                                </ul>
-                          </div>
-                      </div>
-
-                      <!-- Fantasía -->
-                      <div class="col-span-12 lg:col-span-2">
-                          <label class="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-0.5">Fantasía</label>
-                          <input v-model="form.nombre_fantasia" type="text" class="w-full bg-white/5 border border-white/5 rounded px-2 py-1 text-xs text-white focus:outline-none" />
-                      </div>
-
+                  <!-- LINE 1: ADDRESSES & LOGISTICS (Fiscal & Entrega side-by-side) -->
+                  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+                      
                       <!-- Domicilio Fiscal -->
-                      <div class="col-span-12 lg:col-span-3 bg-cyan-950/10 border rounded-lg p-1.5 relative group/fiscal" :class="errors.domicilio ? 'border-red-500 bg-red-900/10' : 'border-cyan-500/10'">
-                          <div class="flex justify-between items-center mb-0.5">
-                              <label class="text-[8px] font-bold text-cyan-400/50 uppercase tracking-widest" :class="errors.domicilio ? 'text-red-400' : ''"><i class="fas fa-file-invoice mr-1"></i> DOMICILIO <span class="text-red-400">*</span></label>
-                              <button @click="openFiscalEditor" class="text-[10px] text-cyan-400 hover:text-white opacity-0 group-hover/fiscal:opacity-100 transition-opacity">
-                                  <i class="fas fa-edit"></i>
-                              </button>
+                      <div 
+                        @click="openFiscalEditor"
+                        class="bg-cyan-900/10 border border-cyan-500/20 rounded-xl p-3 relative group cursor-pointer hover:bg-cyan-900/20 hover:border-cyan-500/50 transition-all"
+                      >
+                          <div class="flex justify-between items-center mb-2 border-b border-cyan-500/10 pb-1">
+                              <label class="text-[10px] font-bold text-cyan-400 uppercase tracking-widest"><i class="fas fa-file-invoice mr-1"></i> Domicilio Fiscal <span class="text-red-400">*</span></label>
+                              <div class="text-[9px] text-cyan-500/50 group-hover:text-cyan-400 transition-colors">
+                                  <i class="fas fa-pencil-alt mr-1"></i> Editar
+                              </div>
                           </div>
-                          <p class="text-[10px] text-white/50 truncate font-medium">{{ computedFiscalAddress }}</p>
+                          <div>
+                              <p class="text-sm font-bold text-white tracking-wide truncate">{{ computedFiscalAddress.split(',')[0] }}</p>
+                              <p class="text-[10px] text-cyan-200/50 font-mono">{{ computedFiscalAddress.split(',').slice(1).join(', ') || 'Sin Localidad' }}</p>
+                          </div>
                       </div>
 
-                      <!-- Segmento -->
-                      <div class="col-span-12 lg:col-span-2">
-                          <label class="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-1">Segmento <span class="text-red-400">*</span></label>
-                          <select v-model="form.segmento_id" @change="handleSegmentoChange" class="w-full bg-white/5 border rounded px-2 py-1 text-xs text-white focus:outline-none appearance-none [&>option]:bg-slate-900" :class="errors.segmento_id ? 'border-red-500' : 'border-white/10'">
-                               <option :value="null">Sin Segmento</option>
-                               <option value="__NEW__" class="text-green-400 font-bold">+ Nuevo</option>
-                               <option v-for="seg in segmentos" :key="seg.id" :value="seg.id">{{ seg.nombre }}</option>
-                          </select>
+                      <!-- Domicilio Entrega & Transporte -->
+                      <div class="bg-emerald-900/10 border border-emerald-500/20 rounded-xl p-3 relative group">
+                          <div class="flex justify-between items-center mb-2 border-b border-emerald-500/10 pb-1">
+                              <label class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest"><i class="fas fa-truck mr-1"></i> Entrega Principal</label>
+                              <div class="flex items-center gap-2">
+                                  <label class="text-[9px] font-bold text-white/30 uppercase">Fantasía:</label>
+                                  <input v-model="form.nombre_fantasia" type="text" class="bg-black/20 border border-white/10 rounded px-1.5 py-0.5 text-[10px] text-white focus:outline-none w-32" placeholder="Nombre Fantasía..." />
+                              </div>
+                          </div>
+                          
+                          <div class="grid grid-cols-2 gap-3">
+                              <!-- Address Preview -->
+                              <div @click="openDomicilioTab()" class="cursor-pointer hover:opacity-80 transition-opacity">
+                                   <!-- Logic to show Primary Delivery Address -->
+                                    <template v-if="domiciliosLogistica.length > 0">
+                                        <p class="text-xs font-bold text-white truncate">{{ domiciliosLogistica[0].calle }} {{ domiciliosLogistica[0].numero }}</p>
+                                        <p class="text-[9px] text-emerald-200/50 uppercase">{{ domiciliosLogistica[0].localidad }}</p>
+                                    </template>
+                                    <template v-else>
+                                        <p class="text-[10px] text-white/30 italic">Igual a Fiscal</p>
+                                    </template>
+                              </div>
+
+                              <!-- Transport Selector -->
+                              <div @contextmenu.prevent="openTransportContextMenu">
+                                  <SmartSelect
+                                    v-model="quickTransportId"
+                                    :options="transportes"
+                                    placeholder="Transporte..."
+                                    :allowCreate="false"
+                                    class="dark-smart-select"
+                                />
+                              </div>
+                          </div>
                       </div>
 
-                      <!-- Status Slider -->
-                      <div class="col-span-12 lg:col-span-2">
-                           <div class="flex items-center justify-between bg-black/40 rounded-lg px-2 py-1.5 border border-white/10">
-                               <span class="text-[8px] font-bold uppercase" :class="form.activo ? 'text-green-400' : 'text-red-400'">
-                                   {{ form.activo ? 'OPERATIVO' : 'INACTIVO' }}
-                               </span>
-                               <button @click="form.activo = !form.activo" class="relative inline-flex h-3.5 w-7 items-center rounded-full transition-colors focus:outline-none bg-white/10" :class="form.activo ? 'bg-green-500/50' : 'bg-red-500/50'">
-                                   <span class="inline-block h-2 w-2 transform rounded-full bg-white transition-transform" :class="form.activo ? 'translate-x-3.5' : 'translate-x-1'" />
-                               </button>
-                           </div>
-                      </div>
                   </div>
 
-                  <!-- LINE 2: FISCAL & COMMERCIAL (CUIT / IVA / Lista de Precios) -->
-                  <div class="grid grid-cols-12 gap-4 items-end border-t border-white/5 pt-3">
-                      <div class="col-span-4">
+                  <!-- LINE 2: FISCAL & COMMERCIAL (CUIT / IVA / Lista / Segmento) -->
+                  <div class="grid grid-cols-12 gap-3 items-end border-t border-white/5 pt-3">
+                       <!-- CUIT -->
+                      <div class="col-span-12 lg:col-span-3">
                           <label class="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-0.5">CUIT <span class="text-red-400">*</span></label>
-                          <input v-model="form.cuit" @input="handleCuitInput" type="text" class="w-full bg-white/5 border rounded px-2 py-1 text-xs font-mono text-white focus:outline-none" :class="errors.cuit ? 'border-red-500' : 'border-white/5'" />
+                          <input v-model="form.cuit" @input="handleCuitInput" type="text" class="w-full bg-white/5 border rounded px-2 py-1 text-xs font-mono text-white focus:outline-none" :class="errors.cuit ? 'border-red-500' : 'border-white/5'" maxlength="13" />
                       </div>
-                      <div class="col-span-4">
+
+                      <!-- Condición IVA -->
+                      <div class="col-span-12 lg:col-span-3">
                           <label class="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-1">Condición IVA <span class="text-red-400">*</span></label>
                           <select v-model="form.condicion_iva_id" class="w-full bg-white/5 border rounded px-2 py-1 text-xs text-white focus:outline-none appearance-none [&>option]:bg-slate-900" :class="errors.condicion_iva_id ? 'border-red-500' : 'border-white/10'">
                               <option :value="null">IVA...</option>
                               <option v-for="iva in condicionesIva" :key="iva.id" :value="iva.id">{{ iva.nombre }}</option>
                           </select>
                       </div>
-                      <div class="col-span-4">
+
+                      <!-- Lista de Precios -->
+                      <div class="col-span-12 lg:col-span-3">
                           <label class="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-1">Lista de Precios <span class="text-red-400">*</span></label>
                           <select v-model="form.lista_precios_id" class="w-full bg-cyan-900/10 border rounded px-2 py-1 text-xs text-cyan-300 font-bold focus:outline-none appearance-none [&>option]:bg-slate-900" :class="errors.lista_precios_id ? 'border-red-500' : 'border-cyan-500/20'">
                               <option :value="null">Lista Automática</option>
                               <option v-for="lp in listasPrecios" :key="lp.id" :value="lp.id">{{ lp.nombre }}</option>
+                          </select>
+                      </div>
+
+                       <!-- Segmento (Expanded) -->
+                      <div class="col-span-12 lg:col-span-3">
+                          <label class="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-1">Segmento <span class="text-red-400">*</span></label>
+                          <select v-model="form.segmento_id" @change="handleSegmentoChange" class="w-full bg-white/5 border rounded px-2 py-1 text-xs text-white focus:outline-none appearance-none [&>option]:bg-slate-900" :class="errors.segmento_id ? 'border-red-500' : 'border-white/10'">
+                               <option :value="null">Sin Segmento</option>
+                               <option value="__NEW__" class="text-green-400 font-bold">+ Nuevo</option>
+                               <option v-for="seg in segmentos" :key="seg.id" :value="seg.id">{{ seg.nombre }}</option>
                           </select>
                       </div>
                   </div>
@@ -326,6 +353,26 @@
       <DomicilioForm v-if="activeTab === 'DOMICILIO'" :show="true" :domicilio="selectedDomicilio" @close="activeTab = 'CLIENTE'" @saved="handleDomicilioSaved" />
       <ContactoForm v-if="showContactoForm" :show="showContactoForm" :clienteId="String(form.id)" :contacto="selectedContacto" @close="showContactoForm = false" @saved="handleContactoSaved" />
       
+       <!-- Transport Context Menu Modal -->
+       <Teleport to="body">
+         <TransporteAbmModal
+            v-if="showTransporteAbm"
+            :show="showTransporteAbm"
+            :transport-id="selectedTransporteId"
+            @close="showTransporteAbm = false"
+            @saved="handleTransporteAbmCreate"
+        />
+        <!-- Also Context Menu for Transport -->
+         <ContextMenu 
+            v-if="contextMenuState.show" 
+            v-model="contextMenuState.show"
+            :x="contextMenuState.x"
+            :y="contextMenuState.y"
+            :actions="contextMenuProps.actions"
+            @close="contextMenuState.show = false"
+        />
+    </Teleport>
+      
   </div>
 </template>
 
@@ -340,12 +387,17 @@ import SegmentoForm from '../Maestros/SegmentoForm.vue'
 import SegmentoList from '../Maestros/SegmentoList.vue'
 import DomicilioForm from './components/DomicilioForm.vue'
 import ContactoForm from './components/ContactoForm.vue'
+import SmartSelect from '../../components/ui/SmartSelect.vue'
+import TransporteAbmModal from '../Logistica/components/TransporteAbmModal.vue'
+import ContextMenu from '../../components/common/ContextMenu.vue'
+import { useLogisticaStore } from '../../stores/logistica'
 import { useAuditSemaphore } from '../../composables/useAuditSemaphore'
 
 const route = useRoute()
 const router = useRouter()
 const store = useClientesStore()
 const maestrosStore = useMaestrosStore()
+const logisticaStore = useLogisticaStore()
 const notificationStore = useNotificationStore()
 
 // Audit Logic
@@ -383,6 +435,40 @@ const productosHabituales = ref([])
 const condicionesIva = computed(() => maestrosStore.condicionesIva)
 const segmentos = computed(() => maestrosStore.segmentos)
 const listasPrecios = computed(() => maestrosStore.listasPrecios)
+const transportes = computed(() => logisticaStore.empresas)
+
+// [GY-UX] Quick Transport Access (Linked to Main Address)
+const quickTransportId = computed({
+    get() {
+        if (!domicilios.value || domicilios.value.length === 0) return null
+        // 1. Try to find "Entrega" address
+        const delivery = domicilios.value.find(d => d.es_entrega && d.activo !== false)
+        if (delivery) return delivery.transporte_id
+        // 2. Fallback to active "Fiscal" address
+        const fiscal = domicilios.value.find(d => d.es_fiscal && d.activo !== false)
+        if (fiscal) return fiscal.transporte_id
+        // 3. Fallback to first
+        return domicilios.value[0].transporte_id
+    },
+    set(val) {
+        if (!domicilios.value) return
+        // Update PRIORITY address (same priority logic as get)
+        const target = domicilios.value.find(d => d.es_entrega && d.activo !== false) || 
+                       domicilios.value.find(d => d.es_fiscal && d.activo !== false) ||
+                       domicilios.value[0]
+        
+        if (target) {
+            target.transporte_id = val
+             // If existing client, we might want to save immediately?
+             // But usually form is saved via F10.
+             // However, for layout "Quick Access", user assumes instant or dirty state.
+             // Since form.value is not touched, we must ensure these changes persist.
+             // They are in 'domicilios' array ref.
+        } else {
+             notificationStore.add('No hay domicilio activo para asignar transporte', 'warning')
+        }
+    }
+})
 
 const auditResult = computed(() => {
     const tempClient = {
@@ -478,10 +564,65 @@ const importFromCantera = async (canteraClient) => {
     }
 }
 
+// --- Transport ABM Context Menu ---
+const showTransporteAbm = ref(false)
+const selectedTransporteId = ref(null)
+
+const contextMenuState = ref({ show: false, x: 0, y: 0 })
+const contextMenuProps = ref({ actions: [] })
+
+const openTransportContextMenu = (e) => {
+    const currentId = quickTransportId.value
+    const actions = [
+        { 
+            label: 'Nuevo Transporte (F4)', 
+            iconClass: 'fas fa-plus', 
+            handler: () => { 
+                selectedTransporteId.value = null
+                showTransporteAbm.value = true 
+            } 
+        }
+    ]
+
+    if (currentId) {
+        actions.push({
+            label: 'Editar Seleccionado',
+            iconClass: 'fas fa-pencil-alt',
+            handler: () => {
+                selectedTransporteId.value = currentId
+                showTransporteAbm.value = true
+            }
+        })
+    }
+
+    actions.push({ 
+        label: 'Administrar Transportes', 
+        iconClass: 'fas fa-truck', 
+        handler: () => { 
+             notificationStore.add('Para administrar, ir al menú Logística', 'info')
+        } 
+    })
+
+    contextMenuState.value = {
+        show: true,
+        x: e.clientX,
+        y: e.clientY
+    }
+    contextMenuProps.value.actions = actions
+}
+
+const handleTransporteAbmCreate = async (data) => {
+    await logisticaStore.fetchEmpresas()
+    if (data.id) quickTransportId.value = data.id
+    notificationStore.add('Transporte creado y asignado', 'success')
+    showTransporteAbm.value = false
+}
+
 // --- Initialization ---
 onMounted(async () => {
     window.addEventListener('keydown', handleKeydown)
     await maestrosStore.fetchAll()
+    await logisticaStore.fetchEmpresas()
     
     if (route.params.id === 'new') {
         isNew.value = true

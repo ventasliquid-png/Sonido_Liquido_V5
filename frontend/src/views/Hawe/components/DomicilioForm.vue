@@ -1,6 +1,9 @@
 <script setup>
 import { ref, reactive, watch, onMounted, onUnmounted, computed } from 'vue';
 import { useMaestrosStore } from '../../../stores/maestros';
+import { useLogisticaStore } from '../../../stores/logistica';
+import SmartSelect from '@/components/ui/SmartSelect.vue';
+import TransporteAbmModal from '../../Logistica/components/TransporteAbmModal.vue';
 
 const props = defineProps({
     show: Boolean,
@@ -17,6 +20,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'saved']);
 
 const store = useMaestrosStore();
+const logisticaStore = useLogisticaStore();
 const isEditing = computed(() => !!props.domicilio);
 
 const form = reactive({
@@ -39,10 +43,8 @@ const form = reactive({
 });
 
 // Load masters on mount if empty
-onMounted(() => {
-    if (store.provincias.length === 0) store.fetchProvincias();
-    if (store.transportes.length === 0) store.fetchTransportes();
-});
+// Load masters logic moved to main onMounted
+// onMounted block removed to avoid duplication
 
 // Initialize form when domicile changes or on mount
 watch(() => props.domicilio, (newVal) => {
@@ -144,7 +146,34 @@ onMounted(() => {
     if (props.show) {
         setTimeout(() => firstInput.value?.focus(), 100);
     }
+    
+    // Always refresh transportes to ensure we have the latest (e.g. newly created ones)
+    logisticaStore.fetchEmpresas();
+    // Fetch provinces if needed
+    if (store.provincias.length === 0) store.fetchProvincias();
 });
+
+// --- Transport Quick Add Logic ---
+const showTransporteModal = ref(false);
+const newTransporteName = ref('');
+
+const openNewTransporte = (initialName = '') => {
+    newTransporteName.value = typeof initialName === 'string' ? initialName : '';
+    showTransporteModal.value = true;
+};
+
+const handleTransporteSaved = async (name) => {
+    // Refresh transports to get the new one
+    await logisticaStore.fetchEmpresas();
+    
+    // Auto-select the new transport if name matches
+    if (name) {
+        const found = logisticaStore.empresas.find(t => t.nombre.toLowerCase() === name.toLowerCase());
+        if (found) {
+            form.transporte_id = found.id;
+        }
+    }
+};
 
 const modalRef = ref(null);
 const isDragging = ref(false);
@@ -216,7 +245,7 @@ onUnmounted(() => {
         </div>
 
         <!-- Form Body -->
-        <div class="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+        <div class="flex-1 overflow-y-auto p-6 pb-48 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
             <form @submit.prevent="handleSave" class="space-y-4">
                 
                 <!-- Status & Identification Row -->
@@ -312,7 +341,7 @@ onUnmounted(() => {
                 </div>
 
                 <!-- LOGISTICS CONFIG (Compact Wizard) -->
-                <div class="bg-white/5 rounded-lg border border-white/10 overflow-hidden mt-2">
+                <div class="bg-white/5 rounded-lg border border-white/10 mt-2">
                     <div class="px-4 py-2 bg-black/20 border-b border-white/5 flex justify-between items-center">
                          <label class="text-[10px] font-bold text-cyan-400 uppercase"><i class="fa-solid fa-truck-fast mr-1"></i>Logística</label>
                     </div>
@@ -344,12 +373,15 @@ onUnmounted(() => {
                             <!-- Transportista -->
                             <div v-if="['TRANSPORTE', 'FLETE_MOTO'].includes(form.metodo_entrega)" class="flex items-center gap-4">
                                 <label class="text-[10px] font-bold text-white/40 uppercase w-24 shrink-0">Transportista</label>
-                                <select v-model="form.transporte_id" class="flex-1 bg-black/20 border border-white/10 rounded px-3 py-1.5 text-white focus:border-cyan-500 outline-none text-xs">
-                                    <option :value="null" class="bg-gray-900">Seleccionar Empresa...</option>
-                                    <option v-for="trans in store.transportes" :key="trans.id" :value="trans.id" class="bg-gray-900">
-                                        {{ trans.nombre }}
-                                    </option>
-                                </select>
+                                <div class="flex-1">
+                                    <SmartSelect
+                                        v-model="form.transporte_id"
+                                        :options="logisticaStore.empresas"
+                                        placeholder="Buscar transporte..."
+                                        :allow-create="true"
+                                        @create-new="openNewTransporte"
+                                    />
+                                </div>
                             </div>
 
                             <div class="flex gap-4">
@@ -375,13 +407,20 @@ onUnmounted(() => {
                                 </div>
                             </div>
 
-                         </div>
+                        </div>
                     </div>
                 </div>
 
-
             </form>
         </div>
+        
+        <!-- Quick Add Modal -->
+        <TransporteAbmModal 
+            :show="showTransporteModal" 
+            :initial-name="newTransporteName"
+            @close="showTransporteModal = false"
+            @saved="handleTransporteSaved"
+        />
     </div>
 </template>
 
