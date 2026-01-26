@@ -14,5 +14,6 @@ export default {
         return api.get('/logistica/nodos', { params });
     },
     createNodo: (data) => api.post('/logistica/nodos', data),
-    updateNodo: (id, data) => api.put(`/logistica/nodos/${id}`, data)
+    updateNodo: (id, data) => api.put(`/logistica/nodos/${id}`, data),
+    hardDeleteNodo: (id) => api.delete(`/logistica/nodos/${id}/hard`)
 };

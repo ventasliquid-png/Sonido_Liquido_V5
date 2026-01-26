@@ -81,6 +81,7 @@ from backend.maestros.router import router as maestros_router
 from backend.clientes.router import router as clientes_router
 from backend.logistica.router import router as logistica_router
 from backend.agenda.router import router as agenda_router
+from backend.agenda.google_mock_router import router as google_mock_router # [GY-V14] Mock Sync
 from backend.productos.router import router as productos_router
 from backend.proveedores.router import router as proveedores_router
 from backend.data_intel.router import router as data_intel_router
@@ -406,6 +407,7 @@ app.include_router(maestros_router)
 app.include_router(clientes_router)
 app.include_router(logistica_router)
 app.include_router(agenda_router) 
+app.include_router(google_mock_router) # [GY-V14] Mock Sync 
 app.include_router(productos_router)
 app.include_router(proveedores_router) 
 app.include_router(data_intel_router)

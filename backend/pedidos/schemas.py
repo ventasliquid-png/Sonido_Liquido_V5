@@ -33,6 +33,9 @@ class PedidoCreate(BaseModel):
     # Logística
     domicilio_entrega_id: Optional[UUID] = None
     transporte_id: Optional[UUID] = None
+    costo_envio_cliente: Optional[float] = 0.0
+    costo_flete_interno: Optional[float] = 0.0
+    estado_logistico: Optional[str] = "PENDIENTE"
     
     items: List[PedidoItemCreate]
 
@@ -52,6 +55,9 @@ class PedidoUpdate(BaseModel):
     # Logística
     domicilio_entrega_id: Optional[UUID] = None
     transporte_id: Optional[UUID] = None
+    costo_envio_cliente: Optional[float] = None
+    costo_flete_interno: Optional[float] = None
+    estado_logistico: Optional[str] = None
 
     items: Optional[List[PedidoItemCreate]] = None
 
@@ -111,6 +117,9 @@ class PedidoResponse(BaseModel):
     # Logística
     domicilio_entrega_id: Optional[UUID] = None
     transporte_id: Optional[UUID] = None
+    costo_envio_cliente: float = 0.0
+    costo_flete_interno: float = 0.0
+    estado_logistico: str = "PENDIENTE"
 
     items: List[PedidoItemResponse] = []
 

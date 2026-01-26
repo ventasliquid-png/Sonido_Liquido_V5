@@ -1,5 +1,5 @@
 # 🛸 CAJA NEGRA (BLACK BOX) - DASHBOARD TÁCTICO V2
-**Última Actualización:** 25-Ene-2026 (Sentinel V13 Update)
+**Última Actualización:** 26-Ene-2026 (Vanguard V14 Upgrade)
 **Rol:** Tablero de Control y Estado de Salud del Sistema.
 
 ---
@@ -9,25 +9,24 @@
 | :--- | :--- | :--- |
 | **IOWA (Cloud)** | `104.197.57.226` | 🟢 ONLINE (Sync Capable) |
 | **PILOT (Local)** | `backend/pilot.db` | 🟢 ONLINE (SQLite) |
-| **GIT (Repo)** | `Sonido_Liquido_V5` | 🟢 SINCRONIZADO (Protocolo V13) |
+| **GIT (Repo)** | `Sonido_Liquido_V5` | 🟢 SINCRONIZADO (Protocolo V14 Bootloader) |
 
 ## 🛡️ CREDENCIALES & ACCESOS
 *   **DB User:** `postgres` / `SonidoV5_2025` (Legacy/Ref)
 *   **Admin PIN:** `1234` (Bypass visual activo)
 *   **IOWA Sync:** `scripts/push_session_to_iowa.py`
 
-## 🧩 ESTADO DEL NÚCLEO (V5.3)
+## 🧩 ESTADO DEL NÚCLEO (V5.6)
 | Módulo | Estado | Notas Técnicas |
 | :--- | :--- | :--- |
-| **Clientes** | 🟢 OPTIMIZADO | UX V5.4 (Ficha Unificada/Refactor). 1 Planta=1 Cliente. |
-| **Pedidos** | 🟢 OPERATIVO | Ciclo Completo (Alta/Edición). Logística integrada. |
+| **Clientes** | 🟢 OPTIMIZADO | UX V5.4 (Ficha Unificada). Agenda en Desarrollo. |
+| **Pedidos** | 🟢 OPERATIVO | Ciclo Completo + Logística. |
 | **Productos** | 🟢 OPERATIVO | ABM Completo + Clonado. |
-| **Despliegue** | 🟢 V1.3 STABLE | Proxy FE/BE relativo. Fix Teleport. |
+| **Despliegue** | 🟢 V1.3 STABLE | Bootloader V2 Integrado. |
 
 ## ⏳ INTEGRIDAD Y PRESERVACIÓN
-*   **Ultimo Backup Profundo:** *Requiere Actualización*
-*   **Sesiones sin Backup:** *Requiere Actualización*
-*   **Doctrina Activa:** V13 "Sentinel" (Sync First).
+*   **Doctrina Activa:** V14 "VANGUARD" (Anticipación).
+*   **Bootloader:** V2 (Auto-Sync).
 
 ## 🧰 COMANDOS DE MANTENIMIENTO
 *   **Sync Cloud:** `python scripts/push_session_to_iowa.py`

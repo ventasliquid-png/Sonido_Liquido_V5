@@ -178,89 +178,24 @@
       </div>
     </main>
 
-    <!-- Right Inspector Panel -->
-    <aside 
-        class="border-l border-gray-800 bg-gray-900/95 flex flex-col z-30 shadow-2xl transition-all duration-300 ease-in-out overflow-hidden"
-        :class="selectedTransporte ? 'w-80 opacity-100' : 'w-0 opacity-0 border-none'"
-    >
-        <div class="p-6 flex flex-col h-full min-w-[20rem]">
-            <div class="flex justify-between items-center mb-6" v-if="selectedTransporte">
-                <h2 class="text-lg font-bold text-white">
-                    {{ selectedId === 'new' ? 'Nuevo Transporte' : 'Editar Transporte' }}
-                </h2>
-                <button @click="closeInspector" class="text-white/40 hover:text-white transition-colors">
-                    <i class="fa-solid fa-times"></i>
-                </button>
-            </div>
-        
-        <div class="space-y-4 flex-1 overflow-y-auto" v-if="selectedTransporte">
-            <!-- Active Toggle -->
-            <div class="flex items-center justify-between bg-white/5 p-3 rounded-lg border border-white/10">
-                <span class="text-sm font-bold text-white">Estado</span>
-                <div class="flex items-center gap-2">
-                    <span class="text-[10px] font-bold uppercase" :class="selectedTransporte.activo ? 'text-green-400' : 'text-red-400'">
-                        {{ selectedTransporte.activo ? 'ACTIVO' : 'INACTIVO' }}
-                    </span>
-                    <button 
-                        @click="toggleSelectedTransporteActive"
-                        class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none"
-                        :class="selectedTransporte.activo ? 'bg-green-500/50' : 'bg-red-500/50'"
-                    >
-                        <span 
-                            class="inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm"
-                            :class="selectedTransporte.activo ? 'translate-x-4.5' : 'translate-x-1'"
-                        />
-                    </button>
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-xs font-bold uppercase text-white/40 mb-1">Nombre *</label>
-                <input v-model="selectedTransporte.nombre" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-cyan-400 outline-none transition-colors" placeholder="Ej: Via Cargo" />
-            </div>
-            <div>
-                <label class="block text-xs font-bold uppercase text-white/40 mb-1">Teléfono Reclamos</label>
-                <input v-model="selectedTransporte.telefono_reclamos" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-cyan-400 outline-none transition-colors" placeholder="+54 9 11..." />
-            </div>
-             <div>
-                <label class="block text-xs font-bold uppercase text-white/40 mb-1">Web Tracking</label>
-                <input v-model="selectedTransporte.web_tracking" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-cyan-400 outline-none transition-colors" placeholder="https://..." />
-            </div>
-            
-            <div class="bg-white/5 p-3 rounded border border-white/5 space-y-2">
-                <div class="flex items-center gap-2">
-                    <input type="checkbox" v-model="selectedTransporte.requiere_carga_web" id="webCheck" class="accent-cyan-500 h-4 w-4" />
-                    <label for="webCheck" class="text-sm text-white cursor-pointer select-none">Requiere Carga Web</label>
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-xs font-bold uppercase text-white/40 mb-1">Formato Etiqueta</label>
-                <select v-model="selectedTransporte.formato_etiqueta" class="w-full bg-black/20 border border-white/10 rounded p-2 text-white focus:border-cyan-400 outline-none transition-colors">
-                    <option value="PROPIA">Propia</option>
-                    <option value="EXTERNA_PDF">Externa (PDF)</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="pt-6 mt-6 border-t border-white/10 flex gap-3" v-if="selectedTransporte">
-            <button @click="saveTransporte" class="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white py-2 rounded font-bold transition-colors shadow-lg shadow-cyan-900/20">
-                <span v-if="saving"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Guardando...</span>
-                <span v-else>Guardar (F10)</span>
-            </button>
-            <button v-if="selectedId !== 'new'" @click="deleteTransporte" class="px-3 bg-red-900/20 hover:bg-red-900/40 text-red-400 rounded border border-red-500/30 transition-colors" title="Dar de baja">
-                <i class="fa-solid fa-trash"></i>
-            </button>
-        </div>
-        </div>
-    </aside>
+    <!-- Canvas Modal -->
+    <transition name="fade">
+        <TransporteCanvas 
+            v-if="selectedTransporte" 
+            v-model="selectedTransporte"
+            @close="closeInspector"
+            @save="handleSaveSuccess"
+        />
+    </transition>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed, onUnmounted } from 'vue'
+import { ref, onMounted, computed, onUnmounted, watch } from 'vue'
 import { useLogisticaStore } from '../../../stores/logistica'
+import { useMaestrosStore } from '../../../stores/maestros'
 import { useNotificationStore } from '../../../stores/notification'
+import TransporteCanvas from './TransporteCanvas.vue'
 
 const props = defineProps({
     isModal: {
@@ -272,6 +207,7 @@ const props = defineProps({
 const emit = defineEmits(['close'])
 
 const transporteStore = useLogisticaStore()
+const maestrosStore = useMaestrosStore()
 const notificationStore = useNotificationStore()
 
 const transportes = computed(() => transporteStore.empresas)
@@ -279,20 +215,22 @@ const loading = computed(() => transporteStore.loading)
 const searchQuery = ref('')
 const selectedId = ref(null)
 const selectedTransporte = ref(null)
-const saving = ref(false)
 
-// New State
+// View State
 const filterStatus = ref('active') // 'all', 'active', 'inactive'
 const viewMode = ref('grid') // 'grid', 'list'
 
 onMounted(async () => {
     await transporteStore.fetchEmpresas('all')
     window.addEventListener('keydown', handleKeydown)
+    // Load Provinces for dropdown
+    await maestrosStore.fetchProvincias()
 })
 
 onUnmounted(() => {
     window.removeEventListener('keydown', handleKeydown)
 })
+
 
 const filteredTransportes = computed(() => {
     let result = transportes.value
@@ -315,7 +253,6 @@ const filteredTransportes = computed(() => {
 
 const selectTransporte = (t) => {
     selectedId.value = t.id
-    // Clone to avoid direct mutation before save
     selectedTransporte.value = { ...t }
 }
 
@@ -328,7 +265,16 @@ const openNewTransporte = () => {
         web_tracking: '',
         activo: true,
         requiere_carga_web: false,
-        formato_etiqueta: 'PROPIA'
+        servicio_retiro_domicilio: false,
+        formato_etiqueta: 'PROPIA',
+        cuit: '',
+        condicion_iva_id: null,
+        direccion: '',
+        localidad: '',
+        provincia_id: null,
+        direccion_despacho: '',
+        horario_despacho: '',
+        telefono_despacho: ''
     }
 }
 
@@ -337,41 +283,9 @@ const closeInspector = () => {
     selectedTransporte.value = null
 }
 
-const saveTransporte = async () => {
-    if (!selectedTransporte.value.nombre) {
-        notificationStore.add('El nombre es obligatorio', 'error')
-        return
-    }
-
-    console.log('Saving transporte:', selectedTransporte.value)
-    saving.value = true
-    try {
-        if (selectedId.value === 'new') {
-            await transporteStore.createEmpresa(selectedTransporte.value)
-            notificationStore.add('Transporte creado', 'success')
-        } else {
-            await transporteStore.updateEmpresa(selectedTransporte.value.id, selectedTransporte.value)
-            notificationStore.add('Transporte actualizado', 'success')
-        }
-        closeInspector()
-    } catch (e) {
-        notificationStore.add('Error al guardar', 'error')
-        console.error(e)
-    } finally {
-        saving.value = false
-    }
-}
-
-const deleteTransporte = async () => {
-    if (!confirm('¿Seguro que desea dar de baja este transporte?')) return
-    try {
-        // Soft delete
-        await transporteStore.updateEmpresa(selectedTransporte.value.id, { ...selectedTransporte.value, activo: false })
-        notificationStore.add('Transporte dado de baja', 'success')
-        closeInspector()
-    } catch (e) {
-        notificationStore.add('Error al eliminar', 'error')
-    }
+const handleSaveSuccess = async () => {
+    await transporteStore.fetchEmpresas(filterStatus.value)
+    closeInspector()
 }
 
 const deleteTransporteItem = async (t) => {
@@ -385,14 +299,9 @@ const deleteTransporteItem = async (t) => {
 }
 
 const toggleTransporteStatus = async (t) => {
-    console.log('toggleTransporteStatus clicked', t.nombre, t.activo)
     if (t.activo) {
-        // If active, use the delete routine (Tachito)
-        console.log('Calling deleteTransporteItem')
         await deleteTransporteItem(t)
     } else {
-        // If inactive, activate directly
-        console.log('Activating directly')
         try {
             await transporteStore.updateEmpresa(t.id, { ...t, activo: true })
             notificationStore.add('Transporte activado', 'success')
@@ -416,6 +325,10 @@ const handleKeydown = (e) => {
     if (e.key === 'F10' && selectedTransporte.value) {
         e.preventDefault()
         saveTransporte()
+    }
+    if (e.key === 'F4') {
+        e.preventDefault()
+        openNewTransporte()
     }
     if (e.key === 'Escape') {
         if (selectedTransporte.value) {

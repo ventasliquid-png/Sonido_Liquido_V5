@@ -7,10 +7,22 @@ from pydantic import BaseModel
 class EmpresaTransporteBase(BaseModel):
     nombre: str
     
-    # Core (V5)
+    # Datos Fiscales / Central
+    cuit: Optional[str] = None
+    condicion_iva_id: Optional[UUID] = None # UUID
     direccion: Optional[str] = None
+    localidad: Optional[str] = None
+    provincia_id: Optional[str] = None # FK to Provincias
+
+    # Contacto Central
     whatsapp: Optional[str] = None
     email: Optional[str] = None
+
+    # Datos Operativos CABA
+    direccion_despacho: Optional[str] = None
+    horario_despacho: Optional[str] = None
+    telefono_despacho: Optional[str] = None
+
     observaciones: Optional[str] = None
 
     web_tracking: Optional[str] = None
@@ -25,9 +37,19 @@ class EmpresaTransporteCreate(EmpresaTransporteBase):
 
 class EmpresaTransporteUpdate(BaseModel):
     nombre: Optional[str] = None
+    cuit: Optional[str] = None
+    condicion_iva_id: Optional[UUID] = None
     direccion: Optional[str] = None
+    localidad: Optional[str] = None
+    provincia_id: Optional[str] = None
+    
     whatsapp: Optional[str] = None
     email: Optional[str] = None
+    
+    direccion_despacho: Optional[str] = None
+    horario_despacho: Optional[str] = None
+    telefono_despacho: Optional[str] = None
+
     observaciones: Optional[str] = None
     web_tracking: Optional[str] = None
     telefono_reclamos: Optional[str] = None

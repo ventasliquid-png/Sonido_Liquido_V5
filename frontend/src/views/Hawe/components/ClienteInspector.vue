@@ -18,13 +18,41 @@
         </div>
         
         <!-- Razón Social Input (Header) -->
-        <input 
-            v-model="form.razon_social" 
-            autocomplete="off" 
-            spellcheck="false" 
-            class="bg-black/40 border border-white/20 rounded-md px-3 py-1.5 text-xl font-bold text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition-all placeholder-white/20 w-full" 
-            placeholder="Ingrese Razón Social..." 
-        />
+        <!-- Razón Social Input + Agenda Badge -->
+        <div class="flex items-center gap-2 relative">
+            <input 
+                v-model="form.razon_social" 
+                autocomplete="off" 
+                spellcheck="false" 
+                class="bg-black/40 border border-white/20 rounded-md px-3 py-1.5 text-xl font-bold text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition-all placeholder-white/20 w-full" 
+                placeholder="Ingrese Razón Social..." 
+            />
+            
+            <!-- AGENDA BADGE (V14) -->
+            <div class="relative shrink-0">
+                <button 
+                    @click="showAgenda = !showAgenda"
+                    class="flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all h-[42px] group/agenda"
+                    :class="showAgenda ? 'bg-cyan-600 border-cyan-400 text-white shadow-[0_0_15px_rgba(8,145,178,0.5)]' : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10 hover:text-white'"
+                    title="Agenda Rápida"
+                >
+                    <i class="fas fa-address-book" :class="showAgenda ? 'animate-pulse' : ''"></i>
+                    <span v-if="form.vinculos && form.vinculos.length > 0" class="px-1.5 py-0.5 rounded-full text-[9px] font-bold" :class="showAgenda ? 'bg-white/20' : 'bg-cyan-500/20 text-cyan-400'">
+                        {{ form.vinculos.length }}
+                    </span>
+                </button>
+
+                <!-- Popover Backdrop -->
+                <div v-if="showAgenda" class="fixed inset-0 z-[55]" @click="showAgenda = false"></div>
+
+                <!-- Popover Component -->
+                <ContactoPopover 
+                    v-if="showAgenda" 
+                    :contactos="form.vinculos || []" 
+                    @manager="switchToContactsTab"
+                />
+            </div>
+        </div>
     </div>
 
     <!-- Inconsistency Banner -->
@@ -428,6 +456,7 @@ import CondicionIvaForm from '../../Maestros/CondicionIvaForm.vue'
 import ContextMenu from '../../../components/common/ContextMenu.vue'
 import SimpleAbmModal from '../../../components/common/SimpleAbmModal.vue'
 import TransporteAbmModal from '../../Logistica/components/TransporteAbmModal.vue'
+import ContactoPopover from './ContactoPopover.vue'
 import SmartSelect from '../../../components/ui/SmartSelect.vue'
 import { useLogisticaStore } from '../../../stores/logistica'
 
@@ -505,7 +534,13 @@ const quickTransportId = computed({
 })
 
 const activeTab = ref('general')
+const showAgenda = ref(false)
 const saving = ref(false)
+
+const switchToContactsTab = () => {
+    activeTab.value = 'contactos'
+    showAgenda.value = false
+}
 const form = ref({})
 const cuitError = ref(null)
 const pristineName = ref('')
@@ -960,6 +995,11 @@ const save = async () => {
             return;
         }
 
+        // [GY-UX] Flexible Validation (V14)
+        // If we are DEACTIVATING, skip strict business validations (Segmento, Lista Precios, IVA)
+        // Only require basic Identity (Razon Social, CUIT)
+        const isDeactivating = !form.value.activo;
+        
         // Validation for New Client
         // Shared Validations (Create & Edit)
         if (!form.value.razon_social) {
@@ -974,7 +1014,7 @@ const save = async () => {
         }
         
         // CUIT Validation
-        if (!validateCuit(form.value.cuit)) {
+        if (!validateCuit(form.value.cuit) && form.value.activo) { // Allow invalid CUIT if deactivating? Maybe not.
             cuitError.value = 'CUIT inválido (Dígito verificador incorrecto)'
             saving.value = false
             return
@@ -984,33 +1024,28 @@ const save = async () => {
         const cleanCuit = form.value.cuit ? form.value.cuit.replace(/[^0-9]/g, '') : ''
         const isGenericCuit = ['00000000000', '99999999999', '11111111111'].includes(cleanCuit)
 
-        if (!form.value.segmento_id && !isGenericCuit) {
-            alert('El Segmento es obligatorio.')
-            saving.value = false
-            return
-        }
-        if (!form.value.lista_precios_id) {
-            alert('La Lista de Precios es obligatoria.')
-            saving.value = false
-            return
-        }
-        if (!form.value.condicion_iva_id && !isGenericCuit) {
-             // For Generic, we can auto-set Consumidor Final if not set
-             if (isGenericCuit) {
-                 const consFinal = condicionesIva.value.find(c => c.nombre.toLowerCase().includes('consumidor final'))
-                 if (consFinal) form.value.condicion_iva_id = consFinal.id
-                 else {
-                     // If we can't find it, don't block? Or blocking is safer? 
-                     // Let's soft warn or default to the first one?
-                     // Better: Auto-set to "Consumidor Final" ID if known, or skip.
-                     // The backend might require it though. 
-                     // Let's assume Consumidor Final exists.
-                     // If user didn't select, we try to find it.
-                 }
-             } else {
-                alert('La Condición IVA es obligatoria.')
-                saving.value = false
-                return
+        // Strict Validations ONLY if Active
+        if (!isDeactivating) {
+             if (!form.value.segmento_id && !isGenericCuit) {
+                 alert('El Segmento es obligatorio para activar el cliente.')
+                 saving.value = false
+                 return
+             }
+             if (!form.value.lista_precios_id) {
+                 alert('La Lista de Precios es obligatoria para activar el cliente.')
+                 saving.value = false
+                 return
+             }
+             if (!form.value.condicion_iva_id && !isGenericCuit) {
+                  // For Generic, we can auto-set Consumidor Final if not set
+                  if (isGenericCuit) {
+                      const consFinal = condicionesIva.value.find(c => c.nombre.toLowerCase().includes('consumidor final'))
+                      if (consFinal) form.value.condicion_iva_id = consFinal.id
+                  } else {
+                     alert('La Condición IVA es obligatoria para activar el cliente.')
+                     saving.value = false
+                     return
+                  }
              }
         }
 
@@ -1100,7 +1135,14 @@ const save = async () => {
         if (props.isNew) {
             result = await clienteStore.createCliente(form.value)
         } else {
-            result = await clienteStore.updateCliente(form.value.id, form.value)
+            // [GY-FIX] Inject Quick Transport logic for backend shortcut
+            const payload = { ...form.value }
+            delete payload.domicilios // Prevent nested update issues
+            
+            if (quickTransportId.value) {
+                payload.transporte_id = quickTransportId.value
+            }
+            result = await clienteStore.updateCliente(form.value.id, payload)
         }
 
         emit('save', result)

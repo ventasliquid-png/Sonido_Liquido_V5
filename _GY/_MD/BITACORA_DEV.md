@@ -368,3 +368,45 @@ Los navegadores modernos (Brave/Chromium) ignoran autocomplete='off'/new-passwor
 
 **Estado:** MÃ³dulo Clientes VERIFICADO y CERRADO.
 
+
+## SESION 782: SYSTEM REBOOT & MODULE INITIATION (CONTACTOS)
+**Fecha:** 2026-01-26
+**Objetivo:** Intervención BIOS, Instalación de Bootloader V2 y Activación Módulo Agenda.
+
+### Hito 1: Intervención de Nivel BIOS (Resolución de Paradoja Marmota)
+Se detectó una desincronización cognitiva severa: La identidad residía dentro de un código que no se actualizaba hasta después de asumir la identidad (Loop Infinito).
+*   **Solución:** Instalación de BOOTLOADER V2.
+*   **Mecanismo:** El script físico DESPERTAR_GY.bat ahora ejecuta git pull de forma autónoma **antes** de lanzar el entorno visual, rompiendo la dependencia causal.
+*   **Artefacto Cognitivo:** Se creó _GY/BOOTLOADER.md como puntero absoluto de verdad al inicio.
+
+### Hito 2: Upgrade de Identidad (V13 -> V14 VANGUARD)
+Debido a la reestructuración profunda de los protocolos de arranque, se dio de baja la versión V13 (Sentinel) y se activó **V14 'VANGUARD'**.
+*   **Protocolo:** GY_IPL_V14.md establecido como nueva norma.
+*   **Doctrina:** 'La Anticipación es la Clave de la Victoria.'
+
+### Hito 3: Inicio de Operaciones Tácticas
+La rama 5.5-rescate-jueves fue fusionada en main y eliminada. Se creó la rama táctica 5.6-contactos-agenda.
+*   **Misión:** Implementar UX de Agenda en Ficha Cliente e integración Google.
+
+**Estado:** SISTEMA NOMINAL V14. LISTO PARA OPERACIONES.
+
+
+### Hito 4: Implementación UX Agenda (Contactos V1)
+Se completó la integración visual del módulo de contactos en la interfaz de Cliente.
+*   **Componente Táctico:** Se creó ContactoPopover.vue, un componente reutilizable que muestra la lista de vínculos y permite acciones rápidas (Copiar Teléfono/Mail).
+*   **Integración:**
+    *   **ClienteInspector:** Se redujo el layout del Header para acomodar el botón 'Agenda' junto a la Razón Social.
+    *   **ClientCanvas:** Se añadió el botón en el Header principal.
+    *   **Lógica:** Ambos componentes comparten el estado showAgenda y manejan la navegación hacia la pestaña completa de contactos ('Gestionar').
+
+**Estado:** Header UX y Popover OPERATIVOS.
+
+
+### Hito 5: Estrategia Local First (Google Mock)
+Siguiendo órdenes directas, se difirió la integración real de OAuth y se implementó una estructura local compatible.
+*   **DB Schema:** Se añadió google_resource_name y google_etag a la tabla personas vía migración manual (scripts/migrate_agenda_google.py).
+*   **Backend:** Se implementó google_mock_router.py para simular latencia y respuestas de éxito en la sincronización.
+*   **Frontend:** Se activó el botón 'Sincronizar' en ContactoPopover conectado al endpoint simulado.
+
+**Resultado:** El sistema está listo para operar localmente y 'fingir' conexión a la nube sin romper el flujo de trabajo.
+

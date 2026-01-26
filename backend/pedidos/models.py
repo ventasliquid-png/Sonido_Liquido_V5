@@ -27,6 +27,11 @@ class Pedido(Base):
     domicilio_entrega_id = Column(GUID(), ForeignKey("domicilios.id"), nullable=True)
     transporte_id = Column(GUID(), ForeignKey("empresas_transporte.id"), nullable=True)
     
+    # Costos Logísticos (MVP)
+    costo_envio_cliente = Column(Float, default=0.0) # Lo que paga el cliente
+    costo_flete_interno = Column(Float, default=0.0) # Costo "Alberto"
+    estado_logistico = Column(String, default="PENDIENTE") # PENDIENTE, EN_PREPARACION, DESPACHADO, ENTREGADO
+
     # Metadata
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)

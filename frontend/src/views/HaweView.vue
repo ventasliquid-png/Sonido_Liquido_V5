@@ -146,8 +146,8 @@
             </div>
             <FichaCard
                 class="w-full"
-                :title="cliente.razon_social"
-                :subtitle="cliente.cuit"
+                :title="cliente.razon_social || 'Sin Nombre'"
+                :subtitle="cliente.cuit || '---'"
                 :selected="selectedIds.includes(cliente.id)"
                 :hasLogisticsAlert="cliente.requiere_entrega"
                 :hasTransport="cliente.domicilios?.some(d => d.transporte_id)"
@@ -398,7 +398,7 @@ const selectedId = ref(null)
 const selectedCliente = ref(null)
 const selectedSegmento = ref(null)
 const searchQuery = ref('')
-const filterStatus = ref('active') // Default to active
+const filterStatus = ref(localStorage.getItem('hawe_filter_pref') || 'active') // Persisted
 const sortBy = ref(localStorage.getItem('hawe_sort_pref') || 'usage')
 const viewMode = ref('grid')
 const selectedIds = ref([]) // IDs for bulk actions
@@ -451,7 +451,8 @@ watch(sortBy, (newVal) => {
     localStorage.setItem('hawe_sort_pref', newVal)
 })
 
-watch(filterStatus, () => {
+watch(filterStatus, (newVal) => {
+    localStorage.setItem('hawe_filter_pref', newVal)
     selectedIds.value = [] // Clear selection on tab switch
 })
 
@@ -649,9 +650,30 @@ const handleHardDelete = async (clienteData) => {
 
 const toggleClienteStatus = async (cliente) => {
     const newStatus = !cliente.activo
+    
+    // [GY-UX] Deactivation Warning
     if (cliente.activo && !newStatus) {
         if (!confirm(`¿Está seguro de desactivar al cliente ${cliente.razon_social}?`)) return
     }
+    
+    // [GY-UX] Reactivation Validation (V14)
+    if (!cliente.activo && newStatus) {
+        // Check Mandatory Fields (Simple check based on available data in list)
+        // Note: 'cliente' from list might be partial? Ideally we trust list data.
+        // Required: Segmento, ListaPrecios, CondicionIVA
+        const missingFields = []
+        if (!cliente.segmento_id) missingFields.push("Segmento")
+        if (!cliente.lista_precios_id) missingFields.push("Lista de Precios")
+        if (!cliente.condicion_iva_id) missingFields.push("Condición IVA")
+        
+        if (missingFields.length > 0) {
+            if (confirm(`No se puede activar el cliente porque faltan datos obligatorios:\n- ${missingFields.join('\n- ')}\n\n¿Desea abrir la ficha para completar los datos ahora?`)) {
+                selectCliente(cliente)
+            }
+            return // Block activation
+        }
+    }
+
     try {
         await clienteStore.updateCliente(cliente.id, { ...cliente, activo: newStatus })
         notificationStore.add(newStatus ? 'Cliente reactivado' : 'Cliente desactivado', 'success')

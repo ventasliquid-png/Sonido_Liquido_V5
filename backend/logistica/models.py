@@ -16,10 +16,24 @@ class EmpresaTransporte(Base):
     id = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
     nombre = Column(String, nullable=False, unique=True) # Ej: "Expreso Cruz del Sur"
     
-    # Datos Core (V5)
-    direccion = Column(String, nullable=True) # Sede Central
+    # Datos Fiscales / Central
+    cuit = Column(String(15), nullable=True)
+    condicion_iva_id = Column(GUID(), ForeignKey("condiciones_iva.id"), nullable=True) # UUID FK
+
+    # Ubicación Central (Administrativa/Fiscal)
+    direccion = Column(String, nullable=True) 
+    localidad = Column(String, nullable=True)
+    provincia_id = Column(String(5), ForeignKey("provincias.id"), nullable=True)
+
+    # Contacto Central
     whatsapp = Column(String, nullable=True)
     email = Column(String, nullable=True)
+    
+    # Datos Operativos CABA (Recepción/Despacho)
+    direccion_despacho = Column(String, nullable=True) # Si difiere de central
+    horario_despacho = Column(String, nullable=True)
+    telefono_despacho = Column(String, nullable=True)
+
     observaciones = Column(Text, nullable=True)
 
     web_tracking = Column(String, nullable=True) # URL genérica
@@ -30,6 +44,10 @@ class EmpresaTransporte(Base):
     requiere_carga_web = Column(Boolean, default=False) # Bloquea cierre si no se carga en portal
     formato_etiqueta = Column(Enum('PROPIA', 'EXTERNA_PDF', name='formato_etiqueta_enum'), default='PROPIA')
     activo = Column(Boolean, default=True)
+
+    # Relaciones
+    condicion_iva = relationship("backend.maestros.models.CondicionIva")
+    provincia = relationship("backend.maestros.models.Provincia")
 
     def __repr__(self):
         return f"<EmpresaTransporte(nombre='{self.nombre}')>"

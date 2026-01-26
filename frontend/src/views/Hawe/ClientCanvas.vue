@@ -16,6 +16,31 @@
                       placeholder="Ingrese Razón Social..."
                   />
               </div>
+
+              <!-- AGENDA BADGE (V14) -->
+              <div class="relative">
+                  <button 
+                      @click="showAgenda = !showAgenda"
+                      class="flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all group/agenda"
+                      :class="showAgenda ? 'bg-cyan-600 border-cyan-400 text-white shadow-[0_0_15px_rgba(8,145,178,0.5)]' : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10 hover:text-white'"
+                  >
+                      <i class="fas fa-address-book" :class="showAgenda ? 'animate-pulse' : ''"></i>
+                      <span class="text-[10px] font-bold uppercase tracking-widest hidden lg:inline">Agenda</span>
+                      <span v-if="contactos.length > 0" class="ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold" :class="showAgenda ? 'bg-white/20' : 'bg-cyan-500/20 text-cyan-400'">
+                          {{ contactos.length }}
+                      </span>
+                  </button>
+                  
+                  <!-- Popover Backdrop (Click Outside) -->
+                  <div v-if="showAgenda" class="fixed inset-0 z-[55]" @click="showAgenda = false"></div>
+
+                  <!-- Popover Component -->
+                  <ContactoPopover 
+                      v-if="showAgenda" 
+                      :contactos="contactos" 
+                      @manager="scrollToContacts"
+                  />
+              </div>
           </div>
           
           <!-- CENTER TITLE -->
@@ -83,7 +108,7 @@
                           
                           <div class="grid grid-cols-2 gap-3">
                               <!-- Address Preview -->
-                              <div @click="openDomicilioTab()" class="cursor-pointer hover:opacity-80 transition-opacity">
+                              <div @click="openDomicilioTab(domiciliosLogistica.length > 0 ? domiciliosLogistica[0] : null)" class="cursor-pointer hover:opacity-80 transition-opacity">
                                    <!-- Logic to show Primary Delivery Address -->
                                     <template v-if="domiciliosLogistica.length > 0">
                                         <p class="text-xs font-bold text-white truncate">{{ domiciliosLogistica[0].calle }} {{ domiciliosLogistica[0].numero }}</p>
@@ -265,7 +290,7 @@
           </div>
 
           <!-- BLOCK 4: CONTACTS (COMPACT) -->
-          <section class="space-y-2">
+          <section id="contacts-section" class="space-y-2">
                <div class="flex items-center justify-between px-2">
                   <h3 class="text-[10px] font-bold text-white/40 uppercase tracking-widest flex items-center gap-2">
                       <i class="fas fa-address-book"></i> Agenda de Vínculos
@@ -387,6 +412,7 @@ import SegmentoForm from '../Maestros/SegmentoForm.vue'
 import SegmentoList from '../Maestros/SegmentoList.vue'
 import DomicilioForm from './components/DomicilioForm.vue'
 import ContactoForm from './components/ContactoForm.vue'
+import ContactoPopover from './components/ContactoPopover.vue'
 import SmartSelect from '../../components/ui/SmartSelect.vue'
 import TransporteAbmModal from '../Logistica/components/TransporteAbmModal.vue'
 import ContextMenu from '../../components/common/ContextMenu.vue'
@@ -405,6 +431,7 @@ const { evaluateCliente } = useAuditSemaphore()
 
 const isNew = ref(false)
 const expandLogistics = ref(false)
+const showAgenda = ref(false)
 const activeTab = ref('CLIENTE') // 'CLIENTE', 'DOMICILIO', 'CONTACTO'
 
 const form = ref({
@@ -518,7 +545,16 @@ const goToNew = () => {
     isNew.value = true
     activeTab.value = 'CLIENTE'
     showContactoForm.value = false
+    showAgenda.value = false
     router.replace({ name: 'HaweClientCanvas', params: { id: 'new' } })
+}
+
+const scrollToContacts = () => {
+    showAgenda.value = false
+    // Force expand block if collapsed? It's always visible in V5.4 layout
+    // Just scroll to it?
+    const el = document.getElementById('contacts-section')
+    if (el) el.scrollIntoView({ behavior: 'smooth' })
 }
 
 // --- Cantera Logic ---
@@ -704,17 +740,25 @@ const validateForm = () => {
     errors.value = {};
     let isValid = true;
     
+    // [GY-UX] Flexible Validation (V14)
+    // If deactivating, only Identity is required
+    const isDeactivating = !form.value.activo;
+
     if (!form.value.razon_social) { errors.value.razon_social = true; isValid = false; }
     if (!form.value.cuit) { errors.value.cuit = true; isValid = false; }
-    if (!form.value.segmento_id) { errors.value.segmento_id = true; isValid = false; }
-    if (!form.value.condicion_iva_id) { errors.value.condicion_iva_id = true; isValid = false; }
-    if (!form.value.lista_precios_id) { errors.value.lista_precios_id = true; isValid = false; }
     
-    // Validate Fiscal Domicile
-    const hasFiscal = domicilios.value.some(d => d.es_fiscal && d.activo !== false);
-    if (!hasFiscal) {
-        errors.value.domicilio = true;
-        isValid = false;
+    // Strict validations only if Active
+    if (!isDeactivating) {
+        if (!form.value.segmento_id) { errors.value.segmento_id = true; isValid = false; }
+        if (!form.value.condicion_iva_id) { errors.value.condicion_iva_id = true; isValid = false; }
+        if (!form.value.lista_precios_id) { errors.value.lista_precios_id = true; isValid = false; }
+        
+        // Validate Fiscal Domicile
+        const hasFiscal = domicilios.value.some(d => d.es_fiscal && d.activo !== false);
+        if (!hasFiscal) {
+            errors.value.domicilio = true;
+            isValid = false;
+        }
     }
     
     return isValid;
@@ -744,6 +788,12 @@ const saveCliente = async () => {
         } else {
             // Explicitly do NOT send domicilios allow backend to keep current state
             delete payload.domicilios; 
+            
+            // [GY-FIX] Inject Quick Transport logic for backend shortcut
+            if (quickTransportId.value) {
+                payload.transporte_id = quickTransportId.value
+            }
+
             await store.updateCliente(form.value.id, payload)
             notificationStore.add('Cliente actualizado exitosamente', 'success')
         }

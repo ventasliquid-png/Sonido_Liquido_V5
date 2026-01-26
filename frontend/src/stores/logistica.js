@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import logisticaService from '../services/logistica';
 
 export const useLogisticaStore = defineStore('logistica', () => {
@@ -98,6 +98,59 @@ export const useLogisticaStore = defineStore('logistica', () => {
         }
     }
 
+    async function deleteNodo(id) {
+        loading.value = true;
+        try {
+            await logisticaService.hardDeleteNodo(id);
+            nodos.value = nodos.value.filter(n => n.id !== id);
+        } catch (err) {
+            error.value = err.message || 'Error al eliminar nodo';
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function fetchAllNodos() {
+        loading.value = true;
+        try {
+            const response = await logisticaService.getNodos();
+            nodos.value = response.data;
+            return response.data;
+        } catch (err) {
+            error.value = err.message || 'Error al cargar todos los nodos';
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    const transportOptions = computed(() => {
+        const options = [];
+        // Add Brands
+        empresas.value.forEach(emp => {
+            options.push({
+                id: emp.id,
+                nombre: emp.nombre,
+                type: 'empresa',
+                data: emp
+            });
+            // Add its nodes
+            const empNodos = nodos.value.filter(n => n.empresa_id === emp.id);
+            empNodos.forEach(nodo => {
+                options.push({
+                    id: nodo.id, // Careful with ID collision? No, UUIDs should be unique across tables usually, or we prefix
+                    nombre: `${emp.nombre} (${nodo.nombre_nodo})`,
+                    type: 'nodo',
+                    empresa_id: emp.id,
+                    provincia_id: nodo.provincia_id,
+                    data: { ...emp, ...nodo, id: nodo.id, nombre_empresa: emp.nombre }
+                });
+            });
+        });
+        return options;
+    });
+
     return {
         empresas,
         nodos,
@@ -107,7 +160,10 @@ export const useLogisticaStore = defineStore('logistica', () => {
         createEmpresa,
         updateEmpresa,
         fetchNodos,
+        fetchAllNodos,
         createNodo,
-        updateNodo
+        updateNodo,
+        deleteNodo,
+        transportOptions
     };
 });

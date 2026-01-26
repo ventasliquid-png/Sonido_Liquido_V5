@@ -24,6 +24,10 @@ class Persona(Base):
     observaciones = Column(Text, nullable=True) # Gustos, cumpleaños
     activo = Column(Boolean, default=True)
 
+    # Google Integration (V14)
+    google_resource_name = Column(String, nullable=True, unique=True, index=True) # 'people/c12345...'
+    google_etag = Column(String, nullable=True)
+
     def __repr__(self):
         return f"<Persona(nombre='{self.nombre_completo}')>"
 

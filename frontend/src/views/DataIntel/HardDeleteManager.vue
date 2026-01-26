@@ -232,24 +232,60 @@ const loadData = async (type) => {
 
 // --- ACTION LOGIC ---
 
+// --- ACTION LOGIC ---
+
+const isClientComplete = (item) => {
+    // Logic matches HaweView.vue toggleClienteStatus
+    if (currentType.value !== 'clientes') return true; // No strict checks for products yet or handled differently
+    
+    // Check mandatory fields
+    const missing = [];
+    if (!item.segmento_id) missing.push("Segmento");
+    if (!item.lista_precios_id) missing.push("Lista de Precios");
+    if (!item.condicion_iva_id) missing.push("Condición IVA");
+    
+    return {
+        valid: missing.length === 0,
+        missing: missing
+    };
+};
+
 // 1. RESCUE (Reactivar)
 const rescueItem = async (item) => {
     try {
-        if (!confirm(`¿Restaurar "${currentType.value === 'clientes' ? item.razon_social : item.nombre}" al padrón activo?`)) return;
+        const integrity = isClientComplete(item);
+        const targetActiveStatus = integrity.valid;
+        
+        let confirmMsg = `¿Restaurar "${currentType.value === 'clientes' ? item.razon_social : item.nombre}" al padrón`;
+        if (targetActiveStatus) {
+            confirmMsg += ' activo?';
+        } else {
+            confirmMsg += ' como INACTIVO?\n\n(El registro tiene datos incompletos: ' + integrity.missing.join(', ') + '. Se restaurará para que pueda corregirlo, pero permanecerá inactivo).';
+        }
+
+        if (!confirm(confirmMsg)) return;
         
         loading.value = true;
+        
+        // Force status based on integrity
+        const payload = { ...item, activo: targetActiveStatus };
+
         if (currentType.value === 'clientes') {
-            await clientesStore.updateCliente(item.id, { ...item, activo: true });
+            await clientesStore.updateCliente(item.id, payload);
         } else {
             // Products
-            await productosStore.updateProducto(item.id, { ...item, activo: true });
+            await productosStore.updateProducto(item.id, payload);
         }
         
         // Remove from list
         items.value = items.value.filter(i => i.id !== item.id);
         selectedIds.value = selectedIds.value.filter(id => id !== item.id);
         
-        notificationStore.add('Registro rescatado exitosamente', 'success');
+        if (targetActiveStatus) {
+            notificationStore.add('Registro rescatado y activado exitosamente', 'success');
+        } else {
+            notificationStore.add('Registro rescatado como INACTIVO (Faltan datos)', 'warning');
+        }
         
     } catch (e) {
         console.error(e);
@@ -263,27 +299,40 @@ const handleBulkRescue = async () => {
     if (!confirm(`¿Restaurar ${selectedIds.value.length} registros seleccionados?`)) return;
     
     loading.value = true;
-    let successCount = 0;
+    let successActive = 0;
+    let successInactive = 0;
     
     for (const id of selectedIds.value) {
         try {
             const item = items.value.find(i => i.id === id);
             if (!item) continue;
             
+            const integrity = isClientComplete(item);
+            const targetActiveStatus = integrity.valid; // If valid -> Active, Else -> Inactive
+
             if (currentType.value === 'clientes') {
-                await clientesStore.updateCliente(id, { ...item, activo: true });
+                await clientesStore.updateCliente(id, { ...item, activo: targetActiveStatus });
             } else {
-                await productosStore.updateProducto(id, { ...item, activo: true });
+                await productosStore.updateProducto(id, { ...item, activo: targetActiveStatus });
             }
-            successCount++;
+            
+            if (targetActiveStatus) successActive++;
+            else successInactive++;
+
         } catch (e) {
             console.error(`Failed to rescue ${id}`, e);
         }
     }
     
-    // Refresh list (easier than filtering array for bulk)
+    // Refresh list
     await loadData(currentType.value);
-    notificationStore.add(`${successCount} registros rescatados`, 'success');
+    
+    if (successInactive > 0) {
+        notificationStore.add(`${successActive} activados. ${successInactive} restaurados como INACTIVOS.`, 'warning');
+        alert(`Operación completada:\n\n- ${successActive} registros activados correctamente.\n- ${successInactive} registros restaurados como INACTIVOS por falta de datos.\n\nPuede completarlos desde el padrón principal.`);
+    } else {
+        notificationStore.add(`${successActive} registros rescatados exitosamente`, 'success');
+    }
 };
 
 

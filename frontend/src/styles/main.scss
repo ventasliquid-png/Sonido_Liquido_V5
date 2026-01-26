@@ -106,3 +106,48 @@ body {
   background-color: var(--color-fondo);
   color: var(--color-texto-general);
 }
+
+/* --- DARK SMART SELECT UPDATE (V14 FIX) --- */
+.dark-smart-select input {
+    background-color: rgba(0, 0, 0, 0.3) !important; 
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+}
+
+.dark-smart-select input:focus {
+    border-color: #06b6d4 !important; /* Cyan-500 */
+    box-shadow: 0 0 0 1px rgba(6, 182, 212, 0.5) !important;
+}
+
+/* Dropdown Container */
+.dark-smart-select div.absolute {
+    background-color: #1e293b !important; /* Slate-800 */
+    border-color: #334155 !important;
+}
+
+/* List Items */
+.dark-smart-select li {
+    color: #f8fafc !important; /* Slate-50 */
+    background-color: transparent; /* Reset default white */
+}
+
+.dark-smart-select li:hover {
+    background-color: #334155 !important; /* Slate-700 Hover */
+}
+
+/* Header Items */
+.dark-smart-select li[class*='text-gray-400'] {
+     background-color: #0f172a !important; /* Slate-900 Header */
+     color: #94a3b8 !important; /* Slate-400 */
+}
+
+/* No matches / Info */
+.dark-smart-select li[class*='text-gray-500'] {
+    color: #94a3b8 !important;
+}
+
+/* Icons */
+.dark-smart-select svg {
+    color: rgba(255, 255, 255, 0.5) !important;
+}
+

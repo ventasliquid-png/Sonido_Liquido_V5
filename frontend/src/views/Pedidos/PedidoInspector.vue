@@ -168,6 +168,9 @@
                     </div>
                 </div>
 
+                <!-- Logistics Panel (MVP) -->
+                <LogisticaPanel :modelValue="modelValue" />
+
                 <!-- QUICK EDIT ITEMS BUTTON -->
                 <div class="pt-2 no-zen">
                     <button 
@@ -414,6 +417,7 @@ import { usePedidosStore } from '@/stores/pedidos'
 import { useNotificationStore } from '@/stores/notification'
 import canteraService from '@/services/canteraService'
 import ContextMenu from '@/components/common/ContextMenu.vue'
+import LogisticaPanel from './components/LogisticaPanel.vue'
 import html2canvas from 'html2canvas'
 
 const router = useRouter()

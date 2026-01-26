@@ -38,5 +38,10 @@ export default {
     async cotizar(data) {
         const response = await api.post('/pedidos/cotizar', data);
         return response.data;
+    },
+
+    async getLastUsedTransport(clienteId) {
+        const response = await api.get(`/pedidos/ultimo-transporte/${clienteId}`);
+        return response.data;
     }
 };

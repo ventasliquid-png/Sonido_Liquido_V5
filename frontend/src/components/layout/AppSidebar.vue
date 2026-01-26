@@ -147,7 +147,7 @@
             </a>
             <a href="#" @click.prevent="navigate('Transportes')" class="nav-item-sub" :class="{ 'active-link-amber': isActive('Transportes') }">
                 <i class="fas fa-truck w-4"></i> 
-                <span>Logística</span>
+                <span>Transportes</span>
             </a>
             <a href="#" @click.prevent="handleDepositosClick" class="nav-item-sub hover:text-amber-200 text-white/50">
                 <i class="fas fa-warehouse w-4"></i> 

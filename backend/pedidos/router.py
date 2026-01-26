@@ -339,6 +339,22 @@ def get_historial_cliente(
         
     return []
 
+@router.get("/ultimo-transporte/{cliente_id}")
+def get_ultimo_transporte(cliente_id: str, db: Session = Depends(get_db)):
+    """
+    Recupera el ID del último transporte utilizado por un cliente.
+    """
+    last_pedido = (
+        db.query(models.Pedido)
+        .filter(models.Pedido.cliente_id == cliente_id)
+        .filter(models.Pedido.transporte_id.isnot(None))
+        .order_by(models.Pedido.fecha.desc(), models.Pedido.id.desc())
+        .first()
+    )
+    if last_pedido:
+        return {"transporte_id": last_pedido.transporte_id}
+    return {"transporte_id": None}
+
 
 
 
