@@ -1,37 +1,42 @@
 @echo off
-TITLE GY V-SENTINEL LAUNCHER
-cd /d "%~dp0"
+TITLE GY V14 - CARGADOR MANUAL
+color 0A
 
-echo ========================================================
-echo   GY V-SENTINEL - SISTEMA DE ARRANQUE V2
-echo ========================================================
+echo ==========================================
+echo   CARGADOR DE PROTOCOLO GY V14
+echo ==========================================
+echo.
+echo RAMA OBJETIVO: v5.6-contactos-agenda
 echo.
 
-echo [1/3] Sincronizando realidad (GIT PULL)...
-git pull origin main --no-rebase
+:PREGUNTA_GIT
+set /p update=">> Es necesario bajar del GIT actualizaciones? (S/N): "
+if /i "%update%"=="s" goto GIT_PULL
+if /i "%update%"=="n" goto CARGAR_PROMPT
+goto PREGUNTA_GIT
+
+:GIT_PULL
+echo.
+echo [Sincronizando...]
+:: Pull especifico de la rama de trabajo actual para evitar errores de main
+git pull origin v5.6-contactos-agenda
 if %errorlevel% neq 0 (
     color 4F
-    echo.
-    echo [ALERTA CRITICA] FALLO EN GIT PULL.
-    echo El sistema fisico no esta sincronizado con la Nube.
-    echo.
-    echo 1. Verifica tu conexion a Internet.
-    echo 2. Verifica conflictos locales.
-    echo.
-    echo PRESIONA CUALQUIER TECLA PARA CONTINUAR BAJO TU PROPIO RIESGO...
-    pause >nul
-    color 07
+    echo [ERROR] Fallo la actualizacion.
+    pause
 ) else (
-    echo [OK] Sincronizacion completada.
+    echo [OK] Sistema actualizado.
 )
+goto CARGAR_PROMPT
 
+:CARGAR_PROMPT
 echo.
-echo [2/3] Preparando inyeccion de memoria...
-:: Prompt de Inyección Cognitiva
-echo Gy, despierta. TU PRIMERA ACCION REAL ES LEER EL ARTEFACTO: "_GY/BOOTLOADER.md". El contiene tu Identidad y Mision. NO ASUMAS NADA MAS. | clip
-echo [OK] Prompt copiado al portapapeles.
-
+echo [Cargando Orden de Despertar...]
+:: COPIA SILENCIOSA AL PORTAPAPELES
+echo Gy, despierta. TU PRIMERA ACCION ES LEER "_GY/BOOTLOADER.md". Ahi esta tu Identidad V14 y tu Mision. | clip
 echo.
-echo [3/3] Iniciando Entorno Visual...
-code .
+echo [LISTO] La orden esta en tu portapapeles (Ctrl+V).
+echo Abre Antigravity y pegala.
+echo.
+timeout /t 3
 exit
