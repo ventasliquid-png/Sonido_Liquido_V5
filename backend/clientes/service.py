@@ -154,16 +154,22 @@ class ClienteService:
         
         # Update default domicile if transporte_id is provided
         if transporte_id:
-            # Find default domicile (Fiscal or Entrega, or first one)
-            default_dom = next((d for d in db_cliente.domicilios if d.es_entrega), None)
+            # Find default domicile (Hierarchy: Entrega > Fiscal > First Active)
+            # Ensure we only pick ACTIVE domiciles
+            default_dom = next((d for d in db_cliente.domicilios if d.es_entrega and d.activo), None)
+            
             if not default_dom:
-                 default_dom = next((d for d in db_cliente.domicilios if d.es_fiscal), None)
+                 default_dom = next((d for d in db_cliente.domicilios if d.es_fiscal and d.activo), None)
+            
+            if not default_dom and db_cliente.domicilios:
+                 # [GY-FIX-V14] Fallback to ANY active domicile if flags are missing (matches Frontend logic)
+                 default_dom = next((d for d in db_cliente.domicilios if d.activo), None)
             
             if default_dom:
                 default_dom.transporte_id = transporte_id
                 db.add(default_dom)
             else:
-                # If no domicile exists, create a default one
+                # If no domicile exists at all, create a default one
                 new_dom = Domicilio(
                     cliente_id=db_cliente.id,
                     transporte_id=transporte_id,
