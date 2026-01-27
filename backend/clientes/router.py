@@ -81,12 +81,20 @@ def check_cliente_integrity(cliente_id: UUID, db: Session = Depends(get_db)):
     Retorna conteo de dependencias (Pedidos).
     """
     from backend.pedidos.models import Pedido
+    from sqlalchemy import func
     
     # Count orders associated with this client
     dependency_count = db.query(Pedido).filter(Pedido.cliente_id == cliente_id).count()
     
+    # Detailed breakdown if dependencies exist
+    details = ""
+    if dependency_count > 0:
+        breakdown = db.query(Pedido.estado, func.count(Pedido.id)).filter(Pedido.cliente_id == cliente_id).group_by(Pedido.estado).all()
+        status_counts = [f"{count} {status}" for status, count in breakdown]
+        details = f" ({', '.join(status_counts)})"
+
     is_safe = dependency_count == 0
-    message = "Sin dependencias. Seguro para eliminar." if is_safe else f"Tiene {dependency_count} pedidos históricos asociados."
+    message = "Sin dependencias. Seguro para eliminar." if is_safe else f"Tiene {dependency_count} pedidos asociados{details}. Elimine los pedidos primero."
     
     return {
         "safe": is_safe,
@@ -97,15 +105,26 @@ def check_cliente_integrity(cliente_id: UUID, db: Session = Depends(get_db)):
 @router.delete("/{cliente_id}/hard")
 def hard_delete_cliente(cliente_id: UUID, db: Session = Depends(get_db)):
     from sqlalchemy.exc import IntegrityError
+    from backend.pedidos.models import Pedido
+    from sqlalchemy import func
+
     try:
         db_cliente = ClienteService.hard_delete_cliente(db, cliente_id)
         if db_cliente is None:
             raise HTTPException(status_code=404, detail="Cliente no encontrado")
         return {"status": "success", "message": f"Cliente {cliente_id} eliminado definitivamente"}
     except IntegrityError:
+        # Generate helpful error message
+        dependency_count = db.query(Pedido).filter(Pedido.cliente_id == cliente_id).count()
+        details = ""
+        if dependency_count > 0:
+            breakdown = db.query(Pedido.estado, func.count(Pedido.id)).filter(Pedido.cliente_id == cliente_id).group_by(Pedido.estado).all()
+            status_counts = [f"{count} {status}" for status, count in breakdown]
+            details = f": {', '.join(status_counts)}"
+            
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, 
-            detail="No se puede eliminar el cliente porque tiene registros asociados (historial)."
+            detail=f"No se puede eliminar: El cliente tiene {dependency_count} pedidos asociados{details}. Debe eliminarlos antes."
         )
 
 

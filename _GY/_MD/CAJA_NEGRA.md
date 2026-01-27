@@ -20,7 +20,7 @@
 | Módulo | Estado | Notas Técnicas |
 | :--- | :--- | :--- |
 | **Clientes** | 🟢 OPTIMIZADO | UX V5.4 (Ficha Unificada). Agenda en Desarrollo. |
-| **Pedidos** | 🟢 OPERATIVO | Ciclo Completo + Logística. |
+| **Pedidos** | 🟢 OPERATIVO | Ciclo Completo. *Schema Drift (Nulls) Resuelto [27-01].* |
 | **Productos** | 🟢 OPERATIVO | ABM Completo + Clonado. |
 | **Despliegue** | 🟢 V1.3 STABLE | Bootloader V2 Integrado. |
 

@@ -158,15 +158,15 @@ export const usePedidosStore = defineStore('pedidos', {
             }
         },
 
-    },
-    async fetchLastUsedTransport(clienteId) {
-        try {
-            const res = await apiClient.get(`/pedidos/ultimo-transporte/${clienteId}`);
-            return res.data.transporte_id;
-        } catch (error) {
-            console.error("Error fetching last used transport:", error);
-            return null;
+
+        async fetchLastUsedTransport(clienteId) {
+            try {
+                const res = await apiClient.get(`/pedidos/ultimo-transporte/${clienteId}`);
+                return res.data.transporte_id;
+            } catch (error) {
+                console.error("Error fetching last used transport:", error);
+                return null;
+            }
         }
     }
-}
 });

@@ -10,11 +10,25 @@
               <div class="relative group">
                   <span class="absolute -top-3 left-1 text-[9px] font-bold text-cyan-900/50 uppercase tracking-widest transition-colors group-hover:text-cyan-500/50">Razón Social</span>
                   <input 
+                      ref="razonSocialInput"
                       v-model="form.razon_social" 
                       type="text" 
                       class="bg-black/40 border border-white/20 rounded-md px-3 py-1.5 text-xl font-bold text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition-all placeholder-white/20 w-[300px] lg:w-[450px]"
                       placeholder="Ingrese Razón Social..."
+                      @input="handleSearchCantera"
                   />
+                  <!-- Cantera Results Dropdown -->
+                  <div v-if="canteraResults.length > 0" class="absolute top-full left-0 w-full bg-[#0f172a] border border-cyan-500/30 rounded-lg shadow-xl z-50 mt-1 max-h-60 overflow-y-auto">
+                      <div 
+                          v-for="res in canteraResults" 
+                          :key="res.id"
+                          @click="importFromCantera(res)"
+                          class="p-2 hover:bg-white/10 cursor-pointer border-b border-white/5 last:border-0"
+                      >
+                          <p class="text-sm font-bold text-white">{{ res.razon_social }}</p>
+                          <p class="text-xs text-white/50">{{ res.cuit || 'Sin CUIT' }}</p>
+                      </div>
+                  </div>
               </div>
 
               <!-- AGENDA BADGE (V14) -->
@@ -91,8 +105,8 @@
                               </div>
                           </div>
                           <div>
-                              <p class="text-sm font-bold text-white tracking-wide truncate">{{ computedFiscalAddress.split(',')[0] }}</p>
-                              <p class="text-[10px] text-cyan-200/50 font-mono">{{ computedFiscalAddress.split(',').slice(1).join(', ') || 'Sin Localidad' }}</p>
+                              <p class="text-sm tracking-wide truncate" :class="computedFiscalAddress.includes('Pendiente') ? 'text-white/40 italic font-medium' : 'text-white font-bold'">{{ computedFiscalAddress.split(',')[0] }}</p>
+                              <p class="text-[10px] text-cyan-200/50 font-mono">{{ computedFiscalAddress.split(',').slice(1).join(', ') || (computedFiscalAddress.includes('Pendiente') ? '' : 'Sin Localidad') }}</p>
                           </div>
                       </div>
 
@@ -373,20 +387,21 @@
       </footer>
 
       <!-- Modals & Context Menus (Existing) -->
-      <SegmentoForm v-if="showSegmentoModal" :show="showSegmentoModal" :id="editingSegmentoId" @close="closeSegmentoModal" @saved="handleSegmentoSaved" />
-      <SegmentoList v-if="showSegmentoList" :isStacked="true" class="fixed inset-0 z-[100] bg-[#0f172a] m-10 rounded-2xl shadow-2xl border border-cyan-500/30" @close="showSegmentoList = false" />
+      <!-- Modals & Context Menus (Existing) -->
+      <!-- <SegmentoForm ... /> Removed unused components -->
       <DomicilioForm v-if="activeTab === 'DOMICILIO'" :show="true" :domicilio="selectedDomicilio" @close="activeTab = 'CLIENTE'" @saved="handleDomicilioSaved" />
       <ContactoForm v-if="showContactoForm" :show="showContactoForm" :clienteId="String(form.id)" :contacto="selectedContacto" @close="showContactoForm = false" @saved="handleContactoSaved" />
       
-       <!-- Transport Context Menu Modal -->
+       <!-- Transport Canvas Modal (V5) -->
        <Teleport to="body">
-         <TransporteAbmModal
-            v-if="showTransporteAbm"
-            :show="showTransporteAbm"
-            :transport-id="selectedTransporteId"
-            @close="showTransporteAbm = false"
-            @saved="handleTransporteAbmCreate"
+       <Transition name="fade">
+         <TransporteCanvas
+            v-if="showTransporteCanvas"
+            v-model="selectedTransporte"
+            @close="showTransporteCanvas = false"
+            @save="handleTransporteCanvasCreate"
         />
+       </Transition>
         <!-- Also Context Menu for Transport -->
          <ContextMenu 
             v-if="contextMenuState.show" 
@@ -408,13 +423,13 @@ import { useClientesStore } from '../../stores/clientes'
 import { useMaestrosStore } from '../../stores/maestros'
 import { useNotificationStore } from '../../stores/notification'
 import canteraService from '../../services/canteraService'
-import SegmentoForm from '../Maestros/SegmentoForm.vue'
-import SegmentoList from '../Maestros/SegmentoList.vue'
+// import SegmentoForm from '../Maestros/SegmentoForm.vue' // Unused in this view logic
+// import SegmentoList from '../Maestros/SegmentoList.vue' // Unused in this view logic
 import DomicilioForm from './components/DomicilioForm.vue'
 import ContactoForm from './components/ContactoForm.vue'
 import ContactoPopover from './components/ContactoPopover.vue'
 import SmartSelect from '../../components/ui/SmartSelect.vue'
-import TransporteAbmModal from '../Logistica/components/TransporteAbmModal.vue'
+import TransporteCanvas from './components/TransporteCanvas.vue'
 import ContextMenu from '../../components/common/ContextMenu.vue'
 import { useLogisticaStore } from '../../stores/logistica'
 import { useAuditSemaphore } from '../../composables/useAuditSemaphore'
@@ -457,6 +472,7 @@ const domicilios = ref([])
 const contactos = ref([])
 const historial = ref([])
 const productosHabituales = ref([])
+const razonSocialInput = ref(null)
 
 // Computed Helpers
 const condicionesIva = computed(() => maestrosStore.condicionesIva)
@@ -519,8 +535,9 @@ const computedFiscalAddress = computed(() => {
             return addr
         }
     }
-    return 'Definir Domicilio Fiscal'
+    return 'Domicilio Pendiente'
 })
+
 
 const domiciliosLogistica = computed(() => {
     return domicilios.value.filter(d => !d.es_fiscal && d.activo !== false)
@@ -601,8 +618,8 @@ const importFromCantera = async (canteraClient) => {
 }
 
 // --- Transport ABM Context Menu ---
-const showTransporteAbm = ref(false)
-const selectedTransporteId = ref(null)
+const showTransporteCanvas = ref(false)
+const selectedTransporte = ref(null)
 
 const contextMenuState = ref({ show: false, x: 0, y: 0 })
 const contextMenuProps = ref({ actions: [] })
@@ -614,8 +631,25 @@ const openTransportContextMenu = (e) => {
             label: 'Nuevo Transporte (F4)', 
             iconClass: 'fas fa-plus', 
             handler: () => { 
-                selectedTransporteId.value = null
-                showTransporteAbm.value = true 
+                selectedTransporte.value = {
+                    id: null,
+                    nombre: '',
+                    telefono_reclamos: '',
+                    web_tracking: '',
+                    activo: true,
+                    requiere_carga_web: false,
+                    servicio_retiro_domicilio: false,
+                    formato_etiqueta: 'PROPIA',
+                    cuit: '',
+                    condicion_iva_id: null,
+                    direccion: '',
+                    localidad: '',
+                    provincia_id: null,
+                    direccion_despacho: '',
+                    horario_despacho: '',
+                    telefono_despacho: ''
+                }
+                showTransporteCanvas.value = true 
             } 
         }
     ]
@@ -625,8 +659,14 @@ const openTransportContextMenu = (e) => {
             label: 'Editar Seleccionado',
             iconClass: 'fas fa-pencil-alt',
             handler: () => {
-                selectedTransporteId.value = currentId
-                showTransporteAbm.value = true
+                // Fetch full transport data for editing
+                const t = transportes.value.find(tr => tr.id === currentId)
+                if (t) {
+                    selectedTransporte.value = { ...t }
+                    showTransporteCanvas.value = true
+                } else {
+                     notificationStore.add('Error al cargar datos del transporte', 'error')
+                }
             }
         })
     }
@@ -647,16 +687,22 @@ const openTransportContextMenu = (e) => {
     contextMenuProps.value.actions = actions
 }
 
-const handleTransporteAbmCreate = async (data) => {
+const handleTransporteCanvasCreate = async (newId) => {
     await logisticaStore.fetchEmpresas()
-    if (data.id) quickTransportId.value = data.id
-    notificationStore.add('Transporte creado y asignado', 'success')
-    showTransporteAbm.value = false
+    if (newId) quickTransportId.value = newId
+    notificationStore.add('Transporte creado/actualizado y asignado', 'success')
+    showTransporteCanvas.value = false
 }
 
 // --- Initialization ---
 onMounted(async () => {
     window.addEventListener('keydown', handleKeydown)
+    
+    // [GY-UX] Auto-Focus Razon Social
+    setTimeout(() => {
+        if (razonSocialInput.value) razonSocialInput.value.focus()
+    }, 200)
+
     await maestrosStore.fetchAll()
     await logisticaStore.fetchEmpresas()
     

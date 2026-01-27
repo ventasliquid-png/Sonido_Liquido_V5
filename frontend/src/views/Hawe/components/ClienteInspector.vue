@@ -432,16 +432,17 @@
         />
     </Teleport>
 
-    <!-- Transport Context Menu Modal -->
-    <Teleport to="body">
-         <TransporteAbmModal
-            v-if="showTransporteAbm"
-            :show="showTransporteAbm"
-            :transport-id="selectedTransporteId"
-            @close="showTransporteAbm = false"
-            @saved="handleTransporteAbmCreate"
-        />
-    </Teleport>
+     <!-- Transport Canvas Modal (V5) -->
+     <Teleport to="body">
+         <Transition name="fade">
+             <TransporteCanvas
+                v-if="showTransporteCanvas"
+                v-model="selectedTransporte"
+                @close="showTransporteCanvas = false"
+                @save="handleTransporteCanvasCreate"
+            />
+         </Transition>
+     </Teleport>
 </div>
 </template>
 
@@ -455,7 +456,7 @@ import DomicilioForm from './DomicilioForm.vue'
 import CondicionIvaForm from '../../Maestros/CondicionIvaForm.vue'
 import ContextMenu from '../../../components/common/ContextMenu.vue'
 import SimpleAbmModal from '../../../components/common/SimpleAbmModal.vue'
-import TransporteAbmModal from '../../Logistica/components/TransporteAbmModal.vue'
+import TransporteCanvas from './TransporteCanvas.vue'
 import ContactoPopover from './ContactoPopover.vue'
 import SmartSelect from '../../../components/ui/SmartSelect.vue'
 import { useLogisticaStore } from '../../../stores/logistica'
@@ -795,6 +796,72 @@ const openIvaContextMenu = (e) => {
 }
 
 
+// --- Transport Canvas Logic (V5 Refactor) ---
+const showTransporteCanvas = ref(false)
+const selectedTransporte = ref(null)
+
+const openTransportContextMenu = (e) => {
+    const currentId = quickTransportId.value
+    const actions = [
+        { 
+            label: 'Nuevo Transporte (F4)', 
+            iconClass: 'fas fa-plus', 
+            handler: () => { 
+                selectedTransporte.value = {
+                    id: null,
+                    nombre: '',
+                    telefono_reclamos: '',
+                    web_tracking: '',
+                    activo: true,
+                    requiere_carga_web: false,
+                    servicio_retiro_domicilio: false,
+                    formato_etiqueta: 'PROPIA',
+                    cuit: '',
+                    condicion_iva_id: null,
+                    direccion: '',
+                    localidad: '',
+                    provincia_id: null,
+                    direccion_despacho: '',
+                    horario_despacho: '',
+                    telefono_despacho: ''
+                }
+                showTransporteCanvas.value = true 
+            } 
+        }
+    ]
+
+    if (currentId) {
+        actions.push({
+            label: 'Editar Seleccionado',
+            iconClass: 'fas fa-pencil-alt',
+            handler: () => {
+                const t = transportes.value.find(tr => tr.id === currentId)
+                if (t) {
+                    selectedTransporte.value = { ...t }
+                    showTransporteCanvas.value = true
+                } else {
+                    notificationStore.add('Transporte no encontrado en lista local', 'warning')
+                }
+            }
+        })
+    }
+    
+    contextMenu.value = {
+        show: true,
+        x: e.clientX,
+        y: e.clientY,
+        actions: actions
+    }
+}
+
+const handleTransporteCanvasCreate = async (newId) => {
+    await logisticaStore.fetchEmpresas()
+    if (newId) quickTransportId.value = newId
+    notificationStore.add('Transporte asignado', 'success')
+    showTransporteCanvas.value = false
+}
+
+
 // Initialize form when modelValue changes
 watch(() => props.modelValue, (newVal) => {
     if (newVal) {
@@ -898,61 +965,6 @@ const handleAbmCreate = async (name) => {
 }
 
 
-
-// [GY-UX] Transport ABM Context Menu
-const showTransporteAbm = ref(false)
-const selectedTransporteId = ref(null) // For editing if needed
-
-const openTransportContextMenu = (e) => {
-    // Determine if we are clicking on an existing transport or just the dropdown
-    const currentId = quickTransportId.value
-    
-    const actions = [
-        { 
-            label: 'Nuevo Transporte (F4)', 
-            iconClass: 'fas fa-plus', 
-            handler: () => { 
-                selectedTransporteId.value = null
-                showTransporteAbm.value = true 
-            } 
-        }
-    ]
-
-    if (currentId) {
-        actions.push({
-            label: 'Editar Seleccionado',
-            iconClass: 'fas fa-pencil-alt',
-            handler: () => {
-                selectedTransporteId.value = currentId
-                showTransporteAbm.value = true
-            }
-        })
-    }
-
-    actions.push({ 
-        label: 'Administrar Transportes', 
-        iconClass: 'fas fa-truck', 
-        handler: () => { 
-             // Ideally navigation to Manager, but for now reuse modal or add TODO
-             notificationStore.add('Para administrar, ir al menú Maestros', 'info')
-        } 
-    })
-
-    contextMenu.value = {
-        show: true,
-        x: e.clientX,
-        y: e.clientY,
-        actions: actions
-    }
-}
-
-const handleTransporteAbmCreate = async (data) => {
-    // If created via Context Menu
-    await logisticaStore.fetchEmpresas()
-    if (data.id) quickTransportId.value = data.id
-    notificationStore.add('Transporte creado y asignado', 'success')
-    showTransporteAbm.value = false
-}
 
 const handleAbmDelete = async (id) => {
     try {
@@ -1232,4 +1244,6 @@ onMounted(() => {
 onUnmounted(() => {
     window.removeEventListener('keydown', handleKeydown)
 })
+
+
 </script>

@@ -23,7 +23,12 @@ Es el espacio de trabajo de una entidad (`/hawe/cliente/:id`).
 - **Estructura:**
     - **Izquierda:** Propiedades Duras (Datos fiscales, Clasificación).
     - **Centro:** Línea de Tiempo y Acciones (Notas, Domicilios, Historial).
+    - **Centro:** Línea de Tiempo y Acciones (Notas, Domicilios, Historial).
     - **Derecha:** Vínculos (Contactos, Relaciones).
+
+### 3. Mejoras de Usabilidad (UX V5.6)
+- **Autofocus:** Al abrir una ficha, el cursor se sitúa automáticamente en el campo "Razón Social" para agilizar el ingreso.
+- **Domicilio Pendiente:** Se identifica claramente (en gris e itálica) cuando un cliente no tiene domicilio fiscal asignado, reduciendo el ruido visual.
 
 ## Atajos de Teclado
 - **F10:** Guardar cambios en el Lienzo.

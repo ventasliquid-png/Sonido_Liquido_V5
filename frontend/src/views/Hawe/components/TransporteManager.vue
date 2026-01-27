@@ -314,7 +314,7 @@ const toggleTransporteStatus = async (t) => {
 const toggleSelectedTransporteActive = () => {
     if (selectedTransporte.value.activo) {
         // If active, use the delete routine (Tachito) which confirms and closes
-        deleteTransporte()
+        deleteTransporteItem(selectedTransporte.value)
     } else {
         // If inactive, just toggle local state (user must save)
         selectedTransporte.value.activo = true

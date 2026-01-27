@@ -3,7 +3,7 @@ import { ref, reactive, watch, onMounted, onUnmounted, computed } from 'vue';
 import { useMaestrosStore } from '../../../stores/maestros';
 import { useLogisticaStore } from '../../../stores/logistica';
 import SmartSelect from '@/components/ui/SmartSelect.vue';
-import TransporteAbmModal from '../../Logistica/components/TransporteAbmModal.vue';
+import TransporteCanvas from './TransporteCanvas.vue';
 
 const props = defineProps({
     show: Boolean,
@@ -154,25 +154,41 @@ onMounted(() => {
 });
 
 // --- Transport Quick Add Logic ---
-const showTransporteModal = ref(false);
-const newTransporteName = ref('');
+const showTransporteCanvas = ref(false);
+const selectedTransporte = ref(null);
 
 const openNewTransporte = (initialName = '') => {
-    newTransporteName.value = typeof initialName === 'string' ? initialName : '';
-    showTransporteModal.value = true;
+    const nameVal = typeof initialName === 'string' ? initialName : '';
+    selectedTransporte.value = {
+        id: null,
+        nombre: nameVal,
+        telefono_reclamos: '',
+        web_tracking: '',
+        activo: true,
+        requiere_carga_web: false,
+        servicio_retiro_domicilio: false,
+        formato_etiqueta: 'PROPIA',
+        cuit: '',
+        condicion_iva_id: null,
+        direccion: '',
+        localidad: '',
+        provincia_id: null,
+        direccion_despacho: '',
+        horario_despacho: '',
+        telefono_despacho: ''
+    };
+    showTransporteCanvas.value = true;
 };
 
-const handleTransporteSaved = async (name) => {
+const handleTransporteCanvasCreate = async (createdId) => {
     // Refresh transports to get the new one
     await logisticaStore.fetchEmpresas();
     
-    // Auto-select the new transport if name matches
-    if (name) {
-        const found = logisticaStore.empresas.find(t => t.nombre.toLowerCase() === name.toLowerCase());
-        if (found) {
-            form.transporte_id = found.id;
-        }
+    // Auto-select the new transport if ID is returned
+    if (createdId) {
+        form.transporte_id = createdId;
     }
+    showTransporteCanvas.value = false;
 };
 
 const modalRef = ref(null);
@@ -414,13 +430,15 @@ onUnmounted(() => {
             </form>
         </div>
         
-        <!-- Quick Add Modal -->
-        <TransporteAbmModal 
-            :show="showTransporteModal" 
-            :initial-name="newTransporteName"
-            @close="showTransporteModal = false"
-            @saved="handleTransporteSaved"
-        />
+        <!-- Quick Add Modal V5 -->
+        <Transition name="fade">
+            <TransporteCanvas 
+                v-if="showTransporteCanvas" 
+                v-model="selectedTransporte"
+                @close="showTransporteCanvas = false"
+                @save="handleTransporteCanvasCreate"
+            />
+        </Transition>
     </div>
 </template>
 
