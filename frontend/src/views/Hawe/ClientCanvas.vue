@@ -122,26 +122,31 @@
                           
                           <div class="grid grid-cols-2 gap-3">
                               <!-- Address Preview -->
-                              <div @click="openDomicilioTab(domiciliosLogistica.length > 0 ? domiciliosLogistica[0] : null)" class="cursor-pointer hover:opacity-80 transition-opacity">
+                              <div 
+                                @click="openAddressContextMenu($event, domiciliosLogistica.length > 0 ? domiciliosLogistica[0] : null)" 
+                                @contextmenu.prevent="openAddressContextMenu($event, domiciliosLogistica.length > 0 ? domiciliosLogistica[0] : null)"
+                                class="col-span-2 cursor-pointer hover:bg-white/5 p-2 rounded-lg transition-all group/addr"
+                              >
                                    <!-- Logic to show Primary Delivery Address -->
                                     <template v-if="domiciliosLogistica.length > 0">
-                                        <p class="text-xs font-bold text-white truncate">{{ domiciliosLogistica[0].calle }} {{ domiciliosLogistica[0].numero }}</p>
-                                        <p class="text-[9px] text-emerald-200/50 uppercase">{{ domiciliosLogistica[0].localidad }}</p>
+                                        <div class="flex justify-between items-start">
+                                            <div>
+                                                <p class="text-xs font-bold text-white truncate">{{ domiciliosLogistica[0].calle }} {{ domiciliosLogistica[0].numero }}</p>
+                                                <p class="text-[9px] text-emerald-200/50 uppercase">{{ domiciliosLogistica[0].localidad }}</p>
+                                            </div>
+                                            <!-- Transport Read-Only -->
+                                            <div class="text-right">
+                                                 <p class="text-[9px] text-emerald-400 font-bold uppercase truncate max-w-[120px]">
+                                                     <i class="fas fa-truck mr-1"></i>
+                                                     {{ getTransportName(domiciliosLogistica[0].transporte_id) }}
+                                                 </p>
+                                                 <p class="text-[8px] text-emerald-500/30 uppercase">Transporte Asignado</p>
+                                            </div>
+                                        </div>
                                     </template>
                                     <template v-else>
-                                        <p class="text-[10px] text-white/30 italic">Igual a Fiscal</p>
+                                        <p class="text-[10px] text-white/30 italic text-center py-2">Sin Domicilio de Entrega</p>
                                     </template>
-                              </div>
-
-                              <!-- Transport Selector -->
-                              <div @contextmenu.prevent="openTransportContextMenu">
-                                  <SmartSelect
-                                    v-model="quickTransportId"
-                                    :options="transportes"
-                                    placeholder="Transporte..."
-                                    :allowCreate="false"
-                                    class="dark-smart-select"
-                                />
                               </div>
                           </div>
                       </div>
@@ -389,7 +394,14 @@
       <!-- Modals & Context Menus (Existing) -->
       <!-- Modals & Context Menus (Existing) -->
       <!-- <SegmentoForm ... /> Removed unused components -->
-      <DomicilioForm v-if="activeTab === 'DOMICILIO'" :show="true" :domicilio="selectedDomicilio" @close="activeTab = 'CLIENTE'" @saved="handleDomicilioSaved" />
+      <DomicilioForm 
+        v-if="activeTab === 'DOMICILIO'" 
+        :show="true" 
+        :domicilio="selectedDomicilio" 
+        :isSoleFiscal="domicilios.filter(d => d.es_fiscal && d.activo !== false).length <= 1"
+        @close="activeTab = 'CLIENTE'" 
+        @saved="handleDomicilioSaved" 
+      />
       <ContactoForm v-if="showContactoForm" :show="showContactoForm" :clienteId="String(form.id)" :contacto="selectedContacto" @close="showContactoForm = false" @saved="handleContactoSaved" />
       
        <!-- Transport Canvas Modal (V5) -->
@@ -423,8 +435,6 @@ import { useClientesStore } from '../../stores/clientes'
 import { useMaestrosStore } from '../../stores/maestros'
 import { useNotificationStore } from '../../stores/notification'
 import canteraService from '../../services/canteraService'
-// import SegmentoForm from '../Maestros/SegmentoForm.vue' // Unused in this view logic
-// import SegmentoList from '../Maestros/SegmentoList.vue' // Unused in this view logic
 import DomicilioForm from './components/DomicilioForm.vue'
 import ContactoForm from './components/ContactoForm.vue'
 import ContactoPopover from './components/ContactoPopover.vue'
@@ -483,32 +493,59 @@ const transportes = computed(() => logisticaStore.empresas)
 // [GY-UX] Quick Transport Access (Linked to Main Address)
 const quickTransportId = computed({
     get() {
-        if (!domicilios.value || domicilios.value.length === 0) return null
-        // 1. Try to find "Entrega" address
-        const delivery = domicilios.value.find(d => d.es_entrega && d.activo !== false)
-        if (delivery) return delivery.transporte_id
-        // 2. Fallback to active "Fiscal" address
-        const fiscal = domicilios.value.find(d => d.es_fiscal && d.activo !== false)
-        if (fiscal) return fiscal.transporte_id
-        // 3. Fallback to first
-        return domicilios.value[0].transporte_id
+        if (!domicilios.value || domicilios.value.length === 0) return null;
+        
+        // Match the "Entrega Principal" UI Logic:
+        // 1. First "Pure Delivery" (!Fiscal && Entrega)
+        const pureDelivery = domicilios.value.find(d => !d.es_fiscal && d.es_entrega && d.activo !== false);
+        if (pureDelivery) {
+            console.log("[DEBUG-TRP] Logic Match -> Pure Delivery:", pureDelivery.id);
+            return pureDelivery.transporte_id;
+        }
+        
+        // 2. Fallback in UI is usually "Fiscal" if it acts as delivery?
+        // Actually, the UI usually separates them.
+        // But if the user edits "Fiscal" and expects "Quick Transport" to update, 
+        // it implies "Quick Transport" should reflect the "Active Delivery Method".
+        
+        // If NO pure delivery exists, then Fiscal IS the main delivery.
+        const fiscal = domicilios.value.find(d => d.es_fiscal && d.activo !== false);
+        if (fiscal && fiscal.es_entrega) {
+             console.log("[DEBUG-TRP] Logic Match -> Fiscal as Delivery:", fiscal.id);
+             return fiscal.transporte_id;
+        }
+        
+        // 3. Just Fiscal logic (active)
+        if (fiscal) {
+             // Even if !es_entrega, if it's the only one, maybe?
+             return fiscal.transporte_id;
+        }
+
+        return domicilios.value[0].transporte_id;
     },
     set(val) {
-        if (!domicilios.value) return
-        // Update PRIORITY address (same priority logic as get)
-        const target = domicilios.value.find(d => d.es_entrega && d.activo !== false) || 
-                       domicilios.value.find(d => d.es_fiscal && d.activo !== false) ||
-                       domicilios.value[0]
+        if (!domicilios.value) return;
+        
+        // Set logic must mirror the Get logic to update the CORRECT address
+        const pureDelivery = domicilios.value.find(d => !d.es_fiscal && d.es_entrega && d.activo !== false);
+        let target = null;
+        
+        if (pureDelivery) {
+            target = pureDelivery;
+        } else {
+            const fiscal = domicilios.value.find(d => d.es_fiscal && d.activo !== false);
+            if (fiscal && fiscal.es_entrega) {
+                target = fiscal;
+            } else if (fiscal) {
+                target = fiscal; // Fallback to updating fiscal transport anyway
+            } else {
+                target = domicilios.value[0];
+            }
+        }
         
         if (target) {
-            target.transporte_id = val
-             // If existing client, we might want to save immediately?
-             // But usually form is saved via F10.
-             // However, for layout "Quick Access", user assumes instant or dirty state.
-             // Since form.value is not touched, we must ensure these changes persist.
-             // They are in 'domicilios' array ref.
-        } else {
-             notificationStore.add('No hay domicilio activo para asignar transporte', 'warning')
+            console.log("[DEBUG-TRP] Setting Transport on:", target.id);
+            target.transporte_id = val;
         }
     }
 })
@@ -687,10 +724,71 @@ const openTransportContextMenu = (e) => {
     contextMenuProps.value.actions = actions
 }
 
+// --- Context Menu Logic for Address (V5.6) ---
+const openAddressContextMenu = (e, domicilio) => {
+    // If no domicile, we offer to create one
+    if (!domicilio && domicilios.value.length === 0) {
+        // Just trigger standard add
+        openDomicilioTab(null);
+        return;
+    }
+    
+    // If we have a domicile (even null argument might mean "No Delivery Address"),
+    // but the UI only triggers this on the card which passes the first logic address.
+    const targetDom = domicilio || null;
+
+    const actions = [];
+    
+    if (!targetDom) {
+        actions.push({
+            label: 'Asignar Domicilio de Entrega',
+            iconClass: 'fas fa-plus-circle',
+            handler: () => openDomicilioTab(null) // New
+        });
+    } else {
+        actions.push({
+            label: 'Modificar / Ver Detalle',
+            iconClass: 'fas fa-edit',
+            handler: () => openDomicilioTab(targetDom)
+        });
+        
+        actions.push({
+            label: 'Crear Nueva Locación',
+            iconClass: 'fas fa-plus',
+            handler: () => openDomicilioTab(null)
+        });
+        
+        actions.push({
+            label: 'Dar de Baja (Inactivar)',
+            iconClass: 'fas fa-trash-alt',
+            isDestructive: true,
+            handler: async () => {
+                if (confirm('¿Seguro que desea dar de baja este domicilio?')) {
+                    await handleDomicilioSaved({ ...targetDom, activo: false, es_entrega: false });
+                }
+            }
+        });
+    }
+    
+    contextMenuProps.value.actions = actions;
+    contextMenuState.value = {
+        show: true,
+        x: e.clientX,
+        y: e.clientY
+    };
+}
+
+const getTransportName = (transporteId) => {
+    if (!transporteId) return 'Retira Cliente / Local';
+    const t = transportes.value.find(tr => String(tr.id) === String(transporteId));
+    return t ? t.nombre : 'Desconocido';
+}
+
 const handleTransporteCanvasCreate = async (newId) => {
     await logisticaStore.fetchEmpresas()
-    if (newId) quickTransportId.value = newId
-    notificationStore.add('Transporte creado/actualizado y asignado', 'success')
+    // [GY-UX] If created from Address Form, it auto-selects there.
+    // If created from Context Menu (if we kept it), we might assign.
+    notificationStore.add('Transporte creado/actualizado', 'success')
     showTransporteCanvas.value = false
 }
 
@@ -896,7 +994,43 @@ const openFiscalEditor = () => {
 }
 const handleDomicilioSaved = async (domicilioData) => {
     try {
-        // Sanitize Payload (Strict Whitelist)
+        // --- 1. FISCAL CONSERVATION LAWS ---
+        
+        // Rule 1: The Castling (El Enroque)
+        // If a new address claims to be Fiscal, abdicate the previous one.
+        if (domicilioData.es_fiscal) {
+             const existingFiscal = domicilios.value.find(d => d.es_fiscal && d.activo !== false && String(d.id) !== String(domicilioData.id));
+             if (existingFiscal) {
+                 existingFiscal.es_fiscal = false;
+                 // Update server silently to maintain consistency
+                 store.updateDomicilio(form.value.id, existingFiscal.id, { es_fiscal: false });
+             }
+        }
+
+        // Rule 2: The Succession (La Sucesión & Integrity)
+        // If Deactivating or Unchecking Fiscal...
+        if (domicilioData.activo === false || (domicilioData.id && !domicilioData.es_fiscal)) {
+             const currentInArray = domicilios.value.find(d => String(d.id) === String(domicilioData.id));
+             const wasFiscal = currentInArray?.es_fiscal;
+             
+             if (wasFiscal) {
+                 const activeDomicilios = domicilios.value.filter(d => d.activo !== false && String(d.id) !== String(domicilioData.id));
+                 
+                 // Block if it's the last one
+                 if (activeDomicilios.length === 0) {
+                     alert("LEY DE CONSERVACION: Debe existir al menos un domicilio fiscal activo.");
+                     return; 
+                 }
+                 
+                 // Otherwise, Promote Successor
+                 const successor = activeDomicilios[0];
+                 successor.es_fiscal = true;
+                 await store.updateDomicilio(form.value.id, successor.id, { es_fiscal: true });
+                 notificationStore.add(`Fiscalidad transferida a: ${successor.calle}`, 'info');
+             }
+        }
+
+        // --- 2. DATA PREPARATION ---
         const allowedFields = [
             'calle', 'numero', 'piso', 'depto', 'cp', 'localidad', 
             'provincia_id', 'transporte_id', 'es_fiscal', 'es_entrega', 'activo',
@@ -911,63 +1045,72 @@ const handleDomicilioSaved = async (domicilioData) => {
             }
         }
 
+        // --- 3. PERSISTENCE LAYER ---
         if (isNew.value) {
-            // Local saving for new clients
+            // Local Save
             if (domicilioData.local_id || domicilioData.id) {
                 const idx = domicilios.value.findIndex(d => (d.local_id && d.local_id === domicilioData.local_id) || (d.id && d.id === domicilioData.id))
-                if (idx !== -1) {
-                    domicilios.value[idx] = { ...domicilioData } // Update Local
-                }
+                if (idx !== -1) domicilios.value[idx] = { ...domicilioData };
             } else {
-                const newDom = { ...domicilioData, local_id: Date.now() }
-                domicilios.value.push(newDom)
+                domicilios.value.push({ ...domicilioData, local_id: Date.now() });
             }
-            notificationStore.add('Domicilio añadido localmente', 'info')
+            notificationStore.add('Domicilio añadido localmente', 'info');
         } else {
-            // Persistent saving for existing clients
-            // 1. Optimistic Update (Immediate Feedback)
-            // [GY-FIX] Loose equality for ID to handle String/Number mismatch
+            // Server Save
+            // Optimistic Update
             const idx = domicilios.value.findIndex(d => String(d.id) === String(domicilioData.id));
             if (idx !== -1) {
-                // Use splice to guarantee reactivity
-                const updatedDom = { ...domicilios.value[idx], ...domicilioData };
-                domicilios.value.splice(idx, 1, updatedDom);
+                domicilios.value[idx] = { ...domicilios.value[idx], ...domicilioData };
+                // Trigger reactivity
+                domicilios.value = [...domicilios.value]; 
             }
             
-            // 2. Server Update (Wait for confirmation)
             let savedDom;
-            console.log("Saving Domicilio Payload:", payload); // [GY-DEBUG]
             if (domicilioData.id) {
-                // Return value from store is the Server Object
-                savedDom = await store.updateDomicilio(form.value.id, domicilioData.id, payload)
+                savedDom = await store.updateDomicilio(form.value.id, domicilioData.id, payload);
             } else {
-                savedDom = await store.createDomicilio(form.value.id, payload)
+                savedDom = await store.createDomicilio(form.value.id, payload);
             }
-            console.log("Server Saved Domicilio:", savedDom); // [GY-DEBUG]
 
-            // 3. Authoritative Update (Replace Optimistic with Server Truth)
-            // This ensures if server sanitized/rejected something (like Piso), UI reflects it immediately
+            // Authoritative Sync
             if (savedDom) {
                  const authIdx = domicilios.value.findIndex(d => String(d.id) === String(savedDom.id));
                  if (authIdx !== -1) {
-                     domicilios.value.splice(authIdx, 1, savedDom);
+                     domicilios.value[authIdx] = savedDom;
                  } else {
                      domicilios.value.push(savedDom);
                  }
+                 domicilios.value = [...domicilios.value];
+
+                 // Rule 3: Security Protocol "RETIRA"
+                 // Check if we lost all delivery addresses
+                 const hasDelivery = domicilios.value.some(d => d.es_entrega && d.activo !== false);
+                 if (!hasDelivery) {
+                     // Default to Fiscal
+                     const fiscalDom = domicilios.value.find(d => d.es_fiscal && d.activo !== false);
+                     if (fiscalDom) {
+                         // Force Reset to Retira
+                         await store.updateDomicilio(form.value.id, fiscalDom.id, { 
+                             es_entrega: true,
+                             transporte_id: 1 // ID 1 = Retira
+                         });
+                         notificationStore.add('PROTOCOLO SEGURIDAD: Transporte reseteado a RETIRA.', 'warning');
+                         await loadCliente(form.value.id);
+                     }
+                 }
             }
             
-            // Reload to ensuring consistency (Background)
-            await loadCliente(form.value.id) // [GY-FIX] Re-enabled to ensure Fiscal Flag sync
-            notificationStore.add('Domicilio guardado en servidor', 'success')
+            // Final Refresh to hydrate relations (e.g. Transporte Name)
+            await loadCliente(form.value.id);
+            
+            notificationStore.add('Domicilio guardado', 'success');
         }
     } catch (e) {
-        console.error(e)
-        // Revert? For now just error.
-        notificationStore.add('Error al gestionar domicilio', 'error')
-        // Force reload to restore true state
-        await loadCliente(form.value.id)
+        console.error(e);
+        notificationStore.add('Error al guardar domicilio', 'error');
+        await loadCliente(form.value.id);
     }
-    activeTab.value = 'CLIENTE'
+    activeTab.value = 'CLIENTE';
 }
 
 // Contactos Logic

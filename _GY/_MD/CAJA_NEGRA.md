@@ -1,5 +1,6 @@
 # 🛸 CAJA NEGRA (BLACK BOX) - DASHBOARD TÁCTICO V2
-**Última Actualización:** 26-Ene-2026 (Vanguard V14 Upgrade)
+**Última Actualización:** 28-Ene-2026 (Fix Transporte & Frankenstein Cleanup)
+**Sesiones Completadas:** +1 (Regla 4/6)
 **Rol:** Tablero de Control y Estado de Salud del Sistema.
 
 ---

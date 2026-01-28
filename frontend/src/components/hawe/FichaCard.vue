@@ -127,7 +127,7 @@ const handleDblClick = (e) => {
 }
 
 const formatAddress = (address) => {
-    if (!address) return ''
+    if (!address || typeof address !== 'string') return ''
     return address.replace(/\|/g, ', ')
 }
 </script>

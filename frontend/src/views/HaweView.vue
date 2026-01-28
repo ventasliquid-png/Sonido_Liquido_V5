@@ -25,7 +25,7 @@
       </Teleport>
 
       <!-- Local Toolbar (User Order 1-9) -->
-      <div class="flex items-center gap-4 px-6 py-3 border-b border-cyan-900/20 bg-[#0a253a]/30 shrink-0 overflow-x-auto">
+      <div class="relative z-[70] flex items-center gap-4 px-6 py-3 border-b border-cyan-900/20 bg-[#0a253a]/30 shrink-0 overflow-x-auto">
           
           <!-- 1. Checkbox Todos -->
           <div class="flex items-center gap-2 cursor-pointer group shrink-0" @click="toggleSelectAll" title="Seleccionar Todos">
@@ -55,7 +55,6 @@
           >
             <option :value="null">Todos los Segmentos</option>
             <option v-for="seg in segmentos" :key="seg.id" :value="seg.id">{{ seg.nombre }}</option>
-            <option value="manage" class="font-bold text-cyan-400">+ Gestionar</option>
           </select>
 
           <!-- 4. Status Filter (Group) -->
@@ -76,7 +75,7 @@
                 </span>
                 
                 <!-- Dropdown -->
-                <div v-if="showSortMenu" class="absolute top-full left-0 mt-2 w-48 bg-[#0a253a] border border-cyan-500/30 rounded-lg shadow-xl z-50 overflow-hidden text-left">
+                <div v-if="showSortMenu" class="absolute top-full left-0 mt-2 w-48 bg-[#0a253a] border border-cyan-500/30 rounded-lg shadow-xl z-[100] overflow-hidden text-left">
                     <div class="fixed inset-0 z-40" @click.stop="showSortMenu = false"></div>
                     <div class="relative z-50 py-1">
                         <button @click="sortBy = 'usage'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-cyan-100 hover:bg-cyan-500/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'usage' }">Más Usados</button>
@@ -279,7 +278,7 @@
             </div>        </div>
 
         <!-- Empty State & Cantera Fallback -->
-        <div v-if="filteredClientes.length === 0" class="flex flex-col items-center justify-center py-20 bg-black/20 rounded-2xl border border-white/5 mx-auto max-w-2xl px-8 text-center">
+        <div v-if="filteredClientes.length === 0 && !selectedSegmento" class="flex flex-col items-center justify-center py-20 bg-black/20 rounded-2xl border border-white/5 mx-auto max-w-2xl px-8 text-center">
             <div class="h-20 w-20 bg-cyan-900/20 rounded-full flex items-center justify-center text-3xl text-cyan-500/50 mb-6">
                 <i class="fas fa-search"></i>
             </div>
@@ -313,6 +312,13 @@
                     </div>
                 </div>
             </div>
+        </div>
+        
+        <div v-if="filteredClientes.length === 0 && selectedSegmento" class="flex flex-col items-center justify-center py-20 text-center">
+             <div class="h-16 w-16 bg-white/5 rounded-full flex items-center justify-center text-2xl text-white/20 mb-4">
+                <i class="fas fa-filter"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white/50">Segmento Vacío</h3>
         </div>
 
       </div>
@@ -713,6 +719,8 @@ const handleManageSegmentos = () => {
     showSegmentoList.value = true
 }
 
+
+
 const handleSwitchClient = async (clientId) => {
     selectedId.value = clientId
     try {
@@ -815,6 +823,7 @@ onMounted(async () => {
         if (maestrosStore.segmentos.length === 0) {
             await maestrosStore.fetchSegmentos()
         }
+        segmentos.value = maestrosStore.segmentos // [GY-FIX] Sync local ref
         
         // Check for Auto-Inspect (existing logic)
         if (route.query.inspectId) {

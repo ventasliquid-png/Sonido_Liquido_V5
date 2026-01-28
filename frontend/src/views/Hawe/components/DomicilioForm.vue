@@ -78,7 +78,7 @@ watch(() => props.domicilio, (newVal) => {
             localidad: '',
             provincia_id: null,
             transporte_id: props.defaultTransportId || null, 
-            es_fiscal: true, // Default to Fiscal to prevent "No Fiscal" errors
+            es_fiscal: false, // [GY-UX] Default false to avoid accidental fiscal overwrite
             es_entrega: true,
             activo: true,
             metodo_entrega: 'TRANSPORTE',
@@ -108,13 +108,27 @@ const handleSave = () => {
         }
     }
 
-    // Basic validation (Skip if Retiro Local)
-    if (form.metodo_entrega !== 'RETIRO_LOCAL' && !form.calle) {
-        alert('La calle es obligatoria para envíos.');
+    // [GY-UX] Strict Validation for Data Consistency
+    const errors = [];
+    if (form.metodo_entrega !== 'RETIRO_LOCAL') {
+        if (!form.calle) errors.push('Calle');
+        if (!form.numero) errors.push('Número');
+        if (!form.localidad) errors.push('Localidad');
+        if (!form.provincia_id) errors.push('Provincia');
+    }
+
+    // [GY-RULES] Rule 1: Fiscal Integrity (Relaxed)
+    // We strictly removed the blocking code here to allow "The Succession" logic in parent.
+    // The parent (ClientCanvas) handles the conservation law.
+
+
+    if (errors.length > 0) {
+        // Use native alert or notificationStore if available
+        alert(`Faltan datos obligatorios para el domicilio:\n- ${errors.join('\n- ')}`);
         return;
     }
     
-    console.log('DomicilioForm saving:', { ...form, id: props.domicilio?.id });
+    console.log('[DEBUG-TRP] DomicilioForm emitting saved:', { ...form, id: props.domicilio?.id });
     emit('saved', { ...props.domicilio, ...form });
     emit('close');
 };

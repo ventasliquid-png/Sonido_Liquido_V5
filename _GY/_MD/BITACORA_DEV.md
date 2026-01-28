@@ -410,3 +410,9 @@ Siguiendo órdenes directas, se difirió la integración real de OAuth y se impleme
 
 **Resultado:** El sistema está listo para operar localmente y 'fingir' conexión a la nube sin romper el flujo de trabajo.
 
+
+### 2026-01-28: [FIX] Transporte, Frankenstein & Simplificación UI
+- **Problema:** Transporte no persistía por conflicto con ID de Nodo Legacy.
+- **Solución:** Patch en Backend Service para limpiar nodo viejo al actualizar transporte.
+- **Refactor:** Limpieza masiva de ClientCanvas.vue (Frankenstein Cleanup).
+- **UI:** Eliminado selector rápido en tarjeta. Implementado Menú Contextual (Click Derecho) en Dirección.

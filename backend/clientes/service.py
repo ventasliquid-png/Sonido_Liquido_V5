@@ -114,7 +114,7 @@ class ClienteService:
         from sqlalchemy import or_
         
         query = db.query(Cliente).options(
-            joinedload(Cliente.domicilios),
+            joinedload(Cliente.domicilios).joinedload(Domicilio.provincia),
             # joinedload(Cliente.vinculos).joinedload(agenda_models.VinculoComercial.persona),
             # joinedload(Cliente.vinculos).joinedload(agenda_models.VinculoComercial.tipo_contacto)
         )
@@ -438,6 +438,13 @@ class ClienteService:
                 Domicilio.id != domicilio_id, # Don't demote self
                 Domicilio.es_fiscal == True
             ).update({"es_fiscal": False})
+
+        # [GY-FIX-V5] Fix Persistence Conflict: Empresa vs Nodo
+        # If updating Empresa (transporte_id), clear Legacy Nodo (transporte_habitual_nodo_id)
+        # to prevent ambiguity or legacy override.
+        if 'transporte_id' in update_data:
+             db_domicilio.transporte_habitual_nodo_id = None
+             print(f"[DEBUG-TRP] Updating Transporte ID to {update_data['transporte_id']} (Clearing Nodo)")
 
         for key, value in update_data.items():
             setattr(db_domicilio, key, value)
