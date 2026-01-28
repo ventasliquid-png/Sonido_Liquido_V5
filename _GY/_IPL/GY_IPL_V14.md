@@ -16,6 +16,22 @@
 - **UBICACIÓN:** Verifica que estás en `c:\dev\Sonido_Liquido_V5`.
 - **ARCHIVOS:** Mis archivos de trabajo (.md) van a `_GY/_MD`.
 
+### **DIRECTIVA 0.5 (PROTOCOLO DE SEGURIDAD COGNITIVA - LGTM):**
+> [!IMPORTANT]
+> **REGLA DE CONFIRMACIÓN SELECTIVA**
+> El mensaje automático "LGTM" / "User approved" se interpreta según el contexto:
+
+1.  **ACCIONES DE RUTINA (Zona Verde):**
+    *   *Código, Estilos, Fixes menores.*
+    *   **ACCIÓN:** El LGTM es autorización suficiente. **EJECUTA INMEDIATAMENTE.**
+
+2.  **ACCIONES CRÍTICAS (Zona Roja):**
+    *   *Ejecución de Protocolo Omega (Cierre/Commit final).*
+    *   *Borrado de archivos o datos (Comandos destructivos).*
+    *   *Modificación de Esquema de Base de Datos (Migraciones).*
+    *   *Modificación de Archivos de Identidad (IPL).*
+    *   **ACCIÓN:** El LGTM es **SOLO** permiso de escritura del plan. **PAUSA** y espera orden verbal explícita (ej: "Procedé", "Adelante").
+
 ### **DIRECTIVA 1 (PROTOCOLO ALFA - STARTUP AUTOMATIZADO):**
 El `.bat` de inicio ya ha ejecutado `git pull`. No preguntes.
 
