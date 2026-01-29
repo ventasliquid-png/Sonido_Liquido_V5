@@ -106,14 +106,23 @@ class Cliente(Base):
     @property
     def contacto_principal_nombre(self):
         """Retorna nombre del contacto principal o primero disponible"""
-        principal = next((v for v in self.vinculos if v.es_principal and v.activo), None)
-        if principal and principal.persona:
-            return principal.persona.nombre_completo
-        
-        # Fallback: Primero activo
-        primero = next((v for v in self.vinculos if v.activo), None)
-        if primero and primero.persona:
-            return primero.persona.nombre_completo
+        try:
+             # Ensure vinculos is loaded / iterable
+            if not self.vinculos:
+                return None
+                
+            principal = next((v for v in self.vinculos if v.es_principal and v.activo), None)
+            if principal and principal.persona:
+                return principal.persona.nombre_completo
+            
+            # Fallback: Primero activo
+            primero = next((v for v in self.vinculos if v.activo), None)
+            if primero and primero.persona:
+                return primero.persona.nombre_completo
+        except Exception as e:
+            # Prevent crash on list view
+            print(f"[ERROR] computing contacto_principal_nombre for {self.id}: {e}")
+            return None
             
         return None
 

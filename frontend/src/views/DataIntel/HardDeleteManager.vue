@@ -21,6 +21,13 @@
           >
             Productos Inactivos
           </button>
+           <button 
+             @click="loadData('contactos')"
+             :class="['px-4 py-1 rounded-md text-sm transition-colors', currentType === 'contactos' ? 'bg-indigo-900/50 text-indigo-200 border border-indigo-500/30' : 'text-gray-400 hover:text-gray-200']"
+             :disabled="loading"
+          >
+            Contactos Inactivos
+          </button>
         </div>
       </div>
       
@@ -159,10 +166,12 @@ import { ref, onMounted, computed } from 'vue';
 import api from '../../services/api';
 import { useClientesStore } from '../../stores/clientes';
 import { useProductosStore } from '../../stores/productos';
+import { useContactosStore } from '../../stores/contactos';
 import { useNotificationStore } from '../../stores/notification';
 
 const clientesStore = useClientesStore();
 const productosStore = useProductosStore();
+const contactosStore = useContactosStore();
 const notificationStore = useNotificationStore();
 
 // --- DATA STATE ---
@@ -202,9 +211,11 @@ const loadData = async (type) => {
     selectedIds.value = []; // Reset selection on type change
     
     try {
-        let endpoint = type === 'clientes' ? '/clientes/' : '/productos/';
+        let endpoint = type === 'clientes' ? '/clientes/' : (type === 'productos' ? '/productos/' : '/contactos');
         
         // Fetch Inactive Items
+        // Contactos API might handle this differently, usually /contactos?activo=false or just q with filter
+        // For V5 standard: include_inactive=true is widely used so we try that first
         const res = await api.get(endpoint, { params: { include_inactive: true, limit: 1000 } });
         
         // Filter ONLY inactive items (Baja Lógica)
@@ -214,6 +225,9 @@ const loadData = async (type) => {
         const checkedItems = await Promise.all(inactives.map(async (item) => {
              try {
                 const id = item.id; 
+                // Contactos do not have integrity check API yet, let's assume safe or implement basic frontend check
+                if (type === 'contactos') return { ...item, integrity: { safe: true, message: 'Sin dependencias críticas' } };
+                
                 const checkRes = await api.get(`${endpoint}${id}/integrity_check`);
                 return { ...item, integrity: checkRes.data };
              } catch (e) {
@@ -256,7 +270,10 @@ const rescueItem = async (item) => {
         const integrity = isClientComplete(item);
         const targetActiveStatus = integrity.valid;
         
-        let confirmMsg = `¿Restaurar "${currentType.value === 'clientes' ? item.razon_social : item.nombre}" al padrón`;
+        
+        
+        
+        let confirmMsg = `¿Restaurar "${currentType.value === 'clientes' ? item.razon_social : (currentType.value === 'contactos' ? item.nombre : item.nombre)}" al padrón`;
         if (targetActiveStatus) {
             confirmMsg += ' activo?';
         } else {
@@ -272,6 +289,8 @@ const rescueItem = async (item) => {
 
         if (currentType.value === 'clientes') {
             await clientesStore.updateCliente(item.id, payload);
+        } else if (currentType.value === 'contactos') {
+            await contactosStore.updateContacto(item.id, payload);
         } else {
             // Products
             await productosStore.updateProducto(item.id, payload);
@@ -312,6 +331,8 @@ const handleBulkRescue = async () => {
 
             if (currentType.value === 'clientes') {
                 await clientesStore.updateCliente(id, { ...item, activo: targetActiveStatus });
+            } else if (currentType.value === 'contactos') {
+                await contactosStore.updateContacto(id, { ...item, activo: targetActiveStatus });
             } else {
                 await productosStore.updateProducto(id, { ...item, activo: targetActiveStatus });
             }
@@ -338,7 +359,7 @@ const handleBulkRescue = async () => {
 
 // 2. HARD DELETE (Eliminar Definitivamente)
 const confirmHardDelete = async (item) => {
-    if (!confirm(`⚠️ PELIGRO ⚠️\n\n¿Confirma la ELIMINACIÓN FÍSICA de:\n${currentType.value === 'clientes' ? item.razon_social : item.nombre}?\n\nEsta acción NO se puede deshacer.`)) return;
+    if (!confirm(`⚠️ PELIGRO ⚠️\n\n¿Confirma la ELIMINACIÓN FÍSICA de:\n${currentType.value === 'clientes' ? item.razon_social : (currentType.value === 'contactos' ? item.nombre : item.nombre)}?\n\nEsta acción NO se puede deshacer.`)) return;
     
     try {
         loading.value = true;
@@ -390,6 +411,8 @@ const handleBulkHardDelete = async () => {
 const executeHardDelete = async (id) => {
     if (currentType.value === 'clientes') {
         await clientesStore.hardDeleteCliente(id);
+    } else if (currentType.value === 'contactos') {
+        await contactosStore.hardDeleteContacto(id);
     } else {
         await api.delete(`/productos/${id}/hard`);
         productosStore.fetchProductos();

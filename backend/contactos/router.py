@@ -15,7 +15,7 @@ router = APIRouter(
 
 # --- CRUD Endpoints ---
 
-@router.get("/", response_model=List[schemas.ContactoRead])
+@router.get("", response_model=List[schemas.ContactoRead])
 def read_contactos(
     skip: int = 0, 
     limit: int = 100, 
@@ -42,7 +42,7 @@ def read_contactos(
     
     return query.offset(skip).limit(limit).all()
 
-@router.post("/", response_model=schemas.ContactoRead, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=schemas.ContactoRead, status_code=status.HTTP_201_CREATED)
 def create_contacto(contacto: schemas.ContactoCreate, db: Session = Depends(get_db)):
     # Conversión directa de Pydantic a Modelo SQLAlchemy
     # Nota: Los campos JSON (roles, canales) Pydantic los pasa como list/dict, 

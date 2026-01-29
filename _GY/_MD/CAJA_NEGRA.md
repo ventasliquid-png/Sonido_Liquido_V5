@@ -1,4 +1,20 @@
 # 🛸 CAJA NEGRA (BLACK BOX) - DASHBOARD TÁCTICO V2
+Open Editor
+Comment on files
+Select text within files to leave a comment for the agent.
+
+Dismiss
+16
+Workspaces
+Sonido_Liquido_V5
+
+
+Playground
+
+Sonido_Liquido_V5
+/
+Contacts UI & Data Integrity
+
 **Última Actualización:** 28-Ene-2026 (Fix Transporte & Frankenstein Cleanup)
 **Sesiones Completadas:** +1 (Regla 4/6)
 **Rol:** Tablero de Control y Estado de Salud del Sistema.
@@ -37,7 +53,17 @@
 ---
 **Instrucción de Mantenimiento:** Actualizar este tablero al CERRAR la sesión (Protocolo Omega).
 
-## [2026-01-28] INCIDENTE: La Legión de Fantasmas
+## [2026-01-29] INCIDENTE: La Legión de Fantasmas
 - **Síntoma**: UI mostraba 527 contactos vacíos in-cliqueables.
 - **Diagnóstico**: El Frontend pedía /api/contactos (inexistente). El Backend, por regla catch-all SPA, devolvía index.html. Vue parseaba el HTML char-by-char.
 - **Solución**: 1) Proxy Vite /contactos. 2) Store API_URL /contactos/ (trailing slash). 3) Exclusión explícita en Backend SPA handler.
+
+## [2026-01-29] INCIDENTE: Crash ContactCanvas & Dropdowns Invisibles
+- **Síntoma**: Error 500 al cargar clientes y dropdowns "vacíos" en formulario de contacto.
+- **Diagnóstico**:
+    1.  Backend: Fallo en propiedad computed `contacto_principal_nombre` por lazy loading incompleto.
+    2.  Frontend: Estilos CSS nativos (blanco sobre blanco) ocultaban las opciones.
+- **Solución**:
+    1.  Backend: `try/except` en modelo y `joinedload` en servicio.
+    2.  Frontend: `storeToRefs` para reactividad y clase `text-black` en options.
+

@@ -1,19 +1,19 @@
 
-# [RECUPERACIÓN] 2026-01-14 - Parche de Emergencia "Math Guard Clauses"
+# [RECUPERACIÃ“N] 2026-01-14 - Parche de Emergencia "Math Guard Clauses"
 
 > **ESTADO:** SATISFACTORIO
 > **TIPO:** HOTFIX / SEGURIDAD
 
-Se detectó y documentó retroactivamente el parche de emergencia 'Math Guard Clauses' tras un colapso por Error 500 (División por cero).
+Se detectÃ³ y documentÃ³ retroactivamente el parche de emergencia 'Math Guard Clauses' tras un colapso por Error 500 (DivisiÃ³n por cero).
 
-**Detalles Técnicos:**
-1.  **Backend:** Se blindaron `pricing_engine.py` y `router.py` (función `calculate_prices`) para capturar valores `None` o `0` en `precio_roca` y `costo_reposicion`.
+**Detalles TÃ©cnicos:**
+1.  **Backend:** Se blindaron `pricing_engine.py` y `router.py` (funciÃ³n `calculate_prices`) para capturar valores `None` o `0` en `precio_roca` y `costo_reposicion`.
 2.  **Resultado:** El sistema devuelve `0.00` en todos los precios calculados en lugar de crashear, permitiendo que el listado de productos cargue incluso con datos corruptos.
 3.  **Schemas:** Ajustados `schemas.py` para permitir `0.00` y `Optional` en campos de precios.
 
-**Acción Requerida:** Revisar datos de origen para corregir ceros, pero el sistema ya es estable.
+**AcciÃ³n Requerida:** Revisar datos de origen para corregir ceros, pero el sistema ya es estable.
 
-# [V5.4] 2026-01-15 - Implementación Multi-Proveedor y Ajustes UI
+# [V5.4] 2026-01-15 - ImplementaciÃ³n Multi-Proveedor y Ajustes UI
 
 > **ESTADO:** BLOQUEADO (FRONTEND CRASH)
 > **TIPO:** FEATURE / REFINEMENT
@@ -26,35 +26,35 @@ Se detectó y documentó retroactivamente el parche de emergencia 'Math Guard Cl
     *   Models: Actualizado `Producto` y creado `ProductoProveedor`.
     *   Router: Agregados endpoints `POST /proveedores` y `DELETE /proveedores/{id}`.
 2.  **Frontend (Parcial):**
-    *   Implementado layout y lógica en `ProductoInspector.vue`.
+    *   Implementado layout y lÃ³gica en `ProductoInspector.vue`.
     *   Agregado servicio en `productosApi.js`.
 
 **Incidente Bloqueante:**
 *   El componente `ProductoInspector.vue` crashea al intentar abrirse (spinner infinito o error Vue).
-*   **Causa Raíz Identificada:** Inicialización de arrays en Store (`tasasIva`, `proveedores`) puede ser `null/undefined` en el momento que el `watch(immediate: true)` dispara la lógica.
-*   **Estado:** Se aplicaron parches de seguridad (`?.` y `|| []`), pero el error persiste. Se requiere revisión profunda del ciclo de vida del componente.
+*   **Causa RaÃ­z Identificada:** InicializaciÃ³n de arrays en Store (`tasasIva`, `proveedores`) puede ser `null/undefined` en el momento que el `watch(immediate: true)` dispara la lÃ³gica.
+*   **Estado:** Se aplicaron parches de seguridad (`?.` y `|| []`), pero el error persiste. Se requiere revisiÃ³n profunda del ciclo de vida del componente.
 
-**Próximos Pasos (Protocolo Omega):**
+**PrÃ³ximos Pasos (Protocolo Omega):**
 1.  Debuggear inicio de `ProductoInspector` (Store vs Props).
 2.  Verificar persistencia de "Es Insumo".
 3.
-# [V5.6.1] 2026-01-16 - Reparación Integral Pedidos (Orders Bridge)
+# [V5.6.1] 2026-01-16 - ReparaciÃ³n Integral Pedidos (Orders Bridge)
 
 > **ESTADO:** ESTABLE
 > **TIPO:** HOTFIX / UX RECOVERY
 
-**Objetivo:** Restaurar funcionalidad crítica de Pedidos, Importación y Alta de Productos, bloqueada por errores de integración y UX "rota".
+**Objetivo:** Restaurar funcionalidad crÃ­tica de Pedidos, ImportaciÃ³n y Alta de Productos, bloqueada por errores de integraciÃ³n y UX "rota".
 
 **Intervenciones:**
-1.  **Backend (Bridge):** Corregido `router.py` para devolver JSON completo y defaults en importación (`500 Internal Error` Solucionado).
+1.  **Backend (Bridge):** Corregido `router.py` para devolver JSON completo y defaults en importaciÃ³n (`500 Internal Error` Solucionado).
 2.  **Frontend (GridLoader):**
-    *   **Layout:** Cambiado inspector a `max-w-7xl` (Modal Central) para corregir visualización "aplastada".
+    *   **Layout:** Cambiado inspector a `max-w-7xl` (Modal Central) para corregir visualizaciÃ³n "aplastada".
     *   **Integridad:** Implementada captura de hora local en payload de pedidos.
     *   **Seguridad:** Implementado **Guard Clause** (`isSubmitting`) en F10/Click para evitar pedidos duplicados.
 3.  **Frontend (ProductoInspector):**
-    *   **Rubros:** Implementado `SelectorCreatable` + `handleCreateRubro` + `fetchRubros` para ABM dinámico en el alta.
+    *   **Rubros:** Implementado `SelectorCreatable` + `handleCreateRubro` + `fetchRubros` para ABM dinÃ¡mico en el alta.
 
-**Métricas Finales:**
+**MÃ©tricas Finales:**
 *   Alta de Productos: OK (Full Screen)
 *   Integridad Pedidos: OK (No Duplicados, Hora Correcta)
 
@@ -69,81 +69,81 @@ Se detectó y documentó retroactivamente el parche de emergencia 'Math Guard Cl
 1.  **Frontend (SimpleAbmModal):** Implementado soporte para `isLoading` (Spinner + Bloqueo de UI).
 2.  **Frontend (ClienteInspector):**
     *   Integrado `abmLoading` para feedback visual inmediato.
-    *   **Validación:** Pre-check de duplicados (Case Insensitive) antes de llamar al backend.
-    *   **Feedback:** Cierre automático del modal `showAbm = false` tras éxito.
+    *   **ValidaciÃ³n:** Pre-check de duplicados (Case Insensitive) antes de llamar al backend.
+    *   **Feedback:** Cierre automÃ¡tico del modal `showAbm = false` tras Ã©xito.
 
 **Resultado:** Eliminada la posibilidad de crear duplicados por doble click y restaurado el feedback visual.
 
-# [V5.6.3] 2026-01-16 - Sincronización Store Domicilios
+# [V5.6.3] 2026-01-16 - SincronizaciÃ³n Store Domicilios
 
 > **ESTADO:** DEPLOYED
 > **TIPO:** BUGFIX / DATA CONSISTENCY
 
 **Objetivo:** Corregir "Ficha Incompleta" persistente tras agregar Domicilio Fiscal.
 
-**Diagnóstico:**
-*   El Store `createDomicilio` y `updateDomicilio` devolvía el cliente actualizado al caller (Inspector) pero **NO actualizaba** el array principal `clientes` en memoria.
-*   Consecuencia: La vista principal (detrás del inspector) quedaba con datos viejos hasta recargar.
+**DiagnÃ³stico:**
+*   El Store `createDomicilio` y `updateDomicilio` devolvÃ­a el cliente actualizado al caller (Inspector) pero **NO actualizaba** el array principal `clientes` en memoria.
+*   Consecuencia: La vista principal (detrÃ¡s del inspector) quedaba con datos viejos hasta recargar.
 
 **Intervenciones:**
 1.  **Store (clientes.js):**
-    *   `createDomicilio/updateDomicilio`: Implementada actualización reactiva `this.clientes[index] = response.data`.
-    *   `deleteDomicilio`: Agregado `fetchClienteById` automático tras eliminación (Backend devuelve 204).
+    *   `createDomicilio/updateDomicilio`: Implementada actualizaciÃ³n reactiva `this.clientes[index] = response.data`.
+    *   `deleteDomicilio`: Agregado `fetchClienteById` automÃ¡tico tras eliminaciÃ³n (Backend devuelve 204).
 
-**Resultado:** Al guardar un domicilio, la ficha del cliente se actualiza instantáneamente en todas las vistas.
+**Resultado:** Al guardar un domicilio, la ficha del cliente se actualiza instantÃ¡neamente en todas las vistas.
 
-# [V5.6.4] 2026-01-16 - Autonomía de Guardado Cliente
+# [V5.6.4] 2026-01-16 - AutonomÃ­a de Guardado Cliente
 
 > **ESTADO:** DEPLOYED
 > **TIPO:** CRITICAL FIX / ARCHITECTURE
 
-**Objetivo:** Solucionar pérdida de datos al editar clientes desde el Cargador de Pedidos.
+**Objetivo:** Solucionar pÃ©rdida de datos al editar clientes desde el Cargador de Pedidos.
 
-**Diagnóstico:**
+**DiagnÃ³stico:**
 *   El componente `ClienteInspector` delegaba el guardado al padre (`emit('save')`) pero **NO llamaba a la API**.
 *   El padre `PedidoTacticoView.vue` **NO escuchaba** el evento save, provocando que los cambios visuales del inspector se perdieran al cerrar el modal.
-*   Resultado: El usuario veía los cambios en el popup, pero nunca persistían en la base de datos.
+*   Resultado: El usuario veÃ­a los cambios en el popup, pero nunca persistÃ­an en la base de datos.
 
 **Intervenciones:**
 1.  **Backend/Store:** (Sin cambios, ya funcionales).
 2.  **Frontend (`ClienteInspector.vue`):**
-    *   **Refactor:** Implementada llamada directa a `clienteStore.createCliente` y `clienteStore.updateCliente` dentro de la función `save()`.
-    *   **Beneficio:** El componente ahora es autónomo y garantiza la persistencia independientemente de quién lo invoque (Pedidos, Clientes, etc.).
+    *   **Refactor:** Implementada llamada directa a `clienteStore.createCliente` y `clienteStore.updateCliente` dentro de la funciÃ³n `save()`.
+    *   **Beneficio:** El componente ahora es autÃ³nomo y garantiza la persistencia independientemente de quiÃ©n lo invoque (Pedidos, Clientes, etc.).
 
-**Resultado:** La edición de clientes (Nombre, CUIT) ahora persiste correctamente en la base de datos y se refleja al cerrar el inspector.
+**Resultado:** La ediciÃ³n de clientes (Nombre, CUIT) ahora persiste correctamente en la base de datos y se refleja al cerrar el inspector.
 
-# [V5.6.5] 2026-01-16 - Autonomía de Guardado Producto
+# [V5.6.5] 2026-01-16 - AutonomÃ­a de Guardado Producto
 
 > **ESTADO:** DEPLOYED
 > **TIPO:** REFACTOR / ARCHITECTURE
 
-**Objetivo:** Alinear inspector de productos con la arquitectura de "Componente Autónomo" (Self-Saving).
+**Objetivo:** Alinear inspector de productos con la arquitectura de "Componente AutÃ³nomo" (Self-Saving).
 
-**Implementación:**
-*   Se replicó la lógica de `ClienteInspector` en `ProductoInspector.vue`.
+**ImplementaciÃ³n:**
+*   Se replicÃ³ la lÃ³gica de `ClienteInspector` en `ProductoInspector.vue`.
 *   Ahora el inspector de productos llama directamente a `productosStore.createProducto` o `updateProducto`.
-*   Esto habilita su uso seguro desde el Cargador Táctico sin duplicar lógica de guardado.
+*   Esto habilita su uso seguro desde el Cargador TÃ¡ctico sin duplicar lÃ³gica de guardado.
 
 **Resultado:** Arquitectura unificada para ABMs complejos incrustados.
 
-# [V5.6.6] 2026-01-16 - Sincronización Táctica de Estado
+# [V5.6.6] 2026-01-16 - SincronizaciÃ³n TÃ¡ctica de Estado
 
 > **ESTADO:** DEPLOYED
 > **TIPO:** UX / DATA COHERENCE
 
 **Objetivo:** Resolver el problema "Pedidos no se entera" tras editar Cliente.
 
-**Diagnóstico:**
+**DiagnÃ³stico:**
 *   Aunque el Inspector guardaba y actualizaba el Store correctamente (V5.6.4), el componente `PedidoTacticoView` ejecutaba un `fetchClientes()` al cerrar el modal.
-*   Este `fetch` recargaba la lista "Resumida" del backend (sin array de domicilios completo), sobrescribiendo la versión "Detallada" que acababa de dejar el Inspector en memoria.
-*   Resultado: Se perdía el estado verde de validación porque faltaban datos en el objeto cliente recargado.
+*   Este `fetch` recargaba la lista "Resumida" del backend (sin array de domicilios completo), sobrescribiendo la versiÃ³n "Detallada" que acababa de dejar el Inspector en memoria.
+*   Resultado: Se perdÃ­a el estado verde de validaciÃ³n porque faltaban datos en el objeto cliente recargado.
 
 **Intervenciones:**
 1.  **PedidoTacticoView.vue:**
     *   Eliminada la llamada redundante `await clientesStore.fetchClientes()` en `onInspectorClose`.
-    *   Implementado listener `@save` para capturar el resultado del inspector y asegurar la selección inmediata del ID actualizado/creado.
+    *   Implementado listener `@save` para capturar el resultado del inspector y asegurar la selecciÃ³n inmediata del ID actualizado/creado.
 
-**Resultado:** La vista de Pedidos refleja instantáneamente los cambios (Nombre, Estado fiscal) sin parpadeos ni reversiones a datos viejos.
+**Resultado:** La vista de Pedidos refleja instantÃ¡neamente los cambios (Nombre, Estado fiscal) sin parpadeos ni reversiones a datos viejos.
 
 # [V5.6.7] 2026-01-16 - Reactividad Robusta en Store Clientes
 
@@ -153,97 +153,97 @@ Se detectó y documentó retroactivamente el parche de emergencia 'Math Guard Cl
 **Objetivo:** Garantizar que la UI reaccione a cambios en objetos profundos dentro del array de clientes.
 
 **Problema:**
-*   La asignación directa por índice (`this.clientes[i] = data`) a veces no disparaba la reactividad en componentes computed complejos (como `clienteSeleccionado` en Pedidos) debido a limitaciones de detección de cambios en arrays grandes o proxies.
+*   La asignaciÃ³n directa por Ã­ndice (`this.clientes[i] = data`) a veces no disparaba la reactividad en componentes computed complejos (como `clienteSeleccionado` en Pedidos) debido a limitaciones de detecciÃ³n de cambios en arrays grandes o proxies.
 
-**Solución:**
-*   Se reemplazó la asignación directa por `this.clientes.splice(index, 1, response.data)` en el Store de Clientes (`updateCliente`, `createDomicilio`, `updateDomicilio`).
-*   Esto fuerza al motor de reactividad de Vue a reconocer la mutación del array y propagar el cambio a todas las vistas suscritas.
+**SoluciÃ³n:**
+*   Se reemplazÃ³ la asignaciÃ³n directa por `this.clientes.splice(index, 1, response.data)` en el Store de Clientes (`updateCliente`, `createDomicilio`, `updateDomicilio`).
+*   Esto fuerza al motor de reactividad de Vue a reconocer la mutaciÃ³n del array y propagar el cambio a todas las vistas suscritas.
 
-**Resultado:** Actualización visual infalible tras edición.
+**Resultado:** ActualizaciÃ³n visual infalible tras ediciÃ³n.
 
-# [V5.6.8] 2026-01-16 - Búsqueda Global de Clientes (Cantera)
+# [V5.6.8] 2026-01-16 - BÃºsqueda Global de Clientes (Cantera)
 
 > **ESTADO:** DEPLOYED
 > **TIPO:** FEATURE / BACKEND
 
-**Objetivo:** Permitir buscar clientes fuera del límite inicial de 1000 registros.
+**Objetivo:** Permitir buscar clientes fuera del lÃ­mite inicial de 1000 registros.
 
 **Problema:**
-*   La búsqueda en el Táctico ("F3") solo filtraba el array local de 1000 clientes precargados. Clientes activos fuera de este lote (ej. clínicas específicas) no aparecían aunque existieran en DB.
+*   La bÃºsqueda en el TÃ¡ctico ("F3") solo filtraba el array local de 1000 clientes precargados. Clientes activos fuera de este lote (ej. clÃ­nicas especÃ­ficas) no aparecÃ­an aunque existieran en DB.
 
-**Solución:**
-*   **Backend:** Se implementó filtrado `q` (Query) en el endpoint `GET /clientes` con búsqueda `ILIKE` en Razón Social, Fantasía y CUIT.
-*   **Frontend:** El componente `ClientLookup.vue` ahora dispara la búsqueda al servidor (con debounce de 300ms) al tipear.
-*   Esto actualiza dinámicamente el Store con los resultados coincidentes de toda la base de datos ("La Cantera").
+**SoluciÃ³n:**
+*   **Backend:** Se implementÃ³ filtrado `q` (Query) en el endpoint `GET /clientes` con bÃºsqueda `ILIKE` en RazÃ³n Social, FantasÃ­a y CUIT.
+*   **Frontend:** El componente `ClientLookup.vue` ahora dispara la bÃºsqueda al servidor (con debounce de 300ms) al tipear.
+*   Esto actualiza dinÃ¡micamente el Store con los resultados coincidentes de toda la base de datos ("La Cantera").
 
-**Resultado:** Al tipear "Bio", ahora el sistema busca en toda la base y trae "Biotenk" + todas las clínicas biológicas que antes no cargaban.
+**Resultado:** Al tipear "Bio", ahora el sistema busca en toda la base y trae "Biotenk" + todas las clÃ­nicas biolÃ³gicas que antes no cargaban.
 
 # [V5.6.9] 2026-01-16 - Acceso Universal a Cantera
 
 > **ESTADO:** DEPLOYED
 > **TIPO:** UX / DATA DISCOVERY
 
-**Objetivo:** Facilitar la importación de clientes históricos incluso si existen coincidencias parciales locales.
+**Objetivo:** Facilitar la importaciÃ³n de clientes histÃ³ricos incluso si existen coincidencias parciales locales.
 
 **Problema:**
-*   Si el usuario buscaba "Bio" y ya existía "Biotenk" en el sistema activo, el botón para "Buscar en Cantera" desaparecía.
-*   Esto bloqueaba el acceso a otras entidades (ej. "Clínica Biológica") que solo existen en la base histórica (`cantera.db`) y necesitan ser importadas.
+*   Si el usuario buscaba "Bio" y ya existÃ­a "Biotenk" en el sistema activo, el botÃ³n para "Buscar en Cantera" desaparecÃ­a.
+*   Esto bloqueaba el acceso a otras entidades (ej. "ClÃ­nica BiolÃ³gica") que solo existen en la base histÃ³rica (`cantera.db`) y necesitan ser importadas.
 
-**Solución:**
-*   Se modificó `ClientLookup.vue` para mostrar **siempre** el enlace "¿No está aquí? Buscar en Cantera" al final de la lista de resultados, siempre que haya un término de búsqueda activo.
+**SoluciÃ³n:**
+*   Se modificÃ³ `ClientLookup.vue` para mostrar **siempre** el enlace "Â¿No estÃ¡ aquÃ­? Buscar en Cantera" al final de la lista de resultados, siempre que haya un tÃ©rmino de bÃºsqueda activo.
 
-**Resultado:** Flujo de importación desbloqueado. Ahora conviven resultados locales activos con la opción de rescatar legado bajo demanda.
+**Resultado:** Flujo de importaciÃ³n desbloqueado. Ahora conviven resultados locales activos con la opciÃ³n de rescatar legado bajo demanda.
 
-# [V5.6.10] 2026-01-16 - Fix Deduplicación Cantera Productos
+# [V5.6.10] 2026-01-16 - Fix DeduplicaciÃ³n Cantera Productos
 
 > **ESTADO:** DEPLOYED
 > **TIPO:** BUGFIX / DATA INTEGRITY
 
-**Objetivo:** Permitir la búsqueda de productos antiguos (Legado) que no tienen SKU definido.
+**Objetivo:** Permitir la bÃºsqueda de productos antiguos (Legado) que no tienen SKU definido.
 
 **Problema:**
-*   La lógica de búsqueda en `GridLoader.vue` filtraba los resultados de la Cantera usando `uniqueBy('sku')`.
-*   Como gran parte de los productos históricos tienen `sku: null` o vacío, el filtro los interpretaba como duplicados y colapsaba cientos de resultados en 1 solo ítem (el primero con sku null) o ninguno.
+*   La lÃ³gica de bÃºsqueda en `GridLoader.vue` filtraba los resultados de la Cantera usando `uniqueBy('sku')`.
+*   Como gran parte de los productos histÃ³ricos tienen `sku: null` o vacÃ­o, el filtro los interpretaba como duplicados y colapsaba cientos de resultados en 1 solo Ã­tem (el primero con sku null) o ninguno.
 
-**Solución:**
-*   Se cambió la lógica de deduplicación a `uniqueBy('id')`.
+**SoluciÃ³n:**
+*   Se cambiÃ³ la lÃ³gica de deduplicaciÃ³n a `uniqueBy('id')`.
 *   Ahora el sistema solo oculta un resultado de Cantera si su **ID** exacto ya existe en la lista de productos activos (Store), independientemente de si tiene SKU o no.
 
-**Resultado:** La búsqueda de "Bio" en productos ahora trae toda la lista de ítems antiguos disponibles para importación.
+**Resultado:** La bÃºsqueda de "Bio" en productos ahora trae toda la lista de Ã­tems antiguos disponibles para importaciÃ³n.
 
 # [V5.6.11] 2026-01-16 - Cantera Search: SQL Accent Insensitivity
 
 > **ESTADO:** DEPLOYED
 > **TIPO:** UX / SEARCH ENGINE
 
-**Objetivo:** Mejorar la robustez del buscador de Cantera (Maestros Históricos).
+**Objetivo:** Mejorar la robustez del buscador de Cantera (Maestros HistÃ³ricos).
 
 **Problema:**
-*   SQLite por defecto no soporta búsquedas insensibles a acentos (`LIKE` normal).
-*   El usuario reportó que buscar "Clinica" no encontraba "CLÍNICA", "Clínica", etc.
+*   SQLite por defecto no soporta bÃºsquedas insensibles a acentos (`LIKE` normal).
+*   El usuario reportÃ³ que buscar "Clinica" no encontraba "CLÃ�NICA", "ClÃ­nica", etc.
 
-**Solución:**
-*   Se inyectó una función personalizada `unaccent` (basada en `unicodedata` de Python) en la conexión SQLite de `CanteraService`.
-*   Las consultas SQL de búsqueda ahora normalizan tanto la columna (`razon_social`, `nombre`) como el término de búsqueda antes de comparar: `WHERE unaccent(col) LIKE unaccent(?)`.
+**SoluciÃ³n:**
+*   Se inyectÃ³ una funciÃ³n personalizada `unaccent` (basada en `unicodedata` de Python) en la conexiÃ³n SQLite de `CanteraService`.
+*   Las consultas SQL de bÃºsqueda ahora normalizan tanto la columna (`razon_social`, `nombre`) como el tÃ©rmino de bÃºsqueda antes de comparar: `WHERE unaccent(col) LIKE unaccent(?)`.
 
-**Resultado:** Búsqueda agnóstica a mayúsculas, minúsculas y tildes. Buscar "clinica" encuentra "CLÍNICA".
+**Resultado:** BÃºsqueda agnÃ³stica a mayÃºsculas, minÃºsculas y tildes. Buscar "clinica" encuentra "CLÃ�NICA".
 
 # [V5.6.12] 2026-01-16 - Cantera Import: Missing Domiciles
 
 > **ESTADO:** DEPLOYED
 > **TIPO:** BUGFIX
 
-**Objetivo:** Asegurar que los clientes importados desde Cantera tengan un domicilio válido inicial.
+**Objetivo:** Asegurar que los clientes importados desde Cantera tengan un domicilio vÃ¡lido inicial.
 
 **Problema:**
-*   La función `import_cliente` ignoraba los campos de dirección (`domicilio`, `ciudad`, `cp`) del JSON legado.
-*   El cliente se creaba sin domicilios. El Inspector mostraba una fila vacía o inconsistente, y el sistema exigía cargar un domicilio fiscal manualmente.
+*   La funciÃ³n `import_cliente` ignoraba los campos de direcciÃ³n (`domicilio`, `ciudad`, `cp`) del JSON legado.
+*   El cliente se creaba sin domicilios. El Inspector mostraba una fila vacÃ­a o inconsistente, y el sistema exigÃ­a cargar un domicilio fiscal manualmente.
 
-**Solución:**
-*   Se actualizó `backend/cantera/router.py` para extraer `calle`, `localidad` y `cp` del objeto de origen.
-*   Se crea automáticamente un `Domicilio` inicial marcado como **Fiscal** y **Entrega** durante la importación.
+**SoluciÃ³n:**
+*   Se actualizÃ³ `backend/cantera/router.py` para extraer `calle`, `localidad` y `cp` del objeto de origen.
+*   Se crea automÃ¡ticamente un `Domicilio` inicial marcado como **Fiscal** y **Entrega** durante la importaciÃ³n.
 
-**Resultado:** Al importar "Alfajores Jorgito", el sistema ahora carga automáticamente su dirección fiscal histórica si existe en la Cantera.
+**Resultado:** Al importar "Alfajores Jorgito", el sistema ahora carga automÃ¡ticamente su direcciÃ³n fiscal histÃ³rica si existe en la Cantera.
 
 # [V5.6.13] 2026-01-16 - Inspector: Force Refresh on Domicile Save
 
@@ -253,172 +253,178 @@ Se detectó y documentó retroactivamente el parche de emergencia 'Math Guard Cl
 **Objetivo:** Solucionar inconsistencias visuales al editar domicilios ("ghost rows").
 
 **Problema:**
-*   Al guardar un domicilio en el Inspector, la actualización optimista del formulario fallaba en reflejar correctamente el estado "Fiscal" o los datos nuevos en clientes importados con datos parciales.
-*   El usuario veía filas vacías o validaciones de "Falta dirección fiscal" incluso después de cargarla.
+*   Al guardar un domicilio en el Inspector, la actualizaciÃ³n optimista del formulario fallaba en reflejar correctamente el estado "Fiscal" o los datos nuevos en clientes importados con datos parciales.
+*   El usuario veÃ­a filas vacÃ­as o validaciones de "Falta direcciÃ³n fiscal" incluso despuÃ©s de cargarla.
 
-**Solución:**
-*   Se modificó `ClienteInspector.vue` para forzar una recarga completa del Cliente desde el Backend (`fetchClienteById`) inmediatamente después de guardar un domicilio.
-*   Esto garantiza que el UI muestre exactamente lo que está en la base de datos, eliminando problemas de reactividad o respuestas parciales.
+**SoluciÃ³n:**
+*   Se modificÃ³ `ClienteInspector.vue` para forzar una recarga completa del Cliente desde el Backend (`fetchClienteById`) inmediatamente despuÃ©s de guardar un domicilio.
+*   Esto garantiza que el UI muestre exactamente lo que estÃ¡ en la base de datos, eliminando problemas de reactividad o respuestas parciales.
 
-**Resultado:** Edición de domicilios robusta y confiable.
+**Resultado:** EdiciÃ³n de domicilios robusta y confiable.
 
-# [V5.6.14] 2026-01-18 - Optimización UX Pedidos y Fix Backend
+# [V5.6.14] 2026-01-18 - OptimizaciÃ³n UX Pedidos y Fix Backend
 
 > **ESTADO:** DEPLOYED
 > **TIPO:** FEATURE / UX / BUGFIX
 
-**Objetivo:** Refinamiento de UX en Carga de Pedidos (Canvas) y corrección de error crítico en Limpieza de Datos.
+**Objetivo:** Refinamiento de UX en Carga de Pedidos (Canvas) y correcciÃ³n de error crÃ­tico en Limpieza de Datos.
 
-**Diagnóstico:**
-*   **Backend:** Error 500 (`NameError`) al importar productos en Data Cleaner por falta de importación `func` de SQLAlchemy.
-*   **Frontend:** Fricción en la carga de pedidos: Ceros iniciales molestos, falta de tecla Enter para confirmar, búsqueda confusa al usar TAB, y falta de edición/eliminación explícita (botones).
+**DiagnÃ³stico:**
+*   **Backend:** Error 500 (`NameError`) al importar productos en Data Cleaner por falta de importaciÃ³n `func` de SQLAlchemy.
+*   **Frontend:** FricciÃ³n en la carga de pedidos: Ceros iniciales molestos, falta de tecla Enter para confirmar, bÃºsqueda confusa al usar TAB, y falta de ediciÃ³n/eliminaciÃ³n explÃ­cita (botones).
 
 **Intervenciones:**
 1.  **Backend (Hotfix):**
     *   Agregado `from sqlalchemy import func` en `backend/data_intel/router.py`.
 2.  **Frontend (PedidoCanvas.vue):**
-    *   **Enter Workflow:** Commit de renglón con `ENTER` desde cualquier input numérico.
-    *   **Inputs Limpios:** Campos inician vacíos (no `0`).
-    *   **Búsqueda Unificada:** Search SKU/Desc simultáneo.
-    *   **Foco Inteligente:** Eliminado popup de búsqueda al navegar con TAB.
-    *   **Gestión Renglones:** Agregada columna Acciones (Editar/Eliminar).
-    *   **Edit Logic:** Refactorizado `editItem` (Deep Copy + NextTick) para mover datos al input sin pérdidas.
+    *   **Enter Workflow:** Commit de renglÃ³n con `ENTER` desde cualquier input numÃ©rico.
+    *   **Inputs Limpios:** Campos inician vacÃ­os (no `0`).
+    *   **BÃºsqueda Unificada:** Search SKU/Desc simultÃ¡neo.
+    *   **Foco Inteligente:** Eliminado popup de bÃºsqueda al navegar con TAB.
+    *   **GestiÃ³n Renglones:** Agregada columna Acciones (Editar/Eliminar).
+    *   **Edit Logic:** Refactorizado `editItem` (Deep Copy + NextTick) para mover datos al input sin pÃ©rdidas.
     *   **Layout:** Grilla restaurada a 12 columnas.
 
-**Resultado:** Carga de pedidos fluida ("Mouse-less experience") y funcionalidad de importación backend restaurada.
+**Resultado:** Carga de pedidos fluida ("Mouse-less experience") y funcionalidad de importaciÃ³n backend restaurada.
 
-# [V5.6.15] 2026-01-19 - Refactorización UI PedidoCanvas y Fix Compilador
+# [V5.6.15] 2026-01-19 - RefactorizaciÃ³n UI PedidoCanvas y Fix Compilador
 
 > **ESTADO:** DEPLOYED
 > **TIPO:** UX / HOTFIX / VUE COMPILER
 
-**Objetivo:** Estabilizar layout de "Nuevo Pedido", corregir error crítico de compilación y pulir UX de carga.
+**Objetivo:** Estabilizar layout de "Nuevo Pedido", corregir error crÃ­tico de compilaciÃ³n y pulir UX de carga.
 
 **Problemas:**
-*   **Compilador:** Error persistente `Invalid end tag` causado por `divs` huérfanos.
-*   **Layout:** El pie de página se perdía al hacer scroll, y el panel de rentabilidad quedaba atrapado en contextos de apilamiento (z-index) incorrectos.
-*   **UX:** Inputs de descuento desalineados y falta de scroll automático al cargar ítems.
+*   **Compilador:** Error persistente `Invalid end tag` causado por `divs` huÃ©rfanos.
+*   **Layout:** El pie de pÃ¡gina se perdÃ­a al hacer scroll, y el panel de rentabilidad quedaba atrapado en contextos de apilamiento (z-index) incorrectos.
+*   **UX:** Inputs de descuento desalineados y falta de scroll automÃ¡tico al cargar Ã­tems.
 
 **Intervenciones:**
 1.  **HTML/CSS:**
-    *   Limpieza estructura y corrección de tags de cierre.
+    *   Limpieza estructura y correcciÃ³n de tags de cierre.
     *   Layout "Sandwich" (Header Fijo + Body Flexible + Footer Fijo) reforzado con `overflow-hidden` y `min-h-0`.
-    *   Componente `RentabilidadPanel` movido a la raíz del template (fuera de contenedores relativos).
-2.  **Lógica UI:**
+    *   Componente `RentabilidadPanel` movido a la raÃ­z del template (fuera de contenedores relativos).
+2.  **LÃ³gica UI:**
     *   **Auto-Scroll:** Implementado `scrollTop = scrollHeight` tras commit.
-    *   **Chevron:** Invertida dirección de íconos en panel lateral para coincidir con modelo mental del usuario.
-    *   **Grilla:** Numeración visual, orden cronológico de carga y alineación de inputs.
+    *   **Chevron:** Invertida direcciÃ³n de Ã­conos en panel lateral para coincidir con modelo mental del usuario.
+    *   **Grilla:** NumeraciÃ³n visual, orden cronolÃ³gico de carga y alineaciÃ³n de inputs.
 
 **Resultado:** PedidoCanvas estable, con footer persistente y experiencia de carga fluida.
-# [V10.0] 2026-01-20 - Evolución IPL V10 e Integración Logística
+# [V10.0] 2026-01-20 - EvoluciÃ³n IPL V10 e IntegraciÃ³n LogÃ­stica
 
 > **ESTADO:** NOMINAL
-> **TIPO:** PROTOCOLO RAÍZ / FEATURE / UX
+> **TIPO:** PROTOCOLO RAÃ�Z / FEATURE / UX
 
-**Objetivo:** Evolucionar el protocolo de arranque a V10, implementar infraestructura de logística en pedidos y habilitar la doctrina DEOU (F4/F10).
+**Objetivo:** Evolucionar el protocolo de arranque a V10, implementar infraestructura de logÃ­stica en pedidos y habilitar la doctrina DEOU (F4/F10).
 
 **Intervenciones:**
 1.  **Protocolo:** Creado `GY_IPL_V10.md` con Directiva 1 de Seguridad ALFA (Handover Check).
 2.  **Backend (Expandido):**
     *   **Models:** Agregadas columnas `domicilio_entrega_id` y `transporte_id` a la tabla `pedidos`.
-    *   **Schemas:** Alineados esquemas para soportar envíos y descuentos globales.
+    *   **Schemas:** Alineados esquemas para soportar envÃ­os y descuentos globales.
     *   **Router:** Patcheado `create_pedido_tactico` para persistencia de datos de entrega.
 3.  **Frontend (PedidoCanvas.vue):**
-    *   **POST:** Botón guardar conectado al Cargador Táctico.
-    *   **DEOU F10:** Implementado guardado rápido por teclado.
-    *   **DEOU F4:** Implementado salto a Ventana Satélite (Alta Cliente/Producto) contextual al foco.
-4.  **Base de Datos:** Aplicadas migraciones críticas a `pilot.db`.
+    *   **POST:** BotÃ³n guardar conectado al Cargador TÃ¡ctico.
+    *   **DEOU F10:** Implementado guardado rÃ¡pido por teclado.
+    *   **DEOU F4:** Implementado salto a Ventana SatÃ©lite (Alta Cliente/Producto) contextual al foco.
+4.  **Base de Datos:** Aplicadas migraciones crÃ­ticas a `pilot.db`.
 
-**Métricas Finales:**
+**MÃ©tricas Finales:**
 *   **Integridad:** 11 Clientes, 14 Productos, 5 Pedidos (OK).
-*   **Protocolo Omega:** Generado Informe Histórico.
+*   **Protocolo Omega:** Generado Informe HistÃ³rico.
 
-# [RECUPERACI�N] 2026-01-23 - Protocolo Forense (Rollback & Clean)
+# [RECUPERACIÓN] 2026-01-23 - Protocolo Forense (Rollback & Clean)
 
 > **ESTADO:** ESTABLE
 > **TIPO:** SYSTEM RECOVERY / IDENTITY V12
 
-**Operaci�n:** Se ejecut� Rollback al commit `8230154` (Mi�rcoles 21) para eliminar inestabilidad estructural (Imports Anti-Pattern) introducida el Jueves.
+**Operación:** Se ejecutó Rollback al commit `8230154` (Miércoles 21) para eliminar inestabilidad estructural (Imports Anti-Pattern) introducida el Jueves.
 **Identidad:** Sintetizada V12 ("Phoenix") basada en V10.
-**Limpieza:** Eliminada l�nea temporal fallida V11.
+**Limpieza:** Eliminada línea temporal fallida V11.
 
 ## [2026-01-23] PROTOCOLO OMEGA - SECTOR DOMICILIOS
 **Estado:** ESTABLE / FIX FINALIZADO
 **Informe Detallado:** [Ver Reporte OMEGA](../INFORMES_HISTORICOS/2026-01-23_PROTOCOLO_OMEGA_DOMICILIOS.md)
-**Resumen:** Se solucion� el crash de lista de clientes, se implement� la fusi�n de Piso/Depto en string, y se corrigi� la sincronizaci�n visual del flag Fiscal.
+**Resumen:** Se solucionó el crash de lista de clientes, se implementó la fusión de Piso/Depto en string, y se corrigió la sincronización visual del flag Fiscal.
 
 
 ## SESION 781: UX Clientes & Hardening Seguridad
 **Fecha:** 2026-01-24
-**Objetivo:** Finalizar refactorización de Header Clientes, arreglar visualización de domicilios y solucionar alertas de contraseña en navegador.
+**Objetivo:** Finalizar refactorizaciÃ³n de Header Clientes, arreglar visualizaciÃ³n de domicilios y solucionar alertas de contraseÃ±a en navegador.
 
 ### Hito 1: Refactor Header HaweView (Teleport Fix)
-Se completó la migración del header de Clientes para usar el sistema Teleport hacia GlobalStatsBar.
-**CRÍTICO:** Se documentó y solucionó una *race condition*. El componente HaweView intentaba teleportar antes de que el target #global-header-center existiera.
-*   **Solución:** Se implementó gate v-if='isMounted' en el Teleport y se aseguró la renderización síncrona de la estructura en GlobalStatsBar.
-*   **Lección:** Para futuros módulos (Productos), es MANDATORIO usar isMounted al usar Teleport.
+Se completÃ³ la migraciÃ³n del header de Clientes para usar el sistema Teleport hacia GlobalStatsBar.
+**CRÃ�TICO:** Se documentÃ³ y solucionÃ³ una *race condition*. El componente HaweView intentaba teleportar antes de que el target #global-header-center existiera.
+*   **SoluciÃ³n:** Se implementÃ³ gate v-if='isMounted' en el Teleport y se asegurÃ³ la renderizaciÃ³n sÃ­ncrona de la estructura en GlobalStatsBar.
+*   **LecciÃ³n:** Para futuros mÃ³dulos (Productos), es MANDATORIO usar isMounted al usar Teleport.
 
 ### Hito 2: UX Clientes
-*   **Toolbar:** Reordenada según especificación (9 items: Checkbox -> ... -> Nuevo).
-*   **Domicilios:** Se eliminó el uso de pipes | en la visualización. Se integró la visualización de Provincia para desambiguar localidades. Backend actualizado (domicilio_fiscal_resumen) para soportar esto.
+*   **Toolbar:** Reordenada segÃºn especificaciÃ³n (9 items: Checkbox -> ... -> Nuevo).
+*   **Domicilios:** Se eliminÃ³ el uso de pipes | en la visualizaciÃ³n. Se integrÃ³ la visualizaciÃ³n de Provincia para desambiguar localidades. Backend actualizado (domicilio_fiscal_resumen) para soportar esto.
 
 ### Hito 3: Seguridad Admin (Password Prompt Bypass)
 Los navegadores modernos (Brave/Chromium) ignoran autocomplete='off'/new-password.
-*   **Fix Definitivo:** Se cambió el input del PIN de administrador a type='text' y se aplicó CSS -webkit-text-security: disc;. Esto elimina completamente la heurística de guardado de contraseñas del navegador mientras mantiene la privacidad visual.
+*   **Fix Definitivo:** Se cambiÃ³ el input del PIN de administrador a type='text' y se aplicÃ³ CSS -webkit-text-security: disc;. Esto elimina completamente la heurÃ­stica de guardado de contraseÃ±as del navegador mientras mantiene la privacidad visual.
 
-**Estado:** Módulo Clientes VERIFICADO y CERRADO.
+**Estado:** MÃ³dulo Clientes VERIFICADO y CERRADO.
 
 
 ## SESION 782: SYSTEM REBOOT & MODULE INITIATION (CONTACTOS)
 **Fecha:** 2026-01-26
-**Objetivo:** Intervenci�n BIOS, Instalaci�n de Bootloader V2 y Activaci�n M�dulo Agenda.
+**Objetivo:** Intervención BIOS, Instalación de Bootloader V2 y Activación Módulo Agenda.
 
-### Hito 1: Intervenci�n de Nivel BIOS (Resoluci�n de Paradoja Marmota)
-Se detect� una desincronizaci�n cognitiva severa: La identidad resid�a dentro de un c�digo que no se actualizaba hasta despu�s de asumir la identidad (Loop Infinito).
-*   **Soluci�n:** Instalaci�n de BOOTLOADER V2.
-*   **Mecanismo:** El script f�sico DESPERTAR_GY.bat ahora ejecuta git pull de forma aut�noma **antes** de lanzar el entorno visual, rompiendo la dependencia causal.
-*   **Artefacto Cognitivo:** Se cre� _GY/BOOTLOADER.md como puntero absoluto de verdad al inicio.
+### Hito 1: Intervención de Nivel BIOS (Resolución de Paradoja Marmota)
+Se detectó una desincronización cognitiva severa: La identidad residía dentro de un código que no se actualizaba hasta después de asumir la identidad (Loop Infinito).
+*   **Solución:** Instalación de BOOTLOADER V2.
+*   **Mecanismo:** El script físico DESPERTAR_GY.bat ahora ejecuta git pull de forma autónoma **antes** de lanzar el entorno visual, rompiendo la dependencia causal.
+*   **Artefacto Cognitivo:** Se creó _GY/BOOTLOADER.md como puntero absoluto de verdad al inicio.
 
 ### Hito 2: Upgrade de Identidad (V13 -> V14 VANGUARD)
-Debido a la reestructuraci�n profunda de los protocolos de arranque, se dio de baja la versi�n V13 (Sentinel) y se activ� **V14 'VANGUARD'**.
+Debido a la reestructuración profunda de los protocolos de arranque, se dio de baja la versión V13 (Sentinel) y se activó **V14 'VANGUARD'**.
 *   **Protocolo:** GY_IPL_V14.md establecido como nueva norma.
-*   **Doctrina:** 'La Anticipaci�n es la Clave de la Victoria.'
+*   **Doctrina:** 'La Anticipación es la Clave de la Victoria.'
 
-### Hito 3: Inicio de Operaciones T�cticas
-La rama 5.5-rescate-jueves fue fusionada en main y eliminada. Se cre� la rama t�ctica 5.6-contactos-agenda.
-*   **Misi�n:** Implementar UX de Agenda en Ficha Cliente e integraci�n Google.
+### Hito 3: Inicio de Operaciones Tácticas
+La rama 5.5-rescate-jueves fue fusionada en main y eliminada. Se creó la rama táctica 5.6-contactos-agenda.
+*   **Misión:** Implementar UX de Agenda en Ficha Cliente e integración Google.
 
 **Estado:** SISTEMA NOMINAL V14. LISTO PARA OPERACIONES.
 
 
-### Hito 4: Implementaci�n UX Agenda (Contactos V1)
-Se complet� la integraci�n visual del m�dulo de contactos en la interfaz de Cliente.
-*   **Componente T�ctico:** Se cre� ContactoPopover.vue, un componente reutilizable que muestra la lista de v�nculos y permite acciones r�pidas (Copiar Tel�fono/Mail).
-*   **Integraci�n:**
-    *   **ClienteInspector:** Se redujo el layout del Header para acomodar el bot�n 'Agenda' junto a la Raz�n Social.
-    *   **ClientCanvas:** Se a�adi� el bot�n en el Header principal.
-    *   **L�gica:** Ambos componentes comparten el estado showAgenda y manejan la navegaci�n hacia la pesta�a completa de contactos ('Gestionar').
+### Hito 4: Implementación UX Agenda (Contactos V1)
+Se completó la integración visual del módulo de contactos en la interfaz de Cliente.
+*   **Componente Táctico:** Se creó ContactoPopover.vue, un componente reutilizable que muestra la lista de vínculos y permite acciones rápidas (Copiar Teléfono/Mail).
+*   **Integración:**
+    *   **ClienteInspector:** Se redujo el layout del Header para acomodar el botón 'Agenda' junto a la Razón Social.
+    *   **ClientCanvas:** Se añadió el botón en el Header principal.
+    *   **Lógica:** Ambos componentes comparten el estado showAgenda y manejan la navegación hacia la pestaña completa de contactos ('Gestionar').
 
 **Estado:** Header UX y Popover OPERATIVOS.
 
 
 ### Hito 5: Estrategia Local First (Google Mock)
-Siguiendo �rdenes directas, se difiri� la integraci�n real de OAuth y se implement� una estructura local compatible.
-*   **DB Schema:** Se a�adi� google_resource_name y google_etag a la tabla personas v�a migraci�n manual (scripts/migrate_agenda_google.py).
-*   **Backend:** Se implement� google_mock_router.py para simular latencia y respuestas de �xito en la sincronizaci�n.
-*   **Frontend:** Se activ� el bot�n 'Sincronizar' en ContactoPopover conectado al endpoint simulado.
+Siguiendo órdenes directas, se difirió la integración real de OAuth y se implementó una estructura local compatible.
+*   **DB Schema:** Se añadió google_resource_name y google_etag a la tabla personas vía migración manual (scripts/migrate_agenda_google.py).
+*   **Backend:** Se implementó google_mock_router.py para simular latencia y respuestas de éxito en la sincronización.
+*   **Frontend:** Se activó el botón 'Sincronizar' en ContactoPopover conectado al endpoint simulado.
 
-**Resultado:** El sistema est� listo para operar localmente y 'fingir' conexi�n a la nube sin romper el flujo de trabajo.
+**Resultado:** El sistema está listo para operar localmente y 'fingir' conexión a la nube sin romper el flujo de trabajo.
 
 
-### 2026-01-28: [FIX] Transporte, Frankenstein & Simplificaci�n UI
-- **Problema:** Transporte no persist�a por conflicto con ID de Nodo Legacy.
-- **Soluci�n:** Patch en Backend Service para limpiar nodo viejo al actualizar transporte.
+### 2026-01-28: [FIX] Transporte, Frankenstein & Simplificación UI
+- **Problema:** Transporte no persistía por conflicto con ID de Nodo Legacy.
+- **Solución:** Patch en Backend Service para limpiar nodo viejo al actualizar transporte.
 - **Refactor:** Limpieza masiva de ClientCanvas.vue (Frankenstein Cleanup).
-- **UI:** Eliminado selector r�pido en tarjeta. Implementado Men� Contextual (Click Derecho) en Direcci�n.
+- **UI:** Eliminado selector rápido en tarjeta. Implementado Menú Contextual (Click Derecho) en Dirección.
 
-## [2026-01-28] CIERRE DE SESIÓN: AGENDA GLOBAL
-- **Hito**: Módulo de Contactos 100% Funcional (Backend/Frontend/DB).
-- **Fix**: Simetría ORM restaurada en Cliente/Transporte.
+## [2026-01-28] CIERRE DE SESIÃ“N: AGENDA GLOBAL
+- **Hito**: MÃ³dulo de Contactos 100% Funcional (Backend/Frontend/DB).
+- **Fix**: SimetrÃ­a ORM restaurada en Cliente/Transporte.
 - **Fix**: Solucionado bug visual 'Contactos Fantasmas' (SPA Routing issue).
 - **Estado**: Sistema estable, limpio de datos corruptos, listo para uso operativo.
+
+## [2026-01-29] FIX CONTACT CANVAS Y BACKEND 500
+- **Incidente Crítico:** Resuelto error 500 en `/api/clientes` (Backend) y dropdowns vacíos (Frontend).
+- **Backend:** `models.py` (try/catch en property), `service.py` (joinedload para optimización).
+- **Frontend:** `ContactCanvas.vue` (HTML Fix, `storeToRefs`, `text-black` en options).
+- **Estado**: Funcionalidad de Agenda Contactos restaurada al 100%. Protocolo Omega Ejecutado.

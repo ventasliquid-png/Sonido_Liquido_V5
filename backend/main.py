@@ -164,47 +164,7 @@ async def lifespan(app: FastAPI):
         # Advertencia, no error - el servidor puede arrancar sin IA
         print(f"[WARN] ADVERTENCIA: GOOGLE_APPLICATION_CREDENTIALS no encontrado.")
         print(f"   El servidor arrancará sin funcionalidades de IA (Atenea).")
-        print(f"   Para habilitar IA, configure GOOGLE_APPLICATION_CREDENTIALS o coloque '.google_credentials' en la raíz.\n")
-    # --- [FIN DEL PARCHE] ---
-        
-    CONNECTION_STRING = os.environ.get("DATABASE_URL")
-    if CONNECTION_STRING and "postgres" in CONNECTION_STRING:
-        print("[OK] Verificación de arranque: DATABASE_URL... ENCONTRADA.")
-    else:
-        print("[ERROR] ERROR DE ARRANQUE: DATABASE_URL no encontrada en el entorno.")
-
-    if CONNECTION_STRING and os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
-        try:
-            embeddings_model = VertexAIEmbeddings(
-                model_name=config.EMBEDDINGS_MODEL_NAME,
-                location=config.APP_LOCATION
-            )
-            llm = ChatVertexAI(
-                model_name=config.GEMINI_MODEL_NAME,
-                location=config.APP_LOCATION,
-                temperature=0.7,
-                max_output_tokens=2048,
-                top_p=0.95
-            )
-            # [FIX PILOT] Si falla vector store (ej: estamos en SQLite), no matar el server.
-            try:
-                vector_store = PGVector(
-                    collection_name="base_conocimiento_v5",
-                    connection_string=CONNECTION_STRING,
-                    embedding_function=embeddings_model,
-                )
-                print(f"[OK] Clientes de IA (Región: {config.APP_LOCATION}) y Memoria (pgvector) inicializados.")
-            except Exception as e:
-                print(f"[WARN] [PILOT MODE] No se pudo iniciar RAG/VectorStore (Normal en SQLite): {e}")
-                vector_store = None
-            
-            atenea_v5_app = workflow_builder.compile()
-        except Exception as e:
-            print(f"[ERROR] ERROR DE ARRANQUE V10: Falla al inicializar clientes de IA o pgvector.")
-            print(f"     Error detallado: {e}")
-    else:
-        print("[WARN] Advertencia: El servidor arranca sin IA.")
-
+   
     print("--- [Atenea V5 Backend]: Secuencia de arranque finalizada. ---")
     yield
     print("--- [Atenea V5 Backend]: Servidor apagado. ---")
@@ -395,24 +355,8 @@ app.include_router(proveedores_router)
 app.include_router(data_intel_router)
 app.include_router(pedidos_router) 
 app.include_router(cantera_router)
-from backend.pedidos.router import router as pedidos_router # [GY-FIX] Restored missing import
-from backend.cantera.router import router as cantera_router
+app.include_router(google_mock_router) # [GY-V14] Mock Sync
 from backend.stats.router import router as stats_router
-
-# ...
-
-# Inclusiones (Ordenadas)
-app.include_router(auth_router)
-app.include_router(maestros_router)
-app.include_router(clientes_router)
-app.include_router(logistica_router)
-app.include_router(agenda_router) 
-app.include_router(google_mock_router) # [GY-V14] Mock Sync 
-app.include_router(productos_router)
-app.include_router(proveedores_router) 
-app.include_router(data_intel_router)
-app.include_router(pedidos_router) 
-app.include_router(cantera_router)
 app.include_router(stats_router)
 
 # [Nuevo Módulo Global Contactos]
@@ -537,4 +481,5 @@ print("--- [Atenea V5 Backend]: Módulo 'main.py' V10.16 (Modular Estable) carga
 if __name__ == "__main__":
     import uvicorn
     # [GY-LAN-FIX] Binding to 0.0.0.0 to allow LAN access and bypass localhost IPv4/v6 issues
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    # [GY-STABILITY] Disable reload only in production entry point to prevent double-loading
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)

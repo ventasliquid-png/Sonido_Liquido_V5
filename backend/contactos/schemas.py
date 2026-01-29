@@ -21,8 +21,8 @@ class ContactoBase(BaseModel):
     domicilio_personal: Optional[str] = None
     
     # JSON Fields
-    roles: List[str] = [] # Listado de etiquetas
-    canales: List[CanalContacto] = [] # Listado de objetos canal
+    roles: Optional[List[str]] = [] # Listado de etiquetas
+    canales: Optional[List[CanalContacto]] = [] # Listado de objetos canal
     
     notas: Optional[str] = None
     estado: bool = True

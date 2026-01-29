@@ -378,7 +378,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, onUnmounted, reactive, watch } from 'vue'
+import { ref, onMounted, onActivated, computed, onUnmounted, reactive, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import FichaCard from '../components/hawe/FichaCard.vue'
 import ClienteInspector from './Hawe/components/ClienteInspector.vue'
@@ -812,33 +812,44 @@ const logout = () => {
         router.push('/login')
     }
 }
+// [GY-FIX] Robust hydration logic
+const hydrateData = async () => {
+    try {
+        if (clienteStore.clientes.length === 0) {
+            await clienteStore.fetchClientes()
+        }
+        
+        if (maestrosStore.segmentos.length === 0) {
+            await maestrosStore.fetchSegmentos()
+        }
+        segmentos.value = maestrosStore.segmentos
+    } catch (e) {
+        console.error("Hydration failed:", e)
+    }
+}
 
 onMounted(async () => {
     isMounted.value = true
     window.addEventListener('keydown', handleKeydown)
-    try {
-        // [GY-FIX] Always fetch to ensure fresh data after returns from Canvas
-        await clienteStore.fetchClientes()
+    
+    await hydrateData()
 
-        if (maestrosStore.segmentos.length === 0) {
-            await maestrosStore.fetchSegmentos()
+    // Check for Auto-Inspect (existing logic)
+    if (route.query.inspectId) {
+        console.log("Auto-inspecting:", route.query.inspectId)
+        const client = clientes.value.find(c => c.id === route.query.inspectId)
+        if (client) {
+            await selectCliente(client)
+        } else {
+            await handleSwitchClient(route.query.inspectId)
         }
-        segmentos.value = maestrosStore.segmentos // [GY-FIX] Sync local ref
-        
-        // Check for Auto-Inspect (existing logic)
-        if (route.query.inspectId) {
-            console.log("Auto-inspecting:", route.query.inspectId)
-            // Buscar el cliente en la lista cargada para tener info básica
-            const client = clientes.value.find(c => c.id === route.query.inspectId)
-            if (client) {
-                await selectCliente(client)
-            } else {
-                // Si no está en la lista (inactivo?), intentar fetch directo
-                await handleSwitchClient(route.query.inspectId)
-            }
-        }
-    } catch (e) {
-        console.error('Error loading HaweView data:', e)
+    }
+})
+
+// [GY-FIX] Handle Keep-Alive re-entry
+onActivated(async () => {
+    if (clienteStore.clientes.length === 0) {
+        await hydrateData()
     }
 })
 

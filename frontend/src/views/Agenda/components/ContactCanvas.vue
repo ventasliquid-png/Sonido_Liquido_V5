@@ -31,7 +31,7 @@
         </div>
 
         <!-- Scrollable Content -->
-        <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+        <div class="flex-1 overflow-y-auto p-8 pb-24 custom-scrollbar">
             
             <!-- Identity Header (Avatar + Name) -->
             <div class="flex flex-col items-center mb-8">
@@ -47,16 +47,23 @@
                 
                 <div class="mt-6 w-full max-w-sm flex flex-col gap-3">
                     <div class="grid grid-cols-2 gap-3">
-                        <div class="relative">
-                            <i class="fa-regular fa-user absolute left-3 top-1/2 -translate-y-1/2 text-white/30"></i>
-                            <input 
-                                v-model="form.nombre"
-                                type="text" 
-                                placeholder="Nombre" 
-                                class="w-full bg-white/5 border border-white/10 rounded-lg py-2 pl-10 pr-3 text-white focus:outline-none focus:border-indigo-500 transition-colors placeholder-white/20"
-                            >
+                        <!-- Nombre -->
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-white/40 mb-1 text-left">Nombre <span class="text-red-400">*</span></label>
+                            <div class="relative">
+                                <i class="fa-regular fa-user absolute left-3 top-1/2 -translate-y-1/2 text-white/30"></i>
+                                <input 
+                                    v-model="form.nombre"
+                                    type="text" 
+                                    placeholder="Nombre" 
+                                    class="w-full bg-white/5 border border-white/10 rounded-lg py-2 pl-10 pr-3 text-white focus:outline-none focus:border-indigo-500 transition-colors placeholder-white/20"
+                                >
+                            </div>
                         </div>
-                        <div class="relative">
+
+                        <!-- Apellido -->
+                        <div>
+                             <label class="block text-xs font-bold uppercase text-white/40 mb-1 text-left">Apellido <span class="text-red-400">*</span></label>
                              <input 
                                 v-model="form.apellido"
                                 type="text" 
@@ -94,7 +101,7 @@
                          <!-- Empresa Selector (Cliente o Transporte) -->
                          <div>
                             <label class="block text-xs text-white/40 mb-1 ml-1">Organización</label>
-                             <div class="grid grid-cols-2 gap-2 mb-2">
+                            <div class="grid grid-cols-2 gap-2 mb-2">
                                 <button 
                                     @click="empresaType = 'CLIENTE'"
                                     class="py-1.5 rounded border text-xs font-medium transition-colors"
@@ -109,25 +116,52 @@
                                 >
                                     <i class="fa-solid fa-truck mr-1"></i> Transporte
                                 </button>
+                                <button 
+                                    @click="empresaType = 'PERSONAL'"
+                                    class="py-1.5 rounded border text-xs font-medium transition-colors col-span-2 mt-1"
+                                    :class="empresaType === 'PERSONAL' ? 'bg-gray-600/20 border-gray-500 text-gray-300' : 'bg-white/5 border-white/5 text-white/30 hover:bg-white/10'"
+                                >
+                                    <i class="fa-solid fa-user-slash mr-1"></i> Personal / Sin Asignación
+                                </button>
                             </div>
 
-                            <select 
-                                v-if="empresaType === 'CLIENTE'"
-                                v-model="form.cliente_id"
-                                class="w-full bg-white/5 border border-white/10 text-white rounded-lg p-2.5 focus:border-blue-500 focus:outline-none"
-                            >
-                                <option :value="null">-- Seleccionar Cliente --</option>
-                                <option v-for="c in clientes" :key="c.id" :value="c.id">{{ c.razon_social }}</option>
-                            </select>
+                            <div v-if="empresaType === 'CLIENTE'" class="flex gap-2 items-center group">
+                                <select 
+                                    v-model="form.cliente_id"
+                                    class="flex-1 bg-white/5 border border-white/10 text-white rounded-lg p-2.5 focus:border-blue-500 focus:outline-none"
+                                >
+                                    <option :value="null" class="text-gray-500 bg-white">-- Seleccionar Cliente ({{ clientesOptions.length }}) --</option>
+                                    <option v-for="c in clientesOptions" :key="c.id" :value="c.id" class="text-black bg-white">{{ c.razon_social }}</option>
+                                </select>
+                                <button @click="reloadData" class="text-white/30 hover:text-white" title="Refrescar lista"><i class="fa-solid fa-sync"></i></button>
+                                <a 
+                                    href="/clientes" 
+                                    target="_blank" 
+                                    class="text-blue-500/50 hover:text-blue-400" 
+                                    title="Ir a Clientes"
+                                >
+                                    <i class="fa-solid fa-external-link-alt"></i>
+                                </a>
+                            </div>
 
-                            <select 
-                                v-if="empresaType === 'TRANSPORTE'"
-                                v-model="form.transporte_id"
-                                class="w-full bg-white/5 border border-white/10 text-white rounded-lg p-2.5 focus:border-amber-500 focus:outline-none"
-                            >
-                                <option :value="null">-- Seleccionar Transporte --</option>
-                                <option v-for="t in transportes" :key="t.id" :value="t.id">{{ t.nombre }}</option>
-                            </select>
+                            <div v-if="empresaType === 'TRANSPORTE'" class="flex gap-2 items-center group">
+                                <select 
+                                    v-model="form.transporte_id"
+                                    class="flex-1 bg-white/5 border border-white/10 text-white rounded-lg p-2.5 focus:border-amber-500 focus:outline-none"
+                                >
+                                    <option :value="null" class="text-gray-500 bg-white">-- Seleccionar Transporte ({{ transportesOptions.length }}) --</option>
+                                    <option v-for="t in transportesOptions" :key="t.id" :value="t.id" class="text-black bg-white">{{ t.nombre }}</option>
+                                </select>
+                                <button @click="reloadData" class="text-white/30 hover:text-white" title="Refrescar lista"><i class="fa-solid fa-sync"></i></button>
+                                <a 
+                                    href="/logistica" 
+                                    target="_blank" 
+                                    class="text-amber-500/50 hover:text-amber-400" 
+                                    title="Ir a Logística"
+                                >
+                                    <i class="fa-solid fa-external-link-alt"></i>
+                                </a>
+                            </div>
                          </div>
 
                          <!-- Roles (Tags) -->
@@ -233,11 +267,15 @@
 
             </div>
         </div>
+
+        <!-- Use basic structure for footer/portal if needed -->
     </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
 import { useContactosStore } from '../../../stores/contactos'
 import { useClientesStore } from '../../../stores/clientes'
 import { useLogisticaStore } from '../../../stores/logistica'
@@ -254,12 +292,32 @@ const contactosStore = useContactosStore()
 const clientesStore = useClientesStore()
 const logisticaStore = useLogisticaStore()
 const notificationStore = useNotificationStore()
+const router = useRouter()
+
+// Store Refs for Reactivity
+const { clientes } = storeToRefs(clientesStore)
+const { empresas: transportes } = storeToRefs(logisticaStore)
+
+// Options mapped for template
+const clientesOptions = computed(() => clientes.value || [])
+const transportesOptions = computed(() => transportes.value || [])
 
 const saving = ref(false)
 const isNew = computed(() => props.contactoId === 'new')
 
-const empresaType = ref('CLIENTE') // 'CLIENTE' or 'TRANSPORTE'
+const empresaType = ref('CLIENTE') // 'CLIENTE', 'TRANSPORTE', 'PROVEEDOR', 'PERSONAL'
 const newRole = ref('')
+
+const reloadData = async () => {
+    try {
+        await Promise.all([
+            clientesStore.fetchClientes({ limit: 1000, select: 'id,razon_social', include_inactive: false }),
+            logisticaStore.fetchEmpresas('active')
+        ])
+    } catch (e) {
+        console.error("Error reloading dropdown data:", e)
+    }
+}
 
 // Form State
 const form = ref({
@@ -271,31 +329,39 @@ const form = ref({
     referencia_origen: '',
     domicilio_personal: '',
     roles: [],
-    canales: [], // [{ tipo: 'WHATSAPP', valor: '', etiqueta: '' }]
+    canales: [], 
     notas: '',
     estado: true
 })
-
-// Options
-const clientes = computed(() => clientesStore.clientes)
-const transportes = computed(() => logisticaStore.empresas)
 
 const initials = computed(() => {
     if (!form.value.nombre) return '?'
     return (form.value.nombre[0] + (form.value.apellido ? form.value.apellido[0] : '')).toUpperCase()
 })
 
+const handleKeydown = (e) => {
+    if (e.key === 'F10') {
+        e.preventDefault()
+        save()
+    }
+    if (e.key === 'Escape') {
+        emit('close')
+    }
+}
+
 onMounted(async () => {
+    window.addEventListener('keydown', handleKeydown)
+
     // Load Dependencies
-    if (clientesStore.clientes.length === 0) await clientesStore.fetchClientes()
-    if (logisticaStore.empresas.length === 0) await logisticaStore.fetchEmpresas()
+    await reloadData()
 
     // Init Form
     if (!isNew.value && props.initialData) {
         form.value = JSON.parse(JSON.stringify(props.initialData))
         // Determine Context
         if (form.value.transporte_id) empresaType.value = 'TRANSPORTE'
-        else empresaType.value = 'CLIENTE'
+        else if (form.value.cliente_id) empresaType.value = 'CLIENTE'
+        else empresaType.value = 'PERSONAL'
         
         // Ensure arrays
         if (!form.value.roles) form.value.roles = []
@@ -304,6 +370,10 @@ onMounted(async () => {
         // Defaults
         form.value.canales.push({ tipo: 'WHATSAPP', valor: '', etiqueta: 'Personal' })
     }
+})
+
+onUnmounted(() => {
+    window.removeEventListener('keydown', handleKeydown)
 })
 
 // Actions
@@ -325,7 +395,6 @@ const removeCanal = (index) => {
 }
 
 const save = async () => {
-    // Validation
     if (!form.value.nombre || !form.value.apellido) {
         notificationStore.add('Nombre y Apellido son obligatorios', 'warning')
         return
@@ -333,18 +402,34 @@ const save = async () => {
 
     saving.value = true
     try {
-        // Cleanup IDs based on type
-        if (empresaType.value === 'CLIENTE') form.value.transporte_id = null
-        else form.value.cliente_id = null
+        const payload = {
+            nombre: form.value.nombre,
+            apellido: form.value.apellido,
+            puesto: form.value.puesto || null,
+            referencia_origen: form.value.referencia_origen || null,
+            domicilio_personal: form.value.domicilio_personal || null,
+            roles: form.value.roles || [],
+            canales: form.value.canales.map(c => ({
+                tipo: c.tipo,
+                valor: c.valor,
+                etiqueta: c.etiqueta || null
+            })),
+            notas: form.value.notas || null,
+            estado: form.value.estado,
+            cliente_id: empresaType.value === 'CLIENTE' ? form.value.cliente_id : null,
+            transporte_id: empresaType.value === 'TRANSPORTE' ? form.value.transporte_id : null
+        }
 
         if (isNew.value) {
-            await contactosStore.createContacto(form.value)
+            await contactosStore.createContacto(payload)
         } else {
-            await contactosStore.updateContacto(props.contactoId, form.value)
+            const cleanId = String(props.contactoId) 
+            await contactosStore.updateContacto(cleanId, payload)
         }
         emit('save')
     } catch (e) {
-        // Error handled in store
+        console.error("Save Error:", e)
+        notificationStore.add(`Error al guardar: ${e.message}`, 'error')
     } finally {
         saving.value = false
     }
@@ -358,7 +443,6 @@ const deleteContacto = async () => {
     } catch (e) {}
 }
 </script>
-
 <style scoped>
 /* Custom Scrollbar for Dark Mode */
 .custom-scrollbar::-webkit-scrollbar {

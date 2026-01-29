@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import axios from 'axios'
 import { useNotificationStore } from './notification'
 
-const API_URL = '/contactos/'
+const API_URL = '/contactos'
 
 export const useContactosStore = defineStore('contactos', {
     state: () => ({
@@ -85,6 +85,20 @@ export const useContactosStore = defineStore('contactos', {
                 console.error('Error deleting contacto:', error)
                 const notify = useNotificationStore()
                 notify.add('Error al eliminar contacto', 'error')
+                throw error
+            }
+        },
+
+        async hardDeleteContacto(id) {
+            try {
+                await axios.delete(`${API_URL}/${id}/hard`)
+                this.contactos = this.contactos.filter(c => c.id !== id)
+                const notify = useNotificationStore()
+                notify.add('Contacto eliminado definitivamente', 'success')
+            } catch (error) {
+                console.error('Error hard deleting contacto:', error)
+                const notify = useNotificationStore()
+                notify.add('Error al eliminar contacto físicamente', 'error')
                 throw error
             }
         }

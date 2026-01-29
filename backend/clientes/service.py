@@ -115,8 +115,8 @@ class ClienteService:
         
         query = db.query(Cliente).options(
             joinedload(Cliente.domicilios).joinedload(Domicilio.provincia),
-            # joinedload(Cliente.vinculos).joinedload(agenda_models.VinculoComercial.persona),
-            # joinedload(Cliente.vinculos).joinedload(agenda_models.VinculoComercial.tipo_contacto)
+            joinedload(Cliente.vinculos).joinedload(agenda_models.VinculoComercial.persona),
+            joinedload(Cliente.vinculos).joinedload(agenda_models.VinculoComercial.tipo_contacto)
         )
 
         # Filter by active status unless requested otherwise
