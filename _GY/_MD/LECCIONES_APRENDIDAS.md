@@ -55,3 +55,8 @@
 
 ---
 **Última Actualización:** 2026-01-25 (Consolidación Protocolo Omega)
+
+## [2026-01-28] BACKEND / ROUTING
+1. **Trailing Slash Matter**: FastAPi es estricto. /contactos != /contactos/. Si el Store pide sin slash y hay redirección, puede perderse el contexto o fallar el proxy.
+2. **SPA Catch-All Risks**: Si tienes un catch-all para servir index.html, DEBES excluir explícitamente todos los prefijos de API. De lo contrario, un 404 de API se convierte en un 200 OK con HTML, rompiendo el frontend silenciosamente.
+3. **ORM Bidireccional**: SQLAlchemy requiere definir la relación en AMBOS lados (ack_populates) para que el mapper no explote. No basta con definirla en el hijo.

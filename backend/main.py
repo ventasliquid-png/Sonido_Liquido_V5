@@ -415,6 +415,10 @@ app.include_router(pedidos_router)
 app.include_router(cantera_router)
 app.include_router(stats_router)
 
+# [Nuevo Módulo Global Contactos]
+from backend.contactos.router import router as contactos_router
+app.include_router(contactos_router)
+
 # --- [SPA / STATIC FILES SUPPORT] ---
 # Sirve los archivos estáticos compilados de Vue (JS, CSS, Img)
 static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "static")
@@ -429,7 +433,7 @@ if os.path.exists(static_dir):
 async def serve_spa(full_path: str):
     # Ignorar rutas de API (ya manejadas arriba por include_router)
     # Ignorar rutas de API (ya manejadas arriba por include_router)
-    api_prefixes = ["api", "docs", "openapi", "clientes", "pedidos", "productos", "maestros", "logistica", "agenda", "proveedores", "auth", "bypass"]
+    api_prefixes = ["api", "docs", "openapi", "clientes", "pedidos", "productos", "maestros", "logistica", "agenda", "proveedores", "auth", "bypass", "contactos"]
     if any(full_path.startswith(prefix) for prefix in api_prefixes):
          # Dejar que FastAPI maneje 404 para API real si no matcheó antes
          from fastapi import HTTPException

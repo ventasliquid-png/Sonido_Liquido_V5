@@ -416,3 +416,9 @@ Siguiendo órdenes directas, se difirió la integración real de OAuth y se impleme
 - **Solución:** Patch en Backend Service para limpiar nodo viejo al actualizar transporte.
 - **Refactor:** Limpieza masiva de ClientCanvas.vue (Frankenstein Cleanup).
 - **UI:** Eliminado selector rápido en tarjeta. Implementado Menú Contextual (Click Derecho) en Dirección.
+
+## [2026-01-28] CIERRE DE SESIÃ“N: AGENDA GLOBAL
+- **Hito**: MÃ³dulo de Contactos 100% Funcional (Backend/Frontend/DB).
+- **Fix**: SimetrÃ­a ORM restaurada en Cliente/Transporte.
+- **Fix**: Solucionado bug visual 'Contactos Fantasmas' (SPA Routing issue).
+- **Estado**: Sistema estable, limpio de datos corruptos, listo para uso operativo.

@@ -41,3 +41,9 @@ Es el espacio de trabajo de una entidad (`/hawe/cliente/:id`).
 - [ ] Ordenamiento Avanzado (ABC, Movimiento)
 - [ ] Módulo de Productos (Galería Visual)
 - [ ] Módulo de Pedidos (Objeto Inteligente)
+
+### 4. Agenda Global (Contactos)
+Módulo centralizado para la gestión de personas (/agenda/contactos).
+- **Concepto:** Google Contacts Style. Tarjetas limpias con iniciales y roles.
+- **Canvas Lateral:** Edición rápida sin perder el contexto de la grilla.
+- **Simetría:** Los contactos pueden vincularse a un Cliente (Comercial) o a una Empresa de Transporte (Logística).

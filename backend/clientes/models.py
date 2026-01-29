@@ -73,6 +73,8 @@ class Cliente(Base):
     vendedor = relationship("Usuario")
     # [FIX] Usar nombre corto 'Pedido' ya que está registrado en Base
     pedidos = relationship("Pedido", back_populates="cliente")
+    # [NUEVO V5.6] Agenda Global
+    contactos = relationship("backend.contactos.models.Contacto", back_populates="cliente")
 
     def __repr__(self):
         return f"<Cliente(razon_social='{self.razon_social}', cuit='{self.cuit}')>"

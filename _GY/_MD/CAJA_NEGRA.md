@@ -36,3 +36,8 @@
 
 ---
 **Instrucción de Mantenimiento:** Actualizar este tablero al CERRAR la sesión (Protocolo Omega).
+
+## [2026-01-28] INCIDENTE: La Legión de Fantasmas
+- **Síntoma**: UI mostraba 527 contactos vacíos in-cliqueables.
+- **Diagnóstico**: El Frontend pedía /api/contactos (inexistente). El Backend, por regla catch-all SPA, devolvía index.html. Vue parseaba el HTML char-by-char.
+- **Solución**: 1) Proxy Vite /contactos. 2) Store API_URL /contactos/ (trailing slash). 3) Exclusión explícita en Backend SPA handler.
