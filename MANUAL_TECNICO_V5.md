@@ -25,3 +25,9 @@ El soporte de Nivel 1 es realizado por el Agente IA "Ayuda HAWE".
 ## 5. RUTAS Y VARIABLES (.ENV)
 * `DATABASE_URL`: Apunta a la base local (SQLite).
 * `PATH_DRIVE_BACKUP`: Ruta absoluta a la carpeta de Google Drive Desktop del usuario. Es vital para la Regla 4/6 (Backup automático cada 4 sesiones).
+
+## 6. ARQUITECTURA DE CONTACTOS (V5.6)
+* **Modelo Unificado:** La entidad `Contacto` actúa como nexo entre una persona física y una organización (Cliente o Transporte).
+* **Gestión de Estado (Frontend):** Se utiliza `storeToRefs` (Pinia) obligatoriamente para garantizar reactividad en selects dinámicos (Cliente/Transporte).
+* **Prevención de Fallos (Backend):** Las propiedades computadas como `contacto_principal_nombre` deben implementar bloques `try/except` para aislar fallos de integridad en registros individuales y evitar caídas en listados masivos (Error 500).
+
