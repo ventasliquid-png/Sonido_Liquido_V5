@@ -427,4 +427,5 @@ Siguiendo órdenes directas, se difirió la integración real de OAuth y se impl
 - **Incidente Crítico:** Resuelto error 500 en `/api/clientes` (Backend) y dropdowns vacíos (Frontend).
 - **Backend:** `models.py` (try/catch en property), `service.py` (joinedload para optimización).
 - **Frontend:** `ContactCanvas.vue` (HTML Fix, `storeToRefs`, `text-black` en options).
+- **Implementación UI:** Se optó por Botones de Navegación Explícita (↗️) y Recarga (🔄) en lugar de Menú Contextual para mayor estabilidad en el Canvas de Contacto.
 - **Estado**: Funcionalidad de Agenda Contactos restaurada al 100%. Protocolo Omega Ejecutado.

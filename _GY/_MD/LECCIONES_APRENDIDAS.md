@@ -18,6 +18,10 @@
 > *   **Origen:** [Incidente del 24/01 - Teleport Race Condition](file:///c:/dev/Sonido_Liquido_V5/INFORMES_HISTORICOS/2026-01-24_PROTOCOLO_OMEGA_CLIENTES_SEC.md).
 > *   **Consecuencia Evitada:** Crash de aplicación "Failed to locate Teleport target".
 
+> **REGLA DE ORO:** **Contraste en Selects Nativos.**
+> *   **Instrucción Precisa:** En modo oscuro/Chromium, los `<option>` pueden heredar fondo blanco con texto blanco. Solución Mandatoria: Usar siempre `class='text-black bg-white'` en las opciones.
+> *   **Origen:** [Sesión del 29/01 - Dropdowns Invisibles](file:///c:/dev/Sonido_Liquido_V5/INFORMES_HISTORICOS/2026-01-29_SESION_CONTACT_CANVAS_FIX.md).
+
 > **REGLA DE ORO:** **UX Unificada (Canvas vs Inspector).**
 > *   **Instrucción Precisa:** Mantener consistencia visual absoluta entre el formulario de alta (modal) y la ficha de edición. Si el usuario aprende uno, ya sabe usar el otro. "Misma UI, Mismo Modelo Mental".
 

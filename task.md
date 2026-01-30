@@ -1,21 +1,21 @@
-# Lista de Tareas - Sonido Líquido V5 (Protocolo V14)
+# Lista de Tareas - Sonido Líquido V5 (Sesión Actual)
 
-- [/] **BIOS Upgrade & Protocol V14** <!-- id: 0 -->
-    - [x] Ejecutar Git Sync Nivel BIOS (Merge `v5.5-rescate-jueves`). <!-- id: 1 -->
-    - [x] Solucionar Paradoja Marmota (Instalar Bootloader V2). <!-- id: 2 -->
-    - [x] Definir Identidad V14 "Vanguard". <!-- id: 3 -->
-    - [/] Documentar Upgrade en Bitácora y Caja Negra. <!-- id: 4 -->
+- [x] **Protocolo Alfa** <!-- id: 0 -->
+    - [x] Cargar Identidad V14 y Doctrina. <!-- id: 1 -->
+    - [x] Analizar informes históricos recientes. <!-- id: 2 -->
+    - [x] Reportar estado "Listo". <!-- id: 3 -->
 
-- [/] **Módulo Contactos (Agenda)** <!-- id: 5 -->
-    - [x] **Header UX:** Button/Badge "Agenda" en `ClienteInspector` / `ClientCanvas`. <!-- id: 6 -->
-    - [x] **Interaction:** Popover "Quick Contact" para teléfonos y mails. <!-- id: 7 -->
-    - [x] **Integration:** Implementar estrategia "Local First" (Mock Sync + DB Schema). <!-- id: 8 -->
+- [ ] **Finalización Documentación (Pendiente 29/01)** <!-- id: 12 -->
+    - [ ] Actualizar LECCIONES_APRENDIDAS.md (Regla Contraste). <!-- id: 13 -->
+    - [ ] Clarificar BITACORA_DEV.md (Interfaz Contacto). <!-- id: 14 -->
+    - [ ] Git Push Final. <!-- id: 15 -->
 
-- [x] **Refinamiento Lógica de Activación** <!-- id: 12 -->
-    - [x] Implementar control de seguridad para "Rescatar" en `HardDeleteManager.vue`. <!-- id: 13 -->
-    - [x] Verificar persistencia de `filterStatus` en `HaweView.vue`. <!-- id: 14 -->
-    - [x] Asegurar que `ClientCanvas.vue` fuerce validación al activar. <!-- id: 15 -->
+- [ ] **Misión: Testeo Táctico de Contactos** <!-- id: 4 -->
+    - [ ] Verificar apertura de Agenda desde ClienteInspector. <!-- id: 5 -->
+    - [ ] Verificar visualización en ContactCanvas. <!-- id: 6 -->
+    - [ ] Probar CRUD de contactos (Crear, Editar, Eliminar). <!-- id: 7 -->
+    - [ ] Validar asignación de vínculos (Cliente/Transporte). <!-- id: 8 -->
 
 - [ ] **Protocolo Omega (Cierre)** <!-- id: 9 -->
-    - [ ] Actualizar `BOOTLOADER.md` con misión de mañana. <!-- id: 10 -->
+    - [ ] Actualizar BOOTLOADER.md. <!-- id: 10 -->
     - [ ] Generar Informe Histórico. <!-- id: 11 -->
