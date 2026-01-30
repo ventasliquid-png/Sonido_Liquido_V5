@@ -101,6 +101,60 @@ export const useContactosStore = defineStore('contactos', {
                 notify.add('Error al eliminar contacto físicamente', 'error')
                 throw error
             }
+        },
+
+        async addVinculo(contactoId, vinculoData) {
+            this.loading = true
+            try {
+                const response = await axios.post(`${API_URL}/${contactoId}/vinculos`, vinculoData)
+                // Update local state if contact is loaded
+                const contacto = this.contactos.find(c => c.id === contactoId)
+                if (contacto && contacto.vinculos) {
+                    contacto.vinculos.push(response.data)
+                }
+                const notify = useNotificationStore()
+                notify.add('Vínculo comercial agregado', 'success')
+                return response.data
+            } catch (error) {
+                console.error('Error adding vinculo:', error)
+                const notify = useNotificationStore()
+                notify.add('Error al agregar vínculo', 'error')
+                throw error
+            } finally {
+                this.loading = false
+            }
+        },
+
+        async deleteVinculo(contactoId, vinculoId) {
+            try {
+                await axios.delete(`${API_URL}/${contactoId}/vinculos/${vinculoId}`)
+                // Update local state
+                const contacto = this.contactos.find(c => c.id === contactoId)
+                if (contacto && contacto.vinculos) {
+                    contacto.vinculos = contacto.vinculos.filter(v => v.id !== vinculoId)
+                }
+                const notify = useNotificationStore()
+                notify.add('Vínculo eliminado', 'success')
+            } catch (error) {
+                console.error('Error deleting vinculo:', error)
+                const notify = useNotificationStore()
+                notify.add('Error al eliminar vínculo', 'error')
+                throw error
+            }
+        },
+
+        async searchPersonas(query) {
+            if (!query || query.length < 2) return []
+            try {
+                // Usamos el endpoint existente con parametro q
+                // Limitamos a 5 resultados para typeahead ligero
+                const response = await axios.get(`${API_URL}?q=${query}&limit=5`)
+                return response.data
+            } catch (error) {
+                console.error('Error buscando personas:', error)
+                return []
+            }
         }
     }
 })
+    ```

@@ -49,8 +49,12 @@ class EmpresaTransporte(Base):
     condicion_iva = relationship("backend.maestros.models.CondicionIva")
     provincia = relationship("backend.maestros.models.Provincia")
     
-    # [NUEVO V5.6] Agenda Global (Simetría)
-    contactos = relationship("backend.contactos.models.Contacto", back_populates="transporte")
+    # [NUEVO V6 Multiplex] Relación Polimórfica Inversa
+    vinculos_rel = relationship(
+        "backend.contactos.models.Vinculo",
+        primaryjoin="and_(foreign(backend.contactos.models.Vinculo.entidad_id)==EmpresaTransporte.id, backend.contactos.models.Vinculo.entidad_tipo=='TRANSPORTE')",
+        viewonly=True,
+    )
 
     def __repr__(self):
         return f"<EmpresaTransporte(nombre='{self.nombre}')>"

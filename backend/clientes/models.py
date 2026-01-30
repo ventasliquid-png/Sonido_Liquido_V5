@@ -73,8 +73,12 @@ class Cliente(Base):
     vendedor = relationship("Usuario")
     # [FIX] Usar nombre corto 'Pedido' ya que está registrado en Base
     pedidos = relationship("Pedido", back_populates="cliente")
-    # [NUEVO V5.6] Agenda Global
-    contactos = relationship("backend.contactos.models.Contacto", back_populates="cliente")
+    # [NUEVO V6 Multiplex] Relación Polimórfica Inversa
+    vinculos_rel = relationship(
+        "backend.contactos.models.Vinculo",
+        primaryjoin="and_(foreign(backend.contactos.models.Vinculo.entidad_id)==Cliente.id, backend.contactos.models.Vinculo.entidad_tipo=='CLIENTE')",
+        viewonly=True, # Para evitar escrituras accidentales desde este lado por ahora
+    )
 
     def __repr__(self):
         return f"<Cliente(razon_social='{self.razon_social}', cuit='{self.cuit}')>"

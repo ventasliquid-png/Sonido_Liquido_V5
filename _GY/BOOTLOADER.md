@@ -14,8 +14,8 @@ NO MODIFICAR SIN AUTORIZACIÓN EXPLÍCITA DE CAMBIO DE VERSIÓN.
 
 ## 3. 🎯 ESTADO DE MISIÓN (RÁPIDO)
 *   **Fase Actual:** `Dormido`
-*   **Rama Activa:** `v5.6-contactos-agenda`
-*   **Objetivo Táctico:** Testeo Contactos
+*   **Rama Activa:** `feature/v6-multiplex-core`
+*   **Objetivo Táctico:** Validación Billetera Vínculos (Stress Test)
 
 ---
 **Instrucción Final:** PROCEED TO IPL LOAD.

@@ -429,3 +429,13 @@ Siguiendo órdenes directas, se difirió la integración real de OAuth y se impl
 - **Frontend:** `ContactCanvas.vue` (HTML Fix, `storeToRefs`, `text-black` en options).
 - **Implementación UI:** Se optó por Botones de Navegación Explícita (↗️) y Recarga (🔄) en lugar de Menú Contextual para mayor estabilidad en el Canvas de Contacto.
 - **Estado**: Funcionalidad de Agenda Contactos restaurada al 100%. Protocolo Omega Ejecutado.
+
+## [2026-01-30] PROTOCOLO MULTIPLEX (CONTACTOS N:M) & SEARCH & LINK
+- **Hito Estratégico:** Reingeniería total del núcleo de Identidad (`backend/contactos`) para soportar la "Paradoja de Pedro" (Una persona, Múltiples Roles en distintas empresas).
+- **Backend:** Separación de `Persona` (Identidad) y `Vinculo` (Rol Contextual). Implementación de Polimorfismo en SQLAlchemy y Soporte JSON para canales.
+- **Frontend:** Renovación de `ContactCanvas.vue` con "Billetera de Vínculos" (Tarjetas por empresa).
+- **Blindaje de Identidad:** Implementación de "Search & Link" (Typeahead con Debounce). El sistema detecta si la persona ya existe (incluso buscando por celular en JSON) y permite reutilizarla en lugar de duplicarla.
+- **QA:** Tests de Integración (`test_qa_pedro.py`) y Robustez/Duplicados (`test_qa_edge_cases.py`) superados.
+- **Documentación:** Informe Histórico detallado generado: [2026-01-30_REINGENIERIA_MULTIPLEX_CONTACTOS](../INFORMES_HISTORICOS/2026-01-30_REINGENIERIA_MULTIPLEX_CONTACTOS.md).
+- **Estado:** Módulo Contactos V6 FULL OPERATIVO.
+

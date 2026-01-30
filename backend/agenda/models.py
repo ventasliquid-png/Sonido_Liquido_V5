@@ -6,12 +6,12 @@ from sqlalchemy.dialects.postgresql import UUID as pgUUID
 from sqlalchemy.orm import relationship
 from backend.core.database import Base, GUID
 
-class Persona(Base):
+class PersonaLegacy(Base):
     """
     Tabla 'personas' (El Ser Humano).
     Registro único del individuo. No depende de ningún cliente.
     """
-    __tablename__ = "personas"
+    __tablename__ = "personas_legacy"
 
     id = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
     nombre_completo = Column(String, nullable=False, index=True)
@@ -40,7 +40,7 @@ class VinculoComercial(Base):
 
     id = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
     cliente_id = Column(GUID(), ForeignKey("clientes.id"), nullable=False)
-    persona_id = Column(GUID(), ForeignKey("personas.id"), nullable=False)
+    persona_id = Column(GUID(), ForeignKey("personas_legacy.id"), nullable=False)
     tipo_contacto_id = Column(String, ForeignKey("tipos_contacto.id"), nullable=False)
     
     email_laboral = Column(String, nullable=True)
@@ -51,7 +51,7 @@ class VinculoComercial(Base):
 
     # Relaciones
     cliente = relationship("Cliente", back_populates="vinculos")
-    persona = relationship("Persona")
+    persona = relationship("PersonaLegacy")
     tipo_contacto = relationship("backend.maestros.models.TipoContacto")
 
     def __repr__(self):

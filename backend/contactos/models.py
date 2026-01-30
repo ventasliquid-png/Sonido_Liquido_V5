@@ -1,62 +1,86 @@
 # Archivo: backend/contactos/models.py
-# Módulo: Agenda Contactos (Global)
+# Módulo: Contactos Multiplex (V6 Core)
 # Color Identidad: ÍNDIGO / VIOLETA
 
 import uuid
-from sqlalchemy import Column, String, Boolean, ForeignKey, Text, JSON, DateTime
+from sqlalchemy import Column, String, Boolean, ForeignKey, Text, JSON, DateTime, Date, Enum
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 
 from backend.core.database import Base, GUID
 
-class Contacto(Base):
+class Persona(Base):
     """
-    Tabla 'contactos' (Agenda Global).
-    Representa personas físicas asociadas a Clientes o Transportes.
-    Identidad Visual: Indigo/Purple.
+    Tabla 'personas' (El Ser Humano).
+    Entidad única que representa a un individuo.
     """
-    __tablename__ = "contactos"
+    __tablename__ = "personas"
 
     id = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
     
-    # --- Polimorfismo de Asociación ---
-    # Cliente (UUID)
-    cliente_id = Column(GUID(), ForeignKey("clientes.id"), nullable=True, index=True)
-    # Transporte (UUID) - Verificado en backend/logistica/models.py
-    transporte_id = Column(GUID(), ForeignKey("empresas_transporte.id"), nullable=True, index=True)
-
-    # --- Datos Personales ---
-    nombre = Column(String, nullable=False)
-    apellido = Column(String, nullable=False)
-    puesto = Column(String, nullable=True) # Ej: Gerente de Compras, Chofer
+    # Identidad
+    nombre = Column(String, nullable=False) # Nombre de pila o funcional (ej: "Guardia")
+    apellido = Column(String, nullable=True) # Opcional (ej: para contactos genéricos)
     
-    # --- Contexto ---
-    referencia_origen = Column(String, nullable=True) # Ej: "Nos conoció en la Expo 23"
-    domicilio_personal = Column(String, nullable=True) # Texto simple por ahora
-
-    # --- Metadata (JSON) ---
-    # Roles: List[str] -> ["COMPRAS", "PAGOS", "DECISOR", "OPERATIVO"]
-    roles = Column(JSON, default=list) 
+    # Datos Personales (Globales)
+    domicilio_personal = Column(String, nullable=True)
+    fecha_nacimiento = Column(Date, nullable=True)
     
-    # Canales: List[dict] -> [{"tipo": "WHATSAPP", "valor": "+54911...", "etiqueta": "Personal"}, ...]
-    canales = Column(JSON, default=list)
+    # Canales Personales (Privados)
+    # Ej: [{"tipo": "WHATSAPP", "valor": "+54...", "etiqueta": "Personal"}]
+    canales_personales = Column(JSON, default=list)
 
-    # --- Extras ---
-    notas = Column(Text, nullable=True)
-    estado = Column(Boolean, default=True) # Activo/Inactivo
-
-    # --- Auditoría ---
+    notas_globales = Column(Text, nullable=True)
+    
+    # Auditoría
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
-    # --- Relaciones ---
-    # Usamos string para evitar importaciones circulares si no es necesario
-    cliente = relationship("backend.clientes.models.Cliente", back_populates="contactos")
-    transporte = relationship("backend.logistica.models.EmpresaTransporte", back_populates="contactos")
+    # Relaciones
+    vinculos = relationship("Vinculo", back_populates="persona", cascade="all, delete-orphan")
 
     def __repr__(self):
-        return f"<Contacto({self.nombre} {self.apellido})>"
-
+        return f"<Persona({self.nombre} {self.apellido or ''})>"
+        
     @property
     def nombre_completo(self):
-        return f"{self.nombre} {self.apellido}"
+        return f"{self.nombre} {self.apellido or ''}".strip()
+
+
+class Vinculo(Base):
+    """
+    Tabla 'vinculos' (Roles y Relación con Entidades).
+    N:M entre Personas y Entidades comerciales.
+    """
+    __tablename__ = "vinculos"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
+    
+    # Persona (FK)
+    persona_id = Column(GUID(), ForeignKey("personas.id"), nullable=False, index=True)
+    
+    # Entidad Polimórfica (Cliente, Transporte, Proveedor, Vendedor)
+    entidad_tipo = Column(Enum('CLIENTE', 'TRANSPORTE', 'PROVEEDOR', 'VENDEDOR', name='entidad_tipo_enum'), nullable=False)
+    entidad_id = Column(GUID(), nullable=False, index=True) # ID no forzado por FK dura para permitir polimorfismo simple
+    
+    # Detalles del Rol
+    rol = Column(String, nullable=True) # Ej: "Gerente de Compras"
+    area = Column(String, nullable=True) # Ej: "Administración"
+    roles = Column(JSON, default=list) # Etiquetas: [DECISOR, COBRANZAS]
+    
+    # Canales Laborales (Contextuales a esta empresa)
+    # Ej: [{"tipo": "EMAIL", "valor": "pedro@transporte.com", "etiqueta": "Corporativo"}]
+    canales_laborales = Column(JSON, default=list)
+    
+    notas_vinculo = Column(Text, nullable=True)
+    
+    # Estado y Tiempo
+    activo = Column(Boolean, default=True)
+    fecha_inicio = Column(Date, default=lambda: datetime.now(timezone.utc).date())
+    fecha_fin = Column(Date, nullable=True)
+
+    # Auditoría
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    # Relaciones
+    persona = relationship("Persona", back_populates="vinculos")

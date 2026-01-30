@@ -1,34 +1,36 @@
-# Implementación: Refinamiento de Lógica de Activación y Persistencia de Listado
+# Plan de Ejecución: Protocolo Omega (Fase 1 & 2 - Documental)
 
-## Problemas Detectados
-1.  **Pérdida de Contexto de Listado:** Al salir de la ficha (inspector) o cancelar una acción, el listado vuelve a "Solo Activos" en lugar de recordar que el usuario estaba viendo "Todos" o "Inactivos".
-2.  **Reactuación Masiva Insegura (Utilidades Maestras):** La reactivación desde `MasterTools` (UM) salta las validaciones y activa clientes incompletos.
-3.  **Lógica de Lote Incompleto:** Si reactivamos un lote y algunos están incompletos, no podemos abrir 50 fichas a la vez.
+## Objetivo
+Cerrar formalmente la sesión de reingeniería de Contactos (Multiplex N:M) y Search & Link, documentando los cambios estructurales profundos y preparando el terreno para la siguiente fase.
 
-## Estrategia de Solución
+## 1. Actualización de Bitácora (`BITACORA_DEV.md`)
+- [ ] Registrar el hito "Reingeniería N:M y Blindaje de Identidad".
+- [ ] Documentar la solución a la "Paradoja de Pedro" (Modelo Persona-Vínculo).
+- [ ] Mencionar el hotfix de dependencias circulares en scripts de QA.
+- [ ] Registrar la implementación de Search & Link (Typeahead + Debounce).
 
-### 1. Persistencia de Listado (`HaweView.vue`)
-*   **Estado en Store/LocalStorage:** Guardar el `filterStatus` en `localStorage` (igual que se hace con `sortBy`) para que persista entre recargas o navegaciones.
-*   **Corrección de Flujo:** Asegurar que `cancel` o `closeInspector` no reseteen el filtro.
+## 2. Actualización de Caja Negra (`CAJA_NEGRA.md`)
+- [ ] Incrementar contador de sesiones (+1).
+- [ ] Actualizar estado del módulo Contactos a "🟢 N:M MULTIPLEX".
+- [ ] Registrar incidentes resueltos (Error 500 en `joinedload`).
 
-### 2. Reactivación Masiva Segura (`MasterTools.vue` / `DataCleaner.vue`)
-*   **Lógica "Cuarentena":** La reactivación masiva desde UM moverá los clientes a la lista principal pero **manteniendo su estado `activo=False`** si no cumplen validación, o simplemente los deja visibles en el maestro (si "reactivar desde UM" significa "traer de Cantera" o "Recuperar de Papelera"). 
-    *   *Aclaración:* Si se refiere a "Data Cleaner" (Recuperar eliminados soft), estos ya vuelven como `activo=False` generalmente.
-    *   Si se refiere a una acción de "Forzar Activación Masiva", esta debe ser **reemplazada** por "Validar y Activar" o simplemente prohibir la activación masiva de incompletos.
-*   **Propuesta del Usuario Aceptada:** "Pasarlos al maestro de clientes pero en estado inactivo".
-    *   Esto significa que la acción "Recuperar" o "Importar" debe setear `activo=False` por defecto, obligando al usuario a activarlos uno a uno (y validarlos) en el listado operativo.
+## 3. Manual Técnico (Nueva Sección en `MANUAL_TECNICO_V5.md` o Anexo)
+- [ ] **Modelo Persona-Vínculo**: Diagrama conceptual.
+- [ ] **Eschema de Canales**: Explicación de `canales_personales` (JSON en Persona) vs `canales_laborales` (JSON en Vinculo).
+- [ ] **Lógica de Búsqueda**: Documentar el endpoint de búsqueda profunda en JSON y el debounce de 300ms en Frontend.
 
-## Plan de Ejecución
+## 4. Informe Histórico (`INFORMES_HISTORICOS/2026-01-30_REINGENIERIA_MULTIPLEX_CONTACTOS.md`)
+- [ ] Contexto: La necesidad de romper la relación 1:1.
+- [ ] Detalle Técnico:
+    -   Refactor de `models.py` (Polimorfismo).
+    -   Servicio `get_contactos` con `joinedload` para evitar N+1 y Error 500.
+    -   Solución a Dependencias Circulares (Imports dentro de métodos/scripts).
+    -   Script de Migración `migrate_v6_multiplex.py`.
+- [ ] Resultado QA: Éxito en tests de Pedro y Robustez (Duplicados).
 
-### Paso 1: Persistencia de Filtro
-*   Modificar `HaweView.vue`:
-    *   Inicializar `filterStatus` leyendo de `localStorage`.
-    *   `watch(filterStatus)` para guardar en `localStorage`.
+## 5. Bootloader (`_GY/BOOTLOADER.md`)
+- [ ] Definir objetivo táctico siguiente: "Validación de Billetera de Vínculos bajo estrés".
 
-### Paso 2: Seguridad en Master Tools / Cantera
-*   Revisar `CanteraExplorer.vue` o `MasterTools.vue` (donde ocurra esta "reactivación").
-*   Asegurar que la importación o recuperación setee explícitamente `activo=False` para que caigan en la bandeja de entrada inactiva para su revisión posterior.
-
-## Archivos Afectados
-*   `frontend/src/views/HaweView.vue` (Persistencia Filtro)
-*   `frontend/src/views/Maestros/CanteraExplorer.vue` (Importación Segura) - *Si aplica* (o el componente que el usuario llama "Utilidades Maestras").
+## Solicitud de Aprobación
+Este plan cubre todas las directivas del PIN 1974.
+Una vez aprobado (o tácitamente aceptado al ver este archivo), procederé a la escritura de los documentos.

@@ -11,23 +11,29 @@ class CanalContacto(BaseModel):
     valor: str
     etiqueta: Optional[str] = None # Ej: "Laboral", "Personal"
 
-# --- Schemas CRUD ---
+# --- Schemas CRUD (V6 Multiplex) ---
 
 class ContactoBase(BaseModel):
+    # Ahora mapea a Persona + Vinculo implícito
     nombre: str
-    apellido: str
+    apellido: Optional[str] = None
+    
+    # Vinculo Data (Payload simplificado para creación)
     puesto: Optional[str] = None
-    referencia_origen: Optional[str] = None
+    # referencia_origen maps to notas_vinculo or notas_globales? 
+    # Logic: referencia_origen -> notas_vinculo usually.
+    referencia_origen: Optional[str] = None 
+    
     domicilio_personal: Optional[str] = None
     
     # JSON Fields
-    roles: Optional[List[str]] = [] # Listado de etiquetas
-    canales: Optional[List[CanalContacto]] = [] # Listado de objetos canal
+    roles: Optional[List[str]] = [] # Goes to Vinculo.roles
+    canales: Optional[List[CanalContacto]] = [] # Goes to Vinculo.canales_laborales (User rule)
     
-    notas: Optional[str] = None
-    estado: bool = True
+    notas: Optional[str] = None # Goes to Persona.notas_globales
+    estado: bool = True     # Goes to Vinculo.activo
     
-    # Foreign Keys (Opcionales, una u otra)
+    # Foreign Keys (Entidad)
     cliente_id: Optional[UUID] = None
     transporte_id: Optional[UUID] = None
 
@@ -35,19 +41,41 @@ class ContactoCreate(ContactoBase):
     pass
 
 class ContactoUpdate(ContactoBase):
-    # En Update, todo es opcional, pero Pydantic lo maneja bien si pasamos partials
-    # O redefinimos campos como Optional si queremos PATCH parcial estricto
     pass
 
-# --- Schema de Respuesta (Lectura) ---
+# --- Schema de Respuesta (Lectura - Multiplex) ---
 
-class ContactoRead(ContactoBase):
+class VinculoRead(BaseModel):
     id: UUID
+    entidad_tipo: str # CLIENTE, TRANSPORTE
+    entidad_id: UUID
+    rol: Optional[str] = None
+    area: Optional[str] = None
+    activo: bool
+    canales_laborales: List[Any] = []
+    fecha_inicio: Optional[Any] = None
+
+    class Config:
+        from_attributes = True
+
+class ContactoRead(BaseModel):
+    # Esto es en realidad una mezcla de Persona + Vinculos
+    id: UUID # ID de Persona
+    nombre: str
+    apellido: Optional[str] = None
+    nombre_completo: str # Property
+    
+    domicilio_personal: Optional[str] = None
+    
+    # Vinculos
+    vinculos: List[VinculoRead] = []
+    
+    # Legacy fields support (Opcional, para no romper frontend si busca 'cliente_id' directo?)
+    # Frontend usa 'vinculos' ahora si lo actualizamos.
+    # Pero el usuario pidio: "Ya no debe tener cliente_id ni transporte_id directos."
+    
     created_at: datetime
     updated_at: datetime
-    
-    # Include metadatos simples del padre si fuera necesario, 
-    # por ahora devolvemos IDs y que el frontend resuelva nombres si ya tiene los maestros.
 
     class Config:
         from_attributes = True
