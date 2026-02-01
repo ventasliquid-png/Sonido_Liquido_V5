@@ -309,7 +309,7 @@
           </div>
 
           <!-- BLOCK 4: CONTACTS (COMPACT) -->
-          <section id="contacts-section" class="space-y-2">
+          <section id="contacts-section" class="space-y-2 relative" @contextmenu.prevent="openContactContextMenu($event)">
                <div class="flex items-center justify-between px-2">
                   <h3 class="text-[10px] font-bold text-white/40 uppercase tracking-widest flex items-center gap-2">
                       <i class="fas fa-address-book"></i> Agenda de Vínculos
@@ -319,11 +319,12 @@
                   </button>
               </div>
 
-              <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 min-h-[50px] rounded-xl hover:bg-white/5 transition-colors border border-dashed border-white/5 hover:border-white/10">
                   <div 
                       v-for="contact in contactos" 
                       :key="contact.id" 
                       @click="editContacto(contact)"
+                      @contextmenu.prevent.stop="openContactContextMenu($event, contact)"
                       class="bg-white/5 border border-white/10 rounded-xl p-2 flex items-center gap-3 hover:border-cyan-500/30 transition-all cursor-pointer group"
                   >
                       <div class="h-8 w-8 rounded-full bg-gradient-to-br from-cyan-600 to-emerald-400 flex items-center justify-center text-xs font-bold text-white shadow shadow-cyan-500/20 shrink-0">
@@ -605,10 +606,13 @@ const goToNew = () => {
 
 const scrollToContacts = () => {
     showAgenda.value = false
-    // Force expand block if collapsed? It's always visible in V5.4 layout
-    // Just scroll to it?
     const el = document.getElementById('contacts-section')
     if (el) el.scrollIntoView({ behavior: 'smooth' })
+    
+    // [GY-UX] Auto-open if empty
+    if (contactos.value.length === 0) {
+        setTimeout(() => addContacto(), 500) // Small delay for smooth scroll
+    }
 }
 
 // --- Cantera Logic ---
@@ -1124,7 +1128,55 @@ const addContacto = () => {
 const editContacto = (c) => {
     selectedContacto.value = c; showContactoForm.value = true
 }
+const deleteContacto = async (c) => {
+    if (!c.id) return
+    if (!confirm(`¿Seguro que desea eliminar el vínculo con ${c.persona?.nombre_completo || 'este contacto'}?`)) return
+    
+    try {
+        await store.deleteVinculo(form.value.id, c.id)
+        notificationStore.add('Vínculo eliminado', 'success')
+        await loadCliente(form.value.id)
+    } catch (e) {
+        console.error(e)
+        notificationStore.add('Error al eliminar vínculo', 'error')
+    }
+}
+
 const handleContactoSaved = () => loadCliente(form.value.id)
+
+// --- Context Menu Logic for Contacts (V5.7) ---
+const openContactContextMenu = (e, contact = null) => {
+    const actions = []
+    
+    // Alta (Always available)
+    actions.push({
+        label: 'Nuevo Vínculo (F4)',
+        iconClass: 'fas fa-plus',
+        handler: () => addContacto()
+    })
+
+    if (contact) {
+        actions.push({
+            label: 'Modificar',
+            iconClass: 'fas fa-edit',
+            handler: () => editContacto(contact)
+        })
+        
+        actions.push({
+            label: 'Dar de Baja',
+            iconClass: 'fas fa-trash-alt',
+            isDestructive: true,
+            handler: () => deleteContacto(contact)
+        })
+    }
+
+    contextMenuProps.value.actions = actions
+    contextMenuState.value = {
+        show: true,
+        x: e.clientX,
+        y: e.clientY
+    }
+}
 
 const handleKeydown = (e) => {
     // Si el evento ya fue manejado (ej: por un modal), no hacemos nada

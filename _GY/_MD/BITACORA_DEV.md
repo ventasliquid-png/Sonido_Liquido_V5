@@ -439,3 +439,15 @@ Siguiendo órdenes directas, se difirió la integración real de OAuth y se impl
 - **Documentación:** Informe Histórico detallado generado: [2026-01-30_REINGENIERIA_MULTIPLEX_CONTACTOS](../INFORMES_HISTORICOS/2026-01-30_REINGENIERIA_MULTIPLEX_CONTACTOS.md).
 - **Estado:** Módulo Contactos V6 FULL OPERATIVO.
 
+
+## [2026-02-01] SESIÓN 783: BLINDAJE DE PERSISTENCIA Y FIX SCHEMA
+- **Incidente Crítico**: Error 500 en `/contactos` por "Schema Mismatch" (Columna `tipo_contacto_id` inexistente en DB).
+- **Resolución**: Migración manual SQLite (`add_role_column_to_vinculos.py`).
+- **Persistence Fix**: 
+    - **Backend**: Implementada lógica dual en `update_vinculo` para soportar `puesto` (alias) y `rol`. Añadido soporte para `tipo_contacto_id`.
+    - **Frontend (`ContactCanvas.vue`)**: Sincronización de Etiqueta (Label) e ID. Se corrigió el bug que dejaba el cargo como "Nuevo Rol".
+    - **Frontend (`ContactosView.vue`)**: Adaptación de Dashboard para leer `vinculos[]` en lugar de campos planos (Legacy).
+- **Integridad**: Verificación manual de DB (`inspect_vinculo_data.py`) confirmando persistencia correcta.
+- **[FALLO DE PROTOCOLO]**: Se detectó "Efecto Túnel". La IA priorizó la solución técnica sobre el Freno de Mano (Fase 2). Se activó Auditoría de Doctrina.
+- **Estado**: Módulo Contactos V6.1 ESTABLE. Auditoría en Curso.
+

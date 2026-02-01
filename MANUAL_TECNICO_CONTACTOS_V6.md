@@ -51,3 +51,9 @@ Para mantener la integridad de la base de datos y evitar duplicados (La Paradoja
 El modelo `Vinculo` usa una relación polimórfica manual (no nativa de SQLAlchemy polymorfic identity, sino lógica) para conectarse con `Cliente` o `EmpresaTransporte`.
 
 *   **Integridad Referencial**: No hay FK dura en DB para `entidad_id` debido al polimorfismo, pero la lógica de negocio (`service.py`) valida la existencia de la entidad antes de crear el vínculo.
+
+## 5. Estabilización V6.1 (Blindaje de Persistencia)
+En la revisión del 01-Feb-2026, se implementó un sistema de persistencia dual para evitar la desincronización de roles:
+* **Payload Híbrido:** El backend acepta tanto `rol` como `puesto` (alias legacy) para asegurar que componentes V5 no rompan la escritura.
+* **Sincronización de Label:** El frontend ya no envía solo el ID del cargo; resuelve el nombre (ej: "Gerente") y lo persiste en la columna `rol`, asegurando que el Dashboard no revierta a "Nuevo Rol".
+* **Schema Safety:** La columna `tipo_contacto_id` es obligatoria en la tabla `vinculos` para el correcto mapeado del selector de cargos.

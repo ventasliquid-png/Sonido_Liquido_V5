@@ -64,6 +64,7 @@ class Vinculo(Base):
     entidad_id = Column(GUID(), nullable=False, index=True) # ID no forzado por FK dura para permitir polimorfismo simple
     
     # Detalles del Rol
+    tipo_contacto_id = Column(String, nullable=True) # [Legacy V5 Support] FK to tipos_contacto table (soft link here)
     rol = Column(String, nullable=True) # Ej: "Gerente de Compras"
     area = Column(String, nullable=True) # Ej: "Administración"
     roles = Column(JSON, default=list) # Etiquetas: [DECISOR, COBRANZAS]

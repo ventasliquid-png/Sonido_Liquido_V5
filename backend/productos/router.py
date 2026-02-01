@@ -251,7 +251,7 @@ from decimal import Decimal
 
 from typing import List, Optional
 
-@router.get("/", response_model=List[schemas.ProductoRead])
+@router.get("", response_model=List[schemas.ProductoRead])
 def read_productos(
     skip: int = 0, 
     limit: int = 1000, 
@@ -295,7 +295,7 @@ def read_productos(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error reading productos: {str(e)}")
 
-@router.post("/", response_model=schemas.ProductoRead)
+@router.post("", response_model=schemas.ProductoRead)
 def create_producto(producto: schemas.ProductoCreate, db: Session = Depends(get_db)):
     from sqlalchemy.exc import IntegrityError
     try:

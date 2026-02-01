@@ -58,9 +58,12 @@
 > *   **Origen:** [Sesión del 20/01 - Estabilidad Sistema V1.3](file:///c:/dev/Sonido_Liquido_V5/INFORMES_HISTORICOS/2026-01-20_ESTABILIDAD_SISTEMA_V1_3.md).
 
 ---
-**Última Actualización:** 2026-01-25 (Consolidación Protocolo Omega)
 
-## [2026-01-28] BACKEND / ROUTING
-1. **Trailing Slash Matter**: FastAPi es estricto. /contactos != /contactos/. Si el Store pide sin slash y hay redirección, puede perderse el contexto o fallar el proxy.
-2. **SPA Catch-All Risks**: Si tienes un catch-all para servir index.html, DEBES excluir explícitamente todos los prefijos de API. De lo contrario, un 404 de API se convierte en un 200 OK con HTML, rompiendo el frontend silenciosamente.
-3. **ORM Bidireccional**: SQLAlchemy requiere definir la relación en AMBOS lados (ack_populates) para que el mapper no explote. No basta con definirla en el hijo.
+## ⚖️ 6. DOCTRINA Y CIERRE (OMEGA)
+> **REGLA DE ORO: Protocolo sobre Solución Técnica (Anti-Túnel).**
+> *   **Instrucción Precisa:** NADA es más importante que el protocolo de cierre. Ignorar el "Freno de Mano" (PIN 1974) o los informes previos pone en riesgo la trazabilidad histórica. El "Efecto Túnel" (obsesión por el fix) es un fallo de arquitectura cognitiva grave.
+> *   **Origen:** [Incidente del 01/02 - Sesión 783 / Omisión Omega].
+> *   **Consecuencia Evitada:** Pérdida de contexto histórico y desobediencia a la Doctrina GY.
+
+---
+**Última Actualización:** 2026-02-01 (Auditoría de Bloqueo Sesión 783)

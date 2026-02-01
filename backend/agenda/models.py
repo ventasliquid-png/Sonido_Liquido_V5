@@ -31,6 +31,9 @@ class PersonaLegacy(Base):
     def __repr__(self):
         return f"<Persona(nombre='{self.nombre_completo}')>"
 
+# Alias for compatibility with Service layer
+Persona = PersonaLegacy
+
 class VinculoComercial(Base):
     """
     Tabla 'vinculos_comerciales' (El Sombrero Laboral).

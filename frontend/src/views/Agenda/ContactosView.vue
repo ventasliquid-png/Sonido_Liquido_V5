@@ -98,15 +98,16 @@
                             <h3 class="font-bold text-white leading-tight group-hover:text-indigo-300 transition-colors truncate">
                                 {{ contacto.nombre }} {{ contacto.apellido }}
                             </h3>
-                            <p class="text-xs text-white/50 truncate mt-0.5">{{ contacto.puesto || 'Sin Puesto' }}</p>
+                            <!-- FIX: Use computed helpers for Roles -->
+                            <p class="text-xs text-white/50 truncate mt-0.5">{{ getDisplayRole(contacto) }}</p>
                             
                             <!-- Chips de Roles -->
                             <div class="flex flex-wrap gap-1 mt-2">
-                                <span v-for="rol in (contacto.roles || []).slice(0, 2)" :key="rol" class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-white/10 text-white/70 border border-white/5">
+                                <span v-for="rol in getDisplayRolesList(contacto).slice(0, 2)" :key="rol" class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-white/10 text-white/70 border border-white/5">
                                     {{ rol }}
                                 </span>
-                                <span v-if="(contacto.roles || []).length > 2" class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-white/10 text-white/50">
-                                    +{{ contacto.roles.length - 2 }}
+                                <span v-if="getDisplayRolesList(contacto).length > 2" class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-white/10 text-white/50">
+                                    +{{ getDisplayRolesList(contacto).length - 2 }}
                                 </span>
                             </div>
                         </div>
@@ -122,7 +123,6 @@
                             <i class="fa-solid fa-building text-[10px]"></i>
                             <span class="truncate">{{ contacto.cliente.razon_social }}</span>
                         </div>
-                        <!-- Si tuviera vinculo_id podríamos resolverlo, por ahora confiamos en el populate del backend si existe -->
                         <div v-else class="flex items-center gap-2 text-xs text-gray-500">
                             <i class="fa-regular fa-user"></i>
                             <span class="italic">Particular</span>
@@ -147,9 +147,9 @@
                             <div class="min-w-0 flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <div>
                                     <h3 class="font-bold text-white truncate">{{ contacto.nombre }} {{ contacto.apellido }}</h3>
-                                    <p class="text-xs text-white/50 truncate sm:hidden">{{ contacto.puesto }}</p>
+                                    <p class="text-xs text-white/50 truncate sm:hidden">{{ getDisplayRole(contacto) }}</p>
                                 </div>
-                                <p class="text-sm text-white/50 truncate hidden sm:block">{{ contacto.puesto || '---' }}</p>
+                                <p class="text-sm text-white/50 truncate hidden sm:block">{{ getDisplayRole(contacto) }}</p>
                                 <div class="hidden sm:block truncate text-xs">
                                     <span v-if="contacto.transporte" class="text-amber-500">{{ contacto.transporte.nombre }}</span>
                                     <span v-else-if="contacto.cliente" class="text-blue-400">{{ contacto.cliente.razon_social }}</span>
@@ -223,11 +223,32 @@ const filteredContactos = computed(() => {
         result = result.filter(c => 
             c.nombre.toLowerCase().includes(q) || 
             c.apellido.toLowerCase().includes(q) ||
-            (c.puesto && c.puesto.toLowerCase().includes(q))
+            (getDisplayRole(c).toLowerCase().includes(q))
         )
     }
     return result
 })
+
+// [FIX] Multiplex V6 Helpers
+// Extract 'puesto' from the first active vinculo
+const getMainRole = (c) => {
+    if (!c.vinculos || c.vinculos.length === 0) return null
+    // Try to find active link first
+    const active = c.vinculos.find(v => v.activo) || c.vinculos[0]
+    // Get rol text if available, fallback to something
+    return active.rol || 'Vinculado'
+}
+
+// Helper for UI Binding
+const getDisplayRole = (c) => getMainRole(c) || 'Sin Puesto'
+
+const getDisplayRolesList = (c) => {
+    if (!c.vinculos) return []
+    // Map vinculos to roles text
+    return c.vinculos
+            .map(v => v.rol)
+            .filter(r => r && r.length > 0)
+}
 
 const getInitials = (c) => {
     if (!c.nombre) return '?'
@@ -250,8 +271,10 @@ const closeInspector = () => {
 }
 
 const handleSaveSuccess = async () => {
+    // Refresh list to show updated roles
     await contactosStore.fetchContactos()
-    closeInspector()
+    // closeInspector() // User requested explicit close handling, usually done by @close from Canvas
+    // Canvas emits close AFTER save, so loop closes naturally.
 }
 </script>
 

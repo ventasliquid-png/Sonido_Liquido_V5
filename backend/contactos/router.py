@@ -79,3 +79,13 @@ def delete_vinculo(contacto_id: UUID, vinculo_id: UUID, db: Session = Depends(ge
     if not success:
         raise HTTPException(status_code=404, detail="Vínculo o Persona no encontrada")
     return None
+
+@router.put("/{contacto_id}/vinculos/{vinculo_id}", response_model=schemas.VinculoRead)
+def update_vinculo(contacto_id: UUID, vinculo_id: UUID, vinculo: schemas.VinculoUpdate, db: Session = Depends(get_db)):
+    """
+    Actualiza un vínculo (Rol, Estado)
+    """
+    updated_vinculo = service.update_vinculo(db, contacto_id, vinculo_id, vinculo)
+    if not updated_vinculo:
+        raise HTTPException(status_code=404, detail="Vínculo o Persona no encontrada")
+    return updated_vinculo

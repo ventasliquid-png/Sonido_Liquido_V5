@@ -1,54 +1,16 @@
-# Archivo: backend/contactos/schemas.py
-from typing import List, Optional, Any, Dict
-from pydantic import BaseModel, Field
 from datetime import datetime
 from uuid import UUID
+from typing import List, Optional, Any, Dict
+from pydantic import BaseModel, Field
 
-# --- Schemas de Valor (Embeddables) ---
-
-class CanalContacto(BaseModel):
-    tipo: str # WHATSAPP, EMAIL, TELEFONO, LINKEDIN
-    valor: str
-    etiqueta: Optional[str] = None # Ej: "Laboral", "Personal"
-
-# --- Schemas CRUD (V6 Multiplex) ---
-
-class ContactoBase(BaseModel):
-    # Ahora mapea a Persona + Vinculo implícito
-    nombre: str
-    apellido: Optional[str] = None
-    
-    # Vinculo Data (Payload simplificado para creación)
-    puesto: Optional[str] = None
-    # referencia_origen maps to notas_vinculo or notas_globales? 
-    # Logic: referencia_origen -> notas_vinculo usually.
-    referencia_origen: Optional[str] = None 
-    
-    domicilio_personal: Optional[str] = None
-    
-    # JSON Fields
-    roles: Optional[List[str]] = [] # Goes to Vinculo.roles
-    canales: Optional[List[CanalContacto]] = [] # Goes to Vinculo.canales_laborales (User rule)
-    
-    notas: Optional[str] = None # Goes to Persona.notas_globales
-    estado: bool = True     # Goes to Vinculo.activo
-    
-    # Foreign Keys (Entidad)
-    cliente_id: Optional[UUID] = None
-    transporte_id: Optional[UUID] = None
-
-class ContactoCreate(ContactoBase):
-    pass
-
-class ContactoUpdate(ContactoBase):
-    pass
-
-# --- Schema de Respuesta (Lectura - Multiplex) ---
-
+# --- VINCULOS / ROLES ---
 class VinculoRead(BaseModel):
     id: UUID
     entidad_tipo: str # CLIENTE, TRANSPORTE
     entidad_id: UUID
+    
+    tipo_contacto_id: Optional[str] = None # [Legacy V5]
+    
     rol: Optional[str] = None
     area: Optional[str] = None
     activo: bool
@@ -58,6 +20,14 @@ class VinculoRead(BaseModel):
     class Config:
         from_attributes = True
 
+class VinculoUpdate(BaseModel):
+    # Update specific link fields
+    tipo_contacto_id: Optional[str] = None
+    rol: Optional[str] = None
+    puesto: Optional[str] = None # Legacy Alias
+    activo: Optional[bool] = None
+
+# --- CONTACTOS (PERSONAS) ---
 class ContactoRead(BaseModel):
     # Esto es en realidad una mezcla de Persona + Vinculos
     id: UUID # ID de Persona
@@ -66,16 +36,54 @@ class ContactoRead(BaseModel):
     nombre_completo: str # Property
     
     domicilio_personal: Optional[str] = None
+    canales_personales: List[Any] = [] # [FIX] Include Personal Channels
+    notas_globales: Optional[str] = None # [FIX] Include Notes
     
     # Vinculos
     vinculos: List[VinculoRead] = []
     
     # Legacy fields support (Opcional, para no romper frontend si busca 'cliente_id' directo?)
-    # Frontend usa 'vinculos' ahora si lo actualizamos.
-    # Pero el usuario pidio: "Ya no debe tener cliente_id ni transporte_id directos."
     
     created_at: datetime
     updated_at: datetime
 
     class Config:
         from_attributes = True
+
+class ContactoCreate(BaseModel):
+    nombre: str
+    apellido: Optional[str] = None
+    notas: Optional[str] = None # Mapped to notas_globales
+    domicilio_personal: Optional[str] = None
+    
+    # Canales Personales
+    canales: Optional[List[Dict[str, Any]]] = None
+    
+    # Vinculo Inicial (Opcional)
+    cliente_id: Optional[UUID] = None
+    transporte_id: Optional[UUID] = None
+    
+    tipo_contacto_id: Optional[str] = None
+    puesto: Optional[str] = None # Mapped to rol
+    roles: List[str] = []
+    
+    estado: bool = True # Activo
+    referencia_origen: Optional[str] = None
+
+class ContactoUpdate(BaseModel):
+    nombre: Optional[str] = None
+    apellido: Optional[str] = None
+    notas: Optional[str] = None
+    domicilio_personal: Optional[str] = None
+    
+    canales: Optional[List[Dict[str, Any]]] = None
+    
+    # Update Vinculo Principal fields
+    # (Frontend sends these along with persona data sometimes)
+    cliente_id: Optional[UUID] = None
+    transporte_id: Optional[UUID] = None
+    
+    tipo_contacto_id: Optional[str] = None
+    puesto: Optional[str] = None
+    roles: Optional[List[str]] = None
+    estado: Optional[bool] = None

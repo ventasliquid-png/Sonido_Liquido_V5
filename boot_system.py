@@ -23,30 +23,34 @@ def main():
     backend_dir = os.path.join(root_dir, "backend") # Aunque main.py se corre desde root, el folder existe
     frontend_dir = os.path.join(root_dir, "frontend")
 
-    # 1. Levantando Backend
-    # Se ejecuta via modulo para evitar problemas de path/reload
-    print(">>> [1/3] Iniciando Backend (Port 8000)...")
+    # Monitor Loop
+    backend_restarts = 0
+    last_restart_time = time.time()
+    
+    # Define command correctly in scope
     backend_cmd = [sys.executable, "-m", "uvicorn", "backend.main:app", "--host", "127.0.0.1", "--port", "8000", "--reload"]
-    
-    backend_process = subprocess.Popen(
-        backend_cmd,
-        cwd=root_dir,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        bufsize=1
-    )
-    
-    # Hilos para no bloquear leyendo salida
-    t_be_out = threading.Thread(target=stream_reader, args=(backend_process.stdout, "BACKEND"), daemon=True)
-    t_be_err = threading.Thread(target=stream_reader, args=(backend_process.stderr, "BACK_ERR"), daemon=True)
-    t_be_out.start()
-    t_be_err.start()
+
+    def start_backend():
+        print(f">>> Iniciando Backend (Intento #{backend_restarts + 1})...")
+        p = subprocess.Popen(
+            backend_cmd,
+            cwd=root_dir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0
+        )
+        # Hilos de lectura
+        threading.Thread(target=stream_reader, args=(p.stdout, "BACKEND"), daemon=True).start()
+        threading.Thread(target=stream_reader, args=(p.stderr, "BACK_ERR"), daemon=True).start()
+        return p
+
+    # Initial Start
+    backend_process = start_backend()
 
     # 2. Levantando Frontend
     print(">>> [2/3] Iniciando Frontend (Port 5173)...")
-    # npm run dev -- --port 5173
-    # shell=True es necesario en Windows para encontrar npm
     frontend_process = subprocess.Popen(
         ["npm", "run", "dev", "--", "--port", "5173"],
         cwd=frontend_dir,
@@ -56,11 +60,8 @@ def main():
         bufsize=1,
         shell=True 
     )
-
-    t_fe_out = threading.Thread(target=stream_reader, args=(frontend_process.stdout, "FRONTEND"), daemon=True)
-    t_fe_err = threading.Thread(target=stream_reader, args=(frontend_process.stderr, "FRONT_ERR"), daemon=True)
-    t_fe_out.start()
-    t_fe_err.start()
+    threading.Thread(target=stream_reader, args=(frontend_process.stdout, "FRONTEND"), daemon=True).start()
+    threading.Thread(target=stream_reader, args=(frontend_process.stderr, "FRONT_ERR"), daemon=True).start()
 
     # 3. Abrir Navegador
     print(">>> [3/3] Abriendo Navegador en 5 segundos...")
@@ -74,13 +75,32 @@ def main():
     try:
         while True:
             time.sleep(1)
-            # Verificar si algún proceso murió
-            if backend_process.poll() is not None:
-                print("!!! ALERTA: El Backend se ha detenido.")
-                break
+            
+            # 1. Check Frontend
             if frontend_process.poll() is not None:
-                print("!!! ALERTA: El Frontend se ha detenido.")
+                print("!!! ALERTA: El Frontend se ha detenido. Apagando sistema...")
                 break
+
+            # 2. Check Backend
+            if backend_process.poll() is not None:
+                print(f"!!! ALERTA: El Backend se detuvo (Exit Code: {backend_process.returncode})")
+                
+                # Check crash frequency (Logic: if > 3 restarts in 60 seconds, give up)
+                current_time = time.time()
+                if (current_time - last_restart_time) > 60:
+                    # Reset counter if it's been a while
+                    backend_restarts = 0
+                    last_restart_time = current_time
+                
+                if backend_restarts < 5:
+                    print(">>> [AUTO-RESTART] Reiniciando Backend en 3 segundos...")
+                    time.sleep(3)
+                    backend_restarts += 1
+                    backend_process = start_backend()
+                else:
+                    print("!!! ERROR FATAL: El Backend falla repetidamente. Abortando.")
+                    break
+                    
     except KeyboardInterrupt:
         print("\n>>> DETENCION SOLICITADA (CTRL+C)...")
     finally:

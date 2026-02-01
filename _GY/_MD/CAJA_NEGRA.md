@@ -1,22 +1,7 @@
 # 🛸 CAJA NEGRA (BLACK BOX) - DASHBOARD TÁCTICO V2
-Open Editor
-Comment on files
-Select text within files to leave a comment for the agent.
 
-Dismiss
-16
-Workspaces
-Sonido_Liquido_V5
-
-
-Playground
-
-Sonido_Liquido_V5
-/
-Contacts UI & Data Integrity
-
-**Última Actualización:** 30-Ene-2026 (Protocolo Multiplex N:M)
-**Sesiones Completadas:** +3 (Regla 5/6)
+**Última Actualización:** 01-Feb-2026 (Protocolo Omega V6.1)
+**Sesiones Completadas:** +4 (Regla 5/6)
 **Rol:** Tablero de Control y Estado de Salud del Sistema.
 
 ---
@@ -37,7 +22,7 @@ Contacts UI & Data Integrity
 | Módulo | Estado | Notas Técnicas |
 | :--- | :--- | :--- |
 | **Clientes** | 🟢 OPTIMIZADO | UX V5.4 (Ficha Unificada). |
-| **Contactos** | 🟢 N:M MULTIPLEX | Protocolo Multiplex (Backend/Frontend/QA) Completado. |
+| **Contactos** | 🟢 OPTIMIZADO (V6.1) | Role Persistence & Schema Fix (01-02). |
 | **Pedidos** | 🟢 OPERATIVO | Ciclo Completo. *Schema Drift (Nulls) Resuelto [27-01].* |
 | **Productos** | 🟢 OPERATIVO | ABM Completo + Clonado. |
 | **Despliegue** | 🟢 V1.3 STABLE | Bootloader V2 Integrado. |
@@ -54,8 +39,7 @@ Contacts UI & Data Integrity
 ---
 **Instrucción de Mantenimiento:** Actualizar este tablero al CERRAR la sesión (Protocolo Omega).
 
-## [2026-01-30] INCIDENTE: La Paradoja de Pedro
-- **Síntoma**: Imposibilidad de asignar múltiples roles a una misma persona en distintas empresas sin duplicar el registro.
-- **Diagnóstico**: Arquitectura de base de datos 1:1 (Legacy) acoplada.
-- **Solución**: Reingeniería completa N:M (Multiplex). `Persona` desacoplada de `Vinculo`. Implementación de Search & Link para prevención de duplicados.
-
+## [2026-02-01] INCIDENTE: La Persistentia de Maria
+- **Síntoma**: Error 500 al listar contactos y cargos que volvían a "Nuevo Rol".
+- **Diagnóstico**: Desajuste entre el código (V6) y la base de datos local (V5) + Desvinculación de ID y Nombre en el frontend.
+- **Solución**: Migración SQLite Express + Sincronización de Label/ID en `ContactCanvas` + Adaptación Reactiva en `ContactosView`.

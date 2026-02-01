@@ -83,7 +83,7 @@
                                 </div>
 
                                 <!-- DROPDOWN ESPEJISMO -->
-                                <div v-if="sugerencias.length > 0 && !personaExistenteSeleccionada" 
+                                <div v-if="sugerencias?.length > 0 && !personaExistenteSeleccionada" 
                                      class="absolute top-full left-0 right-0 mt-2 bg-[#1a1a1a] border border-indigo-500/30 rounded-lg shadow-2xl z-50 overflow-hidden ring-1 ring-black/5"
                                 >
                                     <div class="px-3 py-2 bg-indigo-500/10 border-b border-indigo-500/20 text-xs font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-2">
@@ -171,12 +171,19 @@
                 <div v-if="showAddLink" class="mb-6 bg-[#252525] rounded-xl p-4 border border-indigo-500/30 shadow-lg animate-in fade-in slide-in-from-top-2">
                     <h4 class="text-xs font-bold text-white mb-3">Vincular a nueva Organización</h4>
                     
-                    <!-- Smart Selector Logic Replicated -->
                     <div class="flex gap-2 mb-3">
-                         <select v-model="newLinkType" class="bg-black/20 border border-white/10 rounded px-2 text-xs text-white h-9 focus:outline-none">
-                            <option value="CLIENTE">CLIENTE</option>
-                            <option value="TRANSPORTE">TRANSPORTE</option>
-                        </select>
+                         <div class="w-1/3 flex gap-2">
+                             <select v-model="newLinkType" class="bg-black/20 border border-white/10 rounded px-2 text-xs text-white h-9 focus:outline-none w-1/2">
+                                <option value="CLIENTE">CLIENTE</option>
+                                <option value="TRANSPORTE">TRANSPORTE</option>
+                            </select>
+                            <!-- Role Selector -->
+                             <select v-model="newLinkRole" class="bg-black/20 border border-white/10 rounded px-2 text-xs text-white h-9 focus:outline-none w-1/2 relative z-50" title="Seleccione Rol">
+                                <option value="" disabled selected>Rol...</option>
+                                <option v-for="t in tiposContacto" :key="t.id" :value="t.id">{{ t.nombre }}</option>
+                            </select>
+                         </div>
+
                         <div class="relative flex-1">
                             <input 
                                 v-model="newLinkSearch" 
@@ -203,7 +210,7 @@
                         <button @click="showAddLink = false" class="text-xs text-white/50 hover:text-white px-3 py-1">Cancelar</button>
                         <button 
                             @click="confirmAddLink" 
-                            :disabled="!selectedEntity"
+                            :disabled="!selectedEntity || !newLinkRole"
                             class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-1.5 rounded disabled:opacity-50 font-medium"
                         >
                             Vincular
@@ -220,10 +227,10 @@
                     <div 
                         v-for="link in form.vinculos" 
                         :key="link.id" 
-                        class="bg-[#202020] rounded-xl border border-white/5 overflow-hidden flex transition-all hover:border-white/10 group"
+                        class="bg-[#202020] rounded-xl border border-white/5 flex transition-all hover:border-white/10 group relative"
                     >
                         <!-- Color Bar -->
-                        <div class="w-1.5 shrink-0" :class="{
+                        <div class="w-1.5 shrink-0 rounded-l-xl" :class="{
                             'bg-blue-500': link.entidad_tipo === 'CLIENTE',
                             'bg-amber-500': link.entidad_tipo === 'TRANSPORTE',
                             'bg-gray-500': !link.activo
@@ -264,12 +271,20 @@
                             </div>
 
                             <!-- Inputs: Rol y Contacto -->
-                            <!-- Note: These are NOT editable in this view in Phase 2 unless we add specific endpoint loop. 
-                                 Visual display mainly. -->
                             <div class="grid grid-cols-2 gap-4 mt-3">
                                 <div>
-                                    <label class="text-[10px] text-white/30 uppercase block">Rol / Puesto</label>
-                                    <div class="text-sm text-white/80">{{ link.rol || 'Sin definir' }}</div>
+                                    <label class="text-[10px] text-white/30 uppercase block mb-1">Rol / Puesto</label>
+                                    <!-- EDITABLE ROLE SELECTOR -->
+                                    <select 
+                                        :value="link.tipo_contacto_id" 
+                                        @change="updateLinkRole(link, $event.target.value)"
+                                        class="bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-white/90 w-full focus:outline-none focus:border-indigo-500 appearance-none relative z-10"
+                                    >
+                                        <option value="" disabled>Seleccione...</option>
+                                        <option v-for="t in tiposContacto" :key="t.id" :value="t.id">{{ t.nombre }}</option>
+                                    </select>
+                                    <!-- Only show if EMPTY -->
+                                    <div v-if="tiposContacto.length === 0" class="text-xs text-red-500">Sin roles cargados</div>
                                 </div>
                                 <div>
                                     <label class="text-[10px] text-white/30 uppercase block">Contacto Corp.</label>
@@ -294,9 +309,9 @@ import { useContactosStore } from '../../../stores/contactos'
 import { useClientesStore } from '../../../stores/clientes'
 import { useLogisticaStore } from '../../../stores/logistica'
 import { useNotificationStore } from '../../../stores/notification'
-import { debounce } from 'lodash'
+import { useMaestrosStore } from '../../../stores/maestros' 
+import debounce from 'lodash/debounce'  
 
-// ... (PROPS & EMITS remain same)
 const props = defineProps({
     contactoId: { type: [String, Number], default: null },
     initialData: { type: Object, default: null }
@@ -307,11 +322,13 @@ const emit = defineEmits(['close', 'save'])
 const contactosStore = useContactosStore()
 const clientesStore = useClientesStore()
 const logisticaStore = useLogisticaStore()
+const maestrosStore = useMaestrosStore() 
 const notificationStore = useNotificationStore()
 
 // Stores Data
 const { clientes } = storeToRefs(clientesStore)
 const { empresas: transportes } = storeToRefs(logisticaStore)
+const { tiposContacto } = storeToRefs(maestrosStore) 
 
 // State
 const saving = ref(false)
@@ -352,6 +369,7 @@ const updatePersonalChannel = (type, value) => {
 const showAddLink = ref(false)
 const newLinkType = ref('CLIENTE')
 const newLinkSearch = ref('')
+const newLinkRole = ref('') // New: Stores ID of selected role
 const newLinkDropdown = ref(false)
 const selectedEntity = ref(null)
 
@@ -372,36 +390,125 @@ const selectEntity = (entity) => {
     newLinkDropdown.value = false
 }
 
+// Shortcuts
+const handleKeydown = (e) => {
+    if (e.key === 'F10') {
+        e.preventDefault()
+        savePersona()
+    }
+    if (e.key === 'Escape') {
+        emit('close')
+    }
+}
+
+onMounted(async () => {
+    window.addEventListener('keydown', handleKeydown)
+    // Reload Stores
+    if (clientes.value.length === 0) await clientesStore.fetchClientes()
+    if (transportes.value.length === 0) await logisticaStore.fetchEmpresas()
+    // Always fetch latest roles
+    await maestrosStore.fetchTiposContacto() 
+
+    if (!isNew.value && props.initialData) {
+        // Map Props to Form
+        const d = props.initialData
+        form.value = {
+            id: d.id || props.contactoId, 
+            nombre: d.nombre || d.nombre_completo?.split(' ')[0],
+            apellido: d.apellido || d.nombre_completo?.split(' ').slice(1).join(' '), 
+            fecha_nacimiento: d.fecha_nacimiento ? d.fecha_nacimiento.split('T')[0] : null,
+            domicilio_personal: d.domicilio_personal,
+            notas: d.observaciones || d.notas_globales || d.notas,
+            canales_personales: d.canales_personales || [],
+            vinculos: d.vinculos || []
+        }
+        
+        // Channels reconstruction (Legacy to Visual)
+        if (d.celular_personal && !form.value.canales_personales.find(c => c.tipo === 'WHATSAPP')) {
+            form.value.canales_personales.push({ tipo: 'WHATSAPP', valor: d.celular_personal })
+        }
+        if (d.email_personal && !form.value.canales_personales.find(c => c.tipo === 'EMAIL')) {
+            form.value.canales_personales.push({ tipo: 'EMAIL', valor: d.email_personal })
+        }
+    } else {
+        // Default Role on New
+        if (tiposContacto.value.length > 0) newLinkRole.value = tiposContacto.value[0].id
+    }
+})
+
+onUnmounted(() => {
+    window.removeEventListener('keydown', handleKeydown)
+})
+
 const confirmAddLink = async () => {
     if (!selectedEntity.value) return
+    if (!newLinkRole.value) { // Validation
+        notificationStore.add("Debe seleccionar un Rol.", "warning")
+        return
+    }
     if (isNew.value) {
         notificationStore.add("Guarda la persona antes de añadir vínculos.", "warning")
         return
     }
 
     try {
+        // Try getting role name too for better defaults
+        const selectedRoleObj = tiposContacto.value.find(t => t.id === newLinkRole.value)
+        const roleLabel = selectedRoleObj ? selectedRoleObj.nombre : 'Vinculado'
+
         const payload = {
-            nombre: form.value.nombre, // Dummy required fields
-            apellido: form.value.apellido || '',
+            // Vinculo Fields using Agenda API conventions
             cliente_id: newLinkType.value === 'CLIENTE' ? selectedEntity.value.id : null,
             transporte_id: newLinkType.value === 'TRANSPORTE' ? selectedEntity.value.id : null,
-            puesto: 'Nuevo Rol',
-            estado: true
+            tipo_contacto_id: newLinkRole.value, // Ensure ID
+            puesto: roleLabel, // [FIX] Send Label as 'puesto' alias for 'rol'
+            estado: true,
+            persona_id: props.contactoId
         }
 
         const newVinculo = await contactosStore.addVinculo(props.contactoId, payload)
-        // Manual push if store didn't autoupdate referenced object
-        // Check if unique to avoid duplicates in UI if store already updated
-        const exists = form.value.vinculos.find(v => v.id === newVinculo.id)
-        if (!exists) form.value.vinculos.push(newVinculo)
+        
+        // Robust duplicate check/update
+        const exists = form.value.vinculos.some(v => v.id === newVinculo.id)
+        if (!exists) {
+            form.value.vinculos.push(newVinculo)
+        } else {
+             const idx = form.value.vinculos.findIndex(v => v.id === newVinculo.id)
+             if (idx !== -1) form.value.vinculos[idx] = newVinculo
+        }
         
         // Reset
         showAddLink.value = false
         selectedEntity.value = null
         newLinkSearch.value = ''
-        // Keep newLinkType as is
     } catch (e) {
         console.error(e)
+        notificationStore.add("Error al vincular", "error")
+    }
+}
+
+const updateLinkRole = async (link, newRoleId) => {
+    try {
+        // [FIX] Find the label for the selected ID
+        const selectedRole = tiposContacto.value.find(t => t.id === newRoleId)
+        const roleLabel = selectedRole ? selectedRole.nombre : 'Vinculado'
+
+        // Optimistic
+        link.tipo_contacto_id = newRoleId
+        link.rol = roleLabel // Update local for immediate feedback
+        
+        // Call backend to update both ID and Label
+        // The backend 'update_vinculo' might only map fields in schema.
+        // Schema 'VinculoUpdate' has 'rol' and 'tipo_contacto_id'.
+        // So sending both is correct.
+        await contactosStore.updateVinculo(props.contactoId, link.id, { 
+            tipo_contacto_id: newRoleId,
+            rol: roleLabel 
+        })
+        notificationStore.add("Rol actualizado", "success")
+    } catch (e) {
+        console.error(e)
+        notificationStore.add("Error actualizando rol", "error")
     }
 }
 
@@ -411,14 +518,7 @@ const toggleLinkStatus = async (link) => {
     link.activo = !originalState
     
     try {
-        const payload = {
-            nombre: form.value.nombre, 
-            apellido: form.value.apellido || '',
-            cliente_id: link.entidad_tipo === 'CLIENTE' ? link.entidad_id : null,
-            transporte_id: link.entidad_tipo === 'TRANSPORTE' ? link.entidad_id : null,
-            estado: link.activo
-        }
-        await contactosStore.updateContacto(props.contactoId, payload)
+        await contactosStore.updateVinculo(props.contactoId, link.id, { activo: link.activo })
     } catch (error) {
         // Revert on error
         link.activo = originalState
@@ -468,8 +568,6 @@ const seleccionarPersonaExistente = (persona) => {
     // Mapear canales personales
     if (persona.canales_personales && Array.isArray(persona.canales_personales)) {
        // Convertir al formato interno si es necesario, o usarlos directo
-       // Aquí simplificamos asignando directo, el componente de canales debe manejarlo
-       // TODO: Asegurar compatibilidad de estructura
     }
 
     // 2. Bloquear edición de identidad (Solo lectura)
@@ -478,9 +576,6 @@ const seleccionarPersonaExistente = (persona) => {
     
     // 3. Abrir modo "Nuevo Vínculo" automáticamente
     showAddLink.value = true
-    
-    // Notificar al usuario
-    // "Persona existente cargada. Agregue el vínculo."
 }
 
 const limpiarPersonaSeleccionada = () => {
@@ -502,6 +597,54 @@ const removeLink = async (link) => {
         await contactosStore.deleteVinculo(props.contactoId, link.id)
         form.value.vinculos = form.value.vinculos.filter(v => v.id !== link.id)
     } catch (e) {}
+}
+
+const savePersona = async () => {
+    if (!form.value.nombre) return notificationStore.add("El nombre es obligatorio", "error")
+    
+    saving.value = true
+    try {
+        // MAP UI TO BACKEND SCHEMA (MULTIPLEX V6)
+        // Store targets '/contactos' which expects 'ContactoUpdate' schema:
+        // - nombre, apellido
+        // - canales: List[{ tipo, valor, etiqueta }]
+        // - notas (maps to notas_globales)
+        // - domicilio_personal
+        
+        // Ensure channels format
+        const cleanChannels = form.value.canales_personales.map(c => ({
+            tipo: c.tipo,
+            valor: c.valor,
+            etiqueta: c.etiqueta || 'Personal'
+        })).filter(c => c.valor && c.valor.length > 0)
+
+        const payload = {
+            nombre: form.value.nombre,
+            apellido: form.value.apellido || '',
+            notas: form.value.notas, // Backend maps 'notas' -> notas_globales
+            domicilio_personal: form.value.domicilio_personal,
+            canales: cleanChannels,
+            // Explicitly set null entities to target Personal Data update in Service
+            cliente_id: null,
+            transporte_id: null
+        }
+        
+        if (isNew.value) {
+            await contactosStore.createContacto(payload)
+        } else {
+            const cleanId = String(props.contactoId)
+            await contactosStore.updateContacto(cleanId, payload)
+        }
+        emit('save')
+        emit('close') // Keep the close behavior
+        notificationStore.add("Datos guardados correctamente", "success")
+    } catch(e) {
+        console.error(e)
+        const msg = e.response?.data?.detail || "Error al guardar (Verifique datos)"
+        notificationStore.add(msg, "error")
+    } finally {
+        saving.value = false
+    }
 }
 
 // Helpers Display
@@ -529,68 +672,16 @@ const initials = computed(() => {
     const a = form.value.apellido || ''
     return (n[0] + (a[0] || '')).toUpperCase()
 })
-
-
-// Lifecycle
-onMounted(async () => {
-    // Reload Stores
-    if (clientes.value.length === 0) await clientesStore.fetchClientes()
-    if (transportes.value.length === 0) await logisticaStore.fetchEmpresas()
-
-    if (!isNew.value && props.initialData) {
-        // Map Props to Form
-        const d = props.initialData
-        form.value = {
-            nombre: d.nombre,
-            apellido: d.apellido, // Backwards compat fix if backend returns null
-            fecha_nacimiento: d.fecha_nacimiento ? d.fecha_nacimiento.split('T')[0] : null,
-            domicilio_personal: d.domicilio_personal,
-            notas: d.notas_globales || d.notas, // backend map
-            canales_personales: d.canales_personales || [],
-            vinculos: d.vinculos || []
-        }
-    }
-})
-
-
-const savePersona = async () => {
-    if (!form.value.nombre) return notificationStore.add("El nombre es obligatorio", "error")
-    
-    saving.value = true
-    try {
-        const payload = {
-            nombre: form.value.nombre,
-            apellido: form.value.apellido,
-            fecha_nacimiento: form.value.fecha_nacimiento,
-            domicilio_personal: form.value.domicilio_personal,
-            notas: form.value.notas,
-            canales: form.value.canales_personales 
-        }
-        
-        if (isNew.value) {
-            await contactosStore.createContacto(payload)
-        } else {
-            const cleanId = String(props.contactoId)
-            await contactosStore.updateContacto(cleanId, payload)
-        }
-        emit('save')
-    } catch(e) {
-        console.error(e)
-    } finally {
-        saving.value = false
-    }
-}
-
-const deleteContacto = async () => {
-    if(confirm("Se eliminará la persona y todos sus vínculos. ¿Seguro?")) {
-        await contactosStore.deleteContacto(props.contactoId)
-        emit('save')
-    }
-}
 </script>
 
 <style scoped>
 .custom-scrollbar::-webkit-scrollbar { width: 6px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: #111; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+
+/* FIX: Ensure options are dark in forced dark mode on Windows */
+select option {
+    background-color: #1a1a1a;
+    color: white;
+}
 </style>
