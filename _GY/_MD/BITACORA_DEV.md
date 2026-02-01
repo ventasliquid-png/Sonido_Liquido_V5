@@ -468,3 +468,16 @@ Siguiendo órdenes directas, se difirió la integración real de OAuth y se impl
 *   Se generó reporte INFORMES_HISTORICOS/2026-02-01_AUDITORIA_FORENSE_MODULOS.md.
 *   **Orden D+1:** No migrar logística/proveedores hasta verificar facturación del Lunes.
 
+
+# [2026-02-01] TESTAMENTO DEL DOMINGO (HOJA DE RUTA FASE 2)
+
+> **ESTADO:** ESTRATÉGICO
+> **TIPO:** DOCUMENTACIÓN / ESTABILIDAD
+
+**Hitos de Cierre:**
+1.  **Estabilidad Windows 11:** Implementado SISTEMA_SPLIT.bat para mitigar crashes por conflictos de señales en consola unificada.
+2.  **Mapa de Satélites:** Identificada deuda técnica en Vendedores y Proveedores (V5 Standalone).
+3.  **Hoja de Ruta:** Definida estrategia para 'Transportes Favoritos' (Cloud Cookie) y 'Google Sync' (Local First).
+
+**Artefacto Generado:** INFORMES_HISTORICOS/2026-02-01_TESTAMENTO_DOMINGO_F2.md
+
