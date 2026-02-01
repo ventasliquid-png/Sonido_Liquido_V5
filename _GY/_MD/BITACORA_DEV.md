@@ -451,3 +451,20 @@ Siguiendo órdenes directas, se difirió la integración real de OAuth y se impl
 - **[FALLO DE PROTOCOLO]**: Se detectó "Efecto Túnel". La IA priorizó la solución técnica sobre el Freno de Mano (Fase 2). Se activó Auditoría de Doctrina.
 - **Estado**: Módulo Contactos V6.1 ESTABLE. Auditoría en Curso.
 
+
+# [2026-02-01] AUDITORÍA FORENSE: SATELLITES INTEGRITY CHECK
+
+> **ESTADO:** OBSERVACIÓN (SIN CAMBIOS)
+> **TIPO:** INSPECCIÓN / DOCTRINA
+
+**Objetivo:** Determinar la 'Deuda Técnica Estructural' de los módulos satélite tras la estabilización del núcleo V6.
+
+**Hallazgos Forenses:**
+1.  **Clientes:** Estado 'V6 Native Híbrido'. Uso exitoso de 'Pipe Logic' para direcciones.
+2.  **Productos:** Robusto pero 'Standalone'. No integrado a la Agenda Global.
+3.  **Transportes:** Funcionalidad de espejo en Despacho operativa, pero estructura de Nodos aún plana (V5).
+
+**Acción Táctica:**
+*   Se generó reporte INFORMES_HISTORICOS/2026-02-01_AUDITORIA_FORENSE_MODULOS.md.
+*   **Orden D+1:** No migrar logística/proveedores hasta verificar facturación del Lunes.
+

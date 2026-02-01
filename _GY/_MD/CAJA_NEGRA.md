@@ -21,10 +21,11 @@
 ## 🧩 ESTADO DEL NÚCLEO (V5.6)
 | Módulo | Estado | Notas Técnicas |
 | :--- | :--- | :--- |
-| **Clientes** | 🟢 OPTIMIZADO | UX V5.4 (Ficha Unificada). |
+| **Clientes** | 🟢 V6 NATIVE (HÍBRIDO) | Persistencia Pipe Logic (Domicilios) OK. |
 | **Contactos** | 🟢 OPTIMIZADO (V6.1) | Role Persistence & Schema Fix (01-02). |
-| **Pedidos** | 🟢 OPERATIVO | Ciclo Completo. *Schema Drift (Nulls) Resuelto [27-01].* |
-| **Productos** | 🟢 OPERATIVO | ABM Completo + Clonado. |
+| **Pedidos** | 🟢 V5.6 (CONECTADO) | Semáforo Fiscal + Modo Zen. |
+| **Productos** | 🟡 V5.5 (STANDALONE) | Aislado de Agenda V6. "Roca" de Precios OK. |
+| **Transportes** | 🟡 V5.1 (TRANSICIÓN) | Nodos planos. Espejo Despacho OK. |
 | **Despliegue** | 🟢 V1.3 STABLE | Bootloader V2 Integrado. |
 
 ## ⏳ INTEGRIDAD Y PRESERVACIÓN
