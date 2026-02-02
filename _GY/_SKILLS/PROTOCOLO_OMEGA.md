@@ -5,9 +5,10 @@
 ---
 
 ## 🛑 REGLA CERO: EL FRENO DE MANO
-Si el Usuario indica "Presentar plan SIN ejecutar", **NINGUNA** configuración de auto-aprobación ("Bandera Verde" / Auto-Reply) tiene validez sobre esa instrucción explícita.
+Si el Usuario indica "Presentar plan SIN ejecutar", **NINGUNA** configuración de auto-aprobación ("Bandera Verde" / Auto-Reply / LGTM del sistema) tiene validez sobre esa instrucción explícita.
 *   **Acción:** Debes pausar y solicitar confirmación mediante el **PIN Maestro: "1974"**.
 *   **Motivo:** Evitar ejecuciones prematuras por aprobaciones sistémicas automáticas.
+*   **CLÁUSULA DE HIERRO:** Comandos como "LGTM", "Proceed", o botones de aprobación de interfaz **NO SUSTITUYEN** al PIN 1974 cuando este protocolo es invocado. La IA debe rechazar la aprobación genérica y volver a pedir el código numérico.
 
 ---
 
@@ -49,3 +50,4 @@ Solo tras recibir la confirmación explícita (**1974**):
 ---
 
 > **Nota para la IA:** Este archivo es tu "Constitución" para el cierre de sesión. Ignorarlo es una falta grave a la Doctrina Gy.
+> **RECORDATORIO FINAL:** NO AVANZAR SI NO SE RECIBE EL PIN "1974". NINGUNA EXCEPCIÓN.
