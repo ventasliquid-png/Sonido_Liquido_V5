@@ -12,6 +12,7 @@ from backend.core.database import Base, GUID
 from backend.maestros.models import CondicionIva, ListaPrecios, Segmento, Provincia
 # Nota: Importamos Usuario como string o condicionalmente si hay riesgo de ciclo, 
 # pero Maestros son seguros.
+from sqlalchemy.orm import foreign, remote
 
 class Cliente(Base):
     """
@@ -65,7 +66,8 @@ class Cliente(Base):
 
     # Relaciones
     domicilios = relationship("Domicilio", back_populates="cliente", cascade="all, delete-orphan")
-    vinculos = relationship("VinculoComercial", back_populates="cliente", cascade="all, delete-orphan")
+    # [GY-FIX V6] Removed legacy VinculoComercial relationship
+    # vinculos = relationship("VinculoComercial", back_populates="cliente", cascade="all, delete-orphan")
     condicion_iva = relationship(CondicionIva)
     lista_precios = relationship(ListaPrecios)
     segmento = relationship(Segmento)
@@ -74,10 +76,13 @@ class Cliente(Base):
     # [FIX] Usar nombre corto 'Pedido' ya que está registrado en Base
     pedidos = relationship("Pedido", back_populates="cliente")
     # [NUEVO V6 Multiplex] Relación Polimórfica Inversa
-    vinculos_rel = relationship(
-        "backend.contactos.models.Vinculo",
-        primaryjoin="and_(foreign(backend.contactos.models.Vinculo.entidad_id)==Cliente.id, backend.contactos.models.Vinculo.entidad_tipo=='CLIENTE')",
-        viewonly=True, # Para evitar escrituras accidentales desde este lado por ahora
+    # [NUEVO V6 Multiplex] Relación Polimórfica Inversa
+    # Renombrado de vinculos_rel a vinculos para mantener compatibilidad de nombre
+    vinculos = relationship(
+        "Vinculo",
+        primaryjoin="and_(foreign(Vinculo.entidad_id)==Cliente.id, Vinculo.entidad_tipo=='CLIENTE')",
+        viewonly=True,
+        foreign_keys="[Vinculo.entidad_id]"
     )
 
     def __repr__(self):
@@ -115,7 +120,9 @@ class Cliente(Base):
             if not self.vinculos:
                 return None
                 
-            principal = next((v for v in self.vinculos if v.es_principal and v.activo), None)
+            # [GY-FIX V6] Vinculo V6 no tiene 'es_principal'. Usamos el primero activo.
+            # principal = next((v for v in self.vinculos if v.es_principal and v.activo), None)
+            principal = next((v for v in self.vinculos if v.activo), None)
             if principal and principal.persona:
                 return principal.persona.nombre_completo
             

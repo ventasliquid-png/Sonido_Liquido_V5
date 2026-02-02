@@ -104,8 +104,9 @@ class ClienteService:
         from sqlalchemy.orm import joinedload
         return db.query(Cliente).options(
             joinedload(Cliente.domicilios),
-            joinedload(Cliente.vinculos).joinedload(agenda_models.VinculoComercial.persona),
-            joinedload(Cliente.vinculos).joinedload(agenda_models.VinculoComercial.tipo_contacto)
+            # [GY-TEMP] Disable eager load of vinculos to fix 500
+            # joinedload(Cliente.vinculos).joinedload(agenda_models.VinculoComercial.persona),
+            # joinedload(Cliente.vinculos).joinedload(agenda_models.VinculoComercial.tipo_contacto)
         ).filter(Cliente.id == cliente_id).first()
 
     @staticmethod
@@ -115,8 +116,9 @@ class ClienteService:
         
         query = db.query(Cliente).options(
             joinedload(Cliente.domicilios).joinedload(Domicilio.provincia),
-            joinedload(Cliente.vinculos).joinedload(agenda_models.VinculoComercial.persona),
-            joinedload(Cliente.vinculos).joinedload(agenda_models.VinculoComercial.tipo_contacto)
+            # [GY-TEMP] Disable eager load of vinculos to fix 500
+            # joinedload(Cliente.vinculos).joinedload(agenda_models.VinculoComercial.persona),
+            # joinedload(Cliente.vinculos).joinedload(agenda_models.VinculoComercial.tipo_contacto)
         )
 
         # Filter by active status unless requested otherwise

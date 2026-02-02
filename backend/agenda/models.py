@@ -53,7 +53,8 @@ class VinculoComercial(Base):
     activo = Column(Boolean, default=True)
 
     # Relaciones
-    cliente = relationship("Cliente", back_populates="vinculos")
+    # [GY-FIX V6] Removed back_populates as Cliente.vinculos no longer points here
+    cliente = relationship("Cliente")
     persona = relationship("PersonaLegacy")
     tipo_contacto = relationship("backend.maestros.models.TipoContacto")
 

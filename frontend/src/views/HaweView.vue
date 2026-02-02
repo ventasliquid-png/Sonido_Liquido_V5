@@ -706,9 +706,9 @@ const filteredClientes = computed(() => {
 
     return result.sort((a, b) => {
         switch (sortBy.value) {
-            case 'alpha_asc': return a.razon_social.localeCompare(b.razon_social)
-            case 'alpha_desc': return b.razon_social.localeCompare(a.razon_social)
-            case 'id_desc': return String(b.id).localeCompare(String(a.id))
+            case 'alpha_asc': return (a.razon_social || '').localeCompare(b.razon_social || '')
+            case 'alpha_desc': return (b.razon_social || '').localeCompare(a.razon_social || '')
+            case 'id_desc': return String(b.id || 0).localeCompare(String(a.id || 0))
             case 'usage': return (b.contador_uso || 0) - (a.contador_uso || 0)
             default: return 0
         }
@@ -815,9 +815,8 @@ const logout = () => {
 // [GY-FIX] Robust hydration logic
 const hydrateData = async () => {
     try {
-        if (clienteStore.clientes.length === 0) {
-            await clienteStore.fetchClientes()
-        }
+        // [GY-UX] Always fetch latest clients to show creation/updates immediately
+        await clienteStore.fetchClientes()
         
         if (maestrosStore.segmentos.length === 0) {
             await maestrosStore.fetchSegmentos()
@@ -848,9 +847,8 @@ onMounted(async () => {
 
 // [GY-FIX] Handle Keep-Alive re-entry
 onActivated(async () => {
-    if (clienteStore.clientes.length === 0) {
-        await hydrateData()
-    }
+    // [GY-UX] Always refresh on re-activation
+    await hydrateData()
 })
 
 onUnmounted(() => {

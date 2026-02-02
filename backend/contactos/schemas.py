@@ -14,7 +14,7 @@ class VinculoRead(BaseModel):
     rol: Optional[str] = None
     area: Optional[str] = None
     activo: bool
-    canales_laborales: List[Any] = []
+    canales_laborales: Optional[List[Dict[str, Any]]] = None
     fecha_inicio: Optional[Any] = None
 
     class Config:
@@ -28,6 +28,20 @@ class VinculoUpdate(BaseModel):
     activo: Optional[bool] = None
 
 # --- CONTACTOS (PERSONAS) ---
+class PersonaBasicRead(BaseModel):
+    id: UUID
+    nombre: str
+    apellido: Optional[str] = None
+    nombre_completo: str
+    domicilio_personal: Optional[str] = None
+    canales_personales: Optional[List[Dict[str, Any]]] = None
+    notas_globales: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
 class ContactoRead(BaseModel):
     # Esto es en realidad una mezcla de Persona + Vinculos
     id: UUID # ID de Persona
@@ -36,7 +50,7 @@ class ContactoRead(BaseModel):
     nombre_completo: str # Property
     
     domicilio_personal: Optional[str] = None
-    canales_personales: List[Any] = [] # [FIX] Include Personal Channels
+    canales_personales: Optional[List[Dict[str, Any]]] = None # [FIX] Include Personal Channels
     notas_globales: Optional[str] = None # [FIX] Include Notes
     
     # Vinculos

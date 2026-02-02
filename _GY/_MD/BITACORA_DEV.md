@@ -481,3 +481,22 @@ Siguiendo órdenes directas, se difirió la integración real de OAuth y se impl
 
 **Artefacto Generado:** INFORMES_HISTORICOS/2026-02-01_TESTAMENTO_DOMINGO_F2.md
 
+
+## SESION 784: OPTIMIZACIÓN UX CLIENTES & DOMICILIOS
+**Fecha:** 2026-02-02
+**Objetivo:** Refinar la experiencia de alta de clientes y gestión de domicilios fiscales.
+
+### Hito 1: Automatización de Carga
+*   **Consumidor Final:** Al seleccionar IVA "Consumidor Final", el CUIT se completa con ceros. Inversamente, al ingresar CUIT 00000000000, se setea IVA y Segmento automáticamente.
+*   **Default Fiscal:** El switch "Fiscal" ahora inicia ACTIVO por defecto en nuevas direcciones para reducir clics.
+
+### Hito 2: Gestión de Domicilios (Ley de Conservación)
+*   **Fix Identidad:** Se solucionó el problema donde direcciones nuevas se sobrescribían por falta de ID.
+*   **Baja Fiscal:** Implementado menú contextual (Click Derecho / 3 Puntos) en la tarjeta Fiscal. Permite "Dar de baja" solo si existe otro domicilio activo para heredar la fiscalidad.
+
+### Hito 3: Estabilidad
+*   **Crash Sort:** Parche defensivo en `HaweView` para evitar pantallas blancas al ordenar clientes sin Razón Social.
+*   **Auto-Refresh:** Forzado de recarga de lista al volver de la ficha de cliente para asegurar datos frescos.
+
+**Estado:** Módulo Clientes V6.2 PULIDO Y ESTABLE.
+

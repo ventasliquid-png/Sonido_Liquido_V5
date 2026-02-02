@@ -73,6 +73,8 @@ La ficha es el núcleo de la información comercial. Se compone de:
 ### 2.2 Domicilios y Logística
 Un cliente puede tener múltiples domicilios, pero se clasifican estrictamente en:
 *   **Domicilio Fiscal:** Dirección legal asociada al CUIT.
+    *   **Gestión:** Para modificar o dar de baja el domicilio fiscal, utilice el menú de opciones (tres puntos) o clic derecho sobre la tarjeta.
+    *   **Ley de Conservación:** El sistema impedirá borrar el domicilio fiscal si no existe otra dirección activa que pueda tomar su lugar.
 *   **Domicilio de Entrega:** Dirección física donde se recibe la mercadería.
 *   **Logística Asociada:** Cada domicilio tiene vinculado un **Transporte** predeterminado (ej: "Expreso Lo Bruno", "Retiro en Local").
 

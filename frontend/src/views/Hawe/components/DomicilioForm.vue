@@ -78,7 +78,7 @@ watch(() => props.domicilio, (newVal) => {
             localidad: '',
             provincia_id: null,
             transporte_id: props.defaultTransportId || null, 
-            es_fiscal: false, // [GY-UX] Default false to avoid accidental fiscal overwrite
+            es_fiscal: true, // [GY-UX] Default true requested by user
             es_entrega: true,
             activo: true,
             metodo_entrega: 'TRANSPORTE',

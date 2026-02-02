@@ -134,7 +134,22 @@ class ClienteUpdate(BaseModel):
             return re.sub(r'[^0-9]', '', v)
         return v
 
-from backend.agenda.schemas import VinculoComercialResponse
+from backend.contactos.schemas import ContactoRead, VinculoRead, PersonaBasicRead
+from pydantic import computed_field
+
+class ClienteVinculoResponse(BaseModel):
+    """
+    Schema híbrido para mostrar vinculos DESDE la perspectiva del Cliente.
+    Muestra la Persona adjunta al vinculo.
+    """
+    id: UUID
+    rol: Optional[str] = None
+    area: Optional[str] = None
+    activo: bool
+    persona: Optional[PersonaBasicRead] = None # Nested Persona info (Basic to avoid recursion)
+
+    class Config:
+        from_attributes = True
 
 class ClienteResponse(ClienteBase):
     id: UUID
@@ -144,7 +159,8 @@ class ClienteResponse(ClienteBase):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     domicilios: List[DomicilioResponse] = []
-    vinculos: List[VinculoComercialResponse] = []
+    # [GY-TEMP] Disable vinculos to fix 500 error on list view
+    # vinculos: List[ClienteVinculoResponse] = []
     
     # Nuevos Campos Visuales (Propiedades @property del modelo)
     domicilio_fiscal_resumen: Optional[str] = None
@@ -164,7 +180,8 @@ class ClienteListResponse(ClienteBase):
     # Nuevos Campos Visuales (Propiedades @property del modelo)
     domicilio_fiscal_resumen: Optional[str] = None
     requiere_entrega: bool = False
-    contacto_principal_nombre: Optional[str] = None
+    # [GY-TEMP] Disable contacto_principal_nombre to fix 500 error on list view
+    # contacto_principal_nombre: Optional[str] = None
     
     # Exclude nested lists for performance
 

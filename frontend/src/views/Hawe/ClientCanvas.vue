@@ -96,12 +96,18 @@
                       <!-- Domicilio Fiscal -->
                       <div 
                         @click="openFiscalEditor"
+                        @contextmenu.prevent="openFiscalContextMenu($event, domicilios.find(d => d.es_fiscal))"
                         class="bg-cyan-900/10 border border-cyan-500/20 rounded-xl p-3 relative group cursor-pointer hover:bg-cyan-900/20 hover:border-cyan-500/50 transition-all"
                       >
                           <div class="flex justify-between items-center mb-2 border-b border-cyan-500/10 pb-1">
                               <label class="text-[10px] font-bold text-cyan-400 uppercase tracking-widest"><i class="fas fa-file-invoice mr-1"></i> Domicilio Fiscal <span class="text-red-400">*</span></label>
-                              <div class="text-[9px] text-cyan-500/50 group-hover:text-cyan-400 transition-colors">
-                                  <i class="fas fa-pencil-alt mr-1"></i> Editar
+                              <div class="flex items-center gap-2">
+                                  <div class="text-[9px] text-cyan-500/50 group-hover:text-cyan-400 transition-colors">
+                                      <i class="fas fa-pencil-alt mr-1"></i> Editar
+                                  </div>
+                                  <button @click.stop="openFiscalContextMenu($event, domicilios.find(d => d.es_fiscal))" class="text-cyan-500/30 hover:text-white px-1">
+                                      <i class="fas fa-ellipsis-v"></i>
+                                  </button>
                               </div>
                           </div>
                           <div>
@@ -477,7 +483,27 @@ const form = ref({
     datos_acceso_pagos: '',
     saldo: 0,
     fecha_ultima_compra: null,
+    fecha_ultima_compra: null,
     codigo_interno: ''
+})
+
+// [GY-UX] Consumidor Final Automation
+watch(() => form.value.condicion_iva_id, (newId) => {
+    if (!newId) return
+    const cf = condicionesIva.value.find(i => i.nombre.toLowerCase().includes('consumidor final'))
+    if (cf && newId === cf.id) {
+        if (!form.value.cuit) form.value.cuit = '00000000000'
+    }
+})
+
+watch(() => form.value.cuit, (newCuit) => {
+    if (newCuit === '00000000000') {
+        const cfIva = condicionesIva.value.find(i => i.nombre.toLowerCase().includes('consumidor final'))
+        if (cfIva) form.value.condicion_iva_id = cfIva.id
+        
+        const cfSeg = segmentos.value.find(s => s.nombre.toLowerCase().includes('consumidor final'))
+        if (cfSeg) form.value.segmento_id = cfSeg.id
+    }
 })
 const domicilios = ref([])
 const contactos = ref([])
@@ -796,6 +822,36 @@ const handleTransporteCanvasCreate = async (newId) => {
     showTransporteCanvas.value = false
 }
 
+// [GY-UX] Fiscal Context Menu
+const openFiscalContextMenu = (e, fiscalDom) => {
+    if (!fiscalDom) return // Should not happen if card is visible
+
+    contextMenuState.value = {
+        show: true,
+        x: e.clientX,
+        y: e.clientY
+    }
+
+    contextMenuProps.value.actions = [
+        {
+            label: 'Modificar Datos Fiscales',
+            iconClass: 'fas fa-pencil-alt',
+            handler: () => openFiscalEditor()
+        },
+        {
+            label: 'Dar de Baja (Transferir Fiscalidad)',
+            iconClass: 'fas fa-trash-alt',
+            isDestructive: true,
+            handler: async () => {
+                if (confirm('ATENCIÓN: Para dar de baja el domicilio fiscal actual, DEBE existir otro domicilio activo para tomar su lugar (Ley de Conservación).\n\n¿Desea proceder con la baja?')) {
+                    // Reuse the save handler which contains the Conservation Law logic
+                    await handleDomicilioSaved({ ...fiscalDom, activo: false, es_fiscal: true })
+                }
+            }
+        }
+    ]
+}
+
 // --- Initialization ---
 onMounted(async () => {
     window.addEventListener('keydown', handleKeydown)
@@ -1003,11 +1059,33 @@ const handleDomicilioSaved = async (domicilioData) => {
         // Rule 1: The Castling (El Enroque)
         // If a new address claims to be Fiscal, abdicate the previous one.
         if (domicilioData.es_fiscal) {
-             const existingFiscal = domicilios.value.find(d => d.es_fiscal && d.activo !== false && String(d.id) !== String(domicilioData.id));
+             const existingFiscal = domicilios.value.find(d => {
+                 if (!d.es_fiscal || d.activo === false) return false;
+                 
+                 // [GY-FIX] Robust Identity Check
+                 // If both have IDs, compare IDs
+                 if (d.id && domicilioData.id) return String(d.id) !== String(domicilioData.id);
+                 
+                 // If both have local_ids, compare local_ids
+                 if (d.local_id && domicilioData.local_id) return d.local_id !== domicilioData.local_id;
+                 
+                 // If mixed (one has ID, one local), they are different
+                 if ((d.id && !domicilioData.id) || (!d.id && domicilioData.id)) return true;
+                 
+                 // If neither has ID (both new, unsaved?), assume different unless reference match?
+                 // Ideally newly created passed via 'saved' event should have a temporary ID or differ from existing.
+                 // But in this flow, 'domicilioData' is the NEW one coming from form. 
+                 // If d is in array, and d has no ID/local_id, it's a ghost?
+                 // We will assume different if we can't prove equality.
+                 return true; 
+             });
+
              if (existingFiscal) {
                  existingFiscal.es_fiscal = false;
-                 // Update server silently to maintain consistency
-                 store.updateDomicilio(form.value.id, existingFiscal.id, { es_fiscal: false });
+                 // Update server silently to maintain consistency ONLY if it has real ID
+                 if (existingFiscal.id && !isNew.value) {
+                    store.updateDomicilio(form.value.id, existingFiscal.id, { es_fiscal: false });
+                 }
              }
         }
 
@@ -1052,9 +1130,11 @@ const handleDomicilioSaved = async (domicilioData) => {
         // --- 3. PERSISTENCE LAYER ---
         if (isNew.value) {
             // Local Save
+            // Local Save
             if (domicilioData.local_id || domicilioData.id) {
                 const idx = domicilios.value.findIndex(d => (d.local_id && d.local_id === domicilioData.local_id) || (d.id && d.id === domicilioData.id))
                 if (idx !== -1) domicilios.value[idx] = { ...domicilioData };
+                else domicilios.value.push({ ...domicilioData, local_id: Date.now() }); // Fallback if ID exists but not found locally?
             } else {
                 domicilios.value.push({ ...domicilioData, local_id: Date.now() });
             }
