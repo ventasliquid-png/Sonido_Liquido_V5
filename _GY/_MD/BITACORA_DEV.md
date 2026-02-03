@@ -500,3 +500,38 @@ Siguiendo órdenes directas, se difirió la integración real de OAuth y se impl
 
 **Estado:** Módulo Clientes V6.2 PULIDO Y ESTABLE.
 
+
+# [V6.2] 2026-02-02 - UX Clientes & Ley de Conservación Fiscal
+
+> **ESTADO:** DEPLOYED
+> **TIPO:** UX / LOGIC GUARDCLAUSE
+
+**Objetivo:** Eliminar fricción en alta de clientes y proteger la integridad del Domicilio Fiscal.
+
+**Intervenciones:**
+1.  **Automatización (UX):**
+    *   **Consumidor Final:** Enlace bidireccional IVA <-> CUIT (00000000000).
+    *   **Default Fiscal:** Inicialización inteligente. es_fiscal=True solo si es el primer domicilio.
+2.  **Integridad (Ley de Conservación):**
+    *   **Bloqueo:** Deshabilitado borrado directo de domicilio fiscal.
+    *   **Transferencia Contextual:** Implementado Menú Contextual (Click Derecho) para 'Dar de baja' transfiriendo la fiscalidad a un candidato activo.
+3.  **Estabilidad:**
+    *   **Crash Sort:** Fix en HaweView para tolerancia a nulos en ordenamiento.
+    *   **Refresh:** Forzado de recarga al volver del inspector.
+
+**Resultado:** Alta de clientes fluida y blindada contra errores de 'Sin Domicilio Fiscal'.
+
+# [V6.3] 2026-02-02 - Auditoría Estratégica Multiplex (N:M)
+
+> **ESTADO:** AUDIT COMPLETE
+> **TIPO:** STRATEGIC ANALYSIS
+
+**Objetivo:** Evaluar viabilidad de arquitectura N:M total (Contactos, Logística, Stock) para Fase 2.
+
+**Hallazgos:**
+*   **Contactos:** V6 Ready (Polimorfismo Operativo). Soporta 'Cobrador Rígido'.
+*   **Logística:** Blockade. Modelo 'Hub & Spoke' rígido (1 Transport por Pedido). Requiere 'Split' para envíos multipunto.
+*   **Stock:** Latente. Modelo Deposito existe pero requiere refactor de vinculación con Producto.
+
+**Acción:** Generado reporte maestro INFORMES_HISTORICOS/2026-02-02_AUDITORIA_MULTIPLEX.md.
+

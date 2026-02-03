@@ -14,6 +14,10 @@ const props = defineProps({
     defaultTransportId: {
         type: [String, Number],
         default: null
+    },
+    hasFiscal: {
+        type: Boolean,
+        default: false
     }
 });
 
@@ -78,7 +82,7 @@ watch(() => props.domicilio, (newVal) => {
             localidad: '',
             provincia_id: null,
             transporte_id: props.defaultTransportId || null, 
-            es_fiscal: true, // [GY-UX] Default true requested by user
+            es_fiscal: !props.hasFiscal, // [GY-UX] Default true only if no fiscal exists
             es_entrega: true,
             activo: true,
             metodo_entrega: 'TRANSPORTE',
@@ -96,6 +100,17 @@ const isValid = computed(() => {
     // If delivery, transport is mandatory logic? (Currently defaults to 'Retira por local' so maybe not)
     return basic
 })
+
+const toggleFiscal = () => {
+    // If turning ON and there is already a fiscal address (hasFiscal is true), confirm
+    if (!form.es_fiscal && props.hasFiscal) {
+        if (!confirm('¿Cambio de Domicilio Fiscal?\nEsto quitará la condición fiscal al domicilio actual.')) {
+            return; // Cancel
+        }
+    }
+    // Toggle
+    form.es_fiscal = !form.es_fiscal;
+}
 
 const handleSave = () => {
     // Logic Sync: If Retiro Local, set origen_logistico to RETIRO_EN_PLANTA
@@ -290,19 +305,16 @@ onUnmounted(() => {
                             <div class="relative">
                             <button 
                                 type="button"
-                                @click="!isEditing || !form.es_fiscal ? (form.es_fiscal = !form.es_fiscal) : null"
+                                @click="toggleFiscal"
                                 class="relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none shrink-0"
-                                :class="form.es_fiscal ? 'bg-purple-600 cursor-not-allowed opacity-80' : 'bg-gray-700 cursor-pointer'"
+                                :class="form.es_fiscal ? 'bg-purple-600' : 'bg-gray-700 cursor-pointer'"
                             >
                                 <span 
                                     class="inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform shadow-sm"
                                     :class="form.es_fiscal ? 'translate-x-3.5' : 'translate-x-1'"
                                 />
                             </button>
-                            <!-- Tooltip -->
-                            <div v-if="isEditing && form.es_fiscal" class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black text-white text-[10px] p-2 rounded shadow-xl border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 text-center">
-                                Para cambiar el domicilio fiscal, active la opción en el nuevo domicilio destino.
-                            </div>
+                            <!-- Tooltip removed: Logic is now Confirmation on Toggle -->
                             </div>
                     </div>
 

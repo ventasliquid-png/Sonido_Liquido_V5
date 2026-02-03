@@ -67,3 +67,13 @@
 
 ---
 **Última Actualización:** 2026-02-01 (Auditoría de Bloqueo Sesión 783)
+
+## 🔄 7. UX & FLUJOS (V6)
+> **REGLA DE ORO: Ley de Conservación de Masa Crítica (Fiscalidad).**
+> *   **Instrucción Precisa:** Nunca permitir la destrucción de un recurso crítico (Domicilio Fiscal) sin antes asegurar su transferencia. El sistema debe prohibir el vacío ('Dead End') y ofrecer la salida contextual ('Transferir') en el mismo punto de fricción.
+> *   **Origen:** [Sesión del 02/02 - UX Clientes].
+
+> **REGLA DE ORO: Disciplina de Cierre (Checklist Omega).**
+> *   **Instrucción Precisa:** La actualización de Bitácora y Lecciones Aprendidas no es opcional ni postergable. Debe ocurrir ANTES de solicitar el PIN de cierre para garantizar la integridad histórica de la sesión.
+> *   **Origen:** [Sesión del 02/02 - Recordatorio del Comandante].
+

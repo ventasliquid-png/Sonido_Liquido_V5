@@ -283,6 +283,7 @@
                         v-for="dom in sortedDomicilios" 
                         :key="dom.id"
                         @dblclick="openDomicilioForm(dom)"
+                        @contextmenu.prevent="openDomicilioContextMenu($event, dom)"
                         class="bg-cyan-900/5 border border-cyan-900/20 rounded-lg p-3 relative group hover:bg-cyan-900/10 transition-colors cursor-pointer select-none"
                     >
                         <div class="flex justify-between items-start pr-24">
@@ -303,10 +304,9 @@
                         <!-- Actions: Edit, Delete, Toggle -->
                         <div class="absolute top-2 right-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             
-                            <!-- Toggle Active (Slider) - Except Fiscal -->
+                            <!-- Toggle Active (Slider) - Intercept Fiscal -->
                             <button 
-                                v-if="!dom.es_fiscal"
-                                @click.stop="toggleDomicilioActive(dom)"
+                                @click.stop="tryToggleDomicilioActive(dom)"
                                 :title="dom.activo ? 'Desactivar Domicilio' : 'Activar Domicilio'"
                                 class="relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none shrink-0"
                                 :class="dom.activo ? 'bg-green-500/50' : 'bg-red-500/50'"
@@ -322,10 +322,9 @@
                                 <i class="fas fa-pencil-alt"></i>
                             </button>
                             
-                            <!-- Delete (Tachito) - Except Fiscal -->
+                            <!-- Delete (Tachito) - Intercept Fiscal -->
                             <button 
-                                v-if="!dom.es_fiscal" 
-                                @click.stop="deleteDomicilio(dom)" 
+                                @click.stop="tryDeleteDomicilio(dom)" 
                                 class="text-red-400 hover:text-red-300 bg-white/10 hover:bg-white/20 p-1.5 rounded transition-colors"
                                 title="Eliminar Domicilio"
                             >
@@ -378,6 +377,7 @@
                 <DomicilioForm 
                     :show="showDomicilioForm" 
                     :domicilio="selectedDomicilio" 
+                    :has-fiscal="hasFiscalAddress"
                     @close="showDomicilioForm = false"
                     @saved="handleDomicilioSaved"
                 />
@@ -588,6 +588,11 @@ const headerSubtitle = computed(() => {
     return form.value.cuit || (props.isNew ? 'Nuevo' : 'Sin CUIT')
 })
 
+const hasFiscalAddress = computed(() => {
+    if (!form.value.domicilios) return false
+    return form.value.domicilios.some(d => d.es_fiscal && d.activo !== false)
+})
+
 const formatCuitInput = () => {
     let val = form.value.cuit || ''
     // Allow digits and up to 2 separators (-, _, /)
@@ -795,8 +800,132 @@ const openIvaContextMenu = (e) => {
     }
 }
 
+const openDomicilioContextMenu = (e, dom) => {
+    // Only for Fiscal Addresses (that need special handling)
+    if (!dom.es_fiscal) return;
 
-// --- Transport Canvas Logic (V5 Refactor) ---
+    contextMenu.value = {
+        show: true,
+        x: e.clientX,
+        y: e.clientY,
+        actions: [
+            {
+                label: 'Dar de baja (Transferir Fiscalidad)',
+                iconClass: 'fas fa-exchange-alt',
+                handler: () => { transferFiscalityAndDeactivate(dom) }
+            }
+        ]
+    }
+}
+
+const transferFiscalityAndDeactivate = async (currentFiscal) => {
+    // 1. Find Candidate (Next Active Domicilio)
+    // We use form.value.domicilios source of truth
+    const candidates = form.value.domicilios.filter(d => d.id !== currentFiscal.id && d.activo !== false);
+
+    if (candidates.length === 0) {
+        notificationStore.add('Imposible dar de baja: No existe otro domicilio para heredar la condición Fiscal.', 'error');
+        return;
+    }
+
+    const heir = candidates[0]; // Pick the first available one
+    
+    if (confirm(`¿Confirma transferir la condición FISCAL a "${heir.calle} ${heir.numero}" y dar de baja el actual?`)) {
+        try {
+            // Step 1: Promote Heir (Backend will auto-demote current fiscal, but we do it explicitly to be safe contextually)
+            // Backend create_domicilio/update_domicilio has logic: if new is fiscal, others become not fiscal.
+            // So we update Heir to be Fiscal.
+            await clienteStore.updateDomicilio(form.value.id, heir.id, { ...heir, es_fiscal: true });
+            
+            // Step 2: Deactivate Old Fiscal (Now it should be non-fiscal effectively, or we ensure it)
+            // We reload because Step 1 might have changed the state on backend.
+            // But we can just send update to deactivate specific ID.
+            await clienteStore.deleteDomicilio(form.value.id, currentFiscal.id); // Soft delete
+
+            notificationStore.add('Fiscalidad transferida y domicilio dado de baja.', 'success');
+            
+            // Refresh
+            const freshClient = await clienteStore.fetchClienteById(form.value.id);
+            form.value = JSON.parse(JSON.stringify(freshClient));
+
+        } catch (error) {
+            console.error(error);
+            notificationStore.add('Error al transferir fiscalidad.', 'error');
+        }
+    }
+}
+
+
+
+// --- Domicilio Actions Interceptors ---
+const tryToggleDomicilioActive = (dom) => {
+    // If activating, just do it
+    if (!dom.activo) {
+        toggleDomicilioActive(dom)
+        return
+    }
+
+    // If deactivating...
+    if (dom.es_fiscal) {
+         // Fiscal Protection Logic
+         const activeCandidates = form.value.domicilios.filter(d => d.id !== dom.id && d.activo !== false)
+         
+         if (activeCandidates.length === 0) {
+             // Case: Unique Address
+             notificationStore.add('Imposible desactivar: Es el único domicilio fiscal y no hay alternativas.', 'error')
+             return
+         }
+         
+         // Case: Alternatives exist
+         // Trigger Confirmation/Transfer
+         transferFiscalityAndDeactivate(dom)
+         return
+    }
+
+    // Normal deactivation
+    toggleDomicilioActive(dom)
+}
+
+const tryDeleteDomicilio = (dom) => {
+    if (dom.es_fiscal) {
+         const activeCandidates = form.value.domicilios.filter(d => d.id !== dom.id && d.activo !== false)
+         
+         if (activeCandidates.length === 0) {
+             notificationStore.add('Imposible eliminar: Es el domicilio fiscal obligatorio.', 'error')
+             return
+         }
+         
+         // Trigger Transfer/Delete
+         transferFiscalityAndDeactivate(dom) // Reuse transfer logic which ends in delete
+         return
+    }
+    
+    deleteDomicilio(dom)
+}
+
+const toggleDomicilioActive = async (dom) => {
+    // Legacy toggle logic
+    try {
+        await clienteStore.updateDomicilio(form.value.id, dom.id, { ...dom, activo: !dom.activo })
+        // Refresh
+        const freshClient = await clienteStore.fetchClienteById(form.value.id)
+        form.value = JSON.parse(JSON.stringify(freshClient))
+    } catch (e) {
+        console.error(e)
+    }
+}
+
+const deleteDomicilio = async (dom) => {
+    if (!confirm('¿Eliminar dirección?')) return
+    try {
+        await clienteStore.deleteDomicilio(form.value.id, dom.id)
+        // Refresh
+        const freshClient = await clienteStore.fetchClienteById(form.value.id)
+        form.value = JSON.parse(JSON.stringify(freshClient))
+    } catch (e) {
+        console.error(e)
+    }
+}
 const showTransporteCanvas = ref(false)
 const selectedTransporte = ref(null)
 
