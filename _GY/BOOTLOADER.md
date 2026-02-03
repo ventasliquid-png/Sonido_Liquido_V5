@@ -15,7 +15,7 @@ NO MODIFICAR SIN AUTORIZACIÓN EXPLÍCITA DE CAMBIO DE VERSIÓN.
 ## 3. 🎯 ESTADO DE MISIÓN (RÁPIDO)
 *   **Fase Actual:** `Dormido`
 *   **Rama Activa:** `feature/v6-multiplex-core`
-*   **Objetivo Táctico:** Validación Billetera Vínculos (Stress Test)
+*   **Objetivo Táctico:** Labme V7: Split de Pedidos (Logística N:M)
 
 ---
 **Instrucción Final:** PROCEED TO IPL LOAD.

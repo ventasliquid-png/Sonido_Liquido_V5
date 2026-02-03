@@ -28,6 +28,7 @@
 | **Transportes** | 🟡 V5.1 (TRANSICIÓN) | Nodos planos. Espejo Despacho OK. |
 | **Proveedores** | 🟡 V5.0 (AISLADO) | Sin Agenda Global. Requiere Migración. |
 | **Vendedores** | 🟡 V5.0 (AISLADO) | Sin Agenda Global. Requiere Migración. |
+| **Listas Precios** | 🟢 V6.0 (LAB) | Sistema Estanco. Inyección de Templates. |
 | **Despliegue** | 🟢 V1.3 STABLE | Bootloader V2 Integrado. |
 
 ## ⏳ INTEGRIDAD Y PRESERVACIÓN
@@ -51,3 +52,8 @@
 - **Mejora**: Implementada "Ley de Conservación Fiscal" con menú contextual para baja segura.
 - **Automatización**: Lógica cruzada CUIT <-> Consumidor Final en alta de clientes.
 - **Estabilidad**: Corregido crash de ordenamiento (localeCompare) y refresco de lista tras alta.
+
+## [2026-02-03] LABORATORIO DE PRECIOS (ESTANCO)
+- **Hito**: Implementación de sistema de gestión de listas aislado (Scripts Python).
+- **Logro**: Generación automática de Excel Versionado (`Celtrap (3)`) clonando estructura visual histórica.
+- **Regla**: Aplicación de lógica comercial "Camilleros (+10%)" y fórmulas de markup vivas.

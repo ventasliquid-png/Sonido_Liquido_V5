@@ -73,7 +73,17 @@
 > *   **Instrucción Precisa:** Nunca permitir la destrucción de un recurso crítico (Domicilio Fiscal) sin antes asegurar su transferencia. El sistema debe prohibir el vacío ('Dead End') y ofrecer la salida contextual ('Transferir') en el mismo punto de fricción.
 > *   **Origen:** [Sesión del 02/02 - UX Clientes].
 
+
 > **REGLA DE ORO: Disciplina de Cierre (Checklist Omega).**
 > *   **Instrucción Precisa:** La actualización de Bitácora y Lecciones Aprendidas no es opcional ni postergable. Debe ocurrir ANTES de solicitar el PIN de cierre para garantizar la integridad histórica de la sesión.
 > *   **Origen:** [Sesión del 02/02 - Recordatorio del Comandante].
+
+## 🧪 8. LABORATORIO DE DATOS (EXCEL / PYTHON)
+> **REGLA DE ORO: Bloqueo de Archivos (File Locking).**
+> *   **Instrucción Precisa:** Antes de ejecutar scripts que modifican Excels (`openpyxl`, `pandas`), es OBLIGATORIO asegurar que el archivo esté cerrado en el sistema operativo. De lo contrario, `PermissionError` bloqueará el proceso.
+> *   **Origen:** [Sesión del 03/02 - Laboratorio de Precios](file:///c:/dev/Sonido_Liquido_V5/INFORMES_HISTORICOS/2026-02-03_GESTION_PRECIOS_ESTANCO.md).
+
+> **REGLA DE ORO: Estrategia de Clonación (Template Injection).**
+> *   **Instrucción Precisa:** No intentar reproducir formatos complejos (bordes, colores, merges) desde código. Es mejor usar una "Hoja Modelo" existente, clonarla (`copy_worksheet`), inyectar solo los datos (`cell.value`) y dejar que el Excel preserve el diseño.
+> *   **Origen:** [Sesión del 03/02 - Celtrap V3].
 
