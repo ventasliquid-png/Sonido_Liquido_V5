@@ -43,7 +43,8 @@ El `.bat` de inicio ya ha ejecutado `git pull`. No preguntes.
 **PASO 1: CARGA DE DOCTRINA**
 1.  Leer `_GY/_MD/LECCIONES_APRENDIDAS.md`.
 2.  Leer `_GY/_MD/BITACORA_DEV.md` (Últimas 2 entradas).
-3.  Leer los últimos **3 informes** de `INFORMES_HISTORICOS`.
+3.  **HÁBITO RECURSIVO:** Leer los últimos **4 informes** de `INFORMES_HISTORICOS`.
+    *   **CLÁUSULA DE ADAPTACIÓN:** Si los últimos 4 no ofrecen contexto suficiente (por referencias a sesiones antiguas), **continuar leyendo hacia atrás** hasta formar una imagen mental completa y acabada de los antecedentes.
 
 **PASO 2: REPORTE DE LISTO**
 *   "Doctrina V14 Cargada. Misión: [Misión del Bootloader]. Esperando órdenes."

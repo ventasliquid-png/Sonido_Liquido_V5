@@ -29,6 +29,12 @@ Antes de tocar `git`, se deben actualizar los artefactos de inteligencia estáti
 ### 3. Bitácora de Desarrollo (`_GY/_MD/BITACORA_DEV.md`)
 *   [ ] **Log de Cierre:** Agregar entrada con fecha, título de la sesión y bullet points de lo logrado.
 
+### 4. Informe Histórico (`INFORMES_HISTORICOS/YYYY-MM-DD_TITULO.md`)
+*   [ ] **Generar Nuevo Reporte:** Crear un archivo markdown detallado que narre la sesión.
+*   **Contenido:** Objetivo, Intervenciones (Backend/Frontend), Métricas de Impacto y Conclusión.
+*   **Regla:** Este archivo es la "Memoria a Largo Plazo". Debe ser legible por humanos y servir de contexto para futuras sesiones.
+*   **Contexto Recursal:** Antes de redactar, leer los últimos **4 informes**. Si hay lagunas, continuar leyendo hacia atrás hasta comprender la totalidad de los antecedentes.
+
 ---
 
 ## ⚙️ FASE 2: PLANIFICACIÓN DETALLADA
