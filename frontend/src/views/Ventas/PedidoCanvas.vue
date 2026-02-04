@@ -13,6 +13,9 @@
                     </h1>
                 </div>
                 <div class="flex gap-3">
+                    <button v-if="route.params.id" @click="$router.push({ name: 'PedidoLogistica', params: { id: route.params.id } })" class="text-blue-500 hover:text-blue-400 font-bold flex items-center gap-2 transition-colors uppercase tracking-wider text-xs border border-blue-500/30 px-3 py-1 rounded bg-blue-500/10 hover:bg-blue-500/20">
+                        <i class="fas fa-truck-loading"></i> Entregas (Split)
+                    </button>
                      <button @click="resetPedido" class="text-emerald-500 hover:text-emerald-400 font-bold flex items-center gap-2 transition-colors uppercase tracking-wider text-xs">
                         <i class="fas fa-plus-circle"></i> Resetear
                     </button>

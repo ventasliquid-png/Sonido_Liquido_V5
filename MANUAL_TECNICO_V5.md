@@ -31,3 +31,11 @@ El soporte de Nivel 1 es realizado por el Agente IA "Ayuda HAWE".
 * **Gestión de Estado (Frontend):** Se utiliza `storeToRefs` (Pinia) obligatoriamente para garantizar reactividad en selects dinámicos (Cliente/Transporte).
 * **Prevención de Fallos (Backend):** Las propiedades computadas como `contacto_principal_nombre` deben implementar bloques `try/except` para aislar fallos de integridad en registros individuales y evitar caídas en listados masivos (Error 500).
 
+## 7. LOGÍSTICA TÁCTICA V7 (SPLIT ORDERS)
+* **Concepto:** Un `Pedido` es una intención comercial (Reserva de Stock). Un `Remito` es una ejecución física (Movimiento de Mercadería).
+* **Cardinalidad:** Un Pedido puede tener N Remitos (Entregas Parciales).
+* **Gatekeeper Financiero:**
+    * El sistema impide generar remitos oficiales si el Pedido no tiene el flag `liberado_despacho`.
+    * Excepción: Usuarios con permisos pueden forzar el desbloqueo bajo su responsabilidad (Audit Log).
+* **Safety Net:** La exportación a Excel detecta automáticamente si un pedido tiene logística simple (1 destino) o múltiple, adaptando la columna "Logística" para evitar errores de interpretación.
+

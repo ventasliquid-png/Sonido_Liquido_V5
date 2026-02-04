@@ -535,3 +535,23 @@ Siguiendo órdenes directas, se difirió la integración real de OAuth y se impl
 
 **Acción:** Generado reporte maestro INFORMES_HISTORICOS/2026-02-02_AUDITORIA_MULTIPLEX.md.
 
+# [V7.0] 2026-02-04 - Logística Táctica (Split Orders)
+
+> **ESTADO:** DEPLOYED
+> **TIPO:** MAJOR FEATURE / ARCHITECTURE
+
+**Objetivo:** Permitir entregas parciales y múltiples destinos para un mismo pedido (Caso "La Sevillanita" + "Retira Cliente").
+
+**Intervenciones:**
+1.  **Backend (Core Logística):**
+    *   Implementado modelo `Remito` y `RemitoItem`.
+    *   **Stock Logic:** El Pedido ahora solo reserva (`stock_reservado`). El Remito descuenta el físico (`stock_fisico`) al despachar.
+    *   **Gatekeeper:** Bloqueo de creación de remitos si el pedido no tiene `liberado_despacho` (Semáforo Financiero).
+2.  **Frontend (LogisticaSplitter):**
+    *   UI de doble panel: "Pool de Pendientes" (Izquierda) -> "Remitos Activos" (Derecha).
+    *   **Drag & Drop:** Asignación visual de mercancía a viajes específicos.
+3.  **Legacy Cleanup (Forensic):**
+    *   Auditado y reparado `excel_export.py`. Reemplazado campo muerto `tipo_entrega` por lógica dinámica Multiplex.
+
+**Resultado:** Sistema capaz de gestionar logística compleja sin romper la integridad del stock ni la trazabilidad financiera.
+

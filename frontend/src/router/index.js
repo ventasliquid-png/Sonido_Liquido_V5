@@ -111,6 +111,11 @@ const routes = [
                 path: 'pedidos/editar/:id',
                 name: 'PedidoEditar',
                 component: () => import('../views/Ventas/PedidoCanvas.vue')
+            },
+            {
+                path: 'pedidos/:id/logistica',
+                name: 'PedidoLogistica',
+                component: () => import('../views/Logistica/LogisticaSplitter.vue')
             }
         ]
     },

@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 from backend.pedidos.models import Pedido, PedidoItem
 from backend.clientes.models import Cliente, Domicilio
 from backend.maestros.models import Vendedor
+from backend.remitos.models import Remito # [GY-V7] For Split Logic Check
+from datetime import datetime
 from datetime import datetime
 
 class ExcelExportService:
@@ -38,7 +40,10 @@ class ExcelExportService:
                 "Total IVA": p.total_iva,
                 "Total General": p.total_general,
                 "Condición Pago": p.condicion_pago,
-                "Logística": p.tipo_entrega,
+                "Total General": p.total_general,
+                "Condición Pago": p.condicion_pago,
+                # [GY-V7] Logística Multiplex Repair
+                "Logística": self._get_logistica_label(p, db),
                 "Observaciones": p.observaciones,
                 "Creado Por": p.usuario_creador
             })
@@ -80,4 +85,25 @@ class ExcelExportService:
                     sheet.column_dimensions[column_letter].width = adjusted_width
 
         output.seek(0)
+        output.seek(0)
         return output
+
+    def _get_logistica_label(self, pedido: Pedido, db: Session) -> str:
+        """
+        Determina la etiqueta de logística basada en el estado de Split (V7).
+        """
+        # 1. Check Split (Remitos)
+        remito_count = db.query(Remito).filter(Remito.pedido_id == pedido.id).count()
+        
+        if remito_count > 1:
+            return "Logística Multiplex (Ver Remitos)"
+        elif remito_count == 1:
+            # Opción: Mostrar el transporte de ese único remito
+            remito = db.query(Remito).filter(Remito.pedido_id == pedido.id).first()
+            return f"Remito Único ({remito.transporte.nombre if remito.transporte else '?'})"
+            
+        # 2. Fallback V5 (Pedido Header)
+        if pedido.transporte:
+            return pedido.transporte.nombre
+            
+        return "A Coordinar / Retira Cliente"

@@ -144,6 +144,11 @@ def create_pedido_tactico(
                 "DTO ($)": item.descuento_importe or 0.0,
                 "SUBTOTAL": subtotal
             })
+            
+            # [LOGISTICA V7] Registrar Reserva de Stock
+            if producto.stock_reservado is None: 
+                producto.stock_reservado = 0.0
+            producto.stock_reservado += item.cantidad
 
         # 4. Actualizar Total (Restando descuento global y aplicando IVA si corresponde)
         raw_neto = total_pedido - (nuevo_pedido.descuento_global_importe or 0.0)
@@ -432,9 +437,17 @@ def update_pedido(
     
     if items_changed:
         # REPLACE ALL ITEMS (Tactical Mode Pattern)
-        # 1. Delete old items
+        # 1. Release Stock of old items
+        old_items = db.query(models.PedidoItem).filter(models.PedidoItem.pedido_id == pedido_id).all()
+        for old_item in old_items:
+            prod = old_item.producto
+            if prod.stock_reservado is not None:
+                prod.stock_reservado -= old_item.cantidad
+                
+        # 2. Delete old items
         db.query(models.PedidoItem).filter(models.PedidoItem.pedido_id == pedido_id).delete()
-        # 2. Insert new ones
+        
+        # 3. Insert new ones
         for it in update_data["items"]:
             # Recalculate subtotal for safety
             subtotal = (it['cantidad'] * it['precio_unitario']) - (it.get('descuento_importe') or 0)
@@ -449,6 +462,12 @@ def update_pedido(
                 nota=it.get('nota')
             )
             db.add(new_item)
+            
+            # [LOGISTICA V7] Reserva de Stock (Nuevo Item)
+            producto = db.query(Producto).get(it['producto_id'])
+            if producto:
+                if producto.stock_reservado is None: producto.stock_reservado = 0.0
+                producto.stock_reservado += it['cantidad']
         
         # We need to commit the deletes/inserts now so subsequent sum() works if we don't use the list directly
         db.flush() 
@@ -512,6 +531,11 @@ def add_pedido_item(
     )
     db.add(new_item)
     
+    # [LOGISTICA V7] Incrementar Reserva
+    if producto.stock_reservado is None:
+        producto.stock_reservado = 0.0
+    producto.stock_reservado += item_create.cantidad
+    
     # Update Total (Recalculate with IVA logic)
     raw_neto = sum(i.subtotal for i in pedido.items) - (pedido.descuento_global_importe or 0.0)
     if pedido.tipo_facturacion in ["A", "B", "FISCAL", "M"]:
@@ -547,6 +571,17 @@ def update_pedido_item(
     
     # Update fields
     update_data = item_update.dict(exclude_unset=True)
+    
+    # [LOGISTICA V7] Ajustar Reserva si cambia cantidad
+    if "cantidad" in update_data:
+        old_qty = item.cantidad
+        new_qty = update_data["cantidad"]
+        diff = new_qty - old_qty
+        
+        prod = item.producto
+        if prod.stock_reservado is None: prod.stock_reservado = 0.0
+        prod.stock_reservado += diff
+    
     for key, value in update_data.items():
         setattr(item, key, value)
     
@@ -589,6 +624,12 @@ def delete_pedido_item(item_id: int, db: Session = Depends(get_db)):
     # For now, let's recalculate total explicitly or assume client will reload.
     # Recalculating is safer.
     pedido = item.pedido
+    
+    # [LOGISTICA V7] Liberar Reserva
+    prod = item.producto
+    if prod.stock_reservado is not None:
+        prod.stock_reservado -= item.cantidad
+        
     db.delete(item)
     db.commit()
     
@@ -643,6 +684,11 @@ def clone_pedido(pedido_id: int, db: Session = Depends(get_db)):
         )
         db.add(new_item)
         
+        # [LOGISTICA V7] Reserva de Stock
+        prod = item.producto
+        if prod.stock_reservado is None: prod.stock_reservado = 0.0
+        prod.stock_reservado += item.cantidad
+        
     db.commit()
     
     # Refresh to load relations for response
@@ -662,10 +708,15 @@ def delete_pedido(pedido_id: int, db: Session = Depends(get_db)):
     Eliminación física de un pedido (Sólo Admin/Corrección).
     Elimina también los items en cascada.
     """
-    pedido = db.query(models.Pedido).get(pedido_id)
     if not pedido:
         raise HTTPException(status_code=404, detail="Pedido no encontrado")
     
+    # [LOGISTICA V7] Liberar Reservas (Phantom Fix)
+    for item in pedido.items:
+        prod = item.producto
+        if prod.stock_reservado is not None:
+            prod.stock_reservado -= item.cantidad
+            
     db.delete(pedido)
     db.commit()
     return None

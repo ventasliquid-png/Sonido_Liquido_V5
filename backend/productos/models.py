@@ -51,6 +51,10 @@ class Producto(Base):
     # Naturaleza
     tipo_producto = Column(String, default='VENTA') # VENTA, INSUMO, MATERIA_PRIMA, SERVICIO
 
+    # Stock Táctico (V7)
+    stock_fisico = Column(Numeric(10, 2), default=0.0)
+    stock_reservado = Column(Numeric(10, 2), default=0.0)
+
     # Matemática de Unidades
     unidad_stock_id = Column(Integer, ForeignKey('unidades.id'), nullable=True)
     unidad_compra_id = Column(Integer, ForeignKey('unidades.id'), nullable=True)

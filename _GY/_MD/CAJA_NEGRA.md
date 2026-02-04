@@ -1,7 +1,7 @@
 # 🛸 CAJA NEGRA (BLACK BOX) - DASHBOARD TÁCTICO V2
 
-**Última Actualización:** 02-Feb-2026 (Refinamiento UX Clientes)
-**Sesiones Completadas:** +5 (Regla 5/6)
+**Última Actualización:** 04-Feb-2026 (Logística Split & Remitos)
+**Sesiones Completadas:** +6 (Regla 6/6 - CICLO COMPLETO)
 **Rol:** Tablero de Control y Estado de Salud del Sistema.
 
 ---
@@ -57,3 +57,9 @@
 - **Hito**: Implementación de sistema de gestión de listas aislado (Scripts Python).
 - **Logro**: Generación automática de Excel Versionado (`Celtrap (3)`) clonando estructura visual histórica.
 - **Regla**: Aplicación de lógica comercial "Camilleros (+10%)" y fórmulas de markup vivas.
+
+## [2026-02-04] LOGÍSTICA TÁCTICA V7 (SPLIT ORDERS)
+- **Hito**: Implementación del sistema de entregas parciales y múltiples destinos por pedido.
+- **Backend**: Separación de stocks (`stock_reservado` vs `stock_fisico`). Gatekeeper financiero en despacho.
+- **Frontend**: Componente `LogisticaSplitter` con Drag & Drop. Branding de Remitos HTML/PDF.
+- **Limpieza**: Amputación de código zombie en exportación Excel (`tipo_entrega` -> `Multiplex`).
