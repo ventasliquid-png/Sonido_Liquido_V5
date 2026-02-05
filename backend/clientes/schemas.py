@@ -14,6 +14,9 @@ class DomicilioBase(BaseModel):
     numero: Optional[str] = None
     piso: Optional[str] = None
     depto: Optional[str] = None
+    maps_link: Optional[str] = None
+    notas_logistica: Optional[str] = None
+    contacto_id: Optional[int] = None
     cp: Optional[str] = None
     localidad: Optional[str] = None
     provincia_id: Optional[str] = None
@@ -25,6 +28,15 @@ class DomicilioBase(BaseModel):
     metodo_entrega: Optional[str] = None
     modalidad_envio: Optional[str] = None
     origen_logistico: Optional[str] = None
+    observaciones: Optional[str] = None
+    
+    calle_entrega: Optional[str] = None
+    numero_entrega: Optional[str] = None
+    piso_entrega: Optional[str] = None
+    depto_entrega: Optional[str] = None
+    cp_entrega: Optional[str] = None
+    localidad_entrega: Optional[str] = None
+    provincia_entrega_id: Optional[str] = None
 
 class DomicilioCreate(DomicilioBase):
     pass
@@ -35,6 +47,9 @@ class DomicilioUpdate(BaseModel):
     numero: Optional[str] = None
     piso: Optional[str] = None
     depto: Optional[str] = None
+    maps_link: Optional[str] = None
+    notas_logistica: Optional[str] = None
+    contacto_id: Optional[int] = None
     cp: Optional[str] = None
     localidad: Optional[str] = None
     provincia_id: Optional[str] = None
@@ -55,6 +70,9 @@ class DomicilioResponse(BaseModel):
     numero: Optional[str] = None
     piso: Optional[str] = None
     depto: Optional[str] = None
+    maps_link: Optional[str] = None
+    notas_logistica: Optional[str] = None
+    contacto_id: Optional[int] = None
     cp: Optional[str] = None
     localidad: Optional[str] = None
     provincia_id: Optional[str] = None

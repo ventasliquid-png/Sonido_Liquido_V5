@@ -254,10 +254,23 @@
                 </div>
 
                 <!-- CUIT Warning Banner (Moved here) -->
-                <div v-if="cuitWarningClients.length > 0 && !cuitWarningDismissed" class="mt-1 bg-yellow-900/20 border border-yellow-500/30 rounded p-2 text-xs">
-                    <div class="flex justify-between items-center">
-                         <p class="text-yellow-400 font-bold text-[10px]"><i class="fas fa-exclamation-triangle mr-1"></i> CUIT Duplicado</p>
-                         <button @click="dismissCuitWarning" class="text-[9px] bg-yellow-500/20 text-yellow-200 px-2 py-0.5 rounded border border-yellow-500/30 uppercase font-bold">Ignorar</button>
+                <div v-if="cuitWarningClients.length > 0 && !cuitWarningDismissed" class="mt-1 bg-yellow-900/10 border border-yellow-500/20 rounded p-2 text-xs">
+                    <div class="flex flex-col gap-2">
+                         <div class="flex items-start gap-2">
+                             <i class="fas fa-store text-yellow-400 mt-0.5"></i>
+                             <div>
+                                 <p class="text-yellow-200 font-bold text-[10px] uppercase">CUIT Existente Detectado</p>
+                                 <p class="text-yellow-200/50 text-[9px] leading-tight">Este CUIT ya pertenece a {{ cuitWarningClients.length }} cliente(s) (ej: {{ cuitWarningClients[0].razon_social }}).</p>
+                             </div>
+                         </div>
+                         <div class="flex gap-2 justify-end">
+                             <button @click="selectExistingClient(cuitWarningClients[0])" class="text-[9px] text-cyan-400 hover:text-cyan-300 underline mr-auto self-center">
+                                 Ir al existente
+                             </button>
+                             <button @click="dismissCuitWarning" class="flex items-center gap-1 text-[9px] bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-200 px-3 py-1 rounded border border-yellow-500/30 uppercase font-bold transition-colors">
+                                 <i class="fas fa-plus-circle"></i> Nueva Unidad de Negocio
+                             </button>
+                         </div>
                     </div>
                 </div>
                 <p v-if="cuitError" class="text-[10px] text-red-400 mt-1">{{ cuitError }}</p>
@@ -374,7 +387,7 @@
         <!-- Domicilio Form Overlay - Outside Tabs -->
         <Teleport to="body">
             <div v-if="showDomicilioForm" class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" @click.self="showDomicilioForm = false">
-                <DomicilioForm 
+                <DomicilioSplitCanvas 
                     :show="showDomicilioForm" 
                     :domicilio="selectedDomicilio" 
                     :has-fiscal="hasFiscalAddress"
@@ -452,7 +465,8 @@ import { useMaestrosStore } from '../../../stores/maestros'
 import { useClientesStore } from '../../../stores/clientes'
 import { useNotificationStore } from '../../../stores/notification'
 import clientesService from '../../../services/clientes'
-import DomicilioForm from './DomicilioForm.vue'
+// import DomicilioForm from './DomicilioForm.vue'
+import DomicilioSplitCanvas from './DomicilioSplitCanvas.vue'
 import CondicionIvaForm from '../../Maestros/CondicionIvaForm.vue'
 import ContextMenu from '../../../components/common/ContextMenu.vue'
 import SimpleAbmModal from '../../../components/common/SimpleAbmModal.vue'

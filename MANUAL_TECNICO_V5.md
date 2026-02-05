@@ -39,3 +39,11 @@ El soporte de Nivel 1 es realizado por el Agente IA "Ayuda HAWE".
     * Excepción: Usuarios con permisos pueden forzar el desbloqueo bajo su responsabilidad (Audit Log).
 * **Safety Net:** La exportación a Excel detecta automáticamente si un pedido tiene logística simple (1 destino) o múltiple, adaptando la columna "Logística" para evitar errores de interpretación.
 
+## 8. HUB LOGÍSTICO V5.7 (SPLIT VIEW)
+* **Arquitectura Híbrida:** Se separa la dirección en dos entidades conceptuales:
+    * **Fiscal (Panel Izquierdo):** Datos legales validados. Solo editable con Flag Fiscal.
+    * **Logística (Panel Derecho):** Datos operativos del punto de entrega.
+* **Mapeo de Datos:**
+    * Para evitar inconsistencias, si un domicilio NO es fiscal, el sistema **copia automáticamente** los datos del panel logístico (Calle Entrega, Número Entrega) a los campos nucleares de la base de datos (`calle`, `numero`).
+    * **Razón:** El backend espera la dirección física en `calle`. Si solo se llenaba `calle_entrega`, el registro quedaba "vacío" a nivel lógico.
+

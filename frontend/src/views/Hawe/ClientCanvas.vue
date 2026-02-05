@@ -97,66 +97,117 @@
                       <div 
                         @click="openFiscalEditor"
                         @contextmenu.prevent="openFiscalContextMenu($event, domicilios.find(d => d.es_fiscal))"
-                        class="bg-cyan-900/10 border border-cyan-500/20 rounded-xl p-3 relative group cursor-pointer hover:bg-cyan-900/20 hover:border-cyan-500/50 transition-all"
+                        class="bg-fuchsia-900/10 border border-fuchsia-500/20 rounded-xl p-3 relative group cursor-pointer hover:bg-fuchsia-900/20 hover:border-fuchsia-500/50 transition-all"
                       >
-                          <div class="flex justify-between items-center mb-2 border-b border-cyan-500/10 pb-1">
-                              <label class="text-[10px] font-bold text-cyan-400 uppercase tracking-widest"><i class="fas fa-file-invoice mr-1"></i> Domicilio Fiscal <span class="text-red-400">*</span></label>
+                          <div class="flex justify-between items-center mb-2 border-b border-fuchsia-500/10 pb-1">
+                              <label class="text-[10px] font-bold text-fuchsia-400 uppercase tracking-widest"><i class="fas fa-file-invoice mr-1"></i> Domicilio Fiscal <span class="text-red-400">*</span></label>
                               <div class="flex items-center gap-2">
-                                  <div class="text-[9px] text-cyan-500/50 group-hover:text-cyan-400 transition-colors">
+                                  <div class="text-[9px] text-fuchsia-500/50 group-hover:text-fuchsia-400 transition-colors">
                                       <i class="fas fa-pencil-alt mr-1"></i> Editar
                                   </div>
-                                  <button @click.stop="openFiscalContextMenu($event, domicilios.find(d => d.es_fiscal))" class="text-cyan-500/30 hover:text-white px-1">
+                                  <button @click.stop="openFiscalContextMenu($event, domicilios.find(d => d.es_fiscal))" class="text-fuchsia-500/30 hover:text-white px-1">
                                       <i class="fas fa-ellipsis-v"></i>
                                   </button>
                               </div>
                           </div>
                           <div>
                               <p class="text-sm tracking-wide truncate" :class="computedFiscalAddress.includes('Pendiente') ? 'text-white/40 italic font-medium' : 'text-white font-bold'">{{ computedFiscalAddress.split(',')[0] }}</p>
-                              <p class="text-[10px] text-cyan-200/50 font-mono">{{ computedFiscalAddress.split(',').slice(1).join(', ') || (computedFiscalAddress.includes('Pendiente') ? '' : 'Sin Localidad') }}</p>
+                              <p class="text-[10px] text-fuchsia-200/50 font-mono">{{ computedFiscalAddress.split(',').slice(1).join(', ') || (computedFiscalAddress.includes('Pendiente') ? '' : 'Sin Localidad') }}</p>
                           </div>
                       </div>
 
                       <!-- Domicilio Entrega & Transporte -->
-                      <div class="bg-emerald-900/10 border border-emerald-500/20 rounded-xl p-3 relative group">
-                          <div class="flex justify-between items-center mb-2 border-b border-emerald-500/10 pb-1">
-                              <label class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest"><i class="fas fa-truck mr-1"></i> Entrega Principal</label>
-                              <div class="flex items-center gap-2">
-                                  <label class="text-[9px] font-bold text-white/30 uppercase">Fantasía:</label>
-                                  <input v-model="form.nombre_fantasia" type="text" class="bg-black/20 border border-white/10 rounded px-1.5 py-0.5 text-[10px] text-white focus:outline-none w-32" placeholder="Nombre Fantasía..." />
-                              </div>
+                      <!-- Hub Logístico -->
+                  <div class="space-y-3">
+                      
+                      <!-- A. PRIMARY DELIVERY CARD (Always Visible) -->
+                      <div 
+                        @click="openEntregaEditor"
+                        class="bg-emerald-900/10 border border-emerald-500/30 rounded-2xl p-4 relative group cursor-pointer hover:bg-emerald-900/20 transition-all overflow-hidden"
+                      >
+                          <div class="absolute top-0 right-0 p-3 opacity-50 group-hover:opacity-100 transition-opacity">
+                              <i class="fas fa-edit text-emerald-400"></i>
                           </div>
-                          
-                          <div class="grid grid-cols-2 gap-3">
-                              <!-- Address Preview -->
-                              <div 
-                                @click="openAddressContextMenu($event, domiciliosLogistica.length > 0 ? domiciliosLogistica[0] : null)" 
-                                @contextmenu.prevent="openAddressContextMenu($event, domiciliosLogistica.length > 0 ? domiciliosLogistica[0] : null)"
-                                class="col-span-2 cursor-pointer hover:bg-white/5 p-2 rounded-lg transition-all group/addr"
-                              >
-                                   <!-- Logic to show Primary Delivery Address -->
-                                    <template v-if="domiciliosLogistica.length > 0">
-                                        <div class="flex justify-between items-start">
-                                            <div>
-                                                <p class="text-xs font-bold text-white truncate">{{ domiciliosLogistica[0].calle }} {{ domiciliosLogistica[0].numero }}</p>
-                                                <p class="text-[9px] text-emerald-200/50 uppercase">{{ domiciliosLogistica[0].localidad }}</p>
-                                            </div>
-                                            <!-- Transport Read-Only -->
-                                            <div class="text-right">
-                                                 <p class="text-[9px] text-emerald-400 font-bold uppercase truncate max-w-[120px]">
-                                                     <i class="fas fa-truck mr-1"></i>
-                                                     {{ getTransportName(domiciliosLogistica[0].transporte_id) }}
-                                                 </p>
-                                                 <p class="text-[8px] text-emerald-500/30 uppercase">Transporte Asignado</p>
-                                            </div>
-                                        </div>
-                                    </template>
-                                    <template v-else>
-                                        <p class="text-[10px] text-white/30 italic text-center py-2">Sin Domicilio de Entrega</p>
-                                    </template>
+
+                          <div class="flex flex-col h-full justify-between gap-4">
+                              <!-- Header -->
+                              <div class="flex items-center gap-3">
+                                  <div class="h-10 w-10 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+                                      <i class="fas fa-truck-fast text-emerald-400 text-lg"></i>
+                                  </div>
+                                  <div>
+                                       <h3 class="text-xs font-bold text-white uppercase tracking-widest">Entrega Principal</h3>
+                                       <span class="text-[10px] text-emerald-400/60 font-mono">
+                                           {{ computedPrimaryDelivery ? (computedPrimaryDelivery.alias || 'Sede Central') : 'Sin Asignar' }}
+                                       </span>
+                                  </div>
+                              </div>
+                              
+                              <!-- Primary Address Details -->
+                              <div v-if="computedPrimaryDelivery">
+                                   <div class="flex items-start gap-2 mb-1">
+                                       <i class="fas fa-map-pin text-emerald-500 mt-0.5 text-[10px]"></i>
+                                       <div>
+                                           <p class="text-sm font-bold text-white leading-tight">
+                                               {{ computedPrimaryDelivery.calle }} {{ computedPrimaryDelivery.numero }}
+                                           </p>
+                                           <p class="text-[10px] text-white/50">
+                                               {{ computedPrimaryDelivery.localidad }} • {{ computedPrimaryDelivery.cp }}
+                                           </p>
+                                       </div>
+                                    <!-- Transport Badge -->
+                                   <div class="flex items-center gap-2 mt-2 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 w-fit">
+                                        <i class="fas fa-dolly text-emerald-400 text-[10px]"></i>
+                                        <span class="text-[10px] font-bold text-emerald-300 uppercase">
+                                            {{ computedPrimaryDelivery.transporte?.nombre || 'Retira Cliente' }}
+                                        </span>
+                                   </div>
+                                   </div>
+                              </div>
+                              <div v-else class="text-center py-4 text-white/20 italic text-xs">
+                                  Click para asignar dirección de entrega
                               </div>
                           </div>
                       </div>
 
+                      <!-- B. SECONDARY DELIVERY LIST (Expandable/Scrollable) -->
+                      <div v-if="computedSecondaryDeliveries.length > 0" class="border-t border-white/5 pt-2">
+                          <h4 class="text-[9px] font-bold text-white/30 uppercase tracking-widest mb-2 flex items-center justify-between px-1">
+                              <span>Otras Direcciones ({{ computedSecondaryDeliveries.length }})</span>
+                              <button @click.stop="openNewDomicilio" class="hover:text-cyan-400 transition-colors"><i class="fas fa-plus"></i></button>
+                          </h4>
+                          
+                          <div class="space-y-1.5 max-h-[120px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 pr-1">
+                              <div 
+                                  v-for="sec in computedSecondaryDeliveries" 
+                                  :key="sec.id"
+                                  @click="openDomicilioTab(sec)"
+                                  class="flex items-center justify-between p-2 rounded-lg border border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/10 cursor-pointer group transition-all"
+                              >
+                                  <div class="flex items-center gap-3 min-w-0">
+                                      <div class="h-6 w-6 rounded bg-white/5 flex items-center justify-center text-white/30 group-hover:text-emerald-400 transition-colors font-bold text-[9px] shrink-0">
+                                          {{ (sec.alias || sec.calle || 'SU').substring(0,2).toUpperCase() }}
+                                      </div>
+                                      <div class="min-w-0">
+                                          <p class="text-[10px] font-bold text-white/70 group-hover:text-white truncate">
+                                              {{ sec.calle || 'Sin Calle' }} {{ sec.numero }}
+                                          </p>
+                                          <p class="text-[9px] text-white/30 truncate">{{ sec.localidad || 'Sin Localidad' }}</p>
+                                      </div>
+                                  </div>
+                                  <i class="fas fa-chevron-right text-[9px] text-white/10 group-hover:text-white/50"></i>
+                              </div>
+                          </div>
+                      </div>
+
+                      <!-- No Secondary but 'Add' hint -->
+                      <div v-else class="text-right px-1">
+                           <button @click="openNewDomicilio" class="text-[9px] font-bold text-cyan-500/50 hover:text-cyan-400 uppercase tracking-widest transition-colors">
+                               + Agregar otra sucursal
+                           </button>
+                      </div>
+
+                  </div>
                   </div>
 
                   <!-- LINE 2: FISCAL & COMMERCIAL (CUIT / IVA / Lista / Segmento) -->
@@ -236,8 +287,8 @@
                       </div>
                       
                       <div class="mb-3">
-                          <p class="text-[11px] font-bold text-white truncate">{{ dom.calle }} {{ dom.numero }}</p>
-                          <p class="text-[10px] text-white/40 truncate">{{ dom.localidad }}</p>
+                          <p class="text-[11px] font-bold text-white truncate">{{ dom.calle || 'Sin Calle Definida' }} {{ dom.numero }}</p>
+                          <p class="text-[10px] text-white/40 truncate">{{ dom.localidad || 'Sin Localidad' }}</p>
                       </div>
 
                       <div class="flex items-center gap-2 text-[10px] text-emerald-400/70 border-t border-white/5 pt-2 mt-auto">
@@ -401,11 +452,14 @@
       <!-- Modals & Context Menus (Existing) -->
       <!-- Modals & Context Menus (Existing) -->
       <!-- <SegmentoForm ... /> Removed unused components -->
-      <DomicilioForm 
+      <!-- <SegmentoForm ... /> Removed unused components -->
+      <DomicilioSplitCanvas 
         v-if="activeTab === 'DOMICILIO'" 
         :show="true" 
         :domicilio="selectedDomicilio" 
-        :isSoleFiscal="domicilios.filter(d => d.es_fiscal && d.activo !== false).length <= 1"
+        :has-fiscal="domicilios.some(d => d.es_fiscal && d.activo !== false)"
+        :fiscal-domicilio="domicilios.find(d => d.es_fiscal)"
+        :primary-delivery="computedPrimaryDelivery"
         @close="activeTab = 'CLIENTE'" 
         @saved="handleDomicilioSaved" 
       />
@@ -442,7 +496,8 @@ import { useClientesStore } from '../../stores/clientes'
 import { useMaestrosStore } from '../../stores/maestros'
 import { useNotificationStore } from '../../stores/notification'
 import canteraService from '../../services/canteraService'
-import DomicilioForm from './components/DomicilioForm.vue'
+// import DomicilioForm from './components/DomicilioForm.vue'
+import DomicilioSplitCanvas from './components/DomicilioSplitCanvas.vue'
 import ContactoForm from './components/ContactoForm.vue'
 import ContactoPopover from './components/ContactoPopover.vue'
 import SmartSelect from '../../components/ui/SmartSelect.vue'
@@ -465,6 +520,8 @@ const isNew = ref(false)
 const expandLogistics = ref(false)
 const showAgenda = ref(false)
 const activeTab = ref('CLIENTE') // 'CLIENTE', 'DOMICILIO', 'CONTACTO'
+const selectedDomicilio = ref(null)
+
 
 const form = ref({
     id: null,
@@ -602,6 +659,30 @@ const computedFiscalAddress = computed(() => {
     return 'Domicilio Pendiente'
 })
 
+const computedPrimaryDelivery = computed(() => {
+    if (!domicilios.value) return null;
+    return domicilios.value.find(d => !d.es_fiscal && d.es_entrega && d.activo !== false) 
+        || domicilios.value.find(d => d.es_fiscal && d.es_entrega) 
+        || domicilios.value.find(d => d.es_fiscal)
+        || domicilios.value[0];
+})
+
+const computedSecondaryDeliveries = computed(() => {
+    const primary = computedPrimaryDelivery.value;
+    if (!primary) return [];
+    
+    // Filter all delivery nodes that are NOT the primary one
+    return domicilios.value.filter(d => 
+        (d.es_entrega || d.es_fiscal) && // Consider fiscal as delivery if marked? No, usually distinct.
+        d.activo !== false &&
+        (d.id ? String(d.id) !== String(primary.id) : d.local_id !== primary.local_id)
+        // Also exclude pure fiscal from this list if it's not meant for delivery?
+        // Usually secondary addresses are explicit delivery nodes (!es_fiscal).
+        // Let's stick to !es_fiscal for secondary list to avoid duplicating the Master Fiscal Card.
+        && !d.es_fiscal
+    );
+})
+
 
 const domiciliosLogistica = computed(() => {
     return domicilios.value.filter(d => !d.es_fiscal && d.activo !== false)
@@ -614,6 +695,16 @@ const visibleLogistics = computed(() => {
 
 // --- Navigation Methods ---
 const goBackToSource = () => {
+    // If inside a sub-view (Domicilio or Contacto Form), just close it
+    if (showContactoForm.value) {
+        showContactoForm.value = false
+        return
+    }
+    if (activeTab.value !== 'CLIENTE') {
+        activeTab.value = 'CLIENTE'
+        return
+    }
+
     if (route.query.mode === 'satellite') {
         window.close()
         return
@@ -1017,6 +1108,38 @@ const cloneCliente = () => {
     notificationStore.add('Registro clonado. Revise y guarde.', 'info')
 }
 
+const openDomicilioTab = (dom = null) => {
+    selectedDomicilio.value = dom;
+    activeTab.value = 'DOMICILIO';
+}
+
+const openNewDomicilio = () => {
+    selectedDomicilio.value = null;
+    activeTab.value = 'DOMICILIO';
+}
+
+const openFiscalEditor = () => {
+    const fiscal = domicilios.value.find(d => d.es_fiscal);
+    if (fiscal) {
+        openDomicilioTab(fiscal); 
+    } else {
+        openNewDomicilio(); 
+    }
+};
+
+const openEntregaEditor = () => {
+    const delivery = domicilios.value.find(d => !d.es_fiscal && d.es_entrega && d.activo !== false) 
+                  || domicilios.value.find(d => d.es_fiscal && d.es_entrega) 
+                  || domicilios.value.find(d => d.es_fiscal)
+                  || domicilios.value[0];
+                  
+    if (delivery) {
+        openDomicilioTab(delivery);
+    } else {
+        openNewDomicilio();
+    }
+};
+
 // --- Specific Logic & UI Handlers ---
 const handleCuitInput = (e) => {
     form.value.cuit = e.target.value.replace(/[^0-9]/g, '')
@@ -1042,82 +1165,79 @@ const handleSegmentoSaved = async () => {
     await maestrosStore.fetchSegmentos(null, true)
 }
 
-// Domicilios Logic
-const selectedDomicilio = ref(null)
-const openDomicilioTab = (domicilio = null) => {
-    selectedDomicilio.value = domicilio
-    activeTab.value = 'DOMICILIO'
-}
-const openFiscalEditor = () => {
-    const fiscal = domicilios.value.find(d => d.es_fiscal)
-    openDomicilioTab(fiscal)
-}
+
+
 const handleDomicilioSaved = async (domicilioData) => {
     try {
-        // --- 1. FISCAL CONSERVATION LAWS ---
-        
-        // Rule 1: The Castling (El Enroque)
-        // If a new address claims to be Fiscal, abdicate the previous one.
+        // --- 1. FISCAL CONSERVATION LAWS (Standard Logic) ---
         if (domicilioData.es_fiscal) {
              const existingFiscal = domicilios.value.find(d => {
                  if (!d.es_fiscal || d.activo === false) return false;
-                 
-                 // [GY-FIX] Robust Identity Check
-                 // If both have IDs, compare IDs
                  if (d.id && domicilioData.id) return String(d.id) !== String(domicilioData.id);
-                 
-                 // If both have local_ids, compare local_ids
                  if (d.local_id && domicilioData.local_id) return d.local_id !== domicilioData.local_id;
-                 
-                 // If mixed (one has ID, one local), they are different
                  if ((d.id && !domicilioData.id) || (!d.id && domicilioData.id)) return true;
-                 
-                 // If neither has ID (both new, unsaved?), assume different unless reference match?
-                 // Ideally newly created passed via 'saved' event should have a temporary ID or differ from existing.
-                 // But in this flow, 'domicilioData' is the NEW one coming from form. 
-                 // If d is in array, and d has no ID/local_id, it's a ghost?
-                 // We will assume different if we can't prove equality.
                  return true; 
              });
-
              if (existingFiscal) {
                  existingFiscal.es_fiscal = false;
-                 // Update server silently to maintain consistency ONLY if it has real ID
                  if (existingFiscal.id && !isNew.value) {
                     store.updateDomicilio(form.value.id, existingFiscal.id, { es_fiscal: false });
                  }
              }
         }
-
-        // Rule 2: The Succession (La Sucesión & Integrity)
-        // If Deactivating or Unchecking Fiscal...
         if (domicilioData.activo === false || (domicilioData.id && !domicilioData.es_fiscal)) {
              const currentInArray = domicilios.value.find(d => String(d.id) === String(domicilioData.id));
-             const wasFiscal = currentInArray?.es_fiscal;
-             
-             if (wasFiscal) {
+             if (currentInArray?.es_fiscal) {
                  const activeDomicilios = domicilios.value.filter(d => d.activo !== false && String(d.id) !== String(domicilioData.id));
-                 
-                 // Block if it's the last one
                  if (activeDomicilios.length === 0) {
                      alert("LEY DE CONSERVACION: Debe existir al menos un domicilio fiscal activo.");
                      return; 
                  }
-                 
-                 // Otherwise, Promote Successor
                  const successor = activeDomicilios[0];
                  successor.es_fiscal = true;
                  await store.updateDomicilio(form.value.id, successor.id, { es_fiscal: true });
-                 notificationStore.add(`Fiscalidad transferida a: ${successor.calle}`, 'info');
              }
         }
 
-        // --- 2. DATA PREPARATION ---
+        // --- 2. HYBRID SAVE (SPLIT UPDATE) ---
+        if (domicilioData.linked_delivery_id) {
+            // We are editing Fiscal (domicilioData.id) AND a separate Delivery (linked_delivery_id)
+            
+            // A. Payload for Fiscal Record (Left Panel)
+            const fiscalFields = ['calle', 'numero', 'piso', 'depto', 'cp', 'localidad', 'provincia_id', 'es_fiscal', 'alias'];
+            const fiscalPayload = {};
+            fiscalFields.forEach(k => { if(domicilioData[k] !== undefined) fiscalPayload[k] = domicilioData[k] });
+
+            // B. Payload for Delivery Record (Right Panel)
+            const deliveryFields = [
+                'calle_entrega', 'numero_entrega', 'piso_entrega', 'depto_entrega', 
+                'cp_entrega', 'localidad_entrega', 'provincia_entrega_id',
+                'metodo_entrega', 'transporte_id', 'modalidad_envio', 'origen_logistico',
+                'notas_logistica', 'observaciones', 'contacto_id', 'maps_link'
+            ];
+            const deliveryPayload = {};
+            deliveryFields.forEach(k => { if(domicilioData[k] !== undefined) deliveryPayload[k] = domicilioData[k] });
+            
+            // Execute Updates
+            await store.updateDomicilio(form.value.id, domicilioData.id, fiscalPayload);
+            await store.updateDomicilio(form.value.id, domicilioData.linked_delivery_id, deliveryPayload);
+            
+            notificationStore.add('Domicilio Fiscal y de Entrega actualizados', 'success');
+            await loadCliente(form.value.id);
+            activeTab.value = 'CLIENTE';
+            return;
+        }
+
+        // --- 3. STANDARD SAVE (Single Record) ---
         const allowedFields = [
             'calle', 'numero', 'piso', 'depto', 'cp', 'localidad', 
             'provincia_id', 'transporte_id', 'es_fiscal', 'es_entrega', 'activo',
             'metodo_entrega', 'modalidad_envio', 'origen_logistico', 'observaciones',
-            'id', 'cliente_id' 
+            'id', 'cliente_id',
+            // Add Delivery Spec functions
+            'calle_entrega', 'numero_entrega', 'piso_entrega', 'depto_entrega', 
+            'cp_entrega', 'localidad_entrega', 'provincia_entrega_id',
+            'notas_logistica', 'maps_link', 'contacto_id'
         ];
         
         const payload = {};
@@ -1127,66 +1247,26 @@ const handleDomicilioSaved = async (domicilioData) => {
             }
         }
 
-        // --- 3. PERSISTENCE LAYER ---
+        // Persistence
         if (isNew.value) {
-            // Local Save
-            // Local Save
             if (domicilioData.local_id || domicilioData.id) {
                 const idx = domicilios.value.findIndex(d => (d.local_id && d.local_id === domicilioData.local_id) || (d.id && d.id === domicilioData.id))
                 if (idx !== -1) domicilios.value[idx] = { ...domicilioData };
-                else domicilios.value.push({ ...domicilioData, local_id: Date.now() }); // Fallback if ID exists but not found locally?
+                else domicilios.value.push({ ...domicilioData, local_id: Date.now() }); 
             } else {
                 domicilios.value.push({ ...domicilioData, local_id: Date.now() });
             }
             notificationStore.add('Domicilio añadido localmente', 'info');
         } else {
-            // Server Save
-            // Optimistic Update
-            const idx = domicilios.value.findIndex(d => String(d.id) === String(domicilioData.id));
-            if (idx !== -1) {
-                domicilios.value[idx] = { ...domicilios.value[idx], ...domicilioData };
-                // Trigger reactivity
-                domicilios.value = [...domicilios.value]; 
-            }
-            
+             // Optimistic Update can be skipped for brevity as we reload
             let savedDom;
             if (domicilioData.id) {
                 savedDom = await store.updateDomicilio(form.value.id, domicilioData.id, payload);
             } else {
                 savedDom = await store.createDomicilio(form.value.id, payload);
             }
-
-            // Authoritative Sync
-            if (savedDom) {
-                 const authIdx = domicilios.value.findIndex(d => String(d.id) === String(savedDom.id));
-                 if (authIdx !== -1) {
-                     domicilios.value[authIdx] = savedDom;
-                 } else {
-                     domicilios.value.push(savedDom);
-                 }
-                 domicilios.value = [...domicilios.value];
-
-                 // Rule 3: Security Protocol "RETIRA"
-                 // Check if we lost all delivery addresses
-                 const hasDelivery = domicilios.value.some(d => d.es_entrega && d.activo !== false);
-                 if (!hasDelivery) {
-                     // Default to Fiscal
-                     const fiscalDom = domicilios.value.find(d => d.es_fiscal && d.activo !== false);
-                     if (fiscalDom) {
-                         // Force Reset to Retira
-                         await store.updateDomicilio(form.value.id, fiscalDom.id, { 
-                             es_entrega: true,
-                             transporte_id: 1 // ID 1 = Retira
-                         });
-                         notificationStore.add('PROTOCOLO SEGURIDAD: Transporte reseteado a RETIRA.', 'warning');
-                         await loadCliente(form.value.id);
-                     }
-                 }
-            }
-            
-            // Final Refresh to hydrate relations (e.g. Transporte Name)
+            // Sync & Reload
             await loadCliente(form.value.id);
-            
             notificationStore.add('Domicilio guardado', 'success');
         }
     } catch (e) {

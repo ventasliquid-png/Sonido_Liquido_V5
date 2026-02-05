@@ -1,7 +1,7 @@
 # 🛸 CAJA NEGRA (BLACK BOX) - DASHBOARD TÁCTICO V2
 
-**Última Actualización:** 04-Feb-2026 (Logística Split & Remitos)
-**Sesiones Completadas:** +6 (Regla 6/6 - CICLO COMPLETO)
+**Última Actualización:** 05-Feb-2026 (Fix 500 & Hub Domicilios)
+**Sesiones Completadas:** +7 (Ciclo Extendido)
 **Rol:** Tablero de Control y Estado de Salud del Sistema.
 
 ---
@@ -69,3 +69,9 @@
 - **Riesgo**: Dificulta queries SQL y validación.
 - **Plan**: **Saneamiento Definitivo V7**. Restitución de columnas nativas y migración de datos.
 - **Ref**: `INFORMES_HISTORICOS/2026-02-04_PLAN_TECNICO_SPLIT_V7.md`.
+
+## [2026-02-05] ESTABILIZACIÓN CRÍTICA V5.7
+- **Incidente**: Error 500 en Productos por desfasaje de esquema (columnas faltantes) y datos corruptos (costos nulos).
+- **Resolución**: Migración de Schema (`update_schema.py`) y Script de Reparación de Datos (`fix_product_data.py`).
+- **Hub Logístico**: Solucionado el bug de "Calle Vacía" en Split View. Implementado mapeo automático de panel derecho a izquierda para direcciones no fiscales.
+- **Estado**: Sistema Restaurado.

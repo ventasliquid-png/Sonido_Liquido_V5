@@ -151,8 +151,11 @@ class Domicilio(Base):
     alias = Column(String, nullable=True) # "Depósito Norte"
     calle = Column(String, nullable=True)
     numero = Column(String, nullable=True)
-    # piso = Column(String, nullable=True) # [GY-ROLLBACK] Removed to fix crash
-    # depto = Column(String, nullable=True) # [GY-ROLLBACK] Removed to fix crash
+    piso = Column(String, nullable=True) # [V7]
+    depto = Column(String, nullable=True) # [V7]
+    maps_link = Column(String, nullable=True) # [V7] Link GMaps or LatLong
+    notas_logistica = Column(Text, nullable=True) # [V7] Instrucciones chofer
+    contacto_id = Column(Integer, nullable=True) # [V7] Referencia a contacto logístico
     cp = Column(String, nullable=True)
     localidad = Column(String, nullable=True)
     provincia_id = Column(String(5), ForeignKey("provincias.id"), nullable=True)
@@ -161,7 +164,17 @@ class Domicilio(Base):
     activo = Column(Boolean, default=True, nullable=False)
     es_fiscal = Column(Boolean, default=False)
     es_entrega = Column(Boolean, default=False)
+    observaciones = Column(Text, nullable=True) # [V7.1] Notas generales del domicilio
     
+    # [V7.2] Dirección de Entrega (Separada de Fiscal)
+    calle_entrega = Column(String, nullable=True)
+    numero_entrega = Column(String, nullable=True)
+    piso_entrega = Column(String, nullable=True)
+    depto_entrega = Column(String, nullable=True)
+    cp_entrega = Column(String, nullable=True)
+    localidad_entrega = Column(String, nullable=True)
+    provincia_entrega_id = Column(String(5), ForeignKey("provincias.id"), nullable=True)
+
     # Logística
     transporte_habitual_nodo_id = Column(GUID(), ForeignKey("nodos_transporte.id"), nullable=True)
     transporte_id = Column(GUID(), ForeignKey("empresas_transporte.id"), nullable=True)
@@ -174,7 +187,8 @@ class Domicilio(Base):
     
     # Relaciones
     cliente = relationship("Cliente", back_populates="domicilios")
-    provincia = relationship(Provincia)
+    provincia = relationship(Provincia, foreign_keys=[provincia_id])
+    provincia_entrega = relationship(Provincia, foreign_keys=[provincia_entrega_id])
     transporte_habitual_nodo = relationship("NodoTransporte")
     transporte = relationship("EmpresaTransporte", foreign_keys=[transporte_id])
     intermediario = relationship("EmpresaTransporte", foreign_keys=[intermediario_id])
