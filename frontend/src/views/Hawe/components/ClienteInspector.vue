@@ -857,6 +857,46 @@ const transferFiscalityAndDeactivate = async (currentFiscal) => {
 
 
 
+const deleteDomicilio = async (dom) => {
+    if (!confirm(`¿Está seguro que desea eliminar el domicilio de ${dom.calle}? Esta acción no se puede deshacer.`)) return
+    
+    try {
+        await clienteStore.deleteDomicilio(form.value.id, dom.id)
+        
+        // Refresh client
+        const updatedClient = await clienteStore.fetchClienteById(form.value.id)
+        form.value = JSON.parse(JSON.stringify(updatedClient))
+        emit('switch-client', updatedClient.id) // Force refresh
+        
+        notificationStore.add('Domicilio eliminado', 'success')
+    } catch (e) {
+        console.error(e)
+        notificationStore.add('Error al eliminar domicilio', 'error')
+    }
+}
+
+const toggleDomicilioActive = async (dom) => {
+    try {
+        const newState = !dom.activo
+        // Optimistic update
+        dom.activo = newState
+        
+        // [GY-FIX] Use store instead of direct service for consistency
+        await clienteStore.updateDomicilio(form.value.id, dom.id, { ...dom, activo: newState })
+        
+        // Background refresh to ensure consistency
+        const freshClient = await clienteStore.fetchClienteById(form.value.id)
+        form.value = JSON.parse(JSON.stringify(freshClient))
+        
+        // Force list refresh to ensure indicators update in Grid/List
+        clienteStore.fetchClientes()
+    } catch (e) {
+        console.error(e)
+        dom.activo = !dom.activo // Revert on error
+        notificationStore.add('Error al actualizar estado', 'error')
+    }
+}
+
 // --- Domicilio Actions Interceptors ---
 const tryToggleDomicilioActive = (dom) => {
     // If activating, just do it
@@ -903,29 +943,7 @@ const tryDeleteDomicilio = (dom) => {
     deleteDomicilio(dom)
 }
 
-const toggleDomicilioActive = async (dom) => {
-    // Legacy toggle logic
-    try {
-        await clienteStore.updateDomicilio(form.value.id, dom.id, { ...dom, activo: !dom.activo })
-        // Refresh
-        const freshClient = await clienteStore.fetchClienteById(form.value.id)
-        form.value = JSON.parse(JSON.stringify(freshClient))
-    } catch (e) {
-        console.error(e)
-    }
-}
 
-const deleteDomicilio = async (dom) => {
-    if (!confirm('¿Eliminar dirección?')) return
-    try {
-        await clienteStore.deleteDomicilio(form.value.id, dom.id)
-        // Refresh
-        const freshClient = await clienteStore.fetchClienteById(form.value.id)
-        form.value = JSON.parse(JSON.stringify(freshClient))
-    } catch (e) {
-        console.error(e)
-    }
-}
 const showTransporteCanvas = ref(false)
 const selectedTransporte = ref(null)
 
@@ -1303,43 +1321,7 @@ const save = async () => {
     }
 }
 
-const deleteDomicilio = async (dom) => {
-    if (!confirm(`¿Está seguro que desea eliminar el domicilio de ${dom.calle}? Esta acción no se puede deshacer.`)) return
-    
-    try {
-        await clientesService.deleteDomicilio(form.value.id, dom.id)
-        
-        // Refresh client
-        const updatedClient = await clienteStore.fetchClienteById(form.value.id)
-        form.value = JSON.parse(JSON.stringify(updatedClient))
-        emit('switch-client', updatedClient.id) // Force refresh
-        
-        notificationStore.add('Domicilio eliminado', 'success')
-    } catch (e) {
-        console.error(e)
-        notificationStore.add('Error al eliminar domicilio', 'error')
-    }
-}
 
-const toggleDomicilioActive = async (dom) => {
-    try {
-        const newState = !dom.activo
-        // Optimistic update
-        dom.activo = newState
-        
-        await clientesService.updateDomicilio(form.value.id, dom.id, { activo: newState })
-        
-        // Background refresh to ensure consistency
-        await clienteStore.fetchClienteById(form.value.id)
-        
-        // Force list refresh to ensure indicators update in Grid/List
-        clienteStore.fetchClientes()
-    } catch (e) {
-        console.error(e)
-        dom.activo = !dom.activo // Revert on error
-        notificationStore.add('Error al actualizar estado', 'error')
-    }
-}
 
 const remove = () => {
     if (confirm('¿Seguro que desea dar de baja LOGICA a este cliente? (Pasará a Inactivo)')) {

@@ -63,3 +63,9 @@
 - **Backend**: Separación de stocks (`stock_reservado` vs `stock_fisico`). Gatekeeper financiero en despacho.
 - **Frontend**: Componente `LogisticaSplitter` con Drag & Drop. Branding de Remitos HTML/PDF.
 - **Limpieza**: Amputación de código zombie en exportación Excel (`tipo_entrega` -> `Multiplex`).
+
+## [2026-02-04] DEUDA TÉCNICA: DOMICILIOS V7
+- **Hallazgo**: Uso de "Pipes" (`|`) para concatenar piso/depto en campo `numero`.
+- **Riesgo**: Dificulta queries SQL y validación.
+- **Plan**: **Saneamiento Definitivo V7**. Restitución de columnas nativas y migración de datos.
+- **Ref**: `INFORMES_HISTORICOS/2026-02-04_PLAN_TECNICO_SPLIT_V7.md`.

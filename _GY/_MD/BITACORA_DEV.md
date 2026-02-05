@@ -555,3 +555,19 @@ Siguiendo órdenes directas, se difirió la integración real de OAuth y se impl
 
 **Resultado:** Sistema capaz de gestionar logística compleja sin romper la integridad del stock ni la trazabilidad financiera.
 
+# 2026-02-04 | SESIÓN NOCTURNA: REPARACIÓN Y PLANIFICACIÓN V7
+**Operador:** Gy V14
+**Objetivo:** Estabilización de Sistema y Planificación de Logística V7.
+
+1.  **Diagnóstico y Reparación Crítica:**
+    *   **DB:** Detectado crash por falta de columna `nivel` en `segmentos`. Solucionado mediante reparación de esquema (`ensure_segmentos_migration.py`).
+    *   **Frontend:** Corregido error de compilación Vue "Duplicate Identifier" en `ClienteInspector.vue` (Fusión de funciones `deleteDomicilio`).
+
+2.  **Planificación Estratégica (V7 LOGÍSTICA):**
+    *   Diseñado el **"Protocolo Split-View"** para Domicilios.
+    *   Decisión de Arquitectura: Abandonar uso de pipes (`|`) para pisos/deptos y retornar a columnas SQL nativas.
+    *   Establecido soporte para "Unidades de Negocio" (Caso Nestlé: mismo CUIT, distinta logística/identidad).
+    *   **Documento Maestro:** Detallado en `INFORMES_HISTORICOS/2026-02-04_PLAN_TECNICO_SPLIT_V7.md`.
+
+**Estado Final:** Sistema Operativo. Planes listos para ejecución Alfa mañana.
+
