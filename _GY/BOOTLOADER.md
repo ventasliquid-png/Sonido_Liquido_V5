@@ -15,7 +15,8 @@ NO MODIFICAR SIN AUTORIZACIÓN EXPLÍCITA DE CAMBIO DE VERSIÓN.
 ## 3. 🎯 ESTADO DE MISIÓN (RÁPIDO)
 *   **Fase Actual:** `Dormido`
 *   **Rama Activa:** `feature/v6-multiplex-core`
-*   **Objetivo Táctico:** EJECUTAR PROTOCOLO SPLIT-VIEW DOMICILIOS V7 (Ref: `INFORMES_HISTORICOS/2026-02-04_PLAN_TECNICO_SPLIT_V7.md`)
+*   **Objetivo Táctico:** CONTINUAR PROTOCOLO SPLIT-VIEW DOMICILIOS V7 (Ref: `INFORMES_HISTORICOS/2026-02-04_PLAN_TECNICO_SPLIT_V7.md`).
+    *   *Nota:* RAR V1 está operativo como satélite. No bloquearse con fiscalidad.
 
 ---
 **Instrucción Final:** PROCEED TO IPL LOAD.
