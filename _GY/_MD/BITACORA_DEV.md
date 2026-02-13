@@ -571,3 +571,47 @@ Siguiendo órdenes directas, se difirió la integración real de OAuth y se impl
 
 **Estado Final:** Sistema Operativo. Planes listos para ejecución Alfa mañana.
 
+# [V7.1] 2026-02-12 - Domicilios Split-View & Migration
+
+> **ESTADO:** DEPLOYED (Feature Branch)
+> **TIPO:** MAJOR REFACTOR / DATA INTEGRITY
+
+**Objetivo:** Implementar arquitectura "Split-View" en Domicilios para separar Datos Fiscales de Logísticos y mejorar la UX en entregas complejas.
+
+**Intervenciones:**
+1.  **Backend (Schema V7):**
+    *   **Restauración de Columnas Nativas:** `piso` y `depto` vuelven a ser columnas SQL, eliminando la dependencia de "Pipe Logic" (`|`).
+    *   **Nuevos Campos Logísticos:** `notas_logistica`, `maps_link`, `contacto_id`.
+    *   **Split Delivery:** Implementados campos espejo (`calle_entrega`, etc.) para direcciones de entrega divergentes.
+2.  **Migración de Datos (`migration_v7_domicilios.py`):**
+    *   Script automatizado para rescatar datos legacy.
+    *   Separa strings tipo "Calle 123|4|B" en columnas `calle`, `piso`, `depto`.
+3.  **Service Layer Refactor:**
+    *   Actualizado `create/update_domicilio` para escribir directamente en las nuevas columnas.
+    *   Mantenida compatibilidad parcial de lectura, pero deprecada la escritura con pipes.
+4.  **Frontend (UI):**
+    *   Implementado `DomicilioSplitCanvas` (50/50 Layout).
+
+**Resultado:** Integridad de datos garantizada. Bases listas para operatoria logística avanzada (V7).
+
+# [V7.2] 2026-02-12 - Protocolo Puente RAR-V5 (ARCA Integration)
+
+> **ESTADO:** DEPLOYED (Feature Branch)
+> **TIPO:** STRATEGIC INTEGRATION / SATELLITE LINK
+
+**Objetivo:** Establecer conexión operativa con el satélite de inteligencia fiscal (RAR V1) para validar datos de clientes contra AFIP.
+
+**Intervenciones:**
+1.  **Arquitectura Puente:**
+    - Implementado `AfipBridgeService` que carga módulos de RAR dinámicamente (`sys.path`).
+    - Endpoint `GET /clientes/afip/{cuit}` expone la lógica de `Conexion_Blindada.py`.
+2.  **MDM (Master Data Management):**
+    - Agregado flag `estado_arca` ('PENDIENTE', 'VALIDADO') en tabla `clientes`.
+    - **UI:** Badge "ARCA" verde en Inspector de Clientes si está validado.
+3.  **Bugfix Satelital:**
+    - Detectado y corregido error en RAR (`rar_core.py`) al procesar Personas Físicas (AFIP devuelve `formaJuridica: None`).
+4.  **Estrategia Productos (Definición):**
+    - Establecido que V5 es la **Autoridad Exclusiva** de SKUs. RAR operará en modo Read-Only.
+
+**Resultado:** Clientes blindados con datos oficiales de AFIP. Infraestructura lista para "Reverse Bridge" de productos.
+

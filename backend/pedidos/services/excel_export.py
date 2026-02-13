@@ -44,6 +44,9 @@ class ExcelExportService:
                 "Condición Pago": p.condicion_pago,
                 # [GY-V7] Logística Multiplex Repair
                 "Logística": self._get_logistica_label(p, db),
+                # [GY-V7] Dirección de Entrega (Split Logic)
+                "Dirección Entrega": self._get_delivery_address(p),
+                "Localidad Entrega": self._get_delivery_locality(p),
                 "Observaciones": p.observaciones,
                 "Creado Por": p.usuario_creador
             })
@@ -107,3 +110,45 @@ class ExcelExportService:
             return pedido.transporte.nombre
             
         return "A Coordinar / Retira Cliente"
+
+    def _get_delivery_address(self, pedido: dict) -> str:
+        """
+        Resuelve la dirección de entrega usando lógica V7 (Split-View).
+        Prioriza calle_entrega (Logística) sobre calle (Fiscal).
+        """
+        # Pedido object from query (SQLAlchemy)
+        dom = pedido.domicilio_entrega
+        if not dom:
+            # Fallback to Client Fiscal if needed? Or keep explicit?
+            # V7 Policy: Explicit is better.
+            return "A Coordinar / Retira"
+            
+        # V7 Logic
+        calle = dom.calle_entrega or dom.calle or ""
+        numero = dom.numero_entrega or dom.numero or ""
+        piso = dom.piso_entrega or dom.piso or ""
+        depto = dom.depto_entrega or dom.depto or ""
+        
+        addr = f"{calle} {numero}".strip()
+        
+        # Add piso/depto if exists
+        extras = []
+        if piso: extras.append(f"Piso {piso}")
+        if depto: extras.append(f"Dto {depto}")
+        
+        if extras:
+            addr += " (" + " ".join(extras) + ")"
+            
+        return addr
+
+    def _get_delivery_locality(self, pedido: dict) -> str:
+        dom = pedido.domicilio_entrega
+        if not dom:
+            return ""
+            
+        localidad = dom.localidad_entrega or dom.localidad or ""
+        provincia_id = dom.provincia_entrega_id or dom.provincia_id or ""
+        
+        if provincia_id:
+            return f"{localidad} ({provincia_id})"
+        return localidad

@@ -1,77 +1,125 @@
 import sqlite3
-import uuid
+import os
 
-# Configuration
-DB_PATH = 'pilot.db'
+DB_PATH = "pilot.db"
 
-def add_column_if_not_exists(cursor, table, column_def):
-    """Adds a column to a table if it doesn't already exist."""
-    column_name = column_def.split()[0]
-    try:
-        cursor.execute(f"ALTER TABLE {table} ADD COLUMN {column_def}")
-        print(f"✅ Added column '{column_name}' to '{table}'.")
-    except sqlite3.OperationalError as e:
-        if "duplicate column name" in str(e):
-            print(f"ℹ️ Column '{column_name}' already exists in '{table}'. Skipping.")
-        else:
-            print(f"❌ Error adding column '{column_name}': {e}")
+def migrate():
+    if not os.path.exists(DB_PATH):
+        print(f"❌ Database not found at {DB_PATH}")
+        return
 
-def migrate_v7_domicilios():
-    print("🚀 Starting V7 Domicilios Migration...")
-    
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    # 1. Add new columns
-    print("\n--- Schema Updates ---")
-    add_column_if_not_exists(cursor, "domicilios", "piso TEXT")
-    add_column_if_not_exists(cursor, "domicilios", "depto TEXT")
-    add_column_if_not_exists(cursor, "domicilios", "maps_link TEXT")
-    add_column_if_not_exists(cursor, "domicilios", "notas_logistica TEXT")
-    add_column_if_not_exists(cursor, "domicilios", "contacto_id INTEGER")
+    print("🚀 Starting V7 Domicilios Migration (Enhanced)...")
 
-    # 2. Data Rescue & Split
-    print("\n--- Data Rescue (Splitting Pipes) ---")
-    cursor.execute("SELECT id, calle, numero FROM domicilios")
-    domicilios = cursor.fetchall()
-
-    count_migrated = 0
-    for dom_id, calle, numero in domicilios:
-        updates = {}
+    # 1. Add new columns if they don't exist
+    new_columns = {
+        # V7 Base
+        "piso": "TEXT",
+        "depto": "TEXT",
+        "maps_link": "TEXT",
+        "notas_logistica": "TEXT",
+        "contacto_id": "INTEGER",
         
-        # Check 'calle' for pipe (Legacy format: Calle|Piso|Depto)
-        if calle and '|' in calle:
-            parts = calle.split('|')
-            updates['calle'] = parts[0].strip()
-            if len(parts) > 1 and parts[1].strip():
-                updates['piso'] = parts[1].strip()
-            if len(parts) > 2 and parts[2].strip():
-                updates['depto'] = parts[2].strip()
-            print(f"  🔹 Splitting Calle '{calle}' -> {updates}")
+        # V7.1 Observaciones
+        "observaciones": "TEXT",
+        
+        # V7.2 Split Delivery Address
+        "calle_entrega": "TEXT",
+        "numero_entrega": "TEXT",
+        "piso_entrega": "TEXT",
+        "depto_entrega": "TEXT",
+        "cp_entrega": "TEXT",
+        "localidad_entrega": "TEXT",
+        "provincia_entrega_id": "TEXT", # String(5)
+        
+        # Logistica / Transport
+        "transporte_habitual_nodo_id": "TEXT", # GUID as TEXT
+        "transporte_id": "TEXT",
+        "intermediario_id": "TEXT",
+        "metodo_entrega": "TEXT",
+        "modalidad_envio": "TEXT",
+        "origen_logistico": "TEXT"
+    }
 
-        # Check 'numero' for pipe (Rare but possible: 123|PB)
-        if numero and '|' in numero:
-            parts = numero.split('|')
-            updates['numero'] = parts[0].strip()
-            if len(parts) > 1 and parts[1].strip():
-                # If piso was not set by calle splitted, set it here
-                if 'piso' not in updates:
-                     updates['piso'] = parts[1].strip()
-            print(f"  🔹 Splitting Numero '{numero}' -> {updates}")
+    cursor.execute("PRAGMA table_info(domicilios)")
+    existing_columns = [info[1] for info in cursor.fetchall()]
 
-        if updates:
-            # Construct UPDATE query dynamically
-            set_clause = ", ".join([f"{k} = ?" for k in updates.keys()])
-            values = list(updates.values())
-            values.append(dom_id)
+    added_count = 0
+    for col, dtype in new_columns.items():
+        if col not in existing_columns:
+            print(f"➕ Adding column: {col}")
+            try:
+                cursor.execute(f"ALTER TABLE domicilios ADD COLUMN {col} {dtype}")
+                added_count += 1
+            except sqlite3.OperationalError as e:
+                print(f"⚠️ Error adding {col}: {e}")
+        else:
+            # print(f"✅ Column {col} already exists.")
+            pass
+
+    print(f"   -> Added {added_count} new columns.")
+    conn.commit()
+
+    # 2. Data Rescue (Split Logic)
+    print("🧹 Starting Data Rescue (Removing pipes '|')...")
+    
+    # We need to ensure we don't crash if columns are missing in select, 
+    # but we just added them so it's fine.
+    cursor.execute("SELECT id, calle, numero FROM domicilios")
+    rows = cursor.fetchall()
+    
+    updates = 0
+    for row in rows:
+        dom_id, calle, numero = row
+        piso = None
+        depto = None
+        new_calle = calle
+        new_numero = numero
+        changed = False
+
+        # Check 'numero' for pipes (Most common: "1234 | 4 B")
+        if numero and "|" in numero:
+            parts = numero.split("|")
+            new_numero = parts[0].strip()
+            rest = parts[1].strip()
             
-            cursor.execute(f"UPDATE domicilios SET {set_clause} WHERE id = ?", values)
-            count_migrated += 1
+            # Simple heuristic for '4 B' -> piso=4, depto=B
+            # If rest is short and has space, split it.
+            if " " in rest:
+                p_parts = rest.split(" ")
+                piso = p_parts[0]
+                depto = " ".join(p_parts[1:])
+            else:
+                piso = rest # Assume it's just floor or just depto? Put in piso for now.
+            
+            changed = True
+            print(f"   🔧 Split Numero: '{numero}' -> Num:'{new_numero}', Piso:'{piso}', Depto:'{depto}'")
+
+        # Check 'calle' for pipes (Legacy error)
+        if calle and "|" in calle:
+            parts = calle.split("|")
+            new_calle = parts[0].strip()
+            extra = parts[1].strip()
+            if not piso: # Only if not found in numero
+                piso = extra
+            else:
+                depto = extra 
+            changed = True
+            print(f"   🔧 Split Calle: '{calle}' -> Calle:'{new_calle}', Extra:'{extra}'")
+
+        if changed:
+            cursor.execute("""
+                UPDATE domicilios 
+                SET calle = ?, numero = ?, piso = ?, depto = ?
+                WHERE id = ?
+            """, (new_calle, new_numero, piso, depto, dom_id))
+            updates += 1
 
     conn.commit()
     conn.close()
-    
-    print(f"\n✅ Migration Complete. {count_migrated} addresses updated.")
+    print(f"🎉 Migration Complete. {updates} records updated.")
 
 if __name__ == "__main__":
-    migrate_v7_domicilios()
+    migrate()

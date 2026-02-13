@@ -87,3 +87,7 @@
 > *   **Instrucción Precisa:** No intentar reproducir formatos complejos (bordes, colores, merges) desde código. Es mejor usar una "Hoja Modelo" existente, clonarla (`copy_worksheet`), inyectar solo los datos (`cell.value`) y dejar que el Excel preserve el diseño.
 > *   **Origen:** [Sesión del 03/02 - Celtrap V3].
 
+> **REGLA DE ORO: Migración y Modelo (The Schema Contract).**
+> *   **Instrucción Precisa:** Si modificas `models.py` para agregar columnas, es CRÍTICO ejecutar inmediatamente la migración correspondiente (`ALTER TABLE`). Un Test o Servicio que intente escribir en columnas no migradas fallará silenciosamente o con errores genéricos (`OperationalError`) que confunden el diagnóstico (ej: `psycopg2` errors en SQLite).
+> *   **Origen:** [Sesión del 12/02 - V7 Domicilios Split-View].
+

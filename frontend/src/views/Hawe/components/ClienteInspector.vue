@@ -24,7 +24,8 @@
                 v-model="form.razon_social" 
                 autocomplete="off" 
                 spellcheck="false" 
-                class="bg-black/40 border border-white/20 rounded-md px-3 py-1.5 text-xl font-bold text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition-all placeholder-white/20 w-full" 
+                class="bg-black/40 border rounded-md px-3 py-1.5 text-xl font-bold focus:outline-none transition-all placeholder-white/20 w-full" 
+                :class="form.estado_arca === 'VALIDADO' ? 'text-emerald-300 border-emerald-500/30 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50' : 'text-white border-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50'"
                 placeholder="Ingrese Razón Social..." 
             />
             
@@ -192,8 +193,34 @@
                 <div class="grid grid-cols-12 gap-3 items-end pt-2">
                     <!-- CUIT (15 chars approx) -->
                     <div class="col-span-2">
-                         <label class="block text-[10px] font-bold uppercase text-cyan-900/50 mb-1">CUIT <span class="text-red-400">*</span></label>
-                         <input v-model="form.cuit" autocomplete="off" spellcheck="false" @input="formatCuitInput" @blur="checkCuitBackend" class="w-full bg-[#020a0f] border border-cyan-900/30 rounded p-2 text-xs text-cyan-100 focus:border-cyan-500 outline-none transition-colors font-mono placeholder-cyan-900/30" placeholder="00-00000000-0" maxlength="13" />
+                         <label class="block text-[10px] font-bold uppercase text-cyan-900/50 mb-1">
+                            CUIT <span class="text-red-400">*</span>
+                            <span v-if="form.estado_arca === 'VALIDADO'" class="ml-1 text-[9px] bg-emerald-500/20 text-emerald-400 px-1 rounded border border-emerald-500/30 animate-pulse">
+                                <i class="fas fa-shield-alt"></i> ARCA
+                            </span>
+                         </label>
+                         <div class="flex gap-1">
+                             <input 
+                                v-model="form.cuit" 
+                                autocomplete="off" 
+                                spellcheck="false" 
+                                @input="formatCuitInput" 
+                                @blur="checkCuitBackend" 
+                                class="flex-1 bg-[#020a0f] border rounded p-2 text-xs transition-colors font-mono placeholder-cyan-900/30 outline-none" 
+                                :class="form.estado_arca === 'VALIDADO' ? 'border-emerald-500/50 text-emerald-100' : 'border-cyan-900/30 text-cyan-100 focus:border-cyan-500'"
+                                placeholder="00-00000000-0" 
+                                maxlength="13" 
+                             />
+                             <button 
+                                @click="consultarAfip" 
+                                class="px-2 rounded border transition-all flex items-center justify-center shrink-0"
+                                :class="loadingAfip ? 'bg-cyan-900/50 border-cyan-800' : 'bg-cyan-900/20 border-cyan-500/30 hover:bg-cyan-500/20 hover:text-cyan-200 text-cyan-800'"
+                                :disabled="loadingAfip"
+                                title="Consultar en AFIP (RAR)"
+                            >
+                                <i class="fas" :class="loadingAfip ? 'fa-spinner fa-spin' : 'fa-search'"></i>
+                             </button>
+                         </div>
                     </div>
 
                     <!-- Condicion IVA (20 chars approx) -->
@@ -669,7 +696,58 @@ const checkCuitBackend = async () => {
     } catch (e) {
         console.error("Error checking CUIT:", e)
     }
+
 }
+
+// --- RAR-V5 BRIDGE (AFIP) ---
+const loadingAfip = ref(false)
+
+const consultarAfip = async () => {
+    if (!form.value.cuit || form.value.cuit.length < 11) {
+        notificationStore.add('Ingrese un CUIT válido (11 dígitos)', 'warning')
+        return
+    }
+    
+    loadingAfip.value = true
+    try {
+        const res = await clientesService.checkAfip(form.value.cuit)
+        
+        if (res.error) {
+            notificationStore.add(`Error AFIP: ${res.error}`, 'error')
+            return
+        }
+        
+        // 1. Update Golden Data
+        form.value.razon_social = res.razon_social
+        form.value.estado_arca = 'VALIDADO'
+        form.value.datos_arca_last_update = new Date().toISOString()
+        
+        // 2. Map Condicion IVA
+        // RAR returns text like "RESPONSABLE INSCRIPTO", "MONOTRIBUTISTA", "EXENTO", "CONSUMIDOR FINAL"
+        const ivaTarget = condicionesIva.value.find(c => c.nombre.toUpperCase() === res.condicion_iva.toUpperCase())
+        if (ivaTarget) {
+            form.value.condicion_iva_id = ivaTarget.id
+        }
+        
+        // 3. Update Domicilio Fiscal (Smart Parser)
+        // RAR returns "CALLE 123, LOC, PROV (CP)"
+        // We try to fill fiscalForm if in "New" mode, or update existing if user agrees?
+        // For simplicity in V1 Bridge: We update the fiscal fields in the form directly
+        if (props.isNew) {
+            // Basic parsing strategy could be implemented here or just notify
+            notificationStore.add(`Datos Fiscales Recuperados: ${res.domicilio_fiscal}`, 'info')
+        }
+
+        notificationStore.add(`Validación ARCA Exitosa: ${res.razon_social}`, 'success')
+        
+    } catch (e) {
+        console.error("Bridge Error:", e)
+        notificationStore.add('Error de comunicación con el Puente RAR', 'error')
+    } finally {
+        loadingAfip.value = false
+    }
+}
+// ----------------------------
 
 const selectExistingClient = (clientSummary) => {
     if(confirm(`¿Desea descartar el alta y cargar el cliente "${clientSummary.razon_social}"?`)) {

@@ -15,6 +15,22 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
+# --- PROTOCOLO PUENTE RAR-V5 (ARCA) ---
+@router.get("/afip/{cuit}", status_code=status.HTTP_200_OK)
+def consultar_afip(cuit: str):
+    """
+    Consulta datos fiscales reales en AFIP mediante el puente RAR V1.
+    Retorna Razón Social, Domicilio Fiscal y Categoría.
+    """
+    from backend.clientes.services.afip_bridge import AfipBridgeService
+    
+    resultado = AfipBridgeService.get_datos_afip(cuit)
+    
+    if "error" in resultado:
+        raise HTTPException(status_code=400, detail=resultado["error"])
+        
+    return resultado
+
 @router.get("/check-cuit/{cuit}", response_model=schemas.CuitCheckResponse)
 def check_cuit(cuit: str, exclude_id: UUID = None, db: Session = Depends(get_db)):
     return ClienteService.check_cuit(db, cuit, exclude_id)

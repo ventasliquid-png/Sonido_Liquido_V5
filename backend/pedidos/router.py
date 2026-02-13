@@ -205,6 +205,28 @@ def generate_pedido_excel_buffer(pedido, db: Session):
         worksheet.write('A3', f"Cliente: {cliente.razon_social}")
         worksheet.write('A4', f"CUIT: {cliente.cuit or 'N/A'}")
         
+        # [V7] Address Logic
+        dom_entrega = pedido.domicilio_entrega
+        if dom_entrega:
+            # Check for Split Delivery (V7.2)
+            calle = dom_entrega.calle_entrega or dom_entrega.calle
+            numero = dom_entrega.numero_entrega or dom_entrega.numero or ""
+            piso = dom_entrega.piso_entrega or dom_entrega.piso or ""
+            depto = dom_entrega.depto_entrega or dom_entrega.depto or ""
+            localidad = dom_entrega.localidad_entrega or dom_entrega.localidad or ""
+            
+            # Format
+            addr_str = f"{calle} {numero}".strip()
+            if piso or depto:
+                addr_str += f" (Piso {piso} Dto {depto})"
+            
+            if localidad:
+                addr_str += f", {localidad}"
+                
+            worksheet.write('A5', f"Entrega: {addr_str}")
+        else:
+             worksheet.write('A5', "Entrega: A Coordinar / Retira")
+        
         if items_excel_data:
             df = pd.DataFrame(items_excel_data)
             worksheet.write_row('A6', df.columns, bold)

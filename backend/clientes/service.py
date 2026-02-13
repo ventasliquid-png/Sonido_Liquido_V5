@@ -348,16 +348,15 @@ class ClienteService:
 
         # Prepare data
         # [GY-PROTOCOL-PIPE] Logic Fusion directly to Caller
-        piso = getattr(domicilio_in, 'piso', '')
-        depto = getattr(domicilio_in, 'depto', '')
+        piso = getattr(domicilio_in, 'piso', None)
+        depto = getattr(domicilio_in, 'depto', None)
         
-        dom_data = domicilio_in.model_dump(exclude={'provincia', 'zona_id', 'provincia_id', 'piso', 'depto'})
+        # [V7] Native Columns: Do not exclude piso/depto. 
+        # Exclude legacy pipe logic.
+        dom_data = domicilio_in.model_dump(exclude={'provincia', 'zona_id', 'provincia_id'})
 
-        # Apply Pipe Logic
-        calle_input = dom_data.get('calle', '') or ""
-        # Ensure we don't double pipe if editing
-        if piso or depto:
-             dom_data['calle'] = f"{calle_input}|{piso or ''}|{depto or ''}"
+        # [GY-PROTOCOL-PIPE DEPRECATED for V7]
+        # We now store pure 'calle' and 'piso/depto' in separate columns.
         
         db_domicilio = Domicilio(
             **dom_data,
@@ -383,50 +382,15 @@ class ClienteService:
         
         update_data = domicilio_in.model_dump(exclude_unset=True)
         
-        # [GY-PROTOCOL-PIPE] Merge piso/depto if present
-        piso = update_data.pop('piso', None)
-        depto = update_data.pop('depto', None)
+        # [GY-PROTOCOL-PIPE DEPRECATED]
+        # V7: We now respect the individual fields passed in update_data.
+        # No need to merge into calle.
         
-        if piso is not None or depto is not None:
-            # Need to get current calle first if not in update_data
-            current_calle = update_data.get('calle')
-            if current_calle is None:
-                current_calle = db_domicilio.calle or ""
-            
-            # If current calle has pipes, we might want to strip them before appending new ones?
-            # Or assume the UI sends the clean street name in 'calle'.
-            # The Frontend DomicilioForm puts 'calle' in 'calle'.
-            # So update_data['calle'] is likely just the street name.
-            # We reconstruct.
-            
-            # Handle None
-            piso_str = piso if piso is not None else ""
-            depto_str = depto if depto is not None else ""
-            
-            # However, if 'calle' was NOT updated, we are appending pipes to the existing full string?
-            # If current_calle is "Fraga 123|1|B" and we update just piso to "2".
-            # update_data['calle'] is missing.
-            # current_calle = "Fraga 123|1|B".
-            # New string = "Fraga 123|1|B|2|B"... WRONG.
-            
-            # Correction: We must assume we need to parse the base street name if we are editing parts.
-            # BUT the frontend sends the whole form usually?
-            # DomicilioForm: handleSave sends { ...props.domicilio, ...form }.
-            # It sends everything. So 'calle' should be in update_data.
-            
-            if 'calle' in update_data:
-                cleaned_calle = update_data['calle']
-            else:
-                 # If we are patching just 'piso' efficiently?
-                 # Try to extract base name from DB
-                 parts = current_calle.split('|')
-                 cleaned_calle = parts[0]
-            
-            # If keys were popped but were None, use empty string?
-            # Careful with partially updating logic. 
-            # DomicilioForm sends all fields.
-            
-            update_data['calle'] = f"{cleaned_calle}|{piso_str}|{depto_str}"
+        # If frontend sends {calle: '...', piso: '...'}, update_data has them.
+        # If legacy frontend sends pipes, we might want to handle it?
+        # But for V7 Canvas, we send separate fields.
+        
+        pass
 
         # Remove fields not in model
         if 'zona_id' in update_data:

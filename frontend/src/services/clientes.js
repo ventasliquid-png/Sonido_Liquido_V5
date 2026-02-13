@@ -15,6 +15,9 @@ export default {
     approve: (id) => api.put(`/clientes/${id}/aprobar`),
     hardDelete: (id) => api.delete(`/clientes/${id}/hard`),
 
+    // Bridge RAR-V5 (ARCA)
+    checkAfip: (cuit) => api.get(`/clientes/afip/${cuit}`),
+
     // Domicilios
     createDomicilio: (clienteId, data) => api.post(`/clientes/${clienteId}/domicilios`, data),
     updateDomicilio: (clienteId, domicilioId, data) => api.put(`/clientes/${clienteId}/domicilios/${domicilioId}`, data),

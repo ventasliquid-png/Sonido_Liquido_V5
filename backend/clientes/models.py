@@ -60,6 +60,12 @@ class Cliente(Base):
     # Guarda [{id, fecha, total, estado}, ...] (Max 5)
     historial_cache = Column(JSON, nullable=True, default=list)
 
+    # --- Master Data Management (Protocolo Puente RAR-V5) ---
+    # estado_arca: 'PENDIENTE', 'VALIDADO', 'CONFLICTO'
+    estado_arca = Column(String, default='PENDIENTE', nullable=False) 
+    datos_arca_last_update = Column(DateTime, nullable=True)
+    # -------------------------------------------------------
+
     # Auditoría
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
