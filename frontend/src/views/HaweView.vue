@@ -125,10 +125,9 @@
 
       </div>
 
-      <!-- Content List -->
-      <div class="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-track-cyan-900/10 scrollbar-thumb-cyan-900/30">
+       <!-- Content List -->
+       <div class="flex-1 overflow-y-auto p-6 pb-40 scrollbar-thin scrollbar-track-cyan-900/10 scrollbar-thumb-cyan-900/30">
         
-
         <!-- Grid View -->
         <div v-if="viewMode === 'grid'" class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
           <div v-for="cliente in filteredClientes" :key="cliente.id" class="relative w-full min-h-[140px] group">
@@ -147,6 +146,7 @@
                 class="w-full"
                 :title="cliente.razon_social || 'Sin Nombre'"
                 :subtitle="cliente.cuit || '---'"
+                :validationStatus="['0', '00000000000'].includes((cliente.cuit||'').replace(/[^0-9]/g, '')) ? 'PENDIENTE' : cliente.estado_arca"
                 :selected="selectedIds.includes(cliente.id)"
                 :hasLogisticsAlert="cliente.requiere_entrega"
                 :hasTransport="cliente.domicilios?.some(d => d.transporte_id)"
@@ -222,7 +222,10 @@
                     <!-- Name & ID -->
                     <div class="col-span-4 truncate">
                         <div class="flex items-center gap-2">
-                            <span class="font-outfit font-bold text-white group-hover:text-cyan-400 transition-colors truncate">
+                            <span 
+                                class="font-outfit font-bold group-hover:text-cyan-400 transition-colors truncate"
+                                :class="(cliente.estado_arca !== 'VALIDADO' || ['0', '00000000000'].includes((cliente.cuit||'').replace(/[^0-9]/g, ''))) ? 'text-yellow-400' : 'text-white'"
+                            >
                                 {{ cliente.razon_social }}
                             </span>
                              <span v-if="cliente.requiere_entrega" class="text-amber-500 text-xs" title="Logística Pendiente">

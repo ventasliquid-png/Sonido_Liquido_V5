@@ -27,6 +27,7 @@ def consultar_afip(cuit: str):
     resultado = AfipBridgeService.get_datos_afip(cuit)
     
     if "error" in resultado:
+        print(f"[ROUTER-DEBUG] Error en consulta AFIP: {resultado['error']}")
         raise HTTPException(status_code=400, detail=resultado["error"])
         
     return resultado

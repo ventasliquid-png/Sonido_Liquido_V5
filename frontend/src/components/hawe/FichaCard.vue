@@ -43,7 +43,15 @@
 
     <!-- Content -->
     <div class="flex flex-col">
-      <h3 class="font-outfit text-lg font-semibold text-gray-100 group-hover:text-white" :class="{ 'truncate': !isExpanded, 'whitespace-normal': isExpanded }">{{ title }}</h3>
+      <h3 
+        class="font-outfit text-lg font-semibold transition-colors" 
+        :class="[
+            { 'truncate': !isExpanded, 'whitespace-normal': isExpanded },
+            validationStatus === 'VALIDADO' ? 'text-white' : 'text-yellow-400' 
+        ]"
+      >
+        {{ title }}
+      </h3>
       <p class="text-sm text-gray-500 font-mono" :class="{ 'truncate': !isExpanded }">{{ subtitle }}</p>
       
       <!-- Extra content shown only when expanded -->
@@ -79,6 +87,10 @@ const props = defineProps({
   title: {
     type: String,
     required: true
+  },
+  validationStatus: {
+    type: String,
+    default: 'PENDIENTE'
   },
   subtitle: {
     type: String,

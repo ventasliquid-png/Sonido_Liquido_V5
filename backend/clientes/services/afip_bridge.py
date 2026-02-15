@@ -53,8 +53,11 @@ class AfipBridgeService:
             return resultado
             
         except Exception as e:
-            logger.error(f"[PUENTE RAR] Error crítico en el puente: {e}")
-            return {"error": f"Error interno en el Puente de Inteligencia Fiscal: {str(e)}"}
+            import traceback
+            error_msg = f"Error interno en Puente RAR: {str(e)}"
+            logger.error(f"[PUENTE RAR] CRITICAL: {error_msg}")
+            logger.error(traceback.format_exc())
+            return {"error": error_msg}
 
     @staticmethod
     def normalize_for_v5(rar_data: Dict[str, Any]) -> Dict[str, Any]:

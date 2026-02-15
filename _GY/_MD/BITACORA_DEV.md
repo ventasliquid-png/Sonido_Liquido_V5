@@ -633,4 +633,22 @@ Siguiendo órdenes directas, se difirió la integración real de OAuth y se impl
     - **Limpieza:** Eliminado input redundante.
     - **Inteligencia:** Auto-mapping Fuzzy de Condición IVA (ARCA -> Local) y detección proactiva de duplicados con opción de bifurcación.
 
-**Resultado:** Sistema V6 de Clientes totalmente integrado con AFIP y capaz de gestionar la complejidad del mundo real (Sucursales, CUITs compartidos).
+
+# [V6.3.1] 2026-02-15 - Hotfix Dependencias & Validación AFIP
+
+> **ESTADO:** DEPLOYED
+> **TIPO:** HOTFIX / STABILITY
+
+**Objetivo:** Restaurar funcionalidad del botón de validación AFIP (Lupa) y solucionar errores silenciosos de frontend.
+
+**Intervenciones:**
+1.  **Backend (Hotfix):**
+    *   Instalación de dependencias faltantes `zeep` y `lxml` en entorno virtual (Causa Raíz del Error 400).
+    *   Implementación de logs detallados en `afip_bridge.py` y `router.py` para evitar fallos silenciosos.
+    *   Fix de concurrencia en `Conexion_Blindada.py` usando UUIDs para archivos temporales.
+2.  **Frontend (Inspector & Canvas):**
+    *   **Fix Reactividad:** Desempaquetado correcto de respuesta Axios (`res.data`) para evitar borrado de campos.
+    *   **Feedback:** Implementación de notificaciones visuales (Toast) al iniciar y finalizar consulta.
+    *   **Manejo de Errores:** Bloques `try/catch` robustos para alertar al usuario en lugar de fallar en silencio.
+
+**Resultado:** Validación operativa. El usuario recibe feedback inmediato y los datos persisten correctamente en formulario.

@@ -18,3 +18,5 @@ tiktoken
 python-jose[cryptography]
 passlib[bcrypt]
 email-validator
+zeep
+lxml

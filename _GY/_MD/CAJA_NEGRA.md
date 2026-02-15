@@ -1,7 +1,5 @@
-# 🛸 CAJA NEGRA (BLACK BOX) - DASHBOARD TÁCTICO V2
-
-**Última Actualización:** 05-Feb-2026 (Fix 500 & Hub Domicilios)
-**Sesiones Completadas:** +7 (Ciclo Extendido)
+**Última Actualización:** 15-Feb-2026 (Fix AFIP 400 & Dependencias)
+**Sesiones Completadas:** +8 (Ciclo de Estabilización)
 **Rol:** Tablero de Control y Estado de Salud del Sistema.
 
 ---
@@ -18,10 +16,10 @@
 *   **Admin PIN:** `1234` (Bypass visual activo)
 *   **IOWA Sync:** `scripts/push_session_to_iowa.py`
 
-## 🧩 ESTADO DEL NÚCLEO (V5.6)
+## 🧩 ESTADO DEL NÚCLEO (V6.3)
 | Módulo | Estado | Notas Técnicas |
 | :--- | :--- | :--- |
-| **Clientes** | 🟢 V6 NATIVE (HÍBRIDO) | Persistencia Pipe Logic (Domicilios) OK. |
+| **Clientes** | 🟢 V6.3 STABLE | Validación AFIP + Batch + UX Tuning. |
 | **Contactos** | 🟢 OPTIMIZADO (V6.1) | Role Persistence & Schema Fix (01-02). |
 | **Pedidos** | 🟢 V5.6 (CONECTADO) | Semáforo Fiscal + Modo Zen. |
 | **Productos** | 🟡 V5.5 (STANDALONE) | Aislado de Agenda V6. "Roca" de Precios OK. |
@@ -43,38 +41,11 @@
 ---
 **Instrucción de Mantenimiento:** Actualizar este tablero al CERRAR la sesión (Protocolo Omega).
 
-## [2026-02-01] INCIDENTE: La Persistentia de Maria
-- **Síntoma**: Error 500 al listar contactos y cargos que volvían a "Nuevo Rol".
-- **Diagnóstico**: Desajuste entre el código (V6) y la base de datos local (V5) + Desvinculación de ID y Nombre en el frontend.
-- **Solución**: Migración SQLite Express + Sincronización de Label/ID en `ContactCanvas` + Adaptación Reactiva en `ContactosView`.
-
-## [2026-02-02] UX UPDATE: AUTOMATIZACIÓN CLIENTES
-- **Mejora**: Implementada "Ley de Conservación Fiscal" con menú contextual para baja segura.
-- **Automatización**: Lógica cruzada CUIT <-> Consumidor Final en alta de clientes.
-- **Estabilidad**: Corregido crash de ordenamiento (localeCompare) y refresco de lista tras alta.
-
-## [2026-02-03] LABORATORIO DE PRECIOS (ESTANCO)
-- **Hito**: Implementación de sistema de gestión de listas aislado (Scripts Python).
-- **Logro**: Generación automática de Excel Versionado (`Celtrap (3)`) clonando estructura visual histórica.
-- **Regla**: Aplicación de lógica comercial "Camilleros (+10%)" y fórmulas de markup vivas.
-
-## [2026-02-04] LOGÍSTICA TÁCTICA V7 (SPLIT ORDERS)
-- **Hito**: Implementación del sistema de entregas parciales y múltiples destinos por pedido.
-- **Backend**: Separación de stocks (`stock_reservado` vs `stock_fisico`). Gatekeeper financiero en despacho.
-- **Frontend**: Componente `LogisticaSplitter` con Drag & Drop. Branding de Remitos HTML/PDF.
-- **Limpieza**: Amputación de código zombie en exportación Excel (`tipo_entrega` -> `Multiplex`).
-
-## [2026-02-04] DEUDA TÉCNICA: DOMICILIOS V7
-- **Hallazgo**: Uso de "Pipes" (`|`) para concatenar piso/depto en campo `numero`.
-- **Riesgo**: Dificulta queries SQL y validación.
-- **Plan**: **Saneamiento Definitivo V7**. Restitución de columnas nativas y migración de datos.
-- **Ref**: `INFORMES_HISTORICOS/2026-02-04_PLAN_TECNICO_SPLIT_V7.md`.
-
-## [2026-02-05] ESTABILIZACIÓN CRÍTICA V5.7
-- **Incidente**: Error 500 en Productos por desfasaje de esquema (columnas faltantes) y datos corruptos (costos nulos).
-- **Resolución**: Migración de Schema (`update_schema.py`) y Script de Reparación de Datos (`fix_product_data.py`).
-- **Hub Logístico**: Solucionado el bug de "Calle Vacía" en Split View. Implementado mapeo automático de panel derecho a izquierda para direcciones no fiscales.
-- **Estado**: Sistema Restaurado.
+## [2026-02-15] STABILIZATION: AFIP BRIDGE
+- **Incidente**: Error 400 aleatorio y datos vacíos al validar CUIT.
+- **Causa**: Falta de librerías `zeep/lxml` en venv y error de parsing JS (`res` vs `res.data`).
+- **Resolución**: Hotfix de dependencias y refactor de manejo de respuesta en Frontend.
+- **Estado**: Sistema Validado.
 
 ## [2026-02-15] REFINAMIENTO ARCA & BATCH
 - **Hito**: Ejecución exitosa de validación masiva (`validate_arca_batch.py`) sobre `pilot.db`.

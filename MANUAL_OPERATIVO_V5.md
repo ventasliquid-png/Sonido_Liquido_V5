@@ -94,6 +94,16 @@ El módulo de Segmentos permite crear y editar las clasificaciones de la cartera
     *   Para crear uno nuevo, presione el botón **+ NUEVO (INS)** o la tecla `Insert`.
     *   Para guardar, presione **Guardar (F10)**.
 
+    *   Para guardar, presione **Guardar (F10)**.
+
+### 2.5 Validación Fiscal (Lupa ARCA)
+El sistema integra un puente directo con **AFIP/ARCA** para validar la identidad y condición tributaria.
+*   **Botón Lupa:** Ubicado junto al CUIT. Al presionarlo, consulta los padrones oficiales.
+*   **Feedback:**
+    *   ✅ **Éxito:** Completa automáticamente Razón Social, Categoría de IVA y Domicilio Fiscal.
+    *   ⚠️ **CUITs Genéricos:** Para "Consumidor Final" (`00000000000`) o "Sujeto No Categorizado" (`11111111119`), el sistema **omite** la consulta a AFIP (para evitar errores) y permite la carga manual inmediata.
+*   **Regla:** Siempre intente validar los CUITs reales para evitar facturas rechazadas.
+
 ---
 
 ## CAPÍTULO 3: MÓDULO PRODUCTOS (MANUFACTURA)

@@ -117,6 +117,7 @@ class ClienteBase(BaseModel):
     web_portal_pagos: Optional[str] = None
     datos_acceso_pagos: Optional[str] = None
     observaciones: Optional[str] = None
+    estado_arca: Optional[str] = "PENDIENTE"
 
     @field_validator('cuit')
     @classmethod
@@ -143,6 +144,7 @@ class ClienteUpdate(BaseModel):
     web_portal_pagos: Optional[str] = None
     datos_acceso_pagos: Optional[str] = None
     observaciones: Optional[str] = None
+    estado_arca: Optional[str] = None
     transporte_id: Optional[UUID] = None
 
     @field_validator('cuit')

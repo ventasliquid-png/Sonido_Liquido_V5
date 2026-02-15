@@ -25,7 +25,7 @@
                 autocomplete="off" 
                 spellcheck="false" 
                 class="bg-black/40 border rounded-md px-3 py-1.5 text-xl font-bold focus:outline-none transition-all placeholder-white/20 w-full" 
-                :class="form.estado_arca === 'VALIDADO' ? 'text-emerald-300 border-emerald-500/30 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50' : 'text-white border-white/20 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50'"
+                :class="(form.estado_arca === 'VALIDADO' && !['0', '00000000000'].includes((form.cuit||'').replace(/[^0-9]/g, ''))) ? 'text-white border-emerald-500/30 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50' : 'text-yellow-400 border-yellow-500/30 focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500/50'"
                 placeholder="Ingrese Razón Social..." 
             />
             
@@ -207,7 +207,7 @@
                                 @input="formatCuitInput" 
                                 @blur="checkCuitBackend" 
                                 class="flex-1 bg-[#020a0f] border rounded p-2 text-xs transition-colors font-mono placeholder-cyan-900/30 outline-none" 
-                                :class="form.estado_arca === 'VALIDADO' ? 'border-emerald-500/50 text-emerald-100' : 'border-cyan-900/30 text-cyan-100 focus:border-cyan-500'"
+                                :class="(form.estado_arca === 'VALIDADO' && !['0', '00000000000'].includes((form.cuit||'').replace(/[^0-9]/g, ''))) ? 'border-emerald-500/50 text-emerald-100' : 'border-yellow-500/30 text-yellow-100 focus:border-yellow-500'"
                                 placeholder="00-00000000-0" 
                                 maxlength="13" 
                              />
@@ -579,6 +579,12 @@ const activeTab = ref('general')
 const showAgenda = ref(false)
 const saving = ref(false)
 
+const GENERIC_CUITS = ['11111111119', '11111111111', '00000000000']
+const commonCuitNames = {
+    '11111111119': 'CONSUMIDOR FINAL GENERICO',
+    '00000000000': 'CONSUMIDOR FINAL'
+}
+
 const switchToContactsTab = () => {
     activeTab.value = 'contactos'
     showAgenda.value = false
@@ -708,10 +714,12 @@ const consultarAfip = async () => {
         return
     }
     
+    notificationStore.add('Consultando ARCA/AFIP... Por favor espere.', 'info')
     loadingAfip.value = true
     try {
-        const res = await clientesService.checkAfip(form.value.cuit)
-        
+        const response = await clientesService.checkAfip(form.value.cuit)
+        const res = response.data // Unwrap payload
+
         if (res.error) {
             notificationStore.add(`Error AFIP: ${res.error}`, 'error')
             return
@@ -761,8 +769,8 @@ const consultarAfip = async () => {
         notificationStore.add(`Validación ARCA Exitosa: ${res.razon_social}`, 'success')
         
     } catch (e) {
-        console.error("Bridge Error:", e)
-        notificationStore.add('Error de comunicación con el Puente RAR', 'error')
+        console.error("Error consultando AFIP:", e)
+        notificationStore.add(`Error de Conexión ARCA: ${e.message}`, 'error')
     } finally {
         loadingAfip.value = false
     }
@@ -1271,6 +1279,15 @@ const save = async () => {
         // Only require basic Identity (Razon Social, CUIT)
         const isDeactivating = !form.value.activo;
         
+        // Bypass for Generic CUITs
+    if (GENERIC_CUITS.includes(form.value.cuit)) {
+        notificationStore.add('CUIT Genérico Detectado: Se omite validación ARCA', 'info')
+        if (!form.value.razon_social) {
+            form.value.razon_social = commonCuitNames[form.value.cuit] || 'CONSUMIDOR FINAL'
+        }
+        // Force mapped status if needed
+        return
+    }
         // Validation for New Client
         // Shared Validations (Create & Edit)
         if (!form.value.razon_social) {
@@ -1379,9 +1396,9 @@ const save = async () => {
             // 2. Prepare Delivery Domicilio (if separate)
             if (!useFiscalAsDelivery.value) {
                 const deliveryDom = {
-                    calle: deliveryForm.value.calle || fiscalForm.value.calle, // Fallback?
+                    calle: deliveryForm.value.calle || fiscalForm.value.calle, 
                     numero: deliveryForm.value.numero || fiscalForm.value.numero,
-                    localidad: fiscalForm.value.localidad, // Assume same locality for simplicity in "Alta Rapida"
+                    localidad: fiscalForm.value.localidad, 
                     provincia_id: fiscalForm.value.provincia_id,
                     es_fiscal: false,
                     es_entrega: true,
@@ -1391,30 +1408,28 @@ const save = async () => {
                 payload.domicilios.push(deliveryDom)
             }
             
-            await clienteStore.createCliente(payload)
-
-            emit('save', payload)
+            // [GY-FIX] Single Create Call
+            const result = await clienteStore.createCliente(payload)
+            emit('save', result)
             notificationStore.add('Cliente creado con éxito', 'success')
             emit('close')
-        } else {
-            // Existing logic...(form.value.cuit) {
-            form.value.cuit = form.value.cuit.replace(/[^0-9]/g, '')
-        }
+            return // Exit early after creation
+        } 
         
-        // [GY-FIX] ACTUALLY SAVE TO STORE/BACKEND
-        let result;
-        if (props.isNew) {
-            result = await clienteStore.createCliente(form.value)
-        } else {
-            // [GY-FIX] Inject Quick Transport logic for backend shortcut
-            const payload = { ...form.value }
-            delete payload.domicilios // Prevent nested update issues
-            
-            if (quickTransportId.value) {
-                payload.transporte_id = quickTransportId.value
-            }
-            result = await clienteStore.updateCliente(form.value.id, payload)
+        // --- UPDATE LOGIC (Existing Client) ---
+        // [GY-FIX] Inject Quick Transport logic for backend shortcut
+        const payload = { ...form.value }
+        delete payload.domicilios // Prevent nested update issues
+        
+        if (quickTransportId.value) {
+            payload.transporte_id = quickTransportId.value
         }
+        const result = await clienteStore.updateCliente(form.value.id, payload)
+        
+
+        emit('save', result)
+        notificationStore.add('Cliente actualizado con éxito', 'success')
+
 
         emit('save', result)
         notificationStore.add(`Cliente ${props.isNew ? 'creado' : 'actualizado'} con éxito`, 'success')
@@ -1448,12 +1463,12 @@ const hardDelete = () => {
 }
 
 const handleKeydown = (e) => {
-    if (e.code === 'F10') {
-        if (showDomicilioForm.value) return // Let modal handle it
+    if (e.key === 'F10') { // Changed from e.code to e.key for better compatibility
         e.preventDefault()
+        if (showDomicilioForm.value) return 
         save()
     }
-    if (e.key === 'Escape' && !showDomicilioForm.value) { // Don't close inspector if domicile modal is open
+    if (e.key === 'Escape' && !showDomicilioForm.value) { 
         e.preventDefault()
         emit('close')
     }

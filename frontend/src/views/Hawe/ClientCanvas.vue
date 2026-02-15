@@ -9,13 +9,14 @@
               </button>
 
               <!-- CUIT INPUT (HEADER POSITION) -->
-              <div class="relative group flex items-center gap-1 bg-black/40 border border-white/20 rounded-md px-2 py-1.5 focus-within:border-cyan-500 focus-within:ring-1 focus-within:ring-cyan-500/50 transition-all">
+              <div class="relative group flex items-center gap-1 bg-black/40 border rounded-md px-2 py-1.5 focus-within:border-cyan-500 focus-within:ring-1 focus-within:ring-cyan-500/50 transition-all" :class="errors?.cuit ? 'border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.3)]' : 'border-white/20'">
                   <label class="text-[9px] font-bold text-cyan-500/50 uppercase tracking-widest mr-1">CUIT</label>
                   <input 
                       ref="cuitInput"
                       v-model="form.cuit" 
                       type="text" 
-                      class="bg-transparent border-none text-sm font-mono text-white focus:outline-none w-[100px] placeholder-white/10"
+                      class="bg-transparent border-none text-sm font-mono focus:outline-none w-[100px] placeholder-white/10"
+                      :class="(form.estado_arca === 'VALIDADO' && !['0', '00000000000'].includes((form.cuit||'').replace(/[^0-9]/g, ''))) ? 'text-emerald-100' : 'text-yellow-100'"
                       placeholder="Sin Guiones"
                       maxlength="13"
                       @keydown.enter="consultarAfip"
@@ -36,10 +37,17 @@
                       ref="razonSocialInput"
                       v-model="form.razon_social" 
                       type="text" 
-                      class="bg-black/40 border border-white/20 rounded-md px-3 py-1.5 text-xl font-bold text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition-all placeholder-white/20 w-[300px] lg:w-[450px]"
+                      class="bg-black/40 border border-white/20 rounded-md px-3 py-1.5 text-xl font-bold focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition-all placeholder-white/20 w-[300px] lg:w-[450px]"
+                      :class="[
+                          (form.estado_arca !== 'VALIDADO' || ['0', '00000000000'].includes((form.cuit||'').replace(/[^0-9]/g, ''))) ? 'text-yellow-400' : 'text-white pr-10',
+                          errors?.razon_social ? 'border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.3)]' : 'border-white/20'
+                      ]"
                       placeholder="Ingrese Razón Social..."
                       @input="handleSearchCantera"
                   />
+                  <!-- ARCA Shield Indicator -->
+                  <i v-if="form.estado_arca === 'VALIDADO'" class="fas fa-shield-alt absolute right-3 top-1/2 -translate-y-1/2 text-emerald-400 text-lg drop-shadow-[0_0_5px_rgba(52,211,153,0.8)] animate-pulse" title="Identidad Validada por ARCA"></i>
+
                   <!-- Cantera Results Dropdown -->
                   <div v-if="canteraResults.length > 0" class="absolute top-full left-0 w-full bg-[#0f172a] border border-cyan-500/30 rounded-lg shadow-xl z-50 mt-1 max-h-60 overflow-y-auto">
                       <div 
@@ -154,7 +162,8 @@
                       <div 
                         @click="openFiscalEditor"
                         @contextmenu.prevent="openFiscalContextMenu($event, domicilios.find(d => d.es_fiscal))"
-                        class="bg-fuchsia-900/10 border border-fuchsia-500/20 rounded-xl p-3 relative group cursor-pointer hover:bg-fuchsia-900/20 hover:border-fuchsia-500/50 transition-all"
+                        class="bg-fuchsia-900/10 border rounded-xl p-3 relative group cursor-pointer hover:bg-fuchsia-900/20 hover:border-fuchsia-500/50 transition-all"
+                        :class="errors?.domicilio ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]' : 'border-fuchsia-500/20'"
                       >
                           <div class="flex justify-between items-center mb-2 border-b border-fuchsia-500/10 pb-1">
                               <label class="text-[10px] font-bold text-fuchsia-400 uppercase tracking-widest"><i class="fas fa-file-invoice mr-1"></i> Domicilio Fiscal <span class="text-red-400">*</span></label>
@@ -464,7 +473,8 @@
                   @click="saveCliente"
                   class="px-10 py-3 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transition-all flex items-center gap-3 active:scale-95"
               >
-                  Actualizar Registro <i class="fas fa-check"></i>
+              >
+                  {{ isNew ? 'Crear Cliente' : 'Actualizar Registro' }} <i class="fas" :class="isNew ? 'fa-plus' : 'fa-check'"></i>
               </button>
           </div>
       </footer>
@@ -538,6 +548,8 @@ const notificationStore = useNotificationStore()
 const { evaluateCliente } = useAuditSemaphore()
 
 const isNew = ref(false)
+const cuitInput = ref(null) // [GY-FIX]
+const razonSocialInput = ref(null) // [GY-FIX]
 const expandLogistics = ref(false)
 const showAgenda = ref(false)
 const activeTab = ref('CLIENTE') // 'CLIENTE', 'DOMICILIO', 'CONTACTO'
@@ -567,6 +579,7 @@ const consultarAfip = async () => {
     }
     
     loadingAfip.value = true
+    notificationStore.add('Consultando ARCA/AFIP... Por favor espere.', 'info')
     try {
         // [GY-UX] 0. Duplicate Check (UBA / Shared CUITs handling)
         if (isNew.value) {
@@ -581,7 +594,9 @@ const consultarAfip = async () => {
              }
         }
 
-        const res = await clientesService.checkAfip(form.value.cuit)
+
+        const response = await clientesService.checkAfip(form.value.cuit)
+        const res = response.data // Unwrap payload
         
         if (res.error) {
             notificationStore.add(`Error AFIP: ${res.error}`, 'error')
@@ -730,7 +745,6 @@ const domicilios = ref([])
 const contactos = ref([])
 const historial = ref([])
 const productosHabituales = ref([])
-const razonSocialInput = ref(null)
 
 // Computed Helpers
 const condicionesIva = computed(() => maestrosStore.condicionesIva)
