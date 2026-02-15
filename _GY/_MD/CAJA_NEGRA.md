@@ -75,3 +75,9 @@
 - **Resolución**: Migración de Schema (`update_schema.py`) y Script de Reparación de Datos (`fix_product_data.py`).
 - **Hub Logístico**: Solucionado el bug de "Calle Vacía" en Split View. Implementado mapeo automático de panel derecho a izquierda para direcciones no fiscales.
 - **Estado**: Sistema Restaurado.
+
+## [2026-02-15] REFINAMIENTO ARCA & BATCH
+- **Hito**: Ejecución exitosa de validación masiva (`validate_arca_batch.py`) sobre `pilot.db`.
+- **UX**: Implementado Foco Automático, Eliminación de Redundancia y Mapeo Fuzzy de IVA en `ClientCanvas`.
+- **Integridad**: Lógica de "Preservación de Identidad" para casos UBA/Sucursales (mismo CUIT, distinto nombre).
+- **Estado**: Clientes V6.3 FULL OPERATIVO (Validado ARCA).

@@ -70,6 +70,7 @@ class AfipBridgeService:
             "razon_social": rar_data.get("razon_social", ""), # RAR core ya normaliza esto
             "condicion_iva": rar_data.get("categoria_monotributo", "") or ("RESPONSABLE INSCRIPTO" if "IVA" in str(rar_data.get("impuestos_activos", [])) else "CONSUMIDOR FINAL"),
             "domicilio_fiscal": rar_data.get("domicilio_fiscal", {}),
+            "parsed_address": rar_data.get("parsed_address", {}),
             # Datos crudos para debug
             "_raw_rar": rar_data
         }

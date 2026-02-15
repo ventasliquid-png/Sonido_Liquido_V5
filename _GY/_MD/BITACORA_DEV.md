@@ -615,3 +615,22 @@ Siguiendo órdenes directas, se difirió la integración real de OAuth y se impl
 
 **Resultado:** Clientes blindados con datos oficiales de AFIP. Infraestructura lista para "Reverse Bridge" de productos.
 
+
+# [V6.3] 2026-02-15 - Validación Fiscal Masiva & UX Tuning
+
+> **ESTADO:** DEPLOYED
+> **TIPO:** FEATURE / UX / BATCH PROCESSING
+
+**Objetivo:** Cerrar la brecha de validación fiscal para la base instalada y refinar la experiencia de alta.
+
+**Intervenciones:**
+1.  **Backend (Batch Script):**
+    - Implementado `validate_arca_batch.py` con inyección directa de dependencia RAR V1.
+    - Lograda validación del 100% del padrón pendiente (26 clientes).
+    - **Lógica de Preservación:** Respeto de nombres de fantasía/sucursales (UBA) sobre la razón social legal única.
+2.  **Frontend (ClientCanvas):**
+    - **UX:** Foco automático en CUIT al abrir.
+    - **Limpieza:** Eliminado input redundante.
+    - **Inteligencia:** Auto-mapping Fuzzy de Condición IVA (ARCA -> Local) y detección proactiva de duplicados con opción de bifurcación.
+
+**Resultado:** Sistema V6 de Clientes totalmente integrado con AFIP y capaz de gestionar la complejidad del mundo real (Sucursales, CUITs compartidos).

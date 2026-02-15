@@ -730,12 +730,32 @@ const consultarAfip = async () => {
         }
         
         // 3. Update Domicilio Fiscal (Smart Parser)
-        // RAR returns "CALLE 123, LOC, PROV (CP)"
-        // We try to fill fiscalForm if in "New" mode, or update existing if user agrees?
-        // For simplicity in V1 Bridge: We update the fiscal fields in the form directly
-        if (props.isNew) {
-            // Basic parsing strategy could be implemented here or just notify
-            notificationStore.add(`Datos Fiscales Recuperados: ${res.domicilio_fiscal}`, 'info')
+        // 3. Update Domicilio Fiscal (Smart Parser)
+        if (props.isNew && res.parsed_address) {
+            const pa = res.parsed_address
+            
+            // Map Basic Fields
+            fiscalForm.value.calle = pa.calle || ''
+            fiscalForm.value.localidad = pa.localidad || ''
+            fiscalForm.value.numero = pa.numero || ''
+            
+            // Map Province (Fuzzy Search)
+            if (pa.provincia) {
+                const provName = pa.provincia.toUpperCase()
+                const targetProv = provincias.value.find(p => 
+                    p.nombre.toUpperCase() === provName || 
+                    provName.includes(p.nombre.toUpperCase()) ||
+                    p.nombre.toUpperCase().includes(provName)
+                )
+                if (targetProv) {
+                    fiscalForm.value.provincia_id = targetProv.id
+                }
+            }
+            
+            notificationStore.add(`Datos Fiscales Recuperados: ${pa.calle}`, 'info')
+        } else if (props.isNew) {
+             // Fallback if no parsed data
+             notificationStore.add(`Datos Fiscales Recuperados: ${res.domicilio_fiscal}`, 'info')
         }
 
         notificationStore.add(`Validación ARCA Exitosa: ${res.razon_social}`, 'success')

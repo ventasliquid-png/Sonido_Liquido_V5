@@ -35,12 +35,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles # Added for SPA
 from fastapi.responses import FileResponse # Added for SPA
 
-# --- 1. Importaciones de LangChain y Google ---
-from pgvector.psycopg2 import register_vector
-from langchain_community.vectorstores.pgvector import PGVector
-from langchain_google_vertexai import VertexAIEmbeddings, ChatVertexAI
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
+# --- 1. Importaciones de LangChain y Google (MOVED FOR LAZY LOADING) ---
+# from pgvector.psycopg2 import register_vector
+# from langchain_community.vectorstores.pgvector import PGVector
+# from langchain_google_vertexai import VertexAIEmbeddings, ChatVertexAI
+# from langchain_core.prompts import ChatPromptTemplate
+# from langchain_core.output_parsers import StrOutputParser
 
 # --- [INICIO REFACTOR V10.10] ---
 # Importaciones modulares (absolutas - sin puntos relativos)
@@ -100,9 +100,9 @@ class AteneaV5State(TypedDict):
     is_doctrinal: bool
 
 # --- 4. Variables Globales y Clientes de IA ---
-embeddings_model: VertexAIEmbeddings = None
-llm: ChatVertexAI = None
-vector_store: PGVector = None
+embeddings_model: "VertexAIEmbeddings" = None
+llm: "ChatVertexAI" = None
+vector_store: "PGVector" = None
 CONNECTION_STRING: str = None
 atenea_v5_app = None 
 
@@ -111,6 +111,17 @@ atenea_v5_app = None
 async def lifespan(app: FastAPI):
     global embeddings_model, llm, vector_store, CONNECTION_STRING, atenea_v5_app
     print(f"--- [Atenea V5 Backend]: Iniciando secuencia de arranque (V10.12 Modular)... ---")
+
+    # --- [LAZY LOAD IA LIBRARIES] ---
+    try:
+        from pgvector.psycopg2 import register_vector
+        from langchain_community.vectorstores.pgvector import PGVector
+        from langchain_google_vertexai import VertexAIEmbeddings, ChatVertexAI
+        from langchain_core.prompts import ChatPromptTemplate
+        from langchain_core.output_parsers import StrOutputParser
+    except ImportError:
+        print("[WARN] IA Libraries not found or failed to import. Running in Lobotomy Mode.")
+    # --------------------------------
 
     # --- [INICIO PARCHE V10.1 (ORM)] ---
     try:
@@ -175,6 +186,10 @@ async def rag_retrieval_node(state: AteneaV5State):
     print("--- [LangGraph Node]: rag_retrieval_node (V9.1 - Táctico) ---")
     query = state["input_query"]
     try:
+        if not embeddings_model:
+             print("[WARN] Embeddings model not loaded (Offline Mode). Skipping RAG.")
+             return {"retrieved_documents": []}
+
         query_embedding = await embeddings_model.aembed_query(query)
         
         def sync_sql_search(embedding_vector):
@@ -211,6 +226,10 @@ async def doctrinal_evaluation_node(state: AteneaV5State):
     print("Juicio: Búsqueda táctica fallida. Iniciando búsqueda doctrinal...")
     query = state["input_query"]
     try:
+        if not embeddings_model:
+             print("[WARN] Embeddings model not loaded (Offline Mode). Skipping Doctrinal Search.")
+             return {"is_doctrinal": False, "retrieved_documents": []}
+
         query_embedding = await embeddings_model.aembed_query(query)
         
         def sync_sql_search_doctrinal(embedding_vector):
@@ -246,6 +265,9 @@ async def doctrinal_evaluation_node(state: AteneaV5State):
 
 def tactical_generation_node(state: AteneaV5State):
     print("--- [LangGraph Node]: tactical_generation_node ---")
+    if not llm:
+        return {"generation": "Modo Offline Activo: No puedo generar respuestas de IA, pero el sistema operativo funciona."}
+    
     contexto = "\n---\n".join(state["retrieved_documents"]) or "No se encontró información relevante en la memoria."
     prompt = ChatPromptTemplate.from_template(
         """
@@ -268,6 +290,9 @@ def tactical_generation_node(state: AteneaV5State):
 
 def doctrinal_review_node(state: AteneaV5State):
     print("--- [LangGraph Node]: doctrinal_review_node ---")
+    if not llm:
+        return {"generation": "Modo Offline Activo: Revisión doctrinal desactivada."}
+
     contexto = "\n---\n".join(state["retrieved_documents"]) or "No se encontró información relevante en la memoria."
     prompt = ChatPromptTemplate.from_template(
         """

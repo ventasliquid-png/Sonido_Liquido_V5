@@ -7,6 +7,29 @@
               <button @click="goBackToSource" class="text-white/50 hover:text-cyan-400 transition-colors">
                   <i class="fas fa-arrow-left"></i>
               </button>
+
+              <!-- CUIT INPUT (HEADER POSITION) -->
+              <div class="relative group flex items-center gap-1 bg-black/40 border border-white/20 rounded-md px-2 py-1.5 focus-within:border-cyan-500 focus-within:ring-1 focus-within:ring-cyan-500/50 transition-all">
+                  <label class="text-[9px] font-bold text-cyan-500/50 uppercase tracking-widest mr-1">CUIT</label>
+                  <input 
+                      ref="cuitInput"
+                      v-model="form.cuit" 
+                      type="text" 
+                      class="bg-transparent border-none text-sm font-mono text-white focus:outline-none w-[100px] placeholder-white/10"
+                      placeholder="Sin Guiones"
+                      maxlength="13"
+                      @keydown.enter="consultarAfip"
+                      @input="handleCuitInput"
+                  />
+                   <button 
+                        @click="consultarAfip"
+                        :disabled="loadingAfip"
+                        class="text-cyan-400 hover:text-white transition-colors disabled:opacity-50"
+                        title="Validar ARCA"
+                    >
+                        <i class="fas" :class="loadingAfip ? 'fa-spinner fa-spin' : 'fa-search'"></i>
+                    </button>
+              </div>
               <div class="relative group">
                   <span class="absolute -top-3 left-1 text-[9px] font-bold text-cyan-900/50 uppercase tracking-widest transition-colors group-hover:text-cyan-500/50">Razón Social</span>
                   <input 
@@ -90,8 +113,42 @@
               <div class="absolute top-0 left-0 w-1 h-full bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.8)]"></div>
               
               <div class="space-y-4">
-                  <!-- LINE 1: ADDRESSES & LOGISTICS (Fiscal & Entrega side-by-side) -->
-                  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+                  <!-- LINE 1: FISCAL & COMMERCIAL (CUIT / IVA / Lista / Segmento) -->
+                  <div class="grid grid-cols-12 gap-3 items-end pb-4">
+                      <!-- CUIT REMOVED (Moved to Header) -->
+
+
+                      <!-- Condición IVA -->
+                      <div class="col-span-12 lg:col-span-4">
+                          <label class="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-1">Condición IVA <span class="text-red-400">*</span></label>
+                          <select v-model="form.condicion_iva_id" class="w-full bg-white/5 border rounded px-2 py-1 text-xs text-white focus:outline-none appearance-none [&>option]:bg-slate-900" :class="errors.condicion_iva_id ? 'border-red-500' : 'border-white/10'">
+                              <option :value="null">IVA...</option>
+                              <option v-for="iva in condicionesIva" :key="iva.id" :value="iva.id">{{ iva.nombre }}</option>
+                          </select>
+                      </div>
+
+                      <!-- Lista de Precios -->
+                      <div class="col-span-12 lg:col-span-4">
+                          <label class="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-1">Lista de Precios <span class="text-red-400">*</span></label>
+                          <select v-model="form.lista_precios_id" class="w-full bg-cyan-900/10 border rounded px-2 py-1 text-xs text-cyan-300 font-bold focus:outline-none appearance-none [&>option]:bg-slate-900" :class="errors.lista_precios_id ? 'border-red-500' : 'border-cyan-500/20'">
+                              <option :value="null">Lista Automática</option>
+                              <option v-for="lp in listasPrecios" :key="lp.id" :value="lp.id">{{ lp.nombre }}</option>
+                          </select>
+                      </div>
+
+                       <!-- Segmento (Expanded) -->
+                      <div class="col-span-12 lg:col-span-4">
+                          <label class="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-1">Segmento <span class="text-red-400">*</span></label>
+                          <select v-model="form.segmento_id" @change="handleSegmentoChange" class="w-full bg-white/5 border rounded px-2 py-1 text-xs text-white focus:outline-none appearance-none [&>option]:bg-slate-900" :class="errors.segmento_id ? 'border-red-500' : 'border-white/10'">
+                               <option :value="null">Sin Segmento</option>
+                               <option value="__NEW__" class="text-green-400 font-bold">+ Nuevo</option>
+                               <option v-for="seg in segmentos" :key="seg.id" :value="seg.id">{{ seg.nombre }}</option>
+                          </select>
+                      </div>
+                  </div>
+
+                  <!-- LINE 2: ADDRESSES & LOGISTICS (Fiscal & Entrega side-by-side) -->
+                  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start border-t border-white/5 pt-3">
                       
                       <!-- Domicilio Fiscal -->
                       <div 
@@ -208,43 +265,6 @@
                       </div>
 
                   </div>
-                  </div>
-
-                  <!-- LINE 2: FISCAL & COMMERCIAL (CUIT / IVA / Lista / Segmento) -->
-                  <div class="grid grid-cols-12 gap-3 items-end border-t border-white/5 pt-3">
-                       <!-- CUIT -->
-                      <div class="col-span-12 lg:col-span-3">
-                          <label class="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-0.5">CUIT <span class="text-red-400">*</span></label>
-                          <input v-model="form.cuit" @input="handleCuitInput" type="text" class="w-full bg-white/5 border rounded px-2 py-1 text-xs font-mono text-white focus:outline-none" :class="errors.cuit ? 'border-red-500' : 'border-white/5'" maxlength="13" />
-                      </div>
-
-                      <!-- Condición IVA -->
-                      <div class="col-span-12 lg:col-span-3">
-                          <label class="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-1">Condición IVA <span class="text-red-400">*</span></label>
-                          <select v-model="form.condicion_iva_id" class="w-full bg-white/5 border rounded px-2 py-1 text-xs text-white focus:outline-none appearance-none [&>option]:bg-slate-900" :class="errors.condicion_iva_id ? 'border-red-500' : 'border-white/10'">
-                              <option :value="null">IVA...</option>
-                              <option v-for="iva in condicionesIva" :key="iva.id" :value="iva.id">{{ iva.nombre }}</option>
-                          </select>
-                      </div>
-
-                      <!-- Lista de Precios -->
-                      <div class="col-span-12 lg:col-span-3">
-                          <label class="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-1">Lista de Precios <span class="text-red-400">*</span></label>
-                          <select v-model="form.lista_precios_id" class="w-full bg-cyan-900/10 border rounded px-2 py-1 text-xs text-cyan-300 font-bold focus:outline-none appearance-none [&>option]:bg-slate-900" :class="errors.lista_precios_id ? 'border-red-500' : 'border-cyan-500/20'">
-                              <option :value="null">Lista Automática</option>
-                              <option v-for="lp in listasPrecios" :key="lp.id" :value="lp.id">{{ lp.nombre }}</option>
-                          </select>
-                      </div>
-
-                       <!-- Segmento (Expanded) -->
-                      <div class="col-span-12 lg:col-span-3">
-                          <label class="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-1">Segmento <span class="text-red-400">*</span></label>
-                          <select v-model="form.segmento_id" @change="handleSegmentoChange" class="w-full bg-white/5 border rounded px-2 py-1 text-xs text-white focus:outline-none appearance-none [&>option]:bg-slate-900" :class="errors.segmento_id ? 'border-red-500' : 'border-white/10'">
-                               <option :value="null">Sin Segmento</option>
-                               <option value="__NEW__" class="text-green-400 font-bold">+ Nuevo</option>
-                               <option v-for="seg in segmentos" :key="seg.id" :value="seg.id">{{ seg.nombre }}</option>
-                          </select>
-                      </div>
                   </div>
               </div>
           </section>
@@ -496,6 +516,7 @@ import { useClientesStore } from '../../stores/clientes'
 import { useMaestrosStore } from '../../stores/maestros'
 import { useNotificationStore } from '../../stores/notification'
 import canteraService from '../../services/canteraService'
+import clientesService from '../../services/clientes'
 // import DomicilioForm from './components/DomicilioForm.vue'
 import DomicilioSplitCanvas from './components/DomicilioSplitCanvas.vue'
 import ContactoForm from './components/ContactoForm.vue'
@@ -520,6 +541,149 @@ const isNew = ref(false)
 const expandLogistics = ref(false)
 const showAgenda = ref(false)
 const activeTab = ref('CLIENTE') // 'CLIENTE', 'DOMICILIO', 'CONTACTO'
+
+// --- RAR-V5 BRIDGE (AFIP) ---
+const loadingAfip = ref(false)
+const GENERIC_CUITS = ['11111111119', '11111111111', '00000000000']
+const commonCuitNames = {
+    '11111111119': 'CONSUMIDOR FINAL GENERICO',
+    '00000000000': 'CONSUMIDOR FINAL'
+}
+
+const consultarAfip = async () => {
+    if (!form.value.cuit || form.value.cuit.length < 11) {
+        notificationStore.add('Ingrese un CUIT válido (11 dígitos)', 'warning')
+        return
+    }
+
+    // Bypass for Generic CUITs
+    if (GENERIC_CUITS.includes(form.value.cuit)) {
+        notificationStore.add('CUIT Genérico Detectado - Saltando Validación ARCA', 'info')
+        if (!form.value.razon_social) {
+            form.value.razon_social = commonCuitNames[form.value.cuit] || 'CONSUMIDOR FINAL'
+        }
+        form.value.condicion_iva_id = condicionesIva.value.find(c => c.nombre.toUpperCase().includes('FINAL'))?.id || 5
+        return
+    }
+    
+    loadingAfip.value = true
+    try {
+        // [GY-UX] 0. Duplicate Check (UBA / Shared CUITs handling)
+        if (isNew.value) {
+             const checkRes = await clientesService.checkCuit(form.value.cuit)
+             if (checkRes.data && checkRes.data.status === 'EXISTS') {
+                 const names = checkRes.data.existing_clients.map(c => c.razon_social).join(', ')
+                 const confirmed = confirm(`ATENCIÓN: Este CUIT ya está registrado para:\n\n${names}\n\n¿Desea crear una NUEVA entidad con este mismo CUIT (ej: Sucursal o Facultad distinta)?\n\n- Aceptar: Crear Nuevo (Permite Multi-CUIT)\n- Cancelar: Detener`)
+                 if (!confirmed) {
+                     loadingAfip.value = false
+                     return
+                 }
+             }
+        }
+
+        const res = await clientesService.checkAfip(form.value.cuit)
+        
+        if (res.error) {
+            notificationStore.add(`Error AFIP: ${res.error}`, 'error')
+            return
+        }
+        
+        // 1. Update Golden Data
+        form.value.razon_social = res.razon_social
+        form.value.estado_arca = 'VALIDADO'
+        form.value.datos_arca_last_update = new Date().toISOString()
+        
+        // 2. Map Condicion IVA (Fuzzy Logic)
+        const arcaIva = (res.condicion_iva || '').toUpperCase()
+        const ivaTarget = condicionesIva.value.find(c => {
+             const localIva = c.nombre.toUpperCase()
+             // Generic Match
+             if (localIva === arcaIva) return true
+             // Specific Matches
+             if (arcaIva.includes('MONOTRIBUTO') && localIva.includes('MONOTRIBUTO')) return true
+             if (arcaIva.includes('RESPONSABLE INSCRIPTO') && localIva.includes('RESPONSABLE INSCRIPTO')) return true
+             if (arcaIva.includes('EXENTO') && localIva.includes('EXENTO')) return true
+             if (arcaIva.includes('FINAL') && localIva.includes('FINAL')) return true
+             return false
+        })
+        
+        if (ivaTarget) {
+            form.value.condicion_iva_id = ivaTarget.id
+        } else {
+             // Default Fallbacks
+             if (arcaIva.includes('MONOTRIBUTO')) form.value.condicion_iva_id = 6
+             else if (arcaIva.includes('INSCRIPTO')) form.value.condicion_iva_id = 1
+             else form.value.condicion_iva_id = 5
+        }
+        
+        // 3. Update Domicilio Fiscal (Smart Parser)
+        if (isNew.value && res.parsed_address) {
+            const pa = res.parsed_address
+            
+            const newFiscal = {
+                id: null,
+                local_id: Date.now(),
+                es_fiscal: true,
+                es_entrega: false,
+                activo: true,
+                calle: pa.calle || res.domicilio_fiscal || '', // Fallback
+                numero: pa.numero || '',
+                piso: pa.piso || '',
+                depto: pa.depto || '',
+                localidad: pa.localidad || '',
+                cp: pa.cp || '',
+                provincia_id: null // Need to map
+            }
+
+             // Map Province (Fuzzy Search)
+            if (pa.provincia) {
+                const provName = pa.provincia.toUpperCase()
+                const targetProv = maestrosStore.provincias.find(p => 
+                    p.nombre.toUpperCase() === provName || 
+                    provName.includes(p.nombre.toUpperCase()) ||
+                    p.nombre.toUpperCase().includes(provName)
+                )
+                if (targetProv) {
+                    newFiscal.provincia_id = targetProv.id
+                }
+            }
+            
+            // Remove any existing fiscal
+            domicilios.value = domicilios.value.filter(d => !d.es_fiscal)
+            domicilios.value.push(newFiscal)
+
+            notificationStore.add(`Datos Fiscales Recuperados: ${newFiscal.calle}`, 'info')
+            
+            // [GY-UX] Auto-Focus Address Editor if address is incomplete?
+            // No, user prefers non-intrusive.
+            
+        } else if (isNew.value && res.domicilio_fiscal) {
+             // Fallback if no parsed data
+             const newFiscal = {
+                id: null,
+                local_id: Date.now(),
+                es_fiscal: true,
+                es_entrega: false,
+                activo: true,
+                calle: res.domicilio_fiscal,
+                numero: '',
+                localidad: '',
+                provincia_id: null
+            }
+            domicilios.value = domicilios.value.filter(d => !d.es_fiscal)
+            domicilios.value.push(newFiscal)
+            notificationStore.add(`Datos Fiscales Recuperados`, 'info')
+        }
+
+        notificationStore.add(`Validación ARCA Exitosa: ${res.razon_social}`, 'success')
+        
+    } catch (e) {
+        console.error("Bridge Error:", e)
+        notificationStore.add('Error de comunicación con el Puente RAR', 'error')
+    } finally {
+        loadingAfip.value = false
+    }
+}
 const selectedDomicilio = ref(null)
 
 
@@ -943,14 +1107,21 @@ const openFiscalContextMenu = (e, fiscalDom) => {
     ]
 }
 
+import { nextTick } from 'vue'
+
 // --- Initialization ---
 onMounted(async () => {
     window.addEventListener('keydown', handleKeydown)
     
-    // [GY-UX] Auto-Focus Razon Social
-    setTimeout(() => {
-        if (razonSocialInput.value) razonSocialInput.value.focus()
-    }, 200)
+    // [GY-UX] Focus CUIT first (User Request)
+    // Wait for animation/render and force focus
+    nextTick(() => {
+        setTimeout(() => {
+            if (cuitInput.value) {
+                cuitInput.value.focus()
+            }
+        }, 500)
+    })
 
     await maestrosStore.fetchAll()
     await logisticaStore.fetchEmpresas()
