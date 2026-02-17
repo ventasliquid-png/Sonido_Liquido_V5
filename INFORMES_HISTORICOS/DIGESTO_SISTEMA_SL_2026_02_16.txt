@@ -1,0 +1,130 @@
+
+# DIGESTO TECNICO UNIFICADO: SONIDO LIQUIDO V5 + RAR V1
+# FECHA: 16 de Febrero de 2026
+# AUTOR: ANTIGRAVITY AGENT (GY V14)
+
+---
+
+### 1. MAPA DE RUTA: ARQUITECTURA Y TOPOLOGÍA
+El ecosistema "Sonido Líquido" opera bajo una arquitectura híbrida y modular, diseñada para resistencia y operación local-first con sincronización selectiva a la nube.
+
+**Arquitectura de Datos (Híbrida):**
+*   **Nivel 1: PILOT (Local Edge):** `backend/pilot.db` (SQLite). Es la fuente de verdad operativa diaria. Garantiza velocidad cero-latencia y operación offline.
+*   **Nivel 2: IOWA (Cloud Archive):** Instancia PostgreSQL (GCP `104.197.57.226`). Actúa como resguardo histórico y punto de sincronización eventual.
+*   **Mecanismo:** El sistema intenta conectar a IOWA vía variables de entorno; si falla o no está configurado, hace fallback automático y silencioso a PILOT.
+*   *Nota:* No se detectó uso de Firestore en el backend, contrariamente a rumores previos.
+
+**Topología Satelital:**
+El sistema V5 ("La Base") no opera solo. Utiliza "Satélites" para tareas críticas aisladas.
+*   **V5 (Base):** FastAPI + Vue 3. Maneja Clientes, Pedidos, Stock y Lógica de Negocio.
+*   **RAR V1 (Satélite Fiscal):** Microservicio Python independiente (`C:\dev\RAR_V1`). Encargado exclusivo de comunicarse con AFIP (WSMTXCA) para validar CUITs y emitir Remitos Electrónicos.
+*   **Puente:** V5 invoca a RAR mediante inyección dinámica de path (`sys.path.append`), consumiéndolo como una librería nativa (`afip_bridge.py`).
+
+---
+
+### 2. NÚCLEO LÓGICO V5 (MODELOS CRÍTICOS)
+La lógica de negocio reside en modelos SQLAlchemy altamente tipados y relacionales.
+
+**A. CLIENTES (Nike S Hierarchical Model)**
+*   **Identidad:** `id` (GUID), `razon_social`, `cuit`.
+*   **Polimorfismo (Multiplex):** Relación `vinculos` que conecta `Persona` con `Cliente` o `EmpresaTransporte` mediante `entidad_id` + `entidad_tipo`. Permite que "Pedro" sea Chofer en una empresa y Vendedor en otra.
+*   **Estado ARCA:** Flag `estado_arca` ('PENDIENTE', 'VALIDADO') controlado por el Bridge.
+
+**B. DOMICILIOS (Split-View V7)**
+*   **Arquitectura:** Separación estricta entre Dirección Física y Rol.
+*   **Campos Clave:** `calle`, `numero`, `piso`, `depto` (Columnas nativas, abandonando lógica de pipes `|`).
+*   **Roles:** `es_fiscal` (Legal), `es_entrega` (Logístico).
+*   **Split Logístico:** Soporte para direcciones de entrega divergentes (`calle_entrega`) dentro del mismo registro si la operación lo requiere.
+
+**C. PEDIDOS (Flow Táctico)**
+*   **Estados:** PENDIENTE -> LIBERADO_DESPACHO (Semáforo Financiero) -> DESPACHADO.
+*   **Logística:** Asignación de `transporte_id` y `domicilio_entrega_id` específicos por pedido (no solo por cliente).
+
+---
+
+### 3. PROTOCOLO DE SATÉLITE (RAR V1)
+RAR V1 es el "Canciller" ante la AFIP. Su operación es delicada y está blindada.
+
+**Componentes:**
+*   **`rar_core.py`:** Núcleo de lógica. Normaliza respuestas de AFIP.
+*   **`Conexion_Blindada.py`:** Manejador de criptografía.
+    *   Usa `openssl` para firmar solicitudes (`TRA`) con certificado digital.
+    *   Gestiona Tickets de Acceso (TA) con cache de 12 horas (`token_cache.json`).
+*   **Certificados:** Ubicados en `C:\dev\RAR_V1\certs\`.
+    *   `rarv1.crt` (Pública) + `privada.key`.
+    *   Entono Homologación: Servidores `fwshomo.afip.gov.ar`.
+
+**Flujo de Remito (WSMTXCA):**
+1.  **Handshake:** RAR verifica token valido o solicita uno nuevo a WSAA.
+2.  **Construcción:** `remito_engine.py` arma el XML (CAEA, Items, Transporte).
+3.  **Disparo:** Envío a MTXCAService.
+4.  **Respuesta:** Si es Aprobado, guarda CAE y Vencimiento. Si es Rechazado, parsea errores de XML (schema validation).
+
+---
+
+### 4. DOCTRINA Y BITÁCORA (V14 VANGUARD)
+La "Doctrina Gy" es el sistema operativo cognitivo que rige el desarrollo.
+
+**Principios V14:**
+1.  **"La Anticipación es la Clave de la Victoria":** No reactuar ante errores, prevenirlos con diseño defensivo.
+2.  **Protocolo sobre Solución:** Ante un fallo crítico, se prioriza el procedimiento de cierre (Omega) y documentación sobre el "parche rápido". Evitar el "Efecto Túnel".
+3.  **Identidad Única:** Todos los archivos de arranque (`BOOTLOADER`) deben apuntar a una única verdad (`GY_IPL_V14.md`).
+
+**Lecciones Aprendidas (Sangre en el Código):**
+*   **Base de Datos:** JAMÁS alterar columnas físicas por cosmética UI. Usar JSON o lógica de fusión.
+*   **Frontend:** Usar siempre `v-if="isMounted"` en `<Teleport>` para evitar Race Conditions.
+*   **Seguridad:** Inputs de contraseña administrativa (`type="text"` + CSS Security) para evitar heurística de navegadores.
+*   **Integridad:** "Una Planta = Un Cliente". No anidar sucursales complejas como direcciones simples.
+
+**Caja Negra (Estado Actual):**
+*   **Incidente Reciente:** Fallo en Validación AFIP (Error 400).
+    *   *Causa:* Falta de dependencias (`zeep`, `lxml`) en entorno virtual y parsing incorrecto de respuesta Axios.
+    *   *Solución:* Hotfix de dependencias y blindaje de errores en Frontend.
+*   **Estado:** Clientes V6.3 y Contactos V6.1 estables. Transportes en transición.
+
+---
+
+### 5. MANUAL OPERATIVO V5 (PROCEDIMIENTOS)
+**Alta de Cliente con Validación ARCA:**
+1.  Ingresar CUIT en `ClientCanvas`.
+2.  El sistema dispara `AfipBridgeService` (Lupa).
+3.  Si ARCA valida, se auto-completan: Razón Social, Domicilio Fiscal y Categoría IVA.
+4.  Se asigna `estado_arca = 'VALIDADO'`.
+
+**Logística Split-View:**
+1.  Al cargar un domicilio, definir si es `Fiscal` (Facturación) o `Entrega` (Camión).
+2.  Si es un depósito complejo, usar campos específicos de logística (`notas_logistica`, `maps_link`).
+
+---
+
+### 6. ANEXO CURIOSIDAD (AI CHOICE): THE STEEL CORE
+El archivo `backend/pricing_engine.py` contiene la lógica financiera más profunda del sistema: "La Cascada de 7 Listas".
+
+**Lógica de Precios:**
+El sistema no guarda 7 precios. Guarda **Costo de Reposición** y **Rentabilidad**.
+Calcula al vuelo (Just-In-Time) la escalera de precios:
+1.  **Lista 1 (La Roca):** Costo + Rentabilidad (Base Mayorista).
+2.  **Lista 2 a 3:** Multiplicadores fijos (1.105) para distribución.
+3.  **Lista 4 (Base Imponible):** Lista 3 / 0.85.
+4.  **Lista 5 (Público):** Lista 4 * 1.21 (IVA).
+5.  **Lista 6-7:** E-commerce y MELI.
+
+**Smart Rounding (Redondeo Psicológico):**
+Algoritmo adaptativo según magnitud del precio:
+*   `< $100`: 2 decimales.
+*   `$100 - $999`: Redondeo a entero.
+*   `$1.000 - $9.999`: Redondeo a la centena (ej: $4.150 -> $4.200).
+*   `> $10.000`: Redondeo al millar.
+*   *Por qué:* Reduce cognición del cliente y facilita cambios chicos.
+
+---
+
+### 7. INTERFASES DE DATOS
+La comunicación V5 <-> RAR es un flujo local sincronizado.
+
+**El Puente (`afip_bridge.py`):**
+1.  **Inyección:** Verifica `sys.path`. Si falta `C:/dev/RAR_V1`, lo agrega.
+2.  **Importación Blindada:** `from Conexion_Blindada import get_datos_afip`. Envuelve en try/catch para evitar crashes si el satélite está dañado.
+3.  **Normalización:** Recibe diccionario crudo de RAR y lo traduce al esquema Pydantic de V5 (`razon_social`, `domicilio_fiscal`).
+
+Este diseño permite que RAR evolucione (nuevos certificados, cambios en AFIP) sin tocar una línea de código del Core V5.
