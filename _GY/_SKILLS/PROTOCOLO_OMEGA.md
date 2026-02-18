@@ -59,5 +59,14 @@ Solo tras recibir la confirmación explícita (**1974**):
 
 ---
 
+## 🔎 FASE 3.5: VERIFICACIÓN DE ÓRBITA (TRUST BUT VERIFY)
+OBLIGATORIO: Tras el git push, el Agente TIENE PROHIBIDO reportar éxito sin verificar la realidad en el servidor.
+
+1.  **Ejecutar:** `git log origin/[RAMA_ACTIVA] -n 1 --format="%h - %s"`
+2.  **Validar:** El hash devuelto DEBE coincidir con el hash local (`git rev-parse HEAD`).
+3.  **Sentencia:** Si los hashes no coinciden, el Push falló. Reportar "FALLO DE SINCRONIZACIÓN" y no cerrar la sesión.
+
+---
+
 > **Nota para la IA:** Este archivo es tu "Constitución" para el cierre de sesión. Ignorarlo es una falta grave a la Doctrina Gy.
 > **RECORDATORIO FINAL:** NO AVANZAR SI NO SE RECIBE EL PIN "1974". NINGUNA EXCEPCIÓN.
