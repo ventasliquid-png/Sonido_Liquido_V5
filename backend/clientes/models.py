@@ -22,14 +22,22 @@ class Cliente(Base):
     __tablename__ = "clientes"
 
     id = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
+    # Identidad e Identificadores
     razon_social = Column(String, nullable=False, index=True)
     nombre_fantasia = Column(String, nullable=True)
-    cuit = Column(String, unique=False, nullable=False, index=True)
     
-    # Identificadores
-    # [FIX PILOT] Removed Sequence for SQLite compatibility
-    codigo_interno = Column(Integer, nullable=True)
+    # [V5-X] Hybrid Architecture: CUIT is now nullable
+    cuit = Column(String, unique=False, nullable=True, index=True)
+    
+    # [V5-X] The Anchor: Codigo Interno is the true reliable ID
+    # Removed Sequence for SQLite compatibility, handled by Service
+    codigo_interno = Column(Integer, unique=True, index=True, nullable=True)
+    
     legacy_id_bas = Column(String, nullable=True) # ID del sistema BAS anterior
+
+    # [V5-X] The 9 Flags (Bitmask)
+    # Replaces 'activo' and other booleans over time
+    flags_estado = Column(Integer, default=0, nullable=False)
 
     # Comunicación y Pagos
     whatsapp_empresa = Column(String, nullable=True)
@@ -49,7 +57,7 @@ class Cliente(Base):
     # Datos financieros
     saldo_actual = Column(Numeric(18, 2), default=0.00)
     
-    # Protocolo Lázaro
+    # Protocolo Lázaro (Legacy Booleans - Deprecated but kept for compatibility)
     activo = Column(Boolean, default=True, nullable=False)
     requiere_auditoria = Column(Boolean, default=False)
     
@@ -81,7 +89,6 @@ class Cliente(Base):
     vendedor = relationship("Usuario")
     # [FIX] Usar nombre corto 'Pedido' ya que está registrado en Base
     pedidos = relationship("Pedido", back_populates="cliente")
-    # [NUEVO V6 Multiplex] Relación Polimórfica Inversa
     # [NUEVO V6 Multiplex] Relación Polimórfica Inversa
     # Renombrado de vinculos_rel a vinculos para mantener compatibilidad de nombre
     vinculos = relationship(
@@ -195,6 +202,7 @@ class Domicilio(Base):
     cliente = relationship("Cliente", back_populates="domicilios")
     provincia = relationship(Provincia, foreign_keys=[provincia_id])
     provincia_entrega = relationship(Provincia, foreign_keys=[provincia_entrega_id])
+    
     transporte_habitual_nodo = relationship("NodoTransporte")
     transporte = relationship("EmpresaTransporte", foreign_keys=[transporte_id])
     intermediario = relationship("EmpresaTransporte", foreign_keys=[intermediario_id])

@@ -32,6 +32,9 @@ class Pedido(Base):
     costo_flete_interno = Column(Float, default=0.0) # Costo "Alberto"
     estado_logistico = Column(String, default="PENDIENTE") # PENDIENTE, EN_PREPARACION, DESPACHADO, ENTREGADO
 
+    # [V5-X] Hybrid Flags (32-bit)
+    flags_estado = Column(Integer, default=0, nullable=False)
+
     # Metadata
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)

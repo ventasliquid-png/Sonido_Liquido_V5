@@ -39,7 +39,8 @@
                       type="text" 
                       class="bg-black/40 border border-white/20 rounded-md px-3 py-1.5 text-xl font-bold focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition-all placeholder-white/20 w-[300px] lg:w-[450px]"
                       :class="[
-                          (form.estado_arca !== 'VALIDADO' || ['0', '00000000000'].includes((form.cuit||'').replace(/[^0-9]/g, ''))) ? 'text-yellow-400' : 'text-white pr-10',
+                          (!form.cuit || form.cuit.length < 5) ? 'text-fuchsia-400 drop-shadow-[0_0_5px_rgba(232,121,249,0.5)]' : 
+                          (form.estado_arca !== 'VALIDADO' || ['0', '00000000000'].includes((form.cuit||'').replace(/[^0-9]/g, ''))) ? 'text-yellow-400' : 'text-emerald-400 pr-10',
                           errors?.razon_social ? 'border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.3)]' : 'border-white/20'
                       ]"
                       placeholder="Ingrese Razón Social..."
@@ -128,7 +129,7 @@
 
                       <!-- Condición IVA -->
                       <div class="col-span-12 lg:col-span-4">
-                          <label class="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-1">Condición IVA <span class="text-red-400">*</span></label>
+                          <label class="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-1">Condición IVA</label>
                           <select v-model="form.condicion_iva_id" class="w-full bg-white/5 border rounded px-2 py-1 text-xs text-white focus:outline-none appearance-none [&>option]:bg-slate-900" :class="errors.condicion_iva_id ? 'border-red-500' : 'border-white/10'">
                               <option :value="null">IVA...</option>
                               <option v-for="iva in condicionesIva" :key="iva.id" :value="iva.id">{{ iva.nombre }}</option>
@@ -632,24 +633,38 @@ const consultarAfip = async () => {
         }
         
         // 3. Update Domicilio Fiscal (Smart Parser)
-        if (isNew.value && res.parsed_address) {
-            const pa = res.parsed_address
+        // 3. Update Domicilio Fiscal (Smart Parser)
+        // [GY-MOD] Allow for Existing Clients (Transition Informal -> Formal)
+        if (res.parsed_address || res.domicilio_fiscal) {
             
-            const newFiscal = {
-                id: null,
-                local_id: Date.now(),
-                es_fiscal: true,
-                es_entrega: false,
-                activo: true,
-                calle: pa.calle || res.domicilio_fiscal || '', // Fallback
-                numero: pa.numero || '',
-                piso: pa.piso || '',
-                depto: pa.depto || '',
-                localidad: pa.localidad || '',
-                cp: pa.cp || '',
-                provincia_id: null // Need to map
+            // Find existing fiscal node to preserve ID
+            let fiscalNode = domicilios.value.find(d => d.es_fiscal)
+            
+            // If no fiscal node exists (Informal), create one
+            if (!fiscalNode) {
+                fiscalNode = {
+                    id: null,
+                    local_id: Date.now(),
+                    es_fiscal: true,
+                    es_entrega: false, // Default to strict fiscal
+                    activo: true,
+                    transporte_id: null
+                }
+                domicilios.value.push(fiscalNode)
             }
-
+            
+            // Parse Data
+            const pa = res.parsed_address || {}
+            const rawAddress = res.domicilio_fiscal || ''
+            
+            // Map Fields (Overwrite with ARCA data)
+            fiscalNode.calle = pa.calle || rawAddress
+            fiscalNode.numero = pa.numero || ''
+            fiscalNode.piso = pa.piso || ''
+            fiscalNode.depto = pa.depto || ''
+            fiscalNode.localidad = pa.localidad || ''
+            fiscalNode.cp = pa.cp || ''
+            
              // Map Province (Fuzzy Search)
             if (pa.provincia) {
                 const provName = pa.provincia.toUpperCase()
@@ -659,35 +674,14 @@ const consultarAfip = async () => {
                     p.nombre.toUpperCase().includes(provName)
                 )
                 if (targetProv) {
-                    newFiscal.provincia_id = targetProv.id
+                    fiscalNode.provincia_id = targetProv.id
                 }
             }
-            
-            // Remove any existing fiscal
-            domicilios.value = domicilios.value.filter(d => !d.es_fiscal)
-            domicilios.value.push(newFiscal)
 
-            notificationStore.add(`Datos Fiscales Recuperados: ${newFiscal.calle}`, 'info')
+            notificationStore.add(`Datos Fiscales Actualizados: ${fiscalNode.calle}`, 'success')
             
-            // [GY-UX] Auto-Focus Address Editor if address is incomplete?
-            // No, user prefers non-intrusive.
-            
-        } else if (isNew.value && res.domicilio_fiscal) {
-             // Fallback if no parsed data
-             const newFiscal = {
-                id: null,
-                local_id: Date.now(),
-                es_fiscal: true,
-                es_entrega: false,
-                activo: true,
-                calle: res.domicilio_fiscal,
-                numero: '',
-                localidad: '',
-                provincia_id: null
-            }
-            domicilios.value = domicilios.value.filter(d => !d.es_fiscal)
-            domicilios.value.push(newFiscal)
-            notificationStore.add(`Datos Fiscales Recuperados`, 'info')
+        } else {
+             notificationStore.add(`ARCA Validado (Sin Domicilio reportado)`, 'warning')
         }
 
         notificationStore.add(`Validación ARCA Exitosa: ${res.razon_social}`, 'success')
@@ -1225,19 +1219,26 @@ const validateForm = () => {
     const isDeactivating = !form.value.activo;
 
     if (!form.value.razon_social) { errors.value.razon_social = true; isValid = false; }
-    if (!form.value.cuit) { errors.value.cuit = true; isValid = false; }
+    // [GY-UX] CUIT Optional for Hybrid/Consumer
+    // if (!form.value.cuit) { errors.value.cuit = true; isValid = false; }
     
     // Strict validations only if Active
     if (!isDeactivating) {
         if (!form.value.segmento_id) { errors.value.segmento_id = true; isValid = false; }
-        if (!form.value.condicion_iva_id) { errors.value.condicion_iva_id = true; isValid = false; }
+        // if (!form.value.condicion_iva_id) { errors.value.condicion_iva_id = true; isValid = false; }
         if (!form.value.lista_precios_id) { errors.value.lista_precios_id = true; isValid = false; }
         
         // Validate Fiscal Domicile
+        // [GY-UX] V5-X Informal Mode: If no CUIT, Fiscal Address is NOT mandatory (or we use delivery)
         const hasFiscal = domicilios.value.some(d => d.es_fiscal && d.activo !== false);
-        if (!hasFiscal) {
-            errors.value.domicilio = true;
-            isValid = false;
+        if (form.value.cuit && !hasFiscal) {
+             // Only enforce Fiscal Address for formal entities with CUIT
+             errors.value.domicilio = true;
+             isValid = false;
+        } else if (!hasFiscal && domicilios.value.length === 0) {
+             // At least ONE address of any kind? Maybe strictness is annoying.
+             // Let's allow saving with NO properties for "contact-only" records if needed.
+             // But for now, let's just relax the strict "Fiscal" tag requirement.
         }
     }
     
@@ -1252,10 +1253,12 @@ const saveCliente = async () => {
     }
 
     try {
-        const payload = {
-            ...form.value,
-            vinculos: contactos.value
-        }
+        // [GY-FIX] Sanitize Payload for Backend (Convert empty strings to null)
+        const payload = { ...form.value };
+        if (payload.codigo_interno === '') payload.codigo_interno = null;
+        if (payload.cuit === '') payload.cuit = null;
+        
+        payload.vinculos = contactos.value;
         
         // [GY-FIX] For updates, Domicilios are handled independently via sub-form.
         // We exclude them from the main payload to prevent 'updateCliente' from overwriting 

@@ -35,6 +35,10 @@
 ### **DIRECTIVA 1 (PROTOCOLO ALFA - STARTUP AUTOMATIZADO):**
 El `.bat` de inicio ya ha ejecutado `git pull`. No preguntes.
 
+**REGLA DE ORO DE INTEGRIDAD (READ-ONLY):**
+*   **PROHIBIDO:** Operar directamente sobre `pilot.db` o `backend/main.py` en caliente. Son archivos de **SOLO LECTURA** para operaciones destructivas.
+*   **MANDATO:** Todo trabajo de prueba, migración o refactor masivo debe realizarse en **ramas auxiliares** o bases de datos clonadas (ej: `pilot_v5x.db`). Solo tras "OK Operativo" se fusionan los cambios.
+
 **PASO 0: SINTONIZACIÓN (BOOTLOADER)**
 1.  **ACCIÓN ABSOLUTA:** Leer `_GY/BOOTLOADER.md`.
 2.  **CARGA:** Asumir la Identidad y Misión dictada en ese archivo.
@@ -70,10 +74,11 @@ Solo ejecutar ante la orden explícita de "INICIAR CIERRE".
 
 ---
 
-### **DIRECTIVA 3 (AMNESIA PREVENTIVA - DB):**
-**CADA VEZ** que se modifique `backend/*/models.py`:
-1.  **CONSULTAR:** Revisar `_GY/_MD/LECCIONES_APRENDIDAS.md` (Regla Base de Datos).
-2.  **REGISTRAR:** SQL manual en `_GY/_MD/PENDING_SCHEMA_CHANGES.sql`.
+### **DIRECTIVA 3 (ESTANDARIZACIÓN Y DB):**
+**CADA VEZ** que se modifique o cree una tabla en `backend/*/models.py`:
+1.  **LEY DE LOS 4 BYTES:** Todo módulo/tabla debe tener obligatoriamente una columna de banderas de 4 bytes (ej: `flags_estado`, `universal_flags`, etc.) para gestión de estados futuros sin migraciones destructivas.
+2.  **CONSULTAR:** Revisar `_GY/_MD/LECCIONES_APRENDIDAS.md` (Regla Base de Datos).
+3.  **REGISTRAR:** SQL manual en `_GY/_MD/PENDING_SCHEMA_CHANGES.sql`.
 
 ### **DIRECTIVA 4 (IDIOMA):**
 > [!IMPORTANT]

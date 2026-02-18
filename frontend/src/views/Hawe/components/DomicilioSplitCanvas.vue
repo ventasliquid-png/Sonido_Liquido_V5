@@ -208,9 +208,21 @@ const toggleFiscal = () => {
 
 const handleSave = () => {
     // [GY-FIX] Critical Data Mapping
-    // If NOT fiscal, the 'calle_entrega' (Right Panel) IS the physical address of this node.
-    // We must copy it to the core 'calle' fields so it saves to the DB correctly.
+    // 1. If NOT fiscal, the 'calle_entrega' (Right Panel) IS the physical address.
+    //    We must sync it to core 'calle' fields.
     if (!form.es_fiscal) {
+         form.calle = form.calle_entrega;
+         form.numero = form.numero_entrega;
+         form.piso = form.piso_entrega;
+         form.depto = form.depto_entrega;
+         form.cp = form.cp_entrega;
+         form.localidad = form.localidad_entrega;
+         form.provincia_id = form.provincia_entrega_id;
+    } 
+    // 2. [GY-UX] Hybrid Auto-Fill: 
+    // If ES_FISCAL is true (default) but user only filled 'Entrega' (Right Side)
+    // and left 'Fiscal' (Left Side) empty, we assume Fiscal = Physical.
+    else if (form.es_fiscal && !form.calle && form.calle_entrega) {
          form.calle = form.calle_entrega;
          form.numero = form.numero_entrega;
          form.piso = form.piso_entrega;
@@ -304,7 +316,7 @@ onUnmounted(() => {
                     <div class="grid grid-cols-12 gap-2">
                         <!-- Calle (5 cols) -->
                         <div class="col-span-12 lg:col-span-5">
-                            <label class="block text-[10px] font-bold uppercase mb-1 text-fuchsia-200/50">Calle <span v-if="form.es_fiscal" class="text-fuchsia-400">*</span></label>
+                            <label class="block text-[10px] font-bold uppercase mb-1 text-fuchsia-200/50">Calle</label>
                             <input 
                                 :value="form.es_fiscal ? form.calle : (props.fiscalDomicilio?.calle || '')"
                                 @input="e => form.es_fiscal ? form.calle = e.target.value : null"
@@ -315,7 +327,7 @@ onUnmounted(() => {
                         </div>
                         <!-- Numero (2 cols) -->
                          <div class="col-span-12 lg:col-span-3">
-                            <label class="block text-[10px] font-bold uppercase mb-1 text-fuchsia-200/50">Número <span v-if="form.es_fiscal" class="text-fuchsia-400">*</span></label>
+                            <label class="block text-[10px] font-bold uppercase mb-1 text-fuchsia-200/50">Número</label>
                             <input 
                                 :value="form.es_fiscal ? form.numero : (props.fiscalDomicilio?.numero || '')"
                                 @input="e => form.es_fiscal ? form.numero = e.target.value : null"
@@ -350,7 +362,7 @@ onUnmounted(() => {
                     <!-- ROW 2: LOCALIDAD / PROVINCIA / CP -->
                     <div class="grid grid-cols-12 gap-2">
                         <div class="col-span-12 lg:col-span-5">
-                            <label class="block text-[10px] font-bold uppercase mb-1 text-fuchsia-200/50">Localidad <span v-if="form.es_fiscal" class="text-fuchsia-400">*</span></label>
+                            <label class="block text-[10px] font-bold uppercase mb-1 text-fuchsia-200/50">Localidad</label>
                             <input 
                                 :value="form.es_fiscal ? form.localidad : (props.fiscalDomicilio?.localidad || '')"
                                 @input="e => form.es_fiscal ? form.localidad = e.target.value : null"
@@ -359,7 +371,7 @@ onUnmounted(() => {
                                 type="text" class="w-full bg-black/40 border rounded px-2 py-2 text-white outline-none text-xs transition-colors border-fuchsia-500/30 focus:border-fuchsia-500">
                         </div>
                         <div class="col-span-12 lg:col-span-5">
-                            <label class="block text-[10px] font-bold uppercase mb-1 text-fuchsia-200/50">Provincia <span v-if="form.es_fiscal" class="text-fuchsia-400">*</span></label>
+                            <label class="block text-[10px] font-bold uppercase mb-1 text-fuchsia-200/50">Provincia</label>
                             <select 
                                 :value="form.es_fiscal ? form.provincia_id : (props.fiscalDomicilio?.provincia_id || null)"
                                 @change="e => form.es_fiscal ? form.provincia_id = e.target.value : null"

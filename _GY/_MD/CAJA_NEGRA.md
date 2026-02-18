@@ -1,5 +1,5 @@
 **Última Actualización:** 15-Feb-2026 (Fix AFIP 400 & Dependencias)
-**Sesiones Completadas:** +8 (Ciclo de Estabilización)
+**Sesiones Completadas:** +9 (Ciclo de Estabilización)
 **Rol:** Tablero de Control y Estado de Salud del Sistema.
 
 ---
@@ -52,3 +52,15 @@
 - **UX**: Implementado Foco Automático, Eliminación de Redundancia y Mapeo Fuzzy de IVA en `ClientCanvas`.
 - **Integridad**: Lógica de "Preservación de Identidad" para casos UBA/Sucursales (mismo CUIT, distinto nombre).
 - **Estado**: Clientes V6.3 FULL OPERATIVO (Validado ARCA).
+
+## [2026-02-16] ANÁLISIS ESTRATÉGICO: DIGESTO SISTÉMICO
+- **Hito**: Generación de `DIGESTO_SISTEMA_SL.txt` ("Cerebro de Proyecto").
+- **Alcance**: Consolidación documental de Arquitectura V5 (Híbrida), Satélite RAR (WSMTXCA) y Lógica de Negocio (Precios/Clientes).
+- **Objetivo**: Alimentar sistemas de razonamiento externos para reducir deuda técnica cognitiva.
+- **Estado**: Documento generado y persistido en `INFORMES_HISTORICOS`.
+
+## [2026-02-18] CLIENTES HÍBRIDOS & PROTOCOLO BLINDADO
+- **Hito**: Implementación de Arquitectura de Clientes Informales ("Rosa Chicle") sin CUIT obligatorio.
+- **UX**: Auto-Fill inteligente en Domicilio Split (Fiscal desde Entrega) y Transición automática Informal->Formal vía ARCA.
+- **Integridad**: Refuerzo de Protocolos ALFA (Read-Only DB) y OMEGA (4-Byte Flags Check) con Freno de Mano PIN 1974.
+- **Estado**: Sistema Validado y Documentado (V14 Vanguard).

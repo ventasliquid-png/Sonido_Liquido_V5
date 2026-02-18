@@ -47,7 +47,8 @@
         class="font-outfit text-lg font-semibold transition-colors" 
         :class="[
             { 'truncate': !isExpanded, 'whitespace-normal': isExpanded },
-            validationStatus === 'VALIDADO' ? 'text-white' : 'text-yellow-400' 
+            validationStatus === 'SIN_CUIT' ? 'text-fuchsia-400 drop-shadow-[0_0_5px_rgba(232,121,249,0.5)]' : 
+            (validationStatus === 'VALIDADO' ? 'text-white' : 'text-yellow-400') 
         ]"
       >
         {{ title }}

@@ -19,11 +19,22 @@ ENV_PATH = os.path.join(ROOT_DIR, ".env")
 print(f"--- [BOOT] Cargando variables de entorno desde: {ENV_PATH} ---")
 load_dotenv(ENV_PATH, override=True)
 
-# FIX: Forzar siempre pilot.db en ROOT para evitar duplicidad o bases vacías en backend/
-# Independientemente de lo que diga el .env (que puede tener Postgres remotos viciados)
-abs_db_path = os.path.join(ROOT_DIR, "pilot.db")
-os.environ["DATABASE_URL"] = f"sqlite:///{abs_db_path}"
-print(f"--- [BOOT] DATABASE_URL inhabilitada. Forzando SQLITE LOCAL: {os.environ['DATABASE_URL']} ---")
+# [GY-FIX-BOOT] Respect .env for DB choice (Migration Support)
+# Only fallback to pilot.db if not specified or purely postgres (which we are avoiding)
+env_db_url = os.environ.get("DATABASE_URL", "")
+
+if "sqlite" in env_db_url:
+    # Resolve relative path if needed
+    if "./" in env_db_url:
+        db_name = env_db_url.split("/")[-1]
+        abs_db_path = os.path.join(ROOT_DIR, db_name)
+        os.environ["DATABASE_URL"] = f"sqlite:///{abs_db_path}"
+    print(f"--- [BOOT] Usando SQLITE (.env): {os.environ['DATABASE_URL']} ---")
+else:
+    # Fallback to pilot.db default
+    abs_db_path = os.path.join(ROOT_DIR, "pilot.db")
+    os.environ["DATABASE_URL"] = f"sqlite:///{abs_db_path}"
+    print(f"--- [BOOT] DATABASE_URL no SQLITE. Forzando DEFAULT: {os.environ['DATABASE_URL']} ---")
     
 # FORCE DISABLE IOWA (Cloud Costs Saving)
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = ""

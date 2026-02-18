@@ -68,6 +68,9 @@ class Producto(Base):
     es_kit = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    # [V5-X] Hybrid Flags (32-bit)
+    flags_estado = Column(Integer, default=0, nullable=False)
+
     # Relaciones
     rubro = relationship("Rubro", back_populates="productos")
     costos = relationship("ProductoCosto", uselist=False, back_populates="producto", cascade="all, delete-orphan")

@@ -104,7 +104,13 @@ class DomicilioResponse(BaseModel):
 class ClienteBase(BaseModel):
     razon_social: str
     nombre_fantasia: Optional[str] = None
-    cuit: str
+    # [V5-X] Hybrid Architecture: CUIT is optional
+    cuit: Optional[str] = None
+    
+    # [V5-X] Hybrid Flags
+    flags_estado: int = 0
+    codigo_interno: Optional[int] = None
+    
     condicion_iva_id: Optional[UUID] = None
     lista_precios_id: Optional[UUID] = None
     segmento_id: Optional[UUID] = None
@@ -118,10 +124,14 @@ class ClienteBase(BaseModel):
     datos_acceso_pagos: Optional[str] = None
     observaciones: Optional[str] = None
     estado_arca: Optional[str] = "PENDIENTE"
+    
+    # Referencia al vendedor
+    vendedor_id: Optional[int] = None
+    estrategia_precio: Optional[str] = "MAYORISTA_FISCAL"
 
     @field_validator('cuit')
     @classmethod
-    def clean_cuit(cls, v: str) -> str:
+    def clean_cuit(cls, v: Optional[str]) -> Optional[str]:
         if v:
             return re.sub(r'[^0-9]', '', v)
         return v
@@ -130,10 +140,28 @@ class ClienteCreate(ClienteBase):
     domicilios: List[DomicilioCreate] = []
     vinculos: List[VinculoComercialCreate] = []
 
+    # [V5-X] Pydantic Validator for Hybrid Logic
+    @model_validator(mode='after')
+    def check_fiscal_consistency(self):
+        # Bitmasks constants (Hardcoded to avoid circular imports)
+        FISCAL_REQUIRED = 0x004
+        
+        is_strict = (self.flags_estado & FISCAL_REQUIRED) != 0
+        has_cuit = bool(self.cuit and len(self.cuit) > 5)
+        
+        if is_strict and not has_cuit:
+            raise ValueError("Incoherencia: Flag FISCAL_REQUIRED activo pero falta CUIT (Modo Gold/Silver requiere CUIT).")
+            
+        if not is_strict and not self.razon_social:
+             raise ValueError("Mínimo Vital: Un cliente Bronze requiere al menos Razón Social.")
+             
+        return self
+
 class ClienteUpdate(BaseModel):
     razon_social: Optional[str] = None
     nombre_fantasia: Optional[str] = None
     cuit: Optional[str] = None
+    flags_estado: Optional[int] = None
     condicion_iva_id: Optional[UUID] = None
     lista_precios_id: Optional[UUID] = None
     segmento_id: Optional[UUID] = None
@@ -146,6 +174,8 @@ class ClienteUpdate(BaseModel):
     observaciones: Optional[str] = None
     estado_arca: Optional[str] = None
     transporte_id: Optional[UUID] = None
+    vendedor_id: Optional[int] = None
+    estrategia_precio: Optional[str] = None
 
     @field_validator('cuit')
     @classmethod

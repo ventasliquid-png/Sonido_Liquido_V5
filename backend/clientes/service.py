@@ -142,42 +142,62 @@ class ClienteService:
 
     @staticmethod
     def update_cliente(db: Session, cliente_id: UUID, cliente_in: schemas.ClienteUpdate) -> Optional[Cliente]:
+        from backend.clientes.constants import ClientFlags
+        
         db_cliente = ClienteService.get_cliente(db, cliente_id)
         if not db_cliente:
             return None
         
-        update_data = cliente_in.model_dump(exclude_unset=True)
+        update_data = cliente_in.dict(exclude_unset=True)
         
-        # Handle transporte_id separately (it belongs to Domicilio)
+        # [V5-X] Handle CUIT Update validity
+        if 'cuit' in update_data and update_data['cuit']:
+             existing = db.query(Cliente).filter(Cliente.cuit == update_data['cuit'], Cliente.id != cliente_id).first()
+             if existing:
+                 raise HTTPException(status_code=400, detail=f"El CUIT {update_data['cuit']} ya está en uso.")
+
+        # [V5-X] Flags logic updates
+        if 'flags_estado' in update_data:
+            new_flags = update_data['flags_estado']
+            if (new_flags & ClientFlags.FISCAL_REQUIRED):
+                # Check consistency if becoming restricted
+                cuit_val = update_data.get('cuit', db_cliente.cuit)
+                if not cuit_val:
+                     raise HTTPException(status_code=400, detail="No se puede ascender a Gold (Fiscal) sin CUIT.")
+
+        # Handle transporte_id separately
         transporte_id = update_data.pop('transporte_id', None)
         
         for key, value in update_data.items():
             setattr(db_cliente, key, value)
         
+        # [V5-X] Sync legacy 'activo'
+        if (db_cliente.flags_estado & ClientFlags.IS_ACTIVE):
+            db_cliente.activo = True
+        else:
+            db_cliente.activo = False
+
         # Update default domicile if transporte_id is provided
         if transporte_id:
-            # Find default domicile (Hierarchy: Entrega > Fiscal > First Active)
-            # Ensure we only pick ACTIVE domiciles
             default_dom = next((d for d in db_cliente.domicilios if d.es_entrega and d.activo), None)
-            
             if not default_dom:
                  default_dom = next((d for d in db_cliente.domicilios if d.es_fiscal and d.activo), None)
-            
             if not default_dom and db_cliente.domicilios:
-                 # [GY-FIX-V14] Fallback to ANY active domicile if flags are missing (matches Frontend logic)
                  default_dom = next((d for d in db_cliente.domicilios if d.activo), None)
             
             if default_dom:
                 default_dom.transporte_id = transporte_id
                 db.add(default_dom)
             else:
-                # If no domicile exists at all, create a default one
+                # Create a minimal delivery address if none exists (Bronze Logic?)
+                # This ensures we store the preference.
                 new_dom = Domicilio(
                     cliente_id=db_cliente.id,
                     transporte_id=transporte_id,
-                    es_fiscal=True,
+                    es_fiscal=False,
                     es_entrega=True,
-                    alias="Domicilio Principal"
+                    alias="Entrega (Auto)",
+                    activo=True
                 )
                 db.add(new_dom)
 

@@ -39,9 +39,13 @@ Antes de tocar `git`, se deben actualizar los artefactos de inteligencia estáti
 
 ## ⚙️ FASE 2: PLANIFICACIÓN DETALLADA
 1.  Generar artefacto `implementation_plan.md`.
-2.  **REGLA DE ORO DOCUMENTAL:** No decir "Voy a actualizar el manual". **Debes presentar el texto exacto (borrador)** que planeas insertar.
+2.  **VERIFICACIÓN DE ESTÁNDARES (4 BYTES):** 
+    *   Si se crearon módulos o tablas nuevas, confirmar que **TODAS** incluyen los 4 bytes de banderas (`flags`). **Sin excepción.**
+3.  **REGLA DE ORO DOCUMENTAL:** No decir "Voy a actualizar el manual". **Debes presentar el texto exacto (borrador)** que planeas insertar.
     *   *Ejemplo:* "Agregaré a `MANUAL_TECNICO.md`: 'Sección 6: Contactos actúan como nexo...'".
-3.  **STOP:** Presentar el plan al Usuario y esperar el **PIN Maestro "1974"**.
+4.  **CONFIRMACIÓN DE INTEGRIDAD:**
+    *   Asegurar que **NO** se operó sobre `pilot.db` o `main.py` directamente durante la sesión, sino en entornos controlados/auxiliares.
+5.  **STOP:** Presentar el plan al Usuario y esperar el **PIN Maestro "1974"**.
 
 ---
 

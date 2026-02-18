@@ -146,7 +146,7 @@
                 class="w-full"
                 :title="cliente.razon_social || 'Sin Nombre'"
                 :subtitle="cliente.cuit || '---'"
-                :validationStatus="['0', '00000000000'].includes((cliente.cuit||'').replace(/[^0-9]/g, '')) ? 'PENDIENTE' : cliente.estado_arca"
+                :validationStatus="(!cliente.cuit || cliente.cuit.length < 5) ? 'SIN_CUIT' : (['0', '00000000000'].includes((cliente.cuit||'').replace(/[^0-9]/g, '')) ? 'PENDIENTE' : cliente.estado_arca)"
                 :selected="selectedIds.includes(cliente.id)"
                 :hasLogisticsAlert="cliente.requiere_entrega"
                 :hasTransport="cliente.domicilios?.some(d => d.transporte_id)"
@@ -224,7 +224,10 @@
                         <div class="flex items-center gap-2">
                             <span 
                                 class="font-outfit font-bold group-hover:text-cyan-400 transition-colors truncate"
-                                :class="(cliente.estado_arca !== 'VALIDADO' || ['0', '00000000000'].includes((cliente.cuit||'').replace(/[^0-9]/g, ''))) ? 'text-yellow-400' : 'text-white'"
+                                :class="[
+                                    (!cliente.cuit || cliente.cuit.length < 5) ? 'text-fuchsia-400 drop-shadow-[0_0_5px_rgba(232,121,249,0.5)]' :
+                                    (cliente.estado_arca !== 'VALIDADO' || ['0', '00000000000'].includes((cliente.cuit||'').replace(/[^0-9]/g, ''))) ? 'text-yellow-400' : 'text-white'
+                                ]"
                             >
                                 {{ cliente.razon_social }}
                             </span>

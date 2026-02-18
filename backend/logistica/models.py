@@ -43,6 +43,8 @@ class EmpresaTransporte(Base):
     servicio_retiro_domicilio = Column(Boolean, default=False) # Pick-up logic
     requiere_carga_web = Column(Boolean, default=False) # Bloquea cierre si no se carga en portal
     formato_etiqueta = Column(Enum('PROPIA', 'EXTERNA_PDF', name='formato_etiqueta_enum'), default='PROPIA')
+    # [V5-X] Hybrid Flags (32-bit)
+    flags_estado = Column(Integer, default=0, nullable=False)
     activo = Column(Boolean, default=True)
 
     # Relaciones

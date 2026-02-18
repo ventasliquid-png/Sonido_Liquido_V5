@@ -3,7 +3,7 @@
 # Color Identidad: ÍNDIGO / VIOLETA
 
 import uuid
-from sqlalchemy import Column, String, Boolean, ForeignKey, Text, JSON, DateTime, Date, Enum
+from sqlalchemy import Column, String, Boolean, ForeignKey, Text, JSON, DateTime, Date, Enum, Integer
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 
@@ -35,6 +35,9 @@ class Persona(Base):
     # Auditoría
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    
+    # [V5-X] Univeral Flags
+    flags_estado = Column(Integer, default=0, nullable=False)
 
     # Relaciones
     vinculos = relationship("Vinculo", back_populates="persona", cascade="all, delete-orphan")
@@ -69,9 +72,13 @@ class Vinculo(Base):
     area = Column(String, nullable=True) # Ej: "Administración"
     roles = Column(JSON, default=list) # Etiquetas: [DECISOR, COBRANZAS]
     
+    
     # Canales Laborales (Contextuales a esta empresa)
     # Ej: [{"tipo": "EMAIL", "valor": "pedro@transporte.com", "etiqueta": "Corporativo"}]
     canales_laborales = Column(JSON, default=list)
+    
+    # [V5-X] Hybrid Flags (32-bit): Rol, Prioridad, Validación
+    flags_estado = Column(Integer, default=0, nullable=False)
     
     notas_vinculo = Column(Text, nullable=True)
     

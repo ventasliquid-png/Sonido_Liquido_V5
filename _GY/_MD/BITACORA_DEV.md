@@ -652,3 +652,22 @@ Siguiendo órdenes directas, se difirió la integración real de OAuth y se impl
     *   **Manejo de Errores:** Bloques `try/catch` robustos para alertar al usuario en lugar de fallar en silencio.
 
 **Resultado:** Validación operativa. El usuario recibe feedback inmediato y los datos persisten correctamente en formulario.
+
+# [V6.4] 2026-02-18 - Clientes Híbridos (Pink Mode) & Blindaje de Protocolos
+
+> **ESTADO:** DEPLOYED
+> **TIPO:** FEATURE / UX / SECURITY
+
+**Objetivo:** Permitir la operación con clientes informales sin datos fiscales y reforzar la seguridad de los protocolos de inicio/cierre.
+
+**Intervenciones:**
+1.  **Frontend (UX Híbrida):**
+    *   **Pink Mode:** Distinción visual para clientes sin CUIT (`!cuit`) en `HaweView` (Lista) y `FichaCard` (Grid).
+    *   **Validación Relajada:** `ClientCanvas` y `DomicilioSplitCanvas` ahora permiten guardar sin datos fiscales estrictos.
+    *   **Auto-Fill:** Lógica de "Fiscal hereda de Entrega" para evitar cargas dobles en informales.
+    *   **Transición:** Actualización automática de datos fiscales vía ARCA al ingresar un CUIT en un cliente existente.
+2.  **Backbone (Protocolos):**
+    *   **ALFA (V14):** Declarado `pilot.db` y `main.py` como Read-Only en caliente.
+    *   **OMEGA:** Implementada verificación de "4-Byte Flags" y "Freno de Mano 1974".
+
+**Resultado:** Alta de clientes ágil para todos los segmentos (Formal/Informal) y mayor seguridad operativa.
