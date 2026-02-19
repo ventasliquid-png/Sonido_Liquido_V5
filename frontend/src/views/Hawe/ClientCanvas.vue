@@ -8,6 +8,11 @@
                   <i class="fas fa-arrow-left"></i>
               </button>
 
+              <!-- ID BADGE -->
+              <div v-if="form.codigo_interno" class="hidden lg:flex items-center justify-center bg-cyan-900/20 border border-cyan-500/20 rounded px-2 py-1 mr-2" title="Código Interno de Sistema">
+                  <span class="text-[10px] font-mono font-bold text-cyan-500">#{{ form.codigo_interno }}</span>
+              </div>
+
               <!-- CUIT INPUT (HEADER POSITION) -->
               <div class="relative group flex items-center gap-1 bg-black/40 border rounded-md px-2 py-1.5 focus-within:border-cyan-500 focus-within:ring-1 focus-within:ring-cyan-500/50 transition-all" :class="errors?.cuit ? 'border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.3)]' : 'border-white/20'">
                   <label class="text-[9px] font-bold text-cyan-500/50 uppercase tracking-widest mr-1">CUIT</label>
@@ -16,11 +21,17 @@
                       v-model="form.cuit" 
                       type="text" 
                       class="bg-transparent border-none text-sm font-mono focus:outline-none w-[100px] placeholder-white/10"
-                      :class="(form.estado_arca === 'VALIDADO' && !['0', '00000000000'].includes((form.cuit||'').replace(/[^0-9]/g, ''))) ? 'text-emerald-100' : 'text-yellow-100'"
+                      :class="{
+                        'text-fuchsia-200': clientColorMode === 'pink',
+                        'text-cyan-200': clientColorMode === 'blue',
+                        'text-emerald-100': clientColorMode === 'green',
+                        'text-yellow-100': clientColorMode === 'yellow'
+                      }"
                       placeholder="Sin Guiones"
                       maxlength="13"
                       @keydown.enter="consultarAfip"
                       @input="handleCuitInput"
+                      @blur="handleCuitBlur"
                   />
                    <button 
                         @click="consultarAfip"
@@ -39,8 +50,9 @@
                       type="text" 
                       class="bg-black/40 border border-white/20 rounded-md px-3 py-1.5 text-xl font-bold focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition-all placeholder-white/20 w-[300px] lg:w-[450px]"
                       :class="[
-                          (!form.cuit || form.cuit.length < 5) ? 'text-fuchsia-400 drop-shadow-[0_0_5px_rgba(232,121,249,0.5)]' : 
-                          (form.estado_arca !== 'VALIDADO' || ['0', '00000000000'].includes((form.cuit||'').replace(/[^0-9]/g, ''))) ? 'text-yellow-400' : 'text-emerald-400 pr-10',
+                          clientColorMode === 'pink' ? 'text-fuchsia-400 drop-shadow-[0_0_5px_rgba(232,121,249,0.5)]' : 
+                          clientColorMode === 'blue' ? 'text-cyan-300 drop-shadow-[0_0_5px_rgba(103,232,249,0.5)]' :
+                          clientColorMode === 'green' ? 'text-emerald-400 pr-10' : 'text-yellow-400',
                           errors?.razon_social ? 'border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.3)]' : 'border-white/20'
                       ]"
                       placeholder="Ingrese Razón Social..."
@@ -167,7 +179,7 @@
                         :class="errors?.domicilio ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]' : 'border-fuchsia-500/20'"
                       >
                           <div class="flex justify-between items-center mb-2 border-b border-fuchsia-500/10 pb-1">
-                              <label class="text-[10px] font-bold text-fuchsia-400 uppercase tracking-widest"><i class="fas fa-file-invoice mr-1"></i> Domicilio Fiscal <span class="text-red-400">*</span></label>
+                              <label class="text-[10px] font-bold text-fuchsia-400 uppercase tracking-widest"><i class="fas fa-file-invoice mr-1"></i> Domicilio Fiscal <span v-if="form.cuit && !['00000000000', '11111111119', '11111111111'].includes(form.cuit) && !(form.condicion_iva_id && condicionesIva.find(i => i.id === form.condicion_iva_id)?.nombre.toUpperCase().includes('CONSUMIDOR FINAL'))" class="text-red-400">*</span></label>
                               <div class="flex items-center gap-2">
                                   <div class="text-[9px] text-fuchsia-500/50 group-hover:text-fuchsia-400 transition-colors">
                                       <i class="fas fa-pencil-alt mr-1"></i> Editar
@@ -557,6 +569,7 @@ const activeTab = ref('CLIENTE') // 'CLIENTE', 'DOMICILIO', 'CONTACTO'
 
 // --- RAR-V5 BRIDGE (AFIP) ---
 const loadingAfip = ref(false)
+const forceAddressSync = ref(false)
 const GENERIC_CUITS = ['11111111119', '11111111111', '00000000000']
 const commonCuitNames = {
     '11111111119': 'CONSUMIDOR FINAL GENERICO',
@@ -568,6 +581,9 @@ const consultarAfip = async () => {
         notificationStore.add('Ingrese un CUIT válido (11 dígitos)', 'warning')
         return
     }
+    
+    // Reset Sync Flag
+    forceAddressSync.value = false;
 
     // Bypass for Generic CUITs
     if (GENERIC_CUITS.includes(form.value.cuit)) {
@@ -601,11 +617,23 @@ const consultarAfip = async () => {
         
         if (res.error) {
             notificationStore.add(`Error AFIP: ${res.error}`, 'error')
+            alert(`❌ ERROR ARCA/AFIP:\n\n${res.error}\n\nVerifique el CUIT ingresado.`);
+            form.value.estado_arca = 'INVALIDO'; 
             return
         }
         
-        // 1. Update Golden Data
-        form.value.razon_social = res.razon_social
+        // 1. Update Golden Data (Smart Overwrite)
+        let useAfipName = true
+        if (form.value.razon_social && form.value.razon_social.trim() !== res.razon_social.trim()) {
+            if (!confirm(`DATOS OFICIALES:\n\nRazón Social AFIP: "${res.razon_social}"\nNombre Actual: "${form.value.razon_social}"\n\n¿Desea SOBREESCRIBIR el nombre actual con el oficial?`)) {
+                useAfipName = false
+            }
+        }
+        
+        if (useAfipName) {
+            form.value.razon_social = res.razon_social
+        }
+        
         form.value.estado_arca = 'VALIDADO'
         form.value.datos_arca_last_update = new Date().toISOString()
         
@@ -658,12 +686,21 @@ const consultarAfip = async () => {
             const rawAddress = res.domicilio_fiscal || ''
             
             // Map Fields (Overwrite with ARCA data)
-            fiscalNode.calle = pa.calle || rawAddress
+            // Map Fields (Overwrite with ARCA data)
+            // [GY-DEBUG] Log incoming ARCA address data
+            console.log("ARCA Address Data:", pa, rawAddress);
+            
+            fiscalNode.calle = pa.calle || rawAddress || 'Calle S/N'
             fiscalNode.numero = pa.numero || ''
             fiscalNode.piso = pa.piso || ''
             fiscalNode.depto = pa.depto || ''
             fiscalNode.localidad = pa.localidad || ''
             fiscalNode.cp = pa.cp || ''
+            
+            // Should likely be Delivery too if it's the only one
+            if (domicilios.value.length === 1) {
+                fiscalNode.es_entrega = true
+            }
             
              // Map Province (Fuzzy Search)
             if (pa.provincia) {
@@ -685,10 +722,24 @@ const consultarAfip = async () => {
         }
 
         notificationStore.add(`Validación ARCA Exitosa: ${res.razon_social}`, 'success')
+        forceAddressSync.value = true;
         
     } catch (e) {
         console.error("Bridge Error:", e)
-        notificationStore.add('Error de comunicación con el Puente RAR', 'error')
+        let msg = 'Error de comunicación con el Puente RAR';
+        
+        if (e.response) {
+            // [GY-UX] Handle Backend Errors (400, 500)
+            if (e.response.data && e.response.data.detail) {
+                msg = e.response.data.detail;
+            } else if (e.message) {
+                msg = e.message;
+            }
+        }
+        
+        notificationStore.add(msg, 'error')
+        alert(`❌ ERROR ARCA/AFIP:\n\n${msg}\n\nVerifique el CUIT ingresado (¿Dígito Verificador?).`);
+        form.value.estado_arca = 'INVALIDO';
     } finally {
         loadingAfip.value = false
     }
@@ -1142,6 +1193,9 @@ onMounted(async () => {
              contactos.value = store.draft.vinculos || []
              store.clearDraft() // Consume draft
              notificationStore.add('Datos clonados precargados', 'info')
+             
+             // [GY-UX] Check status for Clones/Drafts (Enable Blue Mode logic)
+             checkCuitStatus(false)
         } else {
              resetForm()
         }
@@ -1186,6 +1240,8 @@ const loadCliente = async (id) => {
             domicilios.value = client.domicilios || []
             contactos.value = client.vinculos || [] 
             loadCommercialIntel()
+            // [GY-UX] Check if it's a Collective CUIT
+            checkCuitStatus(false)
         }
     } catch (e) {
         console.error(e)
@@ -1231,8 +1287,16 @@ const validateForm = () => {
         // Validate Fiscal Domicile
         // [GY-UX] V5-X Informal Mode: If no CUIT, Fiscal Address is NOT mandatory (or we use delivery)
         const hasFiscal = domicilios.value.some(d => d.es_fiscal && d.activo !== false);
-        if (form.value.cuit && !hasFiscal) {
-             // Only enforce Fiscal Address for formal entities with CUIT
+        
+        // Check for Generic CUITs
+        const isGenericCuit = ['00000000000', '11111111119', '11111111111'].includes(form.value.cuit);
+        
+        // Check for Consumidor Final IVA condition
+        const isConsumidorFinal = form.value.condicion_iva_id && 
+            condicionesIva.value.find(i => i.id === form.value.condicion_iva_id)?.nombre.toUpperCase().includes('CONSUMIDOR FINAL');
+
+        if (form.value.cuit && !isGenericCuit && !isConsumidorFinal && !hasFiscal) {
+             // Only enforce Fiscal Address for formal entities with CUIT (EXCEPT Generic ones or Consumer Final)
              errors.value.domicilio = true;
              isValid = false;
         } else if (!hasFiscal && domicilios.value.length === 0) {
@@ -1252,6 +1316,35 @@ const saveCliente = async () => {
         return;
     }
 
+    // [GY-UX] Duplicate Prevention for Shared CUITs (Blue Mode Safety)
+    if (isSharedCuit.value) {
+        try {
+            const checkRes = await store.checkCuit(form.value.cuit, form.value.id);
+            if (checkRes.status === 'EXISTS') {
+                const currentName = form.value.razon_social.trim().toUpperCase();
+                const exactMatch = checkRes.existing_clients.find(c => c.razon_social.trim().toUpperCase() === currentName);
+                
+                if (exactMatch) {
+                    const extraInfo = `\n• Lista: ${exactMatch.lista_precios_nombre || 'N/A'}\n• Segmento: ${exactMatch.segmento_nombre || 'N/A'}`;
+                    notificationStore.add(
+                        `⛔ ERROR CRÍTICO: DUPLICADO EXACTO DETECTADO.\nYa existe "${exactMatch.razon_social}" con este CUIT.${extraInfo}\n\nPara usar un CUIT Compartido (Modo Azul), DEBE diferenciar el nombre (Ej: Agregar "Sucursal X" o "Facultad Y").`, 
+                        'error', 
+                        15000
+                    );
+                    alert(`⛔ NO SE PUEDE GUARDAR:\n\nDUPLICADO EXACTO DETECTADO.\nYa existe "${exactMatch.razon_social}" con este CUIT.${extraInfo}\n\nPara usar un CUIT Compartido (Modo Azul), DEBE diferenciar el nombre (Ej: Agregar "Sucursal X" o "Facultad Y").`);
+                    return; // LOCK SAVE
+                }
+            }
+        } catch (e) {
+            console.error("Error checking duplicates before save", e);
+            // Allow save if check fails? Better safe than sorry? 
+            // Let's warn but allow if network fail, or block? 
+            // Block is safer for data integrity.
+            notificationStore.add('Error verificando duplicados. Intente nuevamente.', 'error');
+            return;
+        }
+    }
+
     try {
         // [GY-FIX] Sanitize Payload for Backend (Convert empty strings to null)
         const payload = { ...form.value };
@@ -1269,8 +1362,15 @@ const saveCliente = async () => {
             await store.createCliente(payload)
             notificationStore.add('Cliente creado exitosamente', 'success')
         } else {
-            // Explicitly do NOT send domicilios allow backend to keep current state
-            delete payload.domicilios; 
+            // [GY-FIX] Only send Domicilios if explicit sync requested (e.g. ARCA validation) to avoid overwriting sub-form edits
+            // If we just validated ARCA, we WANT to overwrite the backend addresses with the new ones.
+            if (!forceAddressSync.value) {
+                delete payload.domicilios;
+            } else {
+                console.log("[SAVE] Force Address Sync Active - Sending Domicilios Payload");
+                // Reset flag after save
+                // forceAddressSync.value = false; // Will be reset on navigate away or reload
+            }
             
             // [GY-FIX] Inject Quick Transport logic for backend shortcut
             if (quickTransportId.value) {
@@ -1282,9 +1382,25 @@ const saveCliente = async () => {
         }
         goBackToSource()
     } catch (e) {
-        console.error(e)
-        const msg = e.response?.data?.detail || 'Error al guardar cliente';
-        notificationStore.add(msg, 'error')
+        console.error("Save Error:", e);
+        let msg = 'Error al guardar cliente';
+        
+        if (e.response && e.response.data && e.response.data.detail) {
+            const detail = e.response.data.detail;
+            if (Array.isArray(detail)) {
+                // Pydantic Validation Error
+                msg = detail.map(err => `• ${err.loc[err.loc.length-1]}: ${err.msg}`).join('\n');
+            } else if (typeof detail === 'object') {
+                msg = JSON.stringify(detail);
+            } else {
+                msg = detail;
+            }
+        }
+        
+        notificationStore.add(msg, 'error', 10000); // Long duration for reading
+        console.log("V2 Error Handler Active"); // Verification tag
+        // [GY-TEMP] Force Alert to ensure user sees the backend error reasoning
+        alert(`No se pudo guardar:\n\n${msg}`);
     }
 }
 
@@ -1333,12 +1449,67 @@ const handleCuitInput = (e) => {
     form.value.cuit = e.target.value.replace(/[^0-9]/g, '')
 }
 
-const handleSegmentoChange = () => {
-    if (form.value.segmento_id === '__NEW__') {
-        form.value.segmento_id = null
-        showSegmentoModal.value = true
+// [GY-UX] CUIT Warning System (CASO UBA)
+const isSharedCuit = ref(false)
+
+const checkCuitStatus = async (notify = false) => {
+    if (!form.value.cuit || form.value.cuit.length < 11) {
+        isSharedCuit.value = false
+        return
+    }
+    
+    // Skip Generics from Warning (They are expected to duplicate but NOT be "Collective/Blue" in the UBA sense)
+    // User wants UBA (Shared Real CUIT) to be Blue.
+    if (['00000000000', '11111111119', '11111111111', '99999999999'].includes(form.value.cuit)) {
+        isSharedCuit.value = false
+        return
+    }
+
+    try {
+        const res = await store.checkCuit(form.value.cuit, form.value.id);
+        
+        if (res.status === 'EXISTS' || res.status === 'INACTIVE') {
+            isSharedCuit.value = true
+            
+            if (notify) {
+                const names = res.existing_clients.map(c => c.razon_social).slice(0, 2).join(', ');
+                const extra = res.existing_clients.length > 2 ? ` y ${res.existing_clients.length - 2} más` : '';
+                
+                notificationStore.add(
+                    `⚠️ CUIT COLECTIVO DETECTADO: Registrado en ${names}${extra}. (CASO UBA)`, 
+                    'info', 
+                    5000
+                );
+
+                // [GY-UX] Smart Auto-fill for Shared CUITs
+                const source = res.existing_clients.find(c => c.lista_precios_id || c.segmento_id);
+                let copied = false;
+                if (source) {
+                    if (!form.value.lista_precios_id && source.lista_precios_id) {
+                        form.value.lista_precios_id = source.lista_precios_id;
+                        copied = true;
+                    }
+                    if (!form.value.segmento_id && source.segmento_id) {
+                        form.value.segmento_id = source.segmento_id;
+                        copied = true;
+                    }
+                    if (copied) {
+                        notificationStore.add('ℹ️ Se copiaron Lista de Precios y Segmento del cliente original.', 'success');
+                    }
+                }
+            }
+        } else {
+            isSharedCuit.value = false
+        }
+    } catch (e) {
+        console.error("Error checking CUIT availability", e);
     }
 }
+
+const handleCuitBlur = () => {
+    checkCuitStatus(true)
+}
+
 
 // Segmentos Modals
 const showSegmentoModal = ref(false)
@@ -1560,6 +1731,33 @@ const statusColor = (status) => {
     if (status === 'En Viaje') return 'bg-blue-900/20 text-blue-400 border-blue-500/30'
     return 'bg-gray-900/20 text-gray-400 border-gray-500/30'
 }
+
+// [GY-UX] Client Color Logic (Pink/Yellow/Green/Blue)
+const clientColorMode = computed(() => {
+    const cuit = (form.value.cuit || '').replace(/[^0-9]/g, '');
+    const isGeneric = ['00000000000', '11111111119', '11111111111', '99999999999'].includes(cuit);
+    const isConsumidorFinal = form.value.condicion_iva_id && 
+            condicionesIva.value.find(i => i.id === form.value.condicion_iva_id)?.nombre.toUpperCase().includes('CONSUMIDOR FINAL');
+
+    // ROSA (Pink) -> Informal, Consumidor Final, or No CUIT
+    if (!cuit || cuit.length < 5 || isGeneric || isConsumidorFinal) {
+        return 'pink'; 
+    }
+    
+    // AZUL (Blue) -> CUIT Colectivo / Compartido (UBA)
+    if (isSharedCuit.value) {
+        return 'blue';
+    }
+
+    // VERDE (Green/Emerald) -> Validated & Real CUIT
+    if (form.value.estado_arca === 'VALIDADO' && !isGeneric) {
+        return 'green';
+    }
+    
+    // AMARILLO (Yellow) -> Pending/Warning
+    return 'yellow';
+})
+
 </script>
 
 <style scoped>

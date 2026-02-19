@@ -671,3 +671,16 @@ Siguiendo órdenes directas, se difirió la integración real de OAuth y se impl
     *   **OMEGA:** Implementada verificación de "4-Byte Flags" y "Freno de Mano 1974".
 
 **Resultado:** Alta de clientes ágil para todos los segmentos (Formal/Informal) y mayor seguridad operativa.
+# [FIX] 2026-02-18 - Estabilización de Clientes (Backfill & ARCA)
+
+> **ESTADO:** SATISFACTORIO
+> **TIPO:** BUGFIX / UX IMPROVEMENT
+
+**Objetivo:** Resolver inconsistencias en códigos de clientes y fallos de persistencia en direcciones validadas.
+
+**Intervenciones:**
+1.  **Backfill (Script):** Inyección de códigos internos secuenciales para clientes legacy.
+2.  **Frontend (ClientCanvas):** Implementación de `forceAddressSync` para permitir actualización de domicilios tras validación ARCA.
+3.  **UX (FichaCard):** Reubicación de badge de código para evitar superposiciones y mejora de alertas de error CUIT.
+
+**Estado:** Bugs críticos resueltos. Sistema listo para Protocolo Omega.

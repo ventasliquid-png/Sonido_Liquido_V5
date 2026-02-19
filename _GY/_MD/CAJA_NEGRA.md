@@ -1,5 +1,5 @@
-**Última Actualización:** 15-Feb-2026 (Fix AFIP 400 & Dependencias)
-**Sesiones Completadas:** +9 (Ciclo de Estabilización)
+**Última Actualización:** 18-Feb-2026 (Fix Address Persistence & Backfill)
+**Sesiones Completadas:** +10 (Ciclo de Estabilización)
 **Rol:** Tablero de Control y Estado de Salud del Sistema.
 
 ---
@@ -64,3 +64,9 @@
 - **UX**: Auto-Fill inteligente en Domicilio Split (Fiscal desde Entrega) y Transición automática Informal->Formal vía ARCA.
 - **Integridad**: Refuerzo de Protocolos ALFA (Read-Only DB) y OMEGA (4-Byte Flags Check) con Freno de Mano PIN 1974.
 - **Estado**: Sistema Validado y Documentado (V14 Vanguard).
+
+## [2026-02-18] DEBUG CRÍTICO & BACKFILL
+- **Incidente**: Pérdida de Domicilios tras validación ARCA y falta de Códigos Internos.
+- **Causa**: Lógica de protección en `saveCliente` (UPDATE) y datos legacy `NULL`.
+- **Resolución**: Implementado bandera `forceAddressSync` y script de Backfill (SQL).
+- **Estado**: Sistema Estabilizado y Consistente.

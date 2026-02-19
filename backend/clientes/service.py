@@ -14,7 +14,12 @@ class ClienteService:
         try:
             # Libertad Vigilada: Check for duplicates
             # If CUIT exists, mark for audit but ALLOW creation
-            existing = db.query(Cliente).filter(Cliente.cuit == cliente_in.cuit).first()
+            GENERIC_CUITS = ['00000000000', '11111111119', '11111111111', '99999999999']
+            
+            existing = None
+            if cliente_in.cuit and cliente_in.cuit not in GENERIC_CUITS:
+                 existing = db.query(Cliente).filter(Cliente.cuit == cliente_in.cuit).first()
+            
             if existing:
                 cliente_in.requiere_auditoria = True
             
@@ -112,7 +117,7 @@ class ClienteService:
     @staticmethod
     def get_clientes(db: Session, skip: int = 0, limit: int = 100, include_inactive: bool = False, q: str = None) -> List[Cliente]:
         from sqlalchemy.orm import joinedload
-        from sqlalchemy import or_
+        from sqlalchemy import or_, cast, String
         
         query = db.query(Cliente).options(
             joinedload(Cliente.domicilios).joinedload(Domicilio.provincia),
@@ -131,7 +136,8 @@ class ClienteService:
                 or_(
                     Cliente.razon_social.ilike(search),
                     Cliente.nombre_fantasia.ilike(search),
-                    Cliente.cuit.ilike(search)
+                    Cliente.cuit.ilike(search),
+                    cast(Cliente.codigo_interno, String).ilike(search)
                 )
             )
         
@@ -152,9 +158,17 @@ class ClienteService:
         
         # [V5-X] Handle CUIT Update validity
         if 'cuit' in update_data and update_data['cuit']:
-             existing = db.query(Cliente).filter(Cliente.cuit == update_data['cuit'], Cliente.id != cliente_id).first()
-             if existing:
-                 raise HTTPException(status_code=400, detail=f"El CUIT {update_data['cuit']} ya está en uso.")
+             # GENERIC CUITs are always allowed to duplicate
+             GENERIC_CUITS = ['00000000000', '11111111119', '11111111111', '99999999999']
+             if update_data['cuit'] not in GENERIC_CUITS:
+                 # Check for strict duplicates only for Real Entities
+                 # [GY-FIX-UBA] "Caso UBA": Large entities share CUITs. We should warn, not block.
+                 # For now, we allow saving to support these cases, relying on Frontend Warning.
+                  existing = db.query(Cliente).filter(Cliente.cuit == update_data['cuit'], Cliente.id != cliente_id).first()
+                  if existing:
+                      # raise HTTPException(status_code=400, detail=f"El CUIT {update_data['cuit']} ya está en uso.")
+                      # print(f"[WARN] CUIT Duplicado DETECTADO pero PERMITIDO (Caso UBA/Sucursal): {update_data['cuit']}")
+                      pass
 
         # [V5-X] Flags logic updates
         if 'flags_estado' in update_data:
@@ -163,6 +177,7 @@ class ClienteService:
                 # Check consistency if becoming restricted
                 cuit_val = update_data.get('cuit', db_cliente.cuit)
                 if not cuit_val:
+                     # print(f"❌ [DEBUG-400] Intento de Gold sin CUIT. Flags: {new_flags}")
                      raise HTTPException(status_code=400, detail="No se puede ascender a Gold (Fiscal) sin CUIT.")
 
         # Handle transporte_id separately
@@ -280,11 +295,19 @@ class ClienteService:
                     first = c.domicilios[0]
                     domicilio_str = f"{first.calle} {first.numero}, {first.localidad}"
             
+            # Safe Access to Relations
+            lp_nombre = c.lista_precios.nombre if c.lista_precios else None
+            seg_nombre = c.segmento.nombre if c.segmento else None
+
             summary_list.append(schemas.ClienteSummary(
                 id=c.id, 
                 razon_social=c.razon_social, 
                 nombre_fantasia=getattr(c, 'nombre_fantasia', None), 
                 domicilio_principal=domicilio_str,
+                lista_precios_nombre=lp_nombre,
+                segmento_nombre=seg_nombre,
+                lista_precios_id=c.lista_precios_id,
+                segmento_id=c.segmento_id,
                 activo=c.activo
             ))
         
@@ -356,6 +379,7 @@ class ClienteService:
         if prov_id: 
              prov = db.query(Provincia).filter(Provincia.id == prov_id).first()
              if not prov:
+                 # print(f"❌ [DEBUG-400] Provincia ID inválido: '{prov_id}'")
                  raise HTTPException(status_code=400, detail=f"Código de provincia '{prov_id}' inválido")
         
         # Enforce Single Fiscal Domicile Logic

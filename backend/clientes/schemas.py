@@ -243,6 +243,10 @@ class ClienteSummary(BaseModel):
     razon_social: str
     nombre_fantasia: Optional[str] = None
     domicilio_principal: Optional[str] = None
+    lista_precios_nombre: Optional[str] = None
+    segmento_nombre: Optional[str] = None
+    lista_precios_id: Optional[UUID] = None
+    segmento_id: Optional[UUID] = None
     activo: bool
 
     class Config:

@@ -47,13 +47,20 @@
         class="font-outfit text-lg font-semibold transition-colors" 
         :class="[
             { 'truncate': !isExpanded, 'whitespace-normal': isExpanded },
-            validationStatus === 'SIN_CUIT' ? 'text-fuchsia-400 drop-shadow-[0_0_5px_rgba(232,121,249,0.5)]' : 
-            (validationStatus === 'VALIDADO' ? 'text-white' : 'text-yellow-400') 
+            validationStatus === 'PINK' || validationStatus === 'SIN_CUIT' ? 'text-fuchsia-400 drop-shadow-[0_0_5px_rgba(232,121,249,0.5)]' : 
+            validationStatus === 'BLUE' ? 'text-cyan-300 drop-shadow-[0_0_5px_rgba(103,232,249,0.5)]' :
+            (validationStatus === 'VALIDADO' || validationStatus === 'GREEN' ? 'text-white' : 'text-yellow-400') 
         ]"
       >
         {{ title }}
       </h3>
-      <p class="text-sm text-gray-500 font-mono" :class="{ 'truncate': !isExpanded }">{{ subtitle }}</p>
+      
+      <div class="flex items-center mt-1 w-full">
+          <p class="text-sm text-gray-500 font-mono truncate">{{ subtitle }}</p>
+          <div v-if="extraData?.codigo" class="shrink-0 flex items-center justify-center bg-black/40 rounded px-1.5 py-0.5 border border-white/5 ml-3" title="Código Interno">
+               <span class="text-[10px] font-mono text-cyan-500/70 font-bold">#{{ extraData.codigo }}</span>
+          </div>
+      </div>
       
       <!-- Extra content shown only when expanded -->
       <div v-if="isExpanded" class="mt-3 pt-3 border-t border-white/10 text-xs text-white/60 animate-fade-in space-y-1">

@@ -64,3 +64,8 @@ Implementado en V6.3, el sistema permite la convivencia de dos tipos de clientes
     *   **UX Pink Mode:** Se identifica visualmente con texto Fucsia y brillo neón en listados y fichas.
     *   **Transición:** Si un cliente Informal carga un CUIT, el sistema activa automáticamente el puente ARCA para completar sus datos fiscales y formalizarlo.
     *   **Domicilios Split:** El formulario de alta permite llenar solo la sección "Logística" (Derecha) y el sistema auto-completa la sección "Fiscal" (Izquierda) para evitar bloqueos de validación.
+
+## 11. PERSISTENCIA INTELIGENTE (ARCA SYNC)
+* **Problema:** El sistema por defecto protege los domicilios en actualizaciones (`UPDATE`) para evitar sobrescribir datos validados con formularios vacíos.
+* **Excepción:** Cuando se ejecuta una validación ARCA exitosa, el frontend activa una bandera `forceAddressSync`.
+* **Comportamiento:** Al guardar, si esta bandera está activa, `saveCliente` incluye explícitamente el objeto `domicilios` en el payload, forzando al backend a actualizar la dirección fiscal con la "Verdad Oficial" de AFIP.

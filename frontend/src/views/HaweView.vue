@@ -17,7 +17,7 @@
                 <input 
                   v-model="searchQuery"
                   type="text" 
-                  placeholder="Buscar Cliente, CUIT, Fantasía..." 
+                  placeholder="Buscar Cliente, CUIT, Código..." 
                   class="w-full h-10 rounded-xl border border-white/5 bg-black/20 py-2 pl-10 pr-4 text-sm text-white placeholder-cyan-500/30 focus:border-cyan-500/50 focus:bg-black/40 focus:outline-none transition-all shadow-inner"
                 />
             </div>
@@ -146,14 +146,15 @@
                 class="w-full"
                 :title="cliente.razon_social || 'Sin Nombre'"
                 :subtitle="cliente.cuit || '---'"
-                :validationStatus="(!cliente.cuit || cliente.cuit.length < 5) ? 'SIN_CUIT' : (['0', '00000000000'].includes((cliente.cuit||'').replace(/[^0-9]/g, '')) ? 'PENDIENTE' : cliente.estado_arca)"
+                :validationStatus="getClientColorMode(cliente)"
                 :selected="selectedIds.includes(cliente.id)"
                 :hasLogisticsAlert="cliente.requiere_entrega"
                 :hasTransport="cliente.domicilios?.some(d => d.transporte_id)"
                 :extraData="{
                     segmento: getSegmentoName(cliente.segmento_id),
                     domicilio: cliente.domicilio_fiscal_resumen,
-                    contacto: cliente.contacto_principal_nombre
+                    contacto: cliente.contacto_principal_nombre,
+                    codigo: cliente.codigo_interno
                 }"
                 @dblclick="selectCliente(cliente)"
                 @contextmenu.prevent="handleClientContextMenu($event, cliente)"
@@ -225,8 +226,9 @@
                             <span 
                                 class="font-outfit font-bold group-hover:text-cyan-400 transition-colors truncate"
                                 :class="[
-                                    (!cliente.cuit || cliente.cuit.length < 5) ? 'text-fuchsia-400 drop-shadow-[0_0_5px_rgba(232,121,249,0.5)]' :
-                                    (cliente.estado_arca !== 'VALIDADO' || ['0', '00000000000'].includes((cliente.cuit||'').replace(/[^0-9]/g, ''))) ? 'text-yellow-400' : 'text-white'
+                                    getClientColorMode(cliente) === 'PINK' ? 'text-fuchsia-400 drop-shadow-[0_0_5px_rgba(232,121,249,0.5)]' :
+                                    getClientColorMode(cliente) === 'BLUE' ? 'text-cyan-300 drop-shadow-[0_0_5px_rgba(103,232,249,0.5)]' :
+                                    getClientColorMode(cliente) === 'VALIDADO' ? 'text-white' : 'text-yellow-400'
                                 ]"
                             >
                                 {{ cliente.razon_social }}
@@ -235,7 +237,10 @@
                                 <i class="fas fa-truck-loading"></i>
                             </span>
                         </div>
-                        <div class="text-xs text-cyan-500/50 font-mono">{{ cliente.cuit }}</div>
+                        <div class="flex items-center gap-2">
+                             <span v-if="cliente.codigo_interno" class="text-xs font-mono text-cyan-600 bg-cyan-900/10 px-1 rounded border border-cyan-900/20">#{{ cliente.codigo_interno }}</span>
+                             <div class="text-xs text-cyan-500/50 font-mono">{{ cliente.cuit }}</div>
+                        </div>
                     </div>
 
                     <!-- Meta Data -->
@@ -421,6 +426,36 @@ const showTransporteManager = ref(false)
 // Cantera Integration
 const canteraResults = ref([])
 const canteraLoading = ref(false)
+
+// [GY-UX] Color Mode Logic (Consistent with ClientCanvas)
+const getClientColorMode = (cliente) => {
+    const cuit = (cliente.cuit || '').replace(/[^0-9]/g, '');
+    const isGeneric = ['00000000000', '11111111119', '11111111111', '99999999999'].includes(cuit);
+    
+    // PINK: No CUIT, Short CUIT, or Generic CUIT
+    if (!cuit || cuit.length < 5 || isGeneric) {
+        return 'PINK'; 
+    }
+    
+    // BLUE: Shared/Collective CUIT (UBA Case)
+    // We check if this CUIT appears more than once in the FULL clients list (not just filtered)
+    // Note: This might be expensive on very large lists, but feasible for < 2000 clients on client-side.
+    if (cuit.length === 11) {
+        // Optimization: Create a Map or just filter? Filter is O(N). Called for N items = O(N^2).
+        // Better: Pre-calculate duplicates? 
+        // For now, simplicity: Check duplication.
+        const count = clientes.value.filter(c => (c.cuit||'').replace(/[^0-9]/g, '') === cuit).length;
+        if (count > 1) return 'BLUE';
+    }
+
+    // GREEN: Validated & Real CUIT
+    if (cliente.estado_arca === 'VALIDADO') {
+        return 'VALIDADO'; // or GREEN
+    }
+    
+    // YELLOW: Pending/Warning
+    return 'YELLOW';
+}
 
 const handleCanteraSearch = async () => {
     if (!searchQuery.value) return
