@@ -138,6 +138,10 @@
                           <i class="fas fa-paper-plane mr-1"></i> Despachar
                        </button>
                     </div>
+                    <!-- PDF LEGAL BUTTON -->
+                    <button @click="downloadLegalPDF(remito)" class="text-xs bg-slate-600 hover:bg-slate-500 text-white px-3 py-1 rounded transition w-full mt-1 border border-slate-500">
+                        <i class="fas fa-file-pdf mr-1"></i> PDF Legal
+                    </button>
                     <button @click="openPrint(remito)" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1 rounded transition w-full">
                         <i class="fas fa-print mr-1"></i> Imprimir
                     </button>
@@ -172,6 +176,25 @@
           <h3 class="text-xl font-bold text-white mb-4">Nuevo Viaje (Remito)</h3>
           
           <div class="space-y-4">
+             <!-- [V7] Manual Remito Support -->
+             <div class="bg-slate-900/50 p-3 rounded border border-slate-700/50">
+                 <p class="text-xs text-blue-400 font-bold mb-2 uppercase">Identificación Oficial (Opcional)</p>
+                 <div class="grid grid-cols-2 gap-3">
+                     <div>
+                        <label class="text-[10px] text-slate-500 uppercase">Número Legal</label>
+                        <input v-model="newRemitoForm.numero_legal" placeholder="0001-00001234" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm">
+                     </div>
+                     <div>
+                        <label class="text-[10px] text-slate-500 uppercase">CAE (AFIP)</label>
+                        <input v-model="newRemitoForm.cae" placeholder="71234567890123" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm">
+                     </div>
+                 </div>
+                 <div v-if="newRemitoForm.cae" class="mt-2">
+                    <label class="text-[10px] text-slate-500 uppercase">Vencimiento CAE</label>
+                    <input type="date" v-model="newRemitoForm.vto_cae" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm">
+                 </div>
+             </div>
+
              <div>
                 <label class="text-xs text-slate-400 uppercase font-bold">Dirección de Entrega</label>
                 <select v-model="newRemitoForm.domicilio_entrega_id" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white mt-1">
@@ -194,8 +217,9 @@
 
           <div class="flex justify-end gap-3 mt-6">
              <button @click="showNewRemitoModal = false" class="text-slate-400 hover:text-white px-4 py-2">Cancelar</button>
-             <button @click="saveNewRemito" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-bold">
-                Crear Remito
+             <button @click="saveNewRemito" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2">
+                <i v-if="newRemitoForm.cae" class="fas fa-check-circle"></i>
+                {{ newRemitoForm.cae ? 'Registrar Oficial' : 'Crear Borrador' }}
              </button>
           </div>
        </div>
@@ -262,7 +286,10 @@ const showAddItemModal = ref(false);
 const newRemitoForm = ref({
     domicilio_entrega_id: null,
     transporte_id: null,
-    aprobado_para_despacho: true
+    aprobado_para_despacho: true,
+    numero_legal: '',
+    cae: '',
+    vto_cae: ''
 });
 
 // Drag & Drop
@@ -398,27 +425,53 @@ const onDrop = (evt, remito) => {
 };
 
 const confirmDrop = async () => {
-    if (!targetRemito.value || !dragItem.value) return;
-    
-    try {
-       await remitosStore.addItemToRemito(targetRemito.value.id, {
-          pedido_item_id: dragItem.value.id, // ID del PedidoItem (trazabilidad)
-          cantidad: addItemAmount.value
-       });
-       
-       // Close modal
-       showAddItemModal.value = false;
-       dragItem.value = null;
-       targetRemito.value = null;
-    } catch (e) {
-       alert(e.message || "Error asignando ítem.");
-    }
+   if(!dragItem.value || !targetRemito.value) return;
+   
+   loading.value = true;
+   try {
+      await api.post(`/remitos/${targetRemito.value.id}/items`, {
+         pedido_item_id: dragItem.value.id,
+         cantidad: addItemAmount.value
+      });
+      // Refresh
+      await remitosStore.fetchRemitos(localPedido.value.id); // Assuming localPedido.value.id is available
+      showAddItemModal.value = false;
+      addItemAmount.value = 0;
+   } catch (e) {
+      console.error(e);
+      error.value = "Error al agregar ítem";
+   } finally {
+      loading.value = false;
+      dragItem.value = null;
+      targetRemito.value = null;
+   }
 };
 
 const cancelDrop = () => {
     showAddItemModal.value = false;
     dragItem.value = null;
     targetRemito.value = null;
+};
+
+// [V5] Download Legal PDF
+const downloadLegalPDF = async (remito) => {
+    try {
+        const response = await api.get(`/remitos/${remito.id}/pdf`, { responseType: 'blob' });
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `remito_legal_${remito.numero_legal || remito.id}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    } catch (e) {
+        console.error("Error downloading PDF", e);
+        alert("Error generando PDF Legal: " + (e.response?.data?.detail || e.message));
+    }
+};
+
+const printRemito = (remitoData) => {
+    printRemitoData.value = remitoData;
 };
 
 </script>

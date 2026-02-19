@@ -38,13 +38,17 @@
                 </div>
                 <div class="text-right">
                     <div class="border border-slate-900 px-4 py-2 rounded mb-2 inline-block">
-                        <h1 class="text-2xl font-black uppercase tracking-widest">REMITO</h1>
-                        <p class="text-center text-xs font-bold">DOCUMENTO NO VÁLIDO COMO FACTURA</p>
+                        <h1 class="text-2xl font-black uppercase tracking-widest">{{ isMasked ? 'DOC. TRANSPORTE' : 'REMITO' }}</h1>
+                        <p class="text-center text-xs font-bold">{{ isMasked ? 'VINCULADO A FACTURA' : 'DOCUMENTO NO VÁLIDO COMO FACTURA' }}</p>
                     </div>
                     <div class="text-sm space-y-1 mt-2">
                         <p><span class="font-bold">N°:</span> {{ propRemito.numero_legal || '------' }}</p>
                         <p><span class="font-bold">Fecha Emisión:</span> {{ formatDate(propRemito.fecha_salida || new Date()) }}</p>
                         <p><span class="font-bold">Ref. Pedido:</span> #{{ pedido?.id }} (OC: {{ pedido?.oc || 'S/D' }})</p>
+                        <p v-if="propRemito.cae" class="text-xs mt-1 font-mono">
+                           CAE: {{ propRemito.cae }} <br> 
+                           Vto: {{ formatDate(propRemito.vto_cae) }}
+                        </p>
                     </div>
                 </div>
                 
@@ -133,6 +137,11 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close']);
+
+const isMasked = computed(() => {
+    const num = props.propRemito?.numero_legal || '';
+    return num.toUpperCase().includes('FACTURA');
+});
 
 // --- HELPERS ---
 const formatDate = (dateStr) => {

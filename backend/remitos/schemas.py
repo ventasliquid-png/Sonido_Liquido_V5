@@ -26,6 +26,8 @@ class RemitoBase(BaseModel):
     estado: Optional[str] = "BORRADOR"
     numero_legal: Optional[str] = None
     aprobado_para_despacho: bool = False
+    cae: Optional[str] = None
+    vto_cae: Optional[datetime] = None
 
 class RemitoCreate(RemitoBase):
     pedido_id: int
@@ -38,6 +40,8 @@ class RemitoUpdate(BaseModel):
     estado: Optional[str] = None
     numero_legal: Optional[str] = None
     aprobado_para_despacho: Optional[bool] = None
+    cae: Optional[str] = None
+    vto_cae: Optional[datetime] = None
 
 class RemitoResponse(RemitoBase):
     id: UUID
@@ -47,3 +51,24 @@ class RemitoResponse(RemitoBase):
     
     class Config:
         from_attributes = True
+
+# --- INGESTION PAYLOAD (PDF to Remito) ---
+class IngestionCliente(BaseModel):
+    cuit: Optional[str] = None
+    razon_social: Optional[str] = None
+
+class IngestionFactura(BaseModel):
+    numero: Optional[str] = None
+    cae: Optional[str] = None
+    vto_cae: Optional[str] = None # String dd/mm/yyyy
+
+class IngestionItem(BaseModel):
+    codigo: Optional[str] = None
+    descripcion: str
+    cantidad: float
+    precio_unitario: Optional[float] = None
+
+class IngestionPayload(BaseModel):
+    cliente: IngestionCliente
+    factura: IngestionFactura
+    items: List[IngestionItem]

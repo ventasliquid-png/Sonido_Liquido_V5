@@ -63,6 +63,10 @@
                 <i class="fas fa-list w-4"></i> 
                 <span>Tablero Pedidos</span>
             </a>
+            <a href="#" @click.prevent="navigate('IngestaFactura')" class="nav-item-sub" :class="{ 'active-link-emerald': isActive('IngestaFactura') }">
+                <i class="fas fa-file-import w-4"></i> 
+                <span>Ingesta Facturas</span>
+            </a>
         </div>
       </div>
 

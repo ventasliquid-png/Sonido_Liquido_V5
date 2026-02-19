@@ -10,8 +10,7 @@ from datetime import datetime, timezone
 
 from backend.core.database import Base, GUID
 from backend.maestros.models import CondicionIva, ListaPrecios, Segmento, Provincia
-# Nota: Importamos Usuario como string o condicionalmente si hay riesgo de ciclo, 
-# pero Maestros son seguros.
+from backend.auth.models import Usuario # [GY-FIX-IMPORT] Explicit Import for Relationship
 from sqlalchemy.orm import foreign, remote
 
 class Cliente(Base):

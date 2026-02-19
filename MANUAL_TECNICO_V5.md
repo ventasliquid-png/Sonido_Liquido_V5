@@ -69,3 +69,16 @@ Implementado en V6.3, el sistema permite la convivencia de dos tipos de clientes
 * **Problema:** El sistema por defecto protege los domicilios en actualizaciones (`UPDATE`) para evitar sobrescribir datos validados con formularios vacíos.
 * **Excepción:** Cuando se ejecuta una validación ARCA exitosa, el frontend activa una bandera `forceAddressSync`.
 * **Comportamiento:** Al guardar, si esta bandera está activa, `saveCliente` incluye explícitamente el objeto `domicilios` en el payload, forzando al backend a actualizar la dirección fiscal con la "Verdad Oficial" de AFIP.
+
+## 12. MÓDULO DE INGESTA AUTOMÁTICA (PDF ENGINE)
+Incorporado en V6.4 (2026-02-19), permite la creación automática de Remitos desde Facturas de Compra/Venta PDF.
+*   **Motor:** `pypdf` + Regex Heurística (Backend Python).
+*   **Estrategia de Parseo:**
+    *   **Encabezados Compactos:** Soporta formatos donde CUIT y Razón Social comparten línea (ej: Lavimar).
+    *   **Ítems por Anclaje:** Utiliza palabras clave como "unidades" o "litros" para extraer descripciones y cantidades, ignorando saltos de línea rotos en tablas complejas.
+*   **Lógica "Confianza Ciega" (Trust Protocol):**
+    *   El sistema asume que la Factura es la verdad.
+    *   **Get-or-Create:** Si el CUIT detectado no existe en la base, se crea un Cliente nuevo automáticamente con los datos del PDF.
+    *   **Dirección:** Se asigna una dirección fiscal genérica para cumplir con el modelo de datos, permitiendo al operador corregirla post-ingesta.
+*   **Manejo de Errores:**
+    *   El backend captura trazas completas de error y las envía al frontend para que el usuario sepa exactamente por qué falló un PDF (ej: "Archivo vacío", "No es PDF de texto").

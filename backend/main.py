@@ -40,7 +40,8 @@ else:
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = ""
 os.environ["ENABLE_AI"] = "False"
 
-from fastapi import FastAPI
+# backend/main.py
+from fastapi import FastAPI, Request
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles # Added for SPA
@@ -98,7 +99,7 @@ from backend.proveedores.router import router as proveedores_router
 from backend.data_intel.router import router as data_intel_router
 from backend.pedidos.router import router as pedidos_router # [GY-FIX] Restored missing import
 from backend.cantera.router import router as cantera_router
-from backend.remitos.router import router as remitos_router # [GY-V7] Split Orders
+from backend.remitos.router import router as remitos_router # [GY-V7] PDF Ingestion
 
 # --- 2. Importaciones de LangGraph (El Cerebro) ---
 from langgraph.graph import StateGraph, END
@@ -392,7 +393,7 @@ app.include_router(proveedores_router)
 app.include_router(data_intel_router)
 app.include_router(pedidos_router) 
 app.include_router(cantera_router)
-app.include_router(remitos_router) # [GY-V7] Logistica Tactica
+app.include_router(remitos_router) # [GY-V7] PDF Ingestion
 app.include_router(google_mock_router) # [GY-V14] Mock Sync
 from backend.stats.router import router as stats_router
 app.include_router(stats_router)

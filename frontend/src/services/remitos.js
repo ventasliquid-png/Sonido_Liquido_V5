@@ -49,5 +49,17 @@ export default {
      */
     addItem(remitoId, itemData) {
         return api.post(`/remitos/${remitoId}/items`, itemData);
+    },
+
+    uploadInvoice(formData) {
+        return api.post('/remitos/ingesta-pdf', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+    },
+
+    confirmIngesta(payload) {
+        return api.post('/remitos/ingesta-process', payload);
     }
 };

@@ -42,6 +42,11 @@ class Remito(Base):
     # Hereda del Pedido o se setea manual.
     # Si False, Depósito ve el remito pero NO puede cambiar estado a EN_CAMINO.
     aprobado_para_despacho = Column(Boolean, default=False)
+
+    # Identificación Fiscal Manual (V5.X - Bridge Fallback)
+    cae = Column(String, nullable=True)
+    vto_cae = Column(DateTime, nullable=True)
+
     
     # Relaciones
     pedido = relationship("backend.pedidos.models.Pedido", backref="remitos")

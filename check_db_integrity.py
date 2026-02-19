@@ -1,32 +1,37 @@
 import sqlite3
-import os
+import sys
 
-def check_db(db_path):
-    print(f"\n--- Verificando {db_path} ---")
-    if not os.path.exists(db_path):
-        print("ERROR: Archivo no encontrado.")
-        return
-    
+def verificar_v5x():
     try:
-        conn = sqlite3.connect(db_path)
-        cur = conn.cursor()
+        # Conexión a la base nativa definida en los mandamientos
+        conn = sqlite3.connect('pilot.db')
+        cursor = conn.cursor()
         
-        # Check tables
-        cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
-        tables = [t[0] for t in cur.fetchall()]
+        # El "Código Secreto": Contar registros recuperados en el rango crítico
+        cursor.execute("SELECT COUNT(*) FROM clientes WHERE id BETWEEN 2 AND 39")
+        try:
+             count = cursor.fetchone()[0]
+        except TypeError:
+             count = 0
         
-        if 'clientes' in tables:
-            # Check for Gelato or specific ID part
-            cur.execute("SELECT id, razon_social, activo FROM clientes WHERE razon_social LIKE '%GELATO%' OR id LIKE '%0d9dfdce%'")
-            rows = cur.fetchall()
-            print(f"Resultados encontrados ({len(rows)}):")
-            for r in rows:
-                print(f"  - ID (DB): {r[0]} | Razón Social: {r[1]} | Activo: {r[2]}")
-        else:
-            print("ERROR: La tabla 'clientes' no existe.")
-            
+        # Verificar también la existencia de la columna de 32 bits (4 bytes)
+        cursor.execute("PRAGMA table_info(clientes)")
+        columnas = [col[1] for col in cursor.fetchall()]
+        has_flags = 'flags_estado' in columnas
+        
         conn.close()
+        
+        # Condición de éxito: Presencia de datos recuperados y estructura de 32 bits
+        # Rango 2 a 39 son 38 registros.
+        if count >= 38 and has_flags:
+            return True
+        return False
     except Exception as e:
-        print(f"Error: {e}")
+        # print(f"Error: {e}") # Optional debug
+        return False
 
-check_db('pilot.db')
+if __name__ == "__main__":
+    if verificar_v5x():
+        sys.exit(0)  # Éxito: Todo en orden
+    else:
+        sys.exit(1)  # Error: Base de datos incorrecta o corrupta
