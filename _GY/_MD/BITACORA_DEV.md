@@ -683,4 +683,25 @@ Siguiendo órdenes directas, se difirió la integración real de OAuth y se impl
 2.  **Frontend (ClientCanvas):** Implementación de `forceAddressSync` para permitir actualización de domicilios tras validación ARCA.
 3.  **UX (FichaCard):** Reubicación de badge de código para evitar superposiciones y mejora de alertas de error CUIT.
 
-**Estado:** Bugs críticos resueltos. Sistema listo para Protocolo Omega.
+# [V6.5] 2026-02-19 - Intelligent Upsert (Miner PDF)
+> **ESTADO:** DEPLOYED (Script) / PENDING (Frontend)
+> **TIPO:** FEATURE / REFACTOR
+
+**Objetivo:** Implementar lógica de "Upsert" inteligente para Facturas PDF (ARCA). El sistema debe actualizar clientes existentes con datos fiscales oficiales y crear nuevos con estado 'PENDIENTE_AUDITORIA'.
+
+**Intervenciones:**
+1.  **Backend Script (`miner.py`):**
+    *   **Refactor:** Implementada búsqueda dual (CUIT exacto / Nombre difuso).
+    *   **Lógica Upsert:**
+        *   **Existentes:** Si el cliente tiene status bajo, se actualiza a **Flag 13** (Gold Candidate) eliminando el flag 'Virgin'.
+        *   **Nuevos:** Inserción directa con Flag 13 y `estado_arca='PENDIENTE_AUDITORIA'` (Amarillo).
+    *   **Regex Fix:** Solucionado bug en extracción de CUIT para facturas compactas (LAVIMAR) escaneando texto crudo.
+2.  **Infraestructura:**
+    *   Backup preventivo `pilot_backup_pre_miner_fix.db`.
+
+**Incidente Abierto (Handover):**
+*   El Frontend usa `backend/remitos/pdf_parser.py` (basado en `pypdf`) que falla con los mismos PDFs que `miner.py` ahora procesa bien (`pdfplumber`).
+*   **Próximo Paso:** Migrar la lógica de `miner.py` al endpoint del API.
+
+**Estado:** Script de Minería Operativo. Ingesta Web requiere refactor (Próxima Sesión).
+

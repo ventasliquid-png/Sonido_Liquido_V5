@@ -1,5 +1,5 @@
-**Última Actualización:** 18-Feb-2026 (Fix Address Persistence & Backfill)
-**Sesiones Completadas:** +10 (Ciclo de Estabilización)
+**Última Actualización:** 19-Feb-2026 (Fix Miner Upsert & Flags)
+**Sesiones Completadas:** +11 (Ciclo de Estabilización)
 **Rol:** Tablero de Control y Estado de Salud del Sistema.
 
 ---
@@ -65,8 +65,16 @@
 - **Integridad**: Refuerzo de Protocolos ALFA (Read-Only DB) y OMEGA (4-Byte Flags Check) con Freno de Mano PIN 1974.
 - **Estado**: Sistema Validado y Documentado (V14 Vanguard).
 
-## [2026-02-18] DEBUG CRÍTICO & BACKFILL
+## [2026-02-19] DEBUG CRÍTICO & BACKFILL
 - **Incidente**: Pérdida de Domicilios tras validación ARCA y falta de Códigos Internos.
 - **Causa**: Lógica de protección en `saveCliente` (UPDATE) y datos legacy `NULL`.
 - **Resolución**: Implementado bandera `forceAddressSync` y script de Backfill (SQL).
 - **Estado**: Sistema Estabilizado y Consistente.
+
+## [2026-02-19] IMPLEMENTACIÓN UPSERT INTELIGENTE (MINER PDF)
+- **Hito**: Backend Script (`miner.py`) refactorizado con `pdfplumber` y regex boundary-aware.
+- **Lógica**: Upsert de Clientes existentes (Flag 15 -> 13) y Creación de Nuevos (Flag 13 + 'PENDIENTE_AUDITORIA').
+- **Incidente**: Falla en Ingesta Web (`pdf_parser.py`) por uso de librería `pypdf` (obsoleta para estos layouts).
+- **Resolución**: Script verificado OK. Pendiente portar lógica al endpoint API.
+- **Estado**: Script Operativo / Frontend Pendiente.
+
