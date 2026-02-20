@@ -37,20 +37,22 @@ class AfipBridgeService:
             try:
                 from Conexion_Blindada import get_datos_afip
             except ImportError as e:
-                logger.error(f"FATAL: No se pudo importar Conexion_Blindada desde {RAR_PATH}. Error: {e}")
-                return {"error": "El módulo RAR V1 no está accesible o faltan dependencias."}
+                import traceback
+                error_detail = traceback.format_exc()
+                logger.error(f"FATAL: No se pudo importar Conexion_Blindada desde {RAR_PATH}.\n{error_detail}")
+                return {"error": f"Error de dependencia RAR: {str(e)}", "detail": error_detail}
             
             # Ejecución blindada
             logger.info(f"[PUENTE RAR] Consultando AFIP para CUIT: {cuit}")
             resultado = get_datos_afip(cuit)
             
-            # Post-procesamiento si fuera necesario (adaptar a esquema V5)
+            # Post-procesamiento: Normalizar para esquema V5
             if "error" in resultado:
                 logger.warning(f"[PUENTE RAR] Error AFIP: {resultado['error']}")
-            else:
-                logger.info(f"[PUENTE RAR] Éxito. Datos recuperados para: {resultado.get('razon_social', 'Desconocido')}")
-                
-            return resultado
+                return resultado
+            
+            logger.info(f"[PUENTE RAR] Éxito. Normalizando datos para: {resultado.get('razon_social', 'Desconocido')}")
+            return AfipBridgeService.normalize_for_v5(resultado)
             
         except Exception as e:
             import traceback

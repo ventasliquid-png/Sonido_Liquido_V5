@@ -19,22 +19,14 @@ ENV_PATH = os.path.join(ROOT_DIR, ".env")
 print(f"--- [BOOT] Cargando variables de entorno desde: {ENV_PATH} ---")
 load_dotenv(ENV_PATH, override=True)
 
-# [GY-FIX-BOOT] Respect .env for DB choice (Migration Support)
-# Only fallback to pilot.db if not specified or purely postgres (which we are avoiding)
+# [GY-FIX-BOOT] Enforcement of Local SQLite (Bypassing non-working Postgres env)
 env_db_url = os.environ.get("DATABASE_URL", "")
-
-if "sqlite" in env_db_url:
-    # Resolve relative path if needed
-    if "./" in env_db_url:
-        db_name = env_db_url.split("/")[-1]
-        abs_db_path = os.path.join(ROOT_DIR, db_name)
-        os.environ["DATABASE_URL"] = f"sqlite:///{abs_db_path}"
-    print(f"--- [BOOT] Usando SQLITE (.env): {os.environ['DATABASE_URL']} ---")
+if env_db_url and "sqlite" in env_db_url:
+    os.environ["DATABASE_URL"] = env_db_url
 else:
-    # Fallback to pilot.db default
     abs_db_path = os.path.join(ROOT_DIR, "pilot.db")
     os.environ["DATABASE_URL"] = f"sqlite:///{abs_db_path}"
-    print(f"--- [BOOT] DATABASE_URL no SQLITE. Forzando DEFAULT: {os.environ['DATABASE_URL']} ---")
+print(f"--- [BOOT] Usando DATABASE: {os.environ['DATABASE_URL']} ---")
     
 # FORCE DISABLE IOWA (Cloud Costs Saving)
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = ""
@@ -86,8 +78,10 @@ from backend.productos import models as productos_models
 from backend.clientes import models as clientes_models # Added explicit import
 # [GY-FIX] Import models missing for ORM relationship resolution
 from backend.agenda import models as agenda_models
+from backend.contactos import models as contactos_models # [GY-FIX] Missing for ORM Registry
 from backend.logistica import models as logistica_models
 from backend.pedidos import models as pedidos_models
+from backend.remitos import models as remitos_models # [GY-FIX] Missing for ORM Registry
 from backend.auth.router import router as auth_router
 from backend.maestros.router import router as maestros_router
 from backend.clientes.router import router as clientes_router

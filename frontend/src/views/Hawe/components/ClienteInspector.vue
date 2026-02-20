@@ -483,6 +483,21 @@
             />
          </Transition>
      </Teleport>
+
+     <!-- INFILTRADOR AFIP (VANGUARD) -->
+     <Teleport to="body">
+         <Transition name="fade">
+             <AfipComparisonOverlay
+                v-if="showAfipInfiltration"
+                :local-data="{...form, fiscalAddress: fiscalForm}"
+                :arca-data="arcaResults"
+                :condiciones-iva="condicionesIva"
+                :is-new="isNew"
+                @close="showAfipInfiltration = false"
+                @confirm="handleAfipInfiltration"
+            />
+         </Transition>
+     </Teleport>
 </div>
 </template>
 
@@ -500,6 +515,7 @@ import SimpleAbmModal from '../../../components/common/SimpleAbmModal.vue'
 import TransporteCanvas from './TransporteCanvas.vue'
 import ContactoPopover from './ContactoPopover.vue'
 import SmartSelect from '../../../components/ui/SmartSelect.vue'
+import AfipComparisonOverlay from './AfipComparisonOverlay.vue'
 import { useLogisticaStore } from '../../../stores/logistica'
 
 const props = defineProps({
@@ -707,6 +723,8 @@ const checkCuitBackend = async () => {
 
 // --- RAR-V5 BRIDGE (AFIP) ---
 const loadingAfip = ref(false)
+const showAfipInfiltration = ref(false)
+const arcaResults = ref(null)
 
 const consultarAfip = async () => {
     if (!form.value.cuit || form.value.cuit.length < 11) {
@@ -714,66 +732,72 @@ const consultarAfip = async () => {
         return
     }
     
-    notificationStore.add('Consultando ARCA/AFIP... Por favor espere.', 'info')
+    notificationStore.add('Llamando a Satélite RAR... Iniciando Infiltración.', 'info')
     loadingAfip.value = true
     try {
         const response = await clientesService.checkAfip(form.value.cuit)
-        const res = response.data // Unwrap payload
+        const res = response.data 
 
         if (res.error) {
-            notificationStore.add(`Error AFIP: ${res.error}`, 'error')
+            notificationStore.add(`Fallo en Puente: ${res.error}`, 'error')
             return
         }
         
-        // 1. Update Golden Data
-        form.value.razon_social = res.razon_social
-        form.value.estado_arca = 'VALIDADO'
-        form.value.datos_arca_last_update = new Date().toISOString()
+        // Open Overlay for Comparison
+        arcaResults.value = res
+        showAfipInfiltration.value = true
         
-        // 2. Map Condicion IVA
-        // RAR returns text like "RESPONSABLE INSCRIPTO", "MONOTRIBUTISTA", "EXENTO", "CONSUMIDOR FINAL"
-        const ivaTarget = condicionesIva.value.find(c => c.nombre.toUpperCase() === res.condicion_iva.toUpperCase())
-        if (ivaTarget) {
-            form.value.condicion_iva_id = ivaTarget.id
-        }
-        
-        // 3. Update Domicilio Fiscal (Smart Parser)
-        // 3. Update Domicilio Fiscal (Smart Parser)
-        if (props.isNew && res.parsed_address) {
-            const pa = res.parsed_address
-            
-            // Map Basic Fields
-            fiscalForm.value.calle = pa.calle || ''
-            fiscalForm.value.localidad = pa.localidad || ''
-            fiscalForm.value.numero = pa.numero || ''
-            
-            // Map Province (Fuzzy Search)
-            if (pa.provincia) {
-                const provName = pa.provincia.toUpperCase()
-                const targetProv = provincias.value.find(p => 
-                    p.nombre.toUpperCase() === provName || 
-                    provName.includes(p.nombre.toUpperCase()) ||
-                    p.nombre.toUpperCase().includes(provName)
-                )
-                if (targetProv) {
-                    fiscalForm.value.provincia_id = targetProv.id
-                }
-            }
-            
-            notificationStore.add(`Datos Fiscales Recuperados: ${pa.calle}`, 'info')
-        } else if (props.isNew) {
-             // Fallback if no parsed data
-             notificationStore.add(`Datos Fiscales Recuperados: ${res.domicilio_fiscal}`, 'info')
-        }
-
-        notificationStore.add(`Validación ARCA Exitosa: ${res.razon_social}`, 'success')
+        notificationStore.add('Datos Fiscales Recuperados. Pendiente de Infiltración.', 'success')
         
     } catch (e) {
         console.error("Error consultando AFIP:", e)
-        notificationStore.add(`Error de Conexión ARCA: ${e.message}`, 'error')
+        const errorDetail = e.response?.data?.detail || e.message
+        notificationStore.add(`Error de Conexión Satélite: ${errorDetail}`, 'error')
     } finally {
         loadingAfip.value = false
     }
+}
+
+const handleAfipInfiltration = (payload) => {
+    const res = payload.data
+    const targetFlag = payload.flag
+
+    // 1. Update Golden Data
+    form.value.razon_social = res.razon_social
+    form.value.estado_arca = 'VALIDADO'
+    form.value.datos_arca_last_update = new Date().toISOString()
+    
+    // 2. Aplicar Doctrina de Virginidad (Flags)
+    form.value.flags_estado = targetFlag
+    
+    // 3. Map Condicion IVA
+    const ivaTarget = condicionesIva.value.find(c => c.nombre.toUpperCase() === res.condicion_iva.toUpperCase())
+    if (ivaTarget) {
+        form.value.condicion_iva_id = ivaTarget.id
+    }
+    
+    // 4. Update Domicilio Fiscal (Smart Parser)
+    if (res.parsed_address) {
+        const pa = res.parsed_address
+        fiscalForm.value.calle = pa.calle || ''
+        fiscalForm.value.localidad = pa.localidad || ''
+        fiscalForm.value.numero = pa.numero || ''
+        
+        if (pa.provincia) {
+            const provName = pa.provincia.toUpperCase()
+            const targetProv = provincias.value.find(p => 
+                p.nombre.toUpperCase() === provName || 
+                provName.includes(p.nombre.toUpperCase()) ||
+                p.nombre.toUpperCase().includes(provName)
+            )
+            if (targetProv) {
+                fiscalForm.value.provincia_id = targetProv.id
+            }
+        }
+        notificationStore.add(`Identidad Infiltrada: ${res.razon_social}`, 'success')
+    }
+
+    showAfipInfiltration.value = false
 }
 // ----------------------------
 
@@ -1141,15 +1165,23 @@ watch(() => props.modelValue, (newVal) => {
         form.value = {}
     }
     
-    // Reset fiscal form
+    // Reset/Populate fiscal form
+    if (newVal) {
+        const fiscal = newVal.domicilios?.find(d => d.es_fiscal && d.activo !== false)
+        if (fiscal) {
+            fiscalForm.value = {
+                calle: fiscal.calle || '',
+                numero: fiscal.numero || '',
+                localidad: fiscal.localidad || '',
+                provincia_id: fiscal.provincia_id
+            }
+        } else {
+            fiscalForm.value = { calle: '', numero: '', localidad: '', provincia_id: null }
+        }
+    }
+
     if (props.isNew) {
         activeTab.value = 'general'
-        fiscalForm.value = {
-            calle: '',
-            numero: '',
-            localidad: '',
-            provincia_id: null
-        }
         useFiscalAsDelivery.value = true
         deliveryForm.value = { calle: '', numero: '' }
         templateId.value = null
@@ -1417,9 +1449,23 @@ const save = async () => {
         } 
         
         // --- UPDATE LOGIC (Existing Client) ---
-        // [GY-FIX] Inject Quick Transport logic for backend shortcut
+        // 1. Persist Fiscal Address Changes (from General Tab)
+        const fiscalIdx = form.value.domicilios.findIndex(d => d.es_fiscal && d.activo !== false)
+        if (fiscalIdx !== -1) {
+            const currentFiscal = form.value.domicilios[fiscalIdx]
+            // Solo actualizamos si hubo cambios para evitar triggers innecesarios
+            if (currentFiscal.calle !== fiscalForm.value.calle || 
+                currentFiscal.numero !== fiscalForm.value.numero ||
+                currentFiscal.localidad !== fiscalForm.value.localidad ||
+                currentFiscal.provincia_id !== fiscalForm.value.provincia_id) {
+                
+                const updatedDom = { ...currentFiscal, ...fiscalForm.value }
+                await clienteStore.updateDomicilio(form.value.id, currentFiscal.id, updatedDom)
+            }
+        }
+
         const payload = { ...form.value }
-        delete payload.domicilios // Prevent nested update issues
+        delete payload.domicilios // Safe now as we updated it separately
         
         if (quickTransportId.value) {
             payload.transporte_id = quickTransportId.value

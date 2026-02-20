@@ -167,17 +167,17 @@ def delete_domicilio(cliente_id: UUID, domicilio_id: UUID, db: Session = Depends
     return None
 
 # --- Vinculos (Delegated to AgendaService but exposed here for convenience) ---
-from backend.agenda.schemas import VinculoComercialCreate, VinculoComercialResponse, VinculoComercialUpdate
+from backend.agenda import schemas as agenda_schemas
 from backend.agenda.service import AgendaService
 
-@router.post("/{cliente_id}/vinculos", response_model=VinculoComercialResponse, status_code=status.HTTP_201_CREATED)
-def create_vinculo(cliente_id: UUID, vinculo: VinculoComercialCreate, db: Session = Depends(get_db)):
+@router.post("/{cliente_id}/vinculos", response_model=agenda_schemas.VinculoComercialResponse, status_code=status.HTTP_201_CREATED)
+def create_vinculo(cliente_id: UUID, vinculo: agenda_schemas.VinculoComercialCreate, db: Session = Depends(get_db)):
     if vinculo.cliente_id != cliente_id:
         raise HTTPException(status_code=400, detail="ID de cliente no coincide")
     return AgendaService.create_vinculo(db, vinculo)
 
-@router.put("/{cliente_id}/vinculos/{vinculo_id}", response_model=VinculoComercialResponse)
-def update_vinculo(cliente_id: UUID, vinculo_id: UUID, vinculo: VinculoComercialUpdate, db: Session = Depends(get_db)):
+@router.put("/{cliente_id}/vinculos/{vinculo_id}", response_model=agenda_schemas.VinculoComercialResponse)
+def update_vinculo(cliente_id: UUID, vinculo_id: UUID, vinculo: agenda_schemas.VinculoComercialUpdate, db: Session = Depends(get_db)):
     return AgendaService.update_vinculo(db, vinculo_id, vinculo)
 
 @router.delete("/{cliente_id}/vinculos/{vinculo_id}", status_code=status.HTTP_204_NO_CONTENT)

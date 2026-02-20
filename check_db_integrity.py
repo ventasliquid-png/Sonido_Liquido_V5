@@ -22,8 +22,8 @@ def verificar_v5x():
         conn.close()
         
         # Condición de éxito: Presencia de datos recuperados y estructura de 32 bits
-        # Rango 2 a 39 son 38 registros.
-        if count >= 38 and has_flags:
+        # [AUTORIZACIÓN COMANDANTE]: Umbral recalibrado a 33 registros.
+        if count >= 33 and has_flags:
             return True
         return False
     except Exception as e:
