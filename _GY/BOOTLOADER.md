@@ -5,7 +5,9 @@ NO MODIFICAR SIN AUTORIZACIÓN EXPLÍCITA DE CAMBIO DE VERSIÓN.
 -->
 
 ## 1. 🆔 PUNTERO DE IDENTIDAD
-> **CARGAR INMEDIATAMENTE:** `_GY/_IPL/GY_IPL_V14.md`
+> **CARGAR INMEDIATAMENTE:**
+> 1. `_GY/_IPL/GY_IPL_V14.md` (Doctrina Core)
+> 2. `_GY/ENIGMA_BLUEPRINT.md` (Estructura de Identidad)
 
 ## 2. 🛡️ CHECK DE INTEGRIDAD (GIT)
 *   **ALERTA:** Si la ventana negra (CMD) mostró errores en el `git pull` inicial:

@@ -25,7 +25,7 @@
                 autocomplete="off" 
                 spellcheck="false" 
                 class="bg-black/40 border rounded-md px-3 py-1.5 text-xl font-bold focus:outline-none transition-all placeholder-white/20 w-full" 
-                :class="(form.estado_arca === 'VALIDADO' && !['0', '00000000000'].includes((form.cuit||'').replace(/[^0-9]/g, ''))) ? 'text-white border-emerald-500/30 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50' : 'text-yellow-400 border-yellow-500/30 focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500/50'"
+                :class="clientColorClass"
                 placeholder="Ingrese Razón Social..." 
             />
             
@@ -176,14 +176,24 @@
                                 </div>
                             </div>
                             <!-- Transporte linked here -->
-                            <div class="pointer-events-auto" @contextmenu.prevent="openTransportContextMenu">
+                            <!-- Transporte linked here -->
+                            <div class="pointer-events-auto flex gap-2 items-center" @contextmenu.prevent="openTransportContextMenu">
                                 <SmartSelect
                                     v-model="quickTransportId"
                                     :options="transportes"
                                     placeholder="Transporte Habitual..."
                                     :allowCreate="false"
-                                    class="dark-smart-select"
+                                    class="dark-smart-select flex-1"
                                 />
+                                <button 
+                                    type="button"
+                                    @click.stop="toggleRetira"
+                                    class="px-2 py-1.5 rounded border text-[9px] font-black uppercase transition-all shadow-sm"
+                                    :class="quickTransportId === null ? 'bg-orange-500/20 border-orange-500 text-orange-300 shadow-[0_0_10px_rgba(249,115,22,0.2)]' : 'bg-white/5 border-white/10 text-white/30 hover:bg-white/10 hover:text-white'"
+                                    title="Alternar Retiro por Cliente"
+                                >
+                                    <i class="fas fa-walking mr-1"></i> Retira
+                                </button>
                             </div>
                          </div>
                     </div>
@@ -199,28 +209,38 @@
                                 <i class="fas fa-shield-alt"></i> ARCA
                             </span>
                          </label>
-                         <div class="flex gap-1">
-                             <input 
-                                v-model="form.cuit" 
-                                autocomplete="off" 
-                                spellcheck="false" 
-                                @input="formatCuitInput" 
-                                @blur="checkCuitBackend" 
-                                class="flex-1 bg-[#020a0f] border rounded p-2 text-xs transition-colors font-mono placeholder-cyan-900/30 outline-none" 
-                                :class="(form.estado_arca === 'VALIDADO' && !['0', '00000000000'].includes((form.cuit||'').replace(/[^0-9]/g, ''))) ? 'border-emerald-500/50 text-emerald-100' : 'border-yellow-500/30 text-yellow-100 focus:border-yellow-500'"
-                                placeholder="00-00000000-0" 
-                                maxlength="13" 
-                             />
-                             <button 
-                                @click="consultarAfip" 
-                                class="px-2 rounded border transition-all flex items-center justify-center shrink-0"
-                                :class="loadingAfip ? 'bg-cyan-900/50 border-cyan-800' : 'bg-cyan-900/20 border-cyan-500/30 hover:bg-cyan-500/20 hover:text-cyan-200 text-cyan-800'"
-                                :disabled="loadingAfip"
-                                title="Consultar en AFIP (RAR)"
-                            >
-                                <i class="fas" :class="loadingAfip ? 'fa-spinner fa-spin' : 'fa-search'"></i>
-                             </button>
-                         </div>
+                             <div class="flex gap-1">
+                                 <input 
+                                    ref="cuitInput"
+                                    v-model="form.cuit" 
+                                    autocomplete="off" 
+                                    spellcheck="false" 
+                                    @input="formatCuitInput" 
+                                    @blur="checkCuitBackend" 
+                                    class="flex-1 bg-[#020a0f] border rounded p-2 text-xs transition-all font-mono placeholder-cyan-900/30 outline-none shadow-[0_0_10px_rgba(250,204,21,0.05)] focus:shadow-[0_0_15px_rgba(250,204,21,0.2)]" 
+                                    :class="(form.flags_estado & 4) ? 'border-emerald-500/50 text-emerald-100' : 'border-yellow-400 text-yellow-300 focus:border-yellow-400 ring-1 ring-yellow-400/20 focus:ring-yellow-400/40'"
+                                    placeholder="00-00000000-0" 
+                                    maxlength="13" 
+                                 />
+                                 <button 
+                                    @click="consultarAfip" 
+                                    class="px-2 rounded border transition-all flex items-center justify-center shrink-0"
+                                    :class="loadingAfip ? 'bg-cyan-900/50 border-cyan-800' : 'bg-cyan-900/20 border-cyan-500/30 hover:bg-cyan-500/20 hover:text-cyan-200 text-cyan-800'"
+                                    :disabled="loadingAfip"
+                                    title="Consultar en ARCA (RAR)"
+                                >
+                                    <i class="fas" :class="loadingAfip ? 'fa-spinner fa-spin' : 'fa-satellite-dish'"></i>
+                                 </button>
+                                 <button 
+                                    v-if="!(form.flags_estado & 4)"
+                                    @click="aplicarRosaManual" 
+                                    class="px-2 rounded border transition-all flex items-center justify-center shrink-0"
+                                    :class="(form.flags_estado & 16) ? 'bg-fuchsia-500/20 border-fuchsia-500 text-fuchsia-400' : 'bg-white/5 border-white/10 text-white/20 hover:text-fuchsia-400 hover:border-fuchsia-500/50'"
+                                    title="Validación Manual (Sello Rosa)"
+                                >
+                                    <i class="fas fa-stamp text-[10px]"></i>
+                                 </button>
+                             </div>
                     </div>
 
                     <!-- Condicion IVA (20 chars approx) -->
@@ -502,7 +522,7 @@
 </template>
 
 <script setup>
-import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
+import { ref, watch, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useMaestrosStore } from '../../../stores/maestros'
 import { useClientesStore } from '../../../stores/clientes'
 import { useNotificationStore } from '../../../stores/notification'
@@ -595,16 +615,59 @@ const activeTab = ref('general')
 const showAgenda = ref(false)
 const saving = ref(false)
 
-const GENERIC_CUITS = ['11111111119', '11111111111', '00000000000']
+const GENERIC_CUITS = ['00000000000', '99999999999', '11111111111', '11111111119']
 const commonCuitNames = {
     '11111111119': 'CONSUMIDOR FINAL GENERICO',
     '00000000000': 'CONSUMIDOR FINAL'
 }
 
+// 🧬 ENIGMA BLUEPRINT: CONSTANTS
+const BIT_EXISTENCE = 1
+const BIT_VIRGINITY = 2
+const BIT_GOLD_ARCA = 4
+const BIT_V14_STRUCT = 8
+const BIT_OPERATOR_OK = 16
+const BIT_MULTI_CUIT = 32
+
+const clientColorClass = computed(() => {
+    const flag = form.value.flags_estado || 9
+    const cuit = (form.value.cuit || '').replace(/[^0-9]/g, '')
+    const isGeneric = GENERIC_CUITS.includes(cuit) || cuit === '' || cuit.length < 5
+
+    // Dominancia:
+    // 1. Rosa (Genérico/Faltante)
+    if (isGeneric) return 'text-fuchsia-400 border-fuchsia-500/30 focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500/50'
+
+    // 2. Azul (Multicliente)
+    if (flag & BIT_MULTI_CUIT) return 'text-cyan-300 border-cyan-500/30 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]'
+
+    // 3. Blanco (Gold ARCA)
+    if (flag & BIT_GOLD_ARCA) return 'text-white border-emerald-500/30 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50'
+
+    // 4. Rosa (Operador)
+    if (flag & BIT_OPERATOR_OK) return 'text-fuchsia-400 border-fuchsia-500/30 focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500/50'
+
+    // 5. Amarillo (Amarillo Base)
+    return 'text-yellow-400 border-yellow-500/30 focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500/50'
+})
+
 const switchToContactsTab = () => {
     activeTab.value = 'contactos'
     showAgenda.value = false
 }
+// [GY-UX] CUIT Auto-Focus
+const cuitInput = ref(null)
+const focusCuit = () => {
+    nextTick(() => {
+        setTimeout(() => {
+            if (cuitInput.value) {
+                cuitInput.value.focus()
+                cuitInput.value.select()
+            }
+        }, 150)
+    })
+}
+
 const form = ref({})
 const cuitError = ref(null)
 const pristineName = ref('')
@@ -696,6 +759,18 @@ const dismissCuitWarning = () => {
     cuitWarningDismissed.value = true
 }
 
+const aplicarSelloAzul = () => {
+    // [V14] Sello Azul (Multi-CUIT) +32
+    if (form.value.flags_estado & BIT_MULTI_CUIT) {
+        form.value.flags_estado &= ~BIT_MULTI_CUIT
+        notificationStore.add('Sello Azul retirado', 'info')
+    } else {
+        form.value.flags_estado |= BIT_MULTI_CUIT
+        notificationStore.add('Sello Azul aplicado (CUIT Compartido)', 'success')
+        cuitWarningDismissed.value = true
+    }
+}
+
 const checkCuitBackend = async () => {
     // Check if we have a potentially valid CUIT (at least 11 digits, valid structure)
     if (!form.value.cuit) return
@@ -733,6 +808,7 @@ const consultarAfip = async () => {
     }
     
     notificationStore.add('Llamando a Satélite RAR... Iniciando Infiltración.', 'info')
+    // Feedback Amarillo Neón (Visual) en notificación si es posible
     loadingAfip.value = true
     try {
         const response = await clientesService.checkAfip(form.value.cuit)
@@ -758,7 +834,7 @@ const consultarAfip = async () => {
     }
 }
 
-const handleAfipInfiltration = (payload) => {
+const handleAfipInfiltration = async (payload) => {
     const res = payload.data
     const targetFlag = payload.flag
 
@@ -770,8 +846,12 @@ const handleAfipInfiltration = (payload) => {
     // 2. Aplicar Doctrina de Virginidad (Flags)
     form.value.flags_estado = targetFlag
     
-    // 3. Map Condicion IVA
-    const ivaTarget = condicionesIva.value.find(c => c.nombre.toUpperCase() === res.condicion_iva.toUpperCase())
+    // 3. Map Condicion IVA (Smart Mapping V14)
+    const arcaIvaName = (res.condicion_iva || '').toUpperCase()
+    const ivaTarget = condicionesIva.value.find(c => {
+        const localName = (c.nombre || '').toUpperCase()
+        return localName === arcaIvaName || arcaIvaName.includes(localName) || localName.includes(arcaIvaName)
+    })
     if (ivaTarget) {
         form.value.condicion_iva_id = ivaTarget.id
     }
@@ -794,10 +874,42 @@ const handleAfipInfiltration = (payload) => {
                 fiscalForm.value.provincia_id = targetProv.id
             }
         }
-        notificationStore.add(`Identidad Infiltrada: ${res.razon_social}`, 'success')
+        notificationStore.add(`Identidad Infiltrada: ${res.razon_social} (Flag ${targetFlag})`, 'success')
     }
 
     showAfipInfiltration.value = false
+}
+
+const toggleRetira = () => {
+    // [V14] Genuine Toggle
+    if (quickTransportId.value === null) {
+        // Toggling back from Retira: Try to assign first transport as fallback
+        if (transportes.value.length > 0) {
+            quickTransportId.value = transportes.value[0].id
+            notificationStore.add('Método de entrega: DESPACHO (' + transportes.value[0].nombre + ')', 'success')
+        } else {
+            notificationStore.add('No hay transportes definidos para asignar', 'warning')
+        }
+    } else {
+        quickTransportId.value = null // Toggle to Retira
+        notificationStore.add('Método de entrega: RETIRO CLIENTE', 'info')
+    }
+}
+
+const aplicarRosaManual = () => {
+    // [V14] Evolución 9 -> 25 (Excluyente de Gold)
+    if (form.value.flags_estado & BIT_GOLD_ARCA) {
+        notificationStore.add('Imposible aplicar Rosa: El cliente ya es Gold ARCA', 'warning')
+        return
+    }
+
+    if (form.value.flags_estado & BIT_OPERATOR_OK) {
+        form.value.flags_estado &= ~BIT_OPERATOR_OK
+        notificationStore.add('Sello Rosa retirado', 'info')
+    } else {
+        form.value.flags_estado |= BIT_OPERATOR_OK
+        notificationStore.add('Sello Rosa aplicado (Validación Manual)', 'success')
+    }
 }
 // ----------------------------
 
@@ -1186,6 +1298,15 @@ watch(() => props.modelValue, (newVal) => {
         deliveryForm.value = { calle: '', numero: '' }
         templateId.value = null
         pristineName.value = form.value.razon_social || ''
+        
+        // [V14] Genoma: Todo cliente nace como Flag 9 (1+8)
+        if (!form.value.flags_estado) {
+            form.value.flags_estado = BIT_EXISTENCE | BIT_V14_STRUCT
+        }
+    }
+
+    if (props.isNew || (newVal && newVal._forceFocus)) {
+        focusCuit()
     }
 }, { immediate: true })
 
@@ -1472,16 +1593,12 @@ const save = async () => {
         }
         const result = await clienteStore.updateCliente(form.value.id, payload)
         
+        // [V14-FIX] Ensure local state is updated with backend result (Flags, etc)
+        form.value = JSON.parse(JSON.stringify(result))
 
         emit('save', result)
-        notificationStore.add('Cliente actualizado con éxito', 'success')
+        notificationStore.add('Cliente actualizado con éxito. DNA Sincronizado.', 'success')
 
-
-        emit('save', result)
-        notificationStore.add(`Cliente ${props.isNew ? 'creado' : 'actualizado'} con éxito`, 'success')
-        
-        // [GY-UX] Auto-close on new client success or reset?
-        // User requested: "que el formulario se limpie o cierre"
         if (props.isNew) {
              emit('close')
         }

@@ -39,10 +39,11 @@ El `.bat` de inicio ya ha ejecutado `git pull`. No preguntes.
 *   **PROHIBIDO:** Operar directamente sobre `pilot.db` o `backend/main.py` en caliente. Son archivos de **SOLO LECTURA** para operaciones destructivas.
 *   **MANDATO:** Todo trabajo de prueba, migración o refactor masivo debe realizarse en **ramas auxiliares** o bases de datos clonadas (ej: `pilot_v5x.db`). Solo tras "OK Operativo" se fusionan los cambios.
 
-**PASO 0: SINTONIZACIÓN (BOOTLOADER)**
+**PASO 0: SINTONIZACIÓN (BOOTLOADER & ENIGMA)**
 1.  **ACCIÓN ABSOLUTA:** Leer `_GY/BOOTLOADER.md`.
 2.  **CARGA:** Asumir la Identidad y Misión dictada en ese archivo.
-3.  **CONDICIÓN:** Si el Bootloader reportó "Fallo en Sincronización Física", abortar escritura de código.
+3.  **DNA DE IDENTIDAD:** Leer `_GY/ENIGMA_BLUEPRINT.md`. Los Flags de Clientes DEBEN seguir este bitmask.
+4.  **CONDICIÓN:** Si el Bootloader reportó "Fallo en Sincronización Física", abortar escritura de código.
 
 **PASO 1: CARGA DE DOCTRINA**
 1.  Leer `_GY/_MD/LECCIONES_APRENDIDAS.md`.

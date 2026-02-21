@@ -92,3 +92,22 @@ Incorporado en V6.4 (2026-02-19), permite la creación automática de Remitos de
     *   **Actualización V6.5 (Upsert Inteligente):** El sistema ahora verifica existencia por CUIT. Si el cliente existe con status bajo (<13), se actualiza a **Flag 13** (Gold Candidate) y se elimina el flag 'Virgin'. Si es nuevo, se inserta directamente en Flag 13 con estado 'PENDIENTE_AUDITORIA'.
     *   **Corrección Regex:** Se modificó el motor para escanear el texto crudo (`raw_text`) antes de limpiar, solucionando fallos en facturas compactas (LAVIMAR).
 
+
+## 13. PROTOCOLO ENIGMA (BITMASK DE IDENTIDAD)
+Implementado en V14.5, el sistema utiliza un campo `flags_estado` (Integer) para gestionar el DNA comercial del cliente mediante una máscara de bits (Bitmask):
+- **Bit 0 (1):** `EXISTENCE` (Activo en DB).
+- **Bit 1 (2):** `VIRGINITY` (1=Sin movimientos / 0=Activo con documentos). Tras el primer remito, este bit se deactiva automáticamente.
+- **Bit 2 (4):** `GOLD_ARCA` (Validado contra satélite RAR). Activa el color Blanco Gold.
+- **Bit 3 (8):** `V14_STRUCT` (Estándar de 32 bits activo).
+- **Bit 4 (16):** `OPERATOR_OK` (Sello Rosa / Validación Manual).
+- **Bit 5 (32):** `MULTI_CUIT` (Sello Azul / Compartición Legal).
+
+### Lógica de Dominancia:
+El color visual de la ficha se determina por la jerarquía de bits:
+1.  **Azul (32):** Multicliente (Máxima prioridad de alerta).
+2.  **Blanco Gold (4):** Validado por ARCA.
+3.  **Rosa (16):** Operador OK / CUIT Genérico.
+4.  **Amarillo (8):** Estado Base (Pendiente).
+
+### Seguridad de Datos (Escudo de Virginidad):
+Durante la validación de AFIP, el sistema preserva el estado del Bit 1. Un cliente que ya ha operado comercialmente (Bit 1 = 0) nunca volverá a recibir el estado "Virgen" por una inyección de datos externos.

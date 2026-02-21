@@ -150,6 +150,25 @@ class RemitosService:
             )
             db.add(r_item)
             
+        # 7. [V14 GENOMA] EVO: Desactivar Virginidad (Bit 1) del Cliente
+        # Si el cliente ya tenía movimientos, el bit ya es 0. 
+        # Si era Virgen (Bit 1 = 1), ahora deja de serlo.
+        from backend.clientes.constants import ClientFlags
+        
+        # Sincronizar Flags
+        # 1. Asegurar Existencia (Bit 0)
+        # 2. Desactivar Virginidad (Evolución Natural)
+        # Bitwise: flag &= ~2 (Apaga Bit 1)
+        # Aseguramos V14 Struct (Bit 3) si es nuevo
+        
+        current_flags = cliente.flags_estado or 0
+        new_flags = (current_flags | ClientFlags.EXISTENCE | ClientFlags.V14_STRUCT) & ~ClientFlags.VIRGINITY
+        
+        if current_flags != new_flags:
+            cliente.flags_estado = new_flags
+            db.add(cliente)
+            print(f"Genoma EVO: Cliente {cliente.razon_social} evolucionó a Flag {new_flags} (Activo)")
+
         db.commit()
         db.refresh(remito)
         return remito

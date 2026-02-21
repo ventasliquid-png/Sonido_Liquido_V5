@@ -705,3 +705,24 @@ Siguiendo órdenes directas, se difirió la integración real de OAuth y se impl
 
 **Estado:** Script de Minería Operativo. Ingesta Web requiere refactor (Próxima Sesión).
 
+
+# [V14.5] 2026-02-21 - Protocolo ENIGMA & Estabilización Bitmask
+
+> **ESTADO:** ESTABLE
+> **TIPO:** MAJOR REFACTOR / IDENTIDAD
+
+**Objetivo:** Migrar la identidad de clientes a una estructura Bitmask unificada y estabilizar el puente de validación fiscal.
+
+**Intervenciones:**
+1.  **Backend (Bitmask):**
+    *   Sincronizado `constants.py` con el blueprint ENIGMA. Bits 0-5 definidos.
+    *   Implementada evolución de virginidad en `RemitosService.py`.
+2.  **Frontend (Inspector):**
+    *   Implementado `clientColorClass` basado en bitwise logic.
+    *   **Reactor Fix:** Inyectado watcher en `modelValue` para asegurar reactividad post-guardado.
+    *   **Logística:** Toggle 'Retira' bidireccional y blindado.
+3.  **Bridge (ARCA):**
+    *   Corrección de mapeo en `AfipBridgeService.py`. Transparencia total del domicilio fiscal.
+    *   Mapeo inteligente de Condición IVA.
+
+**Estado:** Estabilidad V14.5 alcanzada. Ready for Omega.

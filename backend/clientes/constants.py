@@ -2,42 +2,38 @@
 
 class ClientFlags:
     """
+    [DOCTRINA V14] ENIGMA BLUEPRINT
     Bitmask Constants for 'flags_estado' (32-bit Integer).
-    Strategically mapped for V5-X Hybrid Architecture.
     """
     
-    # 0x01: Baja Lógica (Soft Delete). 
-    # Si está en 0, el cliente está "Borrado". Si está en 1, está "Activo".
-    # (Reemplaza al booleano 'activo' legacy)
-    IS_ACTIVE = 0x001 
+    # Bit 0 (1): EXISTENCE
+    # El registro existe físicamente en la DB. (Equivale a 'activo' legacy si es 1)
+    EXISTENCE = 0x001
+    IS_ACTIVE = 0x001 # Alias legacy para service.py
     
-    # 0x02: Virginidad (Integridad Referencial).
-    # 1 = Nunca ha operado (Sin pedidos, sin deuda). Seguro para Hard Delete.
-    # 0 = Ya tiene historia. Solo permite Soft Delete.
-    IS_VIRGIN = 0x002
+    # Bit 1 (2): VIRGINITY
+    # 1: Virgen (Sin movimientos) / 0: Activo (Tiene remitos/facturas).
+    VIRGINITY = 0x002
+    IS_VIRGIN = 0x002 # Alias legacy
     
-    # 0x04: Switch Bronze/Gold (Fiscal Requirement).
-    # 0 = Bronze (Informal/Mostrador). No exige CUIT ni Domicilio Fiscal.
-    # 1 = Gold/Silver. Exige CUIT válido y Domicilio Fiscal.
-    FISCAL_REQUIRED = 0x004
+    # Bit 2 (4): GOLD_ARCA
+    # El dato fue homologado por el satélite RAR (ARCA).
+    GOLD_ARCA = 0x004
+    FISCAL_REQUIRED = 0x004 # Alias funcional para service.py
     
-    # 0x08: Validación Externa (ARCA/AFIP).
-    # 1 = Datos validados contra padrón oficial (Golden Record).
-    # 0 = Datos declarativos o inventados.
-    ARCA_VALIDATED = 0x008
+    # Bit 3 (8): V14_STRUCT
+    # El registro cumple con la arquitectura de 32 bits Genoma V14.
+    V14_STRUCT = 0x008
     
-    # 0x10: Habilitación Fiscal (Tipo de Factura).
-    # 1 = Puede emitir Factura A (RI).
-    # 0 = Solo B o X (Monotributo/Consumidor Final/Informal).
-    DOC_A_PERMITTED = 0x010
+    # Bit 4 (16): OPERATOR_OK
+    # Sello Rosa: Validado manualmente por el operador.
+    OPERATOR_OK = 0x010
     
-    # 0x20: Estado Fantasma (Pre-Alta).
-    # 1 = Carga rápida de Tomás. Invisible para el resto del sistema.
-    # 0 = Cliente confirmado y visible.
-    IS_GHOST = 0x020
-    
-    # 0x40: Bloqueo Financiero.
+    # Bit 5 (32): MULTI_CUIT
+    # Sello Azul: CUIT compartido (UBA, Sedes, etc.).
+    MULTI_CUIT = 0x020
+
+    # --- FLAGS COMPLEMENTARIOS ---
+    # (Reservados para futuras expansiones del Genoma)
     CREDIT_HOLD = 0x040
-    
-    # 0x80: Uso Interno (Sucursal, Gastos).
     INTERNAL_USE = 0x080

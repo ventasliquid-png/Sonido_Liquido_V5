@@ -67,18 +67,22 @@
 
         <!-- DOMICILIO -->
         <div class="grid grid-cols-2 gap-8 items-start group">
-          <div class="p-4 bg-white/5 border border-white/5 rounded-xl transition-all group-hover:bg-white/[0.07]">
+          <div class="p-4 bg-white/5 border border-white/5 rounded-xl transition-all group-hover:bg-white/[0.07]"
+               :class="hasDiff('domicilio') ? 'ring-1 ring-red-500/20' : ''">
              <label class="block text-[9px] font-bold text-cyan-500/50 uppercase mb-1">Domicilio en V5</label>
-             <p class="text-white/60 text-xs leading-relaxed">{{ formatLocalAddress }}</p>
+             <p class="text-white/60 text-xs leading-relaxed" :class="hasDiff('domicilio') ? 'text-red-300' : ''">{{ formatLocalAddress }}</p>
           </div>
           <div class="p-4 bg-yellow-500/5 border rounded-xl transition-all" :class="hasDiff('domicilio') ? 'border-yellow-500/30' : 'border-emerald-500/30 bg-emerald-500/5'">
-             <label class="block text-[9px] font-bold text-yellow-500/50 uppercase mb-1">Domicilio Detectado (A13)</label>
+             <label class="block text-[9px] font-bold text-yellow-500/50 uppercase mb-1">Domicilio Detectado (ARCA)</label>
              <div class="flex flex-col gap-1">
                 <p class="text-white font-bold text-xs leading-relaxed uppercase">{{ arcaData.domicilio_fiscal }}</p>
                 <div v-if="arcaData.parsed_address" class="mt-2 flex flex-wrap gap-1">
                     <span class="text-[8px] bg-yellow-500/10 text-yellow-200 px-1 rounded uppercase">Localidad: {{ arcaData.parsed_address.localidad }}</span>
                     <span class="text-[8px] bg-yellow-500/10 text-yellow-200 px-1 rounded uppercase">CP: {{ arcaData.parsed_address.cp }}</span>
                 </div>
+                <p v-if="hasDiff('domicilio')" class="text-[8px] text-yellow-500 font-bold mt-2 animate-pulse">
+                    <i class="fas fa-exclamation-triangle mr-1"></i> DISCREPANCIA DETECTADA
+                </p>
              </div>
           </div>
         </div>
@@ -110,10 +114,10 @@
         <button @click="$emit('close')" class="px-6 py-2.5 rounded-lg border border-white/10 text-white/40 hover:text-white hover:bg-white/5 transition-all text-xs font-bold uppercase tracking-widest">
             Abortar
         </button>
-        <button @click="confirmInfiltration" class="px-8 py-3 bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 text-black font-black text-xs uppercase tracking-[0.2em] rounded-lg shadow-[0_0_20px_rgba(234,179,8,0.3)] transition-all transform active:scale-95 group overflow-hidden relative">
-            <div class="absolute inset-0 bg-white/20 -translate-x-full group-hover:translate-x-full transition-transform duration-700 skew-x-12"></div>
+        <button @click="confirmInfiltration" class="px-8 py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-black font-black text-xs uppercase tracking-[0.2em] rounded-lg shadow-[0_0_25px_rgba(250,204,21,0.5)] transition-all transform active:scale-95 group overflow-hidden relative border border-yellow-200/50">
+            <div class="absolute inset-0 bg-white/30 -translate-x-full group-hover:translate-x-full transition-transform duration-700 skew-x-12"></div>
             <i class="fas fa-bolt mr-2 text-yellow-900"></i>
-            Infiltrar Datos
+            Infiltrar Datos (Audit/Flag 15)
         </button>
       </div>
     </div>
@@ -159,17 +163,49 @@ const getIvaName = (id) => {
 
 const formatLocalAddress = computed(() => {
     const d = props.localData.fiscalAddress || {}
-    if (!d.calle) return '[SIN DOMICILIO FISCAL]'
+    if (!d.calle) {
+        // [V14] Try to find fiscal address in domicilios if not passed explicitly as fiscalAddress
+        const fiscal = props.localData.domicilios?.find(dom => dom.es_fiscal && dom.activo !== false)
+        if (fiscal) return `${fiscal.calle} ${fiscal.numero || ''}, ${fiscal.localidad || ''}`.trim()
+        return '[SIN DOMICILIO FISCAL]'
+    }
     return `${d.calle} ${d.numero || ''}, ${d.localidad || ''}`.trim()
 })
 
+const currentFlag = computed(() => props.localData.flags_estado || 9)
+
 const projectedFlag = computed(() => {
-    if (props.isNew) return 15
-    return props.localData.flags_estado || 13
+    // [V14 GENOMA]
+    let flag = currentFlag.value
+    
+    // 1. Siempre activamos GOLD_ARCA (+4) si estamos en este overlay
+    flag |= 4
+    
+    // 2. Escudo de Virginidad: Si era 9 (Amarillo), le sumamos virginidad (+2)
+    // Pero si ya es un registro con movimientos (Bit 1 es 0), no lo re-virginalizamos.
+    if (props.isNew) {
+        flag |= 2 // Todo cliente nuevo nace Virgen
+    } else {
+        // Si no es nuevo, preservamos el estado del Bit 1 actual.
+        // Si ya era 15 (tenía Bit 1), seguirá siendo 15.
+        // Si era 13 (no tenía Bit 1), seguirá sin tenerlo.
+    }
+    
+    // 3. Estructura V14 (+8) - Aseguramos que se mantenga/agregue
+    flag |= 8
+    
+    // 4. Existencia (+1)
+    flag |= 1
+
+    return flag
 })
 
 const projectedFlagName = computed(() => {
-    return projectedFlag.value === 15 ? 'VIRGEN DORADO' : 'INMIGRANTE DORADO'
+    const flag = projectedFlag.value
+    if (flag === 15) return "Blanco: Virgen Gold"
+    if (flag === 13) return "Blanco: Activo Gold"
+    if (flag === 47) return "Azul: Multicliente Gold"
+    return `Gold (Flag ${flag})`
 })
 
 const confirmInfiltration = () => {

@@ -65,8 +65,14 @@
 > *   **Origen:** [Incidente del 01/02 - Sesión 783 / Omisión Omega].
 > *   **Consecuencia Evitada:** Pérdida de contexto histórico y desobediencia a la Doctrina GY.
 
+
+> **REGLA DE ORO: Reactividad en Inspectores Reutilizables.**
+> *   **Instrucción Precisa:** En componentes que reciben un `modelValue` (props) y lo copian a un `form` local (ref) para edición: Es MANDATORIO implementar un `watch(() => props.modelValue)` para refrescar el `form` local. Sin esto, el componente queda "estancado" en la versión inicial de los datos.
+> *   **Origen:** [Sesión del 21/02 - Regresión Amarillo/Gold en Inspector].
+> *   **Consecuencia Evitada:** El inspector muestra datos viejos tras un guardado exitoso, impidiendo ver el cambio de estado (ej: Amarillo -> Blanco Gold).
+
 ---
-**Última Actualización:** 2026-02-01 (Auditoría de Bloqueo Sesión 783)
+**Última Actualización:** 2026-02-21 (Doctrina ENIGMA & Reactividad)
 
 ## 🔄 7. UX & FLUJOS (V6)
 > **REGLA DE ORO: Ley de Conservación de Masa Crítica (Fiscalidad).**
