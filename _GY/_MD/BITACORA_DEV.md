@@ -706,23 +706,11 @@ Siguiendo órdenes directas, se difirió la integración real de OAuth y se impl
 **Estado:** Script de Minería Operativo. Ingesta Web requiere refactor (Próxima Sesión).
 
 
-# [V14.5] 2026-02-21 - Protocolo ENIGMA & Estabilización Bitmask
-
-> **ESTADO:** ESTABLE
-> **TIPO:** MAJOR REFACTOR / IDENTIDAD
-
-**Objetivo:** Migrar la identidad de clientes a una estructura Bitmask unificada y estabilizar el puente de validación fiscal.
-
-**Intervenciones:**
-1.  **Backend (Bitmask):**
-    *   Sincronizado `constants.py` con el blueprint ENIGMA. Bits 0-5 definidos.
-    *   Implementada evolución de virginidad en `RemitosService.py`.
-2.  **Frontend (Inspector):**
-    *   Implementado `clientColorClass` basado en bitwise logic.
-    *   **Reactor Fix:** Inyectado watcher en `modelValue` para asegurar reactividad post-guardado.
-    *   **Logística:** Toggle 'Retira' bidireccional y blindado.
-3.  **Bridge (ARCA):**
-    *   Corrección de mapeo en `AfipBridgeService.py`. Transparencia total del domicilio fiscal.
-    *   Mapeo inteligente de Condición IVA.
-
-**Estado:** Estabilidad V14.5 alcanzada. Ready for Omega.
+## [V14.6] 2026-02-22 - Contingencia Táctica (Reloj 429) & Confinamiento
+- **Objetivo**: Proveer feedback visual ante errores 429 de cuota en Gemini.
+- **Intervención**:
+    - Backend: `quota_manager.py` (Persistence logic).
+    - Frontend: `AteneaChat.vue` (Tactical Clock Widget & Test Mode).
+- **Limpieza Estratégica**: Remoción de código de taller en `App.vue`. El living corporativo queda impecable. Lógica confinada en la zona de chat IA.
+- **Backend Repair**: Reordenamiento de rutas para evitar 404 en API y fix de `QueryInput` reference.
+- **Estado**: Sistema Nominal V14.6.

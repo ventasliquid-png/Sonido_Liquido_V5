@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tactical Clock Sandbox - SONIDO LIQUIDO</title>
+    <style>
+        :root {
+            --neon-orange: #ff9d00;
+            --neon-green: #39ff14;
+            --bg-dark: #0a0a0b;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: white;
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* --- LA BARRA TÁCTICA (CABECERA) --- */
+        #tactical-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.9);
+            border-bottom: 2px solid var(--neon-orange);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-sizing: border-box;
+            box-shadow: 0 0 15px rgba(255, 157, 0, 0.3);
+            transition: all 0.5s ease;
+            z-index: 9999;
+            transform: translateY(0);
+            /* Estado inicial: visible en degradación */
+        }
+
+        #tactical-bar.restored {
+            border-color: var(--neon-green);
+            box-shadow: 0 0 20px rgba(57, 255, 20, 0.5);
+            background: rgba(0, 40, 0, 0.9);
+        }
+
+        #tactical-bar.hidden {
+            transform: translateY(-100%);
+            opacity: 0;
+        }
+
+        .status-text {
+            font-size: 12px;
+            font-weight: bold;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        #timer-text {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 18px;
+            color: var(--neon-orange);
+        }
+
+        #tactical-bar.restored #timer-text {
+            color: var(--neon-green);
+        }
+
+        /* --- BARRA DE PROGRESO INVERSA --- */
+        #progress-bg {
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: rgba(255, 157, 0, 0.1);
+        }
+
+        #progress-fill {
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            /* Empieza al 100% */
+            height: 2px;
+            background: var(--neon-orange);
+            transition: width 1s linear;
+        }
+
+        #tactical-bar.restored #progress-fill {
+            background: var(--neon-green);
+            width: 100% !important;
+        }
+
+        /* --- CONTROLES DE LA SIMULACIÓN --- */
+        .controls {
+            text-align: center;
+            border: 1px solid #333;
+            padding: 30px;
+            border-radius: 8px;
+            background: #111;
+        }
+
+        button {
+            background: var(--neon-orange);
+            color: black;
+            border: none;
+            padding: 10px 20px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        button:hover {
+            opacity: 0.8;
+        }
+
+        /* --- EFECTO DE PULSO --- */
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .pulse {
+            animation: pulse 1s infinite;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- COMPONENTE TÁCTICO -->
+    <div id="tactical-bar">
+        <div class="status-text pulse" id="label">Modo Degradado - Operando con Flash</div>
+        <div id="timer-text">00:15</div>
+        <div id="progress-bg"></div>
+        <div id="progress-fill"></div>
+    </div>
+
+    <!-- UI DE FONDO (CANVAS SIMULADO) -->
+    <div class="controls">
+        <h2>POLÍGONO DE TIRO - UI TÁCTICA</h2>
+        <p>Simulando la vista del Almirante en el Canvas de Antigravity.</p>
+        <button onclick="startSimulation()">Simular Error 429 (15s)</button>
+    </div>
+
+    <script>
+        let timeLeft = 15;
+        let totalTime = 15;
+        let timerInterval = null;
+
+        const bar = document.getElementById('tactical-bar');
+        const label = document.getElementById('label');
+        const timerText = document.getElementById('timer-text');
+        const progressFill = document.getElementById('progress-fill');
+
+        function startSimulation() {
+            // Reset
+            clearInterval(timerInterval);
+            timeLeft = 15;
+            totalTime = 15;
+
+            bar.className = '';
+            label.textContent = 'Modo Degradado - Operando con Flash';
+            label.classList.add('pulse');
+            updateUI();
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                if (timeLeft <= 0) {
+                    timeLeft = 0;
+                    clearInterval(timerInterval);
+                    triggerRestore();
+                }
+                updateUI();
+            }, 1000);
+        }
+
+        function updateUI() {
+            const mins = Math.floor(timeLeft / 60);
+            const secs = timeLeft % 60;
+            timerText.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+            const percent = (timeLeft / totalTime) * 100;
+            progressFill.style.width = percent + '%';
+        }
+
+        function triggerRestore() {
+            // Cambio a Verde Pulso
+            bar.classList.add('restored');
+            label.textContent = 'Sistema Restablecido - Modelo Pro Activo';
+            label.classList.remove('pulse');
+
+            // Esperar 2 segundos antes de ocultar
+            setTimeout(() => {
+                bar.classList.add('hidden');
+            }, 2500);
+        }
+
+        // Auto-inicio para prueba
+        startSimulation();
+    </script>
+</body>
+
+</html>

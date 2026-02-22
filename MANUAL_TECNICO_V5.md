@@ -111,3 +111,9 @@ El color visual de la ficha se determina por la jerarquía de bits:
 
 ### Seguridad de Datos (Escudo de Virginidad):
 Durante la validación de AFIP, el sistema preserva el estado del Bit 1. Un cliente que ya ha operado comercialmente (Bit 1 = 0) nunca volverá a recibir el estado "Virgen" por una inyección de datos externos.
+
+## 14. SISTEMA DE CONTINGENCIA (RELOJ TÁCTICO)
+Implementado en V14.6 para gestionar errores HTTP 429 de la API de Gemini. 
+- **Backend:** Endpoint `/api/quota-status` monitorea `quota_status.json` gestionado por `registrar_penalizacion()`.
+- **Frontend:** UI confinada en `AteneaChat.vue`. Muestra un cronómetro de cuenta regresiva durante el "Modo Degradado".
+- **Confinamiento:** Por orden estratégica, este módulo no habita en el core corporativo (Clientes/Logística), sino exclusivamente en la interfaz de la IA para preservar la estética del sistema operativo.

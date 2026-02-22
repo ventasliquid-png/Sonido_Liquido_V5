@@ -1,6 +1,19 @@
-Set-Content -Path "src/views/AteneaChat.vue" -Encoding utf8 -Value @'
 <template>
   <div class="atenea-container">
+    <!-- BARRA TÁCTICA CONFINADA -->
+    <transition name="slide-down">
+        <div v-if="quotaStatus.status === 'DEGRADADO' || quotaStatus.status === 'RESTORED'" 
+             :class="['tactical-bar-mini', { 'restored': quotaStatus.status === 'RESTORED' }]">
+            <div class="status-msg" :class="{ 'pulse': quotaStatus.status === 'DEGRADADO' }">
+                {{ quotaStatus.status === 'DEGRADADO' ? 'MODO DEGRADADO - FLASH ACTIVO' : 'SISTEMA RESTABLECIDO' }}
+            </div>
+            <div class="timer">{{ formatTime(timeLeft) }}</div>
+            <div class="progress-container">
+                <div class="progress-fill" :style="{ width: (timeLeft / totalTime * 100) + '%' }"></div>
+            </div>
+        </div>
+    </transition>
+
     <h2>Interfaz de Comando V5 (Atenea)</h2>
     
     <div class="input-area">
@@ -8,79 +21,101 @@ Set-Content -Path "src/views/AteneaChat.vue" -Encoding utf8 -Value @'
         v-model="query"
         @keyup.enter="invokeAtenea"
         type="text"
-        placeholder="Ingrese la directiva estratégica o la pregunta..."
+        placeholder="Ingrese la directiva estratégica..."
         :disabled="loading"
       />
       <button @click="invokeAtenea" :disabled="loading">
-        <span v-if="loading">... Procesando Juicio ...</span>
-        <span v-else>Invocar Atenea V5</span>
+        <span v-if="loading">... Procesando ...</span>
+        <span v-else>Invocar Atenea</span>
       </button>
     </div>
 
+    <!-- BOTÓN DE TEST (SOLO EN ESTA VISTA) -->
+    <button @click="triggerTest429" class="btn-test">TEST 429</button>
+
     <div v-if="response" class="response-area">
-      <h3>Monitor de Bitácora y Respuesta Final:</h3>
+      <h3>Monitor de Bitácora:</h3>
       <div class="status-indicators">
         <span :class="['status-box', response.fue_doctrinal ? 'doctrinal' : 'tactical']">
-          {{ response.fue_doctrinal ? '🏛️ JUICIO DOCTRINAL' : '🛠️ TÁCTICA APLICADA' }}
+          {{ response.fue_doctrinal ? '🏛️ DOCTRINAL' : '🛠️ TÁCTICO' }}
         </span>
-        <span class="status-box">RAG Docs: {{ response.documentos_recuperados.length }}</span>
+        <span class="status-box">Contexto: {{ response.documentos_recuperados.length }}</span>
       </div>
 
       <pre class="generation-output">{{ response.respuesta_generada }}</pre>
-
-      <h4>Documentos V5 (Contexto Usado):</h4>
-      <ul class="documents-list">
-        <li v-for="(doc, index) in response.documentos_recuperados" :key="index">
-          {{ doc.substring(0, 80) }}...
-        </li>
-      </ul>
     </div>
 
     <div v-if="error" class="error-message">
-      ❌ ERROR CRÍTICO: {{ error }}
+      {{ error }}
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
 
-// Estado Local
 const query = ref('');
 const response = ref(null);
 const loading = ref(false);
 const error = ref(null);
 
-// Endpoint de la API (Backend FastAPI)
-const API_URL = 'http://127.0.0.1:8000/atenea/invoke/';
+// Lógica de Cuota (Confinada)
+const quotaStatus = ref({ status: 'OK' });
+const timeLeft = ref(0);
+const totalTime = ref(60);
+let quotaInterval = null;
 
-// Lógica de Invocación del Cerebro
+const formatTime = (seconds) => {
+    const s = seconds % 60;
+    const m = Math.floor(seconds / 60);
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+};
+
+const checkQuota = async () => {
+    try {
+        const res = await fetch('http://127.0.0.1:8000/api/quota-status');
+        const data = await res.json();
+        quotaStatus.value = data;
+        
+        if (data.status === 'DEGRADADO') {
+            const release = new Date(data.release_timestamp);
+            const now = new Date();
+            timeLeft.value = Math.max(0, Math.floor((release - now) / 1000));
+            if (timeLeft.value === 0) {
+                setTimeout(() => { quotaStatus.value.status = 'RESTORED'; }, 500);
+            }
+        }
+    } catch (e) {}
+};
+
+const triggerTest429 = async () => {
+    try {
+        await axios.post('http://127.0.0.1:8000/api/test-429');
+    } catch (e) {}
+};
+
+onMounted(() => {
+    quotaInterval = setInterval(checkQuota, 1000);
+});
+
+onUnmounted(() => {
+    clearInterval(quotaInterval);
+});
+
 const invokeAtenea = async () => {
   if (!query.value.trim()) return;
-
   loading.value = true;
   error.value = null;
   response.value = null;
-
   try {
-    const payload = { query: query.value };
-    
-    // El 'POST' al endpoint que creamos en main.py
-    const res = await axios.post(API_URL, payload);
-    
-    // El servidor Fast API nos devuelve el JSON del grafo
+    const res = await axios.post('http://127.0.0.1:8000/atenea/invoke', { query: query.value });
     response.value = res.data;
-    
   } catch (err) {
-    if (err.response && err.response.data && err.response.data.detail) {
-        // Captura errores específicos de FastAPI/Pydantic
-        error.value = `Falla de Validación: ${err.response.data.detail[0].msg}`;
-    } else if (err.response && err.response.data && err.response.data.error) {
-        // Captura el error del Lifespan o Grafo (ej. "Grafo no compilado")
-        error.value = `Falla del Servidor: ${err.response.data.error}`;
+    if (err.response && err.response.status === 429) {
+        error.value = "⚠️ Cuota alcanzada. El Reloj Táctico se ha activado.";
     } else {
-        error.value = `Falla de Conexión o Red (Verifica Uvicorn): ${err.message}`;
+        error.value = `Falla: ${err.message}`;
     }
   } finally {
     loading.value = false;
@@ -92,92 +127,68 @@ const invokeAtenea = async () => {
 .atenea-container {
   max-width: 900px;
   margin: 30px auto;
-  padding: 20px;
+  padding: 40px 20px 20px;
   border-radius: 10px;
-  background-color: #1e1e1e;
+  background-color: #1a1a1a;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-}
-h2 { color: #8BE9FD; border-bottom: 2px solid #50FA7B; padding-bottom: 10px; }
-h4 { color: #BD93F9; margin-top: 20px; }
-
-.input-area {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-input {
-  flex-grow: 1;
-  padding: 12px;
-  border: 1px solid #6272A4;
-  border-radius: 6px;
-  background-color: #282A36;
-  color: #F8F8F2;
-  font-size: 16px;
-}
-button {
-  padding: 12px 20px;
-  background-color: #50FA7B;
-  color: #282A36;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: background-color 0.2s;
-}
-button:hover:not(:disabled) {
-  background-color: #44E06A;
-}
-button:disabled {
-  background-color: #6272A4;
-  cursor: not-allowed;
+  position: relative;
+  overflow: hidden;
 }
 
-.response-area {
-  padding: 15px;
-  background-color: #44475A;
-  border-radius: 6px;
+h2 { color: #8BE9FD; border-bottom: 2px solid #50FA7B; padding-bottom: 10px; margin-top: 10px; }
+
+.input-area { display: flex; gap: 10px; margin-bottom: 20px; }
+input { flex-grow: 1; padding: 12px; border: 1px solid #444; border-radius: 6px; background: #222; color: #fff; }
+button { padding: 12px 20px; background: #50FA7B; color: #000; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+
+.response-area { padding: 15px; background: #222; border-radius: 6px; }
+.status-indicators { margin-bottom: 10px; }
+.status-box { display: inline-block; padding: 4px 10px; margin-right: 10px; border-radius: 4px; font-size: 0.85em; font-weight: bold; background: #444; color: #fff; }
+.doctrinal { background: #BD93F9; color: #000; }
+.tactical { background: #FF79C6; color: #000; }
+.generation-output { white-space: pre-wrap; background: #111; padding: 15px; border-left: 3px solid #FF79C6; color: #F8F8F2; font-family: monospace; }
+.error-message { padding: 15px; background: #FF5555; color: white; border-radius: 6px; margin-top: 15px; }
+
+/* RELOJ TÁCTICO CONFINADO */
+.tactical-bar-mini {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 30px;
+    background: #000;
+    border-bottom: 2px solid #ff9d00;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 15px;
+    z-index: 10;
+    box-shadow: 0 0 10px rgba(255,157,0,0.3);
 }
 
-.status-indicators {
-  margin-bottom: 10px;
+.tactical-bar-mini.restored { border-color: #39ff14; background: #002200; }
+.status-msg { font-size: 10px; font-weight: bold; color: #fff; }
+.timer { font-family: monospace; font-size: 14px; color: #ff9d00; font-weight: bold; }
+.restored .timer { color: #39ff14; }
+
+.progress-container { position: absolute; bottom: 0; left: 0; width: 100%; height: 2px; background: rgba(255,157,0,0.1); }
+.progress-fill { height: 100%; background: #ff9d00; transition: width 1s linear; }
+.restored .progress-fill { background: #39ff14; width: 100% !important; }
+
+.btn-test {
+    background: rgba(255,157,0,0.1);
+    color: #ff9d00;
+    border: 1px solid #ff9d00;
+    padding: 2px 8px;
+    font-size: 9px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-bottom: 20px;
 }
 
-.status-box {
-  display: inline-block;
-  padding: 4px 10px;
-  margin-right: 10px;
-  border-radius: 4px;
-  font-size: 0.85em;
-  font-weight: bold;
-}
-.doctrinal { background-color: #BD93F9; color: #282A36; }
-.tactical { background-color: #FF79C6; color: #282A36; }
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+.pulse { animation: pulse 1s infinite; }
 
-.generation-output {
-  white-space: pre-wrap;
-  background-color: #282A36;
-  padding: 15px;
-  border-left: 3px solid #FF79C6;
-  color: #F8F8F2;
-  font-family: monospace;
-}
-
-.documents-list {
-  list-style-type: none;
-  padding-left: 0;
-  color: #F8F8F2;
-}
-.documents-list li {
-  margin-bottom: 5px;
-  border-left: 2px solid #6272A4;
-  padding-left: 8px;
-}
-.error-message {
-  padding: 15px;
-  background-color: #FF5555;
-  color: white;
-  border-radius: 6px;
-  margin-top: 15px;
-}
+.slide-down-enter-active, .slide-down-leave-active { transition: transform 0.3s ease; }
+.slide-down-enter-from, .slide-down-leave-to { transform: translateY(-100%); }
 </style>
-'@

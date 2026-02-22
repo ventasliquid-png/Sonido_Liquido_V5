@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import ToastNotification from './components/ui/ToastNotification.vue';
 import { useClientesStore } from './stores/clientes';
@@ -30,6 +30,29 @@ const initSystem = async () => {
     try {
         bootStatus.value = 'HIVE-MIND: CONECTANDO...';
         
+        // --- [GY-FIX] Ping backend until ready before fetching ---
+        let backendReady = false;
+        let pings = 0;
+        while (!backendReady && pings < 15) {
+            try {
+                const res = await fetch('/docs');
+                if (res.ok || res.status === 401 || res.status === 404) {
+                    backendReady = true;
+                } else {
+                    throw new Error('Backend proxy not ready');
+                }
+            } catch (e) {
+                pings++;
+                bootStatus.value = `ESPERANDO MOTOR BACKEND (Intento ${pings})...`;
+                await new Promise(r => setTimeout(r, 1000));
+            }
+        }
+        
+        if (!backendReady) {
+             throw new Error('Timeout waiting for backend to start');
+        }
+        // --------------------------------------------------------
+
         // Sequential fetch with detailed status
         await maestrosStore.fetchSegmentos();
         bootStatus.value = `SEGMENTOS: ${maestrosStore.segmentos.length} OK`;

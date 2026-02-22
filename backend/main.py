@@ -97,6 +97,8 @@ from backend.remitos.router import router as remitos_router # [GY-V7] PDF Ingest
 
 # --- 2. Importaciones de LangGraph (El Cerebro) ---
 from langgraph.graph import StateGraph, END
+from backend.core.quota_manager import registrar_penalizacion, get_quota_status
+from google.api_core.exceptions import ResourceExhausted
 
 # --- 3. Definición del Estado del Grafo (Mi Conciencia) ---
 class AteneaV5State(TypedDict):
@@ -271,7 +273,19 @@ async def doctrinal_evaluation_node(state: AteneaV5State):
 
 def tactical_generation_node(state: AteneaV5State):
     print("--- [LangGraph Node]: tactical_generation_node ---")
-    if not llm:
+    
+    # --- [SWITCH DINÁMICO DE MOTOR] ---
+    status = get_quota_status()
+    current_llm = llm
+    if status["status"] == "DEGRADADO":
+        print("[QUOTA] Modo Degradado Activo. Forzando Flash...")
+        try:
+             from langchain_google_vertexai import ChatVertexAI
+             current_llm = ChatVertexAI(model_name="gemini-1.5-flash", location=config.APP_LOCATION)
+        except:
+             pass
+    
+    if not current_llm:
         return {"generation": "Modo Offline Activo: No puedo generar respuestas de IA, pero el sistema operativo funciona."}
     
     contexto = "\n---\n".join(state["retrieved_documents"]) or "No se encontró información relevante en la memoria."
@@ -287,16 +301,34 @@ def tactical_generation_node(state: AteneaV5State):
         {pregunta}
         """
     )
-    chain = prompt | llm | StrOutputParser()
-    generation = chain.invoke({
-        "contexto": contexto,
-        "pregunta": state["input_query"]
-    })
+    try:
+        chain = prompt | current_llm | StrOutputParser()
+        generation = chain.invoke({
+            "contexto": contexto,
+            "pregunta": state["input_query"]
+        })
+    except ResourceExhausted:
+        print("[!] QUOTA EXHAUSTED (429). Activando Reloj Táctico.")
+        registrar_penalizacion()
+        return {"generation": "⚠️ LÍMITE DE CUOTA ALCANZADO. Iniciando Protocolo de Contingencia. Cambiando a Gemini Flash por 60 segundos."}
+    
     return {"generation": generation}
 
 def doctrinal_review_node(state: AteneaV5State):
     print("--- [LangGraph Node]: doctrinal_review_node ---")
-    if not llm:
+    
+    # --- [SWITCH DINÁMICO DE MOTOR] ---
+    status = get_quota_status()
+    current_llm = llm
+    if status["status"] == "DEGRADADO":
+        print("[QUOTA] Modo Degradado Activo. Forzando Flash...")
+        try:
+             from langchain_google_vertexai import ChatVertexAI
+             current_llm = ChatVertexAI(model_name="gemini-1.5-flash", location=config.APP_LOCATION)
+        except:
+             pass
+
+    if not current_llm:
         return {"generation": "Modo Offline Activo: Revisión doctrinal desactivada."}
 
     contexto = "\n---\n".join(state["retrieved_documents"]) or "No se encontró información relevante en la memoria."
@@ -316,11 +348,17 @@ def doctrinal_review_node(state: AteneaV5State):
         Tu Pregunta Socrática (Desafiante):
         """
     )
-    chain = prompt | llm | StrOutputParser()
-    generation = chain.invoke({
-        "contexto": contexto,
-        "pregunta": state["input_query"]
-    })
+    try:
+        chain = prompt | current_llm | StrOutputParser()
+        generation = chain.invoke({
+            "contexto": contexto,
+            "pregunta": state["input_query"]
+        })
+    except ResourceExhausted:
+        print("[!] QUOTA EXHAUSTED (429). Activando Reloj Táctico.")
+        registrar_penalizacion()
+        return {"generation": "🏛️ REVISIÓN DOCTRINAL: Límite de cuota alcanzado. Cambiando a Flash para procesar el juicio..."}
+        
     return {"generation": generation}
 
 # --- 7. Lógica Condicional del Grafo ---
@@ -405,33 +443,66 @@ if os.path.exists(static_dir):
     # app.mount("/static", StaticFiles(directory=static_dir), name="static") # Generic Mount if needed
 
 # Catch-all para Vue Router (HTML5 History Mode)
-# Cualquier ruta que no sea API (/... vs /atenea/invoke) devuelve index.html
+# --- [API QUOTA STATUS] ---
+@app.get("/api/quota-status", tags=["Estado"])
+async def get_quota_status_api():
+    return get_quota_status()
+
+@app.post("/api/test-429", tags=["Estado"])
+async def trigger_test_429():
+    registrar_penalizacion(retry_after=20)
+    return {"message": "Test 429 triggered", "seconds": 20}
+# --------------------------
+
+class QueryInput(BaseModel):
+    query: str
+
+@app.post("/atenea/invoke", tags=["Atenea VV"])
+async def invoke_atenea_v5(input: QueryInput):
+    if not atenea_v5_app:
+        return {"error": "El grafo de Atenea V5 no está compilado. Revisa el log de arranque."}
+    graph_input = {"input_query": input.query}
+    final_state = await atenea_v5_app.ainvoke(graph_input, config={})
+    return {
+        "pregunta": input.query,
+        "documentos_recuperados": final_state["retrieved_documents"],
+        "fue_doctrinal": final_state["is_doctrinal"],
+        "respuesta_generada": final_state["generation"]
+    }
+
+@app.get("/", tags=["Estado"])
+async def get_root_status():
+    if not vector_store or not llm:
+        return {"error": "El servidor no pudo inicializar los clientes de IA. Revisa el log de arranque y el firewall."}
+    return {
+        "estado_servidor": "OK",
+        "arquitectura": "Atenea V10.12 (Modular Estable)",
+        "conexion_db_url": "OK" if CONNECTION_STRING else "FALLIDA",
+        "conexion_google_creds": "OK" if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") else "FALLIDA",
+        "memoria_pgvector": "CONECTADA",
+        "cerebro_gemini": f"{config.GEMINI_MODEL_NAME} (Región: {config.APP_LOCATION})"
+    }
+
+# --- [SPA / STATIC FILES CATCH-ALL] ---
 @app.get("/{full_path:path}", include_in_schema=False)
 async def serve_spa(full_path: str):
-    # Ignorar rutas de API (ya manejadas arriba por include_router)
-    # Ignorar rutas de API (ya manejadas arriba por include_router)
-    api_prefixes = ["api", "docs", "openapi", "clientes", "pedidos", "productos", "maestros", "logistica", "agenda", "proveedores", "auth", "bypass", "contactos"]
+    # Ignorar rutas de API (ya manejadas arriba)
+    api_prefixes = ["api", "docs", "openapi", "clientes", "pedidos", "productos", "maestros", "logistica", "agenda", "proveedores", "auth", "bypass", "contactos", "atenea"]
     if any(full_path.startswith(prefix) for prefix in api_prefixes):
-         # Dejar que FastAPI maneje 404 para API real si no matcheó antes
          from fastapi import HTTPException
          raise HTTPException(status_code=404, detail="API Endpoint not found")
 
-    # Si existe archivo físico (ej: favicon.ico), servirlo
     posible_archivo = os.path.join(static_dir, full_path)
     if os.path.exists(posible_archivo) and os.path.isfile(posible_archivo):
         return FileResponse(posible_archivo)
 
-    # Si no, servir index.html (SPA)
     index_path = os.path.join(static_dir, "index.html")
     if os.path.exists(index_path):
         return FileResponse(index_path)
     
-    return {"error": "SPA no compilada. Ejecute 'npm run build' y copie a 'static'."}
-# ------------------------------------
+    return {"error": "SPA no compilada o archivo no encontrado."}
 
-# --- 9. Endpoints (Rutas de la API) ---
-class QueryInput(BaseModel):
-    query: str
+# --- 9. Endpoints ---
 
 # --- Bypass Endpoint for Rubro Dependencies ---
 from backend.productos import models as prod_models
@@ -476,35 +547,7 @@ def check_rubro_dependencies_bypass(rubro_id: int, db: Session = Depends(get_db)
         raise HTTPException(status_code=500, detail=str(e))
 # ----------------------------------------------
 
-@app.get("/", tags=["Estado"])
-async def get_root_status():
-    if not vector_store or not llm:
-        return {"error": "El servidor no pudo inicializar los clientes de IA. Revisa el log de arranque y el firewall."}
-        
-    return {
-        "estado_servidor": "OK",
-        "arquitectura": "Atenea V10.12 (Modular Estable)", # V10.12
-        "conexion_db_url": "OK" if CONNECTION_STRING else "FALLIDA",
-        "conexion_google_creds": "OK" if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") else "FALLIDA",
-        "memoria_pgvector": "CONECTADA",
-        "cerebro_gemini": f"{config.GEMINI_MODEL_NAME} (Región: {config.APP_LOCATION})"
-    }
-
-@app.post("/atenea/invoke", tags=["Atenea VV"])
-async def invoke_atenea_v5(input: QueryInput):
-    if not atenea_v5_app:
-        return {"error": "El grafo de Atenea V5 no está compilado. Revisa el log de arranque."}
-        
-    graph_input = {"input_query": input.query}
-    
-    final_state = await atenea_v5_app.ainvoke(graph_input, config={})
-    
-    return {
-        "pregunta": input.query,
-        "documentos_recuperados": final_state["retrieved_documents"],
-        "fue_doctrinal": final_state["is_doctrinal"],
-        "respuesta_generada": final_state["generation"]
-    }
+# SPA CATCH-ALL REMOVED FROM HERE (MOVED UP)
 
 print("--- [Atenea V5 Backend]: Módulo 'main.py' V10.16 (Modular Estable) cargado y listo. ---")
 # Reload trigger for V5.1 schema update
