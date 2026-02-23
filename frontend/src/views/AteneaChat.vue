@@ -16,6 +16,21 @@
 
     <h2>Interfaz de Comando V5 (Atenea)</h2>
     
+    <!-- RADAR VISUAL DE MODELOS -->
+    <div class="model-radar">
+      <div v-if="telemetry.is_cooldown" class="cooldown-warning">
+        ⏳ PRO SUSPENDIDO - REHABILITACIÓN EN: {{ formatTimeHHMMSS(telemetry.segundos_restantes) }}
+      </div>
+      <div v-else>
+        📊 Sesión:  
+        <span class="flash-stats">⚡ Flash: {{ flashPercentage }}% ({{ telemetry.flash_count }})</span> | 
+        <span class="pro-stats">🧠 Pro: {{ proPercentage }}% ({{ telemetry.pro_count }})</span>
+        <div class="radar-total">
+            Odómetro Diario: ⚡ Flash: {{ totalFlashPercentage }}% ({{ telemetry.total_flash_count }}) | 🧠 Pro: {{ totalProPercentage }}% ({{ telemetry.total_pro_count }})
+        </div>
+      </div>
+    </div>
+
     <div class="input-area">
       <input
         v-model="query"
@@ -40,6 +55,9 @@
           {{ response.fue_doctrinal ? '🏛️ DOCTRINAL' : '🛠️ TÁCTICO' }}
         </span>
         <span class="status-box">Contexto: {{ response.documentos_recuperados.length }}</span>
+        <!-- BADGE DEL MOTOR (RADAR) -->
+        <span v-if="response.model_used && response.model_used.includes('flash')" class="status-box badge-flash">⚡ Flash</span>
+        <span v-if="response.model_used && response.model_used.includes('pro')" class="status-box badge-pro">🧠 Pro</span>
       </div>
 
       <pre class="generation-output">{{ response.respuesta_generada }}</pre>
@@ -52,7 +70,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
 
 const query = ref('');
@@ -60,15 +78,57 @@ const response = ref(null);
 const loading = ref(false);
 const error = ref(null);
 
-// Lógica de Cuota (Confinada)
+// Telemetría Remota (Radial de Modelos)
+const telemetry = ref({
+    flash_count: 0,
+    pro_count: 0,
+    total_flash_count: 0,
+    total_pro_count: 0,
+    is_cooldown: false,
+    segundos_restantes: 0
+});
+
+const totalResponses = computed(() => telemetry.value.flash_count + telemetry.value.pro_count);
+const totalGlobalResponses = computed(() => telemetry.value.total_flash_count + telemetry.value.total_pro_count);
+
+const flashPercentage = computed(() => {
+  if (totalResponses.value === 0) return 0;
+  return Math.round((telemetry.value.flash_count / totalResponses.value) * 100);
+});
+
+const proPercentage = computed(() => {
+  if (totalResponses.value === 0) return 0;
+  return Math.round((telemetry.value.pro_count / totalResponses.value) * 100);
+});
+
+const totalFlashPercentage = computed(() => {
+  if (totalGlobalResponses.value === 0) return 0;
+  return Math.round((telemetry.value.total_flash_count / totalGlobalResponses.value) * 100);
+});
+
+const totalProPercentage = computed(() => {
+  if (totalGlobalResponses.value === 0) return 0;
+  return Math.round((telemetry.value.total_pro_count / totalGlobalResponses.value) * 100);
+});
+
+// Lógica de Cuota (Confinada y Telemetría)
 const quotaStatus = ref({ status: 'OK' });
 const timeLeft = ref(0);
 const totalTime = ref(60);
 let quotaInterval = null;
+let telemetryInterval = null;
 
 const formatTime = (seconds) => {
     const s = seconds % 60;
     const m = Math.floor(seconds / 60);
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+};
+
+const formatTimeHHMMSS = (seconds) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0) return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 };
 
@@ -95,12 +155,22 @@ const triggerTest429 = async () => {
     } catch (e) {}
 };
 
+const checkTelemetry = async () => {
+    try {
+        const res = await fetch('http://127.0.0.1:8000/atenea/telemetria');
+        const data = await res.json();
+        telemetry.value = data;
+    } catch (e) {}
+};
+
 onMounted(() => {
     quotaInterval = setInterval(checkQuota, 1000);
+    telemetryInterval = setInterval(checkTelemetry, 1000);
 });
 
 onUnmounted(() => {
     clearInterval(quotaInterval);
+    clearInterval(telemetryInterval);
 });
 
 const invokeAtenea = async () => {
@@ -111,6 +181,7 @@ const invokeAtenea = async () => {
   try {
     const res = await axios.post('http://127.0.0.1:8000/atenea/invoke', { query: query.value });
     response.value = res.data;
+    // Se elimina incrementador local porque se alimenta por la telemetría en background
   } catch (err) {
     if (err.response && err.response.status === 429) {
         error.value = "⚠️ Cuota alcanzada. El Reloj Táctico se ha activado.";
@@ -146,6 +217,35 @@ button { padding: 12px 20px; background: #50FA7B; color: #000; border: none; bor
 .status-box { display: inline-block; padding: 4px 10px; margin-right: 10px; border-radius: 4px; font-size: 0.85em; font-weight: bold; background: #444; color: #fff; }
 .doctrinal { background: #BD93F9; color: #000; }
 .tactical { background: #FF79C6; color: #000; }
+
+/* BADGES DEL RADAR */
+.badge-flash { background: #555; border: 1px solid #777; color: #ddd; }
+.badge-pro { background: rgba(139, 233, 253, 0.2); border: 1px solid #8BE9FD; color: #8BE9FD; }
+
+.model-radar {
+    font-size: 13px;
+    color: #aaa;
+    margin-bottom: 20px;
+    padding: 10px;
+    background: #252525;
+    border-radius: 6px;
+    text-align: right;
+    border-left: 3px solid #6272a4;
+}
+.cooldown-warning {
+    color: #ff9d00;
+    font-weight: bold;
+    font-size: 14px;
+}
+.radar-total {
+    margin-top: 5px;
+    padding-top: 5px;
+    border-top: 1px dotted #444;
+    font-size: 11px;
+}
+.flash-stats { color: #ccc; }
+.pro-stats { color: #8BE9FD; font-weight: bold; }
+
 .generation-output { white-space: pre-wrap; background: #111; padding: 15px; border-left: 3px solid #FF79C6; color: #F8F8F2; font-family: monospace; }
 .error-message { padding: 15px; background: #FF5555; color: white; border-radius: 6px; margin-top: 15px; }
 

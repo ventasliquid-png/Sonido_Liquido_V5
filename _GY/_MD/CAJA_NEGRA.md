@@ -1,5 +1,5 @@
-**Última Actualización:** 22-Feb-2026 (Reloj Táctico / Contingencia)
-**Sesiones Completadas:** +13 (Confinamiento Táctico)
+**Última Actualización:** 22-Feb-2026 (Soberanía Local / Sabueso V2)
+**Sesiones Completadas:** +14 (Autonomía Total)
 **Rol:** Tablero de Control y Estado de Salud del Sistema.
 
 ---
@@ -89,3 +89,10 @@
 - **Limpieza**: Ejecutado "Confinamiento" del taller. `App.vue` restaurado. Reloj confinado en `AteneaChat.vue`.
 - **Backend Fix**: Reparado routing SPA y forward reference error en `main.py`.
 - **Estado**: Sistema Purificado e Impecable.
+
+## [2026-02-22] SOBERANÍA V7: SABUESO LOCAL Y PUENTE RAR
+- **Hito**: Migración del motor de ingesta de PDF (Sabueso) de `pypdf` a `pdfplumber`. Cero dependencias de IA externa.
+- **Doctrina**: Generada `DOCTRINA_SOBERANA_2026.md` priorizando la validación determinista sobre la inferencia probabilística.
+- **Integridad**: Delegación táctica a AFIP/RAR. `pdf_parser.py` ahora extrae CUIT e ítems (Regex Dual), y delega la Razón Social y Domicilio al Puente RAR.
+- **Telemetría**: Refinamiento del Odómetro (Total/Sesión) para auditar el consumo local interno de Atenea.
+- **Estado**: Sistema V7 Desacoplado de Google Vision/Gemini en subprocesos críticos.

@@ -72,6 +72,7 @@ from backend.core.database import engine, Base
 # Imports de Routers
 # Imports de Routers
 from backend.auth import models as auth_models # Added explicit import to fix Cliente relationship
+from backend.services.model_discernitor import ModelDiscernitor
 from backend.proveedores import models as proveedores_models
 from backend.maestros import models as maestros_models
 from backend.productos import models as productos_models
@@ -301,16 +302,11 @@ def tactical_generation_node(state: AteneaV5State):
         {pregunta}
         """
     )
-    try:
-        chain = prompt | current_llm | StrOutputParser()
-        generation = chain.invoke({
-            "contexto": contexto,
-            "pregunta": state["input_query"]
-        })
-    except ResourceExhausted:
-        print("[!] QUOTA EXHAUSTED (429). Activando Reloj Táctico.")
-        registrar_penalizacion()
-        return {"generation": "⚠️ LÍMITE DE CUOTA ALCANZADO. Iniciando Protocolo de Contingencia. Cambiando a Gemini Flash por 60 segundos."}
+    chain = prompt | current_llm | StrOutputParser()
+    generation = chain.invoke({
+        "contexto": contexto,
+        "pregunta": state["input_query"]
+    })
     
     return {"generation": generation}
 
@@ -348,16 +344,11 @@ def doctrinal_review_node(state: AteneaV5State):
         Tu Pregunta Socrática (Desafiante):
         """
     )
-    try:
-        chain = prompt | current_llm | StrOutputParser()
-        generation = chain.invoke({
-            "contexto": contexto,
-            "pregunta": state["input_query"]
-        })
-    except ResourceExhausted:
-        print("[!] QUOTA EXHAUSTED (429). Activando Reloj Táctico.")
-        registrar_penalizacion()
-        return {"generation": "🏛️ REVISIÓN DOCTRINAL: Límite de cuota alcanzado. Cambiando a Flash para procesar el juicio..."}
+    chain = prompt | current_llm | StrOutputParser()
+    generation = chain.invoke({
+        "contexto": contexto,
+        "pregunta": state["input_query"]
+    })
         
     return {"generation": generation}
 
@@ -387,6 +378,14 @@ workflow_builder.add_conditional_edges(
 )
 workflow_builder.add_edge("tactical_generation", END)
 workflow_builder.add_edge("doctrinal_review", END)
+
+try:
+    print("--- [Atenea V5]: Compilando Grafo de IA... ---")
+    atenea_v5_app = workflow_builder.compile()
+    print("--- [Atenea V5]: Grafo COMPILADO y listo para combate. ---")
+except Exception as e:
+    print(f"[X] CRITICAL ERROR: Falla al compilar el grafo Atenea V5: {e}")
+    atenea_v5_app = None
 
 app = FastAPI(
     title="Sonido Líquido V5 - Atenea API",
@@ -454,6 +453,12 @@ async def trigger_test_429():
     return {"message": "Test 429 triggered", "seconds": 20}
 # --------------------------
 
+# --- [TELEMETRÍA DE MODELOS] ---
+@app.get("/atenea/telemetria", tags=["Atenea VV"])
+async def get_telemetry():
+    return ModelDiscernitor.get_telemetry()
+# -------------------------------
+
 class QueryInput(BaseModel):
     query: str
 
@@ -461,14 +466,32 @@ class QueryInput(BaseModel):
 async def invoke_atenea_v5(input: QueryInput):
     if not atenea_v5_app:
         return {"error": "El grafo de Atenea V5 no está compilado. Revisa el log de arranque."}
-    graph_input = {"input_query": input.query}
-    final_state = await atenea_v5_app.ainvoke(graph_input, config={})
-    return {
-        "pregunta": input.query,
-        "documentos_recuperados": final_state["retrieved_documents"],
-        "fue_doctrinal": final_state["is_doctrinal"],
-        "respuesta_generada": final_state["generation"]
-    }
+        
+    async def call_gemini(prompt: str, model_name: str):
+        global llm
+        try:
+            from langchain_google_vertexai import ChatVertexAI
+            from backend.core import config
+            if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
+                llm = ChatVertexAI(model_name=model_name, location=config.APP_LOCATION)
+        except Exception as e:
+            print(f"[Atenea] Muteando IA por fallo local: {e}")
+            pass
+            
+        graph_input = {"input_query": prompt}
+        final_state = await atenea_v5_app.ainvoke(graph_input, config={})
+        
+        return {
+            "pregunta": prompt,
+            "documentos_recuperados": final_state.get("retrieved_documents", []),
+            "fue_doctrinal": final_state.get("is_doctrinal", False),
+            "respuesta_generada": final_state.get("generation", ""),
+            "response": final_state.get("generation", ""),
+            "model_used": model_name
+        }
+        
+    # El ModelDiscernitor se encarga de definir el motor óptimo y atrapar 429
+    return await ModelDiscernitor.execute_with_fallback(input.query, call_gemini)
 
 @app.get("/", tags=["Estado"])
 async def get_root_status():

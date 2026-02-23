@@ -714,3 +714,17 @@ Siguiendo órdenes directas, se difirió la integración real de OAuth y se impl
 - **Limpieza Estratégica**: Remoción de código de taller en `App.vue`. El living corporativo queda impecable. Lógica confinada en la zona de chat IA.
 - **Backend Repair**: Reordenamiento de rutas para evitar 404 en API y fix de `QueryInput` reference.
 - **Estado**: Sistema Nominal V14.6.
+
+## [V7.0] 2026-02-22 - Soberanía Tecnológica (Sabueso Local V2)
+- **Hito Estratégico**: Ruptura de dependencias externas. Despliegue de Sabueso PDF basado en `pdfplumber` operando al 100% sobre CPU local.
+- **Doctrina**: Generada el acta fundamental `docs/filosofia/DOCTRINA_SOBERANA_2026.md` priorizando validación determinista vs modelos de inferencia.
+- **Intervención Backend (`pdf_parser.py`)**:
+    - Eliminado `pypdf` por fallas críticas de compresión.
+    - Estrategia *Regex Dual* implementada para CUIT invulnerable.
+    - Estrategia *Anchor* activada para ítems.
+    - Extracción probabilística de Razón Social y Domicilio destruida y reemplazada por consulta directa a AFIP vía puente RAR.
+- **Intervención Telemetría**:
+    - Odómetro de memoria persistente (`atenea_telemetry.json`). Independiente del runtime del IDE.
+    - `radar_flotante.py` confinado y funcionando como un ECG del servidor backend.
+- **Identidad**: Rama `feature/sabueso-local-plumber` lista para fusión con main.
+- **Estado Final**: Sistema V7 Soberano. Inteligencia de datos delegada a AFIP. Misión cumplida.

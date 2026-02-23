@@ -1,0 +1,87 @@
+
+****** Result for Image/Page 1 ******
+DOC. DE TRANSPORTE
+LAVIMAR S A
+AV.CNEL.LARRABURE 2460 - VILLA MARIA, CÓRDOBA
+00016-00002489
+00001-00002489
+19/02/2026
+Resp. Inscripto
+z
+O
+o
+o
+6.0
+o
+z
+o
+NOTAS:
+UN
+SURG-BAC-S1ffrgibac PA botella 1
+30-53660291-3
+litro
+Documento generado a partir de Factura Electrónica.
+VALOR DECL.:
+E.
+BULTOS:
+VINCULADO A FACTURA: 00001-00002489
+CAE: 86084487042986
+Vto. CAE: 01/03/2026
+Documento de Transporte amparado por Factura Electrónica.
+
+****** Result for Image/Page 2 ******
+DOC. DE TRANSPORTE
+LAVIMAR S A
+AV.CNEL.LARRABURE 2460 - VILLA MARIA, CÓRDOBA
+00016-00002489
+00001-00002489
+19/02/2026
+Resp. Inscripto
+o
+o
+6.0
+o
+z
+o
+NOTAS:
+UN
+SURG-BAC-S1ffrgibac PA botella 1
+30-53660291-3
+litro
+Documento generado a partir de Factura Electrónica.
+VALOR DECL.:
+E.
+BULTOS:
+VINCULADO A FACTURA: 00001-00002489
+CAE: 86084487042986
+Vto. CAE: 01/03/2026
+Documento de Transporte amparado por Factura Electrónica.
+
+****** Result for Image/Page 3 ******
+LAVIMAR S A
+DOC. DE TRANSPORTE
+30-53660291-3
+00016-00002489
+00001-00002489
+19/02/2026
+Resp. Inscripto
+o
+o
+o
+o
+o
+z
+o
+AV.CNEL.LARRABURE 2460 - VILLA MARIA, CÓRDOBA
+6.0
+NOTAS:
+UN
+PA botella I litro
+Documento generado a partir de Factura Electrónica.
+VALOR DECL.:
+E.
+BULTOS:
+VINCULADO A FACTURA: 00001-00002489
+CAE: 86084487042986
+Vto. CAE: 01/03/2026
+Documento de Transporte amparado por Factura Electrónica.

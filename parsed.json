@@ -1,0 +1,19 @@
+{
+    "cliente": {
+        "cuit": "30-53660291-3",
+        "razon_social": "LAVIMAR S A",
+        "condicion_iva": "RESPONSABLE INSCRIPTO",
+        "domicilio": "AV.CNEL.LARRABURE 2460, VILLA MARIA, CORDOBA (5900)"
+    },
+    "factura": {
+        "numero": "0000248-00000009",
+        "cae": "86084487042986",
+        "vto_cae": "01/03/2026"
+    },
+    "items": [
+        {
+            "descripcion": "Surgibac PA botella 1 litro",
+            "cantidad": 6.0
+        }
+    ]
+}

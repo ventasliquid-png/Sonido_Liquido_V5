@@ -2,7 +2,7 @@
 import re
 import io
 import logging
-import pdfplumber
+from pypdf import PdfReader
 from fastapi import UploadFile
 
 # Configure logging
@@ -11,14 +11,16 @@ logger = logging.getLogger(__name__)
 
 def extract_text_from_pdf(file_bytes: bytes) -> str:
     try:
-        with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
+        reader = PdfReader(io.BytesIO(file_bytes))
+        text = ""
+        # [V5 Optimization] Only read first page to avoid duplicates (Triplicado, etc.)
+        if len(reader.pages) > 0:
+            text = reader.pages[0].extract_text() or ""
+        else:
             text = ""
-            # [V5 Optimization] Only read first page to avoid duplicates
-            if len(pdf.pages) > 0:
-                text = pdf.pages[0].extract_text(layout=True) or ""
-            return text
+        return text
     except Exception as e:
-        logger.error(f"Error reading PDF con pdfplumber: {e}")
+        logger.error(f"Error reading PDF: {e}")
         # Re-raise to let caller handle it or return meaningful error
         raise e
 
@@ -57,57 +59,44 @@ def parse_invoice_data(text: str) -> dict:
         data["factura"]["vto_cae"] = vto_match.group(1)
 
     # 3. CLIENTE
-    # CUIT Matching (Dual Strategy - Sabueso V2)
-    ISSUER_CUIT = "30715603973"
+    # CUIT Matching
+    cuits = re.findall(r"\b(20|23|27|30|33|24)[-]?(\d{8})[-]?(\d{1})\b", text)
+    formatted_cuits = [f"{c[0]}-{c[1]}-{c[2]}" for c in cuits]
+    
+    ISSUER_CUIT = "30-71560397-3"
     client_cuit = None
     
-    regex_hyphen = r'\b(20|23|24|27|30|33)-(\d{8})-(\d)\b'
-    regex_plain  = r'\b(20|23|24|27|30|33)(\d{8})(\d)\b'
-
-    matches_hyphen = re.findall(regex_hyphen, text)
-    matches_plain = []
-    
-    if not matches_hyphen:
-        # Intento regex plano preservando boundaries originales
-        matches_plain = re.findall(regex_plain, text)
-        
-    all_matches = matches_hyphen or matches_plain
-    
-    if not all_matches:
-        # Último recurso: Eliminar espaciado (Estrategia sucia útil para PDFs compactos)
-        clean_text_cuit = text.replace(" ", "").replace("-", "")
-        all_matches = re.findall(regex_plain, clean_text_cuit)
-        
-    for m in all_matches:
-        formatted = f"{m[0]}-{m[1]}-{m[2]}"
-        plain = f"{m[0]}{m[1]}{m[2]}"
-        
-        if plain != ISSUER_CUIT:
-            client_cuit = formatted
+    # Heuristic: The client CUIT is usually the second one found (after Issuer) OR one that appears near "CUIT:" label
+    for c in formatted_cuits:
+        if c != ISSUER_CUIT:
+            client_cuit = c
             break
             
     data["cliente"]["cuit"] = client_cuit
 
-    # 3.1 Delegación Táctica a RAR
-    # En lugar de usar heurística visual falible, usamos la consulta oficial V5.
+    # Try to find Name (razon_social)
+    # Strategy A: Label "Apellido y Nombre / Razón Social:"
+    # This often catches empty space if the value is on the next line.
+    name_match = re.search(r"(?:Apellido y Nombre|Razón Social)[:\s]+(.*?)(?:Domicilio|Condición|IVA)", clean_text, re.IGNORECASE)
+    if name_match:
+         candidate = name_match.group(1).strip()
+         # If candidate is just separators or empty, ignore
+         if len(candidate) > 2 and "/" not in candidate:
+            data["cliente"]["razon_social"] = candidate
+    
+    # Strategy B: "CUIT NAME" line (Common in compressed PDFs like Lavimar)
+    # E.g. "30536602913 LAVIMAR S A"
+    # [FIX] CUIT in text might not have dashes, but client_cuit does.
     if client_cuit:
-        clean_cuit = client_cuit.replace("-", "")
-        try:
-            from backend.clientes.services.afip_bridge import AfipBridgeService
-            logger.info(f"[Sabueso PDF] Delegando extracción de datos al puente RAR para CUIT: {clean_cuit}")
-            
-            # Consultamos AFIP (A13)
-            afip_data = AfipBridgeService.get_datos_afip(clean_cuit)
-            
-            if not afip_data.get("error"):
-                logger.info("[Sabueso PDF] Datos obtenidos exitosamente de AFIP/RAR.")
-                data["cliente"]["razon_social"] = afip_data.get("razon_social", "")
-                data["cliente"]["condicion_iva"] = afip_data.get("condicion_iva", "")
-                data["cliente"]["domicilio"] = afip_data.get("domicilio_fiscal", "")
-            else:
-                logger.warning(f"[Sabueso PDF] Fallo en RAR. El cliente quedará sin nombre temporalmente. Error: {afip_data.get('error')}")
-        except Exception as e:
-            logger.error(f"[Sabueso PDF] Error crítico al conectar con el puente RAR: {e}")
+        clean_cuit_digits = client_cuit.replace("-", "")
+        # Search for CUIT digits followed by text
+        # Regex must match the specific "30536602913 LAVIMAR S A" pattern
+        line_match = re.search(rf"{clean_cuit_digits}\s+([A-Z0-9\s\.]+)(?:\n|$)", text)
+        if line_match:
+             potential_name = line_match.group(1).strip()
+             # Filter out noise
+             if len(potential_name) > 3 and "Av." not in potential_name:
+                 data["cliente"]["razon_social"] = potential_name
 
     # 4. ITEMS (Anchor Strategy)
     # The text splits lines, but "unidades" usually stays with the quantity.

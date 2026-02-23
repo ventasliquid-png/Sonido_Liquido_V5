@@ -77,20 +77,13 @@ Implementado en V6.3, el sistema permite la convivencia de dos tipos de clientes
 * **Excepción:** Cuando se ejecuta una validación ARCA exitosa, el frontend activa una bandera `forceAddressSync`.
 * **Comportamiento:** Al guardar, si esta bandera está activa, `saveCliente` incluye explícitamente el objeto `domicilios` en el payload, forzando al backend a actualizar la dirección fiscal con la "Verdad Oficial" de AFIP.
 
-## 12. MÓDULO DE INGESTA AUTOMÁTICA (PDF ENGINE)
-Incorporado en V6.4 (2026-02-19), permite la creación automática de Remitos desde Facturas de Compra/Venta PDF.
-*   **Motor:** `pypdf` + Regex Heurística (Backend Python).
-*   **Estrategia de Parseo:**
-    *   **Encabezados Compactos:** Soporta formatos donde CUIT y Razón Social comparten línea (ej: Lavimar).
-    *   **Ítems por Anclaje:** Utiliza palabras clave como "unidades" o "litros" para extraer descripciones y cantidades, ignorando saltos de línea rotos en tablas complejas.
-*   **Lógica "Confianza Ciega" (Trust Protocol):**
-    *   El sistema asume que la Factura es la verdad.
-    *   **Get-or-Create:** Si el CUIT detectado no existe en la base, se crea un Cliente nuevo automáticamente con los datos del PDF.
-    *   **Dirección:** Se asigna una dirección fiscal genérica para cumplir con el modelo de datos, permitiendo al operador corregirla post-ingesta.
-*   **Manejo de Errores:**
-    *   El backend captura trazas completas de error y las envía al frontend para que el usuario sepa exactamente por qué falló un PDF (ej: "Archivo vacío", "No es PDF de texto").
-    *   **Actualización V6.5 (Upsert Inteligente):** El sistema ahora verifica existencia por CUIT. Si el cliente existe con status bajo (<13), se actualiza a **Flag 13** (Gold Candidate) y se elimina el flag 'Virgin'. Si es nuevo, se inserta directamente en Flag 13 con estado 'PENDIENTE_AUDITORIA'.
-    *   **Corrección Regex:** Se modificó el motor para escanear el texto crudo (`raw_text`) antes de limpiar, solucionando fallos en facturas compactas (LAVIMAR).
+## 12. MÓDULO DE INGESTA AUTOMÁTICA (SABUESO V7)
+Evolucionado en V7.0 (2026-02-22) bajo la "Doctrina Soberana 2026". Abandona completamente la IA probabilística o librerías online, priorizando la certera extracción determinista en entorno estrictamente local.
+*   **Motor:** `pdfplumber` + Regex Dual Core. Independencia absoluta de la nube.
+*   **Estrategia Táctica de Análisis:**
+    *   **Extracción de CUIT (Regex Dual):** Implementación de una heurística blindada de 3 capas (Con guión, sin guión, y sucia/compactada) para asegurar la extracción del CUIT real, ignorando el CUIT de Sonido Líquido.
+    *   **Delegación a RAR (Clean Extraction):** Abandonada la extracción óptica (por OCR fallido) de Razón Social y Domicilio. Ahora, apenas el CUIT es interceptado, se dispara internamente el `AfipBridgeService` para extraer "La Verdad Oficial" (Nombre y Domicilio Fiscal) directo de los Web Services de ARCA, logrando una ficha invulnerable a fallas del render de PDF.
+    *   **Estrategia Anchor de Ítems:** Uso iterativo y seguro de delimitadores como "unidades" o "litros" para obtener cantidades exactas, purgadas del ruido del engrillado del PDF.
 
 
 ## 13. PROTOCOLO ENIGMA (BITMASK DE IDENTIDAD)
