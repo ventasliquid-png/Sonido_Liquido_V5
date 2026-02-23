@@ -119,14 +119,15 @@ async def lifespan(app: FastAPI):
     print(f"--- [Atenea V5 Backend]: Iniciando secuencia de arranque (V10.12 Modular)... ---")
 
     # --- [LAZY LOAD IA LIBRARIES] ---
-    try:
-        from pgvector.psycopg2 import register_vector
-        from langchain_community.vectorstores.pgvector import PGVector
-        from langchain_google_vertexai import VertexAIEmbeddings, ChatVertexAI
-        from langchain_core.prompts import ChatPromptTemplate
-        from langchain_core.output_parsers import StrOutputParser
-    except ImportError:
-        print("[WARN] IA Libraries not found or failed to import. Running in Lobotomy Mode.")
+    # MURO CIELO CERRADO: Aislando librerías externas
+    # try:
+    #     from pgvector.psycopg2 import register_vector
+    #     from langchain_community.vectorstores.pgvector import PGVector
+    #     from langchain_google_vertexai import VertexAIEmbeddings, ChatVertexAI
+    #     from langchain_core.prompts import ChatPromptTemplate
+    #     from langchain_core.output_parsers import StrOutputParser
+    # except ImportError:
+    print("[WARN] IA Libraries blocked by Cielo Cerrado. Running in Lobotomy Mode.")
     # --------------------------------
 
     # --- [INICIO PARCHE V10.1 (ORM)] ---
@@ -167,21 +168,22 @@ async def lifespan(app: FastAPI):
 
     # --- [Parche de Autenticación (ACTIVO)] ---
     # --- [INICIO PARCHE V10.12] ---
+    # MURO CIELO CERRADO: Bloqueo de chequeo de credenciales externas
     # La ruta ahora es relativa a la raíz (donde corre Uvicorn), no a backend/
-    creds_path_file = ".google_credentials"
-    google_creds_env = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+    # creds_path_file = ".google_credentials"
+    # google_creds_env = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
     
     # Verificar si las credenciales de Google están disponibles
-    if google_creds_env and os.path.exists(google_creds_env):
-        print(f"[OK] Verificación de arranque: GOOGLE_APPLICATION_CREDENTIALS... ENCONTRADO.")
-    elif os.path.exists(creds_path_file):
-        print(f"[OK] Verificación de arranque: GOOGLE_APPLICATION_CREDENTIALS... ENCONTRADO (archivo local).")
-        # FIX: Set the env var so the AI client can find it
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.abspath(creds_path_file)
-    else:
-        # Advertencia, no error - el servidor puede arrancar sin IA
-        print(f"[WARN] ADVERTENCIA: GOOGLE_APPLICATION_CREDENTIALS no encontrado.")
-        print(f"   El servidor arrancará sin funcionalidades de IA (Atenea).")
+    # if google_creds_env and os.path.exists(google_creds_env):
+    #     print(f"[OK] Verificación de arranque: GOOGLE_APPLICATION_CREDENTIALS... ENCONTRADO.")
+    # elif os.path.exists(creds_path_file):
+    #     print(f"[OK] Verificación de arranque: GOOGLE_APPLICATION_CREDENTIALS... ENCONTRADO (archivo local).")
+    #     # FIX: Set the env var so the AI client can find it
+    #     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.abspath(creds_path_file)
+    # else:
+    #     # Advertencia, no error - el servidor puede arrancar sin IA
+    print(f"[WARN] CIELO CERRADO ACTIVADO. GOOGLE_APPLICATION_CREDENTIALS bloqueado.")
+    print(f"   El servidor arrancará forzosamente sin funcionalidades de IA externas.")
    
     print("--- [Atenea V5 Backend]: Secuencia de arranque finalizada. ---")
     yield
@@ -485,9 +487,9 @@ async def get_root_status():
         "estado_servidor": "OK",
         "arquitectura": "Atenea V10.12 (Modular Estable)", # V10.12
         "conexion_db_url": "OK" if CONNECTION_STRING else "FALLIDA",
-        "conexion_google_creds": "OK" if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") else "FALLIDA",
-        "memoria_pgvector": "CONECTADA",
-        "cerebro_gemini": f"{config.GEMINI_MODEL_NAME} (Región: {config.APP_LOCATION})"
+        "conexion_google_creds": "DESCONECTADO_POR_MURO",
+        "memoria_pgvector": "CONECTADA" if vector_store else "FALLIDA_O_AISLADA",
+        "cerebro_gemini": "DESCONECTADO_POR_MURO"
     }
 
 @app.post("/atenea/invoke", tags=["Atenea VV"])
