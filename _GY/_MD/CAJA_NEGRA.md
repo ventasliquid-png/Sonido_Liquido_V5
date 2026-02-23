@@ -1,5 +1,5 @@
-**Última Actualización:** 21-Feb-2026 (Genoma V14 Estabilizado)
-**Sesiones Completadas:** +12 (Ciclo de Estabilización)
+**Última Actualización:** 23-Feb-2026 (Limado PDF & Genoma)
+**Sesiones Completadas:** +13 (Ciclo de Estabilización)
 **Rol:** Tablero de Control y Estado de Salud del Sistema.
 
 ---
@@ -91,3 +91,10 @@
 - **Integridad**: "Escudo de Virginidad" (Preservación de Bit 1) funcional durante infiltración ARCA.
 - **Backend**: Sincronización total de constantes bitwise en `constants.py`.
 - **Estado**: Sistema Estabilizado y Auditado.
+
+## [2026-02-23] OPERACIÓN "SABUESO SOBERANO" (LIMADO PDF)
+- **Hito**: Extracción automatizada de Triada (CUIT, CAE, Vto) y líneas de productos usando `pdfplumber` y Regex asimétrico (Punto de Venta reactivo).
+- **UX**: Doctrina de Miembro Pleno: Clientes ingestados desde PDF nacen con `flags_estado = 13` (Activo/Gold).
+- **Integridad**: Solucionado guardado desincronizado de toggle "Activo" en Frontend vs Backend.
+- **Escudo Fiscal**: "Doctrina de Preservación Fiscal" para proteger el IVA de Personas Físicas, burlando el secreto fiscal de AFIP (evitando el overriding a Consumidor Final).
+- **Estado**: Sistema Estabilizado y Auditado. Integración PDF->Padrón 100% Viva.

@@ -848,12 +848,19 @@ const handleAfipInfiltration = async (payload) => {
     
     // 3. Map Condicion IVA (Smart Mapping V14)
     const arcaIvaName = (res.condicion_iva || '').toUpperCase()
-    const ivaTarget = condicionesIva.value.find(c => {
-        const localName = (c.nombre || '').toUpperCase()
-        return localName === arcaIvaName || arcaIvaName.includes(localName) || localName.includes(arcaIvaName)
-    })
-    if (ivaTarget) {
-        form.value.condicion_iva_id = ivaTarget.id
+    
+    // [GY-FIX] Preserve existing IVA for Personas Físicas if AFIP returns Consumidor Final (tax secrecy)
+    const isPersonaFisica = form.value.cuit && form.value.cuit.match(/^(20|23|24|27)/)
+    if (isPersonaFisica && form.value.condicion_iva_id && arcaIvaName.includes('FINAL')) {
+         notificationStore.add('Se preservó la Condición IVA original (Persona Física)', 'info')
+    } else {
+        const ivaTarget = condicionesIva.value.find(c => {
+            const localName = (c.nombre || '').toUpperCase()
+            return localName === arcaIvaName || arcaIvaName.includes(localName) || localName.includes(arcaIvaName)
+        })
+        if (ivaTarget) {
+            form.value.condicion_iva_id = ivaTarget.id
+        }
     }
     
     // 4. Update Domicilio Fiscal (Smart Parser)

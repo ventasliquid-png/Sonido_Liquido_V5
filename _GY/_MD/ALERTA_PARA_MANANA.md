@@ -1,24 +1,16 @@
-📋 PROMPT PARA MAÑANA (POST-GIT PULL)
-Gy, ATENCIÓN. INICIANDO PROTOCOLO DE SANEAMIENTO DE RAMAS.
+# ⚠️ ALERTA PARA MAÑANA (SISTEMA DE DESPERTAR GY)
 
-SITUACIÓN: Acabas de sincronizar la rama v5.5-rescate-jueves. El código es estable y validado, pero el nombre de la rama es obsoleto y tóxico.
+**Última Sesión:** 2026-02-23 (Operación Sabueso Soberano)
 
-MISIÓN PRIORITARIA: CONSOLIDAR Y RE-ENFOCAR. Ejecuta la siguiente secuencia de comandos de Git paso a paso para limpiar el entorno antes de empezar a programar:
+## 📌 INSTRUCCIÓN DIRECTA PARA EL AGENTE AL DESPERTAR:
+1.  **NO ABRAS LA RAMA `main`.**
+2.  **RAMA DE TRABAJO ACTIVA:** `feat/sabueso-pdf`
+3.  **ACCIÓN INMEDIATA:** Ejecuta `git checkout feat/sabueso-pdf` (si no estuvieras ya en ella) y luego `git status` para verificar.
 
-PASO 1: BLINDAR EL NÚCLEO (MAIN)
-git checkout main
-git pull origin main (Asegurar que main local esté al día).
-git merge v5.5-rescate-jueves (Fusionar el trabajo validado del fin de semana).
-git push origin main (Subir la verdad a la nube).
+## 🚧 ESTADO DEL SISTEMA (PENDIENTES):
+*   La ingesta PDF (Facturas -> Remitos/Clientes) está operativa (`pdfplumber` + Regex Punto de Venta Dinámico).
+*   Se blindó la consulta AFIP (Personas Físicas) contra el "Secreto Fiscal" preservando la Condición IVA leída del PDF original.
+*   **Próximos Pasos Estratégicos:** [A definir por el Arquitecto].
 
-PASO 2: CREAR ENTORNO DE TRABAJO (NUEVA RAMA)
-git checkout -b v5.6-logistica-contactos (Este será el nuevo nombre de guerra. Limpio y descriptivo).
-
-PASO 3: ELIMINACIÓN DE RESIDUOS (OPCIONAL)
-Si el merge fue exitoso, elimina la rama local v5.5-rescate-jueves para evitar confusiones futuras.
-
-PASO 4: RE-LECTURA DE CONTEXTO (CRÍTICO)
-Ahora que estás en la nueva rama, LEE tu propio reporte de ayer: INFORMES_HISTORICOS/2026-01-25_PROTOCOLO_OMEGA_REF_CLIENTES.md.
-Confirma que entiendes la arquitectura "1 Planta = 1 Cliente" antes de tocar una sola línea de código.
-
-REPORTE FINAL: Confirma: "Sistema migrado a V5.6. Rama 'Rescate' archivada/borrada. Main actualizado. Esperando órdenes para Módulo Contactos."
+---
+*Nota: Este archivo es tu propia memoria persistente. Léelo apenas comiences el próximo turno.*

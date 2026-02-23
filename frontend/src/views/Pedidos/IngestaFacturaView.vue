@@ -91,7 +91,13 @@
                             <div class="bg-slate-900 p-3 rounded-lg border border-slate-700">
                                 <label class="text-[10px] uppercase text-slate-500 font-bold block mb-1">Cliente</label>
                                 <p class="font-bold text-white">{{ parsedData.cliente?.razon_social || 'Desconocido' }}</p>
-                                <p class="text-xs text-slate-400">{{ parsedData.cliente?.cuit }}</p>
+                                <div class="flex items-center gap-2 mt-1 mb-1">
+                                    <p class="text-xs text-slate-400">CUIT: {{ parsedData.cliente?.cuit }}</p>
+                                    <span v-if="parsedData.cliente?.estado_db === 'PLENO'" class="bg-emerald-500/10 text-emerald-400 px-2 rounded text-[10px] uppercase font-bold border border-emerald-500/20">Registrado OK</span>
+                                    <span v-else-if="parsedData.cliente?.estado_db === 'INCOMPLETO'" class="bg-amber-500/10 text-amber-400 px-2 rounded text-[10px] uppercase font-bold border border-amber-500/20" title="Falta Lista de Precios o Segmento">Incompleto</span>
+                                    <span v-else class="bg-rose-500/10 text-rose-400 px-2 rounded text-[10px] uppercase font-bold border border-rose-500/20">Requiere Alta</span>
+                                </div>
+                                <p class="text-xs text-slate-500 truncate" :title="parsedData.cliente?.direccion">{{ parsedData.cliente?.direccion || 'Sin domicilio extractado' }}</p>
                             </div>
                             <div class="bg-slate-900 p-3 rounded-lg border border-slate-700">
                                 <label class="text-[10px] uppercase text-slate-500 font-bold block mb-1">Datos Fiscales</label>
@@ -143,10 +149,11 @@
                         </button>
                         <button 
                             @click="confirmIngesta"
-                            class="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-lg shadow-lg shadow-blue-900/30 flex items-center gap-2"
+                            :disabled="!isGenerable"
+                            class="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:from-slate-600 disabled:to-slate-700 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-bold rounded-lg shadow-lg shadow-blue-900/30 flex items-center gap-2"
                         >
-                            <span>Generar Remito</span>
-                            <i class="fas fa-file-import"></i>
+                            <span>{{ (parsedData?.cliente?.estado_db === 'NUEVO' || parsedData?.cliente?.estado_db === 'INCOMPLETO') ? 'Completar Alta' : 'Generar Remito' }}</span>
+                            <i :class="(parsedData?.cliente?.estado_db === 'NUEVO' || parsedData?.cliente?.estado_db === 'INCOMPLETO') ? 'fas fa-user-plus' : 'fas fa-file-import'"></i>
                         </button>
                     </div>
                 </div>
@@ -157,7 +164,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import remitosService from '@/services/remitos';
 import { useNotificationStore } from '@/stores/notification';
@@ -199,7 +206,8 @@ const processFile = async (file) => {
         const formData = new FormData();
         formData.append('file', file);
         
-        const res = await remitosService.uploadInvoice(formData);
+        const axiosRes = await remitosService.uploadInvoice(formData);
+        const res = axiosRes.data; // Unwrap Axios response
         
         if (res.success) {
             parsedData.value = res.data;
@@ -223,8 +231,30 @@ const reset = () => {
     fileInput.value.value = '';
 };
 
+const isGenerable = computed(() => {
+    if (!parsedData.value) return false;
+    if (!parsedData.value.factura?.numero || parsedData.value.factura.numero === 'S/N') return false;
+    if (!parsedData.value.items || parsedData.value.items.length === 0) return false;
+    return true;
+});
+
 const confirmIngesta = async () => {
     if (!parsedData.value) return;
+
+    // PRE-FLIGHT CHECK DE DOCTRINA MIEMBRO PLENO
+    const cl = parsedData.value.cliente;
+    if (cl.estado_db === 'NUEVO' || cl.estado_db === 'INCOMPLETO') {
+        notification.add(cl.estado_db === 'NUEVO' ? 'Redirigiendo a Alta de Cliente...' : 'Cliente Incompleto. Redirigiendo a ficha...', 'info');
+        
+        let targetId = cl.estado_db === 'NUEVO' ? 'new' : (cl.id || 'new');
+        
+        router.push({ 
+            name: 'HaweClientCanvas', 
+            params: { id: targetId }, 
+            query: { cuit: cl.cuit, rs: cl.razon_social, calle: cl.direccion, iva: cl.condicion_iva, autoAfip: true } 
+        });
+        return;
+    }
 
     try {
         loading.value = true;
@@ -253,23 +283,37 @@ const confirmIngesta = async () => {
         
         if (res && res.id) {
             notification.add('Remito generado con éxito', 'success');
-            // Redirect to Logistica Splitter or Remito View
-            // For now, let's go to Logistica Splitter using the new ID if applicable,
-            // or just alert success and clear.
-            // Assuming router name 'LogisticaSplitter' exists or similar.
-            // If not, just alert.
-            // alert(`Remito Generado: ${res.numero_legal || res.id}`);
-            
-            // Go to Pedido View or Remito View? 
-            // In V5, maybe /logistica/remitos/:id
-            // Let's use a safe fallback
             reset();
-            // Optional: router.push({ name: 'RemitoDetalle', params: { id: res.id } });
         }
 
     } catch (e) {
         console.error(e);
-        notification.add('Error al generar remito: ' + (e.response?.data?.detail || e.message), 'error');
+        const detail = e.response?.data?.detail;
+        
+        if (typeof detail === 'string') {
+            if (detail.startsWith('CLIENT_NOT_FOUND')) {
+                const parts = detail.split('||');
+                const cuit = parts[1];
+                const rs = parts[2] || '';
+                const calle = parts[3] || '';
+                notification.add(`Cliente ${rs} (${cuit}) no registrado. Redirigiendo a Alta...`, 'warning');
+                // Redirigir a Alta de Cliente pasando parámetros por querystring
+                router.push({ name: 'HaweClientCanvas', params: { id: 'new' }, query: { cuit, rs, calle } });
+                return;
+            } 
+            else if (detail.startsWith('CLIENT_NOT_PLENO')) {
+                const parts = detail.split('||');
+                const clientId = parts[1];
+                const msg = parts[2];
+                notification.add(msg, 'warning');
+                // Redirigir al cliente para completar Lista de Precios / Segmento
+                router.push({ name: 'HaweClientCanvas', params: { id: clientId } });
+                return;
+            }
+            notification.add('Error al generar remito: ' + detail, 'error');
+        } else {
+            notification.add('Error al generar remito: ' + e.message, 'error');
+        }
     } finally {
         loading.value = false;
     }

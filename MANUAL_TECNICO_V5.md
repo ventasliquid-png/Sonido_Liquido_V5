@@ -70,6 +70,7 @@ Implementado en V6.3, el sistema permite la convivencia de dos tipos de clientes
     *   **Detección de Cambios:** Compara campo por campo (Razón Social, IVA, Dirección) y resalta inconsistencias en amarrillo neón.
     *   **Confirmación Requerida:** Los datos de AFIP solo se inyectan en el formulario local si el usuario presiona "Infiltrar Datos".
     *   **Domicilios Split:** El formulario de alta permite llenar solo la sección "Logística" (Derecha) y el sistema auto-completa la sección "Fiscal" (Izquierda) para evitar bloqueos de validación.
+*   **Doctrina de Preservación Fiscal:** Al validar CUITs de Personas Físicas (comenzando con 20, 23, 24, 27), AFIP oculta la condición impositiva por secreto fiscal y devuelve `null`. El sistema detecta esto y protege/preserva la Condición de IVA que el cliente ya tenía asignada (ej. si provino de un escaneo PDF de factura) para evitar rebajarlo a "Consumidor Final" por omisión.
 
 ## 11. PERSISTENCIA INTELIGENTE (ARCA SYNC)
 * **Problema:** El sistema protege los domicilios en actualizaciones (`UPDATE`) para evitar sobrescrituras accidentales.
@@ -79,18 +80,18 @@ Implementado en V6.3, el sistema permite la convivencia de dos tipos de clientes
 
 ## 12. MÓDULO DE INGESTA AUTOMÁTICA (PDF ENGINE)
 Incorporado en V6.4 (2026-02-19), permite la creación automática de Remitos desde Facturas de Compra/Venta PDF.
-*   **Motor:** `pypdf` + Regex Heurística (Backend Python).
+*   **Motor:** `pdfplumber` + `pikepdf` + Regex Asimétrica (Backend Python).
 *   **Estrategia de Parseo:**
-    *   **Encabezados Compactos:** Soporta formatos donde CUIT y Razón Social comparten línea (ej: Lavimar).
+    *   **Triada Extractiva:** Escaneo autónomo de CAE, Vencimiento CAE, y CUIT del receptor saltando restricciones nativas del PDF.
+    *   **Punto de Venta Dinámico:** Regex asimétrico detecta el Patrón de AFIP para el Punto de Venta (ej. `00001`) y el identificador de la factura, fusionándolos dinámicamente (`0001-00002134`).
     *   **Ítems por Anclaje:** Utiliza palabras clave como "unidades" o "litros" para extraer descripciones y cantidades, ignorando saltos de línea rotos en tablas complejas.
-*   **Lógica "Confianza Ciega" (Trust Protocol):**
-    *   El sistema asume que la Factura es la verdad.
-    *   **Get-or-Create:** Si el CUIT detectado no existe en la base, se crea un Cliente nuevo automáticamente con los datos del PDF.
-    *   **Dirección:** Se asigna una dirección fiscal genérica para cumplir con el modelo de datos, permitiendo al operador corregirla post-ingesta.
+*   **Doctrina de Miembro Pleno (Trust Protocol):**
+    *   El sistema asume que la Factura oficial es incontrovertible.
+    *   **Extracción de Condición Fiscal:** Captura directamente del PDF la condición fiscal explícita (ej. Responsable Inscripto) para esquivar ocultamientos web de AFIP.
+    *   **Nacimiento Gold:** Todo cliente nuevo nacido por ingesta de PDF será preasignado y creado con `flags_estado = 13` (Validado, Activo y Operativo), ahorrando el paso de cuarentena (Estado 15).
 *   **Manejo de Errores:**
     *   El backend captura trazas completas de error y las envía al frontend para que el usuario sepa exactamente por qué falló un PDF (ej: "Archivo vacío", "No es PDF de texto").
-    *   **Actualización V6.5 (Upsert Inteligente):** El sistema ahora verifica existencia por CUIT. Si el cliente existe con status bajo (<13), se actualiza a **Flag 13** (Gold Candidate) y se elimina el flag 'Virgin'. Si es nuevo, se inserta directamente en Flag 13 con estado 'PENDIENTE_AUDITORIA'.
-    *   **Corrección Regex:** Se modificó el motor para escanear el texto crudo (`raw_text`) antes de limpiar, solucionando fallos en facturas compactas (LAVIMAR).
+    *   Se implementó `importlib.reload()` dinámico en el puente SATÉLITE para inyectar arreglos del núcleo RAR en tiempo real sin reiniciar el binario.
 
 
 ## 13. PROTOCOLO ENIGMA (BITMASK DE IDENTIDAD)

@@ -21,43 +21,24 @@ class RemitosService:
         # 1. FIND CLIENT
         cliente = db.query(Cliente).filter(Cliente.cuit == payload.cliente.cuit).first()
         
+        if not cliente and payload.cliente.cuit:
+             # Try stripping dashes if any
+             clean_cuit = payload.cliente.cuit.replace("-", "")
+             cliente = db.query(Cliente).filter(Cliente.cuit == clean_cuit).first()
+             
         if not cliente:
-            # Fallback: Try to find by razon social (fuzzy) or return error
-            # For now, strict CUIT match or error
-            if payload.cliente.cuit:
-               # Try stripping dashes if any
-               clean_cuit = payload.cliente.cuit.replace("-", "")
-               cliente = db.query(Cliente).filter(Cliente.cuit == clean_cuit).first()
-            
-            if not cliente:
-                # [V5 Robustness] TRUST THE PDF.
-                # If client doesn't exist, we create it ON THE FLY to ensure ingestion succeeds.
-                # User can merge or edit later.
-                print(f"Ingestion: Creating new client from PDF: {payload.cliente.razon_social} ({payload.cliente.cuit})")
-                
-                cliente = Cliente(
-                    razon_social=payload.cliente.razon_social or "CLIENTE NUEVO (INGESTA)",
-                    cuit=payload.cliente.cuit or "00000000000",
-                    activo=True,
-                    condicion_iva_id=None, # To be filled
-                    lista_precios_id=None
-                )
-                db.add(cliente)
-                db.flush() # Get ID
-                
-                # Auto-create Default Address for Logic Consistency
-                domicilio_def = Domicilio(
-                    cliente_id=cliente.id,
-                    direccion="Dirección Fiscal (Auto-Generada)",
-                    localidad="Desconocida",
-                    provincia_id="X", # Default or Other
-                    activo=True
-                )
-                db.add(domicilio_def)
-                db.flush()
+            # DOCTRINA DE MIEMBRO PLENO: NO crear el cliente mágicamente.
+            # Devolver señal al frontend para abrir ABM con los datos de ARCA/Sabueso.
+            calle_extra = getattr(payload.cliente, 'direccion', None) or getattr(payload.cliente, 'calle', None) or ""
+            raise ValueError(f"CLIENT_NOT_FOUND||{payload.cliente.cuit}||{payload.cliente.razon_social}||{calle_extra}")
         
+        # DOCTRINA DE MIEMBRO PLENO: Check Estado 15 (Faltan datos críticos) vs Estado 13 (Pleno)
+        # Un cliente no es pleno si le falta Lista de Precios o Segmento
+        if not getattr(cliente, 'lista_precios_id', None) or not getattr(cliente, 'segmento_id', None):
+             raise ValueError(f"CLIENT_NOT_PLENO||{cliente.id}||El cliente {cliente.razon_social} existe pero está incompleto (falta Lista de Precios o Segmento). Abra el ABM para completarlo.")
+             
         # 2. RESOLVE LOGISTICS
-        domicilio = next((d for d in cliente.domicilios if d.activo), None)
+        domicilio = next((d for d in getattr(cliente, 'domicilios', []) if getattr(d, 'activo', True)), None)
         if not domicilio:
             # Fallback to first address in DB or error
             domicilio = db.query(Domicilio).first() # Dangerous but keeps flow moving

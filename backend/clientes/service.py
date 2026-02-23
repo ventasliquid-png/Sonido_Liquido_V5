@@ -28,6 +28,11 @@ class ClienteService:
             max_id = db.query(func.max(Cliente.codigo_interno)).scalar() or 0
             next_id = max_id + 1
 
+            # [V14] Genoma Sync para Creación
+            from backend.clientes.constants import ClientFlags
+            
+            flags_in = cliente_in.flags_estado if cliente_in.flags_estado is not None else 0
+            
             # Crear Cliente
             db_cliente = Cliente(
                 razon_social=cliente_in.razon_social,
@@ -35,8 +40,10 @@ class ClienteService:
                 codigo_interno=next_id, # Auto-assigned
                 condicion_iva_id=cliente_in.condicion_iva_id,
                 lista_precios_id=cliente_in.lista_precios_id,
-                activo=cliente_in.activo,
-                requiere_auditoria=cliente_in.requiere_auditoria
+                flags_estado=flags_in,
+                requiere_auditoria=cliente_in.requiere_auditoria,
+                # Sync Active flag
+                activo=bool(flags_in & ClientFlags.IS_ACTIVE) if flags_in > 0 else cliente_in.activo
             )
             db.add(db_cliente)
             db.commit()
@@ -180,13 +187,22 @@ class ClienteService:
                      # print(f"❌ [DEBUG-400] Intento de Gold sin CUIT. Flags: {new_flags}")
                      raise HTTPException(status_code=400, detail="No se puede ascender a Gold (Fiscal) sin CUIT.")
 
+        # [GY-FIX] Bidirectional Sync: If 'activo' is toggled from UI, sync it to the genoma flag
+        if 'activo' in update_data and update_data['activo'] is not None:
+            curr_flags = update_data.get('flags_estado', db_cliente.flags_estado)
+            if update_data['activo']:
+                curr_flags |= ClientFlags.IS_ACTIVE
+            else:
+                curr_flags &= ~ClientFlags.IS_ACTIVE
+            update_data['flags_estado'] = curr_flags
+
         # Handle transporte_id separately
         transporte_id = update_data.pop('transporte_id', None)
         
         for key, value in update_data.items():
             setattr(db_cliente, key, value)
         
-        # [V5-X] Sync legacy 'activo'
+        # [V5-X] Sync legacy 'activo' (retroactivo)
         if (db_cliente.flags_estado & ClientFlags.IS_ACTIVE):
             db_cliente.activo = True
         else:

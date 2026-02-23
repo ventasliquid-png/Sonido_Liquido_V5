@@ -56,6 +56,8 @@ class RemitoResponse(RemitoBase):
 class IngestionCliente(BaseModel):
     cuit: Optional[str] = None
     razon_social: Optional[str] = None
+    direccion: Optional[str] = None # RAR Integration
+    calle: Optional[str] = None
 
 class IngestionFactura(BaseModel):
     numero: Optional[str] = None
@@ -64,11 +66,12 @@ class IngestionFactura(BaseModel):
 
 class IngestionItem(BaseModel):
     codigo: Optional[str] = None
-    descripcion: str
-    cantidad: float
+    descripcion: Optional[str] = "Ítem Extraído (Autogenerado)" 
+    cantidad: float = 1.0 # Permissive default
     precio_unitario: Optional[float] = None
 
 class IngestionPayload(BaseModel):
     cliente: IngestionCliente
     factura: IngestionFactura
     items: List[IngestionItem]
+

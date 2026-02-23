@@ -639,25 +639,32 @@ const consultarAfip = async () => {
         
         // 2. Map Condicion IVA (Fuzzy Logic)
         const arcaIva = (res.condicion_iva || '').toUpperCase()
-        const ivaTarget = condicionesIva.value.find(c => {
-             const localIva = c.nombre.toUpperCase()
-             // Generic Match
-             if (localIva === arcaIva) return true
-             // Specific Matches
-             if (arcaIva.includes('MONOTRIBUTO') && localIva.includes('MONOTRIBUTO')) return true
-             if (arcaIva.includes('RESPONSABLE INSCRIPTO') && localIva.includes('RESPONSABLE INSCRIPTO')) return true
-             if (arcaIva.includes('EXENTO') && localIva.includes('EXENTO')) return true
-             if (arcaIva.includes('FINAL') && localIva.includes('FINAL')) return true
-             return false
-        })
         
-        if (ivaTarget) {
-            form.value.condicion_iva_id = ivaTarget.id
+        // [GY-FIX] Preserve existing IVA for Personas Físicas if AFIP returns Consumidor Final (tax secrecy)
+        const isPersonaFisica = form.value.cuit && form.value.cuit.match(/^(20|23|24|27)/)
+        if (isPersonaFisica && form.value.condicion_iva_id && arcaIva.includes('FINAL')) {
+             notificationStore.add('Se preservó la Condición IVA original (Persona Física)', 'info')
         } else {
-             // Default Fallbacks
-             if (arcaIva.includes('MONOTRIBUTO')) form.value.condicion_iva_id = 6
-             else if (arcaIva.includes('INSCRIPTO')) form.value.condicion_iva_id = 1
-             else form.value.condicion_iva_id = 5
+            const ivaTarget = condicionesIva.value.find(c => {
+                 const localIva = c.nombre.toUpperCase()
+                 // Generic Match
+                 if (localIva === arcaIva) return true
+                 // Specific Matches
+                 if (arcaIva.includes('MONOTRIBUTO') && localIva.includes('MONOTRIBUTO')) return true
+                 if (arcaIva.includes('RESPONSABLE INSCRIPTO') && localIva.includes('RESPONSABLE INSCRIPTO')) return true
+                 if (arcaIva.includes('EXENTO') && localIva.includes('EXENTO')) return true
+                 if (arcaIva.includes('FINAL') && localIva.includes('FINAL')) return true
+                 return false
+            })
+            
+            if (ivaTarget) {
+                form.value.condicion_iva_id = ivaTarget.id
+            } else {
+                 // Default Fallbacks
+                 if (arcaIva.includes('MONOTRIBUTO')) form.value.condicion_iva_id = 6
+                 else if (arcaIva.includes('INSCRIPTO')) form.value.condicion_iva_id = 1
+                 else form.value.condicion_iva_id = 5
+            }
         }
         
         // 3. Update Domicilio Fiscal (Smart Parser)
@@ -1198,10 +1205,41 @@ onMounted(async () => {
              checkCuitStatus(false)
         } else {
              resetForm()
+             // RAR / Sabueso Payload Intercept
+             if (route.query.autoAfip) {
+                 form.value.flags_estado = 13; // Estado 13: Pleno/Validado (Activo Gold)
+             }
+             if (route.query.cuit) form.value.cuit = route.query.cuit;
+             if (route.query.rs) form.value.razon_social = route.query.rs;
+             
+             // Map IVA String to ID
+             if (route.query.iva && condicionesIva.value?.length) {
+                 const match_iva = condicionesIva.value.find(i => 
+                     route.query.iva.toUpperCase().includes(i.nombre.toUpperCase().replace('IVA ', '')) ||
+                     i.nombre.toUpperCase().includes(route.query.iva.toUpperCase().replace('IVA ', ''))
+                 );
+                 if (match_iva) {
+                     form.value.condicion_iva_id = match_iva.id;
+                 }
+             }
+
+             if (route.query.calle) {
+                 domicilios.value.push({
+                     local_id: Date.now(),
+                     calle: route.query.calle,
+                     es_fiscal: true,
+                     activo: true
+                 });
+                 notificationStore.add('Datos dorados (RAR/AFIP) pre-cargados. Complete Segmento y Lista.', 'success', 6000);
+             }
         }
     } else {
         isNew.value = false
         await loadCliente(route.params.id)
+        if (route.query.autoAfip && form.value) {
+            form.value.flags_estado = 13; // Promover de 15 a 13 si viene de la ingesta de facturas
+            notificationStore.add('Actualizando cliente a Estado Válido (13)... Verifique datos y Guarde.', 'info', 4000);
+        }
     }
 })
 

@@ -33,8 +33,13 @@ class AfipBridgeService:
         try:
             AfipBridgeService._ensure_rar_path()
             
-            # Importación diferida para evitar errores si RAR no existe o fallan dependencias al inicio
+            # Importación diferida y recarga forzada para asegurar que tome los parches
             try:
+                import importlib
+                import rar_core
+                importlib.reload(rar_core)
+                import Conexion_Blindada
+                importlib.reload(Conexion_Blindada)
                 from Conexion_Blindada import get_datos_afip
             except ImportError as e:
                 import traceback

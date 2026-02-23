@@ -726,3 +726,23 @@ Siguiendo órdenes directas, se difirió la integración real de OAuth y se impl
     *   Mapeo inteligente de Condición IVA.
 
 **Estado:** Estabilidad V14.5 alcanzada. Ready for Omega.
+
+# [V14.6] 2026-02-23 - Operación Sabueso Soberano (Limado PDF)
+
+> **ESTADO:** DEPLOYED
+> **TIPO:** FEATURE / STABILITY / UX
+
+**Objetivo:** Estabilizar y perfeccionar el flujo de ingesta de facturas PDF, el enrutamiento automático hacia el alta de nuevos clientes y la sincronización de estados con el padrón AFIP/ARCA.
+
+**Intervenciones:**
+1.  **Backend (PDF Parser):**
+    *   **Regex Dinámico:** Implementada extracción de Punto de Venta real mediante Expresiones Regulares, eliminando el hardcodeo previo.
+2.  **Sistema de Identidad (ClientCanvas):**
+    *   **Doctrina de Miembro Pleno:** Inyección del `flags_estado = 13` (Validado, Gold, Activo) para los clientes nacidos automáticamente desde la ingesta de un PDF oficial, evitando la cuarentena redundante (Estado 15).
+3.  **Bridge ARCA (AFIP):**
+    *   **Blindaje NoneType:** Protegido `rar_core.py` del colapso ante respuestas `null` de AFIP en campos como `formaJuridica` de Personas Físicas. Implementada recarga en caliente de caché en FastAPI.
+4.  **UX / Conservación de Datos:**
+    *   **Toggle Bidireccional:** Depuración y corrección del pisado de bandera "Activo" desde el backend para garantizar el guardado asíncrono desde la tabla y el inspector.
+    *   **Doctrina de Preservación Fiscal:** El frontend ahora intercepta devoluciones por "Secreto Fiscal" de AFIP (Consumidor Final forzado) para Personas Físicas, conservando inteligentemente la Condición de IVA (Ej. Resp. Inscripto) extraída incialmente del propio comprobante PDF.
+
+**Estado:** Estabilidad V14.6 alcanzada. La ingesta es autónoma, veraz y veloz. Ready for Omega.

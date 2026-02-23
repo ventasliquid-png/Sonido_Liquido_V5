@@ -11,8 +11,7 @@ from dotenv import dotenv_values
 # --- [FIX IP FANTASMA & RUTA ABSOLUTA] ---
 # --- [FIX IP FANTASMA & RUTA ABSOLUTA] ---
 config = dotenv_values(".env")
-# DATABASE_URL_FROM_ENV_FILE = config.get("DATABASE_URL")
-DATABASE_URL_FROM_ENV_FILE = None # FORCE LOCAL FALLBACK
+DATABASE_URL_FROM_ENV_FILE = "sqlite:///c:/dev/Sonido_Liquido_V5/pilot_v5x.db" # FORZADO AL NUEVO NÚCLEO
 
 class GUID(TypeDecorator):
     """Platform-independent GUID type.
