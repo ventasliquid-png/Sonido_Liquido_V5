@@ -29,7 +29,7 @@ class PDFRemito(FPDF):
         # Adjust path dynamically based on script location
         import os
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        bg_path = os.path.join(current_dir, "base_remito_v1.png")
+        bg_path = os.path.join(current_dir, "base_remito_v1.jpg")
         
         if os.path.exists(bg_path):
             self.image(bg_path, x=0, y=0, w=210, h=297)
@@ -88,13 +88,11 @@ class PDFRemito(FPDF):
         self.set_font('Arial', '', 8)
         self.set_text_color(COLOR_R, COLOR_G, COLOR_B)
         
-        # Guardamos estado
         self.set_xy(8, 148) 
-        # Rotamos 90 grados alrededor del centro aproximado
-        # Ajuste manual: Text empieza en x,y. 
-        # Probamos colocarlo centrado.
-        with self.rotation(90, 6, 148):
-            self.text(6, 148, f"* ORIGINAL   ** DUPLICADO   *** TRIPLICADO ({self.copy_label})")
+        # Rotamos 90 grados (FPDF 1.7.2 uses rotate(angle, x, y))
+        self.rotate(90, 6, 148)
+        self.text(6, 148, f"* ORIGINAL   ** DUPLICADO   *** TRIPLICADO ({self.copy_label})")
+        self.rotate(0) # Reset rotation
 
         # 7. Símbolos Nuevos (ZapfDingbats)
         # "La estrella del original movela 2 posiciones a la derecha"

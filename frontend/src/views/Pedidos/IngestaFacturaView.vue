@@ -80,10 +80,18 @@
                                  <span class="text-xs uppercase font-bold text-blue-400 tracking-wider">Factura Detectada</span>
                                  <h2 class="text-2xl font-bold text-white">{{ parsedData.factura?.numero || 'S/N' }}</h2>
                             </div>
-                            <div class="text-right">
-                                <div class="inline-flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/20">
+                            <div class="flex flex-col items-end gap-2">
+                                <div class="inline-flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/20 text-xs">
                                     <i class="fas fa-check-circle"></i> Validado
                                 </div>
+                                <!-- PREVIEW TOGGLE -->
+                                <button 
+                                    @click="showPreview = !showPreview"
+                                    class="text-[10px] uppercase font-bold px-3 py-1 rounded-full transition-all border"
+                                    :class="showPreview ? 'bg-blue-500 text-white border-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'bg-slate-700 text-slate-400 border-slate-600 hover:text-blue-300'"
+                                >
+                                    <i class="fas fa-eye mr-1"></i> {{ showPreview ? 'Vista Datos' : 'Vista Previa' }}
+                                </button>
                             </div>
                         </div>
 
@@ -116,7 +124,7 @@
                     </div>
 
                     <!-- Items List -->
-                    <div class="flex-1 overflow-y-auto p-4 bg-slate-900/30">
+                    <div v-if="!showPreview" class="flex-1 overflow-y-auto p-4 bg-slate-900/30">
                         <table class="w-full text-left border-collapse">
                             <thead class="text-xs uppercase text-slate-500 font-bold border-b border-slate-700">
                                 <tr>
@@ -142,6 +150,15 @@
                         </table>
                     </div>
 
+                    <!-- VISUAL PREVIEW -->
+                    <div v-else class="flex-1 overflow-y-auto bg-slate-950 p-4 scrollbar-hide">
+                        <RemitoPreview 
+                            :cliente="parsedData.cliente"
+                            :factura="parsedData.factura"
+                            :items="parsedData.items"
+                        />
+                    </div>
+
                     <!-- Actions -->
                     <div class="p-4 bg-slate-800 border-t border-slate-700 flex justify-end gap-3 transition-all">
                         <button @click="reset" class="px-4 py-2 text-slate-400 hover:text-white transition">
@@ -149,12 +166,39 @@
                         </button>
                         <button 
                             @click="confirmIngesta"
-                            :disabled="!isGenerable"
+                            :disabled="!isGenerable || generatedRemito"
                             class="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:from-slate-600 disabled:to-slate-700 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-bold rounded-lg shadow-lg shadow-blue-900/30 flex items-center gap-2"
                         >
                             <span>{{ (parsedData?.cliente?.estado_db === 'NUEVO' || parsedData?.cliente?.estado_db === 'INCOMPLETO') ? 'Completar Alta' : 'Generar Remito' }}</span>
                             <i :class="(parsedData?.cliente?.estado_db === 'NUEVO' || parsedData?.cliente?.estado_db === 'INCOMPLETO') ? 'fas fa-user-plus' : 'fas fa-file-import'"></i>
                         </button>
+                    </div>
+
+                    <!-- SUCCESS STATE / DOWNLOAD -->
+                    <div v-if="generatedRemito" class="absolute inset-0 bg-slate-900/95 backdrop-blur-md flex flex-col items-center justify-center p-8 z-50 animate-in">
+                        <div class="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mb-6 border-2 border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+                            <i class="fas fa-check text-4xl text-emerald-500"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-white mb-2">¡Remito Generado!</h2>
+                        <p class="text-slate-400 text-center mb-8 max-w-sm">
+                            El documento legal ha sido generado con éxito en el servidor y está listo para descargar.
+                        </p>
+                        
+                        <div class="flex flex-col gap-3 w-full max-w-xs">
+                            <a 
+                                :href="downloadUrl" 
+                                target="_blank"
+                                class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-center flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/40 transition-all hover:scale-[1.02]"
+                            >
+                                <i class="fas fa-download"></i> Descargar PDF
+                            </a>
+                            <button 
+                                @click="reset"
+                                class="w-full py-3 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-xl font-bold transition-all"
+                            >
+                                Procesar otro PDF
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -168,6 +212,7 @@ import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import remitosService from '@/services/remitos';
 import { useNotificationStore } from '@/stores/notification';
+import RemitoPreview from './components/RemitoPreview.vue';
 
 const router = useRouter();
 const notification = useNotificationStore();
@@ -177,6 +222,17 @@ const loading = ref(false);
 const error = ref(null);
 const parsedData = ref(null);
 const fileInput = ref(null);
+const showPreview = ref(true); // Default to visual preview for 'WOW' factor
+const generatedRemito = ref(null);
+
+const downloadUrl = computed(() => {
+    if (!generatedRemito.value?.pdf_url) return '#';
+    const baseUrl = import.meta.env.VITE_API_URL || '';
+    // If pdf_url is already absolute, use it, else prepend base
+    return generatedRemito.value.pdf_url.startsWith('http') 
+        ? generatedRemito.value.pdf_url 
+        : `${baseUrl}${generatedRemito.value.pdf_url}`;
+});
 
 const triggerFileInput = () => {
     fileInput.value.click();
@@ -228,7 +284,8 @@ const processFile = async (file) => {
 
 const reset = () => {
     parsedData.value = null;
-    fileInput.value.value = '';
+    generatedRemito.value = null;
+    if (fileInput.value) fileInput.value.value = '';
 };
 
 const isGenerable = computed(() => {
@@ -283,7 +340,20 @@ const confirmIngesta = async () => {
         
         if (res && res.id) {
             notification.add('Remito generado con éxito', 'success');
-            reset();
+            generatedRemito.value = res;
+            
+            // Auto download
+            if (res.pdf_url) {
+                setTimeout(() => {
+                    const link = document.createElement('a');
+                    link.href = downloadUrl.value;
+                    link.target = '_blank';
+                    link.download = res.pdf_url.split('/').pop();
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }, 500);
+            }
         }
 
     } catch (e) {

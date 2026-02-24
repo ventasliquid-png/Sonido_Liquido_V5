@@ -48,6 +48,7 @@ class RemitoResponse(RemitoBase):
     pedido_id: int
     fecha_creacion: datetime
     items: List[RemitoItemResponse] = []
+    pdf_url: Optional[str] = None
     
     class Config:
         from_attributes = True

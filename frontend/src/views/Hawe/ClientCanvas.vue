@@ -1240,6 +1240,27 @@ onMounted(async () => {
             form.value.flags_estado = 13; // Promover de 15 a 13 si viene de la ingesta de facturas
             notificationStore.add('Actualizando cliente a Estado Válido (13)... Verifique datos y Guarde.', 'info', 4000);
         }
+
+        // Apply route params for INCOMPLETO clients
+        if (route.query.iva && form.value?.condicion_iva_id == null && condicionesIva.value?.length) {
+             const match_iva = condicionesIva.value.find(i => 
+                 route.query.iva.toUpperCase().includes(i.nombre.toUpperCase().replace('IVA ', '')) ||
+                 i.nombre.toUpperCase().includes(route.query.iva.toUpperCase().replace('IVA ', ''))
+             );
+             if (match_iva) {
+                 form.value.condicion_iva_id = match_iva.id;
+             }
+        }
+        
+        if (route.query.calle && (!domicilios.value || domicilios.value.length === 0)) {
+             domicilios.value.push({
+                 local_id: Date.now(),
+                 calle: route.query.calle,
+                 es_fiscal: true,
+                 activo: true
+             });
+             notificationStore.add('Datos dorados (RAR/AFIP) incorporados. Complete Segmento y Lista.', 'success', 6000);
+        }
     }
 })
 
@@ -1620,7 +1641,8 @@ const handleDomicilioSaved = async (domicilioData) => {
             await store.updateDomicilio(form.value.id, domicilioData.linked_delivery_id, deliveryPayload);
             
             notificationStore.add('Domicilio Fiscal y de Entrega actualizados', 'success');
-            await loadCliente(form.value.id);
+            const freshClient = await store.fetchClienteById(form.value.id);
+            if (freshClient) domicilios.value = freshClient.domicilios || [];
             activeTab.value = 'CLIENTE';
             return;
         }
@@ -1662,8 +1684,11 @@ const handleDomicilioSaved = async (domicilioData) => {
             } else {
                 savedDom = await store.createDomicilio(form.value.id, payload);
             }
-            // Sync & Reload
-            await loadCliente(form.value.id);
+            // Sync & Reload ONLY DOMICILIOS to prevent wiping unsaved changes in main form
+            const freshClient = await store.fetchClienteById(form.value.id);
+            if (freshClient && freshClient.domicilios) {
+                domicilios.value = freshClient.domicilios;
+            }
             notificationStore.add('Domicilio guardado', 'success');
         }
     } catch (e) {

@@ -9,7 +9,12 @@ from backend.productos.models import Producto
 from backend.pedidos.models import Pedido, PedidoItem
 from backend.logistica.models import EmpresaTransporte
 # [GY-FIX] Import Vinculo to avoid Registry Error during potential implicit loads
-from backend.contactos.models import Vinculo 
+import os
+
+# [V5] Base Dirs for relative referencing
+BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # .../backend/remitos/
+BACKEND_DIR = os.path.dirname(BASE_DIR)              # .../backend/
+ROOT_DIR = os.path.dirname(BACKEND_DIR)              # .../ (Raiz)
 
 class RemitosService:
     
@@ -152,4 +157,47 @@ class RemitosService:
 
         db.commit()
         db.refresh(remito)
+        
+        # 8. [V5-AUTO] Generar PDF Físico
+        try:
+            from .remito_engine import generar_remito_pdf
+            
+            # Preparar datos para el motor
+            cliente_data = {
+                "razon_social": cliente.razon_social,
+                "cuit": cliente.cuit,
+                "domicilio_fiscal": domicilio.calle if domicilio else "",
+                "condicion_iva": cliente.condicion_iva or "Consumidor Final",
+                "factura_vinculada": payload.factura.numero,
+                "cae": payload.factura.cae,
+                "vto_cae": payload.factura.vto_cae
+            }
+            
+            items_data = []
+            for item in payload.items:
+                items_data.append({
+                    "descripcion": item.descripcion,
+                    "cantidad": item.cantidad,
+                    "unidad": "UN",
+                    "codigo": item.codigo or "S/N"
+                })
+            
+            # Guardar en static/remitos
+            static_dir = os.path.join(ROOT_DIR, "static", "remitos")
+            os.makedirs(static_dir, exist_ok=True)
+            
+            filename = f"REMITO_{remito.numero_legal.replace('-', '_')}.pdf"
+            pdf_path = os.path.join(static_dir, filename)
+            
+            
+            generar_remito_pdf(cliente_data, items_data, is_preview=False, output_path=pdf_path, numero_remito=remito.numero_legal)
+            print(f"Genoma PDF: Remito físico generado en {pdf_path}")
+            
+            # 9. Set URL para retorno (Relative to SPA)
+            remito.pdf_url = f"/static-remitos/{filename}"
+            
+        except Exception as pdf_err:
+            print(f"[X] Error generando PDF automático: {pdf_err}")
+            # No bloqueamos el commit principal por un error de PDF
+            
         return remito

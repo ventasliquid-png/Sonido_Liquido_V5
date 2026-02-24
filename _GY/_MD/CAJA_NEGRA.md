@@ -1,5 +1,5 @@
-**Última Actualización:** 23-Feb-2026 (Limado PDF & Genoma)
-**Sesiones Completadas:** +13 (Ciclo de Estabilización)
+**Última Actualización:** 24-Feb-2026 (Fixing Ficha de Alta y Rendering PDF Engine)
+**Sesiones Completadas:** +14 (Ciclo de Estabilización)
 **Rol:** Tablero de Control y Estado de Salud del Sistema.
 
 ---
@@ -98,3 +98,10 @@
 - **Integridad**: Solucionado guardado desincronizado de toggle "Activo" en Frontend vs Backend.
 - **Escudo Fiscal**: "Doctrina de Preservación Fiscal" para proteger el IVA de Personas Físicas, burlando el secreto fiscal de AFIP (evitando el overriding a Consumidor Final).
 - **Estado**: Sistema Estabilizado y Auditado. Integración PDF->Padrón 100% Viva.
+
+## [2026-02-24] ESTABILIZACIÓN DE ALTA Y FIX DE MOTOR PDF
+- **Incidente 1**: Reescritura destructiva de Data en `ClientCanvas` al guardar sub-formulario de Domicilio.
+- **Solución 1**: Refactor del Frontend. Ahora `saveDomicilio` recarga únicamente el vector `domicilios` en vez de matar la Data Viva principal del Nuevo Cliente en Formulario.
+- **Incidente 2**: Falla de renderización y descarga física de Remitos PDF en el Backend V5 generados a través de Ingesta.
+- **Solución 2**: Parcheado Engine de Importaciones. Sustituido el Background PNG por un JPG liviano (112kb) debido a Timeout en FPDF2, e inyección de URL Relativa.
+- **Estado**: Sistema Estabilizado. Flujo Físico y Digital completamente Unificado.

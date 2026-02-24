@@ -404,6 +404,7 @@ static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "sta
 if os.path.exists(static_dir):
     print(f"--- [SPA] Montando archivos estáticos desde: {static_dir} ---")
     app.mount("/assets", StaticFiles(directory=os.path.join(static_dir, "assets")), name="assets")
+    app.mount("/static-remitos", StaticFiles(directory=os.path.join(static_dir, "remitos")), name="static_remitos")
     # app.mount("/static", StaticFiles(directory=static_dir), name="static") # Generic Mount if needed
 
 # Catch-all para Vue Router (HTML5 History Mode)
