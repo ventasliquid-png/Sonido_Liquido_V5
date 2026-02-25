@@ -73,6 +73,11 @@ const routes = [
                 component: () => import('../views/Pedidos/IngestaFacturaView.vue')
             },
             {
+                path: 'pedidos/remitos',
+                name: 'RemitosCreados',
+                component: () => import('../views/Pedidos/RemitosCreadosView.vue')
+            },
+            {
                 path: 'tactico-legacy',
                 name: 'TacticalLoaderLegacy',
                 component: () => import('../views/Ventas/GridLoader.vue')

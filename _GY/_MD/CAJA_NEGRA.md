@@ -1,5 +1,5 @@
-**Última Actualización:** 24-Feb-2026 (Fixing Ficha de Alta y Rendering PDF Engine)
-**Sesiones Completadas:** +14 (Ciclo de Estabilización)
+**Última Actualización: 25-Feb-2026 (Fix Coalix, Duplicate Integrity & PDF IVA Refinement)
+Sesiones Completadas: +15 (Ciclo de Estabilización)
 **Rol:** Tablero de Control y Estado de Salud del Sistema.
 
 ---

@@ -19,41 +19,132 @@ ROOT_DIR = os.path.dirname(BACKEND_DIR)              # .../ (Raiz)
 class RemitosService:
     
     @staticmethod
+    def get_all(db: Session, skip: int = 0, limit: int = 100):
+        """
+        Retorna la lista de remitos con información cruzada del cliente para la grilla.
+        """
+        remitos = db.query(models.Remito).order_by(models.Remito.fecha_creacion.desc()).offset(skip).limit(limit).all()
+        
+        resultado = []
+        for r in remitos:
+            # We need client info, Remito -> Pedido -> Cliente
+            cliente_nombre = "Desconocido"
+            cliente_cuit = "-"
+            
+            if r.pedido and r.pedido.cliente:
+                cliente_nombre = r.pedido.cliente.razon_social
+                cliente_cuit = r.pedido.cliente.cuit or "S/N"
+                
+            resultado.append({
+                "id": str(r.id),
+                "numero_legal": r.numero_legal,
+                "fecha_creacion": r.fecha_creacion,
+                "estado": r.estado,
+                "pdf_url": r.pdf_url,
+                "cliente_razon_social": cliente_nombre,
+                "cliente_cuit": cliente_cuit
+            })
+        return resultado
+
+    @staticmethod
+    def delete_remito(db: Session, remito_id: str):
+        """
+        Elimina un remito y opcionalmente limpia el PDF físico si existe.
+        """
+        remito = db.query(models.Remito).filter(models.Remito.id == remito_id).first()
+        if not remito:
+            raise ValueError("Remito no encontrado")
+            
+        # Intentar borrar PDF físico
+        if remito.pdf_url:
+            filename = remito.pdf_url.split('/')[-1]
+            pdf_path = os.path.join(ROOT_DIR, "static", "remitos", filename)
+            if os.path.exists(pdf_path):
+                try:
+                    os.remove(pdf_path)
+                except Exception as e:
+                    print(f"Sabueso Trace: No se pudo borrar el PDF físico {pdf_path}: {e}")
+                    
+        db.delete(remito)
+        db.commit()
+        return True
+
+    @staticmethod
     def create_from_ingestion(db: Session, payload: schemas.IngestionPayload):
         """
         Creates a Pedido and Remito from PDF Ingestion Data.
         """
         # 1. FIND CLIENT
-        cliente = db.query(Cliente).filter(Cliente.cuit == payload.cliente.cuit).first()
+        # [GY-FIX-V14] Robust Numeric-only CUIT cleaning
+        import re
+        c_raw = payload.cliente.cuit or ""
+        c_clean = re.sub(r'[^0-9]', '', c_raw)
         
-        if not cliente and payload.cliente.cuit:
-             # Try stripping dashes if any
-             clean_cuit = payload.cliente.cuit.replace("-", "")
-             cliente = db.query(Cliente).filter(Cliente.cuit == clean_cuit).first()
+        print(f"Sabueso Trace: Searching for CUIT {c_clean} (Original: {c_raw})")
+        
+        cliente = db.query(Cliente).filter(Cliente.cuit == c_clean).first()
+        
+        if not cliente and c_raw:
+             # Fallback to search by raw text if cleaning was too aggressive or DB is legacy
+             cliente = db.query(Cliente).filter(Cliente.cuit == c_raw).first()
              
         if not cliente:
-            # DOCTRINA DE MIEMBRO PLENO: NO crear el cliente mágicamente.
-            # Devolver señal al frontend para abrir ABM con los datos de ARCA/Sabueso.
+            print(f"Sabueso Trace: Client NOT FOUND for {c_clean}")
             calle_extra = getattr(payload.cliente, 'direccion', None) or getattr(payload.cliente, 'calle', None) or ""
             raise ValueError(f"CLIENT_NOT_FOUND||{payload.cliente.cuit}||{payload.cliente.razon_social}||{calle_extra}")
         
+        # [NEW] Check for inactive client
+        if not cliente.activo:
+             # Carlos requested a warning. We raise a specific error so frontend can ask.
+             raise ValueError(f"CLIENT_INACTIVE||{cliente.id}||{cliente.razon_social}")
+
         # DOCTRINA DE MIEMBRO PLENO: Check Estado 15 (Faltan datos críticos) vs Estado 13 (Pleno)
         # Un cliente no es pleno si le falta Lista de Precios o Segmento
         if not getattr(cliente, 'lista_precios_id', None) or not getattr(cliente, 'segmento_id', None):
              raise ValueError(f"CLIENT_NOT_PLENO||{cliente.id}||El cliente {cliente.razon_social} existe pero está incompleto (falta Lista de Precios o Segmento). Abra el ABM para completarlo.")
+
+        # [NEW] Duplicate remito check based on Mirrored Numbering
+        fact_num = payload.factura.numero or "0"
+        fact_num_pure = fact_num.split("-")[-1].strip() if "-" in fact_num else fact_num.strip()
+        fact_num_pure = re.sub(r'\D', '', fact_num_pure) or "0"
+        potential_num = f"0016-{fact_num_pure.zfill(8)}"
+        
+        existing_remito = db.query(models.Remito).filter(models.Remito.numero_legal == potential_num).first()
+        if existing_remito:
+            # Report existing remito to frontend
+            raise ValueError(f"REMITO_EXISTS||{existing_remito.id}||{potential_num}")
              
-        # 2. RESOLVE LOGISTICS
-        domicilio = next((d for d in getattr(cliente, 'domicilios', []) if getattr(d, 'activo', True)), None)
+        # 2. RESOLVE LOGISTICS (Depurated Address & Transport)
+        domicilio = None
+        if payload.domicilio_id:
+            domicilio = db.query(Domicilio).filter(Domicilio.id == payload.domicilio_id).first()
+        
         if not domicilio:
-            # Fallback to first address in DB or error
-            domicilio = db.query(Domicilio).first() # Dangerous but keeps flow moving
+            # Priority to Fiscal Address
+            domicilios_lista = getattr(cliente, 'domicilios', [])
+            domicilio = next((d for d in domicilios_lista if getattr(d, 'es_fiscal', False) and getattr(d, 'activo', True)), None)
+            if not domicilio:
+                domicilio = next((d for d in domicilios_lista if getattr(d, 'activo', True)), None)
+            
+        if not domicilio:
+            # Fallback to absolute first address in DB if client has NONE (rare)
+            domicilio = db.query(Domicilio).first()
             
         # Default Transport
-        transporte = db.query(EmpresaTransporte).first()
-        transporte_id = transporte.id if transporte else None
+        transporte_id = payload.transporte_id
+        if not transporte_id:
+            transporte = db.query(EmpresaTransporte).first()
+            transporte_id = transporte.id if transporte else None
+
+        # Depurated Reference Logic
+        ref_base = payload.referencia or "A FACTURAR"
+        factura_tag = f"Fact: {payload.factura.numero}" if payload.factura.numero else ""
+        if factura_tag and "A FACTURAR" in ref_base:
+            full_referencia = f"{ref_base} | {factura_tag}"
+        else:
+            full_referencia = ref_base
 
         # 3. CREATE PEDIDO
-        # We assume "PENDIENTE" state validation will happen in V5 logic
         nuevo_pedido = Pedido(
             cliente_id=cliente.id,
             fecha=datetime.now(),
@@ -66,25 +157,17 @@ class RemitosService:
         db.add(nuevo_pedido)
         db.flush()
 
-        # 4. RESOLVE ITEMS
-        # Find Generic Product for fallback
+        # 4. RESOLVE ITEMS (Simplified for Remito Bridge)
         prod_generico = db.query(Producto).filter(Producto.nombre.ilike("%VARIOS%")).first()
         if not prod_generico:
              prod_generico = db.query(Producto).filter(Producto.activo == True).first()
 
         pedido_items = []
         for item in payload.items:
-            # Fuzzy Logic could go here. For now, try exact match on description or clean description
-            # Since PDF Descriptions might be dirty, we rely on "VARIOS" mostly unless we have code mapping
-            
-            producto = None
-            # If we had a code, we'd search by code.
-            
-            # Simple Description Match
             producto = db.query(Producto).filter(Producto.nombre.ilike(f"%{item.descripcion}%")).first()
             
             nota_item = ""
-            prod_id = prod_generico.id
+            prod_id = prod_generico.id if prod_generico else None
             
             if producto:
                 prod_id = producto.id
@@ -102,17 +185,23 @@ class RemitosService:
             db.flush() 
             pedido_items.append(new_p_item)
 
-        # 5. CREATE REMITO
+        # 5. CREATE REMITO (With Logistics Persistence)
         vto_cae_date = None
         if payload.factura.vto_cae:
             try:
-                # Try common formats
                 vto_cae_date = datetime.strptime(payload.factura.vto_cae, "%d/%m/%Y")
             except:
                 pass
         
-        # Internal Number Logic
-        numero_legal = f"R-{str(nuevo_pedido.id).zfill(8)}"
+        # Mirrored Numbering (RAR Standard) - Force 0016-000XXXXX
+        fact_num = payload.factura.numero or "0"
+        # Extract last part if hyphenated
+        fact_num_pure = fact_num.split("-")[-1].strip() if "-" in fact_num else fact_num.strip()
+        # Ensure it's digits only for padding
+        import re
+        fact_num_pure = re.sub(r'\D', '', fact_num_pure) or "0"
+            
+        numero_legal = f"0016-{fact_num_pure.zfill(8)}"
 
         remito = models.Remito(
             pedido_id=nuevo_pedido.id,
@@ -122,7 +211,12 @@ class RemitosService:
             aprobado_para_despacho=True,
             cae=payload.factura.cae,
             vto_cae=vto_cae_date,
-            numero_legal=numero_legal
+            numero_legal=numero_legal,
+            # Logistics Fields
+            bultos=payload.bultos or 1,
+            valor_declarado=payload.valor_declarado or 0.0,
+            referencia=full_referencia,
+            observaciones=payload.observaciones
         )
         db.add(remito)
         db.flush()
@@ -136,41 +230,59 @@ class RemitosService:
             )
             db.add(r_item)
             
-        # 7. [V14 GENOMA] EVO: Desactivar Virginidad (Bit 1) del Cliente
-        # Si el cliente ya tenía movimientos, el bit ya es 0. 
-        # Si era Virgen (Bit 1 = 1), ahora deja de serlo.
+        # 7. EVO: Genoma EVO Logic
         from backend.clientes.constants import ClientFlags
-        
-        # Sincronizar Flags
-        # 1. Asegurar Existencia (Bit 0)
-        # 2. Desactivar Virginidad (Evolución Natural)
-        # Bitwise: flag &= ~2 (Apaga Bit 1)
-        # Aseguramos V14 Struct (Bit 3) si es nuevo
-        
         current_flags = cliente.flags_estado or 0
         new_flags = (current_flags | ClientFlags.EXISTENCE | ClientFlags.V14_STRUCT) & ~ClientFlags.VIRGINITY
         
         if current_flags != new_flags:
             cliente.flags_estado = new_flags
             db.add(cliente)
-            print(f"Genoma EVO: Cliente {cliente.razon_social} evolucionó a Flag {new_flags} (Activo)")
 
         db.commit()
         db.refresh(remito)
         
-        # 8. [V5-AUTO] Generar PDF Físico
+        # 8. [V5-AUTO] Generar PDF Físico (Depurated Data)
         try:
             from .remito_engine import generar_remito_pdf
             
+            # Resolve Transport Name for PDF
+            trans_obj = db.query(EmpresaTransporte).filter(EmpresaTransporte.id == transporte_id).first()
+            trans_nombre = trans_obj.nombre if trans_obj else "PROPIO"
+
+            # Resolve Condition IVA string
+            cond_iva_str = "Consumidor Final"
+            if cliente.condicion_iva:
+                cond_iva_str = getattr(cliente.condicion_iva, 'nombre', str(cliente.condicion_iva))
+
+            # Build Full Address String for PDF
+            dom_str = "S/D"
+            if domicilio:
+                parts = []
+                # Handle potential pipe format in legacy or sync data
+                calle_pure = (domicilio.calle or "").split('|')[0].strip()
+                if calle_pure: parts.append(calle_pure)
+                if domicilio.numero: parts.append(domicilio.numero)
+                if domicilio.piso: parts.append(f"Piso {domicilio.piso}")
+                if domicilio.depto: parts.append(f"Depto {domicilio.depto}")
+                if domicilio.localidad: parts.append(domicilio.localidad)
+                dom_str = ", ".join(parts)
+
             # Preparar datos para el motor
             cliente_data = {
                 "razon_social": cliente.razon_social,
                 "cuit": cliente.cuit,
-                "domicilio_fiscal": domicilio.calle if domicilio else "",
-                "condicion_iva": cliente.condicion_iva or "Consumidor Final",
+                "domicilio_fiscal": dom_str,
+                "condicion_iva": cond_iva_str,
                 "factura_vinculada": payload.factura.numero,
                 "cae": payload.factura.cae,
-                "vto_cae": payload.factura.vto_cae
+                "vto_cae": payload.factura.vto_cae,
+                # New Fields
+                "referencia": full_referencia,
+                "observaciones": payload.observaciones or "",
+                "bultos": str(remito.bultos),
+                "valor_declarado": str(remito.valor_declarado),
+                "transporte": trans_nombre
             }
             
             items_data = []
@@ -182,22 +294,32 @@ class RemitosService:
                     "codigo": item.codigo or "S/N"
                 })
             
-            # Guardar en static/remitos
             static_dir = os.path.join(ROOT_DIR, "static", "remitos")
             os.makedirs(static_dir, exist_ok=True)
             
             filename = f"REMITO_{remito.numero_legal.replace('-', '_')}.pdf"
             pdf_path = os.path.join(static_dir, filename)
             
-            
             generar_remito_pdf(cliente_data, items_data, is_preview=False, output_path=pdf_path, numero_remito=remito.numero_legal)
-            print(f"Genoma PDF: Remito físico generado en {pdf_path}")
+            
+            # 9. Set URL para retorno
+            remito.pdf_url = f"/static-remitos/{filename}"
+            db.add(remito)
+            db.commit() 
+            
+        except Exception as pdf_err:
+            print(f"[X] Error generando PDF automático depurado: {pdf_err}")
             
             # 9. Set URL para retorno (Relative to SPA)
             remito.pdf_url = f"/static-remitos/{filename}"
+            db.add(remito)
+            db.commit() # Save the URL 
+            print(f"Genoma PDF: URL {remito.pdf_url} saved to DB.")
             
         except Exception as pdf_err:
             print(f"[X] Error generando PDF automático: {pdf_err}")
+            import traceback
+            traceback.print_exc()
             # No bloqueamos el commit principal por un error de PDF
             
         return remito

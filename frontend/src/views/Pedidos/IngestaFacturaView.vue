@@ -121,6 +121,55 @@
                                  </div>
                             </div>
                         </div>
+
+                        <!-- AJUSTES DE ENTREGA (DEPURADO) -->
+                        <div class="mt-4 bg-blue-900/10 p-4 rounded-xl border border-blue-500/20">
+                            <h3 class="text-[10px] uppercase font-bold text-blue-400 mb-3 flex items-center gap-2">
+                                <i class="fas fa-truck-loading"></i> Ajustes de Entrega
+                            </h3>
+                            <div class="grid grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label class="text-[9px] uppercase text-slate-500 font-bold block mb-1">Transporte</label>
+                                    <select 
+                                        v-model="transportId"
+                                        class="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white focus:border-blue-500 outline-none"
+                                    >
+                                        <option v-for="t in transportes" :key="t.id" :value="t.id">{{ t.nombre }}</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-[9px] uppercase text-slate-500 font-bold block mb-1">Bultos</label>
+                                    <input 
+                                        type="number" 
+                                        v-model.number="bultos"
+                                        class="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white focus:border-blue-500 outline-none"
+                                        min="1"
+                                    >
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-[9px] uppercase text-slate-500 font-bold block mb-1">Valor Declarado</label>
+                                    <div class="relative">
+                                        <span class="absolute left-2 top-1.5 text-slate-500 text-xs">$</span>
+                                        <input 
+                                            type="number" 
+                                            v-model.number="valorDeclarado"
+                                            class="w-full bg-slate-900 border border-slate-700 rounded p-1.5 pl-5 text-xs text-white focus:border-blue-500 outline-none"
+                                        >
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="text-[9px] uppercase text-slate-500 font-bold block mb-1">Observaciones</label>
+                                    <input 
+                                        type="text" 
+                                        v-model="observaciones"
+                                        placeholder="Ej: Entrega x la mañana"
+                                        class="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white focus:border-blue-500 outline-none"
+                                    >
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Items List -->
@@ -156,6 +205,12 @@
                             :cliente="parsedData.cliente"
                             :factura="parsedData.factura"
                             :items="parsedData.items"
+                            :extra-data="{
+                                bultos,
+                                valorDeclarado,
+                                observaciones,
+                                transporte: selectedTransportName
+                            }"
                         />
                     </div>
 
@@ -208,9 +263,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import remitosService from '@/services/remitos';
+import logisticaService from '@/services/logistica';
 import { useNotificationStore } from '@/stores/notification';
 import RemitoPreview from './components/RemitoPreview.vue';
 
@@ -224,6 +280,30 @@ const parsedData = ref(null);
 const fileInput = ref(null);
 const showPreview = ref(true); // Default to visual preview for 'WOW' factor
 const generatedRemito = ref(null);
+
+// Depurated Logistics State
+const bultos = ref(1);
+const valorDeclarado = ref(0);
+const observaciones = ref('');
+const transportId = ref(null);
+const transportes = ref([]);
+
+const selectedTransportName = computed(() => {
+    const t = transportes.value.find(x => x.id === transportId.value);
+    return t ? t.nombre : 'PROPIO';
+});
+
+onMounted(async () => {
+    try {
+        const res = await logisticaService.getEmpresas();
+        transportes.value = res.data || [];
+        if (transportes.value.length > 0) {
+            transportId.value = transportes.value[0].id;
+        }
+    } catch (e) {
+        console.error("Error loading transportes:", e);
+    }
+});
 
 const downloadUrl = computed(() => {
     if (!generatedRemito.value?.pdf_url) return '#';
@@ -333,7 +413,12 @@ const confirmIngesta = async () => {
                 cantidad: parseFloat(item.cantidad),
                 precio_unitario: 0.0, // Assuming 0 for Remito logic
                 codigo: item.codigo || null
-            }))
+            })),
+            // Depurated Logistics
+            bultos: bultos.value,
+            valor_declarado: valorDeclarado.value,
+            observaciones: observaciones.value,
+            transporte_id: transportId.value
         };
 
         const res = await remitosService.confirmIngesta(payload);
@@ -378,6 +463,22 @@ const confirmIngesta = async () => {
                 notification.add(msg, 'warning');
                 // Redirigir al cliente para completar Lista de Precios / Segmento
                 router.push({ name: 'HaweClientCanvas', params: { id: clientId } });
+                return;
+            }
+            else if (detail.startsWith('CLIENT_INACTIVE')) {
+                const parts = detail.split('||');
+                const clientId = parts[1];
+                const rs = parts[2];
+                notification.add(`ADVERTENCIA: El cliente ${rs} está INACTIVO. Redirigiendo para activar...`, 'warning');
+                router.push({ name: 'HaweClientCanvas', params: { id: clientId } });
+                return;
+            }
+            else if (detail.startsWith('REMITO_EXISTS')) {
+                const parts = detail.split('||');
+                const remitoId = parts[1];
+                const num = parts[2];
+                notification.add(`ERROR: Ya existe el remito ${num} en el historial.`, 'error');
+                // Si queremos, podemos abrirlo directamente o quedarnos aca.
                 return;
             }
             notification.add('Error al generar remito: ' + detail, 'error');

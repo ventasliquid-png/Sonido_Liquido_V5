@@ -746,3 +746,20 @@ Siguiendo órdenes directas, se difirió la integración real de OAuth y se impl
     *   **Doctrina de Preservación Fiscal:** El frontend ahora intercepta devoluciones por "Secreto Fiscal" de AFIP (Consumidor Final forzado) para Personas Físicas, conservando inteligentemente la Condición de IVA (Ej. Resp. Inscripto) extraída incialmente del propio comprobante PDF.
 
 **Estado:** Estabilidad V14.6 alcanzada. La ingesta es autónoma, veraz y veloz. Ready for Omega.
+
+# [V14.7] 2026-02-25 - Estabilización Coalix & Integridad de Remitos
+> **ESTADO:** ESTABLE
+> **TIPO:** BUGFIX / DATA INTEGRITY / UX
+
+**Intervenciones:**
+1. **Identidad (Coalix Fix):** Se detectó que el backend ignoraba los domicilios enviados en el `PUT /clientes`. Se actualizó el esquema `ClienteUpdate` y se implementó la lógica de actualización profunda en `ClienteService.update_cliente`. Ahora las direcciones sincronizadas por ARCA persisten correctamente.
+2. **Generación de Remitos (Sabueso PDF):**
+    - **Validación de Duplicados:** Implementado pre-check en `service.py` que impide emitir remitos con un número legal (`0016-XXXXX`) ya cargado.
+    - **Friendly IVA:** Se corrigió el error donde el IVA aparecía como objeto `<CondicionIva...>` en el PDF; ahora muestra el nombre comercial.
+    - **Dirección Completa:** Se implementó concatenación dinámica (Calle, Nro, Piso, Depto, Loc) para eliminar el placeholder "A DEFINIR" en comprobantes.
+3. **UX (Ingesta):**
+    - **Alerta Inactivo:** El sistema ahora advierte y redirige si se intenta facturar a un cliente inactivo.
+    - **Hotfix Markup:** Corregida sintaxis HTML en `RemitoPreview.vue`.
+4. **Infraestructura:** Migración manual de `pilot_v5x.db` corregida tras error de ruta en script previo.
+
+**Estado:** Estabilidad V14.7 alcanzada. Ready for Omega.

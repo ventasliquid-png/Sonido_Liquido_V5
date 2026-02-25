@@ -31,20 +31,24 @@ class ClienteService:
             # [V14] Genoma Sync para Creación
             from backend.clientes.constants import ClientFlags
             
-            flags_in = cliente_in.flags_estado if cliente_in.flags_estado is not None else 0
+            # [GY-FIX] Capture all fields from schema (Segment, Vendor, etc.)
+            client_data = cliente_in.model_dump(exclude={'domicilios', 'vinculos'})
             
+            # Ensure flags are handled
+            flags_in = client_data.get('flags_estado', 0)
+            
+            # [GY-FIX] Always ensure EXISTENCE (Bit 0) if client is intended to be active
+            if cliente_in.activo:
+                flags_in |= ClientFlags.BIT_EXISTENCE if hasattr(ClientFlags, 'BIT_EXISTENCE') else 0x01
+            
+            client_data['flags_estado'] = flags_in
+            client_data['codigo_interno'] = next_id
+            
+            # [V5-X] Sync legacy 'activo' (retroactivo)
+            client_data['activo'] = bool(flags_in & ClientFlags.IS_ACTIVE) if flags_in > 0 else cliente_in.activo
+
             # Crear Cliente
-            db_cliente = Cliente(
-                razon_social=cliente_in.razon_social,
-                cuit=cliente_in.cuit,
-                codigo_interno=next_id, # Auto-assigned
-                condicion_iva_id=cliente_in.condicion_iva_id,
-                lista_precios_id=cliente_in.lista_precios_id,
-                flags_estado=flags_in,
-                requiere_auditoria=cliente_in.requiere_auditoria,
-                # Sync Active flag
-                activo=bool(flags_in & ClientFlags.IS_ACTIVE) if flags_in > 0 else cliente_in.activo
-            )
+            db_cliente = Cliente(**client_data)
             db.add(db_cliente)
             db.commit()
             db.refresh(db_cliente)
@@ -195,6 +199,35 @@ class ClienteService:
             else:
                 curr_flags &= ~ClientFlags.IS_ACTIVE
             update_data['flags_estado'] = curr_flags
+        
+        # [GY-FIX] Ensure BIT_EXISTENCE persists if active
+        if update_data.get('activo', db_cliente.activo):
+             curr_flags = update_data.get('flags_estado', db_cliente.flags_estado)
+             curr_flags |= ClientFlags.IS_ACTIVE # Same as Existence 0x01
+             update_data['flags_estado'] = curr_flags
+
+        # Handle Domicilios nested update
+        dom_in_list = update_data.pop('domicilios', None)
+        if dom_in_list is not None:
+            for dom_in in dom_in_list:
+                # This is a bit simplified: if it has an alias/calle similar to existing, update.
+                # But typically we either update ALL or we need IDs.
+                # If we don't have IDs (Afip sync), we look for a fiscal one to update or create.
+                if dom_in.get('es_fiscal'):
+                    existing_fiscal = next((d for d in db_cliente.domicilios if d.es_fiscal), None)
+                    if existing_fiscal:
+                         # Update existing fiscal
+                         for k, v in dom_in.items():
+                             if v is not None: setattr(existing_fiscal, k, v)
+                         db.add(existing_fiscal)
+                    else:
+                        # Create new fiscal
+                        new_dom = Domicilio(**dom_in, cliente_id=db_cliente.id)
+                        db.add(new_dom)
+                else:
+                    # General case: Create if not matching any?
+                    # For Afip sync specifically, we usually just want to ensure ONE fiscal address.
+                    pass
 
         # Handle transporte_id separately
         transporte_id = update_data.pop('transporte_id', None)

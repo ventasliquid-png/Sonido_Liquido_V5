@@ -61,5 +61,20 @@ export default {
 
     confirmIngesta(payload) {
         return api.post('/remitos/ingesta-process', payload);
+    },
+
+    /**
+     * Obtiene todos los remitos (para grilla global)
+     */
+    getRemitos(skip = 0, limit = 100) {
+        return api.get(`/remitos/?skip=${skip}&limit=${limit}`);
+    },
+
+    /**
+     * Elimina un remito
+     * @param {String} remitoId UUID
+     */
+    deleteRemito(remitoId) {
+        return api.delete(`/remitos/${remitoId}`);
     }
 };

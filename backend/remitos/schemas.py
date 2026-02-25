@@ -75,4 +75,11 @@ class IngestionPayload(BaseModel):
     cliente: IngestionCliente
     factura: IngestionFactura
     items: List[IngestionItem]
+    # Depurated Fields
+    referencia: Optional[str] = None
+    observaciones: Optional[str] = None
+    bultos: Optional[int] = None
+    valor_declarado: Optional[float] = None
+    transporte_id: Optional[UUID] = None
+    domicilio_id: Optional[UUID] = None
 

@@ -12,6 +12,22 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
+@router.get("/")
+def listar_remitos(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    from backend.remitos.service import RemitosService
+    return RemitosService.get_all(db, skip=skip, limit=limit)
+
+@router.delete("/{remito_id}")
+def eliminar_remito(remito_id: str, db: Session = Depends(get_db)):
+    from backend.remitos.service import RemitosService
+    try:
+        RemitosService.delete_remito(db, remito_id)
+        return {"success": True, "message": "Remito eliminado"}
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.post("/ingesta-pdf")
 async def ingest_invoice_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)):
     if not file.filename.lower().endswith('.pdf'):
@@ -39,16 +55,18 @@ async def ingest_invoice_pdf(file: UploadFile = File(...), db: Session = Depends
             
         # 3. Doctrina de Miembro Pleno (Pre-Vuelo FrontEnd)
         from backend.clientes.models import Cliente
-        cuit_raw = result.get("cuit")
-        cuit_limpio = cuit_raw.replace("-", "") if cuit_raw else None
+        import re
+        c_raw = result.get("cuit") or ""
+        c_clean = re.sub(r'[^0-9]', '', c_raw)
         
         estado_cliente = "NUEVO"
         razon_social = result.get("razon_social") or "Consumidor Final"
-
-        if cuit_limpio:
-            cliente = db.query(Cliente).filter(Cliente.cuit == cuit_limpio).first()
-            if not cliente and cuit_raw:
-                cliente = db.query(Cliente).filter(Cliente.cuit == cuit_raw).first()
+        
+        cliente = None
+        if c_clean:
+            cliente = db.query(Cliente).filter(Cliente.cuit == c_clean).first()
+            if not cliente and c_raw:
+                cliente = db.query(Cliente).filter(Cliente.cuit == c_raw).first()
 
             if cliente:
                 razon_social = cliente.razon_social
@@ -59,7 +77,7 @@ async def ingest_invoice_pdf(file: UploadFile = File(...), db: Session = Depends
         parsed_data = {
             "cliente": {
                 "id": str(cliente.id) if cliente else None,
-                "cuit": cuit_raw,
+                "cuit": c_raw,
                 "razon_social": razon_social,
                 "direccion": result.get("direccion", ""),
                 "condicion_iva": result.get("condicion_iva", ""),

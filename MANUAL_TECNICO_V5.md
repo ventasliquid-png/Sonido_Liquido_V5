@@ -112,3 +112,8 @@ El color visual de la ficha se determina por la jerarquía de bits:
 
 ### Seguridad de Datos (Escudo de Virginidad):
 Durante la validación de AFIP, el sistema preserva el estado del Bit 1. Un cliente que ya ha operado comercialmente (Bit 1 = 0) nunca volverá a recibir el estado "Virgen" por una inyección de datos externos.
+
+## 14. INTEGRIDAD DE REMITOS Y VALIDACIÓN DE DUPLICADOS (V14.7)
+- **Blindaje Legal:** El sistema genera números de remito espejados de la factura original con el prefijo `0016-`. Antes de persistir, se valida contra la base de datos para evitar colisiones.
+- **Direccionamiento Dinámico:** El motor de PDF construye el renglón de dirección mediante una secuencia de filtros que concatenan calle, altura, piso, depto y localidad, eliminando "pipes" (`|`) y placeholders.
+- **Persistencia Anidada:** El servicio de clientes (`update_cliente`) soporta ahora actualizaciones anidadas de domicilios, garantizando que la sincronización AFIP/ARCA impacte físicamente en la tabla `domicilios`.

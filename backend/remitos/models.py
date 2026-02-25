@@ -46,6 +46,13 @@ class Remito(Base):
     # Identificación Fiscal Manual (V5.X - Bridge Fallback)
     cae = Column(String, nullable=True)
     vto_cae = Column(DateTime, nullable=True)
+    pdf_url = Column(String, nullable=True)
+
+    # Datos Logísticos (Depuración V8)
+    bultos = Column(Integer, nullable=True)
+    valor_declarado = Column(Float, nullable=True)
+    referencia = Column(String, nullable=True)
+    observaciones = Column(String, nullable=True) # O Text if long, using String for consistency with numero_legal
 
     
     # Relaciones

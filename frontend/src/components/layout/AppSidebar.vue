@@ -67,6 +67,10 @@
                 <i class="fas fa-file-import w-4"></i> 
                 <span>Ingesta Facturas</span>
             </a>
+            <a href="#" @click.prevent="navigate('RemitosCreados')" class="nav-item-sub" :class="{ 'active-link-emerald': isActive('RemitosCreados') }">
+                <i class="fas fa-file-invoice-dollar w-4"></i> 
+                <span>Registros Creados</span>
+            </a>
         </div>
       </div>
 
@@ -246,7 +250,7 @@ const isGroupActive = (group) => {
     if (group === 'CLIENTES') return ['HaweHome', 'Segmentos', 'Vendedores', 'HaweClientCanvas'].includes(route.name)
     if (group === 'PRODUCTOS') return ['Productos', 'Rubros', 'ListasPrecios'].includes(route.name)
     if (group === 'MAESTROS') return ['Contactos', 'Transportes', 'CanteraExplorer', 'MasterTools'].includes(route.name)
-    if (group === 'PEDIDOS') return ['PedidoList', 'TacticalLoader'].includes(route.name)
+    if (group === 'PEDIDOS') return ['PedidoList', 'TacticalLoader', 'IngestaFactura', 'RemitosCreados', 'PedidoCanvas', 'PedidoLogistica'].includes(route.name)
     if (group === 'INTEL') return ['data-cleaner'].includes(route.name)
     return false
 }

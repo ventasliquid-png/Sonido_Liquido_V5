@@ -6,7 +6,6 @@ __pycache__/
 debug_*.py
 BUILD_PILOTO/
 .venv/
-*.db
 
 # Releases
 VERSIONES_LIBERADAS/
@@ -23,3 +22,7 @@ backend/debug_*.py
 pilot_contrabando.dat
 Sonido_Liquido_V5_Instalador_v1.0.zip
 _SISTEMA_INTERNO/
+# Binarios Pesados ignorados por Protocolo Omega
+*.exe
+*.msi
+*.db

@@ -53,8 +53,8 @@ class EmpresaTransporte(Base):
     
     # [NUEVO V6 Multiplex] Relación Polimórfica Inversa
     vinculos_rel = relationship(
-        "backend.contactos.models.Vinculo",
-        primaryjoin="and_(foreign(backend.contactos.models.Vinculo.entidad_id)==EmpresaTransporte.id, backend.contactos.models.Vinculo.entidad_tipo=='TRANSPORTE')",
+        "Vinculo",
+        primaryjoin="and_(foreign(Vinculo.entidad_id)==EmpresaTransporte.id, Vinculo.entidad_tipo=='TRANSPORTE')",
         viewonly=True,
     )
 

@@ -61,6 +61,17 @@
           </tbody>
         </table>
       </div>
+      <!-- Logistics Section (Ajustes de Entrega) -->
+      <div v-if="extraData" class="logistics-footer mt-4 border-t border-slate-200 pt-3">
+        <div class="grid-3 text-[9px] uppercase font-bold text-slate-500">
+          <div><span class="label">BULTOS:</span> <span class="value">{{ extraData.bultos }}</span></div>
+          <div><span class="label">V. DECLARADO:</span> <span class="value">${{ extraData.valorDeclarado }}</span></div>
+          <div><span class="label">TRANSP.:</span> <span class="value-small">{{ extraData.transporte }}</span></div>
+        </div>
+        <div class="mt-2">
+          <span class="label">NOTAS:</span> <span class="value-small uppercase italic">{{ extraData.observaciones || '-' }}</span>
+        </div>
+      </div>
 
       <!-- Footer Section (ARCA) -->
       <div class="footer-arca">
@@ -90,7 +101,8 @@ import { computed } from 'vue';
 const props = defineProps({
   cliente: Object,
   factura: Object,
-  items: Array
+  items: Array,
+  extraData: Object
 });
 
 const today = computed(() => {
@@ -177,8 +189,18 @@ const today = computed(() => {
 }
 
 .items-container {
-  margin-top: 40px;
-  min-height: 250px;
+  margin-top: 20px;
+  min-height: 200px;
+}
+
+.logistics-footer {
+  margin-bottom: 80px;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.5fr;
+  gap: 5px;
 }
 
 .items-table {

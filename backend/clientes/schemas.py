@@ -176,6 +176,7 @@ class ClienteUpdate(BaseModel):
     transporte_id: Optional[UUID] = None
     vendedor_id: Optional[int] = None
     estrategia_precio: Optional[str] = None
+    domicilios: Optional[List[DomicilioUpdate]] = None
 
     @field_validator('cuit')
     @classmethod
