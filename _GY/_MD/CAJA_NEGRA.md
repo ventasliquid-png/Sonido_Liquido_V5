@@ -1,5 +1,5 @@
-**Última Actualización:** 21-Feb-2026 (Genoma V14 Estabilizado)
-**Sesiones Completadas:** +12 (Ciclo de Estabilización)
+**Última Actualización:** 26-Feb-2026 (Estabilización AFIP Dual)
+**Sesiones Completadas:** +13 (Ciclo de Estabilización)
 **Rol:** Tablero de Control y Estado de Salud del Sistema.
 
 ---
@@ -91,3 +91,9 @@
 - **Integridad**: "Escudo de Virginidad" (Preservación de Bit 1) funcional durante infiltración ARCA.
 - **Backend**: Sincronización total de constantes bitwise en `constants.py`.
 - **Estado**: Sistema Estabilizado y Auditado.
+
+## [2026-02-26] ESTABILIZACIÓN AFIP DUAL & CORRECCIÓN DE IDENTIDAD
+- **Incidente**: Error "DN del Source Invalido" al validar CUITs en Padrón A13.
+- **Causa**: Discrepancia de CUIT y alias Case-Sensitive (RAR_V5 vs rar_v5) en AFIP.
+- **Resolución**: Implementada arquitectura de Identidad Dual (Personal 20... para Padrón / Empresa 30... para Fiscal).
+- **Estado**: Conexión Blindada y Validada 100%.

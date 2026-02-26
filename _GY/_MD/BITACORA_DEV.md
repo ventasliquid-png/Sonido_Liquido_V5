@@ -726,3 +726,9 @@ Siguiendo órdenes directas, se difirió la integración real de OAuth y se impl
     *   Mapeo inteligente de Condición IVA.
 
 **Estado:** Estabilidad V14.5 alcanzada. Ready for Omega.
+
+# [V14.6] 2026-02-26 - Estabilización Crítica AFIP Dual
+> **ESTADO:** ESTABLE
+> **TIPO:** HOTFIX / ARCHITECTURE
+**Intervenciones:** Refactor de `Conexion_Blindada.py` en el satélite RAR_V1 para manejo segregado de identidades personal (Padrón) y empresa (Fiscal), corrigiendo el bloqueo por Case-Sensitivity en alias.
+
