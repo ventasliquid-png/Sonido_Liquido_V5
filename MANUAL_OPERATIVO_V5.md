@@ -402,8 +402,14 @@ La interfaz ha sido ajustada para evitar errores operativos visuales:
 - **ANULADO (Rojo Profundo):** Pedido cancelado. No genera deuda y queda inactivo.
 - **PRESUPUESTO (Púrpura):** Cotización formal con IVA proyectado.
 
-### 12.3 Flujo de Anulación
-Para anular un pedido:
-1. Cambie el estado a **ANULADO** usando el selector.
-2. El sistema eliminará el IVA y cambiará el tema a Rojo.
-3. El pedido dejará de sumar en los reportes de deuda fiscal.
+### APÉNDICE S: CONSCIENCIA SITUACIONAL (PROTOCOLO 4-BYTES)
+**Implementado:** v14-B (Feb-2026)
+
+Para evitar la desincronización de código y datos al saltar entre terminales (Casa / Oficina / Notebook), el sistema utiliza un tablero de bits de estado persistente.
+
+1. **session_status.bit:** Archivo binario en `C:\dev\` que almacena el "último rastro" de consciencia del sistema.
+2. **Detección de Origen:** El sistema identifica automáticamente el host actual. Si el host detectado no coincide con el último origen guardado, el cargador `DESPERTAR_DOBLE.bat` activará una **Alerta de Desincro**, obligando a realizar un Git Pull y verificar la paridad de la base de datos (428 KB).
+3. **Carta Momento Cero:** Si el Bit 2 está activo, existe un mensaje prioritario en `CARTA_MOMENTO_CERO.md` que debe ser leído antes de iniciar cualquier operación táctica.
+
+---
+**ESTADO DE DOCTRINA:** VANGUARD (V14.6)

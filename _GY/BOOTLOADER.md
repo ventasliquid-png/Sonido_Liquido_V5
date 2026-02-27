@@ -15,10 +15,10 @@ NO MODIFICAR SIN AUTORIZACIÓN EXPLÍCITA DE CAMBIO DE VERSIÓN.
     *   ⚠️ **REPORTAR** "Fallo en Sincronización Física" al usuario.
 
 ## 3. 🎯 ESTADO DE MISIÓN (RÁPIDO)
-*   **Fase Actual:** `Estrategia & Análisis (Digesto)`
-*   **Rama Activa:** `feature/v7-logistica-split`
-*   **Objetivo Táctico:** Ingesta de `DIGESTO_SISTEMA_SL.txt` en IA y Retorno a Código.
-    *   *Nota:* Análisis Sistémico V5+RAR Completado.
+*   **Fase Actual:** `Sincronización & Logística (Sabueso)`
+*   **Rama Activa:** `feat/v5x-universal` (Soberanía Confirmada)
+*   **Objetivo Táctico:** Refactor de `pdf_parser.py` a `pdfplumber` para Sabueso PDF.
+    *   *Nota:* Paridad de DB CASA-OFICINA Verificada (428 KB).
 
 ---
 **Instrucción Final:** PROCEED TO IPL LOAD.

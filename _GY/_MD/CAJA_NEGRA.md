@@ -9,7 +9,8 @@
 | :--- | :--- | :--- |
 | **IOWA (Cloud)** | `104.197.57.226` | 🟢 ONLINE (Sync Capable) |
 | **PILOT (Local)** | `backend/pilot.db` | 🟢 ONLINE (SQLite) |
-| **GIT (Repo)** | `Sonido_Liquido_V5` | 🟢 SINCRONIZADO (Protocolo V14 Bootloader) |
+| **GIT (Repo)** | `Sonido_Liquido_V5` | 🟢 SINCRONIZADO (Protocolo 4-Bytes v14-B) |
+| **SITUATION (Bit)** | `session_status.bit` | 🟢 ACTIVO (Status: 69 - CASA) |
 
 ## 🛡️ CREDENCIALES & ACCESOS
 *   **DB User:** `postgres` / `SonidoV5_2025` (Legacy/Ref)
@@ -92,8 +93,8 @@
 - **Backend**: Sincronización total de constantes bitwise en `constants.py`.
 - **Estado**: Sistema Estabilizado y Auditado.
 
-## [2026-02-26] ESTABILIZACIÓN AFIP DUAL & CORRECCIÓN DE IDENTIDAD
-- **Incidente**: Error "DN del Source Invalido" al validar CUITs en Padrón A13.
-- **Causa**: Discrepancia de CUIT y alias Case-Sensitive (RAR_V5 vs rar_v5) en AFIP.
-- **Resolución**: Implementada arquitectura de Identidad Dual (Personal 20... para Padrón / Empresa 30... para Fiscal).
-- **Estado**: Conexión Blindada y Validada 100%.
+## [2026-02-26] SINCRONIZACIÓN CA-OF & 4-BYTES
+- **Hito**: Resolución de desincronización crítica de ramas entre Casa y Oficina.
+- **Doctrina**: Implementado Protocolo de Estados de 4-Bytes con detección de host (`manager_status.py`).
+- **Integridad**: Verificada Paridad de DB CASA-OFICINA (428 KB) y activada Carta Momento Cero.
+- **Estado**: Sistema Multiplex V14-B Nominal.

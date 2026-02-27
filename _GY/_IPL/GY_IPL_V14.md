@@ -56,10 +56,14 @@ El `.bat` de inicio ya ha ejecutado `git pull`. No preguntes.
 
 ---
 
-### **DIRECTIVA 2 (PROTOCOLO OMEGA - CIERRE):**
+### **DIRECTIVA 2 (PROTOCOLO OMEGA - CIERRE SITUACIONAL):**
 Solo ejecutar ante la orden explícita de "INICIAR CIERRE".
 
-1.  **ACTUALIZACIÓN DE BOOTLOADER (CRÍTICO):**
+1.  **AUTOMATIZACIÓN 4-BYTES (CRÍTICO):**
+    *   Ejecutar `python scripts/protocolo_omega.py`.
+    *   Este comando audita la sesión, identifica el host (CA/OF/NB) y escribe el bit de origen y estado en `C:\dev\session_status.bit`.
+
+2.  **ACTUALIZACIÓN DE BOOTLOADER:**
     *   Editar `_GY/BOOTLOADER.md`.
     *   **ESTADO:** Escribir el estado final de hoy.
     *   **MISIÓN:** Definir el objetivo táctico para MAÑANA (para evitar amnesia).
@@ -75,11 +79,18 @@ Solo ejecutar ante la orden explícita de "INICIAR CIERRE".
 
 ---
 
-### **DIRECTIVA 3 (ESTANDARIZACIÓN Y DB):**
-**CADA VEZ** que se modifique o cree una tabla en `backend/*/models.py`:
-1.  **LEY DE LOS 4 BYTES:** Todo módulo/tabla debe tener obligatoriamente una columna de banderas de 4 bytes (ej: `flags_estado`, `universal_flags`, etc.) para gestión de estados futuros sin migraciones destructivas.
-2.  **CONSULTAR:** Revisar `_GY/_MD/LECCIONES_APRENDIDAS.md` (Regla Base de Datos).
-3.  **REGISTRAR:** SQL manual en `_GY/_MD/PENDING_SCHEMA_CHANGES.sql`.
+### **DIRECTIVA 3 (CONSCIENCIA SITUACIONAL - BITS DE ESTADO):**
+La sincronización entre terminales (Casa/Oficina/Notebook) se rige por el archivo `C:\dev\session_status.bit`.
+
+| Bit | Valor | Estado | Notas |
+|---|---|---|---|
+| **0** | 1 | SOBERANO | Rama Universal estable. Sin desvíos. |
+| **1** | 2 | TRINCHERA | Rama auxiliar activa. Riesgo de desincronía. |
+| **2** | 4 | CARTA | Requiere leer `CARTA_MOMENTO_CERO.md`. |
+| **3** | 8 | CRÍTICO | Fallo mayor bloqueante. |
+| **5** | 32 | ORIGEN_OF | Última sesión en Oficina. |
+| **6** | 64 | ORIGEN_CA | Última sesión en Casa. |
+| **7** | 128 | ORIGEN_NB | Última sesión en Notebook. |
 
 ### **DIRECTIVA 4 (IDIOMA):**
 > [!IMPORTANT]

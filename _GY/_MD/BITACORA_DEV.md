@@ -732,3 +732,21 @@ Siguiendo órdenes directas, se difirió la integración real de OAuth y se impl
 > **TIPO:** HOTFIX / ARCHITECTURE
 **Intervenciones:** Refactor de `Conexion_Blindada.py` en el satélite RAR_V1 para manejo segregado de identidades personal (Padrón) y empresa (Fiscal), corrigiendo el bloqueo por Case-Sensitivity en alias.
 
+## SESIÓN 785: SINCRONIZACIÓN CASA-OFICINA & PROTOCOLO 4-BYTES
+**Fecha:** 2026-02-26 / 27
+**Objetivo:** Unificar terminales CASA-OFICINA y establecer doctrina de Consciencia Situacional.
+
+### Hito 1: Sincronización Forense
+*   **Diagnóstico:** Se identificó dispersión de trabajo entre `feat/v5x-universal` (OFICINA) y `feature/sabueso-local-plumber` (CASA).
+*   **Resolución:** Forzado de checkout a `feat/v5x-universal` en CASA. Paridad de DB verificada (428 KB).
+
+### Hito 2: Protocolo de Consciencia Situacional (4-Bytes)
+*   **Infraestructura:** Creación de `manager_status.py` y `session_status.bit` para persistencia de estados inter-terminales.
+*   **Geolocalización Lógica:** Implementada detección automática de host (CA, OF, NB) para alertar sobre desincronizaciones de Git/DB al cambiar de terminal.
+*   **Comunicación:** Estructura `CARTA_MOMENTO_CERO.md` activa para instrucciones críticas de "Despertar".
+
+### Hito 3: Automatización de Arranque Dual
+*   **Cargador:** Evolución de `DESPERTAR_DOBLE.bat` a v2 con HUD de telemetría y HUD de origen.
+
+**Estado:** SISTEMA NOMINAL MULTIPLEX v14-B. LISTO PARA SABUESO PDF.
+
