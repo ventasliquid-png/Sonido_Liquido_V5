@@ -142,6 +142,12 @@
                             Descartar
                         </button>
                         <button 
+                            @click="showPreview = true"
+                            class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-blue-300 rounded-lg flex items-center gap-2"
+                        >
+                            <i class="fas fa-eye"></i> Vista Previa
+                        </button>
+                        <button 
                             @click="confirmIngesta"
                             class="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-lg shadow-lg shadow-blue-900/30 flex items-center gap-2"
                         >
@@ -153,14 +159,50 @@
             </div>
         </div>
     </div>
+
+    <!-- PREVIEW MODAL -->
+    <RemitoTemplate 
+        v-if="showPreview && parsedData" 
+        :propRemito="mockRemito"
+        :pedido="mockPedido"
+        :pedidoItems="mockPedidoItems"
+        @close="showPreview = false"
+    />
+
+    <!-- CLIENT ABM MODAL (SABUESO INTERVENTION) -->
+    <Teleport to="body">
+        <div v-if="showClientAbm" class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 lg:p-12">
+            <div class="bg-slate-900 border-2 border-cyan-500/50 rounded-2xl w-full max-w-5xl h-full max-h-[90vh] flex flex-col overflow-hidden shadow-[0_0_50px_rgba(6,182,212,0.2)]">
+                <div class="bg-cyan-900/30 border-b border-cyan-500/30 p-4 flex justify-between items-center shrink-0">
+                    <h3 class="text-cyan-400 font-bold uppercase tracking-wider flex items-center gap-2">
+                        <i class="fas fa-user-shield"></i> Intervención Requerida: Ficha de Cliente
+                    </h3>
+                    <button @click="closeClientAbm" class="text-cyan-400/50 hover:text-white transition">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <!-- V5 HUD Border Wrapper for Inspector -->
+                <div class="flex-1 overflow-hidden relative p-4">
+                     <ClienteInspector 
+                         :isNew="true" 
+                         :modelValue="null"
+                         @close="closeClientAbm"
+                         @save="onClientSaved"
+                     />
+                </div>
+            </div>
+        </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import remitosService from '@/services/remitos';
 import { useNotificationStore } from '@/stores/notification';
+import RemitoTemplate from '../Logistica/components/RemitoTemplate.vue';
+import ClienteInspector from '../Hawe/components/ClienteInspector.vue';
 
 const router = useRouter();
 const notification = useNotificationStore();
@@ -170,6 +212,48 @@ const loading = ref(false);
 const error = ref(null);
 const parsedData = ref(null);
 const fileInput = ref(null);
+const showPreview = ref(false);
+
+const showClientAbm = ref(false);
+
+// MOCKS for Preview
+const mockRemito = computed(() => {
+    if (!parsedData.value) return null;
+    return {
+        numero_legal: parsedData.value.factura.numero,
+        fecha_salida: new Date(),
+        estado: 'BORRADOR',
+        cae: parsedData.value.factura.cae,
+        vto_cae: parsedData.value.factura.vto_cae,
+        items: parsedData.value.items.map((it, idx) => ({
+            id: idx,
+            cantidad: it.cantidad,
+            pedido_item_id: idx
+        }))
+    };
+});
+
+const mockPedido = computed(() => {
+    if (!parsedData.value) return null;
+    return {
+        id: 'PROV',
+        cliente: {
+            razon_social: parsedData.value.cliente.razon_social,
+            cuit: parsedData.value.cliente.cuit
+        }
+    };
+});
+
+const mockPedidoItems = computed(() => {
+    if (!parsedData.value) return [];
+    return parsedData.value.items.map((it, idx) => ({
+        id: idx,
+        producto: {
+            nombre: it.descripcion,
+            sku: it.codigo || '---'
+        }
+    }));
+});
 
 const triggerFileInput = () => {
     fileInput.value.click();
@@ -201,11 +285,11 @@ const processFile = async (file) => {
         
         const res = await remitosService.uploadInvoice(formData);
         
-        if (res.success) {
-            parsedData.value = res.data;
+        if (res.data && res.data.success) {
+            parsedData.value = res.data.data;
             notification.add('Factura analizada con éxito', 'success');
         } else {
-            const errorMsg = res.error || 'El servidor no pudo interpretar el archivo.';
+            const errorMsg = res.data?.error || 'El servidor no pudo interpretar el archivo.';
             throw new Error(errorMsg);
         }
 
@@ -223,8 +307,52 @@ const reset = () => {
     fileInput.value.value = '';
 };
 
+const checkClientStatus = () => {
+    if (!parsedData.value) return false;
+    
+    const status = parsedData.value.cliente.db_status;
+    const flags = parsedData.value.cliente.flags_estado || 0;
+    
+    // Level 13 = Existence (1) | GOLD_ARCA (4) | V14_STRUCT (8)
+    const BIT_EXISTENCE = 1;
+    const BIT_GOLD_ARCA = 4;
+    
+    // Si no existe, o si no cumple con ser "Blanco" básico (1 y 4)
+    if (status === 'NO_EXISTE' || !(flags & BIT_EXISTENCE) || !(flags & BIT_GOLD_ARCA)) {
+        return false;
+    }
+    
+    return true;
+};
+
+const closeClientAbm = () => {
+    showClientAbm.value = false;
+};
+
+const onClientSaved = (savedClient) => {
+    showClientAbm.value = false;
+    notification.add('Cliente consistido. Procediendo a generar remito...', 'success');
+    
+    // Update local data with the new verified status
+    if (parsedData.value && savedClient) {
+        parsedData.value.cliente.db_status = 'EXISTE';
+        parsedData.value.cliente.flags_estado = savedClient.flags_estado;
+        parsedData.value.cliente.razon_social = savedClient.razon_social;
+    }
+    
+    // Auto-resume formulation  
+    confirmIngesta();
+};
+
 const confirmIngesta = async () => {
     if (!parsedData.value) return;
+
+    // [V5] Interception Check (ABM Workflow)
+    if (!checkClientStatus()) {
+        notification.add('El cliente no existe o requiere consistencia AFIP. Complete la ficha técnica.', 'warning');
+        showClientAbm.value = true;
+        return;
+    }
 
     try {
         loading.value = true;
@@ -251,7 +379,7 @@ const confirmIngesta = async () => {
 
         const res = await remitosService.confirmIngesta(payload);
         
-        if (res && res.id) {
+        if (res.data && res.data.id) {
             notification.add('Remito generado con éxito', 'success');
             // Redirect to Logistica Splitter or Remito View
             // For now, let's go to Logistica Splitter using the new ID if applicable,

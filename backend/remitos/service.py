@@ -18,56 +18,66 @@ class RemitosService:
         """
         Creates a Pedido and Remito from PDF Ingestion Data.
         """
+        # [V5] Anti-Zombi: Verify if Remito already exists for this Invoice
+        original_invoice = payload.factura.numero or ""
+        numero_legal = ""
+        if "-" in original_invoice:
+            inv_body = original_invoice.split("-")[-1]
+            numero_legal = f"0016-{inv_body}"
+        
+        if numero_legal:
+            existing_remito = db.query(models.Remito).filter(models.Remito.numero_legal == numero_legal).first()
+            if existing_remito:
+                raise ValueError(f"Ya existe el Remito {numero_legal} asociado a esta Factura.")
+            
         # 1. FIND CLIENT
         cliente = db.query(Cliente).filter(Cliente.cuit == payload.cliente.cuit).first()
         
         if not cliente:
-            # Fallback: Try to find by razon social (fuzzy) or return error
-            # For now, strict CUIT match or error
-            if payload.cliente.cuit:
-               # Try stripping dashes if any
-               clean_cuit = payload.cliente.cuit.replace("-", "")
-               cliente = db.query(Cliente).filter(Cliente.cuit == clean_cuit).first()
+            # [V5 Robustness] TRUST THE PDF.
+            # If client doesn't exist, we create it ON THE FLY to ensure ingestion succeeds.
+            # User can merge or edit later.
+            print(f"Ingestion: Creating new client from PDF: {payload.cliente.razon_social} ({payload.cliente.cuit})")
             
-            if not cliente:
-                # [V5 Robustness] TRUST THE PDF.
-                # If client doesn't exist, we create it ON THE FLY to ensure ingestion succeeds.
-                # User can merge or edit later.
-                print(f"Ingestion: Creating new client from PDF: {payload.cliente.razon_social} ({payload.cliente.cuit})")
-                
-                cliente = Cliente(
-                    razon_social=payload.cliente.razon_social or "CLIENTE NUEVO (INGESTA)",
-                    cuit=payload.cliente.cuit or "00000000000",
-                    activo=True,
-                    condicion_iva_id=None, # To be filled
-                    lista_precios_id=None
-                )
-                db.add(cliente)
-                db.flush() # Get ID
-                
-                # Auto-create Default Address for Logic Consistency
-                domicilio_def = Domicilio(
-                    cliente_id=cliente.id,
-                    direccion="Dirección Fiscal (Auto-Generada)",
-                    localidad="Desconocida",
-                    provincia_id="X", # Default or Other
-                    activo=True
-                )
-                db.add(domicilio_def)
-                db.flush()
+            # [V14 GENOMA] Target Level 13: EXISTENCE (1) | GOLD_ARCA (4) | V14_STRUCT (8)
+            from backend.clientes.constants import ClientFlags
+            gold_flags = ClientFlags.EXISTENCE | ClientFlags.GOLD_ARCA | ClientFlags.V14_STRUCT
+            
+            cliente = Cliente(
+                razon_social=payload.cliente.razon_social or "CLIENTE NUEVO (INGESTA)",
+                cuit=payload.cliente.cuit or "00000000000",
+                activo=True,
+                flags_estado=gold_flags,
+                estado_arca='PENDIENTE_AUDITORIA',
+                condicion_iva_id=None,
+                lista_precios_id=None
+            )
+            db.add(cliente)
+            db.flush() # Get ID
+            
+            # Auto-create Default Address for Logic Consistency
+            domicilio_def = Domicilio(
+                cliente_id=cliente.id,
+                calle=payload.cliente.domicilio or "Dirección Fiscal (Auto-Generada)",
+                localidad="Desconocida",
+                provincia_id="X", 
+                es_fiscal=True,
+                activo=True
+            )
+            db.add(domicilio_def)
+            db.flush()
         
         # 2. RESOLVE LOGISTICS
         domicilio = next((d for d in cliente.domicilios if d.activo), None)
         if not domicilio:
-            # Fallback to first address in DB or error
-            domicilio = db.query(Domicilio).first() # Dangerous but keeps flow moving
+            # Fallback to first address in DB
+            domicilio = db.query(Domicilio).filter(Domicilio.cliente_id == cliente.id).first()
             
         # Default Transport
         transporte = db.query(EmpresaTransporte).first()
         transporte_id = transporte.id if transporte else None
 
         # 3. CREATE PEDIDO
-        # We assume "PENDIENTE" state validation will happen in V5 logic
         nuevo_pedido = Pedido(
             cliente_id=cliente.id,
             fecha=datetime.now(),
@@ -81,29 +91,21 @@ class RemitosService:
         db.flush()
 
         # 4. RESOLVE ITEMS
-        # Find Generic Product for fallback
         prod_generico = db.query(Producto).filter(Producto.nombre.ilike("%VARIOS%")).first()
         if not prod_generico:
              prod_generico = db.query(Producto).filter(Producto.activo == True).first()
 
         pedido_items = []
         for item in payload.items:
-            # Fuzzy Logic could go here. For now, try exact match on description or clean description
-            # Since PDF Descriptions might be dirty, we rely on "VARIOS" mostly unless we have code mapping
-            
-            producto = None
-            # If we had a code, we'd search by code.
-            
-            # Simple Description Match
             producto = db.query(Producto).filter(Producto.nombre.ilike(f"%{item.descripcion}%")).first()
             
             nota_item = ""
-            prod_id = prod_generico.id
+            prod_id = prod_generico.id if prod_generico else None
             
             if producto:
                 prod_id = producto.id
             else:
-                nota_item = item.descripcion # Store original description
+                nota_item = item.descripcion 
                 
             new_p_item = PedidoItem(
                 pedido_id=nuevo_pedido.id,
@@ -120,13 +122,17 @@ class RemitosService:
         vto_cae_date = None
         if payload.factura.vto_cae:
             try:
-                # Try common formats
                 vto_cae_date = datetime.strptime(payload.factura.vto_cae, "%d/%m/%Y")
             except:
                 pass
         
-        # Internal Number Logic
-        numero_legal = f"R-{str(nuevo_pedido.id).zfill(8)}"
+        # [V5] Mirror Numbering: Invoice XXXX-YYYYYYYY -> Remito 0016-YYYYYYYY
+        # (Already calculated at the start of the function for anti-duplication)
+        if not numero_legal:
+            numero_legal = f"0016-{str(nuevo_pedido.id).zfill(8)}"
+
+        if not domicilio:
+            domicilio = db.query(Domicilio).first()
 
         remito = models.Remito(
             pedido_id=nuevo_pedido.id,
@@ -150,24 +156,24 @@ class RemitosService:
             )
             db.add(r_item)
             
-        # 7. [V14 GENOMA] EVO: Desactivar Virginidad (Bit 1) del Cliente
-        # Si el cliente ya tenía movimientos, el bit ya es 0. 
-        # Si era Virgen (Bit 1 = 1), ahora deja de serlo.
+        # 7. [V14 GENOMA] EVO: Upgrade to Level 13
         from backend.clientes.constants import ClientFlags
         
-        # Sincronizar Flags
-        # 1. Asegurar Existencia (Bit 0)
-        # 2. Desactivar Virginidad (Evolución Natural)
-        # Bitwise: flag &= ~2 (Apaga Bit 1)
-        # Aseguramos V14 Struct (Bit 3) si es nuevo
+        current_flags = getattr(cliente, 'flags_estado', 0) or 0
+        # Build Level 13: Existence (1) | GOLD_ARCA (4) | V14_STRUCT (8)
+        target_flags = ClientFlags.EXISTENCE | ClientFlags.GOLD_ARCA | ClientFlags.V14_STRUCT
         
-        current_flags = cliente.flags_estado or 0
-        new_flags = (current_flags | ClientFlags.EXISTENCE | ClientFlags.V14_STRUCT) & ~ClientFlags.VIRGINITY
+        # [V5] ABM Mutation (15 -> 13): 
+        # Si el cliente era nivel 15 (target_flags + VIRGINITY), al emitir el primer remito
+        # pierde la virginidad y baja/muta a 13 automáticamente.
+        # Merge target flags into current, but ALWAYS remove VIRGINITY (2)
+        new_flags = (current_flags | target_flags) & ~ClientFlags.VIRGINITY
         
         if current_flags != new_flags:
             cliente.flags_estado = new_flags
+            cliente.estado_arca = 'PENDIENTE_AUDITORIA' # Re-audit if flags changed o se rompio el blanco
             db.add(cliente)
-            print(f"Genoma EVO: Cliente {cliente.razon_social} evolucionó a Flag {new_flags} (Activo)")
+            print(f"Genoma EVO: Cliente {cliente.razon_social} evolucionó de Flag {current_flags} a Flag {new_flags} (Nivel 13)")
 
         db.commit()
         db.refresh(remito)

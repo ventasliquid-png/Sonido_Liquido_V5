@@ -750,3 +750,21 @@ Siguiendo órdenes directas, se difirió la integración real de OAuth y se impl
 
 **Estado:** SISTEMA NOMINAL MULTIPLEX v14-B. LISTO PARA SABUESO PDF.
 
+## SESIÓN 786: INTEGRACIÓN SABUESO PDF & PARIDAD RAR
+**Fecha:** 2026-02-27
+**Objetivo:** Portar el motor de facturación "Sabueso ARCA" desde el satélite RAR al núcleo V5 garantizando la exactitud funcional y preservación del entorno.
+
+### Hito 1: Parsing y Regex Resiliente
+*   **Diagnóstico:** El formato AFIP producía corrupciones al extraer "Razón Social" y "0001-XXXX" donde existían interrupciones/delimitadores inesperados.
+*   **Resolución:** Integración de "Positive Lookaheads" preventivos en `pdf_parser.py` para asegurar aislar datos legalísimos.
+
+### Hito 2: Blindaje de Ingesta (Frontend)
+*   **UI:** Agregado bloqueo interactivo en `IngestaFacturaView.vue`. Si el CUIT decodificado devuelve un status carente de 'Blanco' (DbStatus: NO_EXISTE), el flujo de remitos frena.
+*   **Corrección Asistida:** Lanzamiento de componente `ClienteInspector.vue` obligando al data-entry a consolidación (domicilio + AFIP) permitiendo reanudar o corregir.
+
+### Hito 3: Mutación de Virginidad (Backend)
+*   **Doctrina:** Incorporado el bloque ORM en la capa de servicios donde el remito recién emparejado somete al cliente a auditoria bit a bit.
+*   **Resultado:** Nivel de virginidad comercial extirpado; Level 15 (Virgin) es purgado automáticamente a Nivel 13 (Activo Consistido) persistiendo DB clavada.
+
+**Estado:** SISTEMA V5-B Y MÓDULO SABUESO NOMINAL Y SINCRONIZADO.
+

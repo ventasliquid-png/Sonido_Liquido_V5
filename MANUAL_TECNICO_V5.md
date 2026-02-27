@@ -91,6 +91,8 @@ Incorporado en V6.4 (2026-02-19), permite la creación automática de Remitos de
     *   El backend captura trazas completas de error y las envía al frontend para que el usuario sepa exactamente por qué falló un PDF (ej: "Archivo vacío", "No es PDF de texto").
     *   **Actualización V6.5 (Upsert Inteligente):** El sistema ahora verifica existencia por CUIT. Si el cliente existe con status bajo (<13), se actualiza a **Flag 13** (Gold Candidate) y se elimina el flag 'Virgin'. Si es nuevo, se inserta directamente en Flag 13 con estado 'PENDIENTE_AUDITORIA'.
     *   **Corrección Regex:** Se modificó el motor para escanear el texto crudo (`raw_text`) antes de limpiar, solucionando fallos en facturas compactas (LAVIMAR).
+    *   **Workflow Frontend Asistido:** Implementado en `IngestaFacturaView.vue`, el componente cruza la "Infiltración Vanguard". Cualquier cliente derivado del PDF cuya validación AFIP falte (Nivel < 13) fuerza la apertura perentoria de `ClienteInspector.vue`.
+    *   **Doctrina de Evolución (4-Bytes):** A nivel backend (`service.py`), los clientes insertados on-the-fly (`estado_arca='PENDIENTE_AUDITORIA'`, Flag=15 Virgen) pierden la bandera Virginity (`& ~ClientFlags.VIRGINITY`) mutando al nivel 13 Gold al momento exacto de formular/confirmar la carga en remitos.
 
 
 ## 13. PROTOCOLO ENIGMA (BITMASK DE IDENTIDAD)

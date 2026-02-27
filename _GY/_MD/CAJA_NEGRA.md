@@ -1,4 +1,4 @@
-**Última Actualización:** 26-Feb-2026 (Estabilización AFIP Dual)
+**Última Actualización:** 27-Feb-2026 (Integración Sabueso PDF)
 **Sesiones Completadas:** +13 (Ciclo de Estabilización)
 **Rol:** Tablero de Control y Estado de Salud del Sistema.
 
@@ -98,3 +98,10 @@
 - **Doctrina**: Implementado Protocolo de Estados de 4-Bytes con detección de host (`manager_status.py`).
 - **Integridad**: Verificada Paridad de DB CASA-OFICINA (428 KB) y activada Carta Momento Cero.
 - **Estado**: Sistema Multiplex V14-B Nominal.
+
+## [2026-02-27] INTEGRACIÓN SABUESO PDF & WORKFLOW ABM
+- **Hito**: Porting finalizado del extractor de Facturas (RAR) a Sistema V5.
+- **Heurística**: Ajustes de Regex (Lookahead activo) para superar ruidos de formato AFIP (`pdf_parser.py`).
+- **UX Segura**: Workflow ABM instanciado vía frontend (`IngestaFacturaView.vue`). Todo cliente anómalo o inexistente dispara modal obligatorio del inspector.
+- **Doctrina**: Test de mutación 15->13 ejecutado. Clientes Vírgenes pierden el flag tras primer Remito (ORM backend).
+- **Estado**: Base de Datos Estática Confirmada (428 KB). Sabueso Operativo.
