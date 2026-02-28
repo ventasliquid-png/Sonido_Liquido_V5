@@ -518,6 +518,19 @@
             @save="handleTransporteCanvasCreate"
         />
        </Transition>
+
+
+      <!-- ABSOLUTE NOTIFICATION / TOAST LAYER -->
+      <div class="absolute bottom-6 right-6 z-[100] flex flex-col gap-2 pointer-events-none">
+          <TransitionGroup name="toast">
+              <div v-for="toast in notificationStore.notifications" :key="toast.id"
+                   class="bg-[#0f172a]/95 border border-cyan-500/30 rounded-lg p-3 shadow-lg shadow-cyan-500/10 flex items-center gap-3 w-72 pointer-events-auto backdrop-blur-sm"
+              >
+                  <i :class="toast.icon" :style="{ color: toast.color }"></i>
+                   <span class="text-xs text-white/90 font-medium">{{ notificationStore.message }}</span>
+              </div>
+          </TransitionGroup>
+       </div>
         <!-- Also Context Menu for Transport -->
          <ContextMenu 
             v-if="contextMenuState.show" 
@@ -556,6 +569,14 @@ const store = useClientesStore()
 const maestrosStore = useMaestrosStore()
 const logisticaStore = useLogisticaStore()
 const notificationStore = useNotificationStore()
+
+// Props and Emits for Modal usage
+const props = defineProps({
+    isModal: { type: Boolean, default: false },
+    id: { type: String, default: null },
+    initialData: { type: Object, default: () => null }
+})
+const emit = defineEmits(['close', 'save'])
 
 // Audit Logic
 const { evaluateCliente } = useAuditSemaphore()
@@ -637,6 +658,11 @@ const consultarAfip = async () => {
         form.value.estado_arca = 'VALIDADO'
         form.value.datos_arca_last_update = new Date().toISOString()
         
+        // [GY-FIX] Al ser validado por ARCA, el cliente se considera confirmado.
+        // 1 = Existence, 2 = Virginity, 4 = Gold_Arca, 8 = Struct
+        // Nivel 13 (No Virgen) para Modales Operativos (Ingesta). Nivel 15 (Virgen) para ABM Manual.
+        form.value.flags_estado = props.isModal ? 13 : 15;
+        
         // 2. Map Condicion IVA (Fuzzy Logic)
         const arcaIva = (res.condicion_iva || '').toUpperCase()
         const ivaTarget = condicionesIva.value.find(c => {
@@ -690,12 +716,30 @@ const consultarAfip = async () => {
             // [GY-DEBUG] Log incoming ARCA address data
             console.log("ARCA Address Data:", pa, rawAddress);
             
-            fiscalNode.calle = pa.calle || rawAddress || 'Calle S/N'
-            fiscalNode.numero = pa.numero || ''
-            fiscalNode.piso = pa.piso || ''
-            fiscalNode.depto = pa.depto || ''
-            fiscalNode.localidad = pa.localidad || ''
-            fiscalNode.cp = pa.cp || ''
+            // [GY-UX] PRESERVACIÓN DE DATOS DE ORO (CUIT 2 Heuristic)
+            // Si el CUIT empieza con 2 (Persona Física), AFIP suele devolver dirección local vacía (o strings genéricos cortos).
+            // En caso que el Sabueso haya extraído 'initialData', respetamos la procedencia.
+            const isPersonaFisica = form.value.cuit && form.value.cuit.startsWith('2');
+            const hasGoldenAddress = props.initialData && (props.initialData.domicilio || props.initialData.calle);
+            const isArcaEmpty = !pa.calle && (!rawAddress || rawAddress.trim().length < 5);
+
+            if (isPersonaFisica && hasGoldenAddress && isArcaEmpty) {
+                 notificationStore.add('Preservando Dirección del PDF (Datos de Oro)', 'info');
+                 fiscalNode.calle = props.initialData.domicilio || props.initialData.calle;
+                 fiscalNode.localidad = props.initialData.localidad || '';
+                 fiscalNode.cp = props.initialData.cp || '';
+                 // Keep other fields empty or from initialData if available
+                 fiscalNode.numero = '';
+                 fiscalNode.piso = '';
+                 fiscalNode.depto = '';
+            } else {
+                 fiscalNode.calle = pa.calle || rawAddress || 'Calle S/N'
+                 fiscalNode.numero = pa.numero || ''
+                 fiscalNode.piso = pa.piso || ''
+                 fiscalNode.depto = pa.depto || ''
+                 fiscalNode.localidad = pa.localidad || ''
+                 fiscalNode.cp = pa.cp || ''
+            }
             
             // Should likely be Delivery too if it's the only one
             if (domicilios.value.length === 1) {
@@ -703,8 +747,8 @@ const consultarAfip = async () => {
             }
             
              // Map Province (Fuzzy Search)
-            if (pa.provincia) {
-                const provName = pa.provincia.toUpperCase()
+            if (pa.provincia || (isPersonaFisica && hasGoldenAddress && isArcaEmpty && props.initialData.provincia)) {
+                const provName = (pa.provincia || props.initialData.provincia).toUpperCase()
                 const targetProv = maestrosStore.provincias.find(p => 
                     p.nombre.toUpperCase() === provName || 
                     provName.includes(p.nombre.toUpperCase()) ||
@@ -715,10 +759,27 @@ const consultarAfip = async () => {
                 }
             }
 
-            notificationStore.add(`Datos Fiscales Actualizados: ${fiscalNode.calle}`, 'success')
+            notificationStore.add(`Datos Fiscales Sincronizados: ${fiscalNode.calle}`, 'success')
             
         } else {
-             notificationStore.add(`ARCA Validado (Sin Domicilio reportado)`, 'warning')
+             // [GY-UX] Aún si ARCA no devuelve NADA orgánicamente (sin el bloque if superior)
+             // Y tenemos un CUIT 2 con Datos de Oro, deberíamos crear el nodo fiscal con el oro.
+             const isPersonaFisica = form.value.cuit && form.value.cuit.startsWith('2');
+             const hasGoldenAddress = props.initialData && (props.initialData.domicilio || props.initialData.calle);
+             
+             if (isPersonaFisica && hasGoldenAddress) {
+                 let fiscalNode = domicilios.value.find(d => d.es_fiscal)
+                 if (!fiscalNode) {
+                    fiscalNode = { id: null, local_id: Date.now(), es_fiscal: true, es_entrega: true, activo: true, transporte_id: null }
+                    domicilios.value.push(fiscalNode)
+                 }
+                 fiscalNode.calle = props.initialData.domicilio || props.initialData.calle;
+                 fiscalNode.localidad = props.initialData.localidad || '';
+                 fiscalNode.cp = props.initialData.cp || '';
+                 notificationStore.add(`ARCA Vacío. Usando Datos de Oro (PDF).`, 'info')
+             } else {
+                 notificationStore.add(`ARCA Validado (Sin Domicilio reportado)`, 'warning')
+             }
         }
 
         notificationStore.add(`Validación ARCA Exitosa: ${res.razon_social}`, 'success')
@@ -926,6 +987,11 @@ const goBackToSource = () => {
     if (activeTab.value !== 'CLIENTE') {
         activeTab.value = 'CLIENTE'
         return
+    }
+
+    if (props.isModal) {
+        emit('close');
+        return;
     }
 
     if (route.query.mode === 'satellite') {
@@ -1185,7 +1251,31 @@ onMounted(async () => {
     await maestrosStore.fetchAll()
     await logisticaStore.fetchEmpresas()
     
-    if (route.params.id === 'new') {
+    // Modal Mode or Page Mode
+    if (props.isModal) {
+        if (props.id === 'new') {
+            isNew.value = true
+            if (props.initialData) {
+                form.value = { ...form.value, ...props.initialData }
+                if (props.initialData.domicilio && isNew.value) {
+                    domicilios.value = [{
+                        calle: props.initialData.domicilio,
+                        es_fiscal: true,
+                        es_entrega: true,
+                        activo: true,
+                        localidad: 'S/D',
+                        provincia_id: 'X'
+                    }]
+                }
+                if (props.initialData.cuit) checkCuitStatus(false)
+            } else {
+                resetForm()
+            }
+        } else if (props.id) {
+            isNew.value = false
+            await loadCliente(props.id)
+        }
+    } else if (route.params.id === 'new') {
         isNew.value = true
         if (store.draft) {
              form.value = { ...store.draft }
@@ -1205,9 +1295,22 @@ onMounted(async () => {
     }
 })
 
-watch(() => route.params.id, async (newId) => {
+watch(() => (props.isModal ? props.id : route.params.id), async (newId) => {
     if (newId === 'new') {
         isNew.value = true; resetForm()
+        if (props.isModal && props.initialData) {
+             form.value = { ...form.value, ...props.initialData }
+             if (props.initialData.domicilio && isNew.value) {
+                domicilios.value = [{
+                    calle: props.initialData.domicilio,
+                    es_fiscal: true,
+                    es_entrega: true,
+                    activo: true,
+                    localidad: 'S/D',
+                    provincia_id: 'X'
+                }]
+             }
+        }
     } else if (newId) {
         isNew.value = false; await loadCliente(newId)
     }
@@ -1280,9 +1383,11 @@ const validateForm = () => {
     
     // Strict validations only if Active
     if (!isDeactivating) {
-        if (!form.value.segmento_id) { errors.value.segmento_id = true; isValid = false; }
-        // if (!form.value.condicion_iva_id) { errors.value.condicion_iva_id = true; isValid = false; }
-        if (!form.value.lista_precios_id) { errors.value.lista_precios_id = true; isValid = false; }
+        // [GY-FIX] Relax strictness for Ingesta Modal (Client creation on the fly)
+        if (!props.isModal) {
+            if (!form.value.segmento_id) { errors.value.segmento_id = true; isValid = false; }
+            if (!form.value.lista_precios_id) { errors.value.lista_precios_id = true; isValid = false; }
+        }
         
         // Validate Fiscal Domicile
         // [GY-UX] V5-X Informal Mode: If no CUIT, Fiscal Address is NOT mandatory (or we use delivery)
@@ -1311,7 +1416,8 @@ const validateForm = () => {
 
 const saveCliente = async () => {
     if (!validateForm()) {
-        notificationStore.add('Complete los campos obligatorios indicados en rojo.', 'error');
+        console.warn("ClientCanvas Validation Failed. Errors:", errors.value);
+        notificationStore.add('Complete los campos obligatorios indicados en rojo.', 'error', 5000);
         // Shake animation or sound could go here
         return;
     }
@@ -1351,6 +1457,14 @@ const saveCliente = async () => {
         if (payload.codigo_interno === '') payload.codigo_interno = null;
         if (payload.cuit === '') payload.cuit = null;
         
+        // [GY-FIX] Evolución Automática
+        // Si no tiene flags, pero tiene CUIT válido, consideramos que es una entidad formal.
+        // Si estamos en un Modal (Ej. Ingesta de Factura), el cliente nace con movimiento asegurado,
+        // por ende nace Perdiendo la Virginidad (Nivel 13). Si es Alta Manual sin movimiento, nace Virgen (Nivel 15).
+        if ((!payload.flags_estado || payload.flags_estado === 0) && payload.cuit && payload.cuit !== '00000000000') {
+             payload.flags_estado = props.isModal ? 13 : 15;
+        }
+        
         payload.vinculos = contactos.value;
         
         // [GY-FIX] For updates, Domicilios are handled independently via sub-form.
@@ -1359,25 +1473,43 @@ const saveCliente = async () => {
         // For CREATE, we usually need them.
         if (isNew.value) {
             payload.domicilios = domicilios.value;
-            await store.createCliente(payload)
+            const resCreated = await store.createCliente(payload)
+            emit('save', resCreated?.data || payload)
             notificationStore.add('Cliente creado exitosamente', 'success')
         } else {
-            // [GY-FIX] Only send Domicilios if explicit sync requested (e.g. ARCA validation) to avoid overwriting sub-form edits
-            // If we just validated ARCA, we WANT to overwrite the backend addresses with the new ones.
-            if (!forceAddressSync.value) {
-                delete payload.domicilios;
-            } else {
-                console.log("[SAVE] Force Address Sync Active - Sending Domicilios Payload");
-                // Reset flag after save
-                // forceAddressSync.value = false; // Will be reset on navigate away or reload
-            }
+            // [GY-FIX] Drop domicilios from main payload as backend Pydantic 'ClienteUpdate' doesn't support them.
+            delete payload.domicilios;
             
             // [GY-FIX] Inject Quick Transport logic for backend shortcut
             if (quickTransportId.value) {
                 payload.transporte_id = quickTransportId.value
             }
 
-            await store.updateCliente(form.value.id, payload)
+            // 1. Core Update
+            const resUpdated = await store.updateCliente(form.value.id, payload)
+            
+            // 2. Explicit Address Sync (e.g. after ARCA validation)
+            if (forceAddressSync.value && domicilios.value.length > 0) {
+                console.log("[SAVE] Force Address Sync Active - Sending Explicit Domicilios requests");
+                for (const dom of domicilios.value) {
+                     try {
+                         if (dom.id) {
+                             await store.updateDomicilio(form.value.id, dom.id, dom);
+                         } else {
+                             await store.createDomicilio(form.value.id, dom);
+                         }
+                     } catch (err) {
+                         console.error("Partial failure syncing address:", err);
+                     }
+                }
+                
+                // 3. Hydrate full client object to return back with actual Domicilio IDs to listeners
+                const fullClient = await store.fetchClienteById(form.value.id);
+                emit('save', fullClient || resUpdated?.data || payload)
+            } else {
+                emit('save', resUpdated?.data || payload)
+            }
+
             notificationStore.add('Cliente actualizado exitosamente', 'success')
         }
         goBackToSource()

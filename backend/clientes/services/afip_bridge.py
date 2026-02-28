@@ -79,3 +79,5 @@ class AfipBridgeService:
             # Datos crudos para debug
             "_raw_rar": rar_data
         }
+
+# [GY-TRICK] Forcing uvicorn reload to clear RAR module cache

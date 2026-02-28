@@ -349,11 +349,12 @@
     <!-- <aside ... > -->
 
     <!-- Central Modal (New Client / Alta) -->
-    <div v-if="selectedId === 'new'" class="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" @click.self="closeInspector">
-        <div class="bg-[#05151f] w-full max-w-2xl h-[90vh] rounded-2xl shadow-2xl overflow-hidden border border-cyan-500/30 flex flex-col relative">
-            <ClienteInspector 
-                :modelValue="selectedCliente" 
-                :isNew="true"
+    <div v-if="selectedId === 'new'" class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 lg:p-12" @click.self="closeInspector">
+        <div class="border-2 border-cyan-500/50 rounded-2xl w-full max-w-5xl h-full max-h-[90vh] flex flex-col overflow-hidden shadow-[0_0_50px_rgba(6,182,212,0.2)] bg-[#0f172a]">
+            <ClientCanvas 
+                :initialData="selectedCliente" 
+                id="new"
+                :isModal="true"
                 @close="closeInspector"
                 @save="handleInspectorSave"
                 class="flex-1"
@@ -392,7 +393,7 @@
 import { ref, onMounted, onActivated, computed, onUnmounted, reactive, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import FichaCard from '../components/hawe/FichaCard.vue'
-import ClienteInspector from './Hawe/components/ClienteInspector.vue'
+import ClientCanvas from './Hawe/ClientCanvas.vue'
 import CommandPalette from '../components/common/CommandPalette.vue'
 import TransporteManager from './Hawe/components/TransporteManager.vue'
 import { useClientesStore } from '../stores/clientes'

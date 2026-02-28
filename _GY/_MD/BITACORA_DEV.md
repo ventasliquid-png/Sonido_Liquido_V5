@@ -1,4 +1,17 @@
 
+# [V6.5.1] 2026-02-28 - Sesión 787: Protocolo Omega - Ingesta Consolidada
+> **ESTADO:** SATISFACTORIO
+> **TIPO:** INTEGRACIÓN / SINTONÍA FINA
+
+Se completó la migración del ABM de Clientes de Ingesta al nuevo `ClientCanvas` universal. Se resolvieron los bloqueos del motor PDF y la interferencia de variables de entorno globales (Postgres Ghost).
+
+**Hitos Técnicos:**
+1. **Frontend:** Relajación de validaciones para Ingesta y Auto-Inyección de Domicilio PDF.
+2. **Backend:** Implementación de Endpoint `/despachar`, instalación de `fpdf2`, y parche de Pydantic para `AttributeError`.
+3. **Parsing:** Regex optimizado para facturas AFIP con formato espacial laxo.
+
+---
+
 # [RECUPERACIÃ“N] 2026-01-14 - Parche de Emergencia "Math Guard Clauses"
 
 > **ESTADO:** SATISFACTORIO
@@ -768,3 +781,20 @@ Siguiendo órdenes directas, se difirió la integración real de OAuth y se impl
 
 **Estado:** SISTEMA V5-B Y MÓDULO SABUESO NOMINAL Y SINCRONIZADO.
 
+## SESIÓN 787: RESOLUCIÓN DE REGRESIONES UI Y ESTANDARIZACIÓN DE CLIENTCANVAS
+**Fecha:** 2026-02-27
+**Objetivo:** Restaurar funcionalidades perdidas (Remitos) y unificar la experiencia de usuario (UX) en la carga de clientes a través del sistema interactivo (Lupa ARCA).
+
+### Hito 1: Restauración de Logística (Remitos)
+*   **Problema:** Tras múltiples interacciones de UI, el ítem de navegación "Remitos" había desaparecido y no poseía una vista global (Dashboard).
+*   **Solución:** Se integró nuevamente en `AppSidebar.vue`, se registró la ruta en `router/index.js` y se creó de cero `RemitoListView.vue` con conectividad al store y servicios correspondientes.
+
+### Hito 2: Refactorización Dual (ClientCanvas vs Inspector)
+*   **Problema:** El usuario solicitó mantener la experiencia "original" de alta de clientes (`ClientCanvas`) con su lupa de ARCA en el header, pero el sistema inyectaba un componente reducido (`ClienteInspector`) durante intercepciones de flujos de trabajo (como en Ingesta de Facturas).
+*   **Solución:** Se refactorizó `ClientCanvas.vue` para aceptar parámetros dinámicos (`isModal`, `initialData`) transformándolo en un híbrido capaz de instanciarse como página completa o como Modal Popup. 
+
+### Hito 3: Propagación de UX
+*   **Ejecución:** Se erradicó el componente `ClienteInspector.vue` en favor del nuevo `ClientCanvas` modal.
+*   **Alcance:** La estandarización afectó exitosamente a `IngestaFacturaView`, `PedidoTacticoView`, `PedidoCanvas` y `HaweView`.
+
+**Estado:** UI Y UX ESTABILIZADAS, REGRESIONES SOLUCIONADAS. LISTO PARA OMEGA.

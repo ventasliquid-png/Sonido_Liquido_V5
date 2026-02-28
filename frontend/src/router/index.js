@@ -121,6 +121,11 @@ const routes = [
                 path: 'pedidos/:id/logistica',
                 name: 'PedidoLogistica',
                 component: () => import('../views/Logistica/LogisticaSplitter.vue')
+            },
+            {
+                path: 'logistica/remitos',
+                name: 'Remitos',
+                component: () => import('../views/Logistica/RemitoListView.vue')
             }
         ]
     },

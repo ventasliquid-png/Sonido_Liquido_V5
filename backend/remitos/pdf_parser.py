@@ -18,8 +18,8 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
         doc = fitz.open(stream=file_bytes, filetype="pdf")
         text_blocks = []
         
-        # [V5 FIX] Solo analizamos la primera página para evitar triplicación 
-        # de items (Original, Duplicado, Triplicado)
+        # [ALFA-CA] REGLA DE PAGINA 1: Solo analizamos la primera página 
+        # para evitar triplicación de items y asegurar paridad Sabueso Oro.
         if doc.page_count > 0:
             page = doc[0]
             blocks = page.get_text("blocks")
@@ -30,7 +30,14 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
                 text_blocks.append(b[4].replace("\n", " ").strip())
         
         doc.close()
-        return " | ".join(text_blocks)
+        # [SABUESO ORO] Joining with pipes for robust regex targeting
+        full_text = " | ".join(text_blocks)
+        try:
+             with open("pdf_debug.txt", "w", encoding="utf-8") as f:
+                  f.write(full_text)
+        except:
+             pass
+        return full_text
     except Exception as e:
         logger.error(f"Error reading PDF with fitz: {e}")
         raise e
@@ -43,18 +50,27 @@ def parse_invoice_data(text: str) -> dict:
     data = {"cliente": {}, "factura": {}, "items": []}
     ISSUER_CUIT = "30715603973"
 
-    # 1. FACTURA & CAE (Robust Pattern from RAR + V5 fix)
+    # 1. FACTURA & CAE (Protocolo Sabueso Oro - RAR Port)
     # Pto Vta and Comp Nro
-    match_comp = re.search(r'(?:Punto|Pto)?\s*(?:de\s*)?VTA[.\s]*:?\s*(\d{4,5}).*?Comp.*?Nro[.\s]*:?\s*(\d{8})', text, re.IGNORECASE)
+    # Allow pipes | in between because PyMuPDF joins separate blocks with ' | '
+    
+    # [GY-FIX] Patrón AFIP Reciente: "Punto de Venta: Comp. Nro: 00001 00002493"
+    match_comp = re.search(r'Punto.*?Comp.*?Nro[.\s:|]*\s*(\d{4,5})\s+(\d{8})', text, re.IGNORECASE)
+    
     if not match_comp:
         match_comp = re.search(r'Punto\s*de\s*Ventas?[^\d]*(\d{4,5}).*?Comp.*?(?:Nro)?[^\d]*(\d{8})', text, re.IGNORECASE)
     if not match_comp:
-        match_comp = re.search(r'(\d{4,5})\s*-\s*(\d{8})', text)
+        match_comp = re.search(r'(?:Punto|Pto)?\s*(?:de\s*)?VTA[.\s]*:?\s*(\d{4,5}).*?Comp.*?Nro[.\s]*:?\s*(\d{8})', text, re.IGNORECASE)
+    if not match_comp:
+        match_comp = re.search(r'(\d{4,5})\s*(?:\|\s*)?-\s*(?:\|\s*)?(\d{8})', text)
+    if not match_comp:
+        # Sometimes it appears as just "Comp. Nro: | 0001 | 12345678" without dash
+        match_comp = re.search(r'Comp.*?(?:Nro)?[.\s:|]*(\d{4,5})\s*\|\s*(?:-\s*\|\s*)?(\d{8})', text, re.IGNORECASE)
     
     if match_comp:
          data["factura"]["numero"] = f"{match_comp.group(1).zfill(5)}-{match_comp.group(2).zfill(8)}"
     
-    # CAE
+    # [SABUESO ORO] CAE Detection
     match_cae = re.search(r'C\.?A\.?E\.?.*?(?:\:)?.*?(\d{14})', text, re.IGNORECASE)
     if match_cae:
         data["factura"]["cae"] = match_cae.group(1)

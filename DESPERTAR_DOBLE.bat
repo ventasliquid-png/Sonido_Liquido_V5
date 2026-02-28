@@ -1,13 +1,13 @@
 @echo off
-TITLE GY - CARGADOR UNIVERSAL PRO v2 (MULTIPLEX SITUACIONAL)
+TITLE GY - CARGADOR UNIVERSAL PRO v2.1 (ALFA DUAL SITUACIONAL)
 color 0B
 
 echo ==========================================
-echo   CARGADOR DE PROTOCOLO MULTIPLEX GY v2
+echo   CARGADOR DE PROTOCOLO MULTIPLEX GY v2.1
 echo ==========================================
 echo.
 
-:: 1. AUTO-DETECCION DE RAMAS Y TELEMETRIA
+[cite_start]:: 1. AUTO-DETECCION DE RAMAS Y TELEMETRIA [cite: 2]
 cd /d "C:\dev\Sonido_Liquido_V5"
 for /f "tokens=*" %%i in ('git branch --show-current') do set RAMA_V5=%%i
 
@@ -28,7 +28,7 @@ if "%ALERT_SYNC%"=="1" (
     color 0C
     echo.
     echo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    echo   ALERTA: POSIBLE DESINCRO DE TERMINAL
+    [cite_start]echo   ALERTA: POSIBLE DESINCRO DE TERMINAL [cite: 3]
     echo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     echo Se recomienda: git fetch / git pull / check DB
     echo.
@@ -42,7 +42,7 @@ goto PREGUNTA_GIT
 
 :GIT_PULL
 echo.
-echo [Sincronizando V5: %RAMA_V5%...]
+[cite_start]echo [Sincronizando V5: %RAMA_V5%...] [cite: 4]
 cd /d "C:\dev\Sonido_Liquido_V5"
 git pull origin %RAMA_V5%
 
@@ -56,18 +56,18 @@ goto CARGAR_PROMPT
 echo.
 echo [Generando Prompt de Activacion Situacional...]
 
-:: PROMPT CONSOLIDADO CON TELEMETRIA
-:: Si el bit de CARTA (Bit 2) está activo, se inyecta la orden de lectura.
-echo %STATUS_HUD% | findstr "CARTA" > nul && set CARTA_FLAG= [!] LEER CARTA_MOMENTO_CERO.md
+:: PROMPT CONSOLIDADO CON DISTINCION DE PROTOCOLOS ALFA
+[cite_start]echo %STATUS_HUD% | findstr "CARTA" > nul && set CARTA_FLAG= [!] LEER CARTA_MOMENTO_CERO.md [cite: 6]
 
-echo SISTEMA: INICIO DE SESION MULTIPLEX SITUACIONAL. 1) V5: %RAMA_V5% ^| RAR: %RAMA_RAR%. 2) ESTADO: %STATUS_HUD%%CARTA_FLAG%. 3) MISION: Mantener coherencia inter-terminal. EJECUTAR PROTOCOLO ALFA. | clip
+:: LA ORDEN SITUADA: ALFA-V5 y ALFA-RAR definidos para paridad absoluta
+echo SISTEMA: INICIO DE SESION MULTIPLEX SITUACIONAL. 1) V5: %RAMA_V5% ^^^| RAR: %RAMA_RAR%. 2) ESTADO: %STATUS_HUD%%CARTA_FLAG%. 3) MISION: Trasplante de PROTOCOLO ALFA-RAR (Sabueso Oro, QR, CAE, Pagina 1) a PROTOCOLO ALFA-V5 (Estabilidad DB 428KB y Doctrina 4-Bytes). No rediseñar. Portar y sellar. | clip
 
 echo.
-echo [LISTO] Orden situada copiada al portapapeles.
-echo 1. Abre Antigravity.
+[cite_start]echo [LISTO] Orden situada copiada al portapapeles. [cite: 8]
+echo 1. Abre la nueva sesion de Gy.
 echo 2. Ctrl + V.
 echo 3. Enter.
 echo.
-echo Cerrando en 4 segundos...
+[cite_start]echo Cerrando en 4 segundos... [cite: 9]
 timeout /t 4
 exit

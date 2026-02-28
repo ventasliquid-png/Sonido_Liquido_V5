@@ -156,22 +156,26 @@ const getFiscalAddress = (cliente) => {
 };
 
 const getDeliveryAddress = (id) => {
-    const d = props.clientDomicilios.find(addr => addr.id === id);
+    const list = props.clientDomicilios || [];
+    const d = list.find(addr => addr.id === id);
     return d ? `${d.direccion}, ${d.localidad}` : 'Dirección Desconocida';
 };
 
 const getTransportName = (id) => {
+    if (!props.logisticaStore || !props.logisticaStore.transportOptions) return '---';
     const t = props.logisticaStore.transportOptions.find(opt => opt.id === id);
     return t ? t.nombre : '---';
 };
 
 const getProductName = (pItemId) => {
-    const pItem = props.pedidoItems.find(i => i.id === pItemId);
+    const list = props.pedidoItems || [];
+    const pItem = list.find(i => i.id === pItemId);
     return pItem?.producto?.nombre || 'Item Desconocido';
 };
 
 const getProductSku = (pItemId) => {
-    const pItem = props.pedidoItems.find(i => i.id === pItemId);
+    const list = props.pedidoItems || [];
+    const pItem = list.find(i => i.id === pItemId);
     return pItem?.producto?.sku || '---';
 };
 

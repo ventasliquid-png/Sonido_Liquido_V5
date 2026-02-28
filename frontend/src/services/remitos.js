@@ -10,6 +10,13 @@ export default {
     },
 
     /**
+     * Lista todos los remitos del sistema
+     */
+    getRemitos() {
+        return api.get('/remitos/');
+    },
+
+    /**
      * Obtiene los remitos asociados a un pedido
      * @param {Number} pedidoId 
      */

@@ -91,28 +91,63 @@ class RemitosService:
         db.flush()
 
         # 4. RESOLVE ITEMS
+        from backend.productos.models import Producto, Rubro
         prod_generico = db.query(Producto).filter(Producto.nombre.ilike("%VARIOS%")).first()
         if not prod_generico:
              prod_generico = db.query(Producto).filter(Producto.activo == True).first()
+             
+        # [GY-FIX] Prevenir Error 500 por base de datos vacía (0 SKUs)
+        if not prod_generico:
+             rubro = db.query(Rubro).first()
+             if not rubro:
+                 rubro = Rubro(codigo="GEN", nombre="Genérico Automático")
+                 db.add(rubro)
+                 db.flush()
+             prod_generico = Producto(nombre="ÍTEM VARIOS (Auto-Ingesta)", sku=999999, codigo_visual="VAR-001", rubro_id=rubro.id, activo=True)
+             db.add(prod_generico)
+             db.flush()
 
         pedido_items = []
         for item in payload.items:
             producto = db.query(Producto).filter(Producto.nombre.ilike(f"%{item.descripcion}%")).first()
             
-            nota_item = ""
-            prod_id = prod_generico.id if prod_generico else None
-            
-            if producto:
-                prod_id = producto.id
-            else:
-                nota_item = item.descripcion 
+            if not producto:
+                # [GY-FIX] Generación secuencial de SKUs VS0001-VS9999 para Ingesta
+                last_vs = db.query(Producto).filter(Producto.codigo_visual.like('VS%')).order_by(Producto.id.desc()).first()
+                next_code = 1
+                if last_vs and last_vs.codigo_visual:
+                    try:
+                        next_code = int(last_vs.codigo_visual.replace("VS", "")) + 1
+                    except:
+                        next_code = 1
+                
+                codigo_vs = f"VS{str(next_code).zfill(4)}"
+                nuevo_sku = 80000 + next_code # Para evitar colisiones con el constraint entero único
+                
+                rubro = db.query(Rubro).first()
+                if not rubro:
+                    rubro = Rubro(codigo="GEN", nombre="Genérico Automático")
+                    db.add(rubro)
+                    db.flush()
+                
+                producto = Producto(
+                    nombre=item.descripcion.upper(),
+                    codigo_visual=codigo_vs,
+                    sku=nuevo_sku,
+                    rubro_id=rubro.id,
+                    activo=True,
+                    tipo_producto='INSUMO'
+                )
+                db.add(producto)
+                db.flush()
+                print(f"[INGESTA] Producto auto-creado: {codigo_vs} - {producto.nombre}")
                 
             new_p_item = PedidoItem(
                 pedido_id=nuevo_pedido.id,
-                producto_id=prod_id,
+                producto_id=producto.id,
                 cantidad=item.cantidad,
                 precio_unitario=item.precio_unitario or 0.0,
-                nota=nota_item
+                nota=""
             )
             db.add(new_p_item)
             db.flush() 

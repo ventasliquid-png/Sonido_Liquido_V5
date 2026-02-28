@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useClientesStore } from '@/stores/clientes';
 import { useProductosStore } from '@/stores/productos';
 import SmartSelect from '@/components/ui/SmartSelect.vue';
+import ClientCanvas from '../Hawe/ClientCanvas.vue';
 import pedidosService from '@/services/pedidos';
 
 const clientesStore = useClientesStore();
@@ -440,9 +441,9 @@ const onInspectorClose = async () => {
 
         <!-- Modals -->
         <ClientLookup :show="showLookup" :clientes="clientesStore.clientes" @close="showLookup = false" @select="onLookupSelect" @edit="onLookupEdit" @delete="onLookupDelete" @refresh-and-select="onLookupRefreshAndSelect" />
-        <div v-if="showInspector" class="fixed inset-0 z-[60] flex justify-end bg-black/50 backdrop-blur-sm" @click.self="onInspectorClose">
-            <div class="w-full max-w-2xl h-full bg-slate-900 border-l border-slate-700 shadow-2xl overflow-y-auto">
-                <ClienteInspector v-if="clienteForInspector" :cliente="clienteForInspector" @close="onInspectorClose" @save="onInspectorSave" />
+        <div v-if="showInspector" class="fixed inset-0 z-[100] flex justify-center items-center bg-black/80 backdrop-blur-sm p-4 lg:p-12" @click.self="onInspectorClose">
+            <div class="border-2 border-cyan-500/50 rounded-2xl w-full max-w-5xl h-full max-h-[90vh] flex flex-col overflow-hidden shadow-[0_0_50px_rgba(6,182,212,0.2)] bg-[#0f172a]">
+                <ClientCanvas v-if="clienteForInspector" :isModal="true" :id="clienteForInspector.id ? String(clienteForInspector.id) : 'new'" :initialData="clienteForInspector" @close="onInspectorClose" @save="onInspectorSave" />
             </div>
         </div>
     </div>

@@ -19,7 +19,21 @@ export const useRemitosStore = defineStore('remitos', () => {
         } catch (err) {
             console.error("Error fetching remitos:", err);
             error.value = "No se pudieron cargar los remitos.";
-            // If backend misses endpoint, we might get 404.
+            remitos.value = [];
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function fetchAllRemitos() {
+        loading.value = true;
+        error.value = null;
+        try {
+            const response = await remitosService.getRemitos();
+            remitos.value = response.data;
+        } catch (err) {
+            console.error("Error fetching all remitos:", err);
+            error.value = "No se pudieron cargar los remitos generales.";
             remitos.value = [];
         } finally {
             loading.value = false;
@@ -123,6 +137,7 @@ export const useRemitosStore = defineStore('remitos', () => {
         loading,
         error,
         fetchRemitos,
+        fetchAllRemitos,
         createRemito,
         despacharRemito,
         addItemToRemito,

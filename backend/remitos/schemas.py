@@ -54,8 +54,10 @@ class RemitoResponse(RemitoBase):
 
 # --- INGESTION PAYLOAD (PDF to Remito) ---
 class IngestionCliente(BaseModel):
+    id: Optional[str] = None
     cuit: Optional[str] = None
     razon_social: Optional[str] = None
+    domicilio: Optional[str] = None
 
 class IngestionFactura(BaseModel):
     numero: Optional[str] = None

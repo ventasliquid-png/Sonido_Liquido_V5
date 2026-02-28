@@ -1,5 +1,5 @@
-**Última Actualización:** 27-Feb-2026 (Integración Sabueso PDF)
-**Sesiones Completadas:** +13 (Ciclo de Estabilización)
+**Última Actualización:** 27-Feb-2026 (Refactorización ClientCanvas y Fix Remitos)
+**Sesiones Completadas:** +14 (Ciclo de Estabilización)
 **Rol:** Tablero de Control y Estado de Salud del Sistema.
 
 ---
@@ -22,13 +22,13 @@
 | :--- | :--- | :--- |
 | **Clientes** | 🟢 ENIGMA STABLE | Bitmask (V14.5) + Validación ARCA + UX Tuning. |
 | **Contactos** | 🟢 OPTIMIZADO (V6.1) | Role Persistence & Schema Fix (01-02). |
-| **Pedidos** | 🟢 V5.6 (CONECTADO) | Semáforo Fiscal + Modo Zen. |
+| **Pedidos** | 🟢 V5.7 (CONECTADO) | Ingesta PDF Automática + Despacho. |
 | **Productos** | 🟡 V5.5 (STANDALONE) | Aislado de Agenda V6. "Roca" de Precios OK. |
 | **Transportes** | 🟡 V5.1 (TRANSICIÓN) | Nodos planos. Espejo Despacho OK. |
 | **Proveedores** | 🟡 V5.0 (AISLADO) | Sin Agenda Global. Requiere Migración. |
 | **Vendedores** | 🟡 V5.0 (AISLADO) | Sin Agenda Global. Requiere Migración. |
 | **Listas Precios** | 🟢 V6.0 (LAB) | Sistema Estanco. Inyección de Templates. |
-| **Despliegue** | 🟢 V1.3 STABLE | Bootloader V2 Integrado. |
+| **Despliegue** | 🟢 V1.4 STABLE | Bootloader V2 + fpdf2 Lib. |
 
 ## ⏳ INTEGRIDAD Y PRESERVACIÓN
 *   **Doctrina Activa:** V14 "VANGUARD" (Anticipación).
@@ -105,3 +105,9 @@
 - **UX Segura**: Workflow ABM instanciado vía frontend (`IngestaFacturaView.vue`). Todo cliente anómalo o inexistente dispara modal obligatorio del inspector.
 - **Doctrina**: Test de mutación 15->13 ejecutado. Clientes Vírgenes pierden el flag tras primer Remito (ORM backend).
 - **Estado**: Base de Datos Estática Confirmada (428 KB). Sabueso Operativo.
+
+## [2026-02-27] REFACTORIZACIÓN DUAL CLIENTCANVAS & UX
+- **Hito**: Solución de Regresión UI (Restauración de lista de Remitos en módulo Logística).
+- **UX Segura**: Modalización del componente `ClientCanvas.vue` (Ficha Original) para reemplazar a `ClienteInspector.vue` en IngestaFacturaView, PedidoTacticoView, PedidoCanvas y HaweView.
+- **Doctrina**: Cumplimiento de directiva de acceso a validación ARCA/AFIP (Lupa) directa desde el flujo asistido de Alta/Edición en ingesta.
+- **Estado**: UI Component Tree simplificado y unificado bajo un único estándar interactivo.

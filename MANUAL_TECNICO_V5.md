@@ -1,6 +1,6 @@
 # 📘 MANUAL TÉCNICO V5: "INDEPENDENCIA"
-**Versión:** 1.0 Release (Updated V5.4)
-**Fecha:** 25-01-2026
+**Versión:** 1.2 Release (Updated V6.5)
+**Fecha:** 28-02-2026
 
 ## 1. DOCTRINA DE PRECIOS: "LA ROCA Y LA MÁSCARA"
 El sistema V5 implementa una estrategia psicológica de precios:
@@ -77,9 +77,9 @@ Implementado en V6.3, el sistema permite la convivencia de dos tipos de clientes
 * **Excepción:** Cuando se ejecuta una validación ARCA exitosa, el frontend activa una bandera `forceAddressSync`.
 * **Comportamiento:** Al guardar, si esta bandera está activa, `saveCliente` incluye explícitamente el objeto `domicilios` en el payload, forzando al backend a actualizar la dirección fiscal con la "Verdad Oficial" de AFIP.
 
-## 12. MÓDULO DE INGESTA AUTOMÁTICA (PDF ENGINE)
-Incorporado en V6.4 (2026-02-19), permite la creación automática de Remitos desde Facturas de Compra/Venta PDF.
-*   **Motor:** `pypdf` + Regex Heurística (Backend Python).
+## 12. MÓDULO DE INGESTA AUTOMÁTICA (PDF ENGINE V6.5)
+Incorporado en V6.4 (2026-02-19) y consolidado en V6.5 (2026-02-28).
+*   **Motor:** `pypdf` + `fpdf2` + Regex Heurística (Backend Python).
 *   **Estrategia de Parseo:**
     *   **Encabezados Compactos:** Soporta formatos donde CUIT y Razón Social comparten línea (ej: Lavimar).
     *   **Ítems por Anclaje:** Utiliza palabras clave como "unidades" o "litros" para extraer descripciones y cantidades, ignorando saltos de línea rotos en tablas complejas.

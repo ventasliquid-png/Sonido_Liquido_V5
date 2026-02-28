@@ -589,10 +589,10 @@
             <div v-if="showClientModal" class="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-8 animate-in fade-in duration-200">
                 <div class="w-full max-w-4xl h-full max-h-[90vh] bg-[#0f172a] rounded-2xl shadow-2xl border border-cyan-500/30 flex flex-col overflow-hidden relative">
                     <!-- Inspector Component -->
-                    <ClienteInspector 
-                        :modelValue="newClientData" 
-                        :isNew="true" 
-                        mode="full"
+                    <ClientCanvas 
+                        :initialData="newClientData" 
+                        id="new"
+                        :isModal="true"
                         @close="handleClientModalClose" 
                         @save="handleClientSaved"
                     />
@@ -625,7 +625,7 @@ const productosStore = useProductosStore();
 const maestrosStore = useMaestrosStore();
 
 // [GY-UX] Modal Imports
-import ClienteInspector from '../Hawe/components/ClienteInspector.vue';
+import ClientCanvas from '../Hawe/ClientCanvas.vue';
 import { shallowRef } from 'vue'; // Optimization
 
 // --- MODAL STATE ---

@@ -141,12 +141,7 @@
                         <button @click="reset" class="px-4 py-2 text-slate-400 hover:text-white transition">
                             Descartar
                         </button>
-                        <button 
-                            @click="showPreview = true"
-                            class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-blue-300 rounded-lg flex items-center gap-2"
-                        >
-                            <i class="fas fa-eye"></i> Vista Previa
-                        </button>
+                        <!-- PREVIEW NATIVO REMOVIDO -->
                         <button 
                             @click="confirmIngesta"
                             class="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-lg shadow-lg shadow-blue-900/30 flex items-center gap-2"
@@ -160,32 +155,18 @@
         </div>
     </div>
 
-    <!-- PREVIEW MODAL -->
-    <RemitoTemplate 
-        v-if="showPreview && parsedData" 
-        :propRemito="mockRemito"
-        :pedido="mockPedido"
-        :pedidoItems="mockPedidoItems"
-        @close="showPreview = false"
-    />
+    <!-- SE ELIMINÓ EL MODAL PREVIEW DE VUE -->
 
     <!-- CLIENT ABM MODAL (SABUESO INTERVENTION) -->
     <Teleport to="body">
         <div v-if="showClientAbm" class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 lg:p-12">
-            <div class="bg-slate-900 border-2 border-cyan-500/50 rounded-2xl w-full max-w-5xl h-full max-h-[90vh] flex flex-col overflow-hidden shadow-[0_0_50px_rgba(6,182,212,0.2)]">
-                <div class="bg-cyan-900/30 border-b border-cyan-500/30 p-4 flex justify-between items-center shrink-0">
-                    <h3 class="text-cyan-400 font-bold uppercase tracking-wider flex items-center gap-2">
-                        <i class="fas fa-user-shield"></i> Intervención Requerida: Ficha de Cliente
-                    </h3>
-                    <button @click="closeClientAbm" class="text-cyan-400/50 hover:text-white transition">
-                        <i class="fas fa-times text-xl"></i>
-                    </button>
-                </div>
+            <div class="border-2 border-cyan-500/50 rounded-2xl w-full max-w-5xl h-full max-h-[90vh] flex flex-col overflow-hidden shadow-[0_0_50px_rgba(6,182,212,0.2)] bg-[#0f172a]">
                 <!-- V5 HUD Border Wrapper for Inspector -->
-                <div class="flex-1 overflow-hidden relative p-4">
-                     <ClienteInspector 
-                         :isNew="true" 
-                         :modelValue="null"
+                <div class="flex-1 overflow-hidden relative">
+                     <ClientCanvas 
+                         :isModal="true"
+                         id="new" 
+                         :initialData="parsedData?.cliente"
                          @close="closeClientAbm"
                          @save="onClientSaved"
                      />
@@ -201,8 +182,7 @@ import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import remitosService from '@/services/remitos';
 import { useNotificationStore } from '@/stores/notification';
-import RemitoTemplate from '../Logistica/components/RemitoTemplate.vue';
-import ClienteInspector from '../Hawe/components/ClienteInspector.vue';
+import ClientCanvas from '../Hawe/ClientCanvas.vue';
 
 const router = useRouter();
 const notification = useNotificationStore();
@@ -216,44 +196,7 @@ const showPreview = ref(false);
 
 const showClientAbm = ref(false);
 
-// MOCKS for Preview
-const mockRemito = computed(() => {
-    if (!parsedData.value) return null;
-    return {
-        numero_legal: parsedData.value.factura.numero,
-        fecha_salida: new Date(),
-        estado: 'BORRADOR',
-        cae: parsedData.value.factura.cae,
-        vto_cae: parsedData.value.factura.vto_cae,
-        items: parsedData.value.items.map((it, idx) => ({
-            id: idx,
-            cantidad: it.cantidad,
-            pedido_item_id: idx
-        }))
-    };
-});
-
-const mockPedido = computed(() => {
-    if (!parsedData.value) return null;
-    return {
-        id: 'PROV',
-        cliente: {
-            razon_social: parsedData.value.cliente.razon_social,
-            cuit: parsedData.value.cliente.cuit
-        }
-    };
-});
-
-const mockPedidoItems = computed(() => {
-    if (!parsedData.value) return [];
-    return parsedData.value.items.map((it, idx) => ({
-        id: idx,
-        producto: {
-            nombre: it.descripcion,
-            sku: it.codigo || '---'
-        }
-    }));
-});
+// SE ELIMINARON MOCKS DE VISTA PREVIA
 
 const triggerFileInput = () => {
     fileInput.value.click();
@@ -338,6 +281,7 @@ const onClientSaved = (savedClient) => {
         parsedData.value.cliente.db_status = 'EXISTE';
         parsedData.value.cliente.flags_estado = savedClient.flags_estado;
         parsedData.value.cliente.razon_social = savedClient.razon_social;
+        parsedData.value.cliente.id = savedClient.id; // Guarda el ID real devuelto por la DB
     }
     
     // Auto-resume formulation  
@@ -361,6 +305,7 @@ const confirmIngesta = async () => {
         // Ensure numbers are floats/ints as expected
         const payload = {
             cliente: {
+                id: parsedData.value.cliente.id || null,
                 cuit: parsedData.value.cliente.cuit,
                 razon_social: parsedData.value.cliente.razon_social
             },
@@ -380,19 +325,13 @@ const confirmIngesta = async () => {
         const res = await remitosService.confirmIngesta(payload);
         
         if (res.data && res.data.id) {
-            notification.add('Remito generado con éxito', 'success');
-            // Redirect to Logistica Splitter or Remito View
-            // For now, let's go to Logistica Splitter using the new ID if applicable,
-            // or just alert success and clear.
-            // Assuming router name 'LogisticaSplitter' exists or similar.
-            // If not, just alert.
-            // alert(`Remito Generado: ${res.numero_legal || res.id}`);
+            notification.add('Remito generado con éxito en Base de Datos', 'success');
+            // [GY-FIX] Ya no mostramos la Vista Previa de Vue, sino que abrimos
+            // el PDF Oficial generado por el Motor Python FPDF (Estilo RAR)
+            const pdfUrl = `/remitos/${res.data.id}/pdf`;
+            window.open(pdfUrl, '_blank');
             
-            // Go to Pedido View or Remito View? 
-            // In V5, maybe /logistica/remitos/:id
-            // Let's use a safe fallback
             reset();
-            // Optional: router.push({ name: 'RemitoDetalle', params: { id: res.id } });
         }
 
     } catch (e) {

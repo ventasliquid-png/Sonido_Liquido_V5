@@ -12,6 +12,7 @@ COLOR_G = 43
 COLOR_B = 117
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# [ALFA-CA] Usando el recurso local validado de V5
 BG_IMAGE = os.path.join(BASE_DIR, "base_remito_v1.png")
 
 class PDFRemito(FPDF):
@@ -294,8 +295,15 @@ class PDFRemito(FPDF):
 def generar_remito_pdf(cliente_data, items, is_preview=False, output_path="remito_final.pdf", numero_remito=None):
     """
     Genera el PDF con las 3 copias.
-    numero_remito: string ej "0005-00000001"
+    [ALFA-CA] Forzando sucursal 0016- por paridad situacional.
     """
+    if numero_remito and not numero_remito.startswith("0016-"):
+        # Portar y sellar: Si viene otro prefijo, se muta a 0016-
+        if "-" in numero_remito:
+            numero_remito = f"0016-{numero_remito.split('-', 1)[1]}"
+        else:
+            numero_remito = f"0016-{numero_remito.zfill(8)}"
+
     pdf = PDFRemito()
     pdf.is_preview = is_preview
     if numero_remito:

@@ -1,6 +1,7 @@
 
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from fastapi.responses import FileResponse
+from datetime import datetime
 from sqlalchemy.orm import Session
 from typing import List
 from backend.core.database import get_db
@@ -28,6 +29,28 @@ def get_remito(remito_id: str, db: Session = Depends(get_db)):
     remito = db.query(models.Remito).filter(models.Remito.id == remito_id).first()
     if not remito:
         raise HTTPException(status_code=404, detail="Remito no encontrado")
+    return remito
+
+@router.get("/por_pedido/{pedido_id}", response_model=List[schemas.RemitoResponse])
+def get_remitos_por_pedido(pedido_id: int, db: Session = Depends(get_db)):
+    """
+    Obtiene todos los remitos asociados a un pedido específico.
+    """
+    return db.query(models.Remito).filter(models.Remito.pedido_id == pedido_id).all()
+
+@router.post("/{remito_id}/despachar", response_model=schemas.RemitoResponse)
+def despachar_remito(remito_id: str, db: Session = Depends(get_db)):
+    """
+    Cambia el estado del remito a EN_CAMINO y marca la fecha de salida.
+    """
+    remito = db.query(models.Remito).filter(models.Remito.id == remito_id).first()
+    if not remito:
+        raise HTTPException(status_code=404, detail="Remito no encontrado")
+    
+    remito.estado = "EN_CAMINO"
+    remito.fecha_salida = datetime.now()
+    db.commit()
+    db.refresh(remito)
     return remito
 
 @router.get("/{remito_id}/pdf")
