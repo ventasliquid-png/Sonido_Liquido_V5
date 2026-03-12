@@ -138,12 +138,22 @@ def parse_invoice_data(text: str) -> dict:
             if not any(x in candidate.upper() for x in ["CUIT", ISSUER_CUIT, "IVA"]):
                 razon_social = candidate
 
-    # Final cleanup for name
     if razon_social:
         # Remove common labels if they leaked in
         razon_social = re.sub(r'(?:Apellido y Nombre|Razón Social)[:\s]*', '', razon_social, flags=re.I).strip()
         razon_social = razon_social.replace('|', '').strip()
         data["cliente"]["razon_social"] = razon_social
+
+    # [NUEVO] Condición IVA
+    iva_match = re.search(r"(?:Condición frente al IVA|IVA)[:\|]?\s*([^|]{5,30})(?=\s*\||$)", text, re.IGNORECASE)
+    if iva_match:
+        iva_val = iva_match.group(1).strip().upper()
+        # Normalización básica para el mapping posterior
+        if "INSCRIPTO" in iva_val: data["cliente"]["condicion_iva"] = "Responsable Inscripto"
+        elif "MONOTRIBUTO" in iva_val or "MONOTRIBUTISTA" in iva_val: data["cliente"]["condicion_iva"] = "Monotributista"
+        elif "EXENTO" in iva_val: data["cliente"]["condicion_iva"] = "Exento"
+        elif "CONSUMIDOR FINAL" in iva_val: data["cliente"]["condicion_iva"] = "Consumidor Final"
+        else: data["cliente"]["condicion_iva"] = iva_val
 
     # Domicilio (Busqueda en bloques ruidosos)
     # Strategy: Find "Domicilio" block, and take the next significant block that looks like an address
@@ -201,6 +211,13 @@ def parse_invoice_data(text: str) -> dict:
                 })
             
     data["items"] = items_found
+
+    # [NUEVO] Detección de Canal (Marketing DNA)
+    if "MERCADO LIBRE" in text.upper() or "MELI" in text.upper():
+        data["cliente"]["canal"] = "MLIBRE"
+    elif "TIENDA NUBE" in text.upper() or "TIENDANUBE" in text.upper():
+        data["cliente"]["canal"] = "TIENDANUBE"
+        
     return data
 
 async def process_pdf_ingestion(file: UploadFile):

@@ -131,12 +131,15 @@ async def ingest_invoice_pdf(file: UploadFile = File(...), db: Session = Depends
             from backend.clientes.models import Cliente
             cliente_db = db.query(Cliente).filter(Cliente.cuit == cuit).first()
             if cliente_db:
+                result["data"]["cliente"]["id"] = str(cliente_db.id)
                 result["data"]["cliente"]["db_status"] = "EXISTE"
                 result["data"]["cliente"]["flags_estado"] = cliente_db.flags_estado
                 result["data"]["cliente"]["razon_social"] = cliente_db.razon_social # Overrule PDF with DB truth
+                result["data"]["suggested_action"] = "EDIT_CLIENT"
             else:
                 result["data"]["cliente"]["db_status"] = "NO_EXISTE"
                 result["data"]["cliente"]["flags_estado"] = 0
+                result["data"]["suggested_action"] = "CREATE_CLIENT"
                 
     return result
 
@@ -148,6 +151,15 @@ def create_remito_from_ingestion(payload: schemas.IngestionPayload, db: Session 
     try:
         from backend.remitos.service import RemitosService
         remito = RemitosService.create_from_ingestion(db, payload)
+        
+        if remito is None:
+             # Case: solo_actualizar_cliente=True
+             from fastapi.responses import JSONResponse
+             return JSONResponse(
+                 status_code=200, 
+                 content={"status": "success", "message": "Cliente actualizado correctamente. No se generó remito."}
+             )
+
         return remito
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))

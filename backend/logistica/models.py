@@ -58,6 +58,13 @@ class EmpresaTransporte(Base):
         viewonly=True,
     )
 
+    # [V5 UNIVERSAL VAULT]
+    vinculos_geograficos = relationship(
+        "backend.contactos.models.VinculoGeografico",
+        primaryjoin="and_(foreign(backend.contactos.models.VinculoGeografico.entidad_id)==EmpresaTransporte.id, backend.contactos.models.VinculoGeografico.entidad_tipo=='TRANSPORTE')",
+        viewonly=True,
+    )
+
     def __repr__(self):
         return f"<EmpresaTransporte(nombre='{self.nombre}')>"
 
@@ -91,6 +98,13 @@ class NodoTransporte(Base):
     # Relaciones
     empresa = relationship("EmpresaTransporte")
     provincia = relationship("backend.maestros.models.Provincia")
+    
+    # [V5 UNIVERSAL VAULT]
+    vinculos_geograficos = relationship(
+        "backend.contactos.models.VinculoGeografico",
+        primaryjoin="and_(foreign(backend.contactos.models.VinculoGeografico.entidad_id)==NodoTransporte.id, backend.contactos.models.VinculoGeografico.entidad_tipo=='NODO_TRANSPORTE')",
+        viewonly=True,
+    )
 
     def __repr__(self):
         return f"<NodoTransporte(nombre='{self.nombre_nodo}')>"

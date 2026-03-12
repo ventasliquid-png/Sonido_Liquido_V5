@@ -67,6 +67,30 @@ def create_contacto(db: Session, contacto_in: schemas.ContactoCreate) -> Persona
     db.add(persona)
     db.flush() 
 
+    # [VAULT SYNC] Register Personal Address
+    if contacto_in.domicilio_personal:
+        from backend.clientes.models import Domicilio
+        from backend.contactos.models import VinculoGeografico
+        
+        dom = Domicilio(
+            calle=contacto_in.domicilio_personal,
+            localidad='S/D',
+            provincia_id='X',
+            activo=True
+        )
+        db.add(dom)
+        db.flush()
+        
+        vg = VinculoGeografico(
+            entidad_tipo='PERSONA',
+            entidad_id=persona.id,
+            domicilio_id=dom.id,
+            alias='Particular',
+            flags_relacion=2, # Principal
+            activo=True
+        )
+        db.add(vg)
+
     # 2. Determinar Entidad y Crear Vinculo
     entidad_tipo = None
     entidad_id = None
@@ -104,7 +128,31 @@ def update_contacto(db: Session, contacto_id: UUID, contacto_in: schemas.Contact
     # Update Fields Persona
     if contacto_in.nombre is not None: persona.nombre = contacto_in.nombre
     if contacto_in.apellido is not None: persona.apellido = contacto_in.apellido
-    if contacto_in.domicilio_personal is not None: persona.domicilio_personal = contacto_in.domicilio_personal
+    if contacto_in.domicilio_personal is not None: 
+        if persona.domicilio_personal != contacto_in.domicilio_personal:
+            persona.domicilio_personal = contacto_in.domicilio_personal
+            # [VAULT SYNC] Update or Create Domicilio in Vault
+            from backend.clientes.models import Domicilio
+            from backend.contactos.models import VinculoGeografico
+            
+            # Find existing principal link
+            vg = db.query(VinculoGeografico).filter(
+                VinculoGeografico.entidad_tipo == 'PERSONA',
+                VinculoGeografico.entidad_id == persona.id,
+                VinculoGeografico.activo == True
+            ).first()
+            
+            if vg and vg.domicilio:
+                vg.domicilio.calle = contacto_in.domicilio_personal
+                db.add(vg.domicilio)
+            else:
+                # Create new one
+                dom = Domicilio(calle=contacto_in.domicilio_personal, localidad='S/D', provincia_id='X', activo=True)
+                db.add(dom)
+                db.flush()
+                vg = VinculoGeografico(entidad_tipo='PERSONA', entidad_id=persona.id, domicilio_id=dom.id, alias='Particular', flags_relacion=2, activo=True)
+                db.add(vg)
+                
     if contacto_in.notas is not None: persona.notas_globales = contacto_in.notas
     
     # Update Vinculo Principal

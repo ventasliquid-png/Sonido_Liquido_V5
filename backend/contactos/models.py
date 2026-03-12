@@ -41,6 +41,13 @@ class Persona(Base):
 
     # Relaciones
     vinculos = relationship("Vinculo", back_populates="persona", cascade="all, delete-orphan")
+    
+    # [V5 UNIVERSAL VAULT]
+    vinculos_geograficos = relationship(
+        "VinculoGeografico",
+        primaryjoin="and_(foreign(VinculoGeografico.entidad_id)==Persona.id, VinculoGeografico.entidad_tipo=='PERSONA')",
+        viewonly=True,
+    )
 
     def __repr__(self):
         return f"<Persona({self.nombre} {self.apellido or ''})>"
@@ -92,3 +99,39 @@ class Vinculo(Base):
 
     # Relaciones
     persona = relationship("Persona", back_populates="vinculos")
+
+
+class VinculoGeografico(Base):
+    """
+    Tabla 'vinculos_geograficos' (Vanguard Vault Pivots).
+    Relación N:M entre Entidades y Domicilios Universales.
+    """
+    __tablename__ = "vinculos_geograficos"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
+    
+    # Entidad Polimórfica (CLIENTE, PERSONA, TRANSPORTE, EMPRESA, DEPOSITO)
+    entidad_tipo = Column(String(20), nullable=False, index=True)
+    entidad_id = Column(GUID(), nullable=False, index=True)
+    
+    # Domicilio Universal (FK)
+    domicilio_id = Column(GUID(), ForeignKey("domicilios.id"), nullable=False, index=True)
+    
+    # Contexto del Vínculo
+    alias = Column(String, nullable=True) # Ej: "Sede Principal", "Casa Particular"
+    
+    # [GENOMA RELACION V14]
+    # Bit 0 (1): FISCAL | Bit 1 (2): PRINCIPAL_ENTREGA | Bit 3 (8): TEMPORAL
+    flags_relacion = Column(BigInteger, default=0, nullable=False)
+    
+    activo = Column(Boolean, default=True)
+    
+    # Auditoría
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    # Relaciones
+    domicilio = relationship("backend.clientes.models.Domicilio")
+
+    def __repr__(self):
+        return f"<VinculoGeografico({self.entidad_tipo}:{self.entidad_id} -> {self.domicilio_id})>"

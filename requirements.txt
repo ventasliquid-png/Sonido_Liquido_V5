@@ -24,3 +24,8 @@ pdfplumber
 fpdf2
 qrcode
 pymupdf
+
+# Sabueso Oro (Legal RAR Dependencies)
+endesive
+PyKCS11
+asn1crypto

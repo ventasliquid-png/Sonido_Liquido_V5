@@ -4,8 +4,10 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
 
+from datetime import datetime, timezone
 from backend.clientes.models import Cliente, Domicilio
 from backend.clientes import schemas
+from backend.clientes.constants import ClientFlags
 from backend.agenda import models as agenda_models
 
 class ClienteService:
@@ -36,7 +38,8 @@ class ClienteService:
                 condicion_iva_id=cliente_in.condicion_iva_id,
                 lista_precios_id=cliente_in.lista_precios_id,
                 activo=cliente_in.activo,
-                requiere_auditoria=cliente_in.requiere_auditoria
+                requiere_auditoria=cliente_in.requiere_auditoria,
+                fecha_alta=cliente_in.fecha_alta or datetime.now(timezone.utc)
             )
             db.add(db_cliente)
             db.commit()
@@ -148,7 +151,6 @@ class ClienteService:
 
     @staticmethod
     def update_cliente(db: Session, cliente_id: UUID, cliente_in: schemas.ClienteUpdate) -> Optional[Cliente]:
-        from backend.clientes.constants import ClientFlags
         
         db_cliente = ClienteService.get_cliente(db, cliente_id)
         if not db_cliente:
@@ -384,11 +386,17 @@ class ClienteService:
         
         # Enforce Single Fiscal Domicile Logic
         if domicilio_in.es_fiscal:
-            # Demote all existing domiciles
             db.query(Domicilio).filter(
                 Domicilio.cliente_id == cliente_id,
                 Domicilio.es_fiscal == True
             ).update({"es_fiscal": False})
+        
+        # Enforce Single Primary Domicile Logic
+        if domicilio_in.es_predeterminado:
+            db.query(Domicilio).filter(
+                Domicilio.cliente_id == cliente_id,
+                Domicilio.es_predeterminado == True
+            ).update({"es_predeterminado": False})
 
         # Prepare data
         # [GY-PROTOCOL-PIPE] Logic Fusion directly to Caller
@@ -411,6 +419,24 @@ class ClienteService:
             db.add(db_domicilio)
             db.commit()
             db.refresh(db_domicilio)
+            
+            # [VAULT SYNC] Register VinculoGeografico
+            from backend.contactos.models import VinculoGeografico
+            flags = 0
+            if domicilio_in.es_fiscal: flags |= 1
+            if domicilio_in.es_predeterminado: flags |= 2
+            
+            vg = VinculoGeografico(
+                entidad_tipo='CLIENTE',
+                entidad_id=cliente_id,
+                domicilio_id=db_domicilio.id,
+                alias=db_domicilio.alias,
+                flags_relacion=flags,
+                activo=True
+            )
+            db.add(vg)
+            db.commit()
+            
             # [GY-FIX-V12] Return the DOMICILIO object, not the Client. Frontend expects Domicilio.
             return db_domicilio
         except Exception as e:
@@ -442,12 +468,19 @@ class ClienteService:
 
         # Enforce Single Fiscal Domicile Logic
         if update_data.get('es_fiscal'):
-            # Demote others
             db.query(Domicilio).filter(
                 Domicilio.cliente_id == db_domicilio.cliente_id,
-                Domicilio.id != domicilio_id, # Don't demote self
+                Domicilio.id != domicilio_id,
                 Domicilio.es_fiscal == True
             ).update({"es_fiscal": False})
+        
+        # Enforce Single Primary Domicile Logic
+        if update_data.get('es_predeterminado'):
+            db.query(Domicilio).filter(
+                Domicilio.cliente_id == db_domicilio.cliente_id,
+                Domicilio.id != domicilio_id,
+                Domicilio.es_predeterminado == True
+            ).update({"es_predeterminado": False})
 
         # [GY-FIX-V5] Fix Persistence Conflict: Empresa vs Nodo
         # If updating Empresa (transporte_id), clear Legacy Nodo (transporte_habitual_nodo_id)
@@ -462,6 +495,31 @@ class ClienteService:
         db.commit()
         db.refresh(db_domicilio)
         
+        # [VAULT SYNC] Update VinculoGeografico flags
+        from backend.contactos.models import VinculoGeografico
+        vg = db.query(VinculoGeografico).filter(
+            VinculoGeografico.entidad_tipo == 'CLIENTE',
+            VinculoGeografico.entidad_id == db_domicilio.cliente_id,
+            VinculoGeografico.domicilio_id == db_domicilio.id
+        ).first()
+        
+        if vg:
+            flags = vg.flags_relacion
+            if 'es_fiscal' in update_data:
+                if update_data['es_fiscal']: flags |= 1
+                else: flags &= ~1
+            if 'es_predeterminado' in update_data:
+                if update_data['es_predeterminado']: flags |= 2
+                else: flags &= ~2
+            
+            if 'activo' in update_data:
+                vg.activo = update_data['activo']
+            
+            vg.flags_relacion = flags
+            vg.alias = db_domicilio.alias
+            db.add(vg)
+            db.commit()
+        
         # Return Domicilio object
         return db_domicilio
 
@@ -474,4 +532,11 @@ class ClienteService:
             db.add(db_domicilio)
             db.commit()
             db.refresh(db_domicilio)
+            
+            # [VAULT SYNC] Inactivate Vinculo
+            from backend.contactos.models import VinculoGeografico
+            db.query(VinculoGeografico).filter(
+                VinculoGeografico.domicilio_id == domicilio_id
+            ).update({"activo": False})
+            db.commit()
         return db_domicilio

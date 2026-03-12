@@ -276,6 +276,8 @@ onUnmounted(() => {
             <h2 class="font-outfit text-lg font-bold text-white flex items-center gap-2">
                 <i class="fa-solid fa-map-location-dot text-cyan-400"></i>
                 {{ isEditing ? 'Editar Domicilio (Split View)' : 'Nuevo Domicilio' }}
+                <span v-if="isEditing" class="text-[9px] bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded border border-amber-500/30 ml-2 uppercase tracking-widest">Editando</span>
+                <span v-else class="text-[9px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30 ml-2 uppercase tracking-widest">Nueva Sucursal</span>
             </h2>
             <div class="flex gap-2">
                 <button @click="$emit('close')" class="px-3 py-1.5 rounded-lg text-white/50 hover:text-white text-xs font-bold transition-colors">

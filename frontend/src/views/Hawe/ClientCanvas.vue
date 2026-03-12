@@ -110,6 +110,10 @@
           
           <div class="flex items-center gap-4">
               <span v-if="form.codigo_interno" class="font-mono text-xs text-cyan-500/50 mr-4">#{{ form.codigo_interno }}</span>
+              <div v-if="form.fecha_alta" class="flex flex-col items-end mr-4">
+                  <span class="text-[8px] font-bold text-cyan-500/30 uppercase tracking-[0.2em]">Fecha de Alta</span>
+                  <span class="font-mono text-[10px] text-cyan-500/60 transition-all hover:text-cyan-400 cursor-default">{{ formatDate(form.fecha_alta) }}</span>
+              </div>
               <!-- Status Switch (Header) -->
               <div class="flex items-center justify-between bg-black/40 rounded-lg px-2 py-1 border border-white/10 h-[26px]">
                    <span class="text-[8px] font-bold uppercase truncate mr-2" :class="form.activo ? 'text-green-400' : 'text-red-400'">
@@ -214,12 +218,19 @@
                                   <div class="h-10 w-10 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
                                       <i class="fas fa-truck-fast text-emerald-400 text-lg"></i>
                                   </div>
-                                  <div>
-                                       <h3 class="text-xs font-bold text-white uppercase tracking-widest">Entrega Principal</h3>
-                                       <span class="text-[10px] text-emerald-400/60 font-mono">
-                                           {{ computedPrimaryDelivery ? (computedPrimaryDelivery.alias || 'Sede Central') : 'Sin Asignar' }}
-                                       </span>
-                                  </div>
+                                   <div class="flex-1 min-w-0">
+                                        <h3 class="text-xs font-bold text-white uppercase tracking-widest">Entrega Principal</h3>
+                                        <span class="text-[10px] text-emerald-400/60 font-mono truncate block">
+                                            {{ computedPrimaryDelivery ? (computedPrimaryDelivery.alias || 'Sede Central') : 'Sin Asignar' }}
+                                        </span>
+                                   </div>
+                                   <div class="flex items-center gap-2">
+                                        <div class="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30">
+                                             <span class="text-[8px] font-black text-emerald-400 uppercase tracking-tighter">
+                                                 {{ computedPrimaryDelivery?.metodo_entrega || 'Retira Cliente' }}
+                                             </span>
+                                        </div>
+                                   </div>
                               </div>
                               
                               <!-- Primary Address Details -->
@@ -246,6 +257,15 @@
                               <div v-else class="text-center py-4 text-white/20 italic text-xs">
                                   Click para asignar dirección de entrega
                               </div>
+
+                              <!-- Add Sede Button (Relocated to bottom-right) -->
+                              <button 
+                                  @click.stop="openNewDomicilio"
+                                  class="absolute bottom-4 right-4 px-3 py-1.5 rounded-lg bg-cyan-500/5 border border-cyan-500/20 hover:bg-cyan-500/10 text-cyan-400 hover:text-white transition-all text-[9px] font-black uppercase tracking-widest flex items-center gap-2 z-10"
+                              >
+                                  <i class="fas fa-plus-circle text-[10px]"></i>
+                                  Agregar Sucursal
+                              </button>
                           </div>
                       </div>
 
@@ -280,9 +300,9 @@
                       </div>
 
                       <!-- No Secondary but 'Add' hint -->
-                      <div v-else class="text-right px-1">
-                           <button @click="openNewDomicilio" class="text-[9px] font-bold text-cyan-500/50 hover:text-cyan-400 uppercase tracking-widest transition-colors">
-                               + Agregar otra sucursal
+                      <div v-else class="text-right px-1 mt-2">
+                           <button @click="openNewDomicilio" class="text-[9px] font-bold text-cyan-400 bg-cyan-400/5 hover:bg-cyan-400/10 border border-cyan-400/20 px-3 py-1.5 rounded-full uppercase tracking-widest transition-all">
+                               + Agregar otra sucursal de entrega
                            </button>
                       </div>
 
@@ -580,6 +600,12 @@ const emit = defineEmits(['close', 'save'])
 
 // Audit Logic
 const { evaluateCliente } = useAuditSemaphore()
+
+const formatDate = (dateStr) => {
+    if (!dateStr) return 'N/D'
+    const d = new Date(dateStr)
+    return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
 
 const isNew = ref(false)
 const cuitInput = ref(null) // [GY-FIX]
@@ -945,9 +971,11 @@ const computedFiscalAddress = computed(() => {
 
 const computedPrimaryDelivery = computed(() => {
     if (!domicilios.value) return null;
-    return domicilios.value.find(d => !d.es_fiscal && d.es_entrega && d.activo !== false) 
-        || domicilios.value.find(d => d.es_fiscal && d.es_entrega) 
-        || domicilios.value.find(d => d.es_fiscal)
+    return domicilios.value.find(d => !d.es_fiscal && d.es_predeterminado && d.activo !== false)
+        || domicilios.value.find(d => !d.es_fiscal && d.es_entrega && d.activo !== false) 
+        || domicilios.value.find(d => d.es_fiscal && d.es_entrega && d.activo !== false) 
+        || domicilios.value.find(d => d.es_fiscal && d.activo !== false)
+        || domicilios.value.find(d => d.activo !== false)
         || domicilios.value[0];
 })
 
@@ -955,21 +983,18 @@ const computedSecondaryDeliveries = computed(() => {
     const primary = computedPrimaryDelivery.value;
     if (!primary) return [];
     
-    // Filter all delivery nodes that are NOT the primary one
+    // Solo mostrar sucursales de entrega puras (no fiscales) en la lista secundaria
     return domicilios.value.filter(d => 
-        (d.es_entrega || d.es_fiscal) && // Consider fiscal as delivery if marked? No, usually distinct.
+        d.es_entrega && 
+        !d.es_fiscal &&
         d.activo !== false &&
         (d.id ? String(d.id) !== String(primary.id) : d.local_id !== primary.local_id)
-        // Also exclude pure fiscal from this list if it's not meant for delivery?
-        // Usually secondary addresses are explicit delivery nodes (!es_fiscal).
-        // Let's stick to !es_fiscal for secondary list to avoid duplicating the Master Fiscal Card.
-        && !d.es_fiscal
     );
 })
 
 
 const domiciliosLogistica = computed(() => {
-    return domicilios.value.filter(d => !d.es_fiscal && d.activo !== false)
+    return domicilios.value.filter(d => (!d.es_fiscal || d.es_entrega) && d.activo !== false)
 })
 
 const visibleLogistics = computed(() => {
@@ -1162,6 +1187,12 @@ const openAddressContextMenu = (e, domicilio) => {
             handler: () => openDomicilioTab(targetDom)
         });
         
+        actions.push({
+            label: 'Marcar como Principal',
+            iconClass: 'fas fa-star text-amber-400',
+            handler: () => handleDomicilioSaved({ ...targetDom, es_predeterminado: true })
+        });
+
         actions.push({
             label: 'Crear Nueva Locación',
             iconClass: 'fas fa-plus',
@@ -1676,6 +1707,23 @@ const handleDomicilioSaved = async (domicilioData) => {
                  }
              }
         }
+
+        // --- 1.2 PRIMARY DELIVERY CONSERVATION ---
+        if (domicilioData.es_predeterminado) {
+            const existingPrimary = domicilios.value.find(d => {
+                if (!d.es_predeterminado || d.activo === false) return false;
+                if (d.id && domicilioData.id) return String(d.id) !== String(domicilioData.id);
+                if (d.local_id && domicilioData.local_id) return d.local_id !== domicilioData.local_id;
+                return true;
+            });
+            if (existingPrimary) {
+                existingPrimary.es_predeterminado = false;
+                if (existingPrimary.id && !isNew.value) {
+                   store.updateDomicilio(form.value.id, existingPrimary.id, { es_predeterminado: false });
+                }
+            }
+        }
+
         if (domicilioData.activo === false || (domicilioData.id && !domicilioData.es_fiscal)) {
              const currentInArray = domicilios.value.find(d => String(d.id) === String(domicilioData.id));
              if (currentInArray?.es_fiscal) {

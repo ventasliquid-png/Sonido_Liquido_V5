@@ -30,3 +30,9 @@ _SISTEMA_INTERNO/
 *.pyd
 Antigravity.exe
 _GY/
+
+# SEGURIDAD SABUESO
+*.crt
+*.key
+*.p12
+backend/modules/sabueso/certs/

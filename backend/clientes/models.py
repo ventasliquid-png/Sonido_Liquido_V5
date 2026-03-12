@@ -74,6 +74,7 @@ class Cliente(Base):
     # -------------------------------------------------------
 
     # Auditoría
+    fecha_alta = Column(DateTime, default=lambda: datetime.now(timezone.utc)) # Fecha de alta para negocio
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
@@ -95,6 +96,13 @@ class Cliente(Base):
         primaryjoin="and_(foreign(Vinculo.entidad_id)==Cliente.id, Vinculo.entidad_tipo=='CLIENTE')",
         viewonly=True,
         foreign_keys="[Vinculo.entidad_id]"
+    )
+    
+    # [V5 UNIVERSAL VAULT]
+    vinculos_geograficos = relationship(
+        "backend.contactos.models.VinculoGeografico",
+        primaryjoin="and_(foreign(backend.contactos.models.VinculoGeografico.entidad_id)==Cliente.id, backend.contactos.models.VinculoGeografico.entidad_tipo=='CLIENTE')",
+        viewonly=True,
     )
 
     def __repr__(self):
@@ -178,8 +186,14 @@ class Domicilio(Base):
 
     # Flags de uso
     activo = Column(Boolean, default=True, nullable=False)
-    es_fiscal = Column(Boolean, default=False)
-    es_entrega = Column(Boolean, default=False)
+    es_fiscal = Column(Boolean, default=False) # [LEGACY] To be moved to Relation Genome
+    es_entrega = Column(Boolean, default=False) # [LEGACY] To be moved to Relation Genome
+    es_predeterminado = Column(Boolean, default=False) # [LEGACY]
+    
+    # [GENOMA INFRA V14]
+    # Bit 0: RAMPA | Bit 1: DOCK_CARGA | Bit 2: ASCENSOR_CARGA
+    flags_infra = Column(BigInteger, default=0, nullable=False)
+    
     observaciones = Column(Text, nullable=True) # [V7.1] Notas generales del domicilio
     
     # [V7.2] Dirección de Entrega (Separada de Fiscal)

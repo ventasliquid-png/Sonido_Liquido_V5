@@ -23,6 +23,7 @@ class DomicilioBase(BaseModel):
     activo: bool = True
     es_fiscal: bool = False
     es_entrega: bool = False
+    es_predeterminado: bool = False
     transporte_id: Optional[UUID] = None
     intermediario_id: Optional[UUID] = None
     metodo_entrega: Optional[str] = None
@@ -56,6 +57,7 @@ class DomicilioUpdate(BaseModel):
     activo: Optional[bool] = None
     es_fiscal: Optional[bool] = None
     es_entrega: Optional[bool] = None
+    es_predeterminado: Optional[bool] = None
     transporte_id: Optional[UUID] = None
     intermediario_id: Optional[UUID] = None
     metodo_entrega: Optional[str] = None
@@ -88,6 +90,7 @@ class DomicilioResponse(BaseModel):
     activo: bool = True
     es_fiscal: bool = False
     es_entrega: bool = False
+    es_predeterminado: bool = False
     transporte_habitual_nodo_id: Optional[UUID] = None
     transporte_id: Optional[UUID] = None
     intermediario_id: Optional[UUID] = None
@@ -145,6 +148,7 @@ class ClienteBase(BaseModel):
     # Referencia al vendedor
     vendedor_id: Optional[int] = None
     estrategia_precio: Optional[str] = "MAYORISTA_FISCAL"
+    fecha_alta: Optional[datetime] = None
 
     @field_validator('cuit')
     @classmethod
@@ -193,6 +197,7 @@ class ClienteUpdate(BaseModel):
     transporte_id: Optional[UUID] = None
     vendedor_id: Optional[int] = None
     estrategia_precio: Optional[str] = None
+    fecha_alta: Optional[datetime] = None
 
     @field_validator('cuit')
     @classmethod
@@ -232,6 +237,7 @@ class ClienteResponse(ClienteBase):
     # Nuevos Campos Visuales (Propiedades @property del modelo)
     domicilio_fiscal_resumen: Optional[str] = None
     requiere_entrega: bool = False
+    fecha_alta: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -247,6 +253,7 @@ class ClienteListResponse(ClienteBase):
     # Nuevos Campos Visuales (Propiedades @property del modelo)
     domicilio_fiscal_resumen: Optional[str] = None
     requiere_entrega: bool = False
+    fecha_alta: Optional[datetime] = None
     # [GY-TEMP] Disable contacto_principal_nombre to fix 500 error on list view
     # contacto_principal_nombre: Optional[str] = None
     

@@ -58,6 +58,8 @@ class IngestionCliente(BaseModel):
     cuit: Optional[str] = None
     razon_social: Optional[str] = None
     domicilio: Optional[str] = None
+    condicion_iva: Optional[str] = None
+    canal: Optional[str] = None
 
 class IngestionFactura(BaseModel):
     numero: Optional[str] = None
@@ -74,3 +76,4 @@ class IngestionPayload(BaseModel):
     cliente: IngestionCliente
     factura: IngestionFactura
     items: List[IngestionItem]
+    solo_actualizar_cliente: bool = False

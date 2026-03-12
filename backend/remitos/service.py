@@ -14,6 +14,14 @@ from backend.contactos.models import Vinculo
 class RemitosService:
     
     @staticmethod
+    def _resolve_iva_condition(db: Session, name: Optional[str]) -> Optional[str]:
+        if not name: return None
+        # Normalización para búsqueda
+        lookup = name.strip()
+        cond = db.query(CondicionIva).filter(CondicionIva.nombre.ilike(f"%{lookup}%")).first()
+        return cond.id if cond else None
+
+    @staticmethod
     def create_from_ingestion(db: Session, payload: schemas.IngestionPayload):
         """
         Creates a Pedido and Remito from PDF Ingestion Data.
@@ -65,14 +73,17 @@ class RemitosService:
             from backend.clientes.constants import ClientFlags
             gold_flags = ClientFlags.EXISTENCE | ClientFlags.GOLD_ARCA | ClientFlags.V14_STRUCT
             
+            iva_id = RemitosService._resolve_iva_condition(db, payload.cliente.condicion_iva)
+
             cliente = Cliente(
                 razon_social=payload_name or "CLIENTE NUEVO (INGESTA)",
                 cuit=payload_cuit or "00000000000",
                 activo=True,
                 flags_estado=gold_flags,
                 estado_arca='PENDIENTE_AUDITORIA',
-                condicion_iva_id=None,
-                lista_precios_id=None
+                condicion_iva_id=iva_id,
+                lista_precios_id=None,
+                fecha_alta=datetime.now()
             )
             db.add(cliente)
             db.flush() # Get ID
@@ -88,11 +99,47 @@ class RemitosService:
             )
             db.add(domicilio_def)
             db.flush()
+        else:
+            # [V5 Healing] Si el cliente existe, aprovechamos para actualizar su domicilio si vino en la factura
+            # y el cliente no tiene domicilios activos, o el usuario lo desea.
+            if payload.cliente.domicilio and payload.cliente.domicilio != "S/D":
+                fiscal = next((d for d in cliente.domicilios if d.es_fiscal and d.activo), None)
+                if fiscal and (not fiscal.calle or fiscal.calle == "S/D"):
+                    fiscal.calle = payload.cliente.domicilio
+                    db.add(fiscal)
+                    print(f"Ingestion: Domicilio actualizado para {cliente.razon_social}")
+            
+            # [NUEVO] Sanación de IVA si está en blanco
+            if not cliente.condicion_iva_id and payload.cliente.condicion_iva:
+                 iva_id = RemitosService._resolve_iva_condition(db, payload.cliente.condicion_iva)
+                 if iva_id:
+                      cliente.condicion_iva_id = iva_id
+                      db.add(cliente)
+                      print(f"Ingestion: IVA sanado para {cliente.razon_social} -> {payload.cliente.condicion_iva}")
+
+        # --- [NUEVO] OPCIÓN SOLO ACTUALIZAR CLIENTE ---
+        if payload.solo_actualizar_cliente:
+             db.commit()
+             print(f"Ingestion: Se decidió solo actualizar el cliente {cliente.razon_social}. Finalizando.")
+             return None # Retornamos None (el router debe manejar esto)
+
+        # 2. RESOLVE LOGISTICS via Universal Vault (Vanguard V5)
+        # Search for PRINCIPAL_ENTREGA (Bit 1 = 2) or FISCAL (Bit 0 = 1)
+        from backend.contactos.models import VinculoGeografico
         
-        # 2. RESOLVE LOGISTICS
-        domicilio = next((d for d in cliente.domicilios if d.activo), None)
+        vinculo = db.query(VinculoGeografico).filter(
+            VinculoGeografico.entidad_tipo == 'CLIENTE',
+            VinculoGeografico.entidad_id == cliente.id,
+            VinculoGeografico.activo == True
+        ).order_by(
+            (VinculoGeografico.flags_relacion.op('&')(2)).desc(), # Prioritize Principal (Bit 1)
+            (VinculoGeografico.flags_relacion.op('&')(1)).desc()  # Then Fiscal (Bit 0)
+        ).first()
+        
+        domicilio = vinculo.domicilio if vinculo else None
+        
         if not domicilio:
-            # Fallback to first address in DB
+            # Deep Fallback (Legacy check)
             domicilio = db.query(Domicilio).filter(Domicilio.cliente_id == cliente.id).first()
             
         # Default Transport
@@ -213,24 +260,46 @@ class RemitosService:
             )
             db.add(r_item)
             
-        # 7. [V14 GENOMA] EVO: Upgrade to Level 13
+        # 7. [VANGUARD CANON] Genoma 64-bit Evolution
         from backend.clientes.constants import ClientFlags
         
         current_flags = getattr(cliente, 'flags_estado', 0) or 0
-        # Build Level 13: Existence (1) | GOLD_ARCA (4) | V14_STRUCT (8)
+        
+        # Base: Existence (0) | Arca (2) | V14 (3)
         target_flags = ClientFlags.EXISTENCE | ClientFlags.GOLD_ARCA | ClientFlags.V14_STRUCT
         
-        # [V5] ABM Mutation (15 -> 13): 
-        # Si el cliente era nivel 15 (target_flags + VIRGINITY), al emitir el primer remito
-        # pierde la virginidad y baja/muta a 13 automáticamente.
-        # Merge target flags into current, but ALWAYS remove VIRGINITY (2)
-        new_flags = (current_flags | target_flags) & ~ClientFlags.VIRGINITY
+        # Sello de Vida: Ganar HISTORIA (13) y perder VIRGINITY (15)
+        # un cliente de factura ya no es virgen.
+        mutation_flags = (current_flags | target_flags | ClientFlags.HISTORIA) & ~ClientFlags.VIRGINITY
         
-        if current_flags != new_flags:
-            cliente.flags_estado = new_flags
-            cliente.estado_arca = 'PENDIENTE_AUDITORIA' # Re-audit if flags changed o se rompio el blanco
+        # Sello de Revisión: Si falta Segmento o Lista de Precios, marcar PENDIENTE_REVISION (20)
+        if not cliente.segmento_id or not cliente.lista_precios_id:
+            mutation_flags |= ClientFlags.PENDIENTE_REVISION
+        else:
+            mutation_flags &= ~ClientFlags.PENDIENTE_REVISION
+
+        # Sello de Logística: MULTI_DESTINO (16) if > 1 address in the Vault
+        vinculos_count = db.query(VinculoGeografico).filter(
+            VinculoGeografico.entidad_tipo == 'CLIENTE',
+            VinculoGeografico.entidad_id == cliente.id,
+            VinculoGeografico.activo == True
+        ).count()
+        if vinculos_count > 1:
+            mutation_flags |= ClientFlags.MULTI_DESTINO
+        else:
+            mutation_flags &= ~ClientFlags.MULTI_DESTINO
+
+        # Sello de Origen: Marketing DNA (30-34)
+        if payload.cliente.canal == "MLIBRE":
+            mutation_flags |= ClientFlags.CH_MLIBRE
+        elif payload.cliente.canal == "TIENDANUBE":
+            mutation_flags |= ClientFlags.CH_TIENDANUBE
+        
+        if current_flags != mutation_flags:
+            cliente.flags_estado = mutation_flags
+            cliente.estado_arca = 'VALIDADO' if (mutation_flags & ClientFlags.GOLD_ARCA) else 'PENDIENTE_AUDITORIA'
             db.add(cliente)
-            print(f"Genoma EVO: Cliente {cliente.razon_social} evolucionó de Flag {current_flags} a Flag {new_flags} (Nivel 13)")
+            print(f"Vanguard Canon: Cliente {cliente.razon_social} mutó a Flag {mutation_flags}")
 
         db.commit()
         db.refresh(remito)

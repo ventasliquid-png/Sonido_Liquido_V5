@@ -21,10 +21,31 @@ class LogisticaService:
                 detail=f"Ya existe una empresa de transporte con el nombre '{existing.nombre}' ({status_msg})."
             )
 
-        db_empresa = models.EmpresaTransporte(**empresa_in.model_dump())
         db.add(db_empresa)
         db.commit()
         db.refresh(db_empresa)
+        
+        # [VAULT SYNC] Register Transporte Addresses
+        from backend.clientes.models import Domicilio
+        from backend.contactos.models import VinculoGeografico
+        
+        # A. Central/Fiscal
+        if db_empresa.direccion:
+            dom = Domicilio(calle=db_empresa.direccion, localidad=db_empresa.localidad or 'S/D', provincia_id=db_empresa.provincia_id or 'X', activo=True)
+            db.add(dom)
+            db.flush()
+            vg = VinculoGeografico(entidad_tipo='TRANSPORTE', entidad_id=db_empresa.id, domicilio_id=dom.id, alias='Administrativa', flags_relacion=1, activo=True)
+            db.add(vg)
+            
+        # B. Despacho
+        if db_empresa.direccion_despacho and db_empresa.direccion_despacho != db_empresa.direccion:
+            dom = Domicilio(calle=db_empresa.direccion_despacho, localidad=db_empresa.localidad or 'S/D', provincia_id=db_empresa.provincia_id or 'X', activo=True)
+            db.add(dom)
+            db.flush()
+            vg = VinculoGeografico(entidad_tipo='TRANSPORTE', entidad_id=db_empresa.id, domicilio_id=dom.id, alias='Despacho', flags_relacion=2, activo=True)
+            db.add(vg)
+        
+        db.commit()
         return db_empresa
 
     @staticmethod
@@ -54,6 +75,37 @@ class LogisticaService:
         db.add(db_empresa)
         db.commit()
         db.refresh(db_empresa)
+        
+        # [VAULT SYNC] Sync changes
+        from backend.contactos.models import VinculoGeografico
+        from backend.clientes.models import Domicilio
+        
+        if 'direccion' in update_data:
+            vg = db.query(VinculoGeografico).filter(VinculoGeografico.entidad_tipo == 'TRANSPORTE', VinculoGeografico.entidad_id == db_empresa.id, VinculoGeografico.alias == 'Administrativa').first()
+            if vg and vg.domicilio:
+                vg.domicilio.calle = db_empresa.direccion
+                db.add(vg.domicilio)
+            elif db_empresa.direccion:
+                dom = Domicilio(calle=db_empresa.direccion, localidad=db_empresa.localidad or 'S/D', provincia_id=db_empresa.provincia_id or 'X', activo=True)
+                db.add(dom)
+                db.flush()
+                vg = VinculoGeografico(entidad_tipo='TRANSPORTE', entidad_id=db_empresa.id, domicilio_id=dom.id, alias='Administrativa', flags_relacion=1, activo=True)
+                db.add(vg)
+
+        if 'direccion_despacho' in update_data:
+            # Sync Despacho
+            vg = db.query(VinculoGeografico).filter(VinculoGeografico.entidad_tipo == 'TRANSPORTE', VinculoGeografico.entidad_id == db_empresa.id, VinculoGeografico.alias == 'Despacho').first()
+            if vg and vg.domicilio:
+                vg.domicilio.calle = db_empresa.direccion_despacho
+                db.add(vg.domicilio)
+            elif db_empresa.direccion_despacho:
+                dom = Domicilio(calle=db_empresa.direccion_despacho, localidad=db_empresa.localidad or 'S/D', provincia_id=db_empresa.provincia_id or 'X', activo=True)
+                db.add(dom)
+                db.flush()
+                vg = VinculoGeografico(entidad_tipo='TRANSPORTE', entidad_id=db_empresa.id, domicilio_id=dom.id, alias='Despacho', flags_relacion=2, activo=True)
+                db.add(vg)
+
+        db.commit()
         return db_empresa
 
     @staticmethod
@@ -84,6 +136,19 @@ class LogisticaService:
         db.add(db_nodo)
         db.commit()
         db.refresh(db_nodo)
+        
+        # [VAULT SYNC] Register Nodo Address
+        from backend.clientes.models import Domicilio
+        from backend.contactos.models import VinculoGeografico
+        
+        if db_nodo.direccion_completa:
+            dom = Domicilio(calle=db_nodo.direccion_completa, localidad=db_nodo.localidad or 'S/D', provincia_id=db_nodo.provincia_id, activo=True)
+            db.add(dom)
+            db.flush()
+            vg = VinculoGeografico(entidad_tipo='NODO_TRANSPORTE', entidad_id=db_nodo.id, domicilio_id=dom.id, alias=db_nodo.nombre_nodo, flags_relacion=2, activo=True)
+            db.add(vg)
+            db.commit()
+            
         return db_nodo
 
     @staticmethod
@@ -110,6 +175,24 @@ class LogisticaService:
         db.add(db_nodo)
         db.commit()
         db.refresh(db_nodo)
+        
+        # [VAULT SYNC] Sync changes
+        from backend.contactos.models import VinculoGeografico
+        from backend.clientes.models import Domicilio
+        
+        if 'direccion_completa' in update_data:
+            vg = db.query(VinculoGeografico).filter(VinculoGeografico.entidad_tipo == 'NODO_TRANSPORTE', VinculoGeografico.entidad_id == db_nodo.id).first()
+            if vg and vg.domicilio:
+                vg.domicilio.calle = db_nodo.direccion_completa
+                db.add(vg.domicilio)
+            elif db_nodo.direccion_completa:
+                dom = Domicilio(calle=db_nodo.direccion_completa, localidad=db_nodo.localidad or 'S/D', provincia_id=db_nodo.provincia_id, activo=True)
+                db.add(dom)
+                db.flush()
+                vg = VinculoGeografico(entidad_tipo='NODO_TRANSPORTE', entidad_id=db_nodo.id, domicilio_id=dom.id, alias=db_nodo.nombre_nodo, flags_relacion=2, activo=True)
+                db.add(vg)
+                
+        db.commit()
         return db_nodo
 
     @staticmethod

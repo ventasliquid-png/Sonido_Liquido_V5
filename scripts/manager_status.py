@@ -22,7 +22,17 @@ BIT_MAP = {
     3: "CRÍTICO (Bloqueo)",
     5: "ORIGEN_OF",
     6: "ORIGEN_CA",
-    7: "ORIGEN_NB"
+    7: "ORIGEN_NB",
+    8: "SABUESO_READY (Injectado)",
+    9: "SABUESO_TOKEN (AFIP Active)",
+    13: "HISTORIA (Desvirgado)",
+    15: "VIRGEN (Sin Movimientos)",
+    16: "MULTI_DESTINO (Check UI)",
+    20: "PENDIENTE_REVISION (Faltan Datos)",
+    30: "CH_TIENDANUBE",
+    31: "CH_MLIBRE",
+    32: "CH_GOOGLE",
+    33: "CH_RRSS (Instagram/FB)"
 }
 
 def get_current_host_bit():
@@ -41,7 +51,8 @@ def read_bits():
         return 0
     try:
         with open(REPOSITORIO_BITS, "rb") as f:
-            data = f.read(1)
+            # [GENOMA 64-bit] Reading 8 bytes for BigInt support
+            data = f.read(8)
             return int.from_bytes(data, byteorder="big") if data else 0
     except:
         return 0
@@ -49,7 +60,8 @@ def read_bits():
 def write_bits(value):
     try:
         with open(REPOSITORIO_BITS, "wb") as f:
-            f.write(value.to_bytes(1, byteorder="big"))
+            # [GENOMA 64-bit] Persisting 8 bytes (BigInt) as per Vanguard Doctrine
+            f.write(value.to_bytes(8, byteorder="big"))
         return True
     except Exception as e:
         print(f"Error escribiendo bits: {e}")

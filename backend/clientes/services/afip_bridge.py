@@ -14,33 +14,19 @@ class AfipBridgeService:
     """
     
     @staticmethod
-    def _ensure_rar_path():
-        """Inyecta dinámicamente el path de RAR si no está presente."""
-        if RAR_PATH not in sys.path:
-            sys.path.append(RAR_PATH)
-            
-    @staticmethod
     def get_datos_afip(cuit: str) -> Dict[str, Any]:
         """
-        Consulta el Padrón A13 de AFIP a través de RAR V1.
-        
-        Args:
-            cuit (str): CUIT a validar (solo números).
-            
-        Returns:
-            Dict: Datos normalizados o diccionario con error.
+        Consulta el Padrón A13 de AFIP a través de Sabueso Oro (V5 Internal).
         """
         try:
-            AfipBridgeService._ensure_rar_path()
-            
-            # Importación diferida para evitar errores si RAR no existe o fallan dependencias al inicio
+            # Importación desde el nuevo ámbito Sabueso V5
             try:
-                from Conexion_Blindada import get_datos_afip
+                from backend.modules.sabueso.Conexion_Blindada import get_datos_afip
             except ImportError as e:
                 import traceback
                 error_detail = traceback.format_exc()
-                logger.error(f"FATAL: No se pudo importar Conexion_Blindada desde {RAR_PATH}.\n{error_detail}")
-                return {"error": f"Error de dependencia RAR: {str(e)}", "detail": error_detail}
+                logger.error(f"FATAL: No se pudo importar Sabueso desde backend.modules.sabueso.\n{error_detail}")
+                return {"error": f"Error de inyección Sabueso: {str(e)}", "detail": error_detail}
             
             # Ejecución blindada
             logger.info(f"[PUENTE RAR] Consultando AFIP para CUIT: {cuit}")
