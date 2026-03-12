@@ -1,0 +1,7 @@
+Ô£à CONEXI├ôN DB: 104.197.57.226:5432 (postgres)
+--- [Atenea V11.4]: Capa ORM (GUID Unified) inicializada. ---
+--- [Atenea V10.10]: Auth/Models ('Usuario', 'Rol') definidos. ---
+--- [CONTEO DE TROPA - IOWA] ---
+Clientes: 1
+Productos: 0
+Pedidos: 0

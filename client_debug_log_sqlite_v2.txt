@@ -1,0 +1,8 @@
+>>> Script starting...
+--- [DEBUG] Forcing SQLITE LOCAL: sqlite:///C:\dev\pilot.db ---
+>>> debug_clients function called
+>>> [DEBUG] Fetching clients (limit=5)...
+>>> [DEBUG] Fetched 0 clients.
+--- [DATABASE] Usando DATABASE_URL de entorno: sqlite:///C:\dev\pilot.db ---
+--- [Atenea V11.4]: Capa ORM (GUID Unified) inicializada. ---
+--- [Atenea V10.10]: Auth/Models ('Usuario', 'Rol') definidos. ---

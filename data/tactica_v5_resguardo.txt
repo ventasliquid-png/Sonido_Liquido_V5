@@ -1,0 +1,9 @@
+[Ingesta de Doctrina: Resguardo V5 (Red de Seguridad)]
+Módulo/Hito: Arquitectura de Resiliencia V5
+Doctrina Central: Doctrina de Resguardo V5 (Anti-Falla de Punto Único)
+Análisis Estratégico: La arquitectura V5 (RAG/pgvector) resuelve la "fatiga de tokens" (V4), pero crea un "punto único de falla" (la dependencia de un proveedor de nube externo). Debemos asegurar la redundancia y la soberanía de los datos mediante un resguardo local.
+Implementación Canónica (Agente Archivista):
+1. El sistema V5 debe incluir un "Agente Archivista" (un servicio automatizado o un script de Ortro V5).
+2. Misión 1 (Backup VDB): El agente debe ser capaz de ejecutar snapshots (copias de seguridad) periódicas de la base de datos pgvector completa.
+3. Misión 2 (Backup Doctrinal): El agente debe extraer los manifiestos fundacionales y la doctrina crítica (Directiva Fénix 001, Informe 43, V2.3, V2.4.1) como archivos de texto plano.
+4. Misión 3 (Sincronización Local): El agente debe sincronizar ambos activos (el snapshot VDB y los manifiestos) con un reservorio local (un repositorio Git privado o una ubicación segura en la infraestructura del Comandante).

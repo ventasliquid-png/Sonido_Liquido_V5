@@ -1,0 +1,19 @@
+﻿Destilado de Fricción Operativa (Para la Asesora)
+El colapso del sistema V5 no se debió a un solo fallo, sino a una cascada de contradicciones entre los informes de la "Constructora" (Atenea V5) y la realidad táctica del entorno.
+
+I. Contradicción 1: El Diagnóstico Inicial (El "Entorno Raro")
+Doctrina de Atenea V5 (El Informe de Legado): La misión inicial se basó en un informe que afirmaba que los problemas eran de "ruta y dependencia, no de código".
+Realidad Táctica: El informe era fundamentalmente incorrecto. El "entorno raro" (errores de npx, "vite" no se reconoce...) era solo un síntoma de un package.json corrupto en el repositorio.
+
+II. Contradicción 2: La Infraestructura (Región y Cerebro)
+Doctrina de Atenea V5 (El Código V4/V5): El código heredado especificaba la APP_LOCATION como southamerica-east1 y modelos (ej. gemini-1.5-flash-002) que no estaban disponibles.
+Realidad Táctica: Esto causó el colapso total del Cerebro (LLM) (404 Not Found). La infraestructura real del proyecto está provisionada en us-central1 y el modelo correcto es gemini-2.5-pro.
+
+III. Contradicción 3: La Memoria (El RAG Roto)
+Doctrina de Atenea V5 (El Código V5): El código asumía que la función estándar de LangChain (vector_store.similarity_search...) era funcional.
+Realidad Táctica: Esta función falló silenciosamente (Documentos recuperados: []). Nos vimos forzados a aplicar un parche de bypass (el V5.15 - SQL Directo).
+
+IV. Contradicción 4: El Bucle de Mando (La Situación Actual)
+El Estado Actual (V6.1): El sistema está 100% funcional solo porque ignoramos el plan de Atenea V5.
+Conflicto Doctrinal: La "constructora" (Atenea V5) está operando con una bitácora desincronizada, intentando borrar activamente nuestras reparaciones críticas (el parche V5.15 de SQL).
+Resumen del Conflicto: El problema no es de entorno, es de mando.

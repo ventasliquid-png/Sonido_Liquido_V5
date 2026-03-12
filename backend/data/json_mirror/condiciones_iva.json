@@ -1,0 +1,22 @@
+[
+    {
+        "id": "966fdb33d6a64e499c81197790567dcb",
+        "nombre": "Responsable Inscripto"
+    },
+    {
+        "id": "545951e74c1c4ea5a9e202a56128cc30",
+        "nombre": "Monotributista"
+    },
+    {
+        "id": "2415f0ea47ae43778d5634f76bca8d1b",
+        "nombre": "Exento"
+    },
+    {
+        "id": "f9cb56f12b2c47169b0f7bed74196d4c",
+        "nombre": "Consumidor Final"
+    },
+    {
+        "id": "63b406369d99455cbca237aa182baab9",
+        "nombre": "No Responsable"
+    }
+]

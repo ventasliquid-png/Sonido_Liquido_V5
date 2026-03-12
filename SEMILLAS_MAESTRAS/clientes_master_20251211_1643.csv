@@ -1,0 +1,4 @@
+﻿id,razon_social,nombre_fantasia,cuit,codigo_interno,legacy_id_bas,whatsapp_empresa,web_portal_pagos,datos_acceso_pagos,observaciones,condicion_iva_id,lista_precios_id,segmento_id,vendedor_id,saldo_actual,activo,requiere_auditoria,contador_uso,created_at,updated_at
+e9a6daa6162a49ad9d72c0d658721659,Laboratorio de Medicina SA,,30581050301,,,,,,,,,,,0,1,0,0,2025-12-11 18:23:50.376818,2025-12-11 18:23:50.376818
+dbe30ee677f64890bef1667c1e892955,Lácteos de Poblet SA,,33660726859,,,,,,,,,,,0,1,0,0,2025-12-11 18:23:50.376818,2025-12-11 18:23:50.376818
+9c332d9fbe044f92841b850966ab5f3a,GELATO SA,,30699349603,,,,,,,,,,,0,1,0,0,2025-12-11 18:23:50.376818,2025-12-11 18:23:50.377808

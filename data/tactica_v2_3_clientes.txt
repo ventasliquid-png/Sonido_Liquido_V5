@@ -1,0 +1,5 @@
+﻿[Bitácora Técnica V2.3 - Módulo Clientes]
+Modelo de Datos (Firestore): /clients/{client_id}
+Endpoints API (FastAPI):
+  - POST /v5/clients/: Crear un nuevo cliente.
+  - GET /v5/clients/{client_id}: Obtener un cliente por ID.

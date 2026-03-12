@@ -1,0 +1,194 @@
+[
+    {
+        "id": "CABA",
+        "nombre": "Capital Federal"
+    },
+    {
+        "id": "BA",
+        "nombre": "Buenos Aires"
+    },
+    {
+        "id": "CT",
+        "nombre": "Catamarca"
+    },
+    {
+        "id": "CH",
+        "nombre": "Chaco"
+    },
+    {
+        "id": "CB",
+        "nombre": "Chubut"
+    },
+    {
+        "id": "CD",
+        "nombre": "Córdoba"
+    },
+    {
+        "id": "CR",
+        "nombre": "Corrientes"
+    },
+    {
+        "id": "ER",
+        "nombre": "Entre Ríos"
+    },
+    {
+        "id": "FO",
+        "nombre": "Formosa"
+    },
+    {
+        "id": "JY",
+        "nombre": "Jujuy"
+    },
+    {
+        "id": "LP",
+        "nombre": "La Pampa"
+    },
+    {
+        "id": "LR",
+        "nombre": "La Rioja"
+    },
+    {
+        "id": "MZ",
+        "nombre": "Mendoza"
+    },
+    {
+        "id": "MI",
+        "nombre": "Misiones"
+    },
+    {
+        "id": "NQ",
+        "nombre": "Neuquén"
+    },
+    {
+        "id": "RN",
+        "nombre": "Río Negro"
+    },
+    {
+        "id": "SA",
+        "nombre": "Salta"
+    },
+    {
+        "id": "SJ",
+        "nombre": "San Juan"
+    },
+    {
+        "id": "SL",
+        "nombre": "San Luis"
+    },
+    {
+        "id": "SC",
+        "nombre": "Santa Cruz"
+    },
+    {
+        "id": "SF",
+        "nombre": "Santa Fe"
+    },
+    {
+        "id": "SE",
+        "nombre": "Santiago del Estero"
+    },
+    {
+        "id": "TF",
+        "nombre": "Tierra del Fuego"
+    },
+    {
+        "id": "TU",
+        "nombre": "Tucumán"
+    },
+    {
+        "id": "A",
+        "nombre": "Salta"
+    },
+    {
+        "id": "B",
+        "nombre": "Buenos Aires"
+    },
+    {
+        "id": "C",
+        "nombre": "Capital Federal"
+    },
+    {
+        "id": "D",
+        "nombre": "San Luis"
+    },
+    {
+        "id": "E",
+        "nombre": "Entre Ríos"
+    },
+    {
+        "id": "F",
+        "nombre": "La Rioja"
+    },
+    {
+        "id": "G",
+        "nombre": "Santiago del Estero"
+    },
+    {
+        "id": "H",
+        "nombre": "Chaco"
+    },
+    {
+        "id": "J",
+        "nombre": "San Juan"
+    },
+    {
+        "id": "K",
+        "nombre": "Catamarca"
+    },
+    {
+        "id": "L",
+        "nombre": "La Pampa"
+    },
+    {
+        "id": "M",
+        "nombre": "Mendoza"
+    },
+    {
+        "id": "N",
+        "nombre": "Misiones"
+    },
+    {
+        "id": "P",
+        "nombre": "Formosa"
+    },
+    {
+        "id": "Q",
+        "nombre": "Neuquén"
+    },
+    {
+        "id": "R",
+        "nombre": "Río Negro"
+    },
+    {
+        "id": "S",
+        "nombre": "Santa Fe"
+    },
+    {
+        "id": "T",
+        "nombre": "Tucumán"
+    },
+    {
+        "id": "U",
+        "nombre": "Chubut"
+    },
+    {
+        "id": "V",
+        "nombre": "Tierra del Fuego"
+    },
+    {
+        "id": "W",
+        "nombre": "Corrientes"
+    },
+    {
+        "id": "X",
+        "nombre": "Córdoba"
+    },
+    {
+        "id": "Y",
+        "nombre": "Jujuy"
+    },
+    {
+        "id": "Z",
+        "nombre": "Santa Cruz"
+    }
+]

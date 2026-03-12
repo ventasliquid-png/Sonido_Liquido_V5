@@ -1,0 +1,154 @@
+import pandas as pd
+from io import BytesIO
+from sqlalchemy.orm import Session
+from backend.pedidos.models import Pedido, PedidoItem
+from backend.clientes.models import Cliente, Domicilio
+from backend.maestros.models import Vendedor
+from backend.remitos.models import Remito # [GY-V7] For Split Logic Check
+from datetime import datetime
+from datetime import datetime
+
+class ExcelExportService:
+    def generate_orders_excel(self, db: Session) -> BytesIO:
+        """
+        Genera un archivo Excel con dos hojas:
+        1. Pedidos (Cabeceras)
+        2. Items (Detalle)
+        """
+        
+        # 1. Fetch Data
+        pedidos = db.query(Pedido).filter(Pedido.activo == True).all()
+        
+        # 2. Prepare Data for Headers
+        headers_data = []
+        items_data = []
+        
+        for p in pedidos:
+            # Flatten Header Info
+            cliente_rs = p.cliente.razon_social if p.cliente else "N/A"
+            cliente_cuit = p.cliente.cuit if p.cliente else "N/A"
+            vendedor_nombre = p.vendedor.nombre if p.vendedor else "N/A"
+            
+            headers_data.append({
+                "ID Pedido": p.id,
+                "Fecha": p.fecha_emision,
+                "Cliente": cliente_rs,
+                "CUIT": cliente_cuit,
+                "Vendedor": vendedor_nombre,
+                "Estado": p.estado,
+                "Total Neto": p.total_neto,
+                "Total IVA": p.total_iva,
+                "Total General": p.total_general,
+                "Condición Pago": p.condicion_pago,
+                "Total General": p.total_general,
+                "Condición Pago": p.condicion_pago,
+                # [GY-V7] Logística Multiplex Repair
+                "Logística": self._get_logistica_label(p, db),
+                # [GY-V7] Dirección de Entrega (Split Logic)
+                "Dirección Entrega": self._get_delivery_address(p),
+                "Localidad Entrega": self._get_delivery_locality(p),
+                "Observaciones": p.observaciones,
+                "Creado Por": p.usuario_creador
+            })
+            
+            # Flatten Items Info
+            for item in p.items:
+                items_data.append({
+                    "ID Pedido": p.id,
+                    "SKU": item.producto_id, # Asumimos ID como SKU por ahora
+                    "Producto": item.descripcion_producto, # O cargar nombre si no está denormalizado
+                    "Cantidad": item.cantidad,
+                    "Precio Unit.": item.precio_unitario,
+                    "IVA %": item.tasa_iva,
+                    "Subtotal": item.subtotal
+                })
+                
+        # 3. Create DataFrame
+        df_headers = pd.DataFrame(headers_data)
+        df_items = pd.DataFrame(items_data)
+        
+        # 4. Write to Excel Buffer
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df_headers.to_excel(writer, sheet_name='Pedidos', index=False)
+            df_items.to_excel(writer, sheet_name='Detalle Items', index=False)
+            
+            # Auto-adjust columns width (Basic)
+            for sheet in writer.sheets.values():
+                for column in sheet.columns:
+                    max_length = 0
+                    column_letter = column[0].column_letter
+                    for cell in column:
+                        try:
+                            if len(str(cell.value)) > max_length:
+                                max_length = len(str(cell.value))
+                        except:
+                            pass
+                    adjusted_width = (max_length + 2) * 1.2
+                    sheet.column_dimensions[column_letter].width = adjusted_width
+
+        output.seek(0)
+        output.seek(0)
+        return output
+
+    def _get_logistica_label(self, pedido: Pedido, db: Session) -> str:
+        """
+        Determina la etiqueta de logística basada en el estado de Split (V7).
+        """
+        # 1. Check Split (Remitos)
+        remito_count = db.query(Remito).filter(Remito.pedido_id == pedido.id).count()
+        
+        if remito_count > 1:
+            return "Logística Multiplex (Ver Remitos)"
+        elif remito_count == 1:
+            # Opción: Mostrar el transporte de ese único remito
+            remito = db.query(Remito).filter(Remito.pedido_id == pedido.id).first()
+            return f"Remito Único ({remito.transporte.nombre if remito.transporte else '?'})"
+            
+        # 2. Fallback V5 (Pedido Header)
+        if pedido.transporte:
+            return pedido.transporte.nombre
+            
+        return "A Coordinar / Retira Cliente"
+
+    def _get_delivery_address(self, pedido: dict) -> str:
+        """
+        Resuelve la dirección de entrega usando lógica V7 (Split-View).
+        Prioriza calle_entrega (Logística) sobre calle (Fiscal).
+        """
+        # Pedido object from query (SQLAlchemy)
+        dom = pedido.domicilio_entrega
+        if not dom:
+            # Fallback to Client Fiscal if needed? Or keep explicit?
+            # V7 Policy: Explicit is better.
+            return "A Coordinar / Retira"
+            
+        # V7 Logic
+        calle = dom.calle_entrega or dom.calle or ""
+        numero = dom.numero_entrega or dom.numero or ""
+        piso = dom.piso_entrega or dom.piso or ""
+        depto = dom.depto_entrega or dom.depto or ""
+        
+        addr = f"{calle} {numero}".strip()
+        
+        # Add piso/depto if exists
+        extras = []
+        if piso: extras.append(f"Piso {piso}")
+        if depto: extras.append(f"Dto {depto}")
+        
+        if extras:
+            addr += " (" + " ".join(extras) + ")"
+            
+        return addr
+
+    def _get_delivery_locality(self, pedido: dict) -> str:
+        dom = pedido.domicilio_entrega
+        if not dom:
+            return ""
+            
+        localidad = dom.localidad_entrega or dom.localidad or ""
+        provincia_id = dom.provincia_entrega_id or dom.provincia_id or ""
+        
+        if provincia_id:
+            return f"{localidad} ({provincia_id})"
+        return localidad

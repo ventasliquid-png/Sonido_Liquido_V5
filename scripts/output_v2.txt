@@ -1,0 +1,67 @@
+Dumping text from c:\dev\Sonido_Liquido_V5\INGESTA_FACTURAS\LAVIMAR S.A. F 001_00001_00002436.pdf...
+--- TEXT START ---
+                                                                                  
+                                                                                  
+                                    ORIGINAL                                      
+                                                                                  
+                                        A                                         
+                                               FACTURA                            
+             SONIDO LIQUIDO SRL                                                   
+                                       COD. 01                                    
+                                               Punto de Venta: 00001 Comp. Nro: 00002436
+   Razón Social: SONIDO LIQUIDO SRL            Fecha de Emisión: 13/11/2025       
+   Domicilio Comercial: Roseti 1482 Piso:PB Dpto:1 - Ciudad de CUIT: 30715603973  
+                Buenos Aires                   Ingresos Brutos: 30715603973       
+   Condición frente al IVA: IVA Responsable Inscripto Fecha de Inicio de Actividades: 01/06/2017
+   CUIT: 30536602913           Apellido y Nombre / Razón Social:LAVIMAR S A       
+                                                                                  
+   Condición frente al IVA: IVA Responsable Inscripto Domicilio Comercial:Av.Cnel.Larrabure 2460 - Villa Maria, Córdoba
+   Condición de venta: Contado                                                    
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                   Alicuota       
+   Código Producto / Servicio    Cantidad U. medida Precio Unit. % Bonif Subtotal Subtotal c/IVA
+                                                                    IVA           
+        Surgibac PA Plus bidón x 5 Lts 6,00 unidades 47300,00 0,00 283800,00 21% 343398,00
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+                          Importe Otros Tributos: $ 0,00                          
+                                                                                  
+                                                       Importe Neto Gravado: $ 283800,00
+                                                               IVA 27%: $    0,00 
+                                                               IVA 21%: $ 59598,00
+                                                              IVA 10.5%: $   0,00 
+                                                                IVA 5%: $    0,00 
+                                                               IVA 2.5%: $   0,00 
+                                                                IVA 0%: $    0,00 
+                                                      Importe Otros Tributos: $ 0,00
+                                                           Importe Total: $ 343398,00
+                                                                                  
+                                 "www.liquidsound.com.ar"                         
+                                                                                  
+                                      Pág. 1/1                                    
+                                                             CAE N°: 75463738845651
+                                                    Fecha de Vto. de CAE: 23/11/2025
+                Comprobante Autorizado                                            
+                Esta Agencia no se responsabiliza por los datos ingresados en el detalle de la operación
+                                                                                  
+                                                                                  
+                                                                                  
+                                                                                  
+--- TEXT END ---

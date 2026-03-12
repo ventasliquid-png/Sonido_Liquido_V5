@@ -1,0 +1,26 @@
+Path configured. Forcing SQLite: sqlite:///C:\dev\Sonido_Liquido_V5\pilot.db
+Step 0: Importing Models (Emulating main.py)...
+--- [DATABASE] Usando DATABASE_URL de entorno: sqlite:///C:\dev\Sonido_Liquido_V5\pilot.db ---
+--- [Atenea V11.4]: Capa ORM (GUID Unified) inicializada. ---
+--- [Atenea V10.10]: Auth/Models ('Usuario', 'Rol') definidos. ---
+OK Models Imported
+Step 1: Importing Service & Router...
+--- [DATABASE] Usando DATABASE_URL de entorno: sqlite:///C:\dev\Sonido_Liquido_V5\pilot.db ---
+--- [Atenea V11.4]: Capa ORM (GUID Unified) inicializada. ---
+--- [Atenea V10.E]: Core/Config (IA, Seguridad JWT, CORS) cargado. ---
+--- [Atenea V10.E]: Auth/Service (L¾gica AuthN/AuthZ y Tokens) definida. ---
+--- [Atenea V10.E]: Core/Config (IA, Seguridad JWT, CORS) cargado. ---
+--- [Atenea V10.E]: Auth/Dependencies (Seguridad JWT) definidas. ---
+OK Service/Router Imported
+Step 2: Simulating read_clientes...
+Attempting to fetch clients (limit=5)...
+Fetched 5 clients.
+Client: ALFAJORES JORGITO SA
+Domicilio Fiscal Resumen: Treinta y Tres Orientales 1840, CABA
+Testing Pydantic List Response...
+OK Pydantic List Validation
+Raw Domicilio Calle: Treinta y Tres Orientales 
+Parsed Domicilio Calle: Treinta y Tres Orientales  | Floor: None | Dept: None
+Testing Integrity Check calculation...
+Integrity Lock: 0 orders found.
+OK Simulation Complete
