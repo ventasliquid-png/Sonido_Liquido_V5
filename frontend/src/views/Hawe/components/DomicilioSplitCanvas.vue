@@ -175,14 +175,14 @@ watch(() => props.domicilio, (newVal) => {
 
 
 
-// Watchers for Auto-Sync
-watch(() => form.calle, (val) => { if (!dirtyFields.calle) form.calle_entrega = val; });
-watch(() => form.numero, (val) => { if (!dirtyFields.numero) form.numero_entrega = val; });
-watch(() => form.piso, (val) => { if (!dirtyFields.piso) form.piso_entrega = val; });
-watch(() => form.depto, (val) => { if (!dirtyFields.depto) form.depto_entrega = val; });
-watch(() => form.localidad, (val) => { if (!dirtyFields.localidad) form.localidad_entrega = val; });
-watch(() => form.cp, (val) => { if (!dirtyFields.cp) form.cp_entrega = val; });
-watch(() => form.provincia_id, (val) => { if (!dirtyFields.provincia) form.provincia_entrega_id = val; });
+// Watchers for Auto-Sync (Unidirectional Fiscal -> Delivery while in sync)
+watch(() => form.calle, (val, oldVal) => { if (form.calle_entrega === oldVal && !dirtyFields.calle) form.calle_entrega = val; });
+watch(() => form.numero, (val, oldVal) => { if (form.numero_entrega === oldVal && !dirtyFields.numero) form.numero_entrega = val; });
+watch(() => form.piso, (val, oldVal) => { if (form.piso_entrega === oldVal && !dirtyFields.piso) form.piso_entrega = val; });
+watch(() => form.depto, (val, oldVal) => { if (form.depto_entrega === oldVal && !dirtyFields.depto) form.depto_entrega = val; });
+watch(() => form.localidad, (val, oldVal) => { if (form.localidad_entrega === oldVal && !dirtyFields.localidad) form.localidad_entrega = val; });
+watch(() => form.cp, (val, oldVal) => { if (form.cp_entrega === oldVal && !dirtyFields.cp) form.cp_entrega = val; });
+watch(() => form.provincia_id, (val, oldVal) => { if (form.provincia_entrega_id === oldVal && !dirtyFields.provincia) form.provincia_entrega_id = val; });
 
 const markDirty = (field) => {
     dirtyFields[field] = true;

@@ -35,11 +35,20 @@
                   />
                    <button 
                         @click="consultarAfip"
-                        :disabled="loadingAfip"
+                        :disabled="loadingAfip || loadingWeb"
                         class="text-cyan-400 hover:text-white transition-colors disabled:opacity-50"
-                        title="Validar ARCA"
+                        title="Validar ARCA/AFIP"
                     >
                         <i class="fas" :class="loadingAfip ? 'fa-spinner fa-spin' : 'fa-search'"></i>
+                    </button>
+                    <!-- Validar Web (Secundaria) -->
+                    <button 
+                        @click="consultarWeb"
+                        :disabled="loadingAfip || loadingWeb"
+                        class="text-emerald-400 hover:text-white transition-colors disabled:opacity-50 ml-1"
+                        title="Validar vía Web (CuitOnline)"
+                    >
+                        <i class="fas" :class="loadingWeb ? 'fa-spinner fa-spin' : 'fa-globe'"></i>
                     </button>
               </div>
               <div class="relative group">
@@ -223,13 +232,6 @@
                                         <span class="text-[10px] text-emerald-400/60 font-mono truncate block">
                                             {{ computedPrimaryDelivery ? (computedPrimaryDelivery.alias || 'Sede Central') : 'Sin Asignar' }}
                                         </span>
-                                   </div>
-                                   <div class="flex items-center gap-2">
-                                        <div class="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30">
-                                             <span class="text-[8px] font-black text-emerald-400 uppercase tracking-tighter">
-                                                 {{ computedPrimaryDelivery?.metodo_entrega || 'Retira Cliente' }}
-                                             </span>
-                                        </div>
                                    </div>
                               </div>
                               
@@ -506,7 +508,6 @@
                   @click="saveCliente"
                   class="px-10 py-3 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transition-all flex items-center gap-3 active:scale-95"
               >
-              >
                   {{ isNew ? 'Crear Cliente' : 'Actualizar Registro' }} <i class="fas" :class="isNew ? 'fa-plus' : 'fa-check'"></i>
               </button>
           </div>
@@ -616,11 +617,43 @@ const activeTab = ref('CLIENTE') // 'CLIENTE', 'DOMICILIO', 'CONTACTO'
 
 // --- RAR-V5 BRIDGE (AFIP) ---
 const loadingAfip = ref(false)
-const forceAddressSync = ref(false)
-const GENERIC_CUITS = ['11111111119', '11111111111', '00000000000']
-const commonCuitNames = {
-    '11111111119': 'CONSUMIDOR FINAL GENERICO',
-    '00000000000': 'CONSUMIDOR FINAL'
+const loadingWeb = ref(false)
+
+const consultarWeb = async () => {
+    if (!form.value.cuit) {
+        notificationStore.add('Ingrese un CUIT para validar en la web.', 'warning')
+        return
+    }
+
+    loadingWeb.value = true
+    try {
+        const response = await clientesService.checkWeb(form.value.cuit)
+        const res = response.data
+
+        if (res.condicion_iva) {
+            const arcaIva = res.condicion_iva.toUpperCase()
+            const ivaTarget = condicionesIva.value.find(c => {
+                const localIva = c.nombre.toUpperCase()
+                if (localIva === arcaIva) return true
+                if (arcaIva.includes('MONOTRIBUTO') && localIva.includes('MONOTRIBUTO')) return true
+                if (arcaIva.includes('RESPONSABLE INSCRIPTO') && localIva.includes('RESPONSABLE INSCRIPTO')) return true
+                return false
+            })
+
+            if (ivaTarget) {
+                form.value.condicion_iva_id = ivaTarget.id
+                notificationStore.add(`IVA validado vía Web: ${res.condicion_iva}`, 'success')
+            } else {
+                notificationStore.add(`Web detectó: ${res.condicion_iva}. Seleccione manualmente.`, 'info')
+            }
+        } else if (res.error) {
+            notificationStore.add(`Error Web: ${res.error}`, 'warning')
+        }
+    } catch (err) {
+        notificationStore.add('No se pudo completar la validación web.', 'error')
+    } finally {
+        loadingWeb.value = false
+    }
 }
 
 const consultarAfip = async () => {
@@ -709,7 +742,18 @@ const consultarAfip = async () => {
              // Default Fallbacks
              if (arcaIva.includes('MONOTRIBUTO')) form.value.condicion_iva_id = 6
              else if (arcaIva.includes('INSCRIPTO')) form.value.condicion_iva_id = 1
-             else form.value.condicion_iva_id = 5
+             else if (arcaIva.includes('INFERIDO')) {
+                 form.value.condicion_iva_id = 1 // Assume RI based on activity
+                 notificationStore.add('Condición IVA inferida por actividad comercial. Verifique.', 'info')
+             } else if (arcaIva.includes('REVISAR') || arcaIva.includes('NOT_FOUND')) {
+                 // ONLY wipe if already empty, to avoid overwriting valid data from Cantera
+                 if (!form.value.condicion_iva_id) {
+                    form.value.condicion_iva_id = null 
+                    notificationStore.add('AFIP no retornó IVA. Seleccione manualmente.', 'warning')
+                 }
+             } else {
+                 form.value.condicion_iva_id = 5 // Consumidor Final
+             }
         }
         
         // 3. Update Domicilio Fiscal (Smart Parser)
@@ -807,6 +851,19 @@ const consultarAfip = async () => {
                  notificationStore.add(`ARCA Validado (Sin Domicilio reportado)`, 'warning')
              }
         }
+
+        // [GY-DOCTRINA-V14] ARCA Validation Success
+        // 1. Set Level 15 (Virgin) OR 13 (History) with GOLD bit (4)
+        const currentFlags = form.value.flags_estado || 0;
+        // In ARCA context, we always ensure Gold Bit (4) and V14 bit (8) and Active (1)
+        const targetBase = 1 | 4 | 8; 
+        form.value.flags_estado = (currentFlags | targetBase);
+        
+        // 2. Set ARCA Status
+        form.value.estado_arca = 'VALIDADO';
+        
+        // 3. Clear Revision Bit (20) - 1048576
+        form.value.flags_estado &= ~1048576;
 
         notificationStore.add(`Validación ARCA Exitosa: ${res.razon_social}`, 'success')
         forceAddressSync.value = true;
@@ -1366,15 +1423,32 @@ const resetForm = () => {
     productosHabituales.value = []
 }
 
-const loadCliente = async (id) => {
+const loadCliente = async (id, mode = 'full') => {
     try {
         const client = await store.fetchClienteById(id)
         if (client) {
-            form.value = { ...client }
+            if (mode === 'merge') {
+                // [GY-FIX] Merge Logic: Preserve local master data changes during sub-record reloads
+                // These are the bits the user often sets but hasn't "Saved" the whole client yet.
+                const preserve = [
+                    'condicion_iva_id', 'lista_precios_id', 'segmento_id', 
+                    'vendedor_id', 'razon_social', 'cuit', 'flags_estado'
+                ];
+                
+                const merged = { ...client };
+                preserve.forEach(key => {
+                    if (form.value[key] !== undefined && form.value[key] !== null) {
+                        merged[key] = form.value[key];
+                    }
+                });
+                form.value = merged;
+            } else {
+                form.value = { ...client }
+            }
+            
             domicilios.value = client.domicilios || []
             contactos.value = client.vinculos || [] 
             loadCommercialIntel()
-            // [GY-UX] Check if it's a Collective CUIT
             checkCuitStatus(false)
         }
     } catch (e) {
@@ -1488,13 +1562,29 @@ const saveCliente = async () => {
         if (payload.codigo_interno === '') payload.codigo_interno = null;
         if (payload.cuit === '') payload.cuit = null;
         
-        // [GY-FIX] Evolución Automática
-        // Si no tiene flags, pero tiene CUIT válido, consideramos que es una entidad formal.
-        // Si estamos en un Modal (Ej. Ingesta de Factura), el cliente nace con movimiento asegurado,
-        // por ende nace Perdiendo la Virginidad (Nivel 13). Si es Alta Manual sin movimiento, nace Virgen (Nivel 15).
-        if ((!payload.flags_estado || payload.flags_estado === 0) && payload.cuit && payload.cuit !== '00000000000') {
-             payload.flags_estado = props.isModal ? 13 : 15;
+        // [GY-DOCTRINA-V14] GENOMA 4-BIT (PIN 1974)
+        // Lógica de Niveles 13/15:
+        // Bit 0 (1): Activo
+        // Bit 1 (2): Virginidad (1=Virgen / 0=Operado)
+        // Bit 2 (4): Gold Arca
+        // Bit 3 (8): V14 Struct
+        
+        let currentFlags = payload.flags_estado || 0;
+        
+        // Si no tiene identidad (nace de cero con CUIT), asignamos Nivel Inicial
+        if ((currentFlags & 0xF) === 0 && payload.cuit && payload.cuit !== '00000000000') {
+             // 15: Virgen (1+2+4+8) | 13: Ya operado (1+4+8)
+             currentFlags |= props.isModal ? 13 : 15;
         }
+
+        // [GY-FIX] AUDITORÍA AUTOMÁTICA (Limpieza Bit 20 - Amarillo)
+        // Si tiene IVA, Lista y Segmento, el cliente ya no está "Pendiente de Revisión"
+        const hasMandatory = payload.condicion_iva_id && payload.lista_precios_id && payload.segmento_id;
+        if (hasMandatory) {
+            currentFlags &= ~1048576; // Limpiar Bit 20 (Valor 1.048.576)
+        }
+        
+        payload.flags_estado = currentFlags;
         
         payload.vinculos = contactos.value;
         
@@ -1773,7 +1863,7 @@ const handleDomicilioSaved = async (domicilioData) => {
             await store.updateDomicilio(form.value.id, domicilioData.linked_delivery_id, deliveryPayload);
             
             notificationStore.add('Domicilio Fiscal y de Entrega actualizados', 'success');
-            await loadCliente(form.value.id);
+            await loadCliente(form.value.id, 'merge');
             activeTab.value = 'CLIENTE';
             return;
         }
@@ -1852,7 +1942,7 @@ const deleteContacto = async (c) => {
     }
 }
 
-const handleContactoSaved = () => loadCliente(form.value.id)
+const handleContactoSaved = () => loadCliente(form.value.id, 'merge')
 
 // --- Context Menu Logic for Contacts (V5.7) ---
 const openContactContextMenu = (e, contact = null) => {

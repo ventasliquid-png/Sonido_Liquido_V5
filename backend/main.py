@@ -1,4 +1,4 @@
-﻿"""
+"""
 Servidor Principal FastAPI (V10.12 - Arquitectura Modular Estable)
 """
 import os
@@ -130,6 +130,9 @@ async def lifespan(app: FastAPI):
 
     # --- [INICIO PARCHE V10.1 (ORM)] ---
     try:
+        from sqlalchemy.orm import configure_mappers
+        print("--- [V10.12]: Configurando mappers de SQLAlchemy... ---")
+        configure_mappers() # Force relationship resolution
         print("--- [V10.12]: Sincronizando modelos ORM (SQLAlchemy)... ---")
         Base.metadata.create_all(bind=engine)
         print("--- [V10.12]: Tablas ORM sincronizadas. ---")

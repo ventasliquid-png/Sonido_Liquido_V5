@@ -50,10 +50,9 @@ def extraer_datos_completos(json_afip):
     # A13 a veces no trae 'impuestos' si consultamos con clave ajena restringida.
     # Usamos heurística: Si es SA/SRL -> RI. Si no, Consumidor Final (Fallback).
     
-    iva_status = "CONSUMIDOR FINAL" # Default cauteloso
+    iva_status = "REVISAR/NOT_FOUND" # Default neutral
     
     # Intento 1: Impuestos explícitos (datosRegimenGeneral / monotributo)
-    # Nota: A13 suele traer esto en datosRegimenGeneral, pero si falla...
     regimen_general = datos.get('datosRegimenGeneral')
     monotributo = datos.get('datosMonotributo')
 
@@ -67,10 +66,19 @@ def extraer_datos_completos(json_afip):
         elif any((i.get('idImpuesto') == 32) for i in impuestos):
              iva_status = "EXENTO"
     else:
-        # Intento 2: Heurística por Forma Jurídica
+        # Intento 2: Heurística por Actividad / Forma Jurídica
+        tipo_persona = (datos.get('tipoPersona') or '').upper()
         forma_juridica = (datos.get('formaJuridica') or '').upper()
-        if "SOC. ANONIMA" in forma_juridica or "S.A." in forma_juridica or "S.R.L." in forma_juridica:
+        id_actividad = datos.get('idActividadPrincipal')
+        
+        # Si es Jurídica, es RI por defecto en este contexto
+        if tipo_persona == 'JURIDICA' or any(x in forma_juridica for x in ["SOC. ANONIMA", "S.A.", "S.R.L.", "S.H."]):
             iva_status = "RESPONSABLE INSCRIPTO"
+        # Si es Física y tiene actividad pero AFIP ocultó los impuestos (Caso Carlos/Matías)
+        elif tipo_persona == 'FISICA' and id_actividad:
+            iva_status = "RESPONSABLE INSCRIPTO (INFERIDO)"
+        else:
+            iva_status = "REVISAR/NOT_FOUND"
 
     return {
         "cuit": str(datos.get('idPersona', '')),
@@ -79,6 +87,7 @@ def extraer_datos_completos(json_afip):
         "condicion_iva": iva_status,
         "raw_debug": { 
              "formaJuridica": datos.get('formaJuridica'),
-             "tipoPersona": datos.get('tipoPersona')
+             "tipoPersona": datos.get('tipoPersona'),
+             "idActividad": id_actividad
         }
     }

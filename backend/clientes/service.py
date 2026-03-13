@@ -37,7 +37,9 @@ class ClienteService:
                 codigo_interno=next_id, # Auto-assigned
                 condicion_iva_id=cliente_in.condicion_iva_id,
                 lista_precios_id=cliente_in.lista_precios_id,
+                segmento_id=cliente_in.segmento_id, # Missing in initial code
                 activo=cliente_in.activo,
+                flags_estado=cliente_in.flags_estado or 0, # Persistence fix
                 requiere_auditoria=cliente_in.requiere_auditoria,
                 fecha_alta=cliente_in.fecha_alta or datetime.now(timezone.utc)
             )

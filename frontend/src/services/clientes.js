@@ -17,6 +17,7 @@ export default {
 
     // Bridge RAR-V5 (ARCA)
     checkAfip: (cuit) => api.get(`/clientes/afip/${cuit}`),
+    checkWeb: (cuit) => api.get(`/clientes/consultar-web/${cuit}`),
 
     // Domicilios
     createDomicilio: (clienteId, data) => api.post(`/clientes/${clienteId}/domicilios`, data),

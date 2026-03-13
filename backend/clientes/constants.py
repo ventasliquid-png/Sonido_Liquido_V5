@@ -2,50 +2,57 @@
 
 class ClientFlags:
     """
-    [DOCTRINA V14] ENIGMA BLUEPRINT
-    Bitmask Constants for 'flags_estado' (64-bit Integer - Genoma 64).
+    [DOCTRINA V14] GENOMA MASTER - PIN 1974
+    Suma de Potencias de 2 - Nibble Bajo (Identity DNA)
     """
+    # Bit 0 (1): ACTIVO / EXISTENCIA
+    EXISTENCE = 1
+    IS_ACTIVE = 1 
     
-    # Bit 0 (1): EXISTENCE
-    # El registro existe físicamente en la DB. (Equivale a 'activo' legacy si es 1)
-    EXISTENCE = 1 << 0
-    IS_ACTIVE = 1 << 0 # Alias legacy para service.py
+    # Bit 1 (2): VIRGINIDAD (1 = Virgen / 0 = Operado)
+    VIRGINITY = 2
+    IS_VIRGIN = 2
     
-    # Bit 2 (4): GOLD_ARCA
-    # El dato fue homologado por el satélite RAR (ARCA).
-    GOLD_ARCA = 1 << 2
-    FISCAL_REQUIRED = 1 << 2 # Alias funcional para service.py
+    # Bit 2 (4): GOLD_ARCA (Validado por Satélite)
+    GOLD_ARCA = 4
+    FISCAL_REQUIRED = 4
     
-    # Bit 3 (8): V14_STRUCT
-    # El registro cumple con la arquitectura de 64 bits Genoma V14.
-    V14_STRUCT = 1 << 3
+    # Bit 3 (8): ESTRUCTURA V14 (Protocolo Apolo)
+    V14_STRUCT = 8
     
-    # Bit 4 (16): OPERATOR_OK
-    # Sello Rosa: Validado manualmente por el operador.
-    OPERATOR_OK = 1 << 4
+    # --- [NIVELES COMBINADOS] ---
+    LEVEL_NEW = 15    # 1+2+4+8 (Virgen Validado V14)
+    LEVEL_HISTORY = 13 # 1+4+8 (Operado Validado V14)
     
-    # --- [CANON VANGUARD] ESTRUCTURA JERÁRQUICA 64-BIT ---
-    
-    # Bit 13 (8192): HISTORIA
-    # Sello de Vida: El cliente ya tiene movimientos reales (Facturas/Remitos).
-    HISTORIA = 1 << 13
-    
-    # Bit 15 (32768): VIRGINITY
-    # 1: Virgen (Sin movimientos) / 0: Ya desvirgado.
-    VIRGINITY = 1 << 15
-    IS_VIRGIN = 1 << 15 # Alias funcional
-    
-    # Bit 16 (65536): MULTI_DESTINO
-    # Se activa si el cliente tiene múltiples direcciones de entrega.
-    MULTI_DESTINO = 1 << 16
-    
-    # Bit 20 (1048576): PENDIENTE_REVISION
-    # El cliente nació "amarillo" (faltan datos operativos como Segmento o Lista).
+    # --- [AUDITORÍA Y UX] ---
+    # Bit 20 (1048576): PENDIENTE_REVISION (Color Amarillo)
     PENDIENTE_REVISION = 1 << 20
-
-    # --- [CANALES DE MARKETING] (Acquisition DNA 30-34) ---
+    
+    # --- [MARKETING DNA] (Acquisition 30-34) ---
     CH_TIENDANUBE = 1 << 30
     CH_MLIBRE = 1 << 31
-    CH_GOOGLE = 1 << 32
-    CH_RRSS = 1 << 33  # Instagram / Facebook Unified
-    CH_TIKTOK = 1 << 34
+
+class DomicilioFlags:
+    """
+    [DOCTRINA V14] GENOMA MASTER - INDEPENDENCIA GEOGRÁFICA
+    """
+    ACTIVO = 1
+    CONFLICTO = 2
+    ORO_FISCAL = 4
+    ORO_CURADO = 8
+    LOGISTICA = 16
+    
+    # Estados de Operación
+    VERDE_ARCA = 21   # 16+4+1
+    VERDE_MANUAL = 25 # 16+8+1
+    ORO_TOTAL = 29    # 16+8+4+1
+    AMARILLO = 23    # 16+4+2+1 (Conflicto)
+
+class SystemFlags:
+    """
+    [DOCTRINA V14] GENOMA DE SISTEMA (Byte 0)
+    """
+    TERMICA = 1    # Bloqueo total (Rojo)
+    ADVERTENCIA = 2 # Discrepancia (Amarillo)
+    AISLAMIENTO = 4 # Sin conexión ARCA (Naranja)
+

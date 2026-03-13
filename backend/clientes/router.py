@@ -20,16 +20,22 @@ router = APIRouter(
 def consultar_afip(cuit: str):
     """
     Consulta datos fiscales reales en AFIP mediante el puente RAR V1.
-    Retorna Razón Social, Domicilio Fiscal y Categoría.
     """
     from backend.clientes.services.afip_bridge import AfipBridgeService
-    
     resultado = AfipBridgeService.get_datos_afip(cuit)
-    
     if "error" in resultado:
-        print(f"[ROUTER-DEBUG] Error en consulta AFIP: {resultado['error']}")
         raise HTTPException(status_code=400, detail=resultado["error"])
-        
+    return resultado
+
+@router.get("/consultar-web/{cuit}", status_code=status.HTTP_200_OK)
+def consultar_web(cuit: str):
+    """
+    Realiza una búsqueda proactiva en la web (CuitOnline) para validar IVA.
+    """
+    from backend.modules.sabueso.web_crawler import scrape_cuit_online
+    resultado = scrape_cuit_online(cuit)
+    if "error" in resultado:
+        raise HTTPException(status_code=400, detail=resultado["error"])
     return resultado
 
 @router.get("/check-cuit/{cuit}", response_model=schemas.CuitCheckResponse)

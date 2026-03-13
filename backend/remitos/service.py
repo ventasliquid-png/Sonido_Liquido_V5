@@ -260,36 +260,25 @@ class RemitosService:
             )
             db.add(r_item)
             
-        # 7. [VANGUARD CANON] Genoma 64-bit Evolution
+        # 7. [VANGUARD CANON] Genoma 64-bit Evolution - PIN 1974
         from backend.clientes.constants import ClientFlags
         
         current_flags = getattr(cliente, 'flags_estado', 0) or 0
         
-        # Base: Existence (0) | Arca (2) | V14 (3)
-        target_flags = ClientFlags.EXISTENCE | ClientFlags.GOLD_ARCA | ClientFlags.V14_STRUCT
+        # Base: Activo (1) | Arca (4) | V14 (8) -> Nivel 13
+        # Si ya operó, pierde la Virginidad (~2)
+        target_base = ClientFlags.EXISTENCE | ClientFlags.GOLD_ARCA | ClientFlags.V14_STRUCT
         
-        # Sello de Vida: Ganar HISTORIA (13) y perder VIRGINITY (15)
-        # un cliente de factura ya no es virgen.
-        mutation_flags = (current_flags | target_flags | ClientFlags.HISTORIA) & ~ClientFlags.VIRGINITY
+        # Mutación Doctrinal: Forzar Nivel 13 (Apagar Bit 1)
+        mutation_flags = (current_flags | target_base) & ~ClientFlags.VIRGINITY
         
-        # Sello de Revisión: Si falta Segmento o Lista de Precios, marcar PENDIENTE_REVISION (20)
+        # Sello de Revisión: Si falta Segmento o Lista de Precios, marcar PENDIENTE_REVISION (Bit 20)
         if not cliente.segmento_id or not cliente.lista_precios_id:
             mutation_flags |= ClientFlags.PENDIENTE_REVISION
         else:
             mutation_flags &= ~ClientFlags.PENDIENTE_REVISION
 
-        # Sello de Logística: MULTI_DESTINO (16) if > 1 address in the Vault
-        vinculos_count = db.query(VinculoGeografico).filter(
-            VinculoGeografico.entidad_tipo == 'CLIENTE',
-            VinculoGeografico.entidad_id == cliente.id,
-            VinculoGeografico.activo == True
-        ).count()
-        if vinculos_count > 1:
-            mutation_flags |= ClientFlags.MULTI_DESTINO
-        else:
-            mutation_flags &= ~ClientFlags.MULTI_DESTINO
-
-        # Sello de Origen: Marketing DNA (30-34)
+        # [V5] Sello de Origen: Marketing DNA (30-31)
         if payload.cliente.canal == "MLIBRE":
             mutation_flags |= ClientFlags.CH_MLIBRE
         elif payload.cliente.canal == "TIENDANUBE":
@@ -297,9 +286,11 @@ class RemitosService:
         
         if current_flags != mutation_flags:
             cliente.flags_estado = mutation_flags
+            # El estado_arca se sincroniza con el Bit Gold Arca (4)
             cliente.estado_arca = 'VALIDADO' if (mutation_flags & ClientFlags.GOLD_ARCA) else 'PENDIENTE_AUDITORIA'
             db.add(cliente)
-            print(f"Vanguard Canon: Cliente {cliente.razon_social} mutó a Flag {mutation_flags}")
+            print(f"Vanguard Canon: Cliente {cliente.razon_social} evolucionó a Flag {mutation_flags} (Nivel 13)")
+
 
         db.commit()
         db.refresh(remito)

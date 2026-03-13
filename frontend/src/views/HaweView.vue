@@ -428,35 +428,38 @@ const showTransporteManager = ref(false)
 const canteraResults = ref([])
 const canteraLoading = ref(false)
 
-// [GY-UX] Color Mode Logic (Consistent with ClientCanvas)
+// [GY-DOCTRINA-V14] Color Mode Logic (Consistent with Genoma Master)
 const getClientColorMode = (cliente) => {
     const cuit = (cliente.cuit || '').replace(/[^0-9]/g, '');
     const isGeneric = ['00000000000', '11111111119', '11111111111', '99999999999'].includes(cuit);
     
-    // PINK: No CUIT, Short CUIT, or Generic CUIT
+    // 1. PINK: No CUIT, Short CUIT, or Generic CUIT (Prioridad Máxima: No Fiscal)
     if (!cuit || cuit.length < 5 || isGeneric) {
         return 'PINK'; 
     }
+
+    // 2. YELLOW: Check for Pending Revision (Bit 20 - 1048576)
+    const flags = cliente.flags_estado || 0;
+    if (flags & 1048576) {
+        return 'YELLOW';
+    }
     
-    // BLUE: Shared/Collective CUIT (UBA Case)
-    // We check if this CUIT appears more than once in the FULL clients list (not just filtered)
-    // Note: This might be expensive on very large lists, but feasible for < 2000 clients on client-side.
+    // 3. BLUE: Shared/Collective CUIT (UBA Case)
     if (cuit.length === 11) {
-        // Optimization: Create a Map or just filter? Filter is O(N). Called for N items = O(N^2).
-        // Better: Pre-calculate duplicates? 
-        // For now, simplicity: Check duplication.
         const count = clientes.value.filter(c => (c.cuit||'').replace(/[^0-9]/g, '') === cuit).length;
         if (count > 1) return 'BLUE';
     }
 
-    // GREEN: Validated & Real CUIT
+    // 4. GREEN: Validated & Real CUIT
     if (cliente.estado_arca === 'VALIDADO') {
         return 'VALIDADO'; // or GREEN
     }
     
-    // YELLOW: Pending/Warning
+    // Fallback: Si no es nada de lo anterior, es Amarillo (Incompleto)
     return 'YELLOW';
 }
+
+
 
 const handleCanteraSearch = async () => {
     if (!searchQuery.value) return

@@ -8,10 +8,17 @@ El sistema V5 implementa una estrategia psicológica de precios:
 * **La Máscara (Precio de Lista):** Es el valor público ("inflado") sobre el cual se aplican bonificaciones.
 * **Objetivo:** El sistema permite llegar a "La Roca" aplicando descuentos sobre "La Máscara", generando en el cliente la satisfacción de "ganar" una bonificación, mientras la empresa asegura su margen.
 
-## 2. ARQUITECTURA DE CLIENTES (V5.4) - "UNA PLANTA = UN CLIENTE"
-* **Definición:** En clientes multi-sede (ej: Nestlé), cada planta industrial o punto de entrega se modela como un "Cliente ID" independiente en la base de datos.
-* **Justificación:** Simplifica la asignación de transportes, horarios de recepción y contactos específicos sin complejizar el modelo de datos con sub-tablas de "Sedes".
-* **Consistencia:** Todos operan con la misma Razón Social y CUIT (Duplicidad permitida y validada con advertencia), pero con "Dirección de Entrega" única.
+## 2. ARQUITECTURA DE CLIENTES (V5.4) - "UNA PLANTA = UN CLIENTE" [LEGACY]
+* **Nota de Evolución:** Este modelo 1:1 ha sido superado por la **Bóveda Universal V5**. Aunque la base de datos permite duplicar CUITs para representar plantas, la arquitectura recomendada ahora es usar **Vínculos Geográficos** sobre un único maestro de CUIT.
+
+## 14. BÓVEDA UNIVERSAL DE DOMICILIOS (VANGUARD VAULT V5)
+Implementada en Marzo 2026, esta arquitectura desacopla los domicilios físicos de las entidades comerciales.
+* **Modelo N:M**: Una entidad (`CLIENTE`, `PERSONA`, `TRANSPORTE`) puede tener N domicilios, y un domicilio puede pertenecer a N entidades.
+* **Genoma de Relación**: La tabla `vinculos_geograficos` almacena el rol de la dirección mediante una máscara de bits:
+    - **Bit 0 (1):** Fiscal.
+    - **Bit 1 (2):** Principal / Entrega.
+    - **Bit 3 (8):** Temporal / Excepcional.
+* **Resolución de Domicilio**: El `RemitosService` ahora consulta la Bóveda para determinar el destino legal y físico del envío, eliminando la dependencia de columnas fijas en la tabla `pedidos`.
 
 ## 3. ARQUITECTURA DE DESPLIEGUE
 * **Modo Instalación:** Se despliega el paquete completo con base de datos vacía.
