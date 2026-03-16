@@ -20,6 +20,7 @@ BIT_MAP = {
     1: "TRINCHERA (Chernobyl)",
     2: "CARTA (Momento Cero)",
     3: "CRÍTICO (Bloqueo)",
+    4: "PARIDAD_DB (Check Drive)",
     5: "ORIGEN_OF",
     6: "ORIGEN_CA",
     7: "ORIGEN_NB",
