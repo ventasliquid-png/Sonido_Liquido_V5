@@ -25,7 +25,7 @@
       </Teleport>
 
       <!-- Local Toolbar (User Order 1-9) -->
-      <div class="relative z-[70] flex items-center gap-4 px-6 py-3 border-b border-cyan-900/20 bg-[#0a253a]/30 shrink-0 overflow-x-auto">
+      <div class="relative z-[100] flex items-center gap-4 px-6 py-3 border-b border-cyan-900/20 bg-[#0a253a]/30 shrink-0 overflow-visible">
           
           <!-- 1. Checkbox Todos -->
           <div class="flex items-center gap-2 cursor-pointer group shrink-0" @click="toggleSelectAll" title="Seleccionar Todos">
@@ -71,7 +71,7 @@
             >
                 <i class="fas fa-sort-amount-down text-cyan-500"></i>
                 <span class="max-w-[80px] truncate hidden xl:inline">
-                    {{ sortBy === 'usage' ? 'Populares' : (sortBy === 'alpha_asc' ? 'A-Z' : 'Orden') }}
+                    {{ sortBy === 'usage' ? 'Populares' : (sortBy === 'alpha_asc' ? 'A-Z' : (sortBy === 'alpha_desc' ? 'Z-A' : 'Orden')) }}
                 </span>
                 
                 <!-- Dropdown -->
@@ -80,6 +80,7 @@
                     <div class="relative z-50 py-1">
                         <button @click="sortBy = 'usage'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-cyan-100 hover:bg-cyan-500/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'usage' }">Más Usados</button>
                         <button @click="sortBy = 'alpha_asc'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-cyan-100 hover:bg-cyan-500/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'alpha_asc' }">A-Z Alfabético</button>
+                        <button @click="sortBy = 'alpha_desc'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-cyan-100 hover:bg-cyan-500/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'alpha_desc' }">Z-A Alfabético</button>
                         <button @click="sortBy = 'id_desc'; showSortMenu = false" class="block w-full text-left px-4 py-2 text-sm text-cyan-100 hover:bg-cyan-500/10" :class="{ 'text-cyan-400 font-bold': sortBy === 'id_desc' }">Más Recientes</button>
                     </div>
                 </div>

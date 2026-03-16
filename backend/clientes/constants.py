@@ -20,9 +20,13 @@ class ClientFlags:
     # Bit 3 (8): ESTRUCTURA V14 (Protocolo Apolo)
     V14_STRUCT = 8
     
+    # Bit 4 (16): SABUESO_ALERT (Alerta de líos/deudas)
+    SABUESO_ALERT = 16
+    
     # --- [NIVELES COMBINADOS] ---
     LEVEL_NEW = 15    # 1+2+4+8 (Virgen Validado V14)
     LEVEL_HISTORY = 13 # 1+4+8 (Operado Validado V14)
+    # Pao de Tandil: 9 (Histórico) / 11 (Nuevo)
     
     # --- [AUDITORÍA Y UX] ---
     # Bit 20 (1048576): PENDIENTE_REVISION (Color Amarillo)

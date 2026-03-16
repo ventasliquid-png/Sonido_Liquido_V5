@@ -18,15 +18,15 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
     """
     
     # 1. Clientes
-    total_clientes = db.query(func.count(Cliente.id)).scalar()
-    active_clientes = db.query(func.count(Cliente.id)).filter(Cliente.activo == True).scalar()
+    total_clientes = db.query(Cliente).count()
+    active_clientes = db.query(Cliente).filter(Cliente.activo == True).count()
     
     # 2. Productos
-    total_productos = db.query(func.count(Producto.id)).scalar()
+    total_productos = db.query(Producto).count()
     
     # 3. Pedidos
-    total_pedidos = db.query(func.count(Pedido.id)).scalar()
-    pending_pedidos = db.query(func.count(Pedido.id)).filter(Pedido.estado == 'PENDIENTE').scalar()
+    total_pedidos = db.query(Pedido).count()
+    pending_pedidos = db.query(Pedido).filter(Pedido.estado == 'PENDIENTE').count()
     
     return {
         "clientes": {

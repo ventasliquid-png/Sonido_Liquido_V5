@@ -33,6 +33,7 @@ export default defineConfig({
       '/cantera': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/contactos': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/bridge': { target: 'http://127.0.0.1:8000', changeOrigin: true },
+      '/stats': { target: 'http://127.0.0.1:8000', changeOrigin: true },
     },
     watch: {
       // Ignorar directorios que generan "ruido" en la consola

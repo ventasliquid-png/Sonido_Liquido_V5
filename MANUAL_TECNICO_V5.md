@@ -102,13 +102,18 @@ Incorporado en V6.4 (2026-02-19) y consolidado en V6.5 (2026-02-28).
     *   **Doctrina de Evolución (4-Bytes):** A nivel backend (`service.py`), los clientes insertados on-the-fly (`estado_arca='PENDIENTE_AUDITORIA'`, Flag=15 Virgen) pierden la bandera Virginity (`& ~ClientFlags.VIRGINITY`) mutando al nivel 13 Gold al momento exacto de formular/confirmar la carga en remitos.
 
 
-## 13. PROTOCOLO ENIGMA (BITMASK DE IDENTIDAD)
-Implementado en V14.5, el sistema utiliza un campo `flags_estado` (Integer) para gestionar el DNA comercial del cliente mediante una máscara de bits (Bitmask):
+## 13. PROTOCOLO GENOMA V14 (BITMASK DE IDENTIDAD)
+Implementado en V14.5 y saneado en V14.8 (Marzo 2026), el sistema gestiona la identidad comercial mediante una máscara de bits (Bitmask) simplificada:
 - **Bit 0 (1):** `EXISTENCE` (Activo en DB).
-- **Bit 1 (2):** `VIRGINITY` (1=Sin movimientos / 0=Activo con documentos). Tras el primer remito, este bit se deactiva automáticamente.
-- **Bit 2 (4):** `GOLD_ARCA` (Validado contra satélite RAR). Activa el color Blanco Gold.
-- **Bit 3 (8):** `V14_STRUCT` (Estándar de 32 bits activo).
-- **Bit 4 (16):** `OPERATOR_OK` (Sello Rosa / Validación Manual).
+- **Bit 1 (2):** `VIRGINITY` (1=Sin movimientos / 0=Operado).
+- **Bit 2 (4):** `GOLD_ARCA` (Validado contra satélite RAR).
+- **Bit 3 (8):** `V14_STRUCT` (Protocolo Apolo activo).
+- **Bit 4 (16):** `SABUESO_ALERT` (Alerta de riesgo o deuda).
+
+### Lógica de Dominancia Visual:
+1. **Rosa (9 o 11):** Pao de Tandil / Informal (Bits 0+3 + Virginity opcional).
+2. **Blanco Gold (13 o 15):** Validado por ARCA (Bits 0+2+3 + Virginity opcional).
+3. **Amarillo:** Estado base (Pendiente de validación ARCA).
 - **Bit 5 (32):** `MULTI_Sede` (Sello Azul / Compartición Legal). Se activa automáticamente si el cliente tiene más de un domicilio habilitado.
 - **Bit 6 (64):** `CONSOLIDATED` (Sello de Purga V14). Indica que el registro ha pasado por el proceso de unificación de CUITs.
 

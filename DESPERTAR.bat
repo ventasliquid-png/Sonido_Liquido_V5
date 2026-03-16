@@ -24,9 +24,7 @@ if /i "%git_pull%"=="S" (
 echo.
 
 :: 2. LECTURA DE BITS Y CARGA DE COMANDO
-for /f "tokens=2 delims=:" %%i in ('python scripts/manager_status.py read ^| findstr "STATUS_STR:"') do set STATUS=%%i
-
-echo Gy, el sistema reporta [!STATUS!]. Ejecuta el Protocolo ALFA.md y reporta estado de integridad.| clip
+python scripts/manager_status.py read | python -c "import sys, subprocess; cmd=sys.stdin.read().split('STATUS_STR:')[1].strip(); subprocess.run(['clip.exe'], input='Gy, ejecutá el Protocolo ALFA.md y reportá estado. BitStatus: ' + cmd, encoding='utf16')"
 
 echo ========================================================
 echo        COMANDO COPIADO AL PORTAPAPELES

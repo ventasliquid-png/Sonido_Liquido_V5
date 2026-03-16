@@ -599,6 +599,16 @@ const props = defineProps({
 })
 const emit = defineEmits(['close', 'save'])
 
+// --- [RAR-V5] CONSTANTS ---
+const GENERIC_CUITS = ['00000000000', '11111111119', '11111111111'];
+const commonCuitNames = {
+    '00000000000': 'CONSUMIDOR FINAL',
+    '11111111119': 'RESPONSABLE INSCRIPTO GENÉRICO',
+    '11111111111': 'CLIENTE EVENTUAL'
+};
+
+const forceAddressSync = ref(false);
+
 // Audit Logic
 const { evaluateCliente } = useAuditSemaphore()
 
@@ -642,10 +652,29 @@ const consultarWeb = async () => {
 
             if (ivaTarget) {
                 form.value.condicion_iva_id = ivaTarget.id
-                notificationStore.add(`IVA validado vía Web: ${res.condicion_iva}`, 'success')
-            } else {
-                notificationStore.add(`Web detectó: ${res.condicion_iva}. Seleccione manualmente.`, 'info')
             }
+            
+            // [GY-BRIDGE-FIX] Aplicar Razón Social y Domicilio desde Web
+            if (res.razon_social && res.razon_social !== "DESCONOCIDO") {
+                if (!form.value.razon_social || confirm(`¿Usar Nombre de Web: "${res.razon_social}"?`)) {
+                    form.value.razon_social = res.razon_social
+                }
+            }
+
+            if (res.domicilio_fiscal && !res.domicilio_fiscal.includes("SIN DIRECCIÓN")) {
+                 // Sincronizar con el nodo fiscal
+                 let fiscalNode = domicilios.value.find(d => d.es_fiscal)
+                 if (!fiscalNode) {
+                    fiscalNode = { id: null, local_id: Date.now(), es_fiscal: true, activo: true }
+                    domicilios.value.push(fiscalNode)
+                 }
+                 if (!fiscalNode.calle || confirm(`¿Usar Dirección de Web: "${res.domicilio_fiscal}"?`)) {
+                    fiscalNode.calle = res.domicilio_fiscal
+                    notificationStore.add('Dirección obtenida de la Web.', 'success')
+                 }
+            }
+
+            notificationStore.add(`Datos validados vía Web: ${res.condicion_iva}`, 'success')
         } else if (res.error) {
             notificationStore.add(`Error Web: ${res.error}`, 'warning')
         }
@@ -663,7 +692,6 @@ const consultarAfip = async () => {
     }
     
     // Reset Sync Flag
-    forceAddressSync.value = false;
 
     // Bypass for Generic CUITs
     if (GENERIC_CUITS.includes(form.value.cuit)) {
@@ -2013,15 +2041,16 @@ const statusColor = (status) => {
     return 'bg-gray-900/20 text-gray-400 border-gray-500/30'
 }
 
-// [GY-UX] Client Color Logic (Pink/Yellow/Green/Blue)
+// [GY-UX] Client Color Logic (Pink/Yellow/Green/Blue) - Genoma V14
 const clientColorMode = computed(() => {
+    const flags = form.value.flags_estado || 0;
     const cuit = (form.value.cuit || '').replace(/[^0-9]/g, '');
     const isGeneric = ['00000000000', '11111111119', '11111111111', '99999999999'].includes(cuit);
     const isConsumidorFinal = form.value.condicion_iva_id && 
             condicionesIva.value.find(i => i.id === form.value.condicion_iva_id)?.nombre.toUpperCase().includes('CONSUMIDOR FINAL');
 
-    // ROSA (Pink) -> Informal, Consumidor Final, or No CUIT
-    if (!cuit || cuit.length < 5 || isGeneric || isConsumidorFinal) {
+    // ROSA (Pink) -> Pao de Tandil (9/11) or Informal/Generic
+    if ((flags & 15) === 9 || (flags & 15) === 11 || !cuit || cuit.length < 5 || isGeneric || isConsumidorFinal) {
         return 'pink'; 
     }
     
@@ -2030,13 +2059,20 @@ const clientColorMode = computed(() => {
         return 'blue';
     }
 
-    // VERDE (Green/Emerald) -> Validated & Real CUIT
-    if (form.value.estado_arca === 'VALIDADO' && !isGeneric) {
+    // VERDE (Green/Emerald) -> Validated & Real CUIT (13/15)
+    if (((flags & 15) === 13 || (flags & 15) === 15 || form.value.estado_arca === 'VALIDADO') && !isGeneric) {
         return 'green';
     }
     
     // AMARILLO (Yellow) -> Pending/Warning
     return 'yellow';
+})
+
+// [GY-V14] Sabueso Alert Detector (Bit 4 = 16)
+const hasSabuesoAlert = computed(() => {
+    const flags = form.value.flags_estado || 0;
+    // Only triggers if Bit 2 (Gold) is also active
+    return (flags & 16) && (flags & 4);
 })
 
 </script>

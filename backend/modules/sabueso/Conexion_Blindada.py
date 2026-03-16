@@ -44,6 +44,7 @@ def log_arca_trace(tipo, datos):
         f.write(f"[{timestamp}] [{tipo}] {json.dumps(datos, default=str)}\n")
 
 def obtener_token(service="ws_sr_padron_a13"):
+    log_arca_trace("TOKEN_START", {"service": service})
     # Selección de Identidad
     id_key = "padron" if "padron" in service else "fiscal"
     identity = IDENTIDADES[id_key]

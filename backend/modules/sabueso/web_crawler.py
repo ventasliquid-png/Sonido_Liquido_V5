@@ -40,41 +40,62 @@ def scrape_cuit_online(cuit: str) -> Dict[str, Any]:
 
     try:
         logger.info(f"Iniciando validación web proactiva para CUIT: {cuit_clean}")
-        with httpx.Client(follow_redirects=True, headers=headers, timeout=10.0) as client:
+        with httpx.Client(follow_redirects=True, headers=headers, timeout=12.0) as client:
             response = client.get(url)
             if response.status_code != 200:
                 return {"error": f"CuitOnline respondió con error {response.status_code}"}
             
             content = response.text
             
-            # Patrón 1: Renglón de Ganancias/IVA (ej: "Ganancias: Ganancias Personas Fisicas - IVA: Iva Inscripto")
-            # El regex busca después de "IVA:" hasta el próximo tag o fin de línea
+            # --- [ETAPA 1: Búsqueda en Lista] ---
+            # Razón Social
+            name_match = re.search(r'<h2 class="denominacion"[^>]*>([^<]+)</h2>', content, re.IGNORECASE)
+            razon_social = html.unescape(name_match.group(1)).strip() if name_match else None
+            
+            # IVA
             iva_match = re.search(r'IVA:\s*([^<>\n]+)', content, re.IGNORECASE)
+            iva_normalized = normalizar_iva(iva_match.group(1)) if iva_match else "REVISAR/NOT_FOUND"
+
+            # Enlace de detalle para el domicilio
+            detail_match = re.search(r'href="(detalle/[^"]+)"', content)
+            domicilio = "SIN DIRECCIÓN (WEB)"
             
-            if iva_match:
-                iva_raw = iva_match.group(1).replace("&nbsp;", " ").strip()
-                normalized = normalizar_iva(iva_raw)
-                logger.info(f"IVA detectado en Web: {normalized}")
+            if detail_match:
+                detail_url = f"https://www.cuitonline.com/{detail_match.group(1)}"
+                logger.info(f"Siguiendo enlace de detalle: {detail_url}")
+                detail_res = client.get(detail_url)
+                if detail_res.status_code == 200:
+                    detail_content = detail_res.text
+                    # Buscar calle, localidad y provincia por itemprop (microdatos )
+                    calle_match = re.search(r'itemprop="streetAddress">([^<]+)', detail_content)
+                    localidad_match = re.search(r'itemprop="addressLocality"[^>]*>([^<]+)', detail_content)
+                    provincia_match = re.search(r'itemprop="addressRegion"[^>]*>([^<]+)', detail_content)
+                    
+                    calle = html.unescape(calle_match.group(1)).strip() if calle_match else ""
+                    loc = html.unescape(localidad_match.group(1)).strip() if localidad_match else ""
+                    prov = html.unescape(provincia_match.group(1)).strip() if provincia_match else ""
+                    
+                    if calle:
+                        domicilio = f"{calle}"
+                        if loc: domicilio += f", {loc}"
+                        if prov: domicilio += f", {prov}"
+                    else:
+                        # Fallback por regex más amplio (ej: meta description)
+                        desc_match = re.search(r'content="[^"]+  ([^]+)  Localidad: ([^]+) ', detail_content)
+                        if desc_match:
+                            domicilio = f"{desc_match.group(1).strip()}, {desc_match.group(2).strip()}"
+
+            if razon_social or iva_match:
                 return {
                     "cuit": cuit_clean,
-                    "condicion_iva": normalized,
-                    "fuente": "CuitOnline (Validación Web)",
-                    "confianza": "ALTA"
-                }
-            
-            # Patrón 2: Condición IVA explícita en otro formato
-            condicion_match = re.search(r'Condición IVA:\s*([^<>\n]+)', content, re.IGNORECASE)
-            if condicion_match:
-                iva_raw = condicion_match.group(1).replace("&nbsp;", " ").strip()
-                normalized = normalizar_iva(iva_raw)
-                return {
-                    "cuit": cuit_clean,
-                    "condicion_iva": normalized,
-                    "fuente": "CuitOnline (Validación Web)",
+                    "razon_social": razon_social or "DESCONOCIDO",
+                    "domicilio_fiscal": domicilio,
+                    "condicion_iva": iva_normalized,
+                    "fuente": "CuitOnline (Ficha Detallada)",
                     "confianza": "ALTA"
                 }
 
-            return {"error": "IVA no encontrado en la ficha web pública", "fuente": "CuitOnline"}
+            return {"error": "No se encontraron datos en la web pública para este CUIT.", "fuente": "CuitOnline"}
 
     except httpx.ConnectError:
         return {"error": "No se pudo conectar con el servidor de validación web."}

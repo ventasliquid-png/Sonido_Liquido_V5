@@ -21,10 +21,13 @@ def consultar_afip(cuit: str):
     """
     Consulta datos fiscales reales en AFIP mediante el puente RAR V1.
     """
+    print(f"--- [TELEMETRÍA] Petición AFIP recibida para CUIT: {cuit} ---")
     from backend.clientes.services.afip_bridge import AfipBridgeService
     resultado = AfipBridgeService.get_datos_afip(cuit)
     if "error" in resultado:
+        print(f"--- [TELEMETRÍA] Error en AFIP: {resultado['error']} ---")
         raise HTTPException(status_code=400, detail=resultado["error"])
+    print(f"--- [TELEMETRÍA] Éxito AFIP para: {resultado.get('razon_social')} ---")
     return resultado
 
 @router.get("/consultar-web/{cuit}", status_code=status.HTTP_200_OK)

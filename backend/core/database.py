@@ -66,26 +66,15 @@ def _get_clean_database_url():
     # 2. Prioridad: Archivo .env local (fallback)
     url_candidate = DATABASE_URL_FROM_ENV_FILE
     
-    # 2.5: Detectar Ruta Absoluta a pilot.db (Raíz Proyecto)
-    # backend/core/database.py -> backend/core -> backend -> root
+    # [GY-FIX-BOOT] Detectar Ruta Absoluta a pilot_v5x.db (Raíz Proyecto)
     current_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.abspath(os.path.join(current_dir, "..", ".."))
-    pilot_db_path = os.path.join(project_root, "pilot.db")
+    pilot_db_path = os.path.abspath(os.path.join(project_root, "pilot_v5x.db"))
     
-    if url_candidate and url_candidate.startswith("sqlite"):
-        # Si el usuario forzó una ruta en .env, la respetamos, pero advertimos si es relativa
-        if "./" in url_candidate and not "pilot.db" in url_candidate: 
-             pass # Deja que pase lo que tenga que pasar
-        print(f"[OK] CONEXION DB (PREF .ENV): {url_candidate}")
-        return url_candidate
-    
-    if not url_candidate:
-        print(f"[ALERTA] DATABASE_URL no encontrada en .env. Usando SQLITE ROOT: {pilot_db_path}")
-        # FORZAMOS LA RUTA ABSOLUTA
-        url_candidate = f"sqlite:///{pilot_db_path}"
-        
-    if url_candidate.startswith("sqlite"):
-        return url_candidate
+    # FORZAMOS LA RUTA ABSOLUTA PARA EVITAR INCONSISTENCIAS DE ./
+    url_candidate = f"sqlite:///{pilot_db_path}"
+    print(f"--- [DATABASE] Usando RUTA ABSOLUTA FORZADA: {url_candidate} ---")
+    return url_candidate
 
     try:
         parsed = urlparse(url_candidate)
@@ -127,8 +116,8 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 def get_db():
-    db = SessionLocal()
     try:
+        db = SessionLocal()
         yield db
     finally:
         db.close()

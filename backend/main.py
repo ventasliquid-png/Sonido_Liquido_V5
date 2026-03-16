@@ -20,13 +20,10 @@ print(f"--- [BOOT] Cargando variables de entorno desde: {ENV_PATH} ---")
 load_dotenv(ENV_PATH, override=True)
 
 # [GY-FIX-BOOT] Enforcement of Local SQLite (Bypassing non-working Postgres env)
-env_db_url = os.environ.get("DATABASE_URL", "")
-if env_db_url and "sqlite" in env_db_url:
-    os.environ["DATABASE_URL"] = env_db_url
-else:
-    abs_db_path = os.path.join(ROOT_DIR, "pilot.db")
-    os.environ["DATABASE_URL"] = f"sqlite:///{abs_db_path}"
-print(f"--- [BOOT] Usando DATABASE: {os.environ['DATABASE_URL']} ---")
+# We prioritize ALWAYS the absolute path to pilot_v5x.db in the ROOT_DIR
+abs_db_path = os.path.abspath(os.path.join(ROOT_DIR, "pilot_v5x.db"))
+os.environ["DATABASE_URL"] = f"sqlite:///{abs_db_path}"
+print(f"--- [BOOT] Usando DATABASE (FORZADO ABSOLUTO): {os.environ['DATABASE_URL']} ---")
     
 # FORCE DISABLE IOWA (Cloud Costs Saving)
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = ""
@@ -413,7 +410,7 @@ if os.path.exists(static_dir):
 async def serve_spa(full_path: str):
     # Ignorar rutas de API (ya manejadas arriba por include_router)
     # Ignorar rutas de API (ya manejadas arriba por include_router)
-    api_prefixes = ["api", "docs", "openapi", "clientes", "pedidos", "productos", "maestros", "logistica", "agenda", "proveedores", "auth", "bypass", "contactos"]
+    api_prefixes = ["api", "docs", "openapi", "clientes", "pedidos", "productos", "maestros", "logistica", "agenda", "proveedores", "auth", "bypass", "contactos", "stats"]
     if any(full_path.startswith(prefix) for prefix in api_prefixes):
          # Dejar que FastAPI maneje 404 para API real si no matcheó antes
          from fastapi import HTTPException
