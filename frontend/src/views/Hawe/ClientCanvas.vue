@@ -522,6 +522,7 @@
         :show="true" 
         :domicilio="selectedDomicilio" 
         :has-fiscal="domicilios.some(d => d.es_fiscal && d.activo !== false)"
+        :is-cuit-formal="form.cuit && !['00000000000', '11111111119', '11111111111'].includes(form.cuit)"
         :fiscal-domicilio="domicilios.find(d => d.es_fiscal)"
         :primary-delivery="computedPrimaryDelivery"
         @close="activeTab = 'CLIENTE'" 
@@ -1537,10 +1538,10 @@ const validateForm = () => {
              // Only enforce Fiscal Address for formal entities with CUIT (EXCEPT Generic ones or Consumer Final)
              errors.value.domicilio = true;
              isValid = false;
-        } else if (!hasFiscal && domicilios.value.length === 0) {
-             // At least ONE address of any kind? Maybe strictness is annoying.
-             // Let's allow saving with NO properties for "contact-only" records if needed.
-             // But for now, let's just relax the strict "Fiscal" tag requirement.
+             notificationStore.add('El Domicilio Fiscal es obligatorio para clientes con CUIT formal.', 'warning');
+        } else if (!hasFiscal && !isGenericCuit && !isConsumidorFinal && domicilios.value.length > 0) {
+             // If they have addresses but none is Fiscal, mark first one as Fiscal if it's a formal CUIT?
+             // Or just warn. The user said it's mandatory.
         }
     }
     
@@ -1809,6 +1810,41 @@ const handleSegmentoSaved = async () => {
 
 const handleDomicilioSaved = async (domicilioData) => {
     try {
+        // --- [GY-UX] ADDRESS SYNC LOGIC (User Request 2026-03-16) ---
+        // Si se está editando un domicilio FISCAL que actualmente también es de ENTREGA.
+        if (domicilioData.es_fiscal && domicilioData.id) {
+            const original = domicilios.value.find(d => String(d.id) === String(domicilioData.id));
+            if (original && original.es_entrega) {
+                // Verificar si hubo cambios reales en la dirección
+                const fieldsToCompare = ['calle', 'numero', 'piso', 'depto', 'localidad', 'provincia_id'];
+                const hasChanges = fieldsToCompare.some(f => original[f] !== domicilioData[f]);
+                
+                if (hasChanges) {
+                    if (!confirm("Se ha modificado el Domicilio Fiscal.\n\n¿Desea trasladar la modificación también al domicilio de entrega?\n\n- SÍ: Se mantienen sincronizados.\n- NO: Se crea una sucursal de entrega independiente con los datos actuales.")) {
+                        // El usuario no quiere sincronizar -> "DESMALEZAR"
+                        // 1. Clonar el original para crear una nueva sucursal de entrega independiente
+                        const newDelivery = { 
+                            ...original, 
+                            id: null, 
+                            local_id: Date.now(), 
+                            es_fiscal: false, 
+                            es_entrega: true,
+                            es_predeterminado: original.es_predeterminado,
+                            alias: `Entrega (Independiente)`
+                        };
+                        
+                        // 2. Modificar el domicilio que se está guardando para que sea SOLO FISCAL
+                        domicilioData.es_entrega = false;
+                        domicilioData.es_predeterminado = false;
+                        
+                        // 3. Agregar la nueva sucursal al array local para que se guarde luego
+                        domicilios.value.push(newDelivery);
+                        notificationStore.add('Se ha creado una sucursal de entrega independiente.', 'info');
+                    }
+                }
+            }
+        }
+
         // --- 1. FISCAL CONSERVATION LAWS (Standard Logic) ---
         if (domicilioData.es_fiscal) {
              const existingFiscal = domicilios.value.find(d => {

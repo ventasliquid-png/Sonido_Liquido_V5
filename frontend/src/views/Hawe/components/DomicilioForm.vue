@@ -18,6 +18,10 @@ const props = defineProps({
     hasFiscal: {
         type: Boolean,
         default: false
+    },
+    isCuitFormal: {
+        type: Boolean,
+        default: false
     }
 });
 
@@ -83,7 +87,7 @@ watch(() => props.domicilio, (newVal) => {
             provincia_id: null,
             transporte_id: props.defaultTransportId || null, 
             es_fiscal: !props.hasFiscal, // [GY-UX] Default true only if no fiscal exists
-            es_entrega: true,
+            es_entrega: !props.hasFiscal || true, // [GY-UX] If first one, also delivery
             activo: true,
             metodo_entrega: 'TRANSPORTE',
             modalidad_envio: 'A_DOMICILIO',
@@ -298,7 +302,10 @@ onUnmounted(() => {
                      <!-- Fiscal Flag -->
                     <div class="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-lg border border-white/10 flex-1 relative group">
                             <div class="flex-1">
-                            <label class="block text-[10px] font-bold uppercase mb-0.5" :class="form.es_fiscal ? 'text-purple-400' : 'text-gray-500'">Fiscal</label>
+                            <label class="block text-[10px] font-bold uppercase mb-0.5" :class="form.es_fiscal ? 'text-purple-400' : 'text-gray-500'">
+                                Fiscal 
+                                <span v-if="props.isCuitFormal && !props.hasFiscal" class="text-red-400 ml-1">* Obligatorio</span>
+                            </label>
                             </div>
                             
                             <!-- Tooltip wrapper for Disabled State -->

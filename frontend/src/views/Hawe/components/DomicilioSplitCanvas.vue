@@ -26,6 +26,10 @@ const props = defineProps({
     primaryDelivery: {
         type: Object,
         default: null
+    },
+    isCuitFormal: {
+        type: Boolean,
+        default: false
     }
 });
 
@@ -299,9 +303,12 @@ onUnmounted(() => {
                 <!-- HEADER LEFT -->
                 <div class="p-3 border-b flex justify-between items-center bg-fuchsia-900/20 border-fuchsia-500/30 h-[53px]">
                     
-                    <label class="text-[10px] font-bold uppercase tracking-widest text-fuchsia-300">
-                        <i class="fas fa-map-marker-alt mr-1"></i> Ubicación
-                    </label>
+                    <div class="flex flex-col">
+                        <label class="text-[10px] font-bold uppercase tracking-widest text-fuchsia-300">
+                            <i class="fas fa-map-marker-alt mr-1"></i> Ubicación
+                        </label>
+                        <span v-if="props.isCuitFormal && !props.hasFiscal" class="text-[10px] text-red-400 font-bold">* Fiscal Obligatorio</span>
+                    </div>
                     <button 
                         @click="toggleFiscal"
                         class="text-[9px] px-2 py-0.5 rounded border transition-all font-bold uppercase hover:shadow-[0_0_10px_rgba(232,121,249,0.4)]"
