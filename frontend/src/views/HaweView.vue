@@ -545,7 +545,8 @@ const handleBulkSoftDelete = async () => {
         try {
             const client = clientes.value.find(c => c.id === id)
             if (client && client.activo) {
-                 await clienteStore.updateCliente(id, { ...client, activo: false })
+                 const newFlags = (client.flags_estado || 0) & ~1 // Clear bit 1 (Active)
+                 await clienteStore.updateCliente(id, { ...client, activo: false, flags_estado: newFlags })
                  successCount++
             }
         } catch (e) {
@@ -727,7 +728,14 @@ const toggleClienteStatus = async (cliente) => {
     }
 
     try {
-        await clienteStore.updateCliente(cliente.id, { ...cliente, activo: newStatus })
+        let newFlags = cliente.flags_estado || 0
+        if (newStatus) {
+            newFlags |= 1 // Set bit 1
+        } else {
+            newFlags &= ~1 // Clear bit 1
+        }
+        
+        await clienteStore.updateCliente(cliente.id, { ...cliente, activo: newStatus, flags_estado: newFlags })
         notificationStore.add(newStatus ? 'Cliente reactivado' : 'Cliente desactivado', 'success')
     } catch (error) {
         notificationStore.add('Error al cambiar estado', 'error')

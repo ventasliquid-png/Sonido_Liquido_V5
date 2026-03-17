@@ -415,5 +415,11 @@ Para evitar la desincronización de código y datos al saltar entre terminales (
 2. **Detección de Origen:** El sistema identifica automáticamente el host actual. Si el host detectado no coincide con el último origen guardado, el cargador `DESPERTAR_DOBLE.bat` activará una **Alerta de Desincro**, obligando a realizar un Git Pull y verificar la paridad de la base de datos (428 KB).
 3. **Carta Momento Cero:** Si el Bit 2 está activo, existe un mensaje prioritario en `CARTA_MOMENTO_CERO.md` que debe ser leído antes de iniciar cualquier operación táctica.
 
+### 12.3 Utilidades Maestras: Protección de Historial
+Para garantizar la integridad de los datos, el sistema implementa una protección automática sobre clientes que ya han operado (registros históricos).
+- **Grisado Visual**: Los registros protegidos aparecen en color gris en la lista de bajas.
+- **Bloqueo de Borrado**: No es posible eliminar físicamente un cliente que tenga historial comercial. El botón de eliminación aparecerá deshabilitado.
+- **Rescate de Registros**: Si necesita volver a operar con un cliente que fue dado de baja, use el botón **RESCATAR**. Esto lo devolverá a la lista activa sin riesgos de pérdida de datos.
+
 ---
-**ESTADO DE DOCTRINA:** VANGUARD (V14.6)
+**ESTADO DE DOCTRINA:** VANGUARD (V14.8.1)

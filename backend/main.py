@@ -77,6 +77,7 @@ from backend.proveedores import models as proveedores_models
 from backend.agenda import models as agenda_models
 from backend.contactos import models as contactos_models 
 from backend.remitos import models as remitos_models 
+from backend.core import models as core_models # [V14.8] Trash Support
 from backend.auth.router import router as auth_router
 from backend.maestros.router import router as maestros_router
 from backend.clientes.router import router as clientes_router
@@ -515,4 +516,4 @@ if __name__ == "__main__":
     import uvicorn
     # [GY-LAN-FIX] Binding to 0.0.0.0 to allow LAN access and bypass localhost IPv4/v6 issues
     # [GY-STABILITY] Disable reload only in production entry point to prevent double-loading
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)
+    uvicorn.run(app, host="0.0.0.0", port=8080, reload=False)

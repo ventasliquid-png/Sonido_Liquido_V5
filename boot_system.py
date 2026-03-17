@@ -28,7 +28,7 @@ def main():
     last_restart_time = time.time()
     
     # Define command correctly in scope
-    backend_cmd = [sys.executable, "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    backend_cmd = [sys.executable, "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8080", "--reload"]
 
     def start_backend():
         print(f">>> Iniciando Backend (Intento #{backend_restarts + 1})...")

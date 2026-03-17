@@ -89,71 +89,74 @@
              <p>No hay {{ currentType }} inactivos.</p>
           </div>
 
-          <div v-else class="grid gap-2">
-             <div v-for="item in items" :key="item.id" 
-                  class="bg-[#1e293b]/50 border border-white/5 rounded-lg p-4 flex items-center justify-between hover:bg-[#1e293b] transition-colors group cursor-pointer"
-                  @click="toggleSelection(item.id)">
-                 
-                 <!-- CHECKBOX + INFO -->
-                 <div class="flex items-center gap-4">
-                     <div class="p-2" @click.stop="">
-                        <input 
-                            type="checkbox" 
-                            :checked="selectedIds.includes(item.id)" 
-                            @change="toggleSelection(item.id)"
-                            class="rounded bg-[#020a0f] border-cyan-500/50 text-cyan-500 focus:ring-0 focus:ring-offset-0 cursor-pointer h-5 w-5"
-                        />
-                     </div>
-                     <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shrink-0"
-                          :class="item.integrity?.safe ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'">
-                         <i :class="item.integrity?.safe ? 'fas fa-check' : 'fas fa-link'"></i>
-                     </div>
-                     <div>
-                         <h3 class="font-bold text-white text-sm">
-                             {{ currentType === 'clientes' ? item.razon_social : item.nombre }}
-                         </h3>
-                         <p class="text-xs text-gray-500 font-mono">
-                             ID: {{ currentType === 'clientes' ? (item.cuit || 'Sin CUIT') : (item.sku || 'Sin SKU') }}
-                         </p>
-                     </div>
-                 </div>
+          <div v-else class="grid gap-2">              <div v-for="item in items" :key="item.id" 
+                   class="bg-[#1e293b]/50 border border-white/5 rounded-lg p-4 flex items-center justify-between transition-all group hover:bg-[#1e293b] cursor-pointer"
+                   :class="[
+                       (currentType === 'clientes' && !((item.flags_estado || 0) & 2)) ? 'opacity-60 grayscale' : ''
+                   ]"
+                   @click="toggleSelection(item.id)">
+                  
+                  <!-- CHECKBOX + INFO -->
+                  <div class="flex items-center gap-4">
+                      <div class="p-2" @click.stop="">
+                         <input 
+                             type="checkbox" 
+                             :checked="selectedIds.includes(item.id)" 
+                             @change="toggleSelection(item.id)"
+                             class="rounded bg-[#020a0f] border-cyan-500/50 text-cyan-500 focus:ring-0 focus:ring-offset-0 h-5 w-5 cursor-pointer"
+                         />
+                      </div>
+                      <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shrink-0"
+                           :class="item.integrity?.safe ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'">
+                          <i :class="item.integrity?.safe ? 'fas fa-check' : 'fas fa-link'"></i>
+                      </div>
+                      <div>
+                          <h3 class="font-bold text-white text-sm">
+                              {{ currentType === 'clientes' ? item.razon_social : item.nombre }}
+                          </h3>
+                          <p class="text-xs text-gray-500 font-mono">
+                              ID: {{ currentType === 'clientes' ? (item.cuit || 'Sin CUIT') : (item.sku || 'Sin SKU') }}
+                          </p>
+                      </div>
+                  </div>
 
-                 <!-- INTEGRITY STATUS -->
-                 <div class="flex items-center gap-6">
-                     <div class="text-right">
-                         <span class="block text-[10px] uppercase font-bold tracking-wider" 
-                               :class="item.integrity?.safe ? 'text-emerald-500' : 'text-red-400'">
-                             {{ item.integrity?.safe ? 'SEGURO PARA ELIMINAR' : 'BLOQUEADO' }}
-                         </span>
-                         <span class="text-xs text-gray-400">
-                             {{ item.integrity?.message || 'Verificando...' }}
-                         </span>
-                     </div>
+                  <!-- INTEGRITY STATUS -->
+                  <div class="flex items-center gap-6">
+                      <div class="text-right">
+                          <span class="block text-[10px] uppercase font-bold tracking-wider" 
+                                :class="item.integrity?.safe ? 'text-emerald-500' : 'text-red-400'">
+                              {{ (currentType === 'clientes' && !((item.flags_estado || 0) & 2)) ? 'PROTEGIDO (HISTORIAL)' : (item.integrity?.safe ? 'SEGURO PARA ELIMINAR' : 'BLOQUEADO') }}
+                          </span>
+                          <span class="text-xs text-gray-400">
+                              {{ (currentType === 'clientes' && !((item.flags_estado || 0) & 2)) ? 'Prohibido eliminar físicamente' : (item.integrity?.message || 'Verificando...') }}
+                          </span>
+                      </div>
 
-                     <!-- ACTION BUTTONS -->
-                     <button 
-                        @click.stop="rescueItem(item)"
-                        class="w-10 h-10 rounded-lg flex items-center justify-center transition-all border bg-emerald-500/10 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500 hover:text-white"
-                        title="Rescatar (Volver a Padrón)"
-                     >
-                         <i class="fas fa-undo"></i>
-                     </button>
+                      <!-- ACTION BUTTONS -->
+                      <button 
+                         @click.stop="rescueItem(item)"
+                         class="w-10 h-10 rounded-lg flex items-center justify-center transition-all border bg-emerald-500/10 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500 hover:text-white cursor-pointer"
+                         title="Rescatar (Volver a Padrón)"
+                      >
+                          <i class="fas fa-undo"></i>
+                      </button>
 
-                     <button 
-                        @click.stop="confirmHardDelete(item)"
-                        :disabled="!item.integrity?.safe"
-                        class="w-10 h-10 rounded-lg flex items-center justify-center transition-all border"
-                        :class="[
-                            item.integrity?.safe 
-                                ? 'bg-red-500/10 border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white cursor-pointer' 
-                                : 'bg-gray-800 border-gray-700 text-gray-600 cursor-not-allowed opacity-50'
-                        ]"
-                        :title="item.integrity?.safe ? 'ELIMINAR DEFINITIVAMENTE' : 'Bloqueado por dependencias'"
-                     >
-                         <i class="fas fa-trash-alt"></i>
-                     </button>
-                 </div>
-             </div>
+                      <button 
+                         @click.stop="confirmHardDelete(item)"
+                         :disabled="!item.integrity?.safe || (currentType === 'clientes' && !((item.flags_estado || 0) & 2))"
+                         class="w-10 h-10 rounded-lg flex items-center justify-center transition-all border"
+                         :class="[
+                             (item.integrity?.safe && !(currentType === 'clientes' && !((item.flags_estado || 0) & 2)))
+                                 ? 'bg-red-500/10 border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white cursor-pointer' 
+                                 : 'bg-gray-800 border-gray-700 text-gray-600 cursor-not-allowed opacity-50'
+                         ]"
+                         :title="item.integrity?.safe ? 'ELIMINAR DEFINITIVAMENTE' : 'Bloqueado por dependencias'"
+                      >
+                          <i class="fas fa-trash-alt"></i>
+                      </button>
+                  </div>
+              </div>
+>
           </div>
       </div>
 
@@ -225,11 +228,24 @@ const loadData = async (type) => {
         const checkedItems = await Promise.all(inactives.map(async (item) => {
              try {
                 const id = item.id; 
-                // Contactos do not have integrity check API yet, let's assume safe or implement basic frontend check
                 if (type === 'contactos') return { ...item, integrity: { safe: true, message: 'Sin dependencias críticas' } };
                 
                 const checkRes = await api.get(`${endpoint}${id}/integrity_check`);
-                return { ...item, integrity: checkRes.data };
+                const integrity = checkRes.data;
+
+                // [GENOMA V14.8] Shield Protection for History Records (Bit 1 = 2)
+                const isVirgin = (item.flags_estado & 2); 
+                if (!isVirgin && type === 'clientes') {
+                    return { 
+                        ...item, 
+                        integrity: { 
+                            safe: false, 
+                            message: 'BLOQUEO: Registro de Historial (No Virgen). Prohibido eliminar físicamente.' 
+                        } 
+                    };
+                }
+
+                return { ...item, integrity: integrity };
              } catch (e) {
                  return { ...item, integrity: { safe: false, message: 'Error verificando integridad' } };
              }
@@ -359,7 +375,7 @@ const handleBulkRescue = async () => {
 
 // 2. HARD DELETE (Eliminar Definitivamente)
 const confirmHardDelete = async (item) => {
-    if (!confirm(`⚠️ PELIGRO ⚠️\n\n¿Confirma la ELIMINACIÓN FÍSICA de:\n${currentType.value === 'clientes' ? item.razon_social : (currentType.value === 'contactos' ? item.nombre : item.nombre)}?\n\nEsta acción NO se puede deshacer.`)) return;
+    if (!confirm(`⚠️ PELIGRO ⚠️\n\n¿Confirma la ELIMINACIÓN FÍSICA de:\n${currentType.value === 'clientes' ? item.razon_social : (currentType.value === 'contactos' ? item.nombre : item.nombre)}?\n\nEl sistema guardará una copia de seguridad en la Papelera antes de borrarlo.`)) return;
     
     try {
         loading.value = true;
@@ -369,6 +385,7 @@ const confirmHardDelete = async (item) => {
         items.value = items.value.filter(i => i.id !== item.id);
         selectedIds.value = selectedIds.value.filter(id => id !== item.id);
         
+        notificationStore.add('Registro eliminado (Copia en Papelera)', 'success');
     } catch (e) {
         console.error(e);
         alert("Error al eliminar: " + (e.response?.data?.detail || e.message));

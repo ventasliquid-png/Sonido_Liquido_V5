@@ -21,9 +21,9 @@ def main():
     
     # Intentar ejecutar como modulo si el binario no está en path
     if not uvicorn_cmd:
-        cmd = [sys.executable, "-m", "uvicorn", "backend.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
+        cmd = [sys.executable, "-m", "uvicorn", "backend.main:app", "--reload", "--host", "0.0.0.0", "--port", "8080"]
     else:
-        cmd = ["uvicorn", "backend.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
+        cmd = ["uvicorn", "backend.main:app", "--reload", "--host", "0.0.0.0", "--port", "8080"]
 
     print(f"⚡ Ejecutando: {' '.join(cmd)}")
     

@@ -58,17 +58,17 @@ def main():
     backend_env["PYTHONPATH"] = str(base_dir) + os.pathsep + backend_env.get("PYTHONPATH", "")
 
     # Comando Backend
-    backend_cmd = [sys.executable, "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    backend_cmd = [sys.executable, "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8080", "--reload"]
     
     # Comando Frontend
     npx_cmd = shutil.which("npx")
     if not npx_cmd:
-        print("❌ Error: 'npx' no encontrado. No se puede iniciar el frontend.")
+        print("❌ Error: 'npx' not found. Cannot start frontend.")
         sys.exit(1)
     frontend_cmd = [npx_cmd, "vite", "--host"]
 
-    print(f"📡 Backend escuchando en: http://0.0.0.0:8000")
-    print(f"🖥️  Frontend escuchando en: http://0.0.0.0:5173")
+    print(f"📡 Backend listening on: http://0.0.0.0:8080")
+    print(f"🖥️  Frontend listening on: http://0.0.0.0:5173")
 
     # Intentamos lanzar ambos. En Python es mejor usar Popen para no bloquear.
     try:

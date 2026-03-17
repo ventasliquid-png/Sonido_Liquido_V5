@@ -1,6 +1,6 @@
 # 📘 MANUAL TÉCNICO V5: "INDEPENDENCIA"
-**Versión:** 1.2 Release (Updated V14.7 Genoma)
-**Fecha:** 10-03-2026
+**Versión:** 1.3 Release (Updated V14.8.1 Genoma)
+**Fecha:** 17-03-2026
 
 ## 1. DOCTRINA DE PRECIOS: "LA ROCA Y LA MÁSCARA"
 El sistema V5 implementa una estrategia psicológica de precios:
@@ -131,3 +131,11 @@ Se implementó la política de **1 CUIT = 1 Registro Maestro**.
 
 ### Seguridad de Datos (Escudo de Virginidad):
 Durante la validación de AFIP, el sistema preserva el estado del Bit 1. Un cliente que ya ha operado comercialmente (Bit 1 = 0) nunca volverá a recibir el estado "Virgen" por una inyección de datos externos.
+
+## 15. SISTEMA DE PAPELERA GLOBAL & PROTECCIÓN HISTÓRICA (GENOMA 14.8.1)
+Implementada para prevenir la pérdida irreversible de datos comerciales por errores humanos en "Utilidades Maestras".
+* **Papelera de Registro**: La tabla `papelera_registros` actúa como un búfer de seguridad. Antes de cualquier `DELETE` físico en el backend, el objeto es serializado recursivamente a JSON (limpiando tipos `Decimal`, `UUID` y `datetime`) y persistido en esta tabla.
+* **Blindaje de Historial**: El sistema identifica registros históricos mediante el Bit 1 de `flags_estado` (0 = Histórico). 
+    - **Prohibición**: El backend rechaza (403 Forbidden) cualquier solicitud de eliminación física para estos registros.
+    - **Visualización**: En la interfaz de Utilidades Maestras, estos registros aparecen "grisados" (opacidad 60%) y con el botón de borrado deshabilitado.
+* **Mecanismo de Rescate**: Aunque el borrado está bloqueado, la funcionalidad de reactivación ("Rescate") permanece disponible, permitiendo devolver registros históricos de la baja lógica sin comprometer la integridad de la base de datos principal.

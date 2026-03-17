@@ -1410,11 +1410,13 @@ const handleAbmDelete = async (id) => {
 
 const toggleActive = () => {
     if (form.value.activo) {
-        // If turning off, we might want to trigger the delete flow or just toggle
-        // For now, just toggle, but parent might intercept save
         if (!confirm('¿Está seguro que desea desactivar este cliente?')) return
+        form.value.activo = false
+        form.value.flags_estado &= ~1 // Clear bit 1
+    } else {
+        form.value.activo = true
+        form.value.flags_estado |= 1 // Set bit 1
     }
-    form.value.activo = !form.value.activo
 }
 
 const save = async () => {

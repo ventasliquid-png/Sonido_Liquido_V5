@@ -189,34 +189,34 @@ class ClienteService:
         
         for key, value in update_data.items():
             setattr(db_cliente, key, value)
-        
-        # [V5-X] Sync legacy 'activo'
-        if (db_cliente.flags_estado & ClientFlags.IS_ACTIVE):
-            db_cliente.activo = True
-        else:
-            db_cliente.activo = False
+         # [V5-X] Sync legacy 'activo' and 'flags_estado'
+        if 'activo' in update_data:
+            if update_data['activo']:
+                db_cliente.flags_estado |= ClientFlags.IS_ACTIVE
+                db_cliente.activo = True
+            else:
+                db_cliente.flags_estado &= ~ClientFlags.IS_ACTIVE
+                db_cliente.activo = False
+        elif 'flags_estado' in update_data:
+            if (db_cliente.flags_estado & ClientFlags.IS_ACTIVE):
+                db_cliente.activo = True
+            else:
+                db_cliente.activo = False
 
         # Update default domicile if transporte_id is provided
         if transporte_id:
-            default_dom = next((d for d in db_cliente.domicilios if d.es_entrega and d.activo), None)
-            if not default_dom:
-                 default_dom = next((d for d in db_cliente.domicilios if d.es_fiscal and d.activo), None)
-            if not default_dom and db_cliente.domicilios:
-                 default_dom = next((d for d in db_cliente.domicilios if d.activo), None)
+            # Find an existing "Entrega" or "Fiscal" domicile to host the transport_id
+            target_dom = next((d for d in db_cliente.domicilios if d.es_entrega and d.activo), 
+                         next((d for d in db_cliente.domicilios if d.es_fiscal and d.activo), None))
             
-            if default_dom:
-                default_dom.transporte_id = transporte_id
-                db.add(default_dom)
+            if target_dom:
+                target_dom.transporte_id = transporte_id
+                db.add(target_dom)
             else:
                 # Create a minimal delivery address if none exists (Bronze Logic?)
                 # This ensures we store the preference.
                 new_dom = Domicilio(
                     cliente_id=db_cliente.id,
-                    transporte_id=transporte_id,
-                    es_fiscal=False,
-                    es_entrega=True,
-                    alias="Entrega (Auto)",
-                    activo=True
                 )
                 db.add(new_dom)
 
@@ -227,12 +227,14 @@ class ClienteService:
 
     @staticmethod
     def delete_cliente(db: Session, cliente_id: UUID) -> Optional[Cliente]:
-        """Soft delete setting activo=False"""
+        """Soft delete setting activo=False and updating flags_estado"""
         db_cliente = ClienteService.get_cliente(db, cliente_id)
         if not db_cliente:
             return None
         
         db_cliente.activo = False
+        db_cliente.flags_estado &= ~ClientFlags.IS_ACTIVE  # [GY-FIX] Sync flag
+        
         db.add(db_cliente)
         db.commit()
         db.refresh(db_cliente)
@@ -252,18 +254,80 @@ class ClienteService:
 
     @staticmethod
     def hard_delete_cliente(db: Session, cliente_id: UUID) -> Optional[Cliente]:
-        """Hard delete. Raises IntegrityError if it has related records."""
+        """
+        Hard delete with GENOMA V14.8 Protection:
+        1. Backs up to PapeleraRegistro.
+        2. Blocks deletion of History Records (Bit 1 IS_VIRGIN must be 1).
+        """
+        from backend.core.models import PapeleraRegistro
+        import json
+
         db_cliente = ClienteService.get_cliente(db, cliente_id)
         if not db_cliente:
             return None
         
+        # [SECURITY] Protection against deleting Historical Data (Bit 1 is IS_VIRGIN)
+        # Robust check: handle NULL flags_estado by defaulting to 0 (which blocks deletion)
+        current_flags = db_cliente.flags_estado or 0
+        if not (current_flags & ClientFlags.IS_VIRGIN):
+             raise HTTPException(
+                 status_code=403, 
+                 detail="PROHIBIDO: No se puede eliminar físicamente un registro de HISTORIAL (No Virgen). Inactívelo en su lugar."
+             )
+
         try:
+            # 1. Serializar para Papelera
+            from decimal import Decimal
+            
+            def json_safe(obj):
+                """Recursively converts Decimals to floats and UUIDs/datetimes to strings."""
+                if isinstance(obj, dict):
+                    return {k: json_safe(v) for k, v in obj.items()}
+                elif isinstance(obj, list):
+                    return [json_safe(v) for v in obj]
+                elif isinstance(obj, Decimal):
+                    return float(obj)
+                elif isinstance(obj, (datetime, UUID)):
+                    return str(obj)
+                return obj
+
+            # Build initial dict from columns
+            cliente_dict = {}
+            for column in db_cliente.__table__.columns:
+                cliente_dict[column.name] = getattr(db_cliente, column.name)
+            
+            # Application of recursive cleaner (Crucial for JSON fields like historial_cache)
+            cliente_dict = json_safe(cliente_dict)
+            
+            # 2. Guardar en Papelera (Automated Backup)
+            trash_entry = PapeleraRegistro(
+                entidad_tipo='CLIENTE',
+                entidad_id=db_cliente.id,
+                data=cliente_dict,
+                borrado_por="MASTER_TOOLS_PIN_1974"
+            )
+            db.add(trash_entry)
+            
+            # Debug log prior to physical delete
+            print(f"[TRASH] Preparando borrado de {db_cliente.razon_social} (ID: {db_cliente.id}) | Flags: {db_cliente.flags_estado}")
+
+            # 3. Borrado físico real
             db.delete(db_cliente)
             db.commit()
             return db_cliente
         except IntegrityError as e:
             db.rollback()
-            raise e
+            raise HTTPException(
+                status_code=409, 
+                detail=f"Error de integridad: El registro tiene dependencias activas (pedidos/remitos). {str(e)}"
+            )
+        except Exception as e:
+            db.rollback()
+            print(f"[X] CRITICAL TRASH ERROR: {str(e)}") # Visible in console
+            raise HTTPException(
+                status_code=500, 
+                detail=f"ERROR INTERNO (Papelera/DB): {str(e)}"
+            )
 
     @staticmethod
     def check_cuit(db: Session, cuit: str, exclude_id: UUID = None) -> schemas.CuitCheckResponse:

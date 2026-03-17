@@ -1137,6 +1137,16 @@ const canteraResults = ref([])
 const isSearching = ref(false)
 let searchTimeout = null
 
+const toggleActive = () => {
+    if (form.value.activo) {
+        if (!confirm('¿Está seguro que desea desactivar este cliente?')) return
+        form.value.activo = false
+        form.value.flags_estado &= ~1 // Clear bit 1
+    } else {
+        form.value.activo = true
+        form.value.flags_estado |= 1 // Set bit 1
+    }
+}
 const handleSearchCantera = () => {
     if (!isNew.value) return
     const query = form.value.razon_social
