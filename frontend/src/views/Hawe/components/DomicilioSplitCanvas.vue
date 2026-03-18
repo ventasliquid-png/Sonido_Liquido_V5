@@ -7,89 +7,46 @@ import TransporteCanvas from './TransporteCanvas.vue';
 
 const props = defineProps({
     show: Boolean,
-    domicilio: {
-        type: Object,
-        default: null
-    },
-    defaultTransportId: {
-        type: [String, Number],
-        default: null
-    },
-    hasFiscal: {
-        type: Boolean,
-        default: false
-    },
-    fiscalDomicilio: {
-        type: Object,
-        default: null
-    },
-    primaryDelivery: {
-        type: Object,
-        default: null
-    },
-    isCuitFormal: {
-        type: Boolean,
-        default: false
-    }
+    domicilio: { type: Object, default: null },
+    defaultTransportId: { type: [String, Number], default: null },
+    hasFiscal: { type: Boolean, default: false },
+    fiscalDomicilio: { type: Object, default: null },
+    primaryDelivery: { type: Object, default: null },
+    isCuitFormal: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['close', 'saved']);
-
 const store = useMaestrosStore();
 const logisticaStore = useLogisticaStore();
-const isEditing = computed(() => !!props.domicilio);
+const isEditing = computed(() => !!props.domicilio?.id);
 
 const form = reactive({
-    // Identifiers
-    alias: '',
-    
-    // FISCAL (Left Side)
-    calle: '',
-    numero: '',
-    cp: '',
-    localidad: '',
-    provincia_id: null,
-    es_fiscal: false,
-
-    // LOGISTICA (Right Side)
-    es_entrega: true,
-    activo: true,
-    piso: '',           // [V7]
-    depto: '',          // [V7]
-    maps_link: '',      // [V7]
-    notas_logistica: '',// [V7]
-    observaciones: '',  // [V7.1]
-    contacto_id: null,  // [V7]
-    
-    // Logistics Strategy
-    metodo_entrega: 'TRANSPORTE',
-    transporte_id: null,
-    modalidad_envio: 'A_DOMICILIO',
-    origen_logistico: 'DESPACHO_NUESTRO',
-    
-    // Internal
-    linked_delivery_id: null
+    alias: '', calle: '', numero: '', cp: '', localidad: '', provincia_id: null,
+    es_fiscal: false, es_entrega: true, activo: true,
+    piso: '', depto: '', maps_link: '', notas_logistica: '',
+    observaciones: '', contacto_id: null, metodo_entrega: 'TRANSPORTE',
+    transporte_id: null, modalidad_envio: 'A_DOMICILIO',
+    origen_logistico: 'DESPACHO_NUESTRO', linked_delivery_id: null,
+    calle_entrega: '', numero_entrega: '', piso_entrega: '',
+    depto_entrega: '', cp_entrega: '', localidad_entrega: '',
+    provincia_entrega_id: null
 });
 
-// Sync Logic: Copy Fiscal -> Delivery if not explicitly edited (Dirty)
+const initialFiscalCalle = ref('');
+const initialEntregaCalle = ref('');
+const snapshotEntrega = ref(null); // [FIX-KEEP_OLD] Foto inmutable del estado de entrega al cargar
+const showSyncModal = ref(false);
+const skipDeliveryPrompt = ref(false);
+
 const dirtyFields = reactive({
-    calle: false,
-    numero: false,
-    piso: false,
-    depto: false,
-    localidad: false,
-    provincia: false,
-    cp: false
+    calle: false, numero: false, piso: false, depto: false,
+    localidad: false, provincia: false, cp: false
 });
 
-// Watch Prop Changes
 watch(() => props.domicilio, (newVal) => {
     if (newVal) {
-        
-        // HYBRID LOGIC: If editing Fiscal, and we have a separate Primary Delivery
         let sourceDelivery = newVal;
         let linkedId = null;
-        
         if (newVal.es_fiscal && props.primaryDelivery && String(props.primaryDelivery.id) !== String(newVal.id)) {
              sourceDelivery = props.primaryDelivery;
              linkedId = sourceDelivery.id;
@@ -103,117 +60,103 @@ watch(() => props.domicilio, (newVal) => {
             localidad: newVal.localidad || '',
             provincia_id: newVal.provincia_id || null,
             es_fiscal: newVal.es_fiscal || false,
-            
-            // Load Entrega Fields (From Source: either Self or Primary)
-            // Note: For Delivery Nodes, 'calle' is often the main address. 'calle_entrega' might be empty.
-            // We favor 'calle' if 'calle_entrega' is empty for the source.
-            calle_entrega: sourceDelivery.calle || '', // [V7.FIX] Use physical address as default delivery
-            numero_entrega: sourceDelivery.numero || '',
-            piso_entrega: sourceDelivery.piso || '',
-            depto_entrega: sourceDelivery.depto || '',
-            cp_entrega: sourceDelivery.cp || '',
-            localidad_entrega: sourceDelivery.localidad || '',
-            provincia_entrega_id: sourceDelivery.provincia_id || null,
-            
+            calle_entrega: sourceDelivery.calle_entrega || sourceDelivery.calle || '', 
+            numero_entrega: sourceDelivery.numero_entrega || sourceDelivery.numero || '',
+            piso_entrega: sourceDelivery.piso_entrega || sourceDelivery.piso || '',
+            depto_entrega: sourceDelivery.depto_entrega || sourceDelivery.depto || '',
+            cp_entrega: sourceDelivery.cp_entrega || sourceDelivery.cp || '',
+            localidad_entrega: sourceDelivery.localidad_entrega || sourceDelivery.localidad || '',
+            provincia_entrega_id: sourceDelivery.provincia_entrega_id || sourceDelivery.provincia_id || null,
             es_entrega: newVal.es_entrega !== undefined ? newVal.es_entrega : true,
             activo: newVal.activo !== undefined ? newVal.activo : true,
-            
             piso: newVal.piso || '',
             depto: newVal.depto || '',
             maps_link: newVal.maps_link || '',
             notas_logistica: newVal.notas_logistica || '',
             observaciones: newVal.observaciones || '', 
             contacto_id: newVal.contacto_id || null,
-            
             metodo_entrega: sourceDelivery.metodo_entrega || 'TRANSPORTE',
             transporte_id: sourceDelivery.transporte_id || null,
             modalidad_envio: sourceDelivery.modalidad_envio || 'A_DOMICILIO',
             origen_logistico: sourceDelivery.origen_logistico || 'DESPACHO_NUESTRO',
-            
             linked_delivery_id: linkedId
         });
         
-        // Overwrite if specific delivery attributes exist (legacy support)
-        if (sourceDelivery.calle_entrega) form.calle_entrega = sourceDelivery.calle_entrega;
-        if (sourceDelivery.numero_entrega) form.numero_entrega = sourceDelivery.numero_entrega;
-        // ... (can add more precision if needed, but 'calle' fallback is robust for delivery nodes)
+        initialFiscalCalle.value = newVal.calle || '';
+        initialEntregaCalle.value = sourceDelivery.calle_entrega || sourceDelivery.calle || '';
+        // [FIX-KEEP_OLD] Snapshot inmutable del domicilio de entrega al cargar (antes de mutacion del usuario)
+        snapshotEntrega.value = {
+            calle_entrega:       sourceDelivery.calle_entrega       || sourceDelivery.calle       || '',
+            numero_entrega:      sourceDelivery.numero_entrega      || sourceDelivery.numero      || '',
+            piso_entrega:        sourceDelivery.piso_entrega        || sourceDelivery.piso        || '',
+            depto_entrega:       sourceDelivery.depto_entrega       || sourceDelivery.depto       || '',
+            cp_entrega:          sourceDelivery.cp_entrega          || sourceDelivery.cp          || '',
+            localidad_entrega:   sourceDelivery.localidad_entrega   || sourceDelivery.localidad   || '',
+            provincia_entrega_id: sourceDelivery.provincia_entrega_id || sourceDelivery.provincia_id || null,
+        };
         
     } else {
-        // Reset or Defaults
         Object.assign(form, {
-            alias: '',
-            calle: '',
-            numero: '',
-            cp: '',
-            localidad: '',
-            provincia_id: null,
-            es_fiscal: !props.hasFiscal,
-            
-            // LOGISTICA (Right Side) - Decoupled
-            calle_entrega: '',
-            numero_entrega: '',
-            piso_entrega: '',
-            depto_entrega: '',
-            cp_entrega: '',
-            localidad_entrega: '',
-            provincia_entrega_id: null,
-            
-            es_entrega: true,
-            activo: true,
-            piso: '',
-            depto: '',
-            maps_link: '',
-            notas_logistica: '',
-            observaciones: '',
-            contacto_id: null,
-            
-            metodo_entrega: 'TRANSPORTE',
-            transporte_id: props.defaultTransportId || null,
-            modalidad_envio: 'A_DOMICILIO',
-            origen_logistico: 'DESPACHO_NUESTRO'
+            alias: '', calle: '', numero: '', cp: '', localidad: '', provincia_id: null,
+            es_fiscal: !props.hasFiscal, calle_entrega: '', numero_entrega: '',
+            piso_entrega: '', depto_entrega: '', cp_entrega: '', localidad_entrega: '',
+            provincia_entrega_id: null, es_entrega: true, activo: true,
+            piso: '', depto: '', maps_link: '', notas_logistica: '',
+            observaciones: '', contacto_id: null, metodo_entrega: 'TRANSPORTE',
+            transporte_id: props.defaultTransportId || null, modalidad_envio: 'A_DOMICILIO',
+            origen_logistico: 'DESPACHO_NUESTRO', linked_delivery_id: null
         });
-        // Reset dirty flags for new/reset form
         Object.keys(dirtyFields).forEach(k => dirtyFields[k] = false);
+        initialFiscalCalle.value = '';
+        initialEntregaCalle.value = '';
     }
 }, { immediate: true });
 
+watch(() => form.calle, (val, oldVal) => { if (!isEditing.value && form.calle_entrega === oldVal && !dirtyFields.calle) form.calle_entrega = val; });
+watch(() => form.numero, (val, oldVal) => { if (!isEditing.value && form.numero_entrega === oldVal && !dirtyFields.numero) form.numero_entrega = val; });
 
-
-// Watchers for Auto-Sync (Unidirectional Fiscal -> Delivery while in sync)
-watch(() => form.calle, (val, oldVal) => { if (form.calle_entrega === oldVal && !dirtyFields.calle) form.calle_entrega = val; });
-watch(() => form.numero, (val, oldVal) => { if (form.numero_entrega === oldVal && !dirtyFields.numero) form.numero_entrega = val; });
-watch(() => form.piso, (val, oldVal) => { if (form.piso_entrega === oldVal && !dirtyFields.piso) form.piso_entrega = val; });
-watch(() => form.depto, (val, oldVal) => { if (form.depto_entrega === oldVal && !dirtyFields.depto) form.depto_entrega = val; });
-watch(() => form.localidad, (val, oldVal) => { if (form.localidad_entrega === oldVal && !dirtyFields.localidad) form.localidad_entrega = val; });
-watch(() => form.cp, (val, oldVal) => { if (form.cp_entrega === oldVal && !dirtyFields.cp) form.cp_entrega = val; });
-watch(() => form.provincia_id, (val, oldVal) => { if (form.provincia_entrega_id === oldVal && !dirtyFields.provincia) form.provincia_entrega_id = val; });
-
-const markDirty = (field) => {
-    dirtyFields[field] = true;
-};
+const markDirty = (field) => { dirtyFields[field] = true; };
 
 const toggleFiscal = () => {
-    // Si ya es fiscal, NO permitir desactivarlo manualmente.
-    // La unicidad del domicilio fiscal se garantiza al activar otro.
-    if (form.es_fiscal) {
-        // Podríamos mostrar un toast/notificación aquí
-        return;
-    }
-    
-    // Si no es fiscal y existe otro fiscal (props.hasFiscal), advertimos del cambio/reemplazo
+    if (form.es_fiscal) return;
     if (props.hasFiscal) {
-        if (!confirm('¿Establecer como nuevo Domicilio Fiscal?\nEsto reemplazará al actual domicilio fiscal.')) {
-            return;
-        }
+        if (!confirm('¿Establecer como nuevo Domicilio Fiscal?\nEsto reemplazará al actual.')) return;
     }
-    
     form.es_fiscal = true;
 };
 
-const handleSave = () => {
-    // [GY-FIX] Critical Data Mapping
-    // 1. If NOT fiscal, the 'calle_entrega' (Right Panel) IS the physical address.
-    //    We must sync it to core 'calle' fields.
+const resolveSync = (action) => {
+    showSyncModal.value = false;
+    if (action === 'KEEP_OLD') {
+        // [FIX-KEEP_OLD] Usar snapshot, no props.domicilio (reactivo puede estar actualizado con dato nuevo)
+        const snap = snapshotEntrega.value;
+        if (snap) {
+            form.calle_entrega        = snap.calle_entrega;
+            form.numero_entrega       = snap.numero_entrega;
+            form.piso_entrega         = snap.piso_entrega;
+            form.depto_entrega        = snap.depto_entrega;
+            form.cp_entrega           = snap.cp_entrega;
+            form.localidad_entrega    = snap.localidad_entrega;
+            form.provincia_entrega_id = snap.provincia_entrega_id;
+        }
+        proceedSave();
+    } 
+    else if (action === 'SYNC_NEW') {
+        form.calle_entrega = form.calle;
+        form.numero_entrega = form.numero;
+        form.piso_entrega = form.piso;
+        form.depto_entrega = form.depto;
+        form.cp_entrega = form.cp;
+        form.localidad_entrega = form.localidad;
+        form.provincia_entrega_id = form.provincia_id;
+        proceedSave();
+    }
+    else if (action === 'MANUAL') {
+        skipDeliveryPrompt.value = true;
+    }
+};
+
+const proceedSave = () => {
     if (!form.es_fiscal) {
          form.calle = form.calle_entrega;
          form.numero = form.numero_entrega;
@@ -223,9 +166,6 @@ const handleSave = () => {
          form.localidad = form.localidad_entrega;
          form.provincia_id = form.provincia_entrega_id;
     } 
-    // 2. [GY-UX] Hybrid Auto-Fill: 
-    // If ES_FISCAL is true (default) but user only filled 'Entrega' (Right Side)
-    // and left 'Fiscal' (Left Side) empty, we assume Fiscal = Physical.
     else if (form.es_fiscal && !form.calle && form.calle_entrega) {
          form.calle = form.calle_entrega;
          form.numero = form.numero_entrega;
@@ -235,24 +175,33 @@ const handleSave = () => {
          form.localidad = form.localidad_entrega;
          form.provincia_id = form.provincia_entrega_id;
     }
-    
     emit('saved', { ...props.domicilio, ...form });
     emit('close');
 };
 
-const handleKeydown = (e) => {
-    if (e.key === 'Escape') emit('close');
-    if (e.key === 'F10') {
-        e.preventDefault();
-        handleSave();
+const handleSave = () => {
+    if (form.es_fiscal && isEditing.value && initialFiscalCalle.value && !skipDeliveryPrompt.value) {
+        const fiscalChanged = form.calle !== initialFiscalCalle.value;
+        const deliveryUntouched = form.calle_entrega === initialEntregaCalle.value;
+        const wereIdentical = initialFiscalCalle.value === initialEntregaCalle.value;
+        if (fiscalChanged && deliveryUntouched && wereIdentical) {
+            showSyncModal.value = true;
+            return; 
+        }
     }
+    skipDeliveryPrompt.value = false;
+    proceedSave();
 };
 
-// Transport Creation Logic
+const handleKeydown = (e) => {
+    if (e.key === 'Escape') emit('close');
+    if (e.key === 'F10') { e.preventDefault(); handleSave(); }
+};
+
 const showTransporteCanvas = ref(false);
 const selectedTransporte = ref(null);
 const openNewTransporte = (name) => {
-    selectedTransporte.value = { nombre: name, activo: true }; // Simplified init
+    selectedTransporte.value = { nombre: name, activo: true };
     showTransporteCanvas.value = true;
 };
 const handleTransporteCanvasCreate = async (id) => {
@@ -547,6 +496,42 @@ onUnmounted(() => {
                     @close="showTransporteCanvas = false"
                     @save="handleTransporteCanvasCreate"
                 />
+            </Transition>
+        </Teleport>
+
+        <!-- Modal Sincronización Inteligente (3 Botones) -->
+        <Teleport to="body">
+            <Transition name="fade">
+                <div v-if="showSyncModal" class="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div class="bg-slate-900 border border-emerald-500/30 rounded-xl p-6 max-w-md w-full shadow-2xl">
+                        <div class="flex items-center gap-3 text-emerald-400 mb-4">
+                            <i class="fas fa-code-branch text-xl"></i>
+                            <h3 class="text-lg font-bold">Desvío Logístico</h3>
+                        </div>
+                        
+                        <p class="text-slate-300 text-sm mb-6 leading-relaxed">
+                            Modificaste el domicilio fiscal. Antes, enviábamos la mercadería a esta misma dirección.<br/><br/>
+                            ¿A dónde enviamos los pedidos a partir de ahora?
+                        </p>
+
+                        <div class="flex flex-col gap-3">
+                            <button @click="resolveSync('KEEP_OLD')" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2">
+                                <i class="fas fa-archive"></i>
+                                Seguir enviando a la Antigua
+                            </button>
+                            
+                            <button @click="resolveSync('SYNC_NEW')" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2">
+                                <i class="fas fa-truck-fast"></i>
+                                Enviar también a esta Nueva
+                            </button>
+
+                            <button @click="resolveSync('MANUAL')" class="w-full mt-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300 font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2">
+                                <i class="fas fa-hand-pointer"></i>
+                                Ninguna (Voy a tipear otra a mano)
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </Transition>
         </Teleport>
 

@@ -450,12 +450,15 @@ const getClientColorMode = (cliente) => {
         if (count > 1) return 'BLUE';
     }
 
-    // 4. GREEN: Validated & Real CUIT
-    if (cliente.estado_arca === 'VALIDADO') {
-        return 'VALIDADO'; // or GREEN
+    // 4. [V14.8.4 SOBERANIA] Color = f(Bit 20)
+    // Si el Bit 20 (PENDIENTE_REVISION) esta apagado, el cliente es valido.
+    // El backend lo apaga automaticamente al detectar los 4 Pilares en el save.
+    // La lupa AFIP ya no es el unico camino al blanco.
+    if (!(flags & 1048576)) {
+        return 'VALIDADO';
     }
-    
-    // Fallback: Si no es nada de lo anterior, es Amarillo (Incompleto)
+
+    // Fallback: Bit 20 activo = datos incompletos segun el sistema
     return 'YELLOW';
 }
 

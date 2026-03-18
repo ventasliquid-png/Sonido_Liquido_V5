@@ -832,12 +832,24 @@ const consultarAfip = async () => {
                  fiscalNode.piso = '';
                  fiscalNode.depto = '';
             } else {
-                 fiscalNode.calle = pa.calle || rawAddress || 'Calle S/N'
-                 fiscalNode.numero = pa.numero || ''
-                 fiscalNode.piso = pa.piso || ''
-                 fiscalNode.depto = pa.depto || ''
-                 fiscalNode.localidad = pa.localidad || ''
-                 fiscalNode.cp = pa.cp || ''
+                 // [FIX-AFIP-NONDESTRUCTIVE PIN1974]
+                 // Si el nodo ya tiene calle manual, preguntar antes de sobreescribir con ARCA.
+                 const newCalle = pa.calle || rawAddress || '';
+                 const shouldOverwriteAddress = !fiscalNode.calle || !fiscalNode.calle.trim()
+                     || (newCalle && confirm(
+                         `ARCA / AFIP informa esta direccion fiscal:\n\n"${newCalle}"\n\nDireccion actual en sistema: "${fiscalNode.calle}"\n\n¿Desea REEMPLAZAR la direccion actual con el dato oficial de ARCA?\n\n- Aceptar: Usar dato ARCA\n- Cancelar: Conservar correccion manual`
+                     ));
+
+                 if (shouldOverwriteAddress) {
+                     fiscalNode.calle = newCalle || 'Calle S/N'
+                     fiscalNode.numero = pa.numero || ''
+                     fiscalNode.piso = pa.piso || ''
+                     fiscalNode.depto = pa.depto || ''
+                     fiscalNode.localidad = pa.localidad || ''
+                     fiscalNode.cp = pa.cp || ''
+                 } else {
+                     notificationStore.add('Direccion manual conservada. Solo se actualizan datos fiscales (IVA, Razon Social).', 'info')
+                 }
             }
             
             // Should likely be Delivery too if it's the only one
@@ -1434,7 +1446,7 @@ watch(() => (props.isModal ? props.id : route.params.id), async (newId) => {
                     es_entrega: true,
                     activo: true,
                     localidad: 'S/D',
-                    provincia_id: 'X'
+                    provincia_id: null
                 }]
              }
         }
@@ -1616,12 +1628,19 @@ const saveCliente = async () => {
              currentFlags |= props.isModal ? 13 : 15;
         }
 
-        // [GY-FIX] AUDITORÍA AUTOMÁTICA (Limpieza Bit 20 - Amarillo)
-        // Si tiene Lista y Segmento, el cliente entra en circuito formal comercial y se limpia "Pendiente de Revisión". 
-        // Ya no exigimos condicion_iva_id obligatoriamente para limpiar el bit, ya que sin IVA es Pink (Informal/Monotributo/Final)
-        const hasMandatory = payload.lista_precios_id && payload.segmento_id;
-        if (hasMandatory) {
-            currentFlags &= ~1048576; // Limpiar Bit 20 (Valor 1.048.576)
+        // [V14.8.4 SOBERANIA OPERATIVA - PIN 1974]
+        // 4 Pilares de Integridad de Carga: Nombre + Domicilio + Lista + Segmento
+        // Si el operador los cargo, el cliente es Veterano de Facto.
+        // Accion: Bit 20 OFF (Quitar Amarillo) + Bit 1 OFF (Promotion 15->13: Quitar Virginidad)
+        const hasDomicilioFiscal = domicilios.value.some(d => d.es_fiscal && (d.calle || '').trim().length > 2);
+        const has4Pillars = payload.razon_social && payload.lista_precios_id && payload.segmento_id && hasDomicilioFiscal;
+        if (has4Pillars) {
+            currentFlags &= ~1048576; // Bit 20 OFF: Limpiar PENDIENTE_REVISION
+            currentFlags &= ~2;       // Bit 1 OFF: Quitar IS_VIRGIN (Promotion 15->13)
+            currentFlags |= 1;        // Bit 0 ON: Asegurar IS_ACTIVE
+        } else if (payload.lista_precios_id && payload.segmento_id) {
+            // Caso parcial: tiene lista+segmento pero le falta domicilio o nombre -> al menos limpiar Bit 20
+            currentFlags &= ~1048576;
         }
         
         payload.flags_estado = currentFlags;
