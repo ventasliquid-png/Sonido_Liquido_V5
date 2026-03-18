@@ -434,17 +434,16 @@ const getClientColorMode = (cliente) => {
     const cuit = (cliente.cuit || '').replace(/[^0-9]/g, '');
     const isGeneric = ['00000000000', '11111111119', '11111111111', '99999999999'].includes(cuit);
     
-    // 1. PINK: No CUIT, Short CUIT, or Generic CUIT (Prioridad Máxima: No Fiscal)
-    if (!cuit || cuit.length < 5 || isGeneric) {
+    // 1. PINK: No CUIT, Short CUIT, Generic CUIT, o Sin IVA (Prioridad Máxima: No Fiscal/Informal)
+    const flags = cliente.flags_estado || 0;
+    if ((flags & 15) === 9 || (flags & 15) === 11 || !cuit || cuit.length < 5 || isGeneric || !cliente.condicion_iva_id) {
         return 'PINK'; 
     }
 
     // 2. YELLOW: Check for Pending Revision (Bit 20 - 1048576)
-    const flags = cliente.flags_estado || 0;
     if (flags & 1048576) {
         return 'YELLOW';
-    }
-    
+    }    
     // 3. BLUE: Shared/Collective CUIT (UBA Case)
     if (cuit.length === 11) {
         const count = clientes.value.filter(c => (c.cuit||'').replace(/[^0-9]/g, '') === cuit).length;

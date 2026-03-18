@@ -23,13 +23,13 @@ Al activarse esta misión, el agente **DEBE** realizar estos pasos en orden estr
     - **Bit 1 (TRINCHERA)**: Si está activo, asume entorno hostil y extrema cautela operativa.
 2.  **Lectura Cronológica**: Leer `CAJA_NEGRA.md` y `BITACORA_DEV.md`.
 3.  **Contexto Evolutivo**: Revisar los últimos 6 `INFORMES_HISTORICOS/`.
-4.  **Confirmación de Entorno**: Validar rama `atenea-v5-vault-final` y calibrar LAVIMAR (8205).
+4.  **Confirmación de Entorno**: Validar rama `atenea-v5-vault-final` y calibrar LAVIMAR (13).
 5.  **Restauración (Panel de Control)**: Solo tras confirmar que el sistema está estable, el agente DEBE limpiar las alertas ejecutando `python scripts/manager_status.py clear 3` y `python scripts/manager_status.py clear 4` para retornar al estado **NOMINAL**.
 
 ## 4. Validación de Integridad (Test Canario)
 - **Instrucción**: Verificar el registro de **LAVIMAR** en la base de datos por su identificador único.
 - **UUID**: `e1be0585cd3443efa33204d00e199c4e`
-- **Resultado Esperado**: El valor de `flags_estado` DEBE ser **8205** (Nivel 13 + Bit 13 de jerarquía). Si el valor difiere, el motor de 64-bits no está calibrado.
+- **Resultado Esperado**: El valor de `flags_estado` DEBE ser **13** (Nivel 13 Activo Consistido). Si el valor difiere, el motor de 64-bits no está calibrado.
 
 ## 5. Seguridad y Térmica
 - **Estado de Térmica**: 🔴 **ROJO** (Solo Lectura).

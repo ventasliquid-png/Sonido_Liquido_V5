@@ -326,12 +326,17 @@ def generar_remito_pdf(cliente_data, items, is_preview=False, output_path="remit
     Genera el PDF con las 3 copias.
     [ALFA-CA] Forzando sucursal 0016- por paridad situacional.
     """
-    if numero_remito and not numero_remito.startswith("0016-"):
-        # Portar y sellar: Si viene otro prefijo, se muta a 0016-
-        if "-" in numero_remito:
-            numero_remito = f"0016-{numero_remito.split('-', 1)[1]}"
-        else:
-            numero_remito = f"0016-{numero_remito.zfill(8)}"
+    if numero_remito:
+        # Portar y sellar: Strict enforcement of 0016-0000XXXX
+        s = numero_remito.replace("-", "")
+        if s.startswith("0016"):
+             s = s[4:]
+        elif s.startswith("0001"):
+             s = s[4:]
+        # Limitar a 8 caracteres (suffix)
+        if len(s) > 8:
+             s = s[-8:]
+        numero_remito = f"0016-{s.zfill(8)}"
 
     pdf = PDFRemito()
     pdf.is_preview = is_preview
