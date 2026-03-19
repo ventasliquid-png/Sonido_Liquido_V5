@@ -171,3 +171,21 @@ def create_remito_from_ingestion(payload: schemas.IngestionPayload, db: Session 
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+
+@router.post("/manual", response_model=schemas.RemitoResponse)
+def create_manual_remito(payload: schemas.ManualRemitoPayload, db: Session = Depends(get_db)):
+    """
+    Crea un Remito de forma manual (sin PDF).
+    Serie 0015-
+    """
+    try:
+        from backend.remitos.service import RemitosService
+        remito = RemitosService.create_manual(db, payload)
+        return remito
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        print(f"Error creating Manual Remito: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")

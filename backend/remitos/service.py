@@ -295,3 +295,172 @@ class RemitosService:
         db.commit()
         db.refresh(remito)
         return remito
+
+    @staticmethod
+    def create_manual(db: Session, payload: schemas.ManualRemitoPayload):
+        """
+        Creates a Manual Remito (Rosa/Blanco) from Frontend data.
+        Serie 0015-00003001
+        """
+        # 1. RESOLVE CLIENT
+        cliente = None
+        if payload.cliente_id:
+             cliente = db.query(Cliente).get(payload.cliente_id)
+        
+        if not cliente and payload.cliente_nuevo:
+             # Create new client using similar logic to ingestion but allowing for "Rosa" status
+             # In manual mode, the operator decides.
+             from backend.clientes.constants import ClientFlags
+             
+             # Default Rosa Flags (Level 9/11): Existence (1) | V14 (8)
+             # If user provides CUIT, we might treat as Blanco (Bit 4)
+             has_cuit = payload.cliente_nuevo.cuit and payload.cliente_nuevo.cuit != "00000000000"
+             
+             # [DOCTRINA] Rosa = 9/11 (Bits 1, 8. Bit 2 off). Blanco = 13/15 (Bits 1, 4, 8).
+             rosa_flags = ClientFlags.EXISTENCE | ClientFlags.V14_STRUCT
+             if has_cuit:
+                  rosa_flags |= ClientFlags.GOLD_ARCA # Becomes Blanco logic
+             
+             iva_id = RemitosService._resolve_iva_condition(db, payload.cliente_nuevo.condicion_iva)
+             
+             cliente = Cliente(
+                 razon_social=payload.cliente_nuevo.razon_social or "CLIENTE MANUAL NUEVO",
+                 cuit=payload.cliente_nuevo.cuit or "00000000000",
+                 activo=True,
+                 flags_estado=rosa_flags | ClientFlags.PENDIENTE_REVISION, # Always needs review if new manual
+                 estado_arca='PENDIENTE_AUDITORIA',
+                 condicion_iva_id=iva_id,
+                 fecha_alta=datetime.now()
+             )
+             db.add(cliente)
+             db.flush()
+             
+             # Auto-create Default Address
+             domicilio_def = Domicilio(
+                 cliente_id=cliente.id,
+                 calle=payload.cliente_nuevo.domicilio or "Dirección Manual",
+                 localidad="---",
+                 provincia_id="X", 
+                 es_fiscal=True,
+                 activo=True
+             )
+             db.add(domicilio_def)
+             db.flush()
+
+        if not cliente:
+             raise ValueError("Debe seleccionar o crear un cliente funcional para el remito.")
+
+        # 2. CALCULATE NEXT 0015- NUMBER
+        last_remito = db.query(models.Remito).filter(models.Remito.numero_legal.like("0015-%")).order_by(models.Remito.numero_legal.desc()).first()
+        
+        next_val = 3001
+        if last_remito and last_remito.numero_legal:
+             try:
+                  # Expected format: 0015-00003001
+                  current_str = last_remito.numero_legal.split("-")[-1]
+                  next_val = int(current_str) + 1
+             except:
+                  next_val = 3001
+        
+        if next_val < 3001: next_val = 3001
+        numero_legal = f"0015-{str(next_val).zfill(8)}"
+
+        # 3. CREATE GHOST PEDIDO
+        nuevo_pedido = Pedido(
+            cliente_id=cliente.id,
+            fecha=datetime.now(),
+            nota=payload.observaciones or "Generación Manual de Remito",
+            estado="CUMPLIDO", # Manual remitos are born fulfilled
+            origen="MANUAL",
+            domicilio_entrega_id=payload.domicilio_entrega_id,
+            transporte_id=payload.transporte_id
+        )
+        db.add(nuevo_pedido)
+        db.flush()
+
+        # 4. RESOLVE ITEMS (Similar to ingestion but with different schema)
+        from backend.productos.models import Producto
+        pedido_items = []
+        for item in payload.items:
+             # Search by description if we don't have a product_id or specific sku
+             # For manual remitos, we might just use a generic product or search
+             producto = db.query(Producto).filter(Producto.nombre == item.descripcion).first()
+             if not producto and item.codigo_visual:
+                  producto = db.query(Producto).filter(Producto.codigo_visual == item.codigo_visual).first()
+             
+             if not producto:
+                  # Use/Create generic if not found (Same logic as ingestion)
+                  # For brevity, I'll assume many exist or use the existing ingestion-style auto-creation if requested
+                  # But here I'll try to find a generic one first
+                  producto = db.query(Producto).filter(Producto.nombre.ilike("%VARIOS%")).first()
+                  if not producto:
+                       # Fallback to ingestion-style auto-creation
+                       # [GY-CODE-REUSE] (Internal logic from ingestion)
+                       last_vs = db.query(Producto).filter(Producto.codigo_visual.like('VS%')).order_by(Producto.id.desc()).first()
+                       nv = 1
+                       if last_vs: nv = int(last_vs.codigo_visual.replace("VS", "")) + 1
+                       producto = Producto(
+                           nombre=item.descripcion.upper(),
+                           codigo_visual=f"VS{str(nv).zfill(4)}",
+                           sku=85000 + nv, # Manual range
+                           rubro_id=1, # Default rubro
+                           activo=True
+                       )
+                       db.add(producto)
+                       db.flush()
+
+             new_p_item = PedidoItem(
+                 pedido_id=nuevo_pedido.id,
+                 producto_id=producto.id,
+                 cantidad=item.cantidad,
+                 precio_unitario=0.0, # Not usually relevant for manual transport remitos
+                 nota="Ítem Manual"
+             )
+             db.add(new_p_item)
+             db.flush()
+             pedido_items.append(new_p_item)
+
+        # 5. CREATE REMITO
+        # [GY-FIX] Ensure mandatory fields are populated (nullable=False)
+        resolved_domicilio_id = payload.domicilio_entrega_id
+        if not resolved_domicilio_id:
+             # Try to find a fiscal or any address for the client
+             first_dom = db.query(Domicilio).filter(Domicilio.cliente_id == cliente.id).first()
+             resolved_domicilio_id = first_dom.id if first_dom else None
+        
+        resolved_transporte_id = payload.transporte_id
+        if not resolved_transporte_id:
+             # Find first active transport
+             from backend.logistica.models import EmpresaTransporte
+             first_trans = db.query(EmpresaTransporte).filter(EmpresaTransporte.activo == True).first()
+             if not first_trans:
+                  # Fallback to any if none active (unlikely but safe)
+                  first_trans = db.query(EmpresaTransporte).first()
+             resolved_transporte_id = first_trans.id if first_trans else None
+
+        if not resolved_domicilio_id or not resolved_transporte_id:
+             raise ValueError("No se pudo determinar un domicilio de entrega o un transporte válido para el remito.")
+
+        remito = models.Remito(
+            pedido_id=nuevo_pedido.id,
+            domicilio_entrega_id=resolved_domicilio_id,
+            transporte_id=resolved_transporte_id,
+            estado="BORRADOR",
+            aprobado_para_despacho=payload.aprobado_para_despacho,
+            numero_legal=numero_legal,
+        )
+        db.add(remito)
+        db.flush()
+
+        # 6. CREATE REMITO ITEMS
+        for p_item in pedido_items:
+            r_item = models.RemitoItem(
+                remito_id=remito.id,
+                pedido_item_id=p_item.id,
+                cantidad=p_item.cantidad
+            )
+            db.add(r_item)
+
+        db.commit()
+        db.refresh(remito)
+        return remito

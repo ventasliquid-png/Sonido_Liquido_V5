@@ -77,3 +77,20 @@ class IngestionPayload(BaseModel):
     factura: IngestionFactura
     items: List[IngestionItem]
     solo_actualizar_cliente: bool = False
+
+# --- MANUAL REMITO (V15.1.4) ---
+class ManualRemitoItem(BaseModel):
+    descripcion: str
+    cantidad: float
+    codigo_visual: Optional[str] = None
+
+class ManualRemitoPayload(BaseModel):
+    cliente_id: Optional[str] = None # UUID
+    cliente_nuevo: Optional[IngestionCliente] = None # Reuse ingestion structure
+    domicilio_entrega_id: Optional[str] = None # UUID
+    transporte_id: Optional[str] = None # UUID
+    items: List[ManualRemitoItem]
+    observaciones: Optional[str] = ""
+    valor_declarado: Optional[float] = 0.0
+    bultos: Optional[int] = 1
+    aprobado_para_despacho: bool = True

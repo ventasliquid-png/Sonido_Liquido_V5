@@ -1612,6 +1612,9 @@ const saveCliente = async () => {
         const payload = { ...form.value };
         if (payload.codigo_interno === '') payload.codigo_interno = null;
         if (payload.cuit === '') payload.cuit = null;
+
+        // [GY-FIX] Define isGeneric for validation logic (V15.1)
+        const isGeneric = [9, 11].includes(form.value.nivel_id) || !form.value.cuit;
         
         // [GY-DOCTRINA-V14] GENOMA 4-BIT (PIN 1974)
         // Lógica de Niveles 13/15:
@@ -1623,7 +1626,7 @@ const saveCliente = async () => {
         let currentFlags = payload.flags_estado || 0;
         
         // Si no tiene identidad (nace de cero con CUIT), asignamos Nivel Inicial
-        if ((currentFlags & 0xF) === 0 && payload.cuit && payload.cuit !== '00000000000') {
+        if ((currentFlags & 0xF) === 0 && payload.cuit && !isGeneric) {
              // 15: Virgen (1+2+4+8) | 13: Ya operado (1+4+8)
              currentFlags |= props.isModal ? 13 : 15;
         }

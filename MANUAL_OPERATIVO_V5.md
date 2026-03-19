@@ -422,4 +422,42 @@ Para garantizar la integridad de los datos, el sistema implementa una protecció
 - **Rescate de Registros**: Si necesita volver a operar con un cliente que fue dado de baja, use el botón **RESCATAR**. Esto lo devolverá a la lista activa sin riesgos de pérdida de datos.
 
 ---
-**ESTADO DE DOCTRINA:** VANGUARD (V14.8.1)
+**ESTADO DE DOCTRINA:** VANGUARD (V14.8.4)
+
+### 12.4 Soberania Operativa V14.8.4 (Actualizacion 18-03-2026)
+A partir de esta version, el sistema actua como un Escudo Proactivo. El color y estado del cliente dependen de la calidad de la carga del operador, no de la validacion AFIP.
+
+**Promocion Automatica al Estado Veterano:**
+Al guardar un cliente con los siguientes 4 pilares completos, el sistema lo promueve automaticamente a "Veterano" (color blanco):
+1. Nombre (Razon Social)
+2. Domicilio Fiscal con calle
+3. Lista de Precios asignada
+4. Segmento comercial asignado
+
+El cliente deja de ser "Virgen" y pasa a ser reconocido como operativo por el solo hecho de tener la carga completa, **sin necesidad de usar la lupa AFIP**.
+
+**Lupa AFIP - Comportamiento Actualizado:**
+Si el cliente ya tiene una direccion fiscal cargada manualmente, la lupa ahora muestra una confirmacion antes de sobreescribirla con el dato oficial de ARCA. Esto protege las correcciones que el operador haya hecho (ej: "Av Cordoba" vs "Cordoba Av" que devuelve AFIP).
+- **Aceptar**: Usa el dato de ARCA.
+- **Cancelar**: Conserva la correccion manual. Solo se actualizan datos fiscales (IVA, Razon Social).
+
+
+---
+
+## CAPÍTULO 13: REMITOS MANUALES Y EDICIÓN DE INGESTA
+
+### 13.1 Remito Manual (Serie 0015)
+Diseñado para envíos de mercadería que no poseen una factura electrónica asociada (ej: Clientes Rosa).
+*   **Ubicación**: Menú Lateral > GRUPO PEDIDOS > Remito Manual.
+*   **Operación**:
+    1. Seleccione el Cliente (o cree uno nuevo con el botón "+").
+    2. Elija la dirección de entrega (el sistema carga automáticamente los domicilios del cliente).
+    3. Cargue los productos y cantidades.
+    4. Presione "Emitir y Descargar". El PDF saldrá con la serie 0015.
+
+### 13.2 Corrigiendo la Ingesta Automática
+Si al subir una factura el sistema lee mal un nombre o cantidad:
+*   **Edición Directa**: Haga clic sobre la descripción o cantidad en la tabla de resultados para corregirla.
+*   **Agregar Ítems**: Use el botón "Agregar Ítem Manual" si falta algún producto en la detección.
+*   **Eliminar**: Use la "X" roja para quitar líneas que no desea remitir.
+*   **Confirmación**: Una vez que la grilla refleje la realidad, presione "Generar Remito".

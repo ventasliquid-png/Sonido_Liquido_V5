@@ -124,8 +124,13 @@ const routes = [
             },
             {
                 path: 'logistica/remitos',
-                name: 'Remitos',
+                name: 'RemitoList',
                 component: () => import('../views/Logistica/RemitoListView.vue')
+            },
+            {
+                path: 'logistica/remito-manual',
+                name: 'ManualRemito',
+                component: () => import('../views/Logistica/ManualRemitoView.vue')
             }
         ]
     },
