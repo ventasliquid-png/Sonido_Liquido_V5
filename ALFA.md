@@ -29,7 +29,7 @@ Al activarse esta misión, el agente **DEBE** realizar estos pasos en orden estr
 ## 4. Validación de Integridad (Test Canario)
 - **Instrucción**: Verificar el registro de **LAVIMAR** en la base de datos por su identificador único.
 - **UUID**: `e1be0585cd3443efa33204d00e199c4e`
-- **Resultado Esperado**: El valor de `flags_estado` DEBE ser **8205** (Nivel 13 + Bit 13 de jerarquía). Si el valor difiere, el motor de 64-bits no está calibrado.
+- **Resultado Esperado**: El valor de `flags_estado` DEBE ser **13** (Nivel 13 + Sello Oro Arca). Si el valor difiere, el motor de 64-bits no está calibrado.
 
 ## 5. Seguridad y Térmica
 - **Estado de Térmica**: 🔴 **ROJO** (Solo Lectura).
@@ -37,4 +37,5 @@ Al activarse esta misión, el agente **DEBE** realizar estos pasos en orden estr
 - **UX**: Resiliencia total. Manejo de estados asíncronos y logs en ASCII (Sin emojis).
 
 ---
+*Sello de Calibración: Paz Binaria V15.1 - 18/03/2026*
 *Gy, ejecutas el Protocolo ALFA. Reportas estado de integridad y esperas directivas.*

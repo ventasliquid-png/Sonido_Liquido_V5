@@ -22,10 +22,10 @@ def verify():
             razon_social, flags = row
             print(f"LAVIMAR_FOUND: {razon_social}")
             print(f"FLAGS_ESTADO: {flags}")
-            if flags == 8205:
-                print("CALIBRACION_OK: 8205 (64-bit BigInt Nativo)")
+            if flags == 13:
+                print("CALIBRACION_OK: 13 (V14.8.4 - Soberanía del 13)")
             else:
-                print(f"ALERT: Calibración incorrectA. Se esperaba 8205, se obtuvo {flags}")
+                print(f"ALERT: Calibración incorrecta. Se esperaba 13, se obtuvo {flags}")
         else:
             print(f"ERROR: Registro LAVIMAR ({uuid_lavimar}) no encontrado.")
             

@@ -1,0 +1,9 @@
+🚀 INICIANDO MIGRACIÓN SQL PAZ BINARIA V15.1...
+
+📊 CENSO FINAL SQL V15.1:
+🌸 Soberanos Rosas (Solo 19): 6
+⚪ Soberanos Blancos (Solo 20): 23
+🧬 Híbridos / Evolucionados (19+20): 0
+🟡 Pendientes (Amarillo): 5
+
+✅ MIGRACIÓN SQL COMPLETADA. PIN 1974.

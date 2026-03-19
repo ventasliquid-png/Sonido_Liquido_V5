@@ -213,17 +213,63 @@ class ClienteService:
                 target_dom.transporte_id = transporte_id
                 db.add(target_dom)
             else:
-                # Create a minimal delivery address if none exists (Bronze Logic?)
-                # This ensures we store the preference.
+                # Create a minimal delivery address if none exists
                 new_dom = Domicilio(
                     cliente_id=db_cliente.id,
+                    transporte_id=transporte_id,
+                    es_entrega=True,
+                    activo=True
                 )
                 db.add(new_dom)
+
+        # [GY-DOCTRINA-V14] ESCUDO DOBLE (Audit Optimized)
+        ClienteService._audit_sovereignty(db_cliente)
 
         db.add(db_cliente)
         db.commit()
         db.refresh(db_cliente)
         return db_cliente
+
+    @staticmethod
+    def _audit_sovereignty(db_cliente: "Cliente"):
+        """
+        [V15.1] ESCUDO DOBLE (Paz Binaria)
+        Asigna medallas de éxito (Bit 19/20) según los pilares alcanzados.
+        NO es destructivo: Un Bit 20 no quita un Bit 19 preexistente.
+        """
+        # Pilares Básicos
+        has_iva = db_cliente.condicion_iva_id is not None
+        has_lista = db_cliente.lista_precios_id is not None
+        has_segmento = db_cliente.segmento_id is not None
+        has_fiscal = any(d.es_fiscal and d.activo for d in db_cliente.domicilios)
+        
+        # Identidad
+        is_rosa = (db_cliente.flags_estado & 15) in [9, 11]
+        is_formal = (db_cliente.flags_estado & 15) in [13, 15]
+        is_generic = db_cliente.cuit in ['00000000000', '11111111119', '11111111111', '99999999999']
+        is_cf = False
+        if db_cliente.condicion_iva and "CONSUMIDOR FINAL" in db_cliente.condicion_iva.nombre.upper():
+            is_cf = True
+
+        # --- REGLA 1: POWER_PINK (Bit 19) ---
+        # Requisito: Nivel 9/11 + (Lista, Segmento, Domicilio) O CF/Genérico
+        if is_rosa:
+            if (has_lista and has_segmento and has_fiscal) or is_generic or is_cf:
+                db_cliente.flags_estado |= 524288 # Medalla Rosa
+            else:
+                db_cliente.flags_estado &= ~524288 # Pierde medalla si retrocede en pilares
+        elif is_generic or is_cf:
+            # CF/Genéricos siempre tienen soberanía base (Rosa)
+            db_cliente.flags_estado |= 524288
+
+        # --- REGLA 2: ARCA_OK (Bit 20) ---
+        # Requisito: Nivel 13/15 + 4 Pilares + Auditoría CUIT (Lupa)
+        # Nota: La "Lupa" se asume si el sistema corre la auditoría y todo es OK.
+        if is_formal and not is_generic and not is_cf:
+            if has_iva and has_lista and has_segmento and has_fiscal:
+                db_cliente.flags_estado |= 1048576 # Medalla Blanca
+            else:
+                db_cliente.flags_estado &= ~1048576 # Pierde medalla si retrocede
 
     @staticmethod
     def delete_cliente(db: Session, cliente_id: UUID) -> Optional[Cliente]:
@@ -486,6 +532,13 @@ class ClienteService:
             db.commit()
             db.refresh(db_domicilio)
             
+            # [GY-DOCTRINA-V14] RE-AUDIT PARENT
+            db_cliente = ClienteService.get_cliente(db, cliente_id)
+            if db_cliente:
+                ClienteService._audit_sovereignty(db_cliente)
+                db.add(db_cliente)
+                db.commit()
+
             # [VAULT SYNC] Register VinculoGeografico
             from backend.contactos.models import VinculoGeografico
             flags = 0
@@ -585,6 +638,13 @@ class ClienteService:
             vg.alias = db_domicilio.alias
             db.add(vg)
             db.commit()
+
+        # [GY-DOCTRINA-V14] RE-AUDIT PARENT
+        db_p = ClienteService.get_cliente(db, db_domicilio.cliente_id)
+        if db_p:
+            ClienteService._audit_sovereignty(db_p)
+            db.add(db_p)
+            db.commit()
         
         # Return Domicilio object
         return db_domicilio
@@ -599,10 +659,16 @@ class ClienteService:
             db.commit()
             db.refresh(db_domicilio)
             
-            # [VAULT SYNC] Inactivate Vinculo
-            from backend.contactos.models import VinculoGeografico
             db.query(VinculoGeografico).filter(
                 VinculoGeografico.domicilio_id == domicilio_id
             ).update({"activo": False})
             db.commit()
+
+            # [GY-DOCTRINA-V14] RE-AUDIT PARENT
+            db_p = ClienteService.get_cliente(db, db_domicilio.cliente_id)
+            if db_p:
+                ClienteService._audit_sovereignty(db_p)
+                db.add(db_p)
+                db.commit()
+
         return db_domicilio

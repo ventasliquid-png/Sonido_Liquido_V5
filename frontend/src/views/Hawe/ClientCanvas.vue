@@ -1616,11 +1616,23 @@ const saveCliente = async () => {
              currentFlags |= props.isModal ? 13 : 15;
         }
 
-        // [GY-FIX] AUDITORÍA AUTOMÁTICA (Limpieza Bit 20 - Amarillo)
-        // Si tiene IVA, Lista y Segmento, el cliente ya no está "Pendiente de Revisión"
-        const hasMandatory = payload.condicion_iva_id && payload.lista_precios_id && payload.segmento_id;
-        if (hasMandatory) {
-            currentFlags &= ~1048576; // Limpiar Bit 20 (Valor 1.048.576)
+        // [V15.1] SOBERANÍA ADITIVA (Audit Trigger)
+        // La auditoría real ocurre en el Backend (Escudo Doble).
+        // En el Frontend solo aseguramos que el flag inicial sea coherente 
+        // para la primera visualización tras el save (antes del refresh).
+        
+        const hasFiscal = domicilios.value.some(d => d.es_fiscal && d.activo !== false);
+        const hasMandatory = payload.condicion_iva_id && payload.lista_precios_id && payload.segmento_id && hasFiscal;
+        const isRosa = (currentFlags & 15) === 9 || (currentFlags & 15) === 11 || isGeneric || isConsumidorFinal;
+        
+        if (isRosa) {
+             // Candidato a Medalla 19
+             if (payload.lista_precios_id && payload.segmento_id && hasFiscal) {
+                 currentFlags |= 524288; 
+             }
+        } else if (hasMandatory) {
+             // Candidato a Medalla 20
+             currentFlags |= 1048576;
         }
         
         payload.flags_estado = currentFlags;
@@ -2087,7 +2099,8 @@ const statusColor = (status) => {
     return 'bg-gray-900/20 text-gray-400 border-gray-500/30'
 }
 
-// [GY-UX] Client Color Logic (Pink/Yellow/Green/Blue) - Genoma V14
+// [GY-UX] Client Color Logic (Pink/Yellow/Green/Blue) - Genoma V15.1
+// [GY-DOCTRINA-V15.1] PAZ BINARIA: El amarillo es el default.
 const clientColorMode = computed(() => {
     const flags = form.value.flags_estado || 0;
     const cuit = (form.value.cuit || '').replace(/[^0-9]/g, '');
@@ -2095,22 +2108,24 @@ const clientColorMode = computed(() => {
     const isConsumidorFinal = form.value.condicion_iva_id && 
             condicionesIva.value.find(i => i.id === form.value.condicion_iva_id)?.nombre.toUpperCase().includes('CONSUMIDOR FINAL');
 
-    // ROSA (Pink) -> Pao de Tandil (9/11) or Informal/Generic
-    if ((flags & 15) === 9 || (flags & 15) === 11 || !cuit || cuit.length < 5 || isGeneric || isConsumidorFinal) {
+    // 1. ROSA (Pink) -> POWER_PINK (Bit 19 - 524288)
+    // Prioridad Absoluta para el Rosa (Soberanía Informal).
+    if ((flags & 524288) || (flags & 15) === 9 || (flags & 15) === 11 || !cuit || cuit.length < 5 || isGeneric || isConsumidorFinal) {
         return 'pink'; 
     }
     
-    // AZUL (Blue) -> CUIT Colectivo / Compartido (UBA)
+    // 2. BLANCO (White/Green) -> ARCA_OK (Bit 20 - 1048576)
+    // Soberanía Auditada para niveles 13/15.
+    if (flags & 1048576) {
+        return 'green';
+    }
+    
+    // 3. AZUL (Blue) -> CUIT Colectivo (UBA)
     if (isSharedCuit.value) {
         return 'blue';
     }
 
-    // VERDE (Green/Emerald) -> Validated & Real CUIT (13/15)
-    if (((flags & 15) === 13 || (flags & 15) === 15 || form.value.estado_arca === 'VALIDADO') && !isGeneric) {
-        return 'green';
-    }
-    
-    // AMARILLO (Yellow) -> Pending/Warning
+    // 4. AMARILLO (Yellow) -> ESTADO DEFAULT (Soberanía Pendiente)
     return 'yellow';
 })
 

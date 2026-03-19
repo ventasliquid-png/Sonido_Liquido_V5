@@ -44,8 +44,12 @@ Control jerárquico del Byte 0:
 
 ---
 
-## 2. Auditoría de Capas Superiores
-- **Bit 20 (1.048.576):** PENDIENTE_REVISIÓN. Dispara el color **AMARILLO** en el Explorador. Se limpia automáticamente al completar IVA, Lista y Segmento.
+## 2. Auditoría de Capas Superiores (Paz Binaria V15.1)
+- **Bit 19 (524288):** POWER_PINK. Soberanía Informal Éxito (Niveles 9/11).
+- **Bit 20 (1.048.576):** ARCA_OK. Soberanía Formal Auditada (Niveles 13/15).
+
+---
+**NOTA:** El Amarillo es el estado base por defecto si no hay medallas de soberanía (Bits 19/20).
 
 ---
 *Firma: Antigravity / Gy V14 - Bajo supervisión de Carlos.*
