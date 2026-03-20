@@ -3,7 +3,7 @@ import os
 
 db_path = 'pilot_v5x.db'
 lavimar_id = 'e1be0585cd3443efa33204d00e199c4e'
-jofre_name = 'JOFRE SERGIO'
+jofre_name = 'SERGIO JOFRE'
 
 def final_calibrate():
     if not os.path.exists(db_path):

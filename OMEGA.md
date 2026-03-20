@@ -23,16 +23,19 @@ No se considera una sesión finalizada sin:
 Antes del PUSH, el agente debe:
 1.  **Filtro de Tamaño**: Listar archivos que superen los 5MB (excepto .db si es intencional). Abortar si se detectan `.exe` o `.zip` no autorizados.
 2.  **Verificación de .gitignore**: Asegurar que no se estén subiendo binarios pesados por error.
+3.  **Ojo de Halcón (Auditoría V5.2)**: 
+    - Ejecutar `python audit_v5.py`.
+    - **Bloqueo de Seguridad**: Si `audit_v5.py` reporta archivos modificados que `git status` no tiene en Staging, o que no están en `ARCHIVOS_SESION`, la sesión queda BLOQUEADA. Prohibido solicitar PIN 1974. Corregir discrepancias antes de seguir.
 
 ## 5. Autorización y Ejecución Física (Fase de Abordaje Completo)
 - **Procedimiento Obligatorio**:
     1.  `git add .` (Asegura captura de informes nuevos en `INFORMES_HISTORICOS/`).
-    2.  `git status` (Verificación visual de archivos 'untracked').
+    2.  `git status` (Verificación final contra `ARCHIVOS_SESION`).
     3.  `git commit -m "Omega: [Resumen de Misión]"` (Referencia al PIN 1974).
     4.  `git push` (Sello final).
-- **Plan de Cierre**: El agente debe presentar un resumen de qué archivos va a subir.
-- **PIN 1974**: Solo tras recibir el PIN exacto, el agente ejecutará el `git push`.
-- **Certificación**: Al terminar, el agente debe mostrar la salida real de la consola de Git para confirmar la "Subida Física".
+- **Control de Salida (Ticket de Certificación)**: 
+    - Tras el push, es OBLIGATORIO ejecutar `git show --name-only HEAD`. Este es el comprobante físico de la sincronización.
+- **PIN 1974**: Solo tras superar la auditoría de Halcón y presentar el plan de cierre, el agente solicitará el PIN.
 
 ---
 **Estado Final**: El agente declara el estado. Si se activa el Bit 3, la sesión queda marcada como **SITUACIÓN DE EMERGENCIA**. La limpieza de este bit es responsabilidad del próximo agente al ejecutar el **Punto 5 del Protocolo ALFA**, una vez verificado el retorno a la normalidad.

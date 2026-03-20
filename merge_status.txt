@@ -1,0 +1,67 @@
+On branch atenea-v5-vault-final
+Your branch is up to date with 'origin/atenea-v5-vault-final'.
+
+You have unmerged paths.
+  (fix conflicts and run "git commit")
+  (use "git merge --abort" to abort the merge)
+
+Changes to be committed:
+	new file:   30715603973_001_00001_00002508 Centro Pet.pdf
+	new file:   DOCUMENTOS_GENERADOS_RAR/Facturas procesadas/30715603973_001_00001_00002496 Jorgito.pdf
+	new file:   DOCUMENTOS_GENERADOS_RAR/Facturas procesadas/30715603973_001_00001_00002506 F JOSEFINA MASSOLA.pdf
+	new file:   DOCUMENTOS_GENERADOS_RAR/Facturas procesadas/30715603973_001_00001_00002511 Panalab OC19169_etq.pdf
+	new file:   DOCUMENTOS_GENERADOS_RAR/Facturas procesadas/30715603973_001_00001_00002512 F LAVIMAR S A.pdf
+	new file:   DOCUMENTOS_GENERADOS_RAR/Remitos de salida/remito_0015_00003008.pdf
+	new file:   DOCUMENTOS_GENERADOS_RAR/Remitos de salida/remito_0015_00003009.pdf
+	new file:   DOCUMENTOS_GENERADOS_RAR/Remitos de salida/remito_0016_00002496.pdf
+	new file:   DOCUMENTOS_GENERADOS_RAR/Remitos de salida/remito_0016_00002506.pdf
+	new file:   DOCUMENTOS_GENERADOS_RAR/Remitos de salida/remito_0016_00002511.pdf
+	new file:   DOCUMENTOS_GENERADOS_RAR/Remitos de salida/remito_0016_00002512.pdf
+	new file:   INFORMES_HISTORICOS/2026-03-18_SOBERANIA_OPERATIVA_V14.8.4.md
+	new file:   INFORMES_HISTORICOS/2026-03-19_INFORME_SESION_V15_PARTE_1.md
+	modified:   MANUAL_OPERATIVO_V5.md
+	modified:   MANUAL_TECNICO_V5.md
+	deleted:    WhatsApp Video 2026-03-17 at 12.27.51.mp4
+	modified:   backend/clientes/service.py
+	modified:   backend/modules/sabueso/token_cache.json
+	modified:   backend/remitos/pdf_parser.py
+	modified:   backend/remitos/remito_engine.py
+	modified:   backend/remitos/router.py
+	modified:   backend/remitos/schemas.py
+	modified:   backend/remitos/service.py
+	modified:   frontend/src/components/layout/AppSidebar.vue
+	modified:   frontend/src/router/index.js
+	new file:   frontend/src/views/Hawe/ClientCanvas.txt
+	new file:   frontend/src/views/Hawe/components/DomicilioSplitCanvas.txt
+	modified:   frontend/src/views/Hawe/components/DomicilioSplitCanvas.vue
+	new file:   frontend/src/views/Logistica/ManualRemitoView.vue
+	modified:   frontend/src/views/Pedidos/IngestaFacturaView.vue
+	modified:   pdf_debug.txt
+	new file:   scripts/check_gelato_addresses.py
+	new file:   scripts/final_calibrate_v15.py
+	new file:   scripts/verify_manual_remito.py
+	modified:   test_factura_masked_v8.pdf
+	modified:   test_preview_full.pdf
+
+Unmerged paths:
+  (use "git add <file>..." to mark resolution)
+	both modified:   ALFA.md
+	both modified:   frontend/src/views/Hawe/ClientCanvas.vue
+	both modified:   frontend/src/views/HaweView.vue
+	both added:      scripts/migrate_v15.py
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   session_counter.json
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	branches_contain.txt
+	final_status.txt
+	merge_status.txt
+	migrate_output.txt
+	office_diff_stat.txt
+	status_output.txt
+	today_office_report.txt
+

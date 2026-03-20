@@ -1,0 +1,56 @@
+ 30715603973_001_00001_00002508 Centro Pet.pdf      |  Bin 0 -> 87042 bytes
+ ALFA.md                                            |    5 +-
+ .../30715603973_001_00001_00002496 Jorgito.pdf     |  Bin 0 -> 87132 bytes
+ ...03973_001_00001_00002506 F JOSEFINA MASSOLA.pdf |  Bin 0 -> 87522 bytes
+ ...3973_001_00001_00002511 Panalab OC19169_etq.pdf | 2213 ++++++++++++++++++++
+ ...0715603973_001_00001_00002512 F LAVIMAR S A.pdf |  Bin 0 -> 87245 bytes
+ .../Remitos de salida/remito_0015_00003008.pdf     |  Bin 0 -> 1337134 bytes
+ .../Remitos de salida/remito_0015_00003009.pdf     |  Bin 0 -> 1337134 bytes
+ .../Remitos de salida/remito_0016_00002496.pdf     |  Bin 0 -> 1342457 bytes
+ .../Remitos de salida/remito_0016_00002506.pdf     |  Bin 0 -> 1342767 bytes
+ .../Remitos de salida/remito_0016_00002511.pdf     |  Bin 0 -> 1342413 bytes
+ .../Remitos de salida/remito_0016_00002512.pdf     |  Bin 0 -> 1342425 bytes
+ GENOMA_MASTER.md                                   |    8 +-
+ .../2026-03-18_INFORME_SESION_V15_PARTE_2.md       |   39 -
+ .../2026-03-18_SOBERANIA_OPERATIVA_V14.8.4.md      |   73 +
+ .../2026-03-19_INFORME_SESION_V15_PARTE_1.md       |   41 +
+ MANUAL_OPERATIVO_V5.md                             |   40 +-
+ MANUAL_TECNICO_V5.md                               |   36 +
+ WhatsApp Video 2026-03-17 at 12.27.51.mp4          |  Bin 1253341 -> 0 bytes
+ backend/clientes/service.py                        |  109 +-
+ .../temp_auth_ws_sr_padron_a13_f767b1b4.cms        |    0
+ backend/modules/sabueso/token_cache.json           |    2 +-
+ backend/remitos/pdf_parser.py                      |   16 +
+ backend/remitos/remito_engine.py                   |   17 +-
+ backend/remitos/router.py                          |   35 +-
+ backend/remitos/schemas.py                         |   17 +
+ backend/remitos/service.py                         |  169 ++
+ frontend/src/components/layout/AppSidebar.vue      |    8 +-
+ frontend/src/router/index.js                       |    7 +-
+ frontend/src/views/Hawe/ClientCanvas.txt           | 2114 +++++++++++++++++++
+ frontend/src/views/Hawe/ClientCanvas.vue           |  127 +-
+ .../views/Hawe/components/DomicilioSplitCanvas.txt |  682 ++++++
+ .../views/Hawe/components/DomicilioSplitCanvas.vue |  299 ++-
+ frontend/src/views/HaweView.vue                    |  180 +-
+ frontend/src/views/Logistica/ManualRemitoView.vue  |  416 ++++
+ frontend/src/views/Pedidos/IngestaFacturaView.vue  |   58 +-
+ pdf_debug.txt                                      |    2 +-
+ scripts/check_gelato_addresses.py                  |   34 +
+ scripts/final_audit_sovereignty.py                 |   44 -
+ scripts/final_calibrate_v15.py                     |   64 +
+ scripts/final_trigger_jofre.py                     |   44 -
+ scripts/fix_jofre_iva.py                           |   27 -
+ scripts/get_flags.py                               |   11 -
+ scripts/get_lavimar.py                             |   12 -
+ scripts/inspect_db.py                              |    8 -
+ scripts/migrate_v15.py                             |  105 +-
+ scripts/migrate_v15_sql.py                         |   82 -
+ scripts/migration_results.txt                      |    9 -
+ scripts/verify_alfa.py                             |   24 -
+ scripts/verify_alfa_integrity.py                   |    6 +-
+ scripts/verify_manual_remito.py                    |   75 +
+ scripts/verify_sovereignty.py                      |   56 -
+ session_counter.json                               |    2 +-
+ test_factura_masked_v8.pdf                         |  Bin 1342488 -> 1342485 bytes
+ test_preview_full.pdf                              |  Bin 1335259 -> 1335259 bytes
+ 55 files changed, 6524 insertions(+), 792 deletions(-)

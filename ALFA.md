@@ -21,9 +21,15 @@ Al activarse esta misión, el agente **DEBE** realizar estos pasos en orden estr
     - **Bit 3 (CRÍTICO)**: Si está activo, detente y pide instrucciones de rescate.
     - **Bit 2 (CARTA)**: Si está activo, lee obligatoriamente `CARTA_MOMENTO_CERO.md` antes de seguir.
     - **Bit 1 (TRINCHERA)**: Si está activo, asume entorno hostil y extrema cautela operativa.
-2.  **Lectura Cronológica**: Leer `CAJA_NEGRA.md` y `BITACORA_DEV.md`.
+2.  **Lectura Cronológica y Staging**: 
+    - Ejecutar `git status -s`. 
+    - Crear lista interna `ARCHIVOS_SESION`. Todo archivo tocado DEBE estar en esta lista.
+    - Leer `CAJA_NEGRA.md` y `BITACORA_DEV.md`.
 3.  **Contexto Evolutivo**: Revisar los últimos 6 `INFORMES_HISTORICOS/`.
-4.  **Confirmación de Entorno**: Validar rama `atenea-v5-vault-final` y calibrar LAVIMAR (13).
+4.  **Confirmación de Entorno (ESTRICTO)**: 
+    - Validar que la rama activa sea `atenea-v5-vault-final`.
+    - **ALERTA ROJA**: Si el agente detecta una rama de respaldo (ej: `respaldo-...`) activa sin orden previa, debe reportar DESVIO CRÍTICO y abortar.
+    - Calibrar LAVIMAR (13 / 8205).
 5.  **Restauración (Panel de Control)**: Solo tras confirmar que el sistema está estable, el agente DEBE limpiar las alertas ejecutando `python scripts/manager_status.py clear 3` y `python scripts/manager_status.py clear 4` para retornar al estado **NOMINAL**.
 
 ## 4. Validación de Integridad (Test Canario)
