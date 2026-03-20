@@ -68,5 +68,9 @@ export default {
 
     confirmIngesta(payload) {
         return api.post('/remitos/ingesta-process', payload);
+    },
+
+    updateRemito(remitoId, data) {
+        return api.patch(`/remitos/${remitoId}`, data);
     }
 };

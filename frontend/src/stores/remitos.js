@@ -131,6 +131,24 @@ export const useRemitosStore = defineStore('remitos', () => {
         return pendientes;
     });
 
+    async function updateRemito(remitoId, data) {
+        loading.value = true;
+        try {
+            const res = await remitosService.updateRemito(remitoId, data);
+            // Update local state
+            const idx = remitos.value.findIndex(r => r.id === remitoId);
+            if (idx !== -1) {
+                remitos.value[idx] = { ...remitos.value[idx], ...res.data };
+            }
+            return res.data;
+        } catch (err) {
+            error.value = err.response?.data?.detail || "Error al actualizar remito.";
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    }
+
     return {
         remitos,
         currentPedido,
@@ -140,6 +158,7 @@ export const useRemitosStore = defineStore('remitos', () => {
         fetchAllRemitos,
         createRemito,
         despacharRemito,
+        updateRemito,
         addItemToRemito,
         itemsPendientes
     };

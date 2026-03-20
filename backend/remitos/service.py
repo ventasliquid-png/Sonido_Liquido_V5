@@ -464,3 +464,27 @@ class RemitosService:
         db.commit()
         db.refresh(remito)
         return remito
+    @staticmethod
+    def update_remito(db: Session, remito_id: str, payload: schemas.RemitoUpdate):
+        """
+        Actualiza los datos de un remito existente.
+        Solo permitido para remitos en estado BORRADOR.
+        """
+        remito = db.query(models.Remito).filter(models.Remito.id == remito_id).first()
+        if not remito:
+            raise ValueError("Remito no encontrado")
+        
+        if remito.estado != "BORRADOR" and payload.estado is None:
+            # Solo permitir cambios si el remito es borrador, 
+            # a menos que estemos cambiando el estado (ej. forzar anulación)
+            raise ValueError("No se puede editar un remito que ya no está en estado BORRADOR.")
+
+        # Actualizar campos básicos
+        update_data = payload.dict(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(remito, key, value)
+        
+        db.add(remito)
+        db.commit()
+        db.refresh(remito)
+        return remito

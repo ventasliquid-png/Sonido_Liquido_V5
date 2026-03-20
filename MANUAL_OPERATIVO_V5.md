@@ -469,3 +469,10 @@ A partir de Marzo 2026, las sesiones de desarrollo y carga crítica se rigen por
 
 ### 14.2 El Ticket de Salida
 - Tras finalizar la subida de datos, el sistema emite un **Ticket de Salida** físico (`git show`). Este documento certifica que el trabajo está a salvo en el servidor y listo para ser "despertado" en otra terminal (Oficina/Casa).
+
+### 13.3 Edición de Remitos Emitidos (Doble Clic)
+Si necesita corregir datos de un remito que ya fue emitido pero aún no ha salido del depósito (estado **BORRADOR**):
+1.  Vaya a **LOGÍSTICA > Remitos**.
+2.  Busque el remito en la lista y haga **doble clic** sobre el renglón.
+3.  Se abrirá un modal donde podrá corregir el número, el transporte o la dirección.
+4.  **Nota**: Esta función es parcial. Actualmente no permite editar los productos ni los bultos (verde Bit 3).

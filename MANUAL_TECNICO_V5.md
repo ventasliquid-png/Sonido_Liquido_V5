@@ -183,3 +183,16 @@ Implementado el 19-03-2026 para evitar desincronías entre los entornos de la Of
 ## 20. MEMORIA DE SESIÓN (PROTOCOLO ALFA)
 *   **Staging Early Check**: Al iniciar, el agente debe declarar la lista `ARCHIVOS_SESION` basándose en el `git status -s` inicial.
 *   **Protección de Rama**: El sistema valida estrictamente la permanencia en `atenea-v5-vault-final`. Cualquier derivación no autorizada activa una ALERTA ROJA.
+
+## 21. EDICIÓN DE REMITOS ADMITIDOS (RESTORE V5.2)
+Implementado el 20-03-2026 para permitir correcciones en remitos ya generados (especialmente de ingesta).
+*   **Backend**: 
+    *   `PATCH /remitos/{id}`: Soporta actualización de cabecera (`numero_legal`, `cae`, `vto_cae`, `transporte_id`, `domicilio_entrega_id`).
+    *   **Restricción**: Solo permitido para remitos en estado `BORRADOR`.
+*   **Frontend**:
+    *   `RemitoListView.vue`: Captura `@dblclick` sobre la fila del remito.
+    *   **Modal de Edición**: Carga dinámicamente los domicilios del cliente asociado al pedido del remito.
+*   **Parche Incompleto (Deuda Técnica)**: 
+    *   Falta edición de bultos y valor declarado.
+    *   Falta edición de ítems (cuerpo) post-generación.
+    *   SISTEMA EN ESTADO CRÍTICO (BIT 3) por deuda de integridad en logística.

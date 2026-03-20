@@ -189,3 +189,17 @@ def create_manual_remito(payload: schemas.ManualRemitoPayload, db: Session = Dep
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+@router.patch("/{remito_id}", response_model=schemas.RemitoResponse)
+def update_remito(remito_id: str, payload: schemas.RemitoUpdate, db: Session = Depends(get_db)):
+    """
+    Actualiza un remito existente (Cabecera).
+    """
+    try:
+        from backend.remitos.service import RemitosService
+        updated = RemitosService.update_remito(db, remito_id, payload)
+        return updated
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        print(f"Error updating Remito {remito_id}: {e}")
+        raise HTTPException(status_code=500, detail="Error interno al actualizar remito")
