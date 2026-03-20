@@ -1,6 +1,6 @@
 # 📘 MANUAL TÉCNICO V5: "INDEPENDENCIA"
-**Versión:** 1.3 Release (Updated V14.8.1 Genoma)
-**Fecha:** 17-03-2026
+**Versión:** 1.4 Release (Updated V15.1.5 Blindado)
+**Fecha:** 19-03-2026
 
 ## 1. DOCTRINA DE PRECIOS: "LA ROCA Y LA MÁSCARA"
 El sistema V5 implementa una estrategia psicológica de precios:
@@ -174,4 +174,12 @@ Implementado el 19-03-2026 para permitir logística sin facturación previa (Cli
 ## 18. EDICIÓN TÁCTICA DE INGESTA (EDITABLE GRID)
 Mejora al motor OCR para permitir corrección humana de errores de lectura.
 *   **Frontend**: `IngestaFacturaView.vue` utiliza una tabla de inputs reactivos conectada al `parsedData.items`.
-*   **Flexibilidad**: El operador puede añadir filas (ítems manuales) o borrar errores de detección antes de confirmar el remito.
+## 19. SEGURIDAD DE SINCRONIZACIÓN: PROTOCOLO OMEGA V5.2 (BLINDADO)
+Implementado el 19-03-2026 para evitar desincronías entre los entornos de la Oficina y Casa.
+*   **Ojo de Halcón (`audit_v5.py`)**: Herramienta de auditoría física que rastrea cambios en disco en las últimas 12 horas.
+*   **Bloqueo de PIN 1974**: El sistema tiene prohibido solicitar el PIN de cierre si existen discrepancias entre el estado de Git y los cambios físicos detectados en el disco.
+*   **Certificación de Salida**: Es obligatorio ejecutar `git show --name-only HEAD` tras cada push para validar la inyección física de los commits.
+
+## 20. MEMORIA DE SESIÓN (PROTOCOLO ALFA)
+*   **Staging Early Check**: Al iniciar, el agente debe declarar la lista `ARCHIVOS_SESION` basándose en el `git status -s` inicial.
+*   **Protección de Rama**: El sistema valida estrictamente la permanencia en `atenea-v5-vault-final`. Cualquier derivación no autorizada activa una ALERTA ROJA.

@@ -1,5 +1,5 @@
 # MANUAL OPERATIVO V5 - SONIDO LÍQUIDO
-**Versión del Documento:** 1.0
+**Versión del Documento:** 1.1 (Updated OMEGA 5.2)
 **Estado:** VIGENTE
 **Código de Doctrina:** DEOU-2025
 
@@ -460,4 +460,12 @@ Si al subir una factura el sistema lee mal un nombre o cantidad:
 *   **Edición Directa**: Haga clic sobre la descripción o cantidad en la tabla de resultados para corregirla.
 *   **Agregar Ítems**: Use el botón "Agregar Ítem Manual" si falta algún producto en la detección.
 *   **Eliminar**: Use la "X" roja para quitar líneas que no desea remitir.
-*   **Confirmación**: Una vez que la grilla refleje la realidad, presione "Generar Remito".
+## CAPÍTULO 14: SEGURIDAD Y CIERRE (OMEGA 5.2)
+A partir de Marzo 2026, las sesiones de desarrollo y carga crítica se rigen por el **Protocolo Blindado**.
+
+### 14.1 Auditoría de Ojo de Halcón
+- Antes de cerrar, el sistema ejecuta el script `audit_v5.py`.
+- **Regla de Oro**: No se permite el cierre si el disco físico tiene cambios que no han sido registrados en el control de versiones (Git).
+
+### 14.2 El Ticket de Salida
+- Tras finalizar la subida de datos, el sistema emite un **Ticket de Salida** físico (`git show`). Este documento certifica que el trabajo está a salvo en el servidor y listo para ser "despertado" en otra terminal (Oficina/Casa).
