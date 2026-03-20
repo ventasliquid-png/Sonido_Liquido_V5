@@ -139,3 +139,39 @@ Implementada para prevenir la pérdida irreversible de datos comerciales por err
     - **Prohibición**: El backend rechaza (403 Forbidden) cualquier solicitud de eliminación física para estos registros.
     - **Visualización**: En la interfaz de Utilidades Maestras, estos registros aparecen "grisados" (opacidad 60%) y con el botón de borrado deshabilitado.
 * **Mecanismo de Rescate**: Aunque el borrado está bloqueado, la funcionalidad de reactivación ("Rescate") permanece disponible, permitiendo devolver registros históricos de la baja lógica sin comprometer la integridad de la base de datos principal.
+
+## 16. SOBERANIA OPERATIVA V14.8.4 (PIN 1974)
+Implementada el 18-03-2026. El criterio humano de carga prevalece sobre ARCA/AFIP.
+
+### Promocion Automatica 15->13 (Veterano de Facto)
+Si un cliente posee los 4 Pilares de Integridad de Carga al guardar, el sistema lo promueve automaticamente:
+- **Bit 1 OFF** (`IS_VIRGIN = 2`): Quita el estado Virgen. El cliente pasa de Nivel 15 a Nivel 13 (Veterano Operado).
+- **Bit 20 OFF** (`PENDIENTE_REVISION = 1048576`): Limpia el estado Amarillo.
+
+**Los 4 Pilares:** razon_social + lista_precios_id + segmento_id + domicilio_fiscal.calle (>2 chars).
+
+### Escudo Doble
+- **Frontend** (`ClientCanvas.vue`): Opera antes de `payload.flags_estado = currentFlags` en `saveCliente`.
+- **Backend** (`service.py`): Verifica 4 Pilares post-setattr en `update_cliente` y fuerza la mutacion.
+
+### Color Independiente de AFIP
+`getClientColorMode` ya no depende de `estado_arca`. Color blanco = `!(flags & 1048576)`. La lupa AFIP ya no es el unico camino al blanco.
+
+### Lupa No Destructiva
+`consultarAfip` muestra confirm() antes de sobreescribir una direccion fiscal manual con dato de ARCA. Si cancela, conserva la correccion manual.
+
+## 17. REMITO MANUAL (SERIE 0015-)
+Implementado el 19-03-2026 para permitir logística sin facturación previa (Clientes Rosa/Informales).
+
+### Arquitectura de Creación:
+*   **Ghost Pedidos**: El sistema genera un `Pedido` interno con `origen='MANUAL'` para mantener la integridad de la base de datos.
+*   **Numeración**: Los remitos manuales utilizan la serie `0015-`, iniciando en `00003001` (Criterio de Continuidad Carlos).
+*   **Resolución de Clientes**: Soporta clientes existentes o creación "al vuelo" mediante el modal `ClientCanvas`.
+*   **Endpoints**:
+    *   `POST /remitos/manual`: Recibe `ManualRemitoPayload`.
+    *   `GET /remitos/{id}/pdf`: Genera el PDF oficial sobre la serie 0015.
+
+## 18. EDICIÓN TÁCTICA DE INGESTA (EDITABLE GRID)
+Mejora al motor OCR para permitir corrección humana de errores de lectura.
+*   **Frontend**: `IngestaFacturaView.vue` utiliza una tabla de inputs reactivos conectada al `parsedData.items`.
+*   **Flexibilidad**: El operador puede añadir filas (ítems manuales) o borrar errores de detección antes de confirmar el remito.

@@ -189,19 +189,28 @@ class ClienteService:
         
         for key, value in update_data.items():
             setattr(db_cliente, key, value)
-         # [V5-X] Sync legacy 'activo' and 'flags_estado'
-        if 'activo' in update_data:
-            if update_data['activo']:
-                db_cliente.flags_estado |= ClientFlags.IS_ACTIVE
-                db_cliente.activo = True
-            else:
-                db_cliente.flags_estado &= ~ClientFlags.IS_ACTIVE
-                db_cliente.activo = False
-        elif 'flags_estado' in update_data:
-            if (db_cliente.flags_estado & ClientFlags.IS_ACTIVE):
-                db_cliente.activo = True
-            else:
-                db_cliente.activo = False
+
+        # [V14.8.4 SOBERANIA OPERATIVA - PIN 1974] Escudo Backend
+        # Si los 4 Pilares estan presentes post-update, forzar promocion al Nivel 13.
+        # Esto protege el GENOMA incluso contra llamadas directas a la API.
+        has_domicilio_fiscal = any(
+            d.es_fiscal and d.calle and len((d.calle or '').strip()) > 2
+            for d in db_cliente.domicilios
+        )
+        has_4_pillars = bool(
+            db_cliente.razon_social
+            and db_cliente.lista_precios_id
+            and db_cliente.segmento_id
+            and has_domicilio_fiscal
+        )
+        if has_4_pillars:
+            current_flags = db_cliente.flags_estado or 0
+            current_flags &= ~ClientFlags.PENDIENTE_REVISION  # Bit 20 OFF
+            current_flags &= ~ClientFlags.IS_VIRGIN           # Bit 1 OFF: Promotion 15->13
+            current_flags |= ClientFlags.IS_ACTIVE            # Bit 0 ON
+            db_cliente.flags_estado = current_flags
+
+        db_cliente.activo = bool(db_cliente.flags_estado & ClientFlags.IS_ACTIVE)
 
         # Update default domicile if transporte_id is provided
         if transporte_id:

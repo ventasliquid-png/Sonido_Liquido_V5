@@ -225,6 +225,22 @@ async def process_pdf_ingestion(file: UploadFile):
         content = await file.read()
         logger.info(f"--- [SABUESO INGESTA] Recibido: {file.filename} ({len(content)} bytes) ---")
         
+        # Guardar copia física en DOCUMENTOS_GENERADOS_RAR/Facturas procesadas
+        import os
+        try:
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            target_dir = os.path.join(base_dir, "DOCUMENTOS_GENERADOS_RAR", "Facturas procesadas")
+            os.makedirs(target_dir, exist_ok=True)
+            safe_filename = "".join([c for c in file.filename if c.isalpha() or c.isdigit() or c in " .-_"]).rstrip()
+            if not safe_filename.lower().endswith('.pdf'):
+                safe_filename += '.pdf'
+            file_path = os.path.join(target_dir, safe_filename)
+            with open(file_path, "wb") as f_out:
+                f_out.write(content)
+            logger.info(f"[SABUESO INGESTA] Copia guardada en: {file_path}")
+        except Exception as file_e:
+            logger.error(f"Error guardando copia de factura: {str(file_e)}")
+        
         if not content:
              return {"success": False, "error": "El archivo está vacío."}
              

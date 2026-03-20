@@ -115,21 +115,46 @@
                             <thead class="text-xs uppercase text-slate-500 font-bold border-b border-slate-700">
                                 <tr>
                                     <th class="py-2 pl-2">Descripción</th>
-                                    <th class="py-2 text-right pr-2">Cant.</th>
+                                    <th class="py-2 text-right w-24">Cant.</th>
+                                    <th class="py-2 w-10"></th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-800">
                                 <tr v-for="(item, idx) in parsedData.items" :key="idx" class="group hover:bg-slate-800/50">
-                                    <td class="py-3 pl-2 text-sm text-slate-300 group-hover:text-white">
-                                        {{ item.descripcion }}
+                                    <td class="py-2 pl-2">
+                                        <input 
+                                            v-model="item.descripcion" 
+                                            type="text" 
+                                            class="w-full bg-transparent border-none text-sm text-slate-300 group-hover:text-white focus:outline-none focus:ring-1 focus:ring-blue-500/50 rounded px-1 transition-all"
+                                            placeholder="Descripción del ítem..."
+                                        />
                                     </td>
-                                    <td class="py-3 pr-2 text-right font-mono font-bold text-blue-300">
-                                        {{ item.cantidad }}
+                                    <td class="py-2 text-right">
+                                        <input 
+                                            v-model.number="item.cantidad" 
+                                            type="number" 
+                                            class="w-20 bg-blue-500/10 border border-blue-500/20 rounded px-2 py-1 text-right text-sm font-mono font-bold text-blue-300 focus:outline-none focus:border-blue-500 transition-all"
+                                        />
+                                    </td>
+                                    <td class="py-2 text-center">
+                                        <button @click="removeItem(idx)" class="text-slate-600 hover:text-red-500 transition-colors">
+                                            <i class="fas fa-times"></i>
+                                        </button>
                                     </td>
                                 </tr>
+                                
+                                <!-- Add Item Row -->
+                                <tr class="bg-blue-500/5">
+                                    <td colspan="3" class="py-3 text-center">
+                                        <button @click="addItem" class="text-[10px] font-bold text-blue-400 hover:text-blue-300 transition-all uppercase tracking-widest flex items-center justify-center w-full gap-2">
+                                            <i class="fas fa-plus-circle"></i> Agregar Ítem Manual
+                                        </button>
+                                    </td>
+                                </tr>
+
                                 <tr v-if="parsedData.items.length === 0">
-                                    <td colspan="2" class="py-8 text-center text-slate-500 italic">
-                                        No se detectaron ítems automáticamente.
+                                    <td colspan="3" class="py-8 text-center text-slate-500 italic">
+                                        No hay ítems cargados.
                                     </td>
                                 </tr>
                             </tbody>
@@ -251,7 +276,24 @@ const processFile = async (file) => {
 
 const reset = () => {
     parsedData.value = null;
-    fileInput.value.value = '';
+    if (fileInput.value) fileInput.value.value = '';
+};
+
+const addItem = () => {
+    if (!parsedData.value) return;
+    if (!parsedData.value.items) parsedData.value.items = [];
+    parsedData.value.items.push({
+        descripcion: '',
+        cantidad: 1,
+        precio_unitario: 0.0,
+        codigo: null
+    });
+};
+
+const removeItem = (index) => {
+    if (parsedData.value && parsedData.value.items) {
+        parsedData.value.items.splice(index, 1);
+    }
 };
 
 const checkClientStatus = () => {

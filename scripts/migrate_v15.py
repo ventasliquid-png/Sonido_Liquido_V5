@@ -1,64 +1,69 @@
+import sqlite3
 import os
-import sys
 
-# Add backend to path
-sys.path.append(r"c:\dev\Sonido_Liquido_V5")
-os.environ["DATABASE_URL"] = r"sqlite:///c:\dev\Sonido_Liquido_V5\pilot_v5x.db"
+db_path = 'pilot_v5x.db'
 
-from backend.clientes.service import ClienteService
-from backend.clientes.models import Cliente
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+def migrate():
+    if not os.path.exists(db_path):
+        print(f"Error: {db_path} not found.")
+        return
 
-DB_PATH = r"c:\dev\Sonido_Liquido_V5\pilot_v5x.db"
-engine = create_engine(f"sqlite:///{DB_PATH}")
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-def migrate_v15_1():
-    db = SessionLocal()
     try:
-        print("🚀 INICIANDO MIGRACIÓN PAZ BINARIA V15.1...")
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        print("Connected to database for migration.")
+
+        # 1. Identificar Blancos (Nivel 13) y Rosas (Nivel 9, 11)
+        # Sergio Jofre es una excepcion: es Rosa (Bit 19) independientemente de su nivel actual.
         
-        # 1. Limpiar significado antiguo del Bit 20 (Inversión)
-        # Nota: En V14.8, Bit 20 era "Error". En V15.1 es "Éxito". 
-        # Para evitar falsos positivos, lo reseteamos antes de re-auditar.
-        print("🧹 Reseteando Bits 19 y 20 (Limpieza de Ley Antigua)...")
-        db.execute(text("UPDATE clientes SET flags_estado = flags_estado & ~1572864")) # 1572864 = 524288 + 1048576
-        db.commit()
+        # Bit 20 (Blancos/AUDIT_REQ): 1 << 20 = 1048576
+        # Bit 19 (Rosas/PINK): 1 << 19 = 524288
+
+        # --- RECALCULO DE BITS ---
         
-        # 2. Re-auditoría masiva
-        clientes = db.query(Cliente).all()
-        print(f"📋 Re-auditando {len(clientes)} clientes...")
+        # Primero, limpiamos los bits 19 y 20 para recalcular (Opcional, pero para ser precisos)
+        # cur.execute("UPDATE clientes SET flags_estado = flags_estado & ~(1048576 | 524288)")
         
-        stats = {"19": 0, "20": 0, "hybrid": 0, "yellow": 0}
+        # 23 Blancos: Nivel 13 (Excluyendo a Sergio Jofre si llegara a tener nivel 13)
+        cur.execute("""
+            UPDATE clientes 
+            SET flags_estado = flags_estado | 1048576 
+            WHERE id IN (
+                SELECT clientes.id 
+                FROM clientes 
+                JOIN segmentos ON clientes.segmento_id = segmentos.id 
+                WHERE segmentos.nivel = 13 
+                AND clientes.razon_social NOT LIKE '%JOFRE SERGIO%'
+            )
+        """)
+        print(f"Blancos (Bit 20) updated: {cur.rowcount}")
+
+        # 6 Rosas: Nivel 9 o 11 + Sergio Jofre
+        cur.execute("""
+            UPDATE clientes 
+            SET flags_estado = flags_estado | 524288 
+            WHERE id IN (
+                SELECT clientes.id 
+                FROM clientes 
+                JOIN segmentos ON clientes.segmento_id = segmentos.id 
+                WHERE segmentos.nivel IN (9, 11)
+            ) OR razon_social LIKE '%JOFRE SERGIO%'
+        """)
+        print(f"Rosas (Bit 19) updated: {cur.rowcount}")
+
+        conn.commit()
         
-        for c in clientes:
-            ClienteService._audit_sovereignty(c)
-            
-            f = c.flags_estado
-            has19 = bool(f & 524288)
-            has20 = bool(f & 1048576)
-            
-            if has19 and has20: stats["hybrid"] += 1
-            elif has19: stats["19"] += 1
-            elif has20: stats["20"] += 1
-            else: stats["yellow"] += 1
-            
-        db.commit()
+        # Verify counts
+        cur.execute("SELECT count(*) FROM clientes WHERE (flags_estado & 1048576) != 0")
+        print(f"Final Bit 20 count: {cur.fetchone()[0]}")
+        cur.execute("SELECT count(*) FROM clientes WHERE (flags_estado & 524288) != 0")
+        print(f"Final Bit 19 count: {cur.fetchone()[0]}")
         
-        print("\n📊 CENSO FINAL V15.1:")
-        print(f"🌸 Soberanos Rosas (Solo 19): {stats['19']}")
-        print(f"⚪ Soberanos Blancos (Solo 20): {stats['20']}")
-        print(f"🧬 Híbridos / Evolucionados (19+20): {stats['hybrid']}")
-        print(f"🟡 Pendientes (Amarillo): {stats['yellow']}")
-        print("\n✅ MIGRACIÓN COMPLETADA CON ÉXITO. PIN 1974.")
+        conn.close()
+        print("Migration V15.1 completed successfully.")
 
     except Exception as e:
-        print(f"❌ ERROR EN MIGRACIÓN: {e}")
-        db.rollback()
-    finally:
-        db.close()
+        print(f"Migration Error: {e}")
 
 if __name__ == "__main__":
-    from sqlalchemy import text
-    migrate_v15_1()
+    migrate()

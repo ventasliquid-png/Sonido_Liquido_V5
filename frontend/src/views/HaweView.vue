@@ -229,7 +229,7 @@
                                 :class="[
                                     getClientColorMode(cliente) === 'PINK' ? 'text-fuchsia-400 drop-shadow-[0_0_5px_rgba(232,121,249,0.5)]' :
                                     getClientColorMode(cliente) === 'BLUE' ? 'text-cyan-300 drop-shadow-[0_0_5px_rgba(103,232,249,0.5)]' :
-                                    getClientColorMode(cliente) === 'WHITE' ? 'text-white' : 'text-yellow-400'
+                                    getClientColorMode(cliente) === 'VALIDADO' ? 'text-white' : 'text-yellow-400'
                                 ]"
                             >
                                 {{ cliente.razon_social }}
@@ -345,6 +345,10 @@
        />
     </main>
 
+    <!-- Right Inspector Panel (Browsing/Editing) -->
+    <!-- Right Inspector Panel (DEPRECATED: Now using Central Canvas) -->
+    <!-- <aside ... > -->
+
     <!-- Central Modal (New Client / Alta) -->
     <div v-if="selectedId === 'new'" class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 lg:p-12" @click.self="closeInspector">
         <div class="border-2 border-cyan-500/50 rounded-2xl w-full max-w-5xl h-full max-h-[90vh] flex flex-col overflow-hidden shadow-[0_0_50px_rgba(6,182,212,0.2)] bg-[#0f172a]">
@@ -425,33 +429,40 @@ const showTransporteManager = ref(false)
 const canteraResults = ref([])
 const canteraLoading = ref(false)
 
-// [V15.1] PAZ BINARIA - Color Mode Logic
+// [GY-DOCTRINA-V14] Color Mode Logic (Consistent with Genoma Master)
 const getClientColorMode = (cliente) => {
-    const flags = cliente.flags_estado || 0;
     const cuit = (cliente.cuit || '').replace(/[^0-9]/g, '');
     const isGeneric = ['00000000000', '11111111119', '11111111111', '99999999999'].includes(cuit);
     
-    // 1. PINK: POWER_PINK (Bit 19 - 524288)
-    // Priority Max: Success for Levels 9/11 or Informals.
-    if ((flags & 524288) || (flags & 15) === 9 || (flags & 15) === 11 || !cuit || cuit.length < 5 || isGeneric) {
+    // 1. PINK: No CUIT, Short CUIT, Generic CUIT, o Sin IVA (Prioridad Máxima: No Fiscal/Informal)
+    const flags = cliente.flags_estado || 0;
+    if ((flags & 15) === 9 || (flags & 15) === 11 || !cuit || cuit.length < 5 || isGeneric || !cliente.condicion_iva_id) {
         return 'PINK'; 
     }
-    
-    // 2. WHITE: ARCA_OK (Bit 20 - 1048576)
-    // Success for Audited Formal Clients.
+
+    // 2. YELLOW: Check for Pending Revision (Bit 20 - 1048576)
     if (flags & 1048576) {
-        return 'WHITE';
-    }
-    
-    // 3. BLUE: Legacy/Collective CUIT Info
+        return 'YELLOW';
+    }    
+    // 3. BLUE: Shared/Collective CUIT (UBA Case)
     if (cuit.length === 11) {
         const count = clientes.value.filter(c => (c.cuit||'').replace(/[^0-9]/g, '') === cuit).length;
         if (count > 1) return 'BLUE';
     }
 
-    // 4. DEFAULT: YELLOW
+    // 4. [V14.8.4 SOBERANIA] Color = f(Bit 20)
+    // Si el Bit 20 (PENDIENTE_REVISION) esta apagado, el cliente es valido.
+    // El backend lo apaga automaticamente al detectar los 4 Pilares en el save.
+    // La lupa AFIP ya no es el unico camino al blanco.
+    if (!(flags & 1048576)) {
+        return 'VALIDADO';
+    }
+
+    // Fallback: Bit 20 activo = datos incompletos segun el sistema
     return 'YELLOW';
 }
+
+
 
 const handleCanteraSearch = async () => {
     if (!searchQuery.value) return
@@ -585,6 +596,10 @@ const contextMenuProps = ref({ actions: [] })
 const editingSegmentoId = ref(null)
 
 // Context Menu Logic
+// Note: ContextMenu in template was removed as it's cleaner to handle via specialized components or global teleport if needed.
+// But we kept the handler logic "handleClientContextMenu" - we probably need to keep the component if we want Right Click to work.
+// Re-adding ContextMenu logic properly.
+
 const contextMenu = reactive({
     show: false,
     x: 0,
@@ -698,6 +713,9 @@ const toggleClienteStatus = async (cliente) => {
     
     // [GY-UX] Reactivation Validation (V14)
     if (!cliente.activo && newStatus) {
+        // Check Mandatory Fields (Simple check based on available data in list)
+        // Note: 'cliente' from list might be partial? Ideally we trust list data.
+        // Required: Segmento, ListaPrecios, CondicionIVA
         const missingFields = []
         if (!cliente.segmento_id) missingFields.push("Segmento")
         if (!cliente.lista_precios_id) missingFields.push("Lista de Precios")
@@ -707,16 +725,16 @@ const toggleClienteStatus = async (cliente) => {
             if (confirm(`No se puede activar el cliente porque faltan datos obligatorios:\n- ${missingFields.join('\n- ')}\n\n¿Desea abrir la ficha para completar los datos ahora?`)) {
                 selectCliente(cliente)
             }
-            return 
+            return // Block activation
         }
     }
 
     try {
         let newFlags = cliente.flags_estado || 0
         if (newStatus) {
-            newFlags |= 1 
+            newFlags |= 1 // Set bit 1
         } else {
-            newFlags &= ~1 
+            newFlags &= ~1 // Clear bit 1
         }
         
         await clienteStore.updateCliente(cliente.id, { ...cliente, activo: newStatus, flags_estado: newFlags })
@@ -757,6 +775,8 @@ const handleManageSegmentos = () => {
     showSegmentoList.value = true
 }
 
+
+
 const handleSwitchClient = async (clientId) => {
     selectedId.value = clientId
     try {
@@ -774,25 +794,127 @@ const handleClientContextMenu = (e, client) => {
         y: e.clientY
     }
     contextMenuProps.value.actions = [
-        { label: 'Ver Ficha', icon: 'fas fa-eye', action: () => selectCliente(client) },
-        { label: client.activo ? 'Desactivar' : 'Activar', icon: client.activo ? 'fas fa-toggle-on' : 'fas fa-toggle-off', action: () => toggleClienteStatus(client) },
-        { label: 'Eliminar (Físico)', icon: 'fas fa-trash', danger: true, action: () => handleHardDelete(client) }
+        { 
+            label: 'Editar Ficha (Doble Clic)', 
+            iconClass: 'fas fa-edit', 
+            handler: () => selectCliente(client)
+        },
+        { 
+            label: 'Clonar Cliente', 
+            iconClass: 'fas fa-copy', 
+            handler: () => handleCloneCliente(client)
+        },
+        { 
+            label: client.activo ? 'Dar de Baja (Desactivar)' : 'Reactivar Cliente', 
+            iconClass: client.activo ? 'fas fa-ban' : 'fas fa-check-circle',
+            handler: () => toggleClienteStatus(client)
+        }
     ]
+}
+
+const handleCloneCliente = async (client) => {
+    try {
+        const fullCliente = await clienteStore.fetchClienteById(client.id)
+        
+        const clone = { 
+            ...fullCliente, 
+            id: null, 
+            razon_social: `${fullCliente.razon_social} (COPIA)`,
+            cuit: '', 
+            domicilios: fullCliente.domicilios ? fullCliente.domicilios.map(d => ({ ...d, id: null, cliente_id: null })) : [],
+            vinculos: fullCliente.vinculos ? fullCliente.vinculos.map(v => ({ ...v, id: null, cliente_id: null })) : [],
+            activo: true,
+            contador_uso: 0,
+            fecha_ultima_compra: null
+        }
+        
+        // Use Store Draft to pass data to ClientCanvas
+        clienteStore.setDraft(clone);
+        
+        // Navigate to 'new' which will trigger ClientCanvas to check draft
+        router.push({ name: 'HaweClientCanvas', params: { id: 'new' } })
+        
+    } catch (e) {
+        console.error("Clone failed", e)
+        notificationStore.add("Error al preparar clonado", "error")
+    }
+}
+
+const handleModifySelected = () => {
+    if (selectedIds.value.length === 1) {
+        const client = clientes.value.find(c => c.id === selectedIds.value[0])
+        if (client) {
+            selectCliente(client)
+        }
+    }
+}
+
+const handleKeydown = (e) => {
+    if (e.key === 'F10' && selectedCliente.value) {
+        e.preventDefault()
+    }
+    if (e.key === 'Escape') {
+        if(selectedCliente.value) closeInspector()
+    }
+    if (e.key === 'F4') {
+        e.preventDefault()
+        openNewCliente()
+    }
+}
+
+const logout = () => {
+    if(confirm('¿Desea cerrar sesión?')) {
+        localStorage.removeItem('token')
+        router.push('/login')
+    }
+}
+// [GY-FIX] Robust hydration logic
+const hydrateData = async () => {
+    try {
+        // [GY-UX] Always fetch latest clients to show creation/updates immediately
+        await clienteStore.fetchClientes()
+        
+        if (maestrosStore.segmentos.length === 0) {
+            await maestrosStore.fetchSegmentos()
+        }
+        segmentos.value = maestrosStore.segmentos
+    } catch (e) {
+        console.error("Hydration failed:", e)
+    }
 }
 
 onMounted(async () => {
     isMounted.value = true
-    if (clientes.value.length === 0) {
-        await clienteStore.fetchClientes()
+    window.addEventListener('keydown', handleKeydown)
+    
+    await hydrateData()
+
+    // Check for Auto-Inspect (existing logic)
+    if (route.query.inspectId) {
+        console.log("Auto-inspecting:", route.query.inspectId)
+        const client = clientes.value.find(c => c.id === route.query.inspectId)
+        if (client) {
+            await selectCliente(client)
+        } else {
+            await handleSwitchClient(route.query.inspectId)
+        }
     }
-    await maestrosStore.fetchSegmentos('all')
-    segmentos.value = maestrosStore.segmentos
 })
+
+// [GY-FIX] Handle Keep-Alive re-entry
+onActivated(async () => {
+    // [GY-UX] Always refresh on re-activation
+    await hydrateData()
+})
+
+onUnmounted(() => {
+    window.removeEventListener('keydown', handleKeydown)
+})
+
 </script>
 
-<style scoped>
-.font-outfit { font-family: 'Outfit', sans-serif; }
-.scrollbar-thin::-webkit-scrollbar { width: 6px; }
-.scrollbar-track-cyan-900\/10::-webkit-scrollbar-track { background: rgba(8, 51, 68, 0.1); }
-.scrollbar-thumb-cyan-900\/30::-webkit-scrollbar-thumb { background: rgba(8, 51, 68, 0.3); border-radius: 10px; }
+<style>
+body {
+    background-color: #0a0a0a;
+}
 </style>

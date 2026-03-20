@@ -86,26 +86,29 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
         }
         
         from .remito_engine import generar_remito_pdf
-        import tempfile
         import os
         
-        temp_pdf = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
-        temp_path = temp_pdf.name
-        temp_pdf.close()
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        target_dir = os.path.join(base_dir, "DOCUMENTOS_GENERADOS_RAR", "Remitos de salida")
+        os.makedirs(target_dir, exist_ok=True)
+        
+        safe_num = str(remito.numero_legal or remito_id).replace("-", "_")
+        final_filename = f"remito_{safe_num}.pdf"
+        final_path = os.path.join(target_dir, final_filename)
         
         generar_remito_pdf(
             cliente_data, 
             items, 
             is_preview=False, 
-            output_path=temp_path, 
+            output_path=final_path, 
             numero_remito=remito.numero_legal,
             cae=remito.cae,
             vto_cae=remito.vto_cae.strftime("%d/%m/%Y") if remito.vto_cae else None
         )
         return FileResponse(
-            temp_path, 
+            final_path, 
             media_type='application/pdf', 
-            filename=f"remito_{remito.numero_legal or remito_id}.pdf"
+            filename=final_filename
         )
     except Exception as e:
         import traceback
@@ -165,6 +168,24 @@ def create_remito_from_ingestion(payload: schemas.IngestionPayload, db: Session 
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
         print(f"Error creating Remito from Ingestion: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+
+@router.post("/manual", response_model=schemas.RemitoResponse)
+def create_manual_remito(payload: schemas.ManualRemitoPayload, db: Session = Depends(get_db)):
+    """
+    Crea un Remito de forma manual (sin PDF).
+    Serie 0015-
+    """
+    try:
+        from backend.remitos.service import RemitosService
+        remito = RemitosService.create_manual(db, payload)
+        return remito
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        print(f"Error creating Manual Remito: {e}")
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
