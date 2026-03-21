@@ -448,6 +448,8 @@ class RemitosService:
             estado="BORRADOR",
             aprobado_para_despacho=payload.aprobado_para_despacho,
             numero_legal=numero_legal,
+            bultos=payload.bultos,
+            valor_declarado=payload.valor_declarado
         )
         db.add(remito)
         db.flush()
@@ -467,20 +469,87 @@ class RemitosService:
     @staticmethod
     def update_remito(db: Session, remito_id: str, payload: schemas.RemitoUpdate):
         """
-        Actualiza los datos de un remito existente.
-        Solo permitido para remitos en estado BORRADOR.
+        Actualiza un remito con soberanía total (V15.2).
+        Permite cambiar cliente, forzar dirección y editar cuerpo de ítems.
         """
         remito = db.query(models.Remito).filter(models.Remito.id == remito_id).first()
         if not remito:
             raise ValueError("Remito no encontrado")
         
         if remito.estado != "BORRADOR" and payload.estado is None:
-            # Solo permitir cambios si el remito es borrador, 
-            # a menos que estemos cambiando el estado (ej. forzar anulación)
             raise ValueError("No se puede editar un remito que ya no está en estado BORRADOR.")
 
-        # Actualizar campos básicos
-        update_data = payload.dict(exclude_unset=True)
+        # 1. CAMBIO DE CLIENTE (Si se solicita)
+        if payload.cliente_id:
+            remito.pedido.cliente_id = payload.cliente_id
+            db.add(remito.pedido)
+            print(f"Update: Cambiando cliente del remito/pedido a {payload.cliente_id}")
+
+        # 2. FORZADO DE DIRECCIÓN (Si se solicita)
+        if payload.nuevo_domicilio:
+            new_dom = Domicilio(
+                cliente_id=remito.pedido.cliente_id,
+                calle=payload.nuevo_domicilio.calle,
+                numero=payload.nuevo_domicilio.numero,
+                localidad=payload.nuevo_domicilio.localidad,
+                provincia_id=payload.nuevo_domicilio.provincia_id,
+                activo=True,
+                es_fiscal=False
+            )
+            db.add(new_dom)
+            db.flush()
+            remito.domicilio_entrega_id = new_dom.id
+            print(f"Update: Forzando nueva dirección {new_dom.calle}")
+
+        # 3. ACTUALIZACIÓN DE ÍTEMS (Si se solicita)
+        if payload.items is not None:
+            # Sincronización de ítems
+            existing_items_ids = [i.id for i in remito.items]
+            payload_items_ids = [i.id for i in payload.items if i.id is not None]
+
+            # A. Eliminar ítems que no están en el payload
+            for r_item in remito.items:
+                if r_item.id not in payload_items_ids:
+                    print(f"Update: Eliminando ítem ID {r_item.id}")
+                    db.delete(r_item)
+
+            # B. Actualizar o Crear ítems
+            for p_item_data in payload.items:
+                if p_item_data.id:
+                    # Actualizar existente
+                    r_item = next((i for i in remito.items if i.id == p_item_data.id), None)
+                    if r_item:
+                        r_item.cantidad = p_item_data.cantidad
+                        # Actualizar nota en el pedido_item si es manual
+                        if p_item_data.descripcion and r_item.pedido_item:
+                            r_item.pedido_item.nota = p_item_data.descripcion
+                            db.add(r_item.pedido_item)
+                        db.add(r_item)
+                else:
+                    # Crear nuevo ítem (Ghost Style)
+                    from backend.productos.models import Producto
+                    prod_v = db.query(Producto).filter(Producto.nombre.ilike("%VARIOS%")).first()
+                    
+                    new_p_item = PedidoItem(
+                        pedido_id=remito.pedido_id,
+                        producto_id=prod_v.id if prod_v else 1,
+                        cantidad=p_item_data.cantidad,
+                        nota=p_item_data.descripcion or "Agregado en Edición",
+                        precio_unitario=0.0
+                    )
+                    db.add(new_p_item)
+                    db.flush()
+
+                    new_r_item = models.RemitoItem(
+                        remito_id=remito.id,
+                        pedido_item_id=new_p_item.id,
+                        cantidad=p_item_data.cantidad
+                    )
+                    db.add(new_r_item)
+
+        # 4. Actualizar campos básicos
+        exclude_fields = {"items", "nuevo_domicilio", "cliente_id"}
+        update_data = payload.dict(exclude_unset=True, exclude=exclude_fields)
         for key, value in update_data.items():
             setattr(remito, key, value)
         

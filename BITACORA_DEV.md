@@ -1,8 +1,10 @@
-oo
-o#o#o o2o0o2o6o-o0o3o-o1o9o o2o3o:o0o1oo
-o-o oSoionocorooonoiozoaocoioóono ocooono oOofoiocoionoao o(oMoeorogoeo oBoroaonocoho oroeosopoaolodooo-oporoeo-ocoloaouodoeo-omoaoro1o8o)o.oo
-o-o oRoeopoaoroaocoioóono oRoeofoeoroeonocoeoEororoooro oColoioeonotoCoaonovoaoso.ovouoeo.oo
-o-o oCoaoloioboroaocoioóono odoeo oSoooboeoroaonoíoao oBoiotoso o1o9o/o2o0o.oo
-o-o oIomopoloeomoeonotoaocoioóono oPoroootooocooolooo oOoMoEoGoAo oVo5o.o2o o(oBoloionodoaodooo)o.oo
-o-o oEosotoaodooo:o oNoOoMoIoNoAoLo oGoOoLoDo.oo
-o
+# 2026-03-21 13:25
+- Protocolo ALFA V5.2 Ejecutado. BitStatus 338 (Trinchera/Paridad/Sabueso/OrigenCA).
+- Extensión de persistencia de Remitos: adición de bultos y valor_declarado.
+- Refacción de RemitoListView.vue: modal de edición ahora soporta todos los campos de cabecera.
+- Migración de base de datos pilot_v5x.db (SQLite) para nuevos campos.
+- Validación certificada con scripts/verify_total_sovereignty.py y verify_logic.py.
+- Soberanía Total: Edición de Remitos (Cliente/Dirección/Items) 100% Operativa.
+- PDF Fix: Corrección de error 500 y supresión de CAE en manuales.
+- Estado: NOMINAL GOLD (BitStatus 338).
+- Protocolo OMEGA: Fase de Abordaje iniciada.

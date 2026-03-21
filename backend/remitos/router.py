@@ -74,15 +74,26 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
                 "cantidad": r_item.cantidad,
                 "unidad": "UN" # Default
             })
+
+        # Determine if it's a manual remito (0015- prefix)
+        # 0015: Manual (Rosa/Blanco sin intervención fiscal directa en este paso)
+        # 0016: Ingesta (Mirror de factura con CAE)
+        is_manual = str(remito.numero_legal or "").startswith("0015")
         
+        cae_val = getattr(remito, 'cae', None) if not is_manual else None
+        vto_cae_val = getattr(remito, 'vto_cae', None) if not is_manual else None
+
         cliente_data = {
             "razon_social": cliente.razon_social,
             "cuit": cliente.cuit,
             "domicilio_fiscal": next((d.calle for d in cliente.domicilios if d.es_fiscal), "SIN DOMICILIO FISCAL"),
             "condicion_iva": "RESPONSABLE INSCRIPTO", # Default for now
             "factura_vinculada": remito.pedido.nota.replace("Ingesta Automática Factura: ", "") if remito.pedido.nota else "",
-            "cae": remito.cae,
-            "vto_cae": remito.vto_cae.strftime("%d/%m/%Y") if remito.vto_cae else None
+            "cae": cae_val,
+            "vto_cae": vto_cae_val.strftime("%d/%m/%Y") if vto_cae_val else None,
+            "bultos": getattr(remito, 'bultos', 1),
+            "valor_declarado": getattr(remito, 'valor_declarado', 0.0),
+            "observaciones": remito.pedido.nota or ""
         }
         
         from .remito_engine import generar_remito_pdf
@@ -102,8 +113,8 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
             is_preview=False, 
             output_path=final_path, 
             numero_remito=remito.numero_legal,
-            cae=remito.cae,
-            vto_cae=remito.vto_cae.strftime("%d/%m/%Y") if remito.vto_cae else None
+            cae=cae_val,
+            vto_cae=vto_cae_val.strftime("%d/%m/%Y") if vto_cae_val else None
         )
         return FileResponse(
             final_path, 

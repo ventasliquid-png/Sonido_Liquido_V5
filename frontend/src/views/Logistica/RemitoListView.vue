@@ -123,52 +123,35 @@
       </div>
 
       <!-- EDIT MODAL -->
-      <div v-if="showEditModal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[100] p-4">
-         <div class="bg-[#0f172a] border-2 border-blue-500/50 rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden">
-            <header class="bg-blue-600/10 p-6 border-b border-blue-500/20 flex justify-between items-center">
+      <div v-if="showEditModal" class="fixed inset-0 bg-black/90 backdrop-blur-xl flex items-center justify-center z-[100] p-4">
+         <div class="bg-[#0f172a] border-2 border-blue-500/50 rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <header class="bg-blue-600/10 p-6 border-b border-blue-500/20 flex justify-between items-center shrink-0">
                 <div>
-                    <h3 class="text-xl font-bold text-white">Editar Remito (Borrador)</h3>
-                    <p class="text-xs text-blue-400 font-mono italic">ID: {{ editingRemito.id }}</p>
+                    <h3 class="text-xl font-bold text-white tracking-tight uppercase">Soberanía Total: Editar Remito</h3>
+                    <p class="text-[10px] text-blue-400 font-bold tracking-widest uppercase italic">Estado: BORRADOR • ID: {{ editingRemito.id }}</p>
                 </div>
                 <button @click="closeEditModal" class="text-gray-500 hover:text-white transition-colors">
                     <i class="fas fa-times text-xl"></i>
                 </button>
             </header>
 
-            <div class="p-8 space-y-6">
-                <!-- Numero Legal & CAE -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Número Legal</label>
-                        <input 
-                            v-model="editForm.numero_legal" 
-                            type="text" 
-                            placeholder="0001-00001234"
-                            class="w-full bg-slate-900 border border-blue-900/40 rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500 outline-none transition-all"
+            <div class="p-8 space-y-8 overflow-y-auto custom-scrollbar flex-1">
+                <!-- SECTION: CLIENTE & LOGISTICA -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Client Selector -->
+                    <div class="space-y-4">
+                        <label class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Destinatario</label>
+                        <SmartSelect
+                            v-model="editForm.cliente_id"
+                            :options="clientesOptions"
+                            placeholder="Buscar cliente..."
+                            @update:modelValue="onClientChanged"
                         />
                     </div>
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">CAE (AFIP)</label>
-                        <input 
-                            v-model="editForm.cae" 
-                            type="text" 
-                            placeholder="71234567890123"
-                            class="w-full bg-slate-900 border border-blue-900/40 rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500 outline-none transition-all"
-                        />
-                    </div>
-                </div>
 
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Vencimiento CAE</label>
-                        <input 
-                            v-model="editForm.vto_cae" 
-                            type="date" 
-                            class="w-full bg-slate-900 border border-blue-900/40 rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500 outline-none transition-all"
-                        />
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Transporte</label>
+                    <!-- Logistics -->
+                    <div class="space-y-4">
+                        <label class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Transporte / Expreso</label>
                         <select 
                             v-model="editForm.transporte_id" 
                             class="w-full bg-slate-900 border border-blue-900/40 rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500 outline-none transition-all appearance-none"
@@ -178,19 +161,93 @@
                     </div>
                 </div>
 
-                <!-- Domicilio Choice -->
-                <div class="space-y-1" v-if="clientAddresses.length > 0">
-                    <label class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Punto de Entrega</label>
-                    <select 
-                        v-model="editForm.domicilio_entrega_id" 
-                        class="w-full bg-slate-900 border border-blue-900/40 rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500 outline-none transition-all appearance-none"
-                    >
-                        <option v-for="d in clientAddresses" :key="d.id" :value="d.id">{{ d.calle }} {{ d.numero }} ({{ d.localidad }})</option>
-                    </select>
+                <!-- SECTION: DIRECCIÓN -->
+                <div class="bg-blue-900/10 border border-blue-500/20 rounded-2xl p-6 space-y-4">
+                    <div class="flex justify-between items-center">
+                        <label class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Punto de Entrega</label>
+                        <button 
+                            @click="isForcingAddress = !isForcingAddress"
+                            class="text-[10px] font-bold uppercase tracking-widest py-1 px-3 rounded-full border transition-all"
+                            :class="isForcingAddress ? 'bg-amber-500/20 text-amber-500 border-amber-500/50' : 'bg-blue-500/10 text-blue-400 border-blue-900/50'"
+                        >
+                            {{ isForcingAddress ? 'Cancelar Forzado' : 'Forzar Dirección Nueva' }}
+                        </button>
+                    </div>
+
+                    <div v-if="!isForcingAddress" class="space-y-1">
+                        <select 
+                            v-model="editForm.domicilio_entrega_id" 
+                            class="w-full bg-slate-900 border border-blue-900/40 rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500 outline-none transition-all appearance-none"
+                        >
+                            <option v-for="d in clientAddresses" :key="d.id" :value="d.id">{{ d.calle }} {{ d.numero }} ({{ d.localidad }})</option>
+                        </select>
+                    </div>
+
+                    <div v-else class="grid grid-cols-12 gap-4 animate-in slide-in-from-top-2">
+                        <div class="col-span-12 md:col-span-6">
+                            <input v-model="editForm.nuevo_domicilio.calle" placeholder="Calle / Dirección" class="w-full bg-slate-900 border border-amber-500/30 rounded-xl px-4 py-3 text-sm text-white focus:border-amber-500 outline-none" />
+                        </div>
+                        <div class="col-span-6 md:col-span-2">
+                            <input v-model="editForm.nuevo_domicilio.numero" placeholder="N°" class="w-full bg-slate-900 border border-amber-500/30 rounded-xl px-4 py-3 text-sm text-white focus:border-amber-500 outline-none" />
+                        </div>
+                        <div class="col-span-6 md:col-span-4">
+                            <input v-model="editForm.nuevo_domicilio.localidad" placeholder="Localidad" class="w-full bg-slate-900 border border-amber-500/30 rounded-xl px-4 py-3 text-sm text-white focus:border-amber-500 outline-none" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION: ITEMS (GRID) -->
+                <div class="space-y-4">
+                    <div class="flex justify-between items-end">
+                        <label class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Cuerpo del Remito (Items)</label>
+                        <button @click="addItem" class="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 transition-colors uppercase tracking-widest flex items-center gap-1">
+                            <i class="fas fa-plus-circle"></i> Agregar Línea
+                        </button>
+                    </div>
+
+                    <div class="bg-black/40 rounded-2xl border border-blue-900/20 overflow-hidden">
+                        <div class="grid grid-cols-12 bg-blue-900/20 px-4 py-2 text-[9px] font-black uppercase text-blue-400/50">
+                            <div class="col-span-9">Descripción</div>
+                            <div class="col-span-3 text-right">Cantidad</div>
+                        </div>
+                        <div class="divide-y divide-blue-900/10">
+                            <div v-for="(item, index) in editForm.items" :key="index" class="grid grid-cols-12 px-4 py-2 gap-4 items-center group">
+                                <div class="col-span-9">
+                                    <input v-model="item.descripcion" class="w-full bg-transparent border-none text-white text-sm focus:outline-none" placeholder="Descripción del ítem..." />
+                                </div>
+                                <div class="col-span-3 flex items-center justify-end gap-3">
+                                    <input v-model.number="item.cantidad" type="number" class="w-16 bg-blue-500/5 border border-blue-500/10 rounded-lg px-2 py-1 text-right text-blue-300 font-bold text-sm focus:border-blue-500 outline-none" />
+                                    <button @click="removeItem(index)" class="text-blue-900/50 hover:text-red-500 transition-colors">
+                                        <i class="fas fa-times text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION: LEGAL & AFIP -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Número</label>
+                        <input v-model="editForm.numero_legal" class="w-full bg-slate-900 border border-blue-900/40 rounded-xl px-4 py-3 text-sm text-white" />
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">CAE</label>
+                        <input v-model="editForm.cae" class="w-full bg-slate-900 border border-blue-900/40 rounded-xl px-4 py-3 text-sm text-white" />
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Bultos</label>
+                        <input v-model.number="editForm.bultos" type="number" class="w-full bg-slate-900 border border-blue-900/40 rounded-xl px-4 py-3 text-sm text-white" />
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Valor Decl.</label>
+                        <input v-model.number="editForm.valor_declarado" type="number" class="w-full bg-slate-900 border border-blue-900/40 rounded-xl px-4 py-3 text-sm text-white" />
+                    </div>
                 </div>
             </div>
 
-            <footer class="bg-blue-600/5 p-6 border-t border-blue-500/20 flex justify-end gap-4">
+            <footer class="bg-blue-600/5 p-6 border-t border-blue-500/20 flex justify-end gap-4 shrink-0">
                 <button @click="closeEditModal" class="px-6 py-2 text-sm font-bold text-slate-400 hover:text-white transition-colors">Cancelar</button>
                 <button 
                     @click="saveEdition" 
@@ -198,7 +255,7 @@
                     class="px-8 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 text-white font-bold rounded-xl shadow-lg transition-all"
                 >
                     <i v-if="isSaving" class="fas fa-spinner fa-spin mr-2"></i>
-                    Actualizar Remito
+                    Guardar Cambios Totales
                 </button>
             </footer>
          </div>
@@ -213,15 +270,19 @@ import { ref, onMounted, computed, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useRemitosStore } from '@/stores/remitos'
 import { useMaestrosStore } from '@/stores/maestros'
+import { useClientesStore } from '@/stores/clientes'
 import { useNotificationStore } from '@/stores/notification'
+import SmartSelect from '@/components/ui/SmartSelect.vue'
 import api from '@/services/api'
 
 const router = useRouter()
 const store = useRemitosStore()
 const maestrosStore = useMaestrosStore()
+const clientesStore = useClientesStore()
 const notification = useNotificationStore()
 
 const searchQuery = ref('')
+const isForcingAddress = ref(false)
 
 // Editing State
 const showEditModal = ref(false)
@@ -229,12 +290,49 @@ const isSaving = ref(false)
 const editingRemito = ref(null)
 const clientAddresses = ref([])
 const editForm = reactive({
+    cliente_id: null,
     numero_legal: '',
     cae: '',
     vto_cae: '',
     transporte_id: null,
-    domicilio_entrega_id: null
+    domicilio_entrega_id: null,
+    bultos: 1,
+    valor_declarado: 0,
+    items: [],
+    nuevo_domicilio: {
+        calle: '',
+        numero: '',
+        localidad: '',
+        provincia_id: 'X'
+    }
 })
+
+const clientesOptions = computed(() => {
+    return clientesStore.clientes.map(c => ({
+        id: c.id,
+        nombre: c.razon_social,
+        razon_social: c.razon_social,
+        cuit: c.cuit
+    }))
+})
+
+const onClientChanged = async (newId) => {
+    if (!newId) return;
+    try {
+        const res = await api.get(`/clientes/${newId}`);
+        clientAddresses.value = res.data.domicilios || [];
+    } catch (e) {
+        console.error("Error loading addresses", e);
+    }
+}
+
+const addItem = () => {
+    editForm.items.push({ id: null, descripcion: '', cantidad: 1 });
+}
+
+const removeItem = (index) => {
+    editForm.items.splice(index, 1);
+}
 
 const refresh = async () => {
     await store.fetchAllRemitos()
@@ -247,22 +345,29 @@ const openEditModal = async (remito) => {
     }
 
     editingRemito.value = remito;
+    editForm.cliente_id = remito.pedido?.cliente_id;
     editForm.numero_legal = remito.numero_legal || '';
     editForm.cae = remito.cae || '';
     editForm.vto_cae = remito.vto_cae ? new Date(remito.vto_cae).toISOString().split('T')[0] : '';
     editForm.transporte_id = remito.transporte_id;
     editForm.domicilio_entrega_id = remito.domicilio_entrega_id;
+    editForm.bultos = remito.bultos || 1;
+    editForm.valor_declarado = remito.valor_declarado || 0;
+    
+    // Map items
+    editForm.items = (remito.items || []).map(i => ({
+        id: i.id,
+        pedido_item_id: i.pedido_item_id,
+        cantidad: i.cantidad,
+        descripcion: i.pedido_item?.producto?.nombre || i.pedido_item?.nota || 'Ítem'
+    }));
 
-    // Load addresses for this client if we have client_id
-    const clientId = remito.pedido?.cliente_id;
-    if (clientId) {
-        try {
-            const res = await api.get(`/clientes/${clientId}`);
-            clientAddresses.value = res.data.domicilios || [];
-        } catch (e) {
-            console.error("Error loading addresses", e);
-        }
+    if (editForm.cliente_id) {
+        await onClientChanged(editForm.cliente_id);
     }
+    
+    isForcingAddress.value = false;
+    editForm.nuevo_domicilio = { calle: '', numero: '', localidad: '', provincia_id: 'X' };
     
     showEditModal.value = true;
 }
@@ -277,8 +382,12 @@ const saveEdition = async () => {
     
     isSaving.value = true;
     try {
-        await store.updateRemito(editingRemito.value.id, { ...editForm });
+        const payload = { ...editForm };
+        if (!isForcingAddress.value) delete payload.nuevo_domicilio;
+        
+        await store.updateRemito(editingRemito.value.id, payload);
         notification.add('Remito actualizado correctamente.', 'success');
+        refresh(); // Refresh list to see changes
         closeEditModal();
     } catch (e) {
         console.error(e);
@@ -321,9 +430,10 @@ const viewPedido = (id) => {
     router.push({ name: 'PedidoLogistica', params: { id } })
 }
 
-onMounted(() => {
+onMounted(async () => {
     refresh()
     if (maestrosStore.transportes.length === 0) maestrosStore.fetchTransportes()
+    if (clientesStore.clientes.length === 0) await clientesStore.fetchClientes()
 })
 </script>
 

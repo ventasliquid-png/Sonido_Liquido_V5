@@ -57,6 +57,13 @@ def test_manual_remito():
         if remito1.numero_legal == "0015-00003001" and remito2.numero_legal == "0015-00003002":
              print("Verification SUCCESS: Numbering sequence 0015-3001, 3002 works.")
         
+        # 4. Check Persistence of new fields
+        print(f"Checking persistence for Remito 1: Bultos={remito1.bultos}, Valor={remito1.valor_declarado}")
+        if remito1.bultos == 2 and remito1.valor_declarado == 1500.0:
+             print("Verification SUCCESS: Bultos and Valor Declarado persisted correctly.")
+        else:
+             print(f"ERROR: Persistence failed. Bultos:{remito1.bultos}, Valor:{remito1.valor_declarado}")
+        
         # Cleanup
         # (Don't cleanup yet so we can see them in the DB if needed)
         # db.delete(remito1)

@@ -1,28 +1,23 @@
-# scripts/migrate_remitos.py
-import sys
+import sqlite3
 import os
 
-# Add project root to sys.path
-sys.path.append(os.getcwd())
+db_path = "pilot_v5x.db"
 
-from backend.core.database import engine, Base
-from backend.remitos import models
-# [FIX] Importar modelos referenciados para que SQLAlchemy los detecte en create_all
-import backend.logistica.models
-import backend.clientes.models
-import backend.pedidos.models
+if not os.path.exists(db_path):
+    print(f"Error: {db_path} not found")
+    exit(1)
 
-def migrate():
-    print("Iniciando migración de tablas REMITOS...")
-    try:
-        # Create tables defined in models
-        # check if tables exist first to avoid error if using create_all ? 
-        # create_all is safe, it checks existence.
-        print("Creando tablas: remitos, remitos_items ...")
-        models.Base.metadata.create_all(bind=engine)
-        print("✅ Migración exitosa.")
-    except Exception as e:
-        print(f"❌ Error durante la migración: {e}")
+conn = sqlite3.connect(db_path)
+cursor = conn.cursor()
 
-if __name__ == "__main__":
-    migrate()
+try:
+    print("Adding 'bultos' column...")
+    cursor.execute("ALTER TABLE remitos ADD COLUMN bultos INTEGER DEFAULT 1")
+    print("Adding 'valor_declarado' column...")
+    cursor.execute("ALTER TABLE remitos ADD COLUMN valor_declarado FLOAT DEFAULT 0.0")
+    conn.commit()
+    print("Migration SUCCESS.")
+except Exception as e:
+    print(f"Migration ERROR: {e}")
+finally:
+    conn.close()

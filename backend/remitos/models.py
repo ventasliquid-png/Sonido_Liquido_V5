@@ -37,17 +37,18 @@ class Remito(Base):
     
     # Identificación Legal / Tracking
     numero_legal = Column(String, nullable=True) # X-0001-000000...
+    cae = Column(String, nullable=True)
+    vto_cae = Column(DateTime, nullable=True)
     
     # GATEKEEPER FINANCIERO (Logic Gate)
     # Hereda del Pedido o se setea manual.
     # Si False, Depósito ve el remito pero NO puede cambiar estado a EN_CAMINO.
     aprobado_para_despacho = Column(Boolean, default=False)
 
-    # Identificación Fiscal Manual (V5.X - Bridge Fallback)
-    cae = Column(String, nullable=True)
-    vto_cae = Column(DateTime, nullable=True)
+    # Datos Logísticos (V15.1.4)
+    bultos = Column(Integer, default=1)
+    valor_declarado = Column(Float, default=0.0)
 
-    
     # Relaciones
     pedido = relationship("backend.pedidos.models.Pedido", backref="remitos")
     domicilio_entrega = relationship("backend.clientes.models.Domicilio")

@@ -28,13 +28,29 @@ class RemitoBase(BaseModel):
     aprobado_para_despacho: bool = False
     cae: Optional[str] = None
     vto_cae: Optional[datetime] = None
+    bultos: Optional[int] = 1
+    valor_declarado: Optional[float] = 0.0
 
 class RemitoCreate(RemitoBase):
     pedido_id: int
     items: List[RemitoItemCreate]
 
+class RemitoItemUpdate(BaseModel):
+    id: Optional[int] = None # Si es nuevo, no tiene ID
+    pedido_item_id: Optional[int] = None
+    cantidad: float
+    descripcion: Optional[str] = None # Para actualizar el PedidoItem.nota
+
+class ForcedAddress(BaseModel):
+    calle: str
+    numero: Optional[str] = ""
+    localidad: str
+    provincia_id: Optional[str] = "X"
+
 class RemitoUpdate(BaseModel):
+    cliente_id: Optional[UUID] = None
     domicilio_entrega_id: Optional[UUID] = None
+    nuevo_domicilio: Optional[ForcedAddress] = None
     transporte_id: Optional[UUID] = None
     fecha_salida: Optional[datetime] = None
     estado: Optional[str] = None
@@ -42,6 +58,9 @@ class RemitoUpdate(BaseModel):
     aprobado_para_despacho: Optional[bool] = None
     cae: Optional[str] = None
     vto_cae: Optional[datetime] = None
+    bultos: Optional[int] = None
+    valor_declarado: Optional[float] = None
+    items: Optional[List[RemitoItemUpdate]] = None
 
 class RemitoResponse(RemitoBase):
     id: UUID
