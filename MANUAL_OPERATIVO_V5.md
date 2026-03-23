@@ -53,9 +53,9 @@ El teclado es el dispositivo primario de operación. Los siguientes atajos son g
 El sistema utiliza un código de colores estricto para diferenciar contextos y evitar errores operativos:
 
 *   **🔵 CLIENTES (Hawe):** Tonos **Azul / Cyan**. Representa la entidad comercial y la venta.
-    *   **Blanco (Puro):** Cliente validado y consolidado (Genoma V14).
-    *   **Azul (Sello):** Cliente Multi-Sede (Mismo CUIT en múltiples domicilios).
-    *   **Rosa (Neón):** Cliente Informal o validado manualmente por el operador.
+    *   **Blanco (Esmeralda):** Cliente validado o soberano. Se activa mediante la **Regla Dual V5.2**: Bit 13 (8192 - Calibrado/LAVIMAR) o Bit 20 (1048576 - Soberanía V15).
+    *   **Azul (Sello):** Cliente con CUIT compartido (Multi-Sede).
+    *   **Rosa (Power Pink):** Cliente informal (Bit 19 - 524288) o validado manualmente (Niveles 9/11).
     *   **Amarillo (Alerta):** Cliente pendiente de validación o auditoría.
 *   **🔴 PRODUCTOS (Manufactura):** Tonos **Bordó / Rose**. Representa el inventario, costos y producción.
 *   **🟠 LOGÍSTICA (Transportes):** Tonos **Naranja**. Representa el movimiento físico de mercadería.
@@ -80,7 +80,12 @@ Un cliente puede tener múltiples domicilios, pero se clasifican estrictamente e
     *   **Gestión:** Para modificar o dar de baja el domicilio fiscal, utilice el menú de opciones (tres puntos) o clic derecho sobre la tarjeta.
     *   **Ley de Conservación:** El sistema impedirá borrar el domicilio fiscal si no existe otra dirección activa que pueda tomar su lugar.
 *   **Domicilio de Entrega:** Dirección física donde se recibe la mercadería.
-*   **Logística Asociada:** Cada domicilio tiene vinculado un **Transporte** predeterminado (ej: "Expreso Lo Bruno", "Retiro en Local").
+*   **Gestión de Alta Capacidad (AddressSelector):**
+    *   **Drag & Drop Swap:** Arrastre cualquier sucursal a la "Tarjeta Principal" para promoverla.
+    *   **Edición Directa:** Clic en cualquier tarjeta para abrir el formulario de edición detallada.
+    *   **Baja Logística:** Icono de papelera (Trash) para desactivar direcciones o limpiar duplicados.
+    *   **Omnisearch:** Buscador reactivo integrado para localizar sucursales por calle, localidad o alias.
+*   **Logística Asociada:** Cada domicilio tiene vinculado un **Transporte** predeterminado.
 
 ### 2.3 Concepto de Segmentos
 Los clientes se agrupan en **Segmentos** (anteriormente "Ramos").

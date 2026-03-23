@@ -434,31 +434,28 @@ const getClientColorMode = (cliente) => {
     const cuit = (cliente.cuit || '').replace(/[^0-9]/g, '');
     const isGeneric = ['00000000000', '11111111119', '11111111111', '99999999999'].includes(cuit);
     
-    // 1. PINK: No CUIT, Short CUIT, Generic CUIT, o Sin IVA (Prioridad Máxima: No Fiscal/Informal)
     const flags = cliente.flags_estado || 0;
-    if ((flags & 15) === 9 || (flags & 15) === 11 || !cuit || cuit.length < 5 || isGeneric || !cliente.condicion_iva_id) {
+    // 1. [V15.1] POWER PINK (Bit 19 - 524288) o Reglas Difusas (Informales)
+    if ((flags & 524288) || (flags & 15) === 9 || (flags & 15) === 11 || !cuit || cuit.length < 5 || isGeneric || !cliente.condicion_iva_id) {
         return 'PINK'; 
     }
 
-    // 2. YELLOW: Check for Pending Revision (Bit 20 - 1048576)
-    if (flags & 1048576) {
-        return 'YELLOW';
-    }    
-    // 3. BLUE: Shared/Collective CUIT (UBA Case)
+    // 2. [V5.2 SOBERANIA DUAL] - Bit 20 (1048576) o Bit 13 (8192 - LAVIMAR)
+    if ((flags & 1048576) || (flags & 8192)) {
+        return 'VALIDADO';
+    }
+
+    // 3. BLUE: CUIT Colectivo (UBA Case)
     if (cuit.length === 11) {
         const count = clientes.value.filter(c => (c.cuit||'').replace(/[^0-9]/g, '') === cuit).length;
         if (count > 1) return 'BLUE';
     }
 
-    // 4. [V14.8.4 SOBERANIA] Color = f(Bit 20)
-    // Si el Bit 20 (PENDIENTE_REVISION) esta apagado, el cliente es valido.
-    // El backend lo apaga automaticamente al detectar los 4 Pilares en el save.
-    // La lupa AFIP ya no es el unico camino al blanco.
-    if (!(flags & 1048576)) {
-        return 'VALIDADO';
+    // 4. HEURÍSTICA DE TRANSICIÓN (Level 13/15 AFIP sin medallas aún)
+    if (((flags & 15) === 13 || (flags & 15) === 15) && !isGeneric) {
+         return 'VALIDADO';
     }
 
-    // Fallback: Bit 20 activo = datos incompletos segun el sistema
     return 'YELLOW';
 }
 

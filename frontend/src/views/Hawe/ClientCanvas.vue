@@ -209,165 +209,20 @@
                       </div>
 
                       <!-- Domicilio Entrega & Transporte -->
-                      <!-- Hub Logístico -->
-                  <div class="space-y-3">
-                      
-                      <!-- A. PRIMARY DELIVERY CARD (Always Visible) -->
-                      <div 
-                        @click="openEntregaEditor"
-                        class="bg-emerald-900/10 border border-emerald-500/30 rounded-2xl p-4 relative group cursor-pointer hover:bg-emerald-900/20 transition-all overflow-hidden"
-                      >
-                          <div class="absolute top-0 right-0 p-3 opacity-50 group-hover:opacity-100 transition-opacity">
-                              <i class="fas fa-edit text-emerald-400"></i>
-                          </div>
-
-                          <div class="flex flex-col h-full justify-between gap-4">
-                              <!-- Header -->
-                              <div class="flex items-center gap-3">
-                                  <div class="h-10 w-10 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
-                                      <i class="fas fa-truck-fast text-emerald-400 text-lg"></i>
-                                  </div>
-                                   <div class="flex-1 min-w-0">
-                                        <h3 class="text-xs font-bold text-white uppercase tracking-widest">Entrega Principal</h3>
-                                        <span class="text-[10px] text-emerald-400/60 font-mono truncate block">
-                                            {{ computedPrimaryDelivery ? (computedPrimaryDelivery.alias || 'Sede Central') : 'Sin Asignar' }}
-                                        </span>
-                                   </div>
-                              </div>
-                              
-                              <!-- Primary Address Details -->
-                              <div v-if="computedPrimaryDelivery">
-                                   <div class="flex items-start gap-2 mb-1">
-                                       <i class="fas fa-map-pin text-emerald-500 mt-0.5 text-[10px]"></i>
-                                       <div>
-                                           <p class="text-sm font-bold text-white leading-tight">
-                                               {{ computedPrimaryDelivery.calle_entrega || computedPrimaryDelivery.calle }} {{ computedPrimaryDelivery.numero_entrega || computedPrimaryDelivery.numero }}
-                                           </p>
-                                           <p class="text-[10px] text-white/50">
-                                               {{ computedPrimaryDelivery.localidad_entrega || computedPrimaryDelivery.localidad }} • {{ computedPrimaryDelivery.cp_entrega || computedPrimaryDelivery.cp }}
-                                           </p>
-                                       </div>
-                                    <!-- Transport Badge -->
-                                   <div class="flex items-center gap-2 mt-2 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 w-fit">
-                                        <i class="fas fa-dolly text-emerald-400 text-[10px]"></i>
-                                        <span class="text-[10px] font-bold text-emerald-300 uppercase">
-                                            {{ computedPrimaryDelivery.transporte?.nombre || 'Retira Cliente' }}
-                                        </span>
-                                   </div>
-                                   </div>
-                              </div>
-                              <div v-else class="text-center py-4 text-white/20 italic text-xs">
-                                  Click para asignar dirección de entrega
-                              </div>
-
-                              <!-- Add Sede Button (Relocated to bottom-right) -->
-                              <button 
-                                  @click.stop="openNewDomicilio"
-                                  class="absolute bottom-4 right-4 px-3 py-1.5 rounded-lg bg-cyan-500/5 border border-cyan-500/20 hover:bg-cyan-500/10 text-cyan-400 hover:text-white transition-all text-[9px] font-black uppercase tracking-widest flex items-center gap-2 z-10"
-                              >
-                                  <i class="fas fa-plus-circle text-[10px]"></i>
-                                  Agregar Sucursal
-                              </button>
-                          </div>
+                      <!-- Hub Logístico (Alta Capacidad V15) -->
+                      <div class="space-y-3">
+                        <AddressSelector 
+                          v-model:domicilios="domicilios"
+                          :transportes="transportes"
+                          @edit="openDomicilioTab"
+                          @delete="handleDomicilioDelete"
+                          @add="openNewDomicilio"
+                        />
                       </div>
-
-                      <!-- B. SECONDARY DELIVERY LIST (Expandable/Scrollable) -->
-                      <div v-if="computedSecondaryDeliveries.length > 0" class="border-t border-white/5 pt-2">
-                          <h4 class="text-[9px] font-bold text-white/30 uppercase tracking-widest mb-2 flex items-center justify-between px-1">
-                              <span>Otras Direcciones ({{ computedSecondaryDeliveries.length }})</span>
-                              <button @click.stop="openNewDomicilio" class="hover:text-cyan-400 transition-colors"><i class="fas fa-plus"></i></button>
-                          </h4>
-                          
-                          <div class="space-y-1.5 max-h-[120px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 pr-1">
-                              <div 
-                                  v-for="sec in computedSecondaryDeliveries" 
-                                  :key="sec.id"
-                                  @click="openDomicilioTab(sec)"
-                                  class="flex items-center justify-between p-2 rounded-lg border border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/10 cursor-pointer group transition-all"
-                              >
-                                  <div class="flex items-center gap-3 min-w-0">
-                                      <div class="h-6 w-6 rounded bg-white/5 flex items-center justify-center text-white/30 group-hover:text-emerald-400 transition-colors font-bold text-[9px] shrink-0">
-                                          {{ (sec.alias || sec.calle || 'SU').substring(0,2).toUpperCase() }}
-                                      </div>
-                                      <div class="min-w-0">
-                                          <p class="text-[10px] font-bold text-white/70 group-hover:text-white truncate">
-                                              {{ sec.calle_entrega || sec.calle || 'Sin Calle' }} {{ sec.numero_entrega || sec.numero }}
-                                          </p>
-                                          <p class="text-[9px] text-white/30 truncate">{{ sec.localidad_entrega || sec.localidad || 'Sin Localidad' }}</p>
-                                      </div>
-                                  </div>
-                                  <i class="fas fa-chevron-right text-[9px] text-white/10 group-hover:text-white/50"></i>
-                              </div>
-                          </div>
-                      </div>
-
-                      <!-- No Secondary but 'Add' hint -->
-                      <div v-else class="text-right px-1 mt-2">
-                           <button @click="openNewDomicilio" class="text-[9px] font-bold text-cyan-400 bg-cyan-400/5 hover:bg-cyan-400/10 border border-cyan-400/20 px-3 py-1.5 rounded-full uppercase tracking-widest transition-all">
-                               + Agregar otra sucursal de entrega
-                           </button>
-                      </div>
-
-                  </div>
                   </div>
               </div>
           </section>
 
-          <!-- BLOCK 2: LOGISTICS 5.2 (COLLAPSIBLE BY DEFAULT) -->
-          <section class="space-y-2">
-              <div 
-                  @click="expandLogistics = !expandLogistics"
-                  class="flex items-center justify-between px-3 py-2 bg-cyan-900/10 border border-cyan-500/20 rounded-xl cursor-pointer hover:bg-cyan-900/20 transition-all select-none"
-              >
-                  <h3 class="text-[10px] font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-2">
-                      <i class="fas fa-truck-loading"></i> Logística y Tratos de Entrega
-                      <span v-if="domiciliosLogistica.length > 0" class="text-[9px] bg-cyan-500/30 text-cyan-300 px-1.5 py-0.5 rounded-full ml-2">
-                          {{ domiciliosLogistica.length }} {{ domiciliosLogistica.length === 1 ? 'Locación' : 'Locaciones' }}
-                      </span>
-                  </h3>
-                  <div class="flex items-center gap-4">
-                      <span v-if="!expandLogistics && domiciliosLogistica.length > 0" class="text-[10px] text-white/30 italic truncate max-w-[200px]">
-                          {{ domiciliosLogistica[0].calle }}...
-                      </span>
-                      <i class="fas text-cyan-400/50 transition-transform duration-300" :class="expandLogistics ? 'fa-chevron-up rotate-180' : 'fa-chevron-down'"></i>
-                  </div>
-              </div>
-              
-              <div v-if="expandLogistics" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 px-1 animate-in slide-in-from-top-2 duration-300">
-                  <div 
-                      v-for="dom in domiciliosLogistica" 
-                      :key="dom.id"
-                      @click="openDomicilioTab(dom)"
-                      class="bg-white/5 border border-white/10 rounded-xl p-3 hover:border-cyan-500/30 transition-all cursor-pointer group relative overflow-hidden"
-                  >
-                      <!-- Note Alert Indicator -->
-                      <div v-if="dom.observaciones" class="absolute top-0 right-0 p-1.5 z-10">
-                          <i class="fas fa-exclamation-circle text-amber-500 animate-pulse text-[10px]"></i>
-                      </div>
-
-                      <div class="flex justify-between items-start mb-2">
-                          <span class="text-[9px] font-bold uppercase opacity-40">{{ dom.alias || 'Sucursal' }}</span>
-                          <i class="fas fa-map-marker-alt text-cyan-400/50 text-xs"></i>
-                      </div>
-                      
-                      <div class="mb-3">
-                          <p class="text-[11px] font-bold text-white truncate">{{ dom.calle || 'Sin Calle Definida' }} {{ dom.numero }}</p>
-                          <p class="text-[10px] text-white/40 truncate">{{ dom.localidad || 'Sin Localidad' }}</p>
-                      </div>
-
-                      <div class="flex items-center gap-2 text-[10px] text-emerald-400/70 border-t border-white/5 pt-2 mt-auto">
-                          <i class="fas fa-truck text-[9px]"></i>
-                          <span class="font-bold truncate">{{ dom.transporte?.nombre || dom.transporte_nombre || 'Retira Cliente' }}</span>
-                      </div>
-                  </div>
-
-                  <!-- Add New Location directly in expanded view -->
-                  <div @click="openDomicilioTab()" class="border-2 border-dashed border-white/5 rounded-xl p-3 flex flex-col items-center justify-center gap-1 hover:border-cyan-500/30 hover:bg-white/5 transition-all cursor-pointer text-white/20 hover:text-cyan-400">
-                      <i class="fas fa-plus-circle text-sm"></i>
-                      <span class="text-[9px] font-bold uppercase tracking-widest">Nueva Planta</span>
-                  </div>
-              </div>
-          </section>
 
           <!-- BLOCK 3: COMMERCIAL INTELLIGENCE -->
           <div class="grid grid-cols-12 gap-4">
@@ -577,6 +432,7 @@ import canteraService from '../../services/canteraService'
 import clientesService from '../../services/clientes'
 // import DomicilioForm from './components/DomicilioForm.vue'
 import DomicilioSplitCanvas from './components/DomicilioSplitCanvas.vue'
+import AddressSelector from './components/AddressSelector.vue'
 import ContactoForm from './components/ContactoForm.vue'
 import ContactoPopover from './components/ContactoPopover.vue'
 import SmartSelect from '../../components/ui/SmartSelect.vue'
@@ -1638,12 +1494,14 @@ const saveCliente = async () => {
         const hasDomicilioFiscal = domicilios.value.some(d => d.es_fiscal && (d.calle || '').trim().length > 2);
         const has4Pillars = payload.razon_social && payload.lista_precios_id && payload.segmento_id && hasDomicilioFiscal;
         if (has4Pillars) {
-            currentFlags &= ~1048576; // Bit 20 OFF: Limpiar PENDIENTE_REVISION
+            currentFlags |= 1048576;  // Bit 20 ON: SOBERANÍA (Éxito)
             currentFlags &= ~2;       // Bit 1 OFF: Quitar IS_VIRGIN (Promotion 15->13)
             currentFlags |= 1;        // Bit 0 ON: Asegurar IS_ACTIVE
         } else if (payload.lista_precios_id && payload.segmento_id) {
-            // Caso parcial: tiene lista+segmento pero le falta domicilio o nombre -> al menos limpiar Bit 20
-            currentFlags &= ~1048576;
+            // [GY-UX] Promoción Parcial: Si tiene lo básico, intentamos soberanía
+            // Pero si falta el domicilio fiscal, lo dejamos en manos del operador o Bit 20 OFF?
+            // En V15, si no tiene los 4 pilares, NO es blanco.
+            currentFlags &= ~1048576; // Asegurar que NO es blanco si no cumple pilares
         }
         
         payload.flags_estado = currentFlags;
@@ -1979,6 +1837,28 @@ const handleDomicilioSaved = async (domicilioData) => {
     activeTab.value = 'CLIENTE';
 }
 
+const handleDomicilioDelete = async (dom) => {
+    if (dom.es_fiscal) return;
+    if (!confirm(`¿Seguro que desea dar de baja el domicilio en ${dom.calle || dom.alias}?`)) return;
+    
+    try {
+        if (dom.id) {
+            // Persisted: soft delete
+            await store.updateDomicilio(form.value.id, dom.id, { activo: false });
+            notificationStore.add('Domicilio dado de baja', 'info');
+            await loadCliente(form.value.id);
+        } else {
+            // Local only: remove from array
+            const idx = domicilios.value.findIndex(d => d.local_id === dom.local_id);
+            if (idx !== -1) domicilios.value.splice(idx, 1);
+            notificationStore.add('Domicilio eliminado localmente', 'info');
+        }
+    } catch (e) {
+        console.error(e);
+        notificationStore.add('Error al dar de baja domicilio', 'error');
+    }
+}
+
 // Contactos Logic
 const showContactoForm = ref(false)
 const selectedContacto = ref(null)
@@ -2083,17 +1963,22 @@ const clientColorMode = computed(() => {
     const isConsumidorFinal = form.value.condicion_iva_id && 
             condicionesIva.value.find(i => i.id === form.value.condicion_iva_id)?.nombre.toUpperCase().includes('CONSUMIDOR FINAL');
 
-    // ROSA (Pink) -> Pao de Tandil (9/11), Informal/Generic, Sin IVA, o Consumidor Final
-    if ((flags & 15) === 9 || (flags & 15) === 11 || !cuit || cuit.length < 5 || isGeneric || isConsumidorFinal || !form.value.condicion_iva_id) {
+    // 1. [V15.1] POWER PINK (Bit 19 - 524288) o Reglas Difusas (Informales)
+    if ((flags & 524288) || (flags & 15) === 9 || (flags & 15) === 11 || !cuit || cuit.length < 5 || isGeneric || isConsumidorFinal || !form.value.condicion_iva_id) {
         return 'pink'; 
     }
     
-    // AZUL (Blue) -> CUIT Colectivo / Compartido (UBA)
+    // 2. [V5.2 SOBERANIA DUAL] - Bit 20 (1048576) o Bit 13 (8192 - LAVIMAR)
+    if ((flags & 1048576) || (flags & 8192)) {
+        return 'green';
+    }
+
+    // 3. AZUL (Blue) -> CUIT Colectivo (UBA Case)
     if (isSharedCuit.value) {
         return 'blue';
     }
 
-    // VERDE (Green/Emerald) -> Validated & Real CUIT (13/15)
+    // 4. VERDE (Green/Emerald) - Fallback para Validados AFIP sin medallas aún
     if (((flags & 15) === 13 || (flags & 15) === 15 || form.value.estado_arca === 'VALIDADO') && !isGeneric) {
         return 'green';
     }

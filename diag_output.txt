@@ -1,0 +1,5 @@
+--- CLIENTS ---
+CLIENT: ('7086cb6c20eb4c5ca49a419307354ae9', 'Laboratorio de Medicina SA', '30581050301', 1048589, 'VALIDADO')
+  DOM: ('47ec596caa954f2fb84ae6bc07aacce2', '', 'TRELLES MANUEL R. 1566, CIUDAD AUTONOMA BUENOS AIRES (1416)', '', 1, 1, 0, 1)
+  DOM: ('194c46e69501413c8fe111028b1de7fc', None, 'Cramer', '4601', 0, 1, 0, 1)
+  DOM: ('3b40959284824217ab9eb93ae39189fa', None, 'Belaustegui', '1756', 0, 1, 0, 1)

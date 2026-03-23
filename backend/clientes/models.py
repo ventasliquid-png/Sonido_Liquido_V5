@@ -168,8 +168,8 @@ class Domicilio(Base):
     id = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
     cliente_id = Column(GUID(), ForeignKey("clientes.id"), nullable=False)
     
-    alias = Column(String, nullable=True) # "Depósito Norte"
-    calle = Column(String, nullable=True)
+    alias = Column(String, nullable=True, index=True) # "Depósito Norte"
+    calle = Column(String, nullable=True, index=True)
     numero = Column(String, nullable=True)
     piso = Column(String, nullable=True) # [V7]
     depto = Column(String, nullable=True) # [V7]
@@ -177,7 +177,7 @@ class Domicilio(Base):
     notas_logistica = Column(Text, nullable=True) # [V7] Instrucciones chofer
     contacto_id = Column(Integer, nullable=True) # [V7] Referencia a contacto logístico
     cp = Column(String, nullable=True)
-    localidad = Column(String, nullable=True)
+    localidad = Column(String, nullable=True, index=True)
     provincia_id = Column(String(5), ForeignKey("provincias.id"), nullable=True)
     
     # [GENOMA 64-bit] Sede Identity Parity

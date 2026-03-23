@@ -8,3 +8,10 @@
 - PDF Fix: Corrección de error 500 y supresión de CAE en manuales.
 - Estado: NOMINAL GOLD (BitStatus 338).
 - Protocolo OMEGA: Fase de Abordaje iniciada.
+# 2026-03-23 00:15
+- Restauración de Paridad V5.2: Implementación de la "Regla Dual" (Bit 13 + Bit 20).
+- Estabilización Cromática: Erradicación del "Efecto Ictericia" (LAVIMAR validado).
+- AddressSelector (Alta Capacidad): CRUD completo (Edit/Delete/Add) y D&D Swap.
+- Hotfix: Corrección de ReferenceError en HaweView.vue.
+- Estado: NOMINAL GOLD (BitStatus 338).
+- Protocolo OMEGA: Fase de Cierre Certificada. PIN 1974.
