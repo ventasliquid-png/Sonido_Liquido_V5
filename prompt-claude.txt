@@ -1,0 +1,26 @@
+Realizá un análisis forense completo del proyecto en 4 dimensiones:
+
+1. DEUDA TÉCNICA Y ARQUITECTURA
+- Antipatrones, acoplamiento excesivo, violaciones de DDD
+- Módulos con responsabilidades mezcladas
+- Puntos únicos de falla (SPOF)
+- Inconsistencias entre la arquitectura declarada y la implementación real
+
+2. PROYECCIÓN A FUTURO (escala 10x)
+- Queries y operaciones que no van a escalar con volumen de datos
+- Cuellos de botella en la migración SQLite → PostgreSQL
+- Módulos que van a requerir refactor mayor antes de producción
+- Riesgos en la integración AFIP/ZEEP ante cambios regulatorios
+
+3. LÓGICA DE NEGOCIO
+- Edge cases no manejados en VENTAS, HAWE y SABUESO ORO
+- Validaciones faltantes o inconsistentes
+- El sistema de soberanía dual (bits 13/20): verificá que sea consistente en todos los módulos
+- Flujos donde un error silencioso podría corromper datos
+
+4. HIGIENE DE CÓDIGO
+- Archivos con bloques de código comentado para depuración (print, console.log, debug, TODO, FIXME, HACK)
+- Estimá el volumen de código muerto por módulo
+- Identificá los 5 archivos más urgentes para limpiar
+
+Para cada hallazgo: indicá archivo, severidad (Alta/Media/Baja) y acción recomendada.

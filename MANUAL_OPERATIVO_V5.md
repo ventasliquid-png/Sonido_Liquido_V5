@@ -481,3 +481,9 @@ Si necesita corregir datos de un remito que ya fue emitido pero aún no ha salid
 2.  Busque el remito en la lista y haga **doble clic** sobre el renglón.
 3.  Se abrirá un modal donde podrá corregir el número, el transporte o la dirección.
 4.  **Nota**: Esta función es parcial. Actualmente no permite editar los productos ni los bultos (verde Bit 3).
+
+### 13.4 Sovereign Address Hub (V5.2.1)
+El padrón de domicilios ahora es independiente y soberano.
+*   **Siembra Inicial**: El sistema ha sido cargado con todos los domicilios históricos de los clientes.
+*   **Ubicación**: Accesible desde **Maestros > Soberano Hub**.
+*   **Visualización**: Permite ver cuántas entidades utilizan una misma dirección física, optimizando la gestión de sucursales compartidas.

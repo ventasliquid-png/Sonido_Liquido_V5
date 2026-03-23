@@ -40,5 +40,9 @@ export default {
 
     // Usage Ranking (V5.2)
     getTopClients: () => api.get('/clientes/top'),
-    incrementUsage: (id) => api.post(`/clientes/${id}/interaction`)
+    incrementUsage: (id) => api.post(`/clientes/${id}/interaction`),
+
+    // [V5.2 GOLD] Mirror & Fork Protocol
+    syncFiscal: (clienteId) => api.post(`/clientes/${clienteId}/domicilios/sync-fiscal`),
+    forkDomicilio: (clienteId, domicilioId, data) => api.post(`/clientes/${clienteId}/domicilios/${domicilioId}/fork`, data)
 };

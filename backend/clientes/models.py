@@ -12,6 +12,19 @@ from backend.core.database import Base, GUID
 from backend.maestros.models import CondicionIva, ListaPrecios, Segmento, Provincia
 from backend.auth.models import Usuario # [GY-FIX-IMPORT] Explicit Import for Relationship
 from sqlalchemy.orm import foreign, remote
+from sqlalchemy import Table
+
+# --- [V5.2 GOLD] N:M Bridge ---
+domicilios_clientes = Table(
+    'domicilios_clientes',
+    Base.metadata,
+    Column('cliente_id', GUID(), ForeignKey('clientes.id'), primary_key=True),
+    Column('domicilio_id', GUID(), ForeignKey('domicilios.id'), primary_key=True),
+    Column('flags', BigInteger, default=2097152, nullable=False), # Default Bit 21 ON (Mirror)
+    Column('alias', String, nullable=True),
+    Column('es_predeterminado', Boolean, default=False),
+    Column('created_at', DateTime, default=lambda: datetime.now(timezone.utc))
+)
 
 class Cliente(Base):
     """
@@ -79,9 +92,13 @@ class Cliente(Base):
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relaciones
-    domicilios = relationship("Domicilio", back_populates="cliente", cascade="all, delete-orphan")
+    # [V5.2 GOLD] Transition from 1:N to N:M
+    domicilios = relationship("Domicilio", secondary=domicilios_clientes, back_populates="clientes")
     # [GY-FIX V6] Removed legacy VinculoComercial relationship
     # vinculos = relationship("VinculoComercial", back_populates="cliente", cascade="all, delete-orphan")
+    # [V5.2 GOLD] Legacy 1:N relationship for transition phase
+    domicilios_legacy = relationship("Domicilio", back_populates="cliente", foreign_keys="[Domicilio.cliente_id]", cascade="all, delete-orphan")
+    
     condicion_iva = relationship(CondicionIva)
     lista_precios = relationship(ListaPrecios)
     segmento = relationship(Segmento)
@@ -166,7 +183,9 @@ class Domicilio(Base):
     __tablename__ = "domicilios"
 
     id = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
-    cliente_id = Column(GUID(), ForeignKey("clientes.id"), nullable=False)
+    
+    # [DEPRECATED V5.2] We move to N:M, but keep nullable FK for legacy cleanup phase
+    cliente_id = Column(GUID(), ForeignKey("clientes.id"), nullable=True)
     
     alias = Column(String, nullable=True, index=True) # "Depósito Norte"
     calle = Column(String, nullable=True, index=True)
@@ -185,7 +204,9 @@ class Domicilio(Base):
     bit_identidad = Column(BigInteger, default=0, nullable=False)
 
     # Flags de uso
-    activo = Column(Boolean, default=True, nullable=False)
+    # [V5.2 GOLD] New Naming Convention
+    is_active = Column(Boolean, default=True, nullable=False)
+    activo = Column(Boolean, default=True, nullable=False) # Legacy compatibility
     es_fiscal = Column(Boolean, default=False) # [LEGACY] To be moved to Relation Genome
     es_entrega = Column(Boolean, default=False) # [LEGACY] To be moved to Relation Genome
     es_predeterminado = Column(Boolean, default=False) # [LEGACY]
@@ -216,7 +237,11 @@ class Domicilio(Base):
     origen_logistico = Column(String, nullable=True) # DESPACHO_NUESTRO, RETIRO_EN_PLANTA
     
     # Relaciones
-    cliente = relationship("Cliente", back_populates="domicilios")
+    # [V5.2 GOLD] N:M Support
+    clientes = relationship("Cliente", secondary=domicilios_clientes, back_populates="domicilios")
+    
+    # Legacy 1:N backward link
+    cliente = relationship("Cliente", back_populates="domicilios_legacy", foreign_keys=[cliente_id])
     provincia = relationship(Provincia, foreign_keys=[provincia_id])
     provincia_entrega = relationship(Provincia, foreign_keys=[provincia_entrega_id])
     

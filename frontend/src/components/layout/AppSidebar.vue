@@ -161,6 +161,10 @@
                 <i class="fas fa-truck w-4"></i> 
                 <span>Transportes</span>
             </a>
+            <a href="#" @click.prevent="navigate('AddressHub')" class="nav-item-sub" :class="{ 'active-link-amber': isActive('AddressHub') }">
+                <i class="fas fa-map-marker-alt w-4"></i> 
+                <span>Gestión Domicilios</span>
+            </a>
             <a href="#" @click.prevent="handleDepositosClick" class="nav-item-sub hover:text-amber-200 text-white/50">
                 <i class="fas fa-warehouse w-4"></i> 
                 <span>Depósitos</span>
@@ -253,7 +257,7 @@ const isActive = (routeName) => {
 const isGroupActive = (group) => {
     if (group === 'CLIENTES') return ['HaweHome', 'Segmentos', 'Vendedores', 'HaweClientCanvas'].includes(route.name)
     if (group === 'PRODUCTOS') return ['Productos', 'Rubros', 'ListasPrecios'].includes(route.name)
-    if (group === 'MAESTROS') return ['Contactos', 'Transportes', 'CanteraExplorer', 'MasterTools'].includes(route.name)
+    if (group === 'MAESTROS') return ['Contactos', 'Transportes', 'CanteraExplorer', 'MasterTools', 'AddressHub'].includes(route.name)
     if (group === 'PEDIDOS') return ['PedidoList', 'TacticalLoader', 'IngestaFactura', 'RemitoList', 'ManualRemito'].includes(route.name)
     if (group === 'INTEL') return ['data-cleaner'].includes(route.name)
     return false

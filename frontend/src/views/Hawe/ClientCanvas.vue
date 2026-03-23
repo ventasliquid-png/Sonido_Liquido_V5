@@ -216,7 +216,9 @@
                           :transportes="transportes"
                           @edit="openDomicilioTab"
                           @delete="handleDomicilioDelete"
+                          @restore="handleDomicilioRestore"
                           @add="openNewDomicilio"
+                          @sync-fiscal="handleSyncFiscal"
                         />
                       </div>
                   </div>
@@ -1809,6 +1811,7 @@ const handleDomicilioSaved = async (domicilioData) => {
 
         // Persistence
         if (isNew.value) {
+            // ... existing local logic ...
             if (domicilioData.local_id || domicilioData.id) {
                 const idx = domicilios.value.findIndex(d => (d.local_id && d.local_id === domicilioData.local_id) || (d.id && d.id === domicilioData.id))
                 if (idx !== -1) domicilios.value[idx] = { ...domicilioData };
@@ -1818,16 +1821,22 @@ const handleDomicilioSaved = async (domicilioData) => {
             }
             notificationStore.add('Domicilio añadido localmente', 'info');
         } else {
-             // Optimistic Update can be skipped for brevity as we reload
+            // [V5.2 GOLD] Fork Detection (Bit 21 Mirror Protection)
+            const isMirrored = !!(domicilioData.flags & 2097152);
+            
             let savedDom;
-            if (domicilioData.id) {
+            if (isMirrored) {
+                // BIT 21 ON: Perform "Bifurcación" (Fork) instead of Update
+                savedDom = await store.forkDomicilio(form.value.id, domicilioData.id, payload);
+                notificationStore.add('Bifurcación Completa: Se creó una entrega independiente', 'success');
+            } else if (domicilioData.id) {
                 savedDom = await store.updateDomicilio(form.value.id, domicilioData.id, payload);
             } else {
                 savedDom = await store.createDomicilio(form.value.id, payload);
             }
             // Sync & Reload
             await loadCliente(form.value.id);
-            notificationStore.add('Domicilio guardado', 'success');
+            if (!isMirrored) notificationStore.add('Domicilio guardado', 'success');
         }
     } catch (e) {
         console.error(e);
@@ -1835,6 +1844,30 @@ const handleDomicilioSaved = async (domicilioData) => {
         await loadCliente(form.value.id);
     }
     activeTab.value = 'CLIENTE';
+}
+
+const handleSyncFiscal = async (dom) => {
+    try {
+        await store.syncFiscal(form.value.id);
+        notificationStore.add('Sincronía Espejo activada (Bit 21 ON)', 'success');
+        await loadCliente(form.value.id);
+    } catch (e) {
+        console.error(e);
+        notificationStore.add('Error al sincronizar con Fiscal', 'error');
+    }
+}
+
+const handleDomicilioRestore = async (dom) => {
+    try {
+        if (dom.id) {
+            await store.updateDomicilio(form.value.id, dom.id, { activo: true });
+            notificationStore.add('Domicilio reactivado', 'success');
+            await loadCliente(form.value.id);
+        }
+    } catch (e) {
+        console.error(e);
+        notificationStore.add('Error al reactivar domicilio', 'error');
+    }
 }
 
 const handleDomicilioDelete = async (dom) => {

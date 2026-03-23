@@ -129,6 +129,18 @@ async def lifespan(app: FastAPI):
     # --- [INICIO PARCHE V10.1 (ORM)] ---
     try:
         from sqlalchemy.orm import configure_mappers
+        print("--- [V10.12]: Pre-cargando Modelos (Completo)... ---")
+        import backend.auth.models
+        import backend.maestros.models
+        import backend.logistica.models
+        import backend.productos.models
+        import backend.clientes.models
+        import backend.pedidos.models
+        import backend.remitos.models
+        import backend.agenda.models
+        import backend.contactos.models
+        import backend.proveedores.models
+        import backend.core.models
         print("--- [V10.12]: Configurando mappers de SQLAlchemy... ---")
         configure_mappers() # Force relationship resolution
         print("--- [V10.12]: Sincronizando modelos ORM (SQLAlchemy)... ---")
@@ -436,7 +448,7 @@ class QueryInput(BaseModel):
 
 # --- Bypass Endpoint for Rubro Dependencies ---
 from backend.productos import models as prod_models
-from core.database import get_db
+from backend.core.database import get_db
 from sqlalchemy.orm import Session
 from fastapi import Depends, HTTPException
 

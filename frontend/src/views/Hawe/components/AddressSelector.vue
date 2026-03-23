@@ -1,14 +1,26 @@
 <template>
   <div class="space-y-4">
     <!-- OmniSearch Input -->
-    <div class="relative group">
-      <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-white/20 text-xs"></i>
-      <input 
-        v-model="searchQuery" 
-        type="text" 
-        placeholder="Buscar por calle o alias..." 
-        class="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all placeholder-white/10"
-      />
+    <div class="flex items-center gap-2">
+      <div class="relative group flex-1">
+        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-white/20 text-xs"></i>
+        <input 
+          v-model="searchQuery" 
+          type="text" 
+          placeholder="Buscar por calle o alias..." 
+          class="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all placeholder-white/10"
+        />
+      </div>
+      <!-- Toggle Ver Inactivos -->
+      <button 
+        @click="showInactive = !showInactive"
+        class="h-9 px-3 rounded-xl border transition-all flex items-center gap-2 shrink-0 group"
+        :class="showInactive ? 'bg-amber-500/20 border-amber-500/50 text-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.2)]' : 'bg-white/5 border-white/10 text-white/30 hover:bg-white/10 hover:text-white/50'"
+        title="Ver direcciones dadas de baja"
+      >
+        <i class="fas" :class="showInactive ? 'fa-eye' : 'fa-eye-slash'"></i>
+        <span class="text-[10px] font-bold uppercase tracking-tight hidden sm:inline">Inactivos</span>
+      </button>
     </div>
 
     <!-- PRIMARY DELIVERY CARD (Drop Zone) -->
@@ -50,11 +62,23 @@
           </div>
         </div>
 
-        <div class="flex items-center gap-2 mt-1 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 w-fit">
-          <i class="fas fa-dolly text-emerald-400 text-[10px]"></i>
-          <span class="text-[10px] font-bold text-emerald-300 uppercase">
-            {{ getTransportName(primaryDelivery.transporte_id) }}
-          </span>
+        <div class="flex items-center gap-2 mt-1 px-2 py-1 rounded border w-fit group/tag">
+          <div class="flex items-center gap-1.5 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+            <i class="fas fa-dolly text-emerald-400 text-[10px]"></i>
+            <span class="text-[10px] font-bold text-emerald-300 uppercase">
+              {{ getTransportName(primaryDelivery.transporte_id) }}
+            </span>
+          </div>
+
+          <!-- Mirror Indicator (Bit 21) -->
+          <div 
+            v-if="isMirrored(primaryDelivery)"
+            class="flex items-center gap-1 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20 animate-pulse"
+            title="Sincronía Espejo Activa (Ley de Paridad)"
+          >
+            <i class="fas fa-link text-cyan-400 text-[10px]"></i>
+            <span class="text-[9px] font-bold text-cyan-300 uppercase tracking-tighter">ESPEJO</span>
+          </div>
         </div>
       </div>
       <div v-else class="text-center py-8 text-white/20 italic text-xs">
@@ -98,13 +122,38 @@
                 <p class="text-[9px] text-white/30 truncate">
                   {{ dom.alias ? dom.alias + ' • ' : '' }}{{ dom.localidad_entrega || dom.localidad || 'Sin Localidad' }}
                 </p>
+                <!-- Mirror Badge for Secondary -->
+                <div v-if="isMirrored(dom)" class="mt-1 flex items-center gap-1 text-[8px] text-cyan-400/60 font-bold uppercase tracking-widest">
+                   <i class="fas fa-link text-[7px]"></i>
+                   ESPEJO FISCAL
+                </div>
               </div>
             </div>
             
             <div class="flex items-center gap-1">
+              <!-- Equalize to Fiscal (Mirror Start) -->
+              <button 
+                v-if="!dom.es_fiscal && !isMirrored(dom) && dom.activo !== false"
+                @click.stop="syncFiscal(dom)"
+                class="text-white/10 hover:text-cyan-400 transition-colors p-1"
+                title="Sincronizar con Fiscal (Mirror ON)"
+              >
+                <i class="fas fa-sync-alt text-[10px]"></i>
+              </button>
+
+              <!-- Restore Button (Only for inactive) -->
+              <button 
+                v-if="dom.activo === false"
+                @click.stop="restore(dom)"
+                class="text-amber-500/50 hover:text-amber-400 transition-colors p-1"
+                title="Reactivar Domicilio"
+              >
+                <i class="fas fa-rotate-left text-[10px]"></i>
+              </button>
+
               <!-- Promotion Button -->
               <button 
-                v-if="!dom.es_fiscal"
+                v-if="!dom.es_fiscal && dom.activo !== false"
                 @click.stop="promote(dom)"
                 class="text-white/10 hover:text-amber-400 transition-colors p-1"
                 title="Promover a Principal"
@@ -123,7 +172,7 @@
 
               <!-- Delete Button -->
               <button 
-                v-if="!dom.es_fiscal"
+                v-if="!dom.es_fiscal && dom.activo !== false"
                 @click.stop="$emit('delete', dom)"
                 class="text-white/5 hover:text-red-500 transition-colors p-1"
                 title="Dar de Baja"
@@ -131,7 +180,7 @@
                 <i class="fas fa-trash-alt text-[9px]"></i>
               </button>
 
-              <div v-else class="ml-2 text-purple-500/50 p-1" title="Domicilio Fiscal (No Promovible / No Eliminable)">
+              <div v-else-if="dom.es_fiscal" class="ml-2 text-purple-500/50 p-1" title="Domicilio Fiscal (No Promovible / No Eliminable)">
                   <i class="fas fa-file-invoice text-[10px]"></i>
               </div>
             </div>
@@ -160,9 +209,10 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:domicilios', 'edit', 'delete', 'add'])
+const emit = defineEmits(['update:domicilios', 'edit', 'delete', 'restore', 'add', 'sync-fiscal'])
 
 const searchQuery = ref('')
+const showInactive = ref(false)
 const isDraggingOver = ref(false)
 const isDragging = ref(false)
 const draggedDom = ref(null)
@@ -182,7 +232,9 @@ const secondaryDeliveries = computed(() => {
   if (!props.domicilios) return []
   
   return props.domicilios.filter(d => {
-    if (d.activo === false) return false
+    // If not showing inactive, filter them out
+    if (!showInactive.value && d.activo === false) return false
+    
     // If it's the current primary card, filter it out
     const isPrimary = primary && (d.id ? String(d.id) === String(primary.id) : d.local_id === primary.local_id)
     return !isPrimary
@@ -245,13 +297,30 @@ const promote = (dom) => {
     // Clear es_predeterminado for others
     const isTarget = d.id ? d.id === dom.id : d.local_id === dom.local_id
     if (isTarget) {
-      return { ...d, es_predeterminado: true, es_entrega: true }
+      return { ...d, es_predeterminado: true, es_entrega: true, activo: true }
     } else {
       return { ...d, es_predeterminado: false }
     }
   })
   
   emit('update:domicilios', newDomicilios)
+}
+
+const restore = (dom) => {
+  emit('restore', dom)
+}
+
+const isMirrored = (dom) => {
+    // Bit 21 Logic: (flags & 2097152) 
+    // We assume the backend delivers flags and we check if Bit 21 is ON
+    return !!(dom.flags & 2097152) || dom.is_mirror // Fallback to property if mapped
+}
+
+const syncFiscal = (dom) => {
+    if (confirm("¿Sincronizar esta dirección con el domicilio fiscal? Se activará el Mirror dinámico.")) {
+        // Emit event to parent to perform backend sync
+        emit('sync-fiscal', dom)
+    }
 }
 </script>
 

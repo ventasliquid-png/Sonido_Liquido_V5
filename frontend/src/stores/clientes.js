@@ -202,22 +202,36 @@ export const useClientesStore = defineStore('clientes', {
             }
         },
 
-        async incrementUsage(id) {
-            try {
-                await clientesService.incrementUsage(id);
-                // Locally update?
-                const c = this.clientes.find(cli => cli.id === id);
-                if (c) {
-                    c.contador_uso = (c.contador_uso || 0) + 1;
-                }
-            } catch (error) {
-                console.error(error);
-            }
-        },
+    incrementUsage: (id) => api.post(`/clientes/${id}/interaction`),
 
-        setDraft(data) {
-            this.draft = data;
-        },
+    // [V5.2 GOLD] Mirror & Fork Protocol
+    async syncFiscal(clienteId) {
+        try {
+            const response = await clientesService.syncFiscal(clienteId);
+            const index = this.clientes.findIndex(c => c.id === clienteId);
+            if (index !== -1) {
+                this.clientes.splice(index, 1, response.data);
+            }
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    async forkDomicilio(clienteId, domicilioId, data) {
+        try {
+            const response = await clientesService.forkDomicilio(clienteId, domicilioId, data);
+            // Refresh client to show the new independent address
+            await this.fetchClienteById(clienteId);
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    setDraft(data) {
+        this.draft = data;
+    },
 
         clearDraft() {
             this.draft = null;

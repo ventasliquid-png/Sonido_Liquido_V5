@@ -3,8 +3,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from core.database import get_db
-from backend.clientes.schemas import ClienteCreate, ClienteResponse, ClienteUpdate
+from backend.core.database import get_db
+from backend.clientes.schemas import ClienteCreate, ClienteResponse, ClienteUpdate, DomicilioResponse
+from backend.clientes.models import Cliente, Domicilio
 from backend.clientes import schemas
 from backend.clientes.service import ClienteService
 from backend.auth.dependencies import get_current_user
@@ -170,7 +171,7 @@ def update_domicilio(cliente_id: UUID, domicilio_id: UUID, domicilio: DomicilioU
 
 @router.delete("/{cliente_id}/domicilios/{domicilio_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_domicilio(cliente_id: UUID, domicilio_id: UUID, db: Session = Depends(get_db)):
-    db_domicilio = ClienteService.delete_domicilio(db, domicilio_id)
+    db_domicilio = ClienteService.delete_domicilio(db, domicilio_id, cliente_id=cliente_id)
     if db_domicilio is None:
         raise HTTPException(status_code=404, detail="Domicilio no encontrado")
     return None
@@ -194,3 +195,76 @@ def delete_vinculo(cliente_id: UUID, vinculo_id: UUID, db: Session = Depends(get
     # Verify vinculo belongs to cliente?
     # AgendaService.delete_vinculo just deletes by ID.
     return AgendaService.delete_vinculo(db, vinculo_id)
+
+# --- [V5.2 GOLD] Address Hub Soberano ---
+
+@router.get("/hub/list", response_model=List[DomicilioResponse])
+def list_hub_domicilios(db: Session = Depends(get_db)):
+    """[V5.2 GOLD] Lista todos los domicilios únicos del Hub con uso."""
+    try:
+        return ClienteService.get_hub_domicilios(db)
+    except Exception as e:
+        import traceback
+        print("--- [HUB ERROR] list_hub_domicilios ---")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/hub/search", response_model=List[DomicilioResponse])
+def search_hub_domicilios(q: str, db: Session = Depends(get_db)):
+    """[V5.2 GOLD] Buscador reactivo en el Hub."""
+    try:
+        # Initial query
+        query = db.query(Domicilio).filter(Domicilio.is_active == True)
+        
+        if q:
+            # Flexible search: Calle or Localidad or Alias
+            query = query.filter(
+                (Domicilio.calle.ilike(f"%{q}%")) |
+                (Domicilio.localidad.ilike(f"%{q}%")) |
+                (Domicilio.alias.ilike(f"%{q}%"))
+            )
+        
+        results = query.limit(50).all()
+        
+        # Hydrate usage count
+        from backend.clientes.models import domicilios_clientes
+        for dom in results:
+            dom.usage_count = db.query(domicilios_clientes).filter(domicilios_clientes.c.domicilio_id == dom.id).count()
+            
+        return results
+    except Exception as e:
+        import traceback
+        print("--- [HUB ERROR] search_hub_domicilios ---")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/hub", response_model=DomicilioResponse, status_code=status.HTTP_201_CREATED)
+def create_hub_domicilio(domicilio: DomicilioCreate, db: Session = Depends(get_db)):
+    """[V5.2 GOLD] Crear domicilio soberano."""
+    return ClienteService.create_hub_domicilio(db, domicilio)
+
+@router.put("/hub/{domicilio_id}", response_model=DomicilioResponse)
+def update_hub_domicilio(domicilio_id: UUID, domicilio: DomicilioUpdate, db: Session = Depends(get_db)):
+    """[V5.2 GOLD] Editar domicilio soberano (Maestro)."""
+    db_dom = ClienteService.update_hub_domicilio(db, domicilio_id, domicilio)
+    if not db_dom:
+        raise HTTPException(status_code=404, detail="Domicilio no encontrado")
+    return db_dom
+
+@router.delete("/hub/{domicilio_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_hub_domicilio(domicilio_id: UUID, db: Session = Depends(get_db)):
+    """[V5.2 GOLD] Borrar domicilio soberano (físicamente si es posible)."""
+    success = ClienteService.delete_hub_domicilio(db, domicilio_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Domicilio no encontrado")
+    return None
+
+@router.post("/{cliente_id}/domicilios/sync-fiscal")
+def sync_fiscal(cliente_id: UUID, db: Session = Depends(get_db)):
+    """Protocolo 'Igualar a Fiscal' (Mirror ON)."""
+    return ClienteService.sync_fiscal(db, cliente_id)
+
+@router.post("/{cliente_id}/domicilios/{domicilio_id}/fork")
+def fork_domicilio(cliente_id: UUID, domicilio_id: UUID, new_data: dict, db: Session = Depends(get_db)):
+    """Protocolo 'Bifurcación' (Mirror OFF)."""
+    return ClienteService.fork_domicilio(db, cliente_id, domicilio_id, new_data)

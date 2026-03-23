@@ -1,7 +1,7 @@
 from typing import List, Optional
 from uuid import UUID
 from datetime import datetime
-from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator, computed_field
 import re
 from backend.agenda.schemas import VinculoComercialCreate, VinculoComercialUpdate
 
@@ -20,7 +20,8 @@ class DomicilioBase(BaseModel):
     cp: Optional[str] = None
     localidad: Optional[str] = None
     provincia_id: Optional[str] = None
-    activo: bool = True
+    is_active: bool = True
+    activo: bool = True # Legacy
     es_fiscal: bool = False
     es_entrega: bool = False
     es_predeterminado: bool = False
@@ -75,7 +76,7 @@ class DomicilioUpdate(BaseModel):
 
 class DomicilioResponse(BaseModel):
     id: UUID
-    cliente_id: UUID
+    cliente_id: Optional[UUID] = None
     alias: Optional[str] = None
     calle: Optional[str] = None
     numero: Optional[str] = None
@@ -105,6 +106,8 @@ class DomicilioResponse(BaseModel):
     cp_entrega: Optional[str] = None
     localidad_entrega: Optional[str] = None
     provincia_entrega_id: Optional[str] = None
+
+    usage_count: int = 0
 
     class Config:
         from_attributes = True

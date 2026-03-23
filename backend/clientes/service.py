@@ -1,5 +1,6 @@
 from typing import List, Optional
 from uuid import UUID
+import uuid
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
@@ -9,6 +10,7 @@ from backend.clientes.models import Cliente, Domicilio
 from backend.clientes import schemas
 from backend.clientes.constants import ClientFlags
 from backend.agenda import models as agenda_models
+from backend.pedidos.models import Pedido # [V5.2-FIX] Load Pedido to avoid Mapper Registry KeyError
 
 class ClienteService:
     @staticmethod
@@ -47,61 +49,41 @@ class ClienteService:
             db.commit()
             db.refresh(db_cliente)
 
-            # Crear Domicilios
-            try:
-                for dom_in in cliente_in.domicilios:
-                    # [GY-PROTOCOL-PIPE] Intercept Piso/Depto and merge into valid Calle structure
-                    dom_data = dom_in.model_dump(exclude={'zona_id', 'piso', 'depto'})
-                    
-                    calle_input = dom_in.calle or ""
-                    piso_input = dom_in.piso or ""
-                    depto_input = dom_in.depto or ""
-                    
-                    # Force creation of Pipe format if additional data exists
-                    # Even if empty strings, we might want to maintain structure if consistent
-                    # But per request: "Fraga 123||" or "Fraga 123|4|B"
-                    # Optimization: Only add pipes if we are actually saving structural data?
-                    # Request says: domicilio_db = f"{calle_input}|{piso_input}|{depto_input}"
-                    
-                    if piso_input or depto_input or '|' in calle_input:
-                         dom_data['calle'] = f"{calle_input}|{piso_input}|{depto_input}"
-                    
-                    if dom_in.transporte_id:
-                        dom_data['transporte_id'] = dom_in.transporte_id
-                        # Legacy support or if we want to auto-select node?
-                        # For now, we just use the new column.
-                        # dom_data['transporte_habitual_nodo_id'] = ... 
-
-                    if dom_in.intermediario_id:
-                        dom_data['intermediario_id'] = dom_in.intermediario_id
-                    
-                    db_domicilio = Domicilio(
-                        **dom_data,
-                        cliente_id=db_cliente.id
-                    )
+            # [V5.2 GOLD] N:M Transition Bridge
+            for dom_in in cliente_in.domicilios:
+                dom_data = dom_in.model_dump(exclude={'zona_id'})
+                
+                # 1. Normalization & Collision Interceptor
+                existing_dom = ClienteService.find_matching_domicilio(db, dom_data)
+                
+                if existing_dom:
+                    # Re-link existing
+                    db_cliente.domicilios.append(existing_dom)
+                    # [GY-FIX] If it's a collision against a generic address, it might be a mirror
+                    # (Handled in service logic later)
+                else:
+                    # Create new
+                    db_domicilio = Domicilio(**dom_data)
+                    db_domicilio.is_active = True
                     db.add(db_domicilio)
+                    db.flush() # Get ID
+                    db_cliente.domicilios.append(db_domicilio)
 
-                # [GY-FIX-V12] Crear Vinculos (Contactos)
-                for vinc_in in cliente_in.vinculos:
-                     # Convert Pydantic model to dict
-                     vinc_data = vinc_in.model_dump()
-                     vinc_data['cliente_id'] = db_cliente.id
-                     
-                     # Check critical fields (Persona ID is UUID, handled by Schema)
-                     # Add to session
-                     from backend.agenda.models import VinculoComercial
-                     db_vinculo = VinculoComercial(**vinc_data)
-                     db.add(db_vinculo)
+            # [GY-FIX-V12] Crear Vinculos (Contactos)
+            for vinc_in in cliente_in.vinculos:
+                 # Convert Pydantic model to dict
+                 vinc_data = vinc_in.model_dump()
+                 vinc_data['cliente_id'] = db_cliente.id
+                 
+                 # Check critical fields (Persona ID is UUID, handled by Schema)
+                 # Add to session
+                 from backend.agenda.models import VinculoComercial
+                 db_vinculo = VinculoComercial(**vinc_data)
+                 db.add(db_vinculo)
 
-                db.commit()
-                db.refresh(db_cliente)
-                return db_cliente
-            except Exception as e:
-                print(f"❌ ERROR CRÍTICO EN CREATE_CLIENTE (DOMICILIOS): {e}")
-                import traceback
-                traceback.print_exc()
-                db.rollback()
-                raise e
+            db.commit()
+            db.refresh(db_cliente)
+            return db_cliente
         except Exception as e:
             print(f"❌ ERROR CRÍTICO EN CREATE_CLIENTE: {e}")
             import traceback
@@ -659,25 +641,285 @@ class ClienteService:
         return db_domicilio
 
     @staticmethod
-    def delete_domicilio(db: Session, domicilio_id: UUID):
+    def delete_domicilio(db: Session, domicilio_id: UUID, cliente_id: UUID = None):
         db_domicilio = db.query(Domicilio).filter(Domicilio.id == domicilio_id).first()
         if db_domicilio:
-            # Soft Delete
+            # Soft Delete the main record
             db_domicilio.activo = False
             db.add(db_domicilio)
             db.commit()
             db.refresh(db_domicilio)
             
-            db.query(VinculoGeografico).filter(
-                VinculoGeografico.domicilio_id == domicilio_id
-            ).update({"activo": False})
+            # [VAULT SYNC] Granular Deactivation (Targeted or Global)
+            from backend.contactos.models import VinculoGeografico
+            query = db.query(VinculoGeografico).filter(VinculoGeografico.domicilio_id == domicilio_id)
+            
+            # If cliente_id is provided, only deactivate link for that client
+            if cliente_id:
+                query = query.filter(
+                    VinculoGeografico.entidad_tipo == 'CLIENTE',
+                    VinculoGeografico.entidad_id == cliente_id
+                )
+            
+            query.update({"activo": False})
             db.commit()
 
             # [GY-DOCTRINA-V14] RE-AUDIT PARENT
-            db_p = ClienteService.get_cliente(db, db_domicilio.cliente_id)
-            if db_p:
-                ClienteService._audit_sovereignty(db_p)
-                db.add(db_p)
-                db.commit()
+            target_parent_id = cliente_id or db_domicilio.cliente_id
+            if target_parent_id:
+                db_p = ClienteService.get_cliente(db, target_parent_id)
+                if db_p:
+                    ClienteService._audit_sovereignty(db_p)
+                    db.add(db_p)
+                    db.commit()
 
         return db_domicilio
+
+    @staticmethod
+    def normalize_address(calle: str = "", numero: str = "", piso: str = "", depto: str = "") -> str:
+        """
+        [V5.2 GOLD] Normalizador Semántico.
+        Trim, Lowercase, Remoción de acentos y caracteres especiales.
+        """
+        import unicodedata
+        import re
+
+        def clean(text):
+            if not text: return ""
+            # Normalizar a NFKD para separar acentos
+            text = unicodedata.normalize('NFKD', str(text))
+            # Remover caracteres que no sean ASCII (acentos)
+            text = text.encode('ASCII', 'ignore').decode('ASCII')
+            # Lowercase y Trim
+            text = text.lower().strip()
+            # Remover caracteres especiales (dejar solo letras, números y espacios)
+            text = re.sub(r'[^a-z0-9\s]', '', text)
+            # Colapsar múltiples espacios
+            text = re.sub(r'\s+', ' ', text)
+            return text
+
+        return f"{clean(calle)}|{clean(numero)}|{clean(piso)}|{clean(depto)}"
+
+    @staticmethod
+    def find_matching_domicilio(db: Session, data: dict) -> Optional[Domicilio]:
+        """
+        [V5.2 GOLD] Interceptor de Colisiones.
+        Busca si ya existe un domicilio semánticamente idéntico.
+        """
+        target_norm = ClienteService.normalize_address(
+            data.get('calle'), data.get('numero'), data.get('piso'), data.get('depto')
+        )
+        
+        # [ALGO] We fetch active domicilios and compare normalized vectors.
+        # Optimization: In a large DB, we'd store the normalized vector in a column.
+        # For now, we search by Calle/Numero and then refine.
+        potential_matches = db.query(Domicilio).filter(
+            Domicilio.is_active == True,
+            Domicilio.calle.ilike(data.get('calle', ''))
+        ).all()
+        
+        for dom in potential_matches:
+            dom_norm = ClienteService.normalize_address(dom.calle, dom.numero, dom.piso, dom.depto)
+            if dom_norm == target_norm:
+                return dom
+        return None
+
+    @staticmethod
+    def sync_fiscal(db: Session, cliente_id: UUID) -> Optional[Cliente]:
+        """
+        [V5.2 GOLD] "Igualar a Fiscal" Protocol.
+        Apunta la entrega al ID del Domicilio Fiscal y enciende el Bit 21.
+        """
+        db_cliente = ClienteService.get_cliente(db, cliente_id)
+        if not db_cliente: return None
+        
+        # [V5.2 GOLD] Using transition relationship
+        fiscal = next((d for d in db_cliente.domicilios_legacy if d.es_fiscal and d.is_active), None)
+        if not fiscal:
+            raise HTTPException(status_code=400, detail="No existe un Domicilio Fiscal activo para sincronizar.")
+        
+        # [N:M Logic] 1. Update link in domicilios_clientes
+        from backend.clientes.models import domicilios_clientes
+        from sqlalchemy import delete, insert
+        from sqlalchemy.dialects.sqlite import insert as sqlite_insert # Assuming SQLite for dev
+
+        # Reset other delivery links to Mirror
+        db.execute(
+            delete(domicilios_clientes).where(
+                domicilios_clientes.c.cliente_id == cliente_id,
+                domicilios_clientes.c.domicilio_id != fiscal.id
+            )
+        )
+        
+        # UPSERT Mirror Link (Bit 21 ON)
+        # Using a safer approach for multi-DB (try-except or manually check)
+        existing_link = db.query(domicilios_clientes).filter(
+            domicilios_clientes.c.cliente_id == cliente_id,
+            domicilios_clientes.c.domicilio_id == fiscal.id
+        ).first()
+
+        if existing_link:
+            db.execute(
+                domicilios_clientes.update().where(
+                    domicilios_clientes.c.cliente_id == cliente_id,
+                    domicilios_clientes.c.domicilio_id == fiscal.id
+                ).values(flags=2097152, alias="ESPEJO FISCAL")
+            )
+        else:
+            db.execute(
+                insert(domicilios_clientes).values(
+                    cliente_id=cliente_id,
+                    domicilio_id=fiscal.id,
+                    flags=2097152,
+                    alias="ESPEJO FISCAL"
+                )
+            )
+
+        db.commit()
+        db.refresh(db_cliente)
+        return db_cliente
+
+    @staticmethod
+    def fork_domicilio(db: Session, cliente_id: UUID, domicilio_id: UUID, new_data: dict) -> Domicilio:
+        """
+        [V5.2 GOLD] Fork Protocol.
+        Clona un domicilio espejado para convertirlo en independiente (Bit 21 OFF).
+        """
+        # 1. Create Clone
+        from backend.clientes.models import Domicilio
+        new_dom = Domicilio(**new_data)
+        new_dom.id = uuid.uuid4()
+        new_dom.is_active = True
+        db.add(new_dom)
+        db.flush()
+        
+        # 2. Update Link (Turn Bit 21 OFF)
+        from backend.clientes.models import domicilios_clientes
+        db.execute(
+            domicilios_clientes.update().where(
+                domicilios_clientes.c.cliente_id == cliente_id,
+                domicilios_clientes.c.domicilio_id == domicilio_id
+            ).values(domicilio_id=new_dom.id, flags=0, alias=new_data.get('alias', 'ENTREGA INDEPENDIENTE'))
+        )
+        db.commit()
+        return new_dom
+
+    @staticmethod
+    def cleanup_orphans(db: Session, domicilio_id: UUID):
+        """
+        [V5.2 GOLD] Gestión de Huérfanos.
+        Acción A (Con Historia): is_active = False.
+        Acción B (Sin Historia): Poda física.
+        """
+        # 1. Check if still linked
+        from backend.clientes.models import domicilios_clientes
+        link_count = db.query(domicilios_clientes).filter(domicilios_clientes.c.domicilio_id == domicilio_id).count()
+        if link_count > 0: return
+        
+        # 2. Check history (Remitos, Facturas)
+        # [ALGO] We check presence in logistic/finance tables
+        # For now, we simulate check or check 'pedidos' which is available in 'clientes' module context
+        from backend.pedidos.models import Pedido
+        from backend.clientes.models import Domicilio
+        has_history = db.query(Pedido).filter(Pedido.domicilio_entrega_id == domicilio_id).count() > 0
+        
+        dom = db.query(Domicilio).filter(Domicilio.id == domicilio_id).first()
+        if not dom: return
+
+        if has_history:
+            dom.is_active = False # Acción A: Fantasma
+            db.add(dom)
+        else:
+            db.delete(dom) # Acción B: Poda
+        db.commit()
+
+    @staticmethod
+    def get_hub_domicilios(db: Session) -> List[Domicilio]:
+        """[V5.2 GOLD] Lista domicilios con conteo de vínculos."""
+        from sqlalchemy import func
+        from backend.clientes.models import domicilios_clientes
+        
+        # [SURGICAL FIX] Force registry population inside the call
+        try:
+            from sqlalchemy.orm import configure_mappers
+            import backend.auth.models
+            import backend.maestros.models
+            import backend.logistica.models
+            import backend.productos.models
+            import backend.clientes.models
+            import backend.pedidos.models
+            import backend.remitos.models
+            import backend.agenda.models
+            import backend.contactos.models
+            import backend.proveedores.models
+            import backend.core.models
+            configure_mappers()
+        except Exception as e:
+            print(f"[WARN] configure_mappers failed (already configured or missing deps): {e}")
+
+        # Subquery to count links
+        usage_stmt = db.query(
+            domicilios_clientes.c.domicilio_id,
+            func.count(domicilios_clientes.c.cliente_id).label('usage_count')
+        ).group_by(domicilios_clientes.c.domicilio_id).subquery()
+        
+        results = db.query(Domicilio, usage_stmt.c.usage_count).outerjoin(
+            usage_stmt, Domicilio.id == usage_stmt.c.domicilio_id
+        ).filter(Domicilio.is_active == True).all()
+        
+        output = []
+        for dom, count in results:
+            dom.usage_count = count or 0  # [V5.2-FIX] Use public name for Pydantic from_attributes
+            output.append(dom)
+        return output
+
+    @staticmethod
+    def create_hub_domicilio(db: Session, data: schemas.DomicilioCreate) -> Domicilio:
+        """[V5.2 GOLD] Creación soberana en el Hub."""
+        db_dom = Domicilio(**data.model_dump())
+        if not db_dom.id:
+            db_dom.id = uuid.uuid4().hex
+        db_dom.is_active = True
+        db.add(db_dom)
+        db.commit()
+        db.refresh(db_dom)
+        db_dom.usage_count = 0
+        return db_dom
+
+    @staticmethod
+    def update_hub_domicilio(db: Session, dom_id: UUID, data: schemas.DomicilioUpdate) -> Optional[Domicilio]:
+        """[V5.2 GOLD] Actualización soberana en el Hub."""
+        db_dom = db.query(Domicilio).filter(Domicilio.id == dom_id.hex).first()
+        if not db_dom: return None
+        
+        update_data = data.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(db_dom, key, value)
+            
+        db.add(db_dom)
+        db.commit()
+        db.refresh(db_dom)
+        
+        # Recalculate usage count
+        from backend.clientes.models import domicilios_clientes
+        usage = db.query(domicilios_clientes).filter(domicilios_clientes.c.domicilio_id == dom_id.hex).count()
+        db_dom.usage_count = usage
+        return db_dom
+
+    @staticmethod
+    def delete_hub_domicilio(db: Session, dom_id: UUID) -> bool:
+        """[V5.2 GOLD] Eliminación física segura desde el Hub."""
+        from backend.clientes.models import domicilios_clientes
+        
+        # 1. Check for active links
+        usage = db.query(domicilios_clientes).filter(domicilios_clientes.c.domicilio_id == dom_id.hex).count()
+        if usage > 0:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=400, detail=f"No se puede eliminar: El domicilio tiene {usage} vínculos activos.")
+            
+        db_dom = db.query(Domicilio).filter(Domicilio.id == dom_id.hex).first()
+        if not db_dom: return False
+        
+        db.delete(db_dom)
+        db.commit()
+        return True
