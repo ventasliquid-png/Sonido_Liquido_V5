@@ -212,31 +212,7 @@ def list_hub_domicilios(db: Session = Depends(get_db)):
 @router.get("/hub/search", response_model=List[DomicilioResponse])
 def search_hub_domicilios(q: str, db: Session = Depends(get_db)):
     """[V5.2 GOLD] Buscador reactivo en el Hub."""
-    try:
-        # Initial query
-        query = db.query(Domicilio).filter(Domicilio.is_active == True)
-        
-        if q:
-            # Flexible search: Calle or Localidad or Alias
-            query = query.filter(
-                (Domicilio.calle.ilike(f"%{q}%")) |
-                (Domicilio.localidad.ilike(f"%{q}%")) |
-                (Domicilio.alias.ilike(f"%{q}%"))
-            )
-        
-        results = query.limit(50).all()
-        
-        # Hydrate usage count
-        from backend.clientes.models import domicilios_clientes
-        for dom in results:
-            dom.usage_count = db.query(domicilios_clientes).filter(domicilios_clientes.c.domicilio_id == dom.id).count()
-            
-        return results
-    except Exception as e:
-        import traceback
-        print("--- [HUB ERROR] search_hub_domicilios ---")
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+    return ClienteService.search_hub_domicilios(db, q)
 
 @router.post("/hub", response_model=DomicilioResponse, status_code=status.HTTP_201_CREATED)
 def create_hub_domicilio(domicilio: DomicilioCreate, db: Session = Depends(get_db)):
@@ -268,3 +244,19 @@ def sync_fiscal(cliente_id: UUID, db: Session = Depends(get_db)):
 def fork_domicilio(cliente_id: UUID, domicilio_id: UUID, new_data: dict, db: Session = Depends(get_db)):
     """Protocolo 'Bifurcación' (Mirror OFF)."""
     return ClienteService.fork_domicilio(db, cliente_id, domicilio_id, new_data)
+
+@router.post("/hub/{domicilio_id}/links/{cliente_id}")
+def link_hub_domicilio(domicilio_id: UUID, cliente_id: UUID, alias: str = None, flags: int = 0, db: Session = Depends(get_db)):
+    """[V5.2 GOLD] Vincular cliente a domicilio."""
+    success = ClienteService.link_hub_domicilio(db, domicilio_id, cliente_id, alias, flags)
+    if not success:
+        raise HTTPException(status_code=400, detail="El vínculo ya existe o los parámetros son inválidos.")
+    return {"status": "success"}
+
+@router.delete("/hub/{domicilio_id}/links/{cliente_id}")
+def unlink_hub_domicilio(domicilio_id: UUID, cliente_id: UUID, db: Session = Depends(get_db)):
+    """[V5.2 GOLD] Desvincular cliente de domicilio."""
+    success = ClienteService.unlink_hub_domicilio(db, domicilio_id, cliente_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Vínculo no encontrado.")
+    return {"status": "success"}

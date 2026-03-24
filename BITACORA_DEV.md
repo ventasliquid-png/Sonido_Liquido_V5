@@ -15,3 +15,12 @@
 - Hotfix: Corrección de ReferenceError en HaweView.vue.
 - Estado: NOMINAL GOLD (BitStatus 338).
 - Protocolo OMEGA: Fase de Cierre Certificada. PIN 1974.
+# 2026-03-24 00:30
+- Surgical Hub Fix (V5.2 GOLD): Escalamiento de Domicilios a Entidades Soberanas.
+- Backend Refuerzo: Adición de `is_maps_manual` y generador logístico de Google Maps.
+- Migración Quirúrgica: Inyección de columnas en `pilot_v5x.db` (SQLite).
+- Atenea Gestalt: Mimetización de HubView con estándares premium y sorting reactivo.
+- Misión B (Poblet/Gelato): Implementación de Gestor de Vínculos N:M.
+- Auditoría Halcón V5.2: Limpieza física de sesión validada.
+- Estado: NOMINAL GOLD (BitStatus 338).
+- Protocolo OMEGA: Cierre de Sesión Iniciado.

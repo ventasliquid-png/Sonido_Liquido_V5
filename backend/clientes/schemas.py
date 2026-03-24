@@ -31,6 +31,7 @@ class DomicilioBase(BaseModel):
     modalidad_envio: Optional[str] = None
     origen_logistico: Optional[str] = None
     observaciones: Optional[str] = None
+    is_maps_manual: bool = False # [V15.2 GOLD]
     
     calle_entrega: Optional[str] = None
     numero_entrega: Optional[str] = None
@@ -107,7 +108,11 @@ class DomicilioResponse(BaseModel):
     localidad_entrega: Optional[str] = None
     provincia_entrega_id: Optional[str] = None
 
-    usage_count: int = 0
+    usage_count: Optional[int] = 0
+    provincia_nombre: Optional[str] = None # [V5.2-HUB]
+    clientes_vinculados: Optional[List[str]] = [] # [V5.2-HUB]
+    vinculos_detalles: Optional[List[dict]] = []  # List of {id, razon_social}
+    is_maps_manual: bool = False # [V15.2 GOLD]
 
     class Config:
         from_attributes = True

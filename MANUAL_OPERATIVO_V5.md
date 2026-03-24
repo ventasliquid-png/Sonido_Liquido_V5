@@ -482,8 +482,14 @@ Si necesita corregir datos de un remito que ya fue emitido pero aún no ha salid
 3.  Se abrirá un modal donde podrá corregir el número, el transporte o la dirección.
 4.  **Nota**: Esta función es parcial. Actualmente no permite editar los productos ni los bultos (verde Bit 3).
 
-### 13.4 Sovereign Address Hub (V5.2.1)
-El padrón de domicilios ahora es independiente y soberano.
-*   **Siembra Inicial**: El sistema ha sido cargado con todos los domicilios históricos de los clientes.
+### 13.4 Sovereign Address Hub (V5.2 GOLD)
+El padrón de domicilios ahora es independiente y soberano, funcionando como una base de datos centralizada de logística.
+*   **Siembra Inicial**: El sistema ha sido cargado con todos los domicilios históricos.
 *   **Ubicación**: Accesible desde **Maestros > Soberano Hub**.
-*   **Visualización**: Permite ver cuántas entidades utilizan una misma dirección física, optimizando la gestión de sucursales compartidas.
+*   **Logística Maps**: 
+    - **Pins Dinámicos**: Los domicilios muestran un PIN de mapa. Si es **Cian**, el link fue verificado manualmente. Si es **Esmeralda**, fue autogenerado por el sistema.
+    - **Validar en Mapa**: Dentro del diálogo de edición, el botón de lupa permite una verificación visual inmediata antes de guardar.
+*   **Gestor de Relaciones (N:M)**: 
+    - Al hacer clic en el contador de **Vínculos**, se abre un gestor que permite "Enganchar" múltiples clientes a una misma dirección física.
+    - Ideal para sucursales compartidas o grupos empresarios (ej: Poblet y Gelato compartiendo fiscalía).
+*   **SEO Doctrine (F10)**: En cualquier formulario de domicilio, presione **F10** para guardar y cerrar instantáneamente.

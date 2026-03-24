@@ -516,8 +516,15 @@ class ClienteService:
         db_domicilio = Domicilio(
             **dom_data,
             provincia_id=prov_id,
-            cliente_id=cliente_id
+            cliente_id=cliente_id,
+            is_maps_manual=bool(domicilio_in.maps_link)
         )
+        
+        # Auto-Maps logic
+        if not db_domicilio.maps_link:
+            db_domicilio.maps_link = ClienteService._generate_maps_link(db, db_domicilio)
+            db_domicilio.is_maps_manual = False
+
         try:
             db.add(db_domicilio)
             db.commit()
@@ -599,9 +606,19 @@ class ClienteService:
              db_domicilio.transporte_habitual_nodo_id = None
              print(f"[DEBUG-TRP] Updating Transporte ID to {update_data['transporte_id']} (Clearing Nodo)")
 
+        # Auto-Maps Logic
+        if 'maps_link' in update_data:
+            db_domicilio.is_maps_manual = True
+            if not update_data['maps_link']:
+                db_domicilio.is_maps_manual = False
+        
         for key, value in update_data.items():
             setattr(db_domicilio, key, value)
             
+        if not db_domicilio.maps_link:
+            db_domicilio.maps_link = ClienteService._generate_maps_link(db, db_domicilio)
+            db_domicilio.is_maps_manual = False
+
         db.commit()
         db.refresh(db_domicilio)
         
@@ -834,10 +851,28 @@ class ClienteService:
         db.commit()
 
     @staticmethod
+    def _generate_maps_link(db: Session, dom: Domicilio) -> str:
+        """[V15.2 GOLD] Generador Automático de Google Maps."""
+        import urllib.parse
+        prov_name = ""
+        if dom.provincia:
+            prov_name = dom.provincia.nombre
+        elif dom.provincia_id:
+            from backend.maestros.models import Provincia
+            p = db.query(Provincia).filter(Provincia.id == dom.provincia_id).first()
+            if p: prov_name = p.nombre
+        
+        query_parts = [dom.calle, dom.numero, dom.localidad, prov_name]
+        query = " ".join([p for p in query_parts if p])
+        encoded_query = urllib.parse.quote_plus(query)
+        return f"https://www.google.com/maps/search/?api=1&query={encoded_query}"
+
+    @staticmethod
     def get_hub_domicilios(db: Session) -> List[Domicilio]:
-        """[V5.2 GOLD] Lista domicilios con conteo de vínculos."""
+        """[V5.2 GOLD] Lista domicilios con conteo de vínculos, provincias y clientes."""
         from sqlalchemy import func
-        from backend.clientes.models import domicilios_clientes
+        from backend.clientes.models import domicilios_clientes, Cliente
+        from sqlalchemy.orm import joinedload
         
         # [SURGICAL FIX] Force registry population inside the call
         try:
@@ -863,23 +898,43 @@ class ClienteService:
             func.count(domicilios_clientes.c.cliente_id).label('usage_count')
         ).group_by(domicilios_clientes.c.domicilio_id).subquery()
         
-        results = db.query(Domicilio, usage_stmt.c.usage_count).outerjoin(
+        results = db.query(Domicilio, usage_stmt.c.usage_count).options(
+            joinedload(Domicilio.provincia)
+        ).outerjoin(
             usage_stmt, Domicilio.id == usage_stmt.c.domicilio_id
         ).filter(Domicilio.is_active == True).all()
         
         output = []
         for dom, count in results:
-            dom.usage_count = count or 0  # [V5.2-FIX] Use public name for Pydantic from_attributes
+            dom.usage_count = count or 0
+            dom.provincia_nombre = dom.provincia.nombre if dom.provincia else (dom.provincia_id or '-')
+            
+            # Fetch linked client names and IDs
+            linked = db.query(Cliente.id, Cliente.razon_social).join(
+                domicilios_clientes, Cliente.id == domicilios_clientes.c.cliente_id
+            ).filter(domicilios_clientes.c.domicilio_id == dom.id).all()
+            dom.clientes_vinculados = [c[1] for c in linked]
+            dom.vinculos_detalles = [{"id": str(c[0]), "nombre": c[1]} for c in linked]
+            
             output.append(dom)
         return output
 
     @staticmethod
     def create_hub_domicilio(db: Session, data: schemas.DomicilioCreate) -> Domicilio:
-        """[V5.2 GOLD] Creación soberana en el Hub."""
-        db_dom = Domicilio(**data.model_dump())
+        """[V5.2 GOLD] Creación soberana en el Hub con auto-maps."""
+        dom_dict = data.model_dump()
+        is_manual = bool(dom_dict.get('maps_link'))
+        
+        db_dom = Domicilio(**dom_dict)
         if not db_dom.id:
-            db_dom.id = uuid.uuid4().hex
+            db_dom.id = uuid.uuid4()
         db_dom.is_active = True
+        db_dom.is_maps_manual = is_manual
+        
+        if not db_dom.maps_link:
+            db_dom.maps_link = ClienteService._generate_maps_link(db, db_dom)
+            db_dom.is_maps_manual = False
+            
         db.add(db_dom)
         db.commit()
         db.refresh(db_dom)
@@ -888,13 +943,26 @@ class ClienteService:
 
     @staticmethod
     def update_hub_domicilio(db: Session, dom_id: UUID, data: schemas.DomicilioUpdate) -> Optional[Domicilio]:
-        """[V5.2 GOLD] Actualización soberana en el Hub."""
-        db_dom = db.query(Domicilio).filter(Domicilio.id == dom_id.hex).first()
+        """[V5.2 GOLD] Actualización soberana en el Hub con auto-maps."""
+        db_dom = db.query(Domicilio).filter(Domicilio.id == dom_id).first()
         if not db_dom: return None
         
         update_data = data.model_dump(exclude_unset=True)
+        
+        # Check if maps_link is provided manually
+        if 'maps_link' in update_data:
+            db_dom.is_maps_manual = True
+            if not update_data['maps_link']:
+                # If cleared, we'll re-generate later
+                db_dom.is_maps_manual = False
+        
         for key, value in update_data.items():
             setattr(db_dom, key, value)
+            
+        # If maps_link is still empty, auto-generate
+        if not db_dom.maps_link:
+            db_dom.maps_link = ClienteService._generate_maps_link(db, db_dom)
+            db_dom.is_maps_manual = False
             
         db.add(db_dom)
         db.commit()
@@ -902,7 +970,7 @@ class ClienteService:
         
         # Recalculate usage count
         from backend.clientes.models import domicilios_clientes
-        usage = db.query(domicilios_clientes).filter(domicilios_clientes.c.domicilio_id == dom_id.hex).count()
+        usage = db.query(domicilios_clientes).filter(domicilios_clientes.c.domicilio_id == dom_id).count()
         db_dom.usage_count = usage
         return db_dom
 
@@ -923,3 +991,84 @@ class ClienteService:
         db.delete(db_dom)
         db.commit()
         return True
+    @staticmethod
+    def search_hub_domicilios(db: Session, q: str) -> List[Domicilio]:
+        """[V5.2 GOLD] Buscador con hidratación completa."""
+        from sqlalchemy.orm import joinedload
+        from backend.clientes.models import domicilios_clientes, Cliente
+        
+        query = db.query(Domicilio).filter(Domicilio.is_active == True).options(joinedload(Domicilio.provincia))
+        
+        if q:
+            query = query.filter(
+                (Domicilio.calle.ilike(f"%{q}%")) |
+                (Domicilio.localidad.ilike(f"%{q}%")) |
+                (Domicilio.alias.ilike(f"%{q}%"))
+            )
+            
+        results = query.limit(50).all()
+        
+        output = []
+        for dom in results:
+            # Hydrate counts and names
+            dom.usage_count = db.query(domicilios_clientes).filter(domicilios_clientes.c.domicilio_id == dom.id).count()
+            dom.provincia_nombre = dom.provincia.nombre if dom.provincia else (dom.provincia_id or '-')
+            
+            linked = db.query(Cliente.id, Cliente.razon_social).join(
+                domicilios_clientes, Cliente.id == domicilios_clientes.c.cliente_id
+            ).filter(domicilios_clientes.c.domicilio_id == dom.id).all()
+            dom.clientes_vinculados = [c[1] for c in linked]
+            dom.vinculos_detalles = [{"id": str(c[0]), "nombre": c[1]} for c in linked]
+            
+            output.append(dom)
+        return output
+
+    @staticmethod
+    def link_hub_domicilio(db: Session, dom_id: UUID, cliente_id: UUID, alias: str = None, flags: int = 0) -> bool:
+        """[V5.2 GOLD] Vincula un cliente a un domicilio existente."""
+        from backend.clientes.models import domicilios_clientes
+        from sqlalchemy import insert
+        
+        # Check if link already exists
+        # Handle UUID hex conversion
+        cid = cliente_id.hex if hasattr(cliente_id, 'hex') else str(cliente_id).replace('-', '')
+        did = dom_id.hex if hasattr(dom_id, 'hex') else str(dom_id).replace('-', '')
+
+        existing = db.execute(
+            domicilios_clientes.select().where(
+                domicilios_clientes.c.cliente_id == cid,
+                domicilios_clientes.c.domicilio_id == did
+            )
+        ).fetchone()
+        
+        if existing:
+            return False
+            
+        db.execute(
+            insert(domicilios_clientes).values(
+                cliente_id=cid,
+                domicilio_id=did,
+                alias=alias or "VÍNCULO HUB",
+                flags=flags
+            )
+        )
+        db.commit()
+        return True
+
+    @staticmethod
+    def unlink_hub_domicilio(db: Session, dom_id: UUID, cliente_id: UUID) -> bool:
+        """[V5.2 GOLD] Corta el vínculo entre un cliente y un domicilio."""
+        from backend.clientes.models import domicilios_clientes
+        from sqlalchemy import delete
+        
+        cid = cliente_id.hex if hasattr(cliente_id, 'hex') else str(cliente_id).replace('-', '')
+        did = dom_id.hex if hasattr(dom_id, 'hex') else str(dom_id).replace('-', '')
+
+        res = db.execute(
+            delete(domicilios_clientes).where(
+                domicilios_clientes.c.cliente_id == cid,
+                domicilios_clientes.c.domicilio_id == did
+            )
+        )
+        db.commit()
+        return res.rowcount > 0

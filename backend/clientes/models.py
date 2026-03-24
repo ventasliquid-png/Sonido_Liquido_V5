@@ -215,6 +215,8 @@ class Domicilio(Base):
     # Bit 0: RAMPA | Bit 1: DOCK_CARGA | Bit 2: ASCENSOR_CARGA
     flags_infra = Column(BigInteger, default=0, nullable=False)
     
+    is_maps_manual = Column(Boolean, default=False, nullable=False) # [V15.2 GOLD] True if user edited/verified it
+    
     observaciones = Column(Text, nullable=True) # [V7.1] Notas generales del domicilio
     
     # [V7.2] Dirección de Entrega (Separada de Fiscal)

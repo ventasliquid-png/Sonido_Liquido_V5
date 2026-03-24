@@ -197,9 +197,12 @@ Implementado el 20-03-2026 para permitir correcciones en remitos ya generados (e
     *   Falta edición de ítems (cuerpo) post-generación.
     *   SISTEMA EN ESTADO CRÍTICO (BIT 3) por deuda de integridad en logística.
 
-## 22. SOBERANÍA DEL ADDRESS HUB (V5.2.1)
+## 22. SOBERANÍA DEL ADDRESS HUB (V5.2 GOLD)
 Implementada el 23-03-2026 para consolidar la independencia de los domicilios.
 *   **Seeding Protocol**: Uso de `seed_hub.py` para migración masiva.
 *   **Deduplicación Semántica**: El sistema agrupa direcciones idénticas bajo un único ID del Hub, incrementando el `usage_count`.
 *   **Vínculos (Bit 21)**: Los domicilios migrados se marcan con el Bit 21 en `domicilios_clientes` para indicar que son espejos de datos legacy.
-*   **Registry Unification**: Se prohíbe la importación de `Base` sin el prefijo `backend.`. Todas las tablas deben converger en el registro de `backend.core.database` para evitar errores de mapeo circular.
+*   **Evolución GOLD**:
+    - **is_maps_manual (Boolean)**: Nuevo campo en `Domicilio` para trackear si el link fue verificado por un humano o autogenerado.
+    - **Auto-Maps Engine**: `ClienteService` autogenera links de búsqueda si el campo está vacío.
+    - **N:M Relationship Manager**: Implementación de una interfaz dedicada para vincular/desvincular múltiples entidades a una misma fila física sin duplicidad de datos.

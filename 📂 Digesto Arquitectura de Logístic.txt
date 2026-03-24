@@ -1,0 +1,21 @@
+📂 Digesto: Arquitectura de Logística y Domicilios (V5.2)
+🕵️ 1. La Paradoja de Soldati (CTC - Roca 3450)
+Problema: Una misma dirección física (Av. Roca 3450) alberga múltiples destinos independientes (Naves y Depósitos de transportes).
+
+Solución Soberana: No se unifican. Se crean registros gemelos en el Hub.
+
+El Alias es la Clave: La calle es la misma, pero la identidad reside en el campo Alias/Referencia (ej: CTC - Nave A - Dep. 12). Esto permite que cada transporte o cliente tenga su propio "punto de descarga" único en el mapa.
+
+🔱 2. Geografía vs. Procedimiento (Chocolate vs. Portón)
+Para decidir dónde guardar un dato, aplicamos la Regla del Baqueano:
+
+Domicilio (Persistente): Se guarda todo lo que identifica el lugar físico. "Portón azul", "Hangar 3", "Lado B". Si el flete cambia, la ubicación sigue siendo la misma.
+
+Logística/Remito (Dinámico): Se guarda el procedimiento para concretar la entrega. "Llevar chocolate al guardia", "Llamar 15 min antes", "Llevar zorrita porque el ascensor no anda". Son instrucciones para el evento de entrega, no para el lugar.
+
+🛡️ 3. La Ruptura del Espejo (Bit 21)
+Doctrina: El Bit 21 (Mirror) mantiene sincronizados el dato Fiscal y el de Entrega.
+
+Ruptura: En el momento en que se agrega una Nota Logística o un Alias específico a una dirección de entrega, el "Espejo" se rompe.
+
+Acción: El sistema debe Bifurcar (Fork) el registro: apaga el Bit 21 y crea un clon de entrega independiente para que el dato fiscal permanezca puro (AFIP) y el logístico sea operativo.
