@@ -144,6 +144,7 @@
                         <SmartSelect
                             v-model="editForm.cliente_id"
                             :options="clientesOptions"
+                            :initial-label="editingRemito?.razon_social"
                             placeholder="Buscar cliente..."
                             @update:modelValue="onClientChanged"
                         />
@@ -227,14 +228,18 @@
                 </div>
 
                 <!-- SECTION: LEGAL & AFIP -->
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div class="space-y-1">
+                <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div class="space-y-1 col-span-2">
                         <label class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Número</label>
-                        <input v-model="editForm.numero_legal" class="w-full bg-slate-900 border border-blue-900/40 rounded-xl px-4 py-3 text-sm text-white" />
+                        <input v-model="editForm.numero_legal" readonly class="w-full bg-slate-900/50 border border-blue-900/40 rounded-xl px-4 py-3 text-xs text-slate-300 font-mono" />
                     </div>
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">CAE</label>
                         <input v-model="editForm.cae" class="w-full bg-slate-900 border border-blue-900/40 rounded-xl px-4 py-3 text-sm text-white" />
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Vto CAE</label>
+                        <input v-model="editForm.vto_cae" type="date" class="w-full bg-slate-900 border border-blue-900/40 rounded-xl px-4 py-3 text-sm text-white" />
                     </div>
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Bultos</label>
@@ -355,12 +360,20 @@ const openEditModal = async (remito) => {
     editForm.valor_declarado = remito.valor_declarado || 0;
     
     // Map items
-    editForm.items = (remito.items || []).map(i => ({
-        id: i.id,
-        pedido_item_id: i.pedido_item_id,
-        cantidad: i.cantidad,
-        descripcion: i.pedido_item?.producto?.nombre || i.pedido_item?.nota || 'Ítem'
-    }));
+    editForm.items = (remito.items || []).map(it => {
+        // [V5 FIX] Priorizar descripcion_display que viene del backend auditado
+        let desc = it.descripcion_display;
+        if (!desc || desc === 'Ítem') {
+            desc = it.pedido_item?.producto?.nombre || it.pedido_item?.nota || 'Ítem';
+        }
+        
+        return {
+            id: it.id,
+            pedido_item_id: it.pedido_item_id,
+            cantidad: it.cantidad,
+            descripcion: desc
+        };
+    });
 
     if (editForm.cliente_id) {
         await onClientChanged(editForm.cliente_id);

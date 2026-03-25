@@ -8,13 +8,24 @@ from pydantic import BaseModel
 class RemitoItemBase(BaseModel):
     pedido_item_id: int
     cantidad: float
+    descripcion_display: Optional[str] = "Ítem"
 
 class RemitoItemCreate(RemitoItemBase):
     pass
 
+class PedidoItemMinimal(BaseModel):
+    id: int
+    nota: Optional[str] = ""
+    producto_nombre: Optional[str] = None # Virtual field or via relationship
+
 class RemitoItemResponse(RemitoItemBase):
     id: int
     remito_id: UUID
+    pedido_item_id: int
+    cantidad: float
+    # Nested info for the UI (Populated from models.py properties)
+    descripcion_display: Optional[str] = "Ítem"
+    
     class Config:
         from_attributes = True
 
@@ -30,6 +41,7 @@ class RemitoBase(BaseModel):
     vto_cae: Optional[datetime] = None
     bultos: Optional[int] = 1
     valor_declarado: Optional[float] = 0.0
+    razon_social: Optional[str] = None
 
 class RemitoCreate(RemitoBase):
     pedido_id: int
@@ -68,6 +80,9 @@ class RemitoResponse(RemitoBase):
     fecha_creacion: datetime
     items: List[RemitoItemResponse] = []
     
+    # [V5] Extra info from models.py properties
+    razon_social: Optional[str] = None
+    
     class Config:
         from_attributes = True
 
@@ -95,6 +110,8 @@ class IngestionPayload(BaseModel):
     cliente: IngestionCliente
     factura: IngestionFactura
     items: List[IngestionItem]
+    transporte_id: Optional[UUID] = None # Permite elegir transporte en la UI de ingesta
+    domicilio_id: Optional[UUID] = None # Permite elegir sucursal en la UI de ingesta
     solo_actualizar_cliente: bool = False
 
 # --- MANUAL REMITO (V15.1.4) ---

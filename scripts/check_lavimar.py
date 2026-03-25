@@ -12,7 +12,7 @@ conn = sqlite3.connect(db_path)
 cursor = conn.cursor()
 
 try:
-    cursor.execute("SELECT flags_estado FROM clientes WHERE id = ? OR uuid = ?", (uuid, uuid))
+    cursor.execute("SELECT flags_estado FROM clientes WHERE id = ?", (uuid,))
     row = cursor.fetchone()
     if row:
         print(f"RESULT:{row[0]}")

@@ -62,34 +62,38 @@ if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 # --- [FIN REFACTOR V10.10] ---
 
-# Imports Core
+# Imports Core y Mapeo Universal (Crítico para SQLAlchemy)
 from backend.core import config
 from backend.core.database import engine, Base
 
+# Precargar TODOS los modelos para evitar InvalidRequestError en mappers circulares
+import backend.auth.models as auth_models 
+import backend.maestros.models as maestros_models
+import backend.logistica.models as logistica_models
+import backend.contactos.models as contactos_models 
+import backend.clientes.models as clientes_models 
+import backend.productos.models as productos_models
+import backend.pedidos.models as pedidos_models 
+import backend.proveedores.models as proveedores_models
+import backend.agenda.models as agenda_models
+import backend.remitos.models as remitos_models 
+import backend.core.models as core_models 
+
 # Imports de Routers
-from backend.auth import models as auth_models 
-from backend.maestros import models as maestros_models
-from backend.logistica import models as logistica_models
-from backend.productos import models as productos_models
-from backend.clientes import models as clientes_models 
-from backend.pedidos import models as pedidos_models 
-from backend.proveedores import models as proveedores_models
-from backend.agenda import models as agenda_models
-from backend.contactos import models as contactos_models 
-from backend.remitos import models as remitos_models 
-from backend.core import models as core_models # [V14.8] Trash Support
 from backend.auth.router import router as auth_router
 from backend.maestros.router import router as maestros_router
 from backend.clientes.router import router as clientes_router
 from backend.logistica.router import router as logistica_router
 from backend.agenda.router import router as agenda_router
-from backend.agenda.google_mock_router import router as google_mock_router # [GY-V14] Mock Sync
+from backend.agenda.google_mock_router import router as google_mock_router 
 from backend.productos.router import router as productos_router
 from backend.proveedores.router import router as proveedores_router
 from backend.data_intel.router import router as data_intel_router
-from backend.pedidos.router import router as pedidos_router # [GY-FIX] Restored missing import
+from backend.pedidos.router import router as pedidos_router 
 from backend.cantera.router import router as cantera_router
-from backend.remitos.router import router as remitos_router # [GY-V7] PDF Ingestion
+from backend.remitos.router import router as remitos_router 
+from backend.contactos.router import router as contactos_router
+from backend.stats.router import router as stats_router
 
 # --- 2. Importaciones de LangGraph (El Cerebro) ---
 from langgraph.graph import StateGraph, END
@@ -129,25 +133,15 @@ async def lifespan(app: FastAPI):
     # --- [INICIO PARCHE V10.1 (ORM)] ---
     try:
         from sqlalchemy.orm import configure_mappers
-        print("--- [V10.12]: Pre-cargando Modelos (Completo)... ---")
-        import backend.auth.models
-        import backend.maestros.models
-        import backend.logistica.models
-        import backend.productos.models
-        import backend.clientes.models
-        import backend.pedidos.models
-        import backend.remitos.models
-        import backend.agenda.models
-        import backend.contactos.models
-        import backend.proveedores.models
-        import backend.core.models
-        print("--- [V10.12]: Configurando mappers de SQLAlchemy... ---")
+        print("--- [V10.12]: Configurando mappers de SQLAlchemy (Pre-cargados)... ---")
         configure_mappers() # Force relationship resolution
         print("--- [V10.12]: Sincronizando modelos ORM (SQLAlchemy)... ---")
         Base.metadata.create_all(bind=engine)
         print("--- [V10.12]: Tablas ORM sincronizadas. ---")
     except Exception as e:
         print(f"[X] ERROR DE ARRANQUE V10: Falla al sincronizar tablas ORM: {e}")
+        import traceback
+        traceback.print_exc()
     # --- [FIN PARCHE V10.1] ---
 
     # --- [PROTOCOLO DE SIEMBRA AUTOMÁTICA] ---
@@ -387,6 +381,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/", tags=["Estado"])
+async def get_root_status():
+    return {
+        "estado_servidor": "OK",
+        "arquitectura": "Atenea V10.12 (DEBUG-FASE-4-FINAL)",
+    }
+
 # --- 3. Endpoints y Routers ---
 
 # Inclusiones (Ordenadas)
@@ -423,11 +424,13 @@ if os.path.exists(static_dir):
 async def serve_spa(full_path: str):
     # Ignorar rutas de API (ya manejadas arriba por include_router)
     # Ignorar rutas de API (ya manejadas arriba por include_router)
-    api_prefixes = ["api", "docs", "openapi", "clientes", "pedidos", "productos", "maestros", "logistica", "agenda", "proveedores", "auth", "bypass", "contactos", "stats"]
-    if any(full_path.startswith(prefix) for prefix in api_prefixes):
-         # Dejar que FastAPI maneje 404 para API real si no matcheó antes
+    api_prefixes = ["api", "docs", "openapi", "clientes", "pedidos", "productos", "maestros", "logistica", "agenda", "proveedores", "auth", "bypass", "contactos", "stats", "remitos"]
+    # Check if the path (normalized) starts with any API prefix
+    clean_path = full_path.strip("/")
+    if any(clean_path.startswith(prefix) for prefix in api_prefixes):
          from fastapi import HTTPException
-         raise HTTPException(status_code=404, detail="API Endpoint not found")
+         # Si llegamos aquí es porque ningún router de arriba capturó la petición
+         raise HTTPException(status_code=404, detail=f"API Endpoint '{full_path}' not found")
 
     # Si existe archivo físico (ej: favicon.ico), servirlo
     posible_archivo = os.path.join(static_dir, full_path)
@@ -489,19 +492,6 @@ def check_rubro_dependencies_bypass(rubro_id: int, db: Session = Depends(get_db)
         raise HTTPException(status_code=500, detail=str(e))
 # ----------------------------------------------
 
-@app.get("/", tags=["Estado"])
-async def get_root_status():
-    if not vector_store or not llm:
-        return {"error": "El servidor no pudo inicializar los clientes de IA. Revisa el log de arranque y el firewall."}
-        
-    return {
-        "estado_servidor": "OK",
-        "arquitectura": "Atenea V10.12 (Modular Estable)", # V10.12
-        "conexion_db_url": "OK" if CONNECTION_STRING else "FALLIDA",
-        "conexion_google_creds": "DESCONECTADO_POR_MURO",
-        "memoria_pgvector": "CONECTADA" if vector_store else "FALLIDA_O_AISLADA",
-        "cerebro_gemini": "DESCONECTADO_POR_MURO"
-    }
 
 @app.post("/atenea/invoke", tags=["Atenea VV"])
 async def invoke_atenea_v5(input: QueryInput):
@@ -528,4 +518,4 @@ if __name__ == "__main__":
     import uvicorn
     # [GY-LAN-FIX] Binding to 0.0.0.0 to allow LAN access and bypass localhost IPv4/v6 issues
     # [GY-STABILITY] Disable reload only in production entry point to prevent double-loading
-    uvicorn.run(app, host="0.0.0.0", port=8080, reload=False)
+    uvicorn.run(app, host="0.0.0.0", port=8080, reload=True)

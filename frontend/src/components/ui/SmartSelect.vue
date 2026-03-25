@@ -34,6 +34,10 @@ const props = defineProps({
     canteraType: {
         type: String, // 'clientes' or 'productos'
         default: null
+    },
+    initialLabel: {
+        type: String,
+        default: ''
     }
 });
 
@@ -48,14 +52,15 @@ const containerRef = ref(null);
 
 // Initialize search query based on modelValue
 watch(() => props.modelValue, (newVal) => {
-    // Only update search query if we have a value selected
-    // If newVal is null, we do NOT clear the query, allowing the user to type to search
-    // We only clear if explicitly needed (e.g. form reset), but here we prioritize preserving user input
     if (newVal) {
         const selected = props.options.find(o => o.id === newVal);
         if (selected) {
             searchQuery.value = selected.nombre || selected.razon_social || selected.descripcion;
+        } else if (props.initialLabel) {
+            searchQuery.value = props.initialLabel;
         }
+    } else {
+        searchQuery.value = '';
     }
 }, { immediate: true });
 

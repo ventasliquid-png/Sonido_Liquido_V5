@@ -117,8 +117,8 @@ class Cliente(Base):
     
     # [V5 UNIVERSAL VAULT]
     vinculos_geograficos = relationship(
-        "backend.contactos.models.VinculoGeografico",
-        primaryjoin="and_(foreign(backend.contactos.models.VinculoGeografico.entidad_id)==Cliente.id, backend.contactos.models.VinculoGeografico.entidad_tipo=='CLIENTE')",
+        "VinculoGeografico",
+        primaryjoin="and_(foreign(VinculoGeografico.entidad_id)==Cliente.id, VinculoGeografico.entidad_tipo=='CLIENTE')",
         viewonly=True,
     )
 

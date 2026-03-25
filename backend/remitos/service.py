@@ -8,8 +8,8 @@ from backend.clientes.models import Cliente, Domicilio
 from backend.productos.models import Producto
 from backend.pedidos.models import Pedido, PedidoItem
 from backend.logistica.models import EmpresaTransporte
-# [GY-FIX] Import Vinculo to avoid Registry Error during potential implicit loads
-from backend.contactos.models import Vinculo 
+from backend.maestros.models import CondicionIva
+from backend.contactos.models import Vinculo, VinculoGeografico
 
 class RemitosService:
     
@@ -30,7 +30,9 @@ class RemitosService:
         original_invoice = payload.factura.numero or ""
         numero_legal = ""
         if "-" in original_invoice:
-            inv_body = original_invoice.split("-")[-1]
+            # [V5.4 Robustness] Use full invoice number instead of just suffix to avoid collisions
+            # Example: 0001-12345678 -> 0016-0001-12345678
+            inv_body = original_invoice.replace("-", "-") # Keep all parts
             numero_legal = f"0016-{inv_body}"
         
         if numero_legal:
@@ -124,27 +126,35 @@ class RemitosService:
              return None # Retornamos None (el router debe manejar esto)
 
         # 2. RESOLVE LOGISTICS via Universal Vault (Vanguard V5)
-        # Search for PRINCIPAL_ENTREGA (Bit 1 = 2) or FISCAL (Bit 0 = 1)
-        from backend.contactos.models import VinculoGeografico
-        
-        vinculo = db.query(VinculoGeografico).filter(
-            VinculoGeografico.entidad_tipo == 'CLIENTE',
-            VinculoGeografico.entidad_id == cliente.id,
-            VinculoGeografico.activo == True
-        ).order_by(
-            (VinculoGeografico.flags_relacion.op('&')(2)).desc(), # Prioritize Principal (Bit 1)
-            (VinculoGeografico.flags_relacion.op('&')(1)).desc()  # Then Fiscal (Bit 0)
-        ).first()
-        
-        domicilio = vinculo.domicilio if vinculo else None
+        # --- [ADDRESS RESOLUTION] ---
+        domicilio = None
+        if payload.domicilio_id:
+            domicilio = db.query(Domicilio).get(payload.domicilio_id)
+            
+        if not domicilio:
+            # Try to resolve via Vinculo (Principal/Fiscal)
+            from backend.contactos.models import VinculoGeografico
+            vinculo = db.query(VinculoGeografico).filter(
+                VinculoGeografico.entidad_tipo == 'CLIENTE',
+                VinculoGeografico.entidad_id == cliente.id,
+                VinculoGeografico.activo == True
+            ).order_by(
+                (VinculoGeografico.flags_relacion.op('&')(2)).desc(), # Prioritize Principal (Bit 1)
+                (VinculoGeografico.flags_relacion.op('&')(1)).desc()  # Then Fiscal (Bit 0)
+            ).first()
+            
+            domicilio = vinculo.domicilio if vinculo else None
         
         if not domicilio:
             # Deep Fallback (Legacy check)
             domicilio = db.query(Domicilio).filter(Domicilio.cliente_id == cliente.id).first()
             
         # Default Transport
-        transporte = db.query(EmpresaTransporte).first()
-        transporte_id = transporte.id if transporte else None
+        # --- [LOGISTICS RESOLUTION] ---
+        transporte_id = payload.transporte_id
+        if not transporte_id:
+            transporte = db.query(EmpresaTransporte).first()
+            transporte_id = transporte.id if transporte else None
 
         # 3. CREATE PEDIDO
         nuevo_pedido = Pedido(

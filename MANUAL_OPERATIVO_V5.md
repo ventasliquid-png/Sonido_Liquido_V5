@@ -479,8 +479,12 @@ A partir de Marzo 2026, las sesiones de desarrollo y carga crítica se rigen por
 Si necesita corregir datos de un remito que ya fue emitido pero aún no ha salido del depósito (estado **BORRADOR**):
 1.  Vaya a **LOGÍSTICA > Remitos**.
 2.  Busque el remito en la lista y haga **doble clic** sobre el renglón.
-3.  Se abrirá un modal donde podrá corregir el número, el transporte o la dirección.
-4.  **Nota**: Esta función es parcial. Actualmente no permite editar los productos ni los bultos (verde Bit 3).
+3.  Se abrirá el modal de **Soberanía Total** donde podrá corregir:
+    - **Número Legal**: Para corregir errores de tipeado.
+    - **CAE / Vto CAE**: Datos fiscales.
+    - **Bultos y Valor Declarado**: Datos logísticos críticos.
+    - **Transporte y Dirección**: Destino del envío.
+4.  **Confirmación**: Presione "Actualizar Remito" para persistir los cambios. El sistema actualizará el PDF automáticamente en la próxima descarga.
 
 ### 13.4 Sovereign Address Hub (V5.2 GOLD)
 El padrón de domicilios ahora es independiente y soberano, funcionando como una base de datos centralizada de logística.

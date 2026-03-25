@@ -206,3 +206,9 @@ Implementada el 23-03-2026 para consolidar la independencia de los domicilios.
     - **is_maps_manual (Boolean)**: Nuevo campo en `Domicilio` para trackear si el link fue verificado por un humano o autogenerado.
     - **Auto-Maps Engine**: `ClienteService` autogenera links de búsqueda si el campo está vacío.
     - **N:M Relationship Manager**: Implementación de una interfaz dedicada para vincular/desvincular múltiples entidades a una misma fila física sin duplicidad de datos.
+
+## 23. SOBERANÍA TOTAL DE REMITOS (V15.2.2)
+Implementada el 25-03-2026 para otorgar control absoluto al operador sobre la ingesta y edición.
+* **Modelo Editable E2E**: El flujo de ingesta (`process_pdf_ingestion` -> `create_from_ingestion`) ahora permite el override total de datos extraídos (Razón Social, CUIT, Ítems) antes de la persistencia.
+* **Blindaje de Mapeo SQLAlchemy**: Se corrigió el error `InvalidRequestError` causado por rutas de módulos circulares en las relaciones. Se estandarizó el uso de nombres de clase simples (`"Pedido"`, `"Cliente"`) en lugar de rutas completas (`backend.pedidos.models...`).
+* **Propiedades Dinámicas**: Se implementaron `@property` en el modelo para `razon_social` y `descripcion_display`, permitiendo visibilidad de datos sin necesidad de almacenamiento redundante en la tabla de remitos.

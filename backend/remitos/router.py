@@ -1,5 +1,5 @@
-
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+print("--- [LOAD] Remitos Router (Soberanía Total V5.1) cargado con éxito ---")
 from fastapi.responses import FileResponse
 from datetime import datetime
 from sqlalchemy.orm import Session
@@ -17,16 +17,28 @@ router = APIRouter(
 @router.get("/", response_model=List[schemas.RemitoResponse])
 def list_remitos(db: Session = Depends(get_db)):
     """
-    Lista todos los remitos del sistema.
+    Lista todos los remitos del sistema con carga ansiosa y mapeo manual de visualización.
     """
-    return db.query(models.Remito).order_by(models.Remito.fecha_creacion.desc()).all()
+    from sqlalchemy.orm import joinedload
+    from backend.pedidos.models import Pedido, PedidoItem
+    
+    remitos = db.query(models.Remito).order_by(models.Remito.fecha_creacion.desc()).all()
+
+    return remitos
 
 @router.get("/{remito_id}", response_model=schemas.RemitoResponse)
 def get_remito(remito_id: str, db: Session = Depends(get_db)):
     """
     Obtiene el detalle de un remito específico.
     """
-    remito = db.query(models.Remito).filter(models.Remito.id == remito_id).first()
+    from sqlalchemy.orm import joinedload
+    from backend.pedidos.models import Pedido, PedidoItem
+    
+    remito = db.query(models.Remito).options(
+        joinedload(models.Remito.pedido).joinedload(Pedido.cliente),
+        joinedload(models.Remito.items).joinedload(models.RemitoItem.pedido_item).joinedload(PedidoItem.producto)
+    ).filter(models.Remito.id == remito_id).first()
+    
     if not remito:
         raise HTTPException(status_code=404, detail="Remito no encontrado")
     return remito

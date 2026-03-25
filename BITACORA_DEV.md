@@ -24,6 +24,13 @@
 - Auditoría Halcón V5.2: Limpieza física de sesión validada.
 - Estado: NOMINAL GOLD (BitStatus 338).
 - Protocolo OMEGA: Cierre de Sesión Iniciado.
+# 2026-03-25 19:30
+- Misión Soberanía Total de Remitos: Edición editable en ingesta y modal de logística 100% operativa.
+- Refactor estructural: Resolución de colisión de mapeadores SQLAlchemy (Fix Error 500 Global).
+- UI Premium: Ajuste de ancho y readonly en campo de numeración legal de remitos.
+- Datos de Visualización: Implementación de @property para razon_social y descripcion_display con carga lazy/eager calibrada.
+- Estado: NOMINAL GOLD (BitStatus 338).
+- Protocolo OMEGA: Cierre de Sesión Ejecutado. PIN 1974.
 # 2026-03-25 00:15
 - Purga de Transacciones (V5.3.6): Eliminación física de pedidos para restauración a Estado Virgen.
 - Preservación Logística: Exclusión explícita de remitos en la purga sistémica.

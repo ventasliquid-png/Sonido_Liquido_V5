@@ -73,39 +73,88 @@
 
                 <!-- CONTENT -->
                 <div v-else class="flex flex-col h-full">
-                    <!-- Invoice Header Data -->
-                    <div class="p-6 bg-slate-800/80 border-b border-slate-700">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                 <span class="text-xs uppercase font-bold text-blue-400 tracking-wider">Factura Detectada</span>
-                                 <h2 class="text-2xl font-bold text-white">{{ parsedData.factura?.numero || 'S/N' }}</h2>
+                    <!-- Invoice & Client Header (EDITABLE) -->
+                    <div class="p-6 bg-slate-800/80 border-b border-slate-700 space-y-6">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1 mr-4">
+                                 <label class="text-[10px] uppercase font-bold text-blue-400 tracking-wider block mb-1">Nro. Factura / Remito</label>
+                                 <input 
+                                    v-model="parsedData.factura.numero" 
+                                    class="text-2xl font-bold text-white bg-transparent border-none focus:ring-0 p-0 w-full"
+                                    placeholder="0000-00000000"
+                                 />
+                                 <p class="text-[10px] text-blue-500/50 font-mono italic mt-1">Soberanía Total: Edite si el OCR falló.</p>
                             </div>
                             <div class="text-right">
-                                <div class="inline-flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/20">
+                                <div class="inline-flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/20 text-xs font-bold uppercase">
                                     <i class="fas fa-check-circle"></i> Validado
                                 </div>
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="bg-slate-900 p-3 rounded-lg border border-slate-700">
-                                <label class="text-[10px] uppercase text-slate-500 font-bold block mb-1">Cliente</label>
-                                <p class="font-bold text-white">{{ parsedData.cliente?.razon_social || 'Desconocido' }}</p>
-                                <p class="text-xs text-slate-400">{{ parsedData.cliente?.cuit }}</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- CLIENT BOX -->
+                            <div class="bg-slate-900 p-4 rounded-xl border border-blue-500/20 shadow-inner group transition-all hover:border-blue-500/40">
+                                <label class="text-[10px] uppercase text-blue-500 font-black block mb-2 tracking-widest">Cliente Destinatario</label>
+                                <input 
+                                    v-model="parsedData.cliente.razon_social" 
+                                    class="font-bold text-white bg-transparent border-none focus:ring-0 w-full px-0 mb-1"
+                                    placeholder="Razón Social..."
+                                />
+                                <div class="flex items-center gap-2 text-xs text-slate-400">
+                                    <span class="font-mono text-blue-400/50">CUIT:</span>
+                                    <input 
+                                        v-model="parsedData.cliente.cuit" 
+                                        class="bg-transparent border-none focus:ring-0 p-0 text-slate-300 w-full font-mono"
+                                        placeholder="00-00000000-0"
+                                    />
+                                </div>
                             </div>
-                            <div class="bg-slate-900 p-3 rounded-lg border border-slate-700">
-                                <label class="text-[10px] uppercase text-slate-500 font-bold block mb-1">Datos Fiscales</label>
-                                <div class="flex justify-between">
+
+                            <!-- FISCAL DATA BOX -->
+                            <div class="bg-slate-900 p-4 rounded-xl border border-slate-700/50">
+                                <label class="text-[10px] uppercase text-slate-500 font-bold block mb-2">Comprobante AFIP</label>
+                                <div class="grid grid-cols-2 gap-4">
                                     <div>
-                                        <p class="text-xs text-slate-400">CAE</p>
-                                        <p class="font-mono font-bold text-white">{{ parsedData.factura?.cae || '-' }}</p>
+                                        <p class="text-[9px] uppercase text-slate-600 font-bold mb-1">CAE</p>
+                                        <input 
+                                            v-model="parsedData.factura.cae" 
+                                            class="font-mono font-bold text-white bg-transparent border-none focus:ring-0 p-0 w-full text-sm"
+                                            placeholder="CAE..."
+                                        />
                                     </div>
                                     <div class="text-right">
-                                        <p class="text-xs text-slate-400">Vencimiento</p>
-                                        <p class="font-mono font-bold text-white">{{ parsedData.factura?.vto_cae || '-' }}</p>
+                                        <p class="text-[9px] uppercase text-slate-600 font-bold mb-1">Vencimiento</p>
+                                        <input 
+                                            v-model="parsedData.factura.vto_cae" 
+                                            class="font-mono font-bold text-white bg-transparent border-none focus:ring-0 p-0 w-full text-sm text-right"
+                                            placeholder="DD/MM/YYYY"
+                                        />
                                     </div>
                                  </div>
                             </div>
+                        </div>
+
+                        <!-- LOGISTICS BOX -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <div class="space-y-1">
+                                <label class="text-[10px] uppercase text-blue-500 font-black block mb-1 tracking-widest">Empresa Logística</label>
+                                <select 
+                                    v-model="selectedTransportId" 
+                                    class="w-full bg-slate-950 border border-blue-900/30 rounded-lg px-3 py-2 text-xs text-white focus:border-blue-500 outline-none transition-all appearance-none"
+                                >
+                                    <option v-for="t in maestrosStore.transportes" :key="t.id" :value="t.id">{{ t.nombre }}</option>
+                                </select>
+                             </div>
+                             <div class="space-y-1" v-if="clientAddresses.length > 0">
+                                <label class="text-[10px] uppercase text-blue-500 font-black block mb-1 tracking-widest">Sede de Entrega</label>
+                                <select 
+                                    v-model="selectedAddressId" 
+                                    class="w-full bg-slate-950 border border-blue-900/30 rounded-lg px-3 py-2 text-xs text-white focus:border-blue-500 outline-none transition-all appearance-none"
+                                >
+                                    <option v-for="d in clientAddresses" :key="d.id" :value="d.id">{{ d.alias || (d.calle + ' ' + d.numero) }}</option>
+                                </select>
+                             </div>
                         </div>
                     </div>
 
@@ -207,10 +256,16 @@ import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import remitosService from '@/services/remitos';
 import { useNotificationStore } from '@/stores/notification';
+import { useMaestrosStore } from '@/stores/maestros';
+import { useClientesStore } from '@/stores/clientes';
 import ClientCanvas from '../Hawe/ClientCanvas.vue';
+import SmartSelect from '@/components/ui/SmartSelect.vue';
+import api from '@/services/api';
 
 const router = useRouter();
 const notification = useNotificationStore();
+const maestrosStore = useMaestrosStore();
+const clientesStore = useClientesStore();
 
 const isDragging = ref(false);
 const loading = ref(false);
@@ -220,6 +275,9 @@ const fileInput = ref(null);
 const showPreview = ref(false);
 
 const showClientAbm = ref(false);
+const clientAddresses = ref([]);
+const selectedTransportId = ref(null);
+const selectedAddressId = ref(null);
 
 // SE ELIMINARON MOCKS DE VISTA PREVIA
 
@@ -260,6 +318,11 @@ const processFile = async (file) => {
         if (res.data && res.data.success) {
             parsedData.value = res.data.data;
             notification.add('Factura analizada con éxito', 'success');
+            
+            // Auto-load client details if matched in DB
+            if (parsedData.value.cliente?.id) {
+                await loadClientDetails(parsedData.value.cliente.id);
+            }
         } else {
             const errorMsg = res.data?.error || 'El servidor no pudo interpretar el archivo.';
             throw new Error(errorMsg);
@@ -318,7 +381,7 @@ const closeClientAbm = () => {
     showClientAbm.value = false;
 };
 
-const onClientSaved = (savedClient) => {
+const onClientSaved = async (savedClient) => {
     showClientAbm.value = false;
     notification.add('Cliente consistido. Procediendo a generar remito...', 'success');
     
@@ -328,11 +391,26 @@ const onClientSaved = (savedClient) => {
         parsedData.value.cliente.flags_estado = savedClient.flags_estado;
         parsedData.value.cliente.razon_social = savedClient.razon_social;
         parsedData.value.cliente.id = savedClient.id; // Guarda el ID real devuelto por la DB
+        
+        await loadClientDetails(savedClient.id);
     }
     
     // Auto-resume formulation  
     confirmIngesta();
 };
+
+const loadClientDetails = async (clientId) => {
+    try {
+        const res = await api.get(`/clientes/${clientId}`);
+        clientAddresses.value = res.data.domicilios || [];
+        // Predeterminado: primer domicilio
+        if (clientAddresses.value.length > 0) {
+            selectedAddressId.value = clientAddresses.value[0].id;
+        }
+    } catch (e) {
+        console.error("[V5] No se pudieron cargar domicilios del cliente", e);
+    }
+}
 
 const confirmIngesta = async () => {
     if (!parsedData.value) return;
@@ -365,8 +443,18 @@ const confirmIngesta = async () => {
                 cantidad: parseFloat(item.cantidad),
                 precio_unitario: 0.0, // Assuming 0 for Remito logic
                 codigo: item.codigo || null
-            }))
+            })),
+            transporte_id: selectedTransportId.value
         };
+
+        // Si hay domicilio seleccionado, el backend intentará asignarlo
+        // Nota: El schema IngestionPayload no tiene campo 'domicilio_id' explícito aún, 
+        // pero podemos enviarlo como parte del cliente o ampliar el schema.
+        // Por ahora, el service.py usa el predeterminado del cliente. 
+        // Si queremos forzarlo, deberíamos enviarlo.
+        if (selectedAddressId.value) {
+            payload.domicilio_id = selectedAddressId.value;
+        }
 
         const res = await remitosService.confirmIngesta(payload);
         
@@ -387,6 +475,12 @@ const confirmIngesta = async () => {
         loading.value = false;
     }
 };
+import { onMounted } from 'vue';
+onMounted(() => {
+    if (maestrosStore.transportes.length === 0) {
+        maestrosStore.fetchTransportes();
+    }
+});
 </script>
 
 <style scoped>

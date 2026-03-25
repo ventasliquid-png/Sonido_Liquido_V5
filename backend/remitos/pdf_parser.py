@@ -156,30 +156,35 @@ def parse_invoice_data(text: str) -> dict:
         else: data["cliente"]["condicion_iva"] = iva_val
 
     # Domicilio (Busqueda en bloques ruidosos)
-    # Strategy: Find "Domicilio" block, and take the next significant block that looks like an address
-    domicilio = None
+    # Strategy: Find "Domicilio" block, and take the next significant blocks that look like an address
+    domicilio_parts = []
+    found_label = False
     for idx, block in enumerate(blocks):
-        if "DOMICILIO" in block.upper() or "DIRECCIÓN" in block.upper():
+        upper_block = block.upper()
+        if "DOMICILIO" in upper_block or "DIRECCIÓN" in upper_block:
+            found_label = True
             # Check if value is in same block
             val = re.sub(r'(?:Domicilio|Dirección)[^:]*[:\s|]*', '', block, flags=re.I).strip()
-            if len(val) > 8 and not any(x in val.upper() for x in ["COMERCIAL", "FISCAL"]):
-                domicilio = val
-            
-            # If still nothing, or we only got "Comercial", look at next block
-            if not domicilio or any(x in domicilio.upper() for x in ["COMERCIAL", "FISCAL"]):
-                if idx < len(blocks) - 1:
-                    next_val = blocks[idx+1].strip()
-                    if len(next_val) > 8 and not any(x in next_val.upper() for x in ["CONDICIÓN", "LOCALIDAD", "CUIT", "SONIDO LIQUIDO"]):
-                         domicilio = next_val
-            
-            # Avoid issuer address
-            if domicilio and "ROSETI" in domicilio.upper():
-                domicilio = None
-                continue # Keep searching for client address
-            
-            if domicilio: break
+            if len(val) > 5 and not any(x in val.upper() for x in ["COMERCIAL", "FISCAL"]):
+                domicilio_parts.append(val)
+            continue
+        
+        if found_label:
+            # If we already found the label, the next 1-2 blocks are usually the address
+            if len(domicilio_parts) < 3: # Max 3 blocks for address
+                if len(block) > 2 and not any(x in block.upper() for x in ["CONDICIÓN", "CUIT", "SONIDO LIQUIDO", "IVA", "EMISIÓN"]):
+                    domicilio_parts.append(block)
+                else:
+                    if domicilio_parts: break # End of address
+            else:
+                break
 
-    data["cliente"]["domicilio"] = domicilio.strip() if domicilio else "S/D"
+    # Filter out issuer address if it leaked
+    final_domicilio = " ".join(domicilio_parts).strip()
+    if "ROSETI" in final_domicilio.upper():
+        final_domicilio = "S/D"
+
+    data["cliente"]["domicilio"] = final_domicilio if final_domicilio else "S/D"
 
     # 3. ITEMS (Anchor Strategy V2)
     # Pattern looks for: Description, Price/Tax (ignored here but used as anchor), Quantity, Unit

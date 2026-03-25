@@ -42,8 +42,8 @@ class Pedido(Base):
     # Relaciones
     cliente = relationship("Cliente", back_populates="pedidos")
     items = relationship("PedidoItem", back_populates="pedido", cascade="all, delete-orphan")
-    domicilio_entrega = relationship("backend.clientes.models.Domicilio")
-    transporte = relationship("backend.logistica.models.EmpresaTransporte")
+    domicilio_entrega = relationship("Domicilio")
+    transporte = relationship("EmpresaTransporte")
 
 class PedidoItem(Base):
     __tablename__ = "pedidos_items"

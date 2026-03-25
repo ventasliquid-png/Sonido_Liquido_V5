@@ -50,11 +50,15 @@ class Remito(Base):
     valor_declarado = Column(Float, default=0.0)
 
     # Relaciones
-    pedido = relationship("backend.pedidos.models.Pedido", backref="remitos")
-    domicilio_entrega = relationship("backend.clientes.models.Domicilio")
-    transporte = relationship("backend.logistica.models.EmpresaTransporte")
+    pedido = relationship("Pedido", backref="remitos")
+    domicilio_entrega = relationship("Domicilio")
+    transporte = relationship("EmpresaTransporte")
     
     items = relationship("RemitoItem", back_populates="remito", cascade="all, delete-orphan")
+
+    @property
+    def razon_social(self):
+        return self.pedido.cliente.razon_social if self.pedido and self.pedido.cliente else "Desconocido"
 
     def __repr__(self):
         return f"<Remito(id={self.id}, estado='{self.estado}')>"
@@ -78,7 +82,12 @@ class RemitoItem(Base):
     
     # Relaciones
     remito = relationship("Remito", back_populates="items")
-    pedido_item = relationship("backend.pedidos.models.PedidoItem")
+    pedido_item = relationship("PedidoItem")
     
+    @property
+    def descripcion_display(self):
+        if not self.pedido_item: return "Ítem"
+        return self.pedido_item.producto.nombre if self.pedido_item.producto else (self.pedido_item.nota or "Ítem")
+
     def __repr__(self):
         return f"<RemitoItem(cant={self.cantidad})>"

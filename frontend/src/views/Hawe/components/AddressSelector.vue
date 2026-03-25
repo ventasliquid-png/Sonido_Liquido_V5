@@ -11,6 +11,17 @@
           class="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all placeholder-white/10"
         />
       </div>
+      
+      <!-- ADD NEW ADDRESS BUTTON (Prominent) -->
+      <button 
+        @click="$emit('add')" 
+        class="h-9 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white transition-all flex items-center gap-2 shadow-lg shadow-cyan-900/40 group active:scale-95"
+        title="Agregar Nueva Dirección de Entrega"
+      >
+        <i class="fas fa-plus text-xs group-hover:rotate-90 transition-transform duration-300"></i>
+        <span class="text-[10px] font-black uppercase tracking-widest">Sede</span>
+      </button>
+
       <!-- Toggle Ver Inactivos -->
       <button 
         @click="showInactive = !showInactive"
@@ -92,13 +103,6 @@
     <div v-if="secondaryDeliveries.length > 0" class="border-t border-white/5 pt-2">
       <h4 class="text-[9px] font-bold text-white/30 uppercase tracking-widest mb-2 flex items-center justify-between px-1">
         <span>Otras Direcciones ({{ filteredSecondary.length }})</span>
-        <button 
-          @click="$emit('add')" 
-          class="text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20"
-        >
-          <i class="fas fa-plus text-[8px]"></i>
-          <span class="text-[8px]">Nuevo</span>
-        </button>
       </h4>
       
       <div class="space-y-1.5 max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 pr-1">
@@ -191,6 +195,19 @@
     
     <div v-else-if="searchQuery" class="text-center py-4 text-white/20 italic text-[10px]">
         No se encontraron domicilios que coincidan con "{{ searchQuery }}"
+    </div>
+    
+    <!-- EMPTY STATE FOR SECONDARY (Call to Action) -->
+    <div v-else class="pt-4 mt-2 border-t border-white/5">
+        <button 
+          @click="$emit('add')"
+          class="w-full py-4 border-2 border-dashed border-cyan-500/20 rounded-xl text-cyan-500/40 hover:text-cyan-400 hover:border-cyan-500/50 hover:bg-cyan-500/5 transition-all flex flex-col items-center justify-center gap-2 group"
+        >
+            <div class="h-10 w-10 rounded-full border border-dashed border-cyan-500/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <i class="fas fa-plus text-lg"></i>
+            </div>
+            <span class="text-[10px] font-black uppercase tracking-widest">Agregar otra sede de entrega</span>
+        </button>
     </div>
   </div>
 </template>
