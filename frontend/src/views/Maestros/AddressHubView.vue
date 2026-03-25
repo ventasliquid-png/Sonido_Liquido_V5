@@ -4,10 +4,22 @@
     <main class="flex-1 flex flex-col min-w-0">
       <!-- Header -->
       <header class="h-16 flex items-center justify-between px-6 border-b border-cyan-900/20 bg-[#0a1f2e]/50 backdrop-blur-sm shrink-0">
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-6">
           <h1 class="font-outfit text-xl font-bold bg-gradient-to-r from-white to-cyan-400 bg-clip-text text-transparent">
-            Address Hub Soberano (V5.2 GOLD)
+            Address Hub Soberano (V5.2.3.1 GOLD)
           </h1>
+          <!-- Filter Segments -->
+          <div class="flex bg-black/40 rounded-xl p-1 border border-white/5">
+            <button 
+              v-for="f in ['TODOS', 'ACTIVOS', 'INACTIVOS']" 
+              :key="f"
+              @click="activeFilter = f"
+              :class="activeFilter === f ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-900/40' : 'text-white/40 hover:text-white/60'"
+              class="px-4 py-1.5 rounded-lg text-[10px] font-black tracking-widest transition-all uppercase"
+            >
+              {{ f }}
+            </button>
+          </div>
         </div>
         <div class="flex gap-3">
           <button 
@@ -70,10 +82,10 @@
 
         <div v-else class="space-y-2 mt-2">
           <div 
-            v-for="addr in sortedAddresses" 
+            v-for="(addr, index) in sortedAddresses" 
             :key="addr.id"
             @click="editAddress(addr)"
-            class="grid grid-cols-12 gap-4 items-center px-6 py-4 rounded-2xl border border-white/5 bg-[#0a1f2e]/40 hover:bg-cyan-500/5 hover:border-cyan-500/30 cursor-pointer transition-all group relative overflow-hidden"
+            class="grid grid-cols-12 gap-4 items-center px-6 py-4 rounded-2xl border border-white/5 bg-[#0a1f2e]/40 hover:bg-cyan-500/5 hover:border-cyan-500/30 cursor-pointer transition-all group relative"
           >
             <!-- Background Glow on Hover -->
             <div class="absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-cyan-500/0 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
@@ -113,24 +125,58 @@
               </button>
             </div>
 
-            <!-- Vínculos (N:M) -->
-            <div class="col-span-2 flex items-center justify-center">
+            <!-- Vínculos (N:M) with Popover -->
+            <div class="col-span-2 flex items-center justify-center relative">
                <button 
+                 @mouseenter="showPopover(addr, $event)"
+                 @mouseleave="hidePopover"
                  @click.stop="openVinculosManager(addr)" 
                  class="px-4 py-1.5 rounded-full bg-cyan-600/10 border border-cyan-500/20 text-cyan-400 text-[10px] font-black uppercase tracking-widest hover:bg-cyan-600 hover:text-white transition-all transform active:scale-95 flex items-center gap-2"
                >
                  <span>{{ addr.usage_count }}</span>
                  <span>Vínculos</span>
                </button>
+
+               <!-- Intelligence Popover (Dynamic Positioning) -->
+               <div 
+                 v-if="hoveredAddrId === addr.id"
+                 class="absolute left-1/2 -translate-x-1/2 w-64 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl z-[100] p-4 backdrop-blur-xl animate-in fade-in duration-200"
+                 :class="index === 0 ? 'top-full mt-2 slide-in-from-top-2' : 'bottom-full mb-2 slide-in-from-bottom-2'"
+               >
+                 <label class="text-[9px] font-black uppercase text-cyan-500/50 block mb-2 tracking-widest">Entidades Vinculadas</label>
+                 <div class="space-y-2">
+                    <div v-for="v in addr.vinculos_detalles" :key="v.id" class="flex items-center justify-between text-[10px]">
+                       <span class="text-white font-bold truncate pr-2">{{ v.nombre }}</span>
+                       <div class="flex items-center gap-1 shrink-0">
+                          <span class="px-1 py-0.5 rounded bg-white/5 text-white/40 border border-white/5">{{ v.rol_display || 'V' }}</span>
+                          <i v-if="v.mirror_active" class="fas fa-link text-amber-500 text-[8px]" title="Sincronizado (Mirror)"></i>
+                       </div>
+                    </div>
+                    <div v-if="!addr.vinculos_detalles?.length" class="text-white/20 text-[10px] italic">Sin vínculos activos</div>
+                 </div>
+               </div>
             </div>
 
-            <!-- Acciones -->
-            <div class="col-span-2 flex justify-end gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
-               <button @click.stop="editAddress(addr)" class="h-9 w-9 flex items-center justify-center hover:bg-cyan-500/20 rounded-xl text-cyan-500 transition-colors">
+            <!-- Acciones (Switch de Vida) -->
+            <div class="col-span-2 flex justify-end items-center gap-4">
+               <div class="flex items-center gap-3 pr-2">
+                 <span class="text-[9px] font-black uppercase tracking-tighter" :class="(addr.bit_identidad & 1) ? 'text-emerald-500' : 'text-red-500'">
+                   {{ (addr.bit_identidad & 1) ? 'Activo' : 'Inactivo' }}
+                 </span>
+                 <button 
+                   @click.stop="toggleActivation(addr)"
+                   class="w-10 h-5 rounded-full relative transition-all duration-300 overflow-hidden border border-white/10"
+                   :class="(addr.bit_identidad & 1) ? 'bg-emerald-600/40' : 'bg-red-900/40'"
+                 >
+                   <div 
+                     class="absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all duration-300 shadow-lg"
+                     :class="(addr.bit_identidad & 1) ? 'left-[22px]' : 'left-0.5'"
+                   ></div>
+                 </button>
+               </div>
+               
+               <button @click.stop="editAddress(addr)" class="h-9 w-9 flex items-center justify-center hover:bg-cyan-500/20 rounded-xl text-cyan-500 transition-colors opacity-40 group-hover:opacity-100">
                   <i class="fas fa-pencil-alt text-xs"></i>
-               </button>
-               <button @click.stop="confirmDelete(addr)" class="h-9 w-9 flex items-center justify-center hover:bg-red-500/20 rounded-xl text-red-500 transition-colors">
-                  <i class="fas fa-trash-alt text-xs"></i>
                </button>
             </div>
           </div>
@@ -176,6 +222,8 @@ const selectedAddress = ref(null);
 // Sorting
 const sortBy = ref('calle');
 const sortOrder = ref('asc');
+const activeFilter = ref('ACTIVOS');
+const hoveredAddrId = ref(null);
 
 const fetchAddresses = async () => {
   loading.value = true;
@@ -202,7 +250,15 @@ const handleSearch = async () => {
 };
 
 const sortedAddresses = computed(() => {
-  return [...addresses.value].sort((a, b) => {
+  let filtered = [...addresses.value];
+  
+  if (activeFilter.value === 'ACTIVOS') {
+    filtered = filtered.filter(a => (a.bit_identidad & 1));
+  } else if (activeFilter.value === 'INACTIVOS') {
+    filtered = filtered.filter(a => !(a.bit_identidad & 1));
+  }
+
+  return filtered.sort((a, b) => {
     let valA = a[sortBy.value];
     let valB = b[sortBy.value];
     
@@ -258,18 +314,26 @@ const handleSave = async (formData) => {
     }
 };
 
-const confirmDelete = async (addr) => {
-    const msg = addr.usage_count > 0 
-        ? `ATENCIÓN: Este domicilio tiene ${addr.usage_count} vínculos activos. NO se recomienda borrarlo si está en uso. ¿Desea intentar la eliminación física?`
-        : `¿Realmente desea eliminar permanentemente el domicilio en ${addr.calle}?`;
+const toggleActivation = async (addr) => {
+    const isCurrentlyActive = (addr.bit_identidad & 1);
+    const hasHistory = (addr.bit_identidad & 2);
+    
+    let msg = isCurrentlyActive 
+        ? `¿Desea desactivar el domicilio en ${addr.calle}?`
+        : `¿Desea reactivar el domicilio en ${addr.calle}?`;
+        
+    if (isCurrentlyActive && hasHistory) {
+      msg = `ATENCIÓN: Este domicilio tiene historial logístico. Se ocultará pero no se eliminará físicamente. ¿Continuar?`;
+    }
         
     if (confirm(msg)) {
         try {
-            await api.delete(`/clientes/hub/${addr.id}`);
+            const newBits = isCurrentlyActive ? (addr.bit_identidad & ~1) : (addr.bit_identidad | 1);
+            await api.put(`/clientes/hub/${addr.id}`, { bit_identidad: newBits });
             fetchAddresses();
         } catch (err) {
-            console.error("Delete error:", err);
-            alert(err.response?.data?.detail || "Error al eliminar el domicilio");
+            console.error("Toggle error:", err);
+            alert("Error al cambiar estado del domicilio");
         }
     }
 };
@@ -283,6 +347,14 @@ const openMaps = (addr) => {
 const openVinculosManager = (addr) => {
     selectedAddress.value = addr;
     showVinculosManager.value = true;
+};
+
+const showPopover = (addr) => {
+    hoveredAddrId.value = addr.id;
+};
+
+const hidePopover = () => {
+    hoveredAddrId.value = null;
 };
 
 onMounted(fetchAddresses);
@@ -300,5 +372,14 @@ onMounted(fetchAddresses);
 .list-enter-from, .list-leave-to {
   opacity: 0;
   transform: translateY(10px);
+}
+
+.animate-popover-in {
+  animation: popover-in 0.2s cubic-bezier(0, 0, 0.2, 1);
+}
+
+@keyframes popover-in {
+  from { opacity: 0; transform: translate(-50%, 10px) scale(0.95); }
+  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
 }
 </style>

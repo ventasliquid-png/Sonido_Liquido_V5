@@ -39,6 +39,7 @@ class ClientFlags:
 class DomicilioFlags:
     """
     [DOCTRINA V14] GENOMA MASTER - INDEPENDENCIA GEOGRÁFICA
+    (Legacy field mappings, kept for compatibility)
     """
     ACTIVO = 1
     CONFLICTO = 2
@@ -51,6 +52,35 @@ class DomicilioFlags:
     VERDE_MANUAL = 25 # 16+8+1
     ORO_TOTAL = 29    # 16+8+4+1
     AMARILLO = 23    # 16+4+2+1 (Conflicto)
+
+class DomicilioIdentity:
+    """
+    [V5.2.3.1 GOLD] SOBERANÍA GEOGRÁFICA (bit_identidad)
+    64-bit mask for hardware-level identity classification.
+    """
+    ACTIVO = 1 << 0              # 1
+    HISTORIAL = 1 << 1           # 2 - Registro con historia (Protección de borrado)
+    FISCAL = 1 << 2              # 4 - Domicilio legal
+    PROVEEDOR = 1 << 3           # 8
+    TRANSPORTE = 1 << 4          # 16 - Terminal/Depósito de fletes
+    PARTICULAR = 1 << 5          # 32
+    HUB = 1 << 6                 # 64 - Auto-Set: Se activa si vínculos > 1
+    PROPIO = 1 << 7              # 128 - Punto de Sonido Líquido S.R.L.
+    RESTRICCIONES = 1 << 8       # 256 - Notas de acceso (zorrita, horarios)
+    MAPS_VERIFIED = 1 << 9       # 512 - Validado manualmente
+    RECEPTORIA = 1 << 10         # 1024 - Punto de retiro de terceros
+    ZONA_DIFICIL = 1 << 11       # 2048 - Alerta de logística/seguridad
+    SOBERANIA_GOLD = 1 << 12     # 4096 - Registro auditado y normalizado (Bit 13)
+
+class DomicilioRelationFlags:
+    """
+    [V5.2.3.1 GOLD] N:M Bridge Flags (domicilios_clientes.flags)
+    Classification of use for a specific relationship.
+    """
+    FISCAL = 1 << 0              # 1 - Este vínculo es de carácter fiscal
+    ENTREGA = 2                  # Bit 1 (Value 2): Este vínculo es para entrega logística
+    PREDETERMINADO = 1 << 2      # 4 - Es la opción por defecto para este cliente
+    MIRROR = 1 << 21             # 2097152 - Espejo sincronizado (Bit 21)
 
 class SystemFlags:
     """

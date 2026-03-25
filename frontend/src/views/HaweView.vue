@@ -415,11 +415,11 @@ const clientes = computed(() => clienteStore.clientes)
 const segmentos = ref([])
 const selectedId = ref(null)
 const selectedCliente = ref(null)
-const selectedSegmento = ref(null)
-const searchQuery = ref('')
 const filterStatus = ref(localStorage.getItem('hawe_filter_pref') || 'active') // Persisted
 const sortBy = ref(localStorage.getItem('hawe_sort_pref') || 'usage')
-const viewMode = ref('grid')
+const viewMode = ref(localStorage.getItem('hawe_view_mode_pref') || 'grid')
+const selectedSegmento = ref(localStorage.getItem('hawe_segmento_pref') ? Number(localStorage.getItem('hawe_segmento_pref')) : null)
+const searchQuery = ref(localStorage.getItem('hawe_search_pref') || '')
 const selectedIds = ref([]) // IDs for bulk actions
 const showSortMenu = ref(false)
 const showCommandPalette = ref(false)
@@ -500,6 +500,18 @@ const importFromCantera = async (item) => {
 
 watch(sortBy, (newVal) => {
     localStorage.setItem('hawe_sort_pref', newVal)
+})
+
+watch(viewMode, (newVal) => {
+    localStorage.setItem('hawe_view_mode_pref', newVal)
+})
+
+watch(searchQuery, (newVal) => {
+    localStorage.setItem('hawe_search_pref', newVal)
+})
+
+watch(selectedSegmento, (newVal) => {
+    localStorage.setItem('hawe_segmento_pref', newVal || '')
 })
 
 watch(filterStatus, (newVal) => {

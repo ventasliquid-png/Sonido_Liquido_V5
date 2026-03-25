@@ -233,6 +233,7 @@ class ClienteService:
         has_lista = db_cliente.lista_precios_id is not None
         has_segmento = db_cliente.segmento_id is not None
         has_fiscal = any(d.es_fiscal and d.activo for d in db_cliente.domicilios)
+        has_entrega = any(d.es_entrega and d.activo for d in db_cliente.domicilios)
         
         # Identidad
         is_rosa = (db_cliente.flags_estado & 15) in [9, 11]
@@ -243,12 +244,13 @@ class ClienteService:
             is_cf = True
 
         # --- REGLA 1: POWER_PINK (Bit 19) ---
-        # Requisito: Nivel 9/11 + (Lista, Segmento, Domicilio) O CF/Genérico
+        # Requisito: Nivel 9/11 + (Lista, Segmento) O CF/Genérico
+        # Nota: Los domicilios son opcionales para informales (Retiro por Local)
         if is_rosa:
-            if (has_lista and has_segmento and has_fiscal) or is_generic or is_cf:
+            if (has_lista and has_segmento) or is_generic or is_cf:
                 db_cliente.flags_estado |= 524288 # Medalla Rosa
             else:
-                db_cliente.flags_estado &= ~524288 # Pierde medalla si retrocede en pilares
+                db_cliente.flags_estado &= ~524288 # Pierde medalla si falta lista/segmento
         elif is_generic or is_cf:
             # CF/Genéricos siempre tienen soberanía base (Rosa)
             db_cliente.flags_estado |= 524288
@@ -583,6 +585,35 @@ class ClienteService:
         if 'zona_id' in update_data:
             update_data.pop('zona_id')
 
+        # [V5.2.3 GOLD] BIFURCATION LOGIC (Mirror Break)
+        # If Bit 21 (Mirror) is active for this client and notes are modified,
+        # we must clone the address and link the child independently.
+        from backend.clientes.models import domicilios_clientes
+        current_link = db.execute(
+            domicilios_clientes.select().where(
+                domicilios_clientes.c.cliente_id == db_domicilio.cliente_id,
+                domicilios_clientes.c.domicilio_id == db_domicilio.id
+            )
+        ).fetchone()
+
+        # [V5.2.3.1 GOLD] Mirror Break Strategy (Bit 21)
+        is_mirror = current_link and (current_link.flags & 2097152) # Bit 21
+        has_note_change = 'notas_logistica' in update_data or 'observaciones' in update_data
+        
+        if is_mirror and has_note_change:
+            # Fork mandatory: Create a copy for this specific client
+            print(f"[GOLD] BIFURCACIÓN DETECTADA: SOBERANÍA REQUERIDA PARA {db_domicilio.id}")
+            # If the user is editing from a view that only allows "Entrega" update, preserve balance
+            forked_data = update_data.copy()
+            # Inherit missing core fields
+            for col in ['calle', 'numero', 'piso', 'depto', 'localidad', 'provincia_id', 'alias', 'bit_identidad', 'flags_infra']:
+                if col not in forked_data:
+                    forked_data[col] = getattr(db_domicilio, col)
+            
+            # Reset Mirror Bit on the new child relation
+            new_dom = ClienteService.fork_domicilio(db, db_domicilio.cliente_id, db_domicilio.id, forked_data)
+            return new_dom
+
         # Enforce Single Fiscal Domicile Logic
         if update_data.get('es_fiscal'):
             db.query(Domicilio).filter(
@@ -902,19 +933,43 @@ class ClienteService:
             joinedload(Domicilio.provincia)
         ).outerjoin(
             usage_stmt, Domicilio.id == usage_stmt.c.domicilio_id
-        ).filter(Domicilio.is_active == True).all()
+        ).all()
         
         output = []
         for dom, count in results:
             dom.usage_count = count or 0
             dom.provincia_nombre = dom.provincia.nombre if dom.provincia else (dom.provincia_id or '-')
             
-            # Fetch linked client names and IDs
-            linked = db.query(Cliente.id, Cliente.razon_social).join(
+            # Fetch linked client names, IDs, Role and Mirror status
+            # [V5.2.3 GOLD] Hydrate with DomicilioRelationFlags
+            linked = db.query(
+                Cliente.id, 
+                Cliente.razon_social,
+                domicilios_clientes.c.flags
+            ).join(
                 domicilios_clientes, Cliente.id == domicilios_clientes.c.cliente_id
             ).filter(domicilios_clientes.c.domicilio_id == dom.id).all()
+            
             dom.clientes_vinculados = [c[1] for c in linked]
-            dom.vinculos_detalles = [{"id": str(c[0]), "nombre": c[1]} for c in linked]
+            
+            details = []
+            for c in linked:
+                flags = c[2] or 0
+                rels = []
+                if flags & 1: rels.append("Fiscal")
+                if flags & 2: rels.append("Entrega")
+                
+                details.append({
+                    "id": str(c[0]), 
+                    "nombre": c[1],
+                    "rol_display": "/".join(rels) if rels else "Vínculo Hub",
+                    "mirror_active": bool(flags & 2097152)
+                })
+            dom.vinculos_detalles = details
+            
+            # [GOLD] Auto-identity logic: COLLECT but don't commit here
+            # We skip auto-audit during LIST to ensure stability and speed
+            # Auditoría needs to be a separate background task or explicit call
             
             output.append(dom)
         return output
@@ -959,6 +1014,16 @@ class ClienteService:
         for key, value in update_data.items():
             setattr(db_dom, key, value)
             
+        # [V5.2.3.1 GOLD] Synchronize bit_identidad[0] with is_active column
+        if 'bit_identidad' in update_data:
+            db_dom.is_active = bool(update_data['bit_identidad'] & 1)
+        # Conversely, if is_active provided
+        if 'is_active' in update_data:
+            if update_data['is_active']:
+                db_dom.bit_identidad |= 1
+            else:
+                db_dom.bit_identidad &= ~1
+            
         # If maps_link is still empty, auto-generate
         if not db_dom.maps_link:
             db_dom.maps_link = ClienteService._generate_maps_link(db, db_dom)
@@ -979,13 +1044,13 @@ class ClienteService:
         """[V5.2 GOLD] Eliminación física segura desde el Hub."""
         from backend.clientes.models import domicilios_clientes
         
-        # 1. Check for active links
-        usage = db.query(domicilios_clientes).filter(domicilios_clientes.c.domicilio_id == dom_id.hex).count()
+        # 1. Check for active links (Universal UUID/Hex check)
+        usage = db.query(domicilios_clientes).filter(domicilios_clientes.c.domicilio_id == dom_id).count()
         if usage > 0:
             from fastapi import HTTPException
-            raise HTTPException(status_code=400, detail=f"No se puede eliminar: El domicilio tiene {usage} vínculos activos.")
+            raise HTTPException(status_code=400, detail=f"Soberanía: No se puede eliminar un domicilio con vínculos ({usage}).")
             
-        db_dom = db.query(Domicilio).filter(Domicilio.id == dom_id.hex).first()
+        db_dom = db.query(Domicilio).filter(Domicilio.id == dom_id).first()
         if not db_dom: return False
         
         db.delete(db_dom)
@@ -1014,11 +1079,31 @@ class ClienteService:
             dom.usage_count = db.query(domicilios_clientes).filter(domicilios_clientes.c.domicilio_id == dom.id).count()
             dom.provincia_nombre = dom.provincia.nombre if dom.provincia else (dom.provincia_id or '-')
             
-            linked = db.query(Cliente.id, Cliente.razon_social).join(
+            # [V5.2.3 GOLD] Full hydration for Search consistency
+            linked = db.query(
+                Cliente.id, 
+                Cliente.razon_social,
+                domicilios_clientes.c.flags
+            ).join(
                 domicilios_clientes, Cliente.id == domicilios_clientes.c.cliente_id
             ).filter(domicilios_clientes.c.domicilio_id == dom.id).all()
+            
             dom.clientes_vinculados = [c[1] for c in linked]
-            dom.vinculos_detalles = [{"id": str(c[0]), "nombre": c[1]} for c in linked]
+            
+            details = []
+            for c in linked:
+                flags = c[2] or 0
+                rels = []
+                if flags & 1: rels.append("Fiscal")
+                if flags & 2: rels.append("Entrega")
+                
+                details.append({
+                    "id": str(c[0]), 
+                    "nombre": c[1],
+                    "rol_display": "/".join(rels) if rels else "Vínculo Hub",
+                    "mirror_active": bool(flags & 2097152)
+                })
+            dom.vinculos_detalles = details
             
             output.append(dom)
         return output
@@ -1072,3 +1157,93 @@ class ClienteService:
         )
         db.commit()
         return res.rowcount > 0
+
+    @staticmethod
+    def _audit_domicilio(db: Session, dom: Domicilio):
+        """
+        [V5.2.3 GOLD] Auditoría de Identidad Geográfica.
+        Auto-asigna bits según estado del sistema.
+        """
+        from backend.clientes.models import domicilios_clientes
+        usage_count = db.query(domicilios_clientes).filter(domicilios_clientes.c.domicilio_id == dom.id).count()
+        
+        original_bits = dom.bit_identidad or 0
+        new_bits = original_bits
+        
+        # Bit 64: HUB (Múltiple)
+        if usage_count > 1:
+            new_bits |= 64
+        else:
+            new_bits &= ~64
+            
+        if new_bits != original_bits:
+            dom.bit_identidad = new_bits
+            db.add(dom)
+            db.commit()
+            print(f"[GOLD] HUB Audit: Domicilio {dom.id} updated bits {original_bits} -> {new_bits}")
+
+    @staticmethod
+    def get_hub_orphaned(db: Session):
+        """[V5.2.4 GOLD] Retorna domicilios inactivos (Candidatos a Purgatorio)."""
+        from backend.clientes.models import Domicilio
+        # Incluimos los que tienen is_active=False O el Bit 0 de identidad apagado (Universal Sync)
+        from sqlalchemy import or_
+        return db.query(Domicilio).filter(
+            or_(
+                Domicilio.is_active == False,
+                (Domicilio.bit_identidad.op('&')(1)) == 0
+            )
+        ).all()
+
+    @staticmethod
+    def check_domicilio_integrity(db: Session, dom_id: UUID):
+        """[V5.2.4 GOLD] Análisis de supervivencia soberana antes de purga física."""
+        from backend.clientes.models import domicilios_clientes
+        from backend.pedidos.models import Pedido
+        from backend.remitos.models import Remito
+        
+        # 1. Check Links N:M
+        links_count = db.query(domicilios_clientes).filter(domicilios_clientes.c.domicilio_id == dom_id).count()
+        
+        # 2. Check Pedidos
+        pedidos_count = db.query(Pedido).filter(Pedido.domicilio_entrega_id == dom_id).count()
+        
+        # 3. Check Remitos
+        remitos_count = db.query(Remito).filter(Remito.domicilio_entrega_id == dom_id).count()
+        
+        total_refs = links_count + pedidos_count + remitos_count
+        is_safe = total_refs == 0
+        
+        details = []
+        if links_count > 0: details.append(f"{links_count} vínculos activos")
+        if pedidos_count > 0: details.append(f"{pedidos_count} pedidos")
+        if remitos_count > 0: details.append(f"{remitos_count} remitos")
+        
+        message = "Sin dependencias. Seguro para purga física." if is_safe else f"Bloqueado por: {', '.join(details)}"
+        
+        return {
+            "safe": is_safe,
+            "dependencies": total_refs,
+            "message": message,
+            "breakdown": {
+                "links": links_count,
+                "pedidos": pedidos_count,
+                "remitos": remitos_count
+            }
+        }
+
+    @staticmethod
+    def hard_delete_hub_domicilio(db: Session, dom_id: UUID) -> bool:
+        """[V5.2.4 GOLD] Eliminación física total del Hub (POST-INTEGRITY)."""
+        db_dom = db.query(Domicilio).filter(Domicilio.id == dom_id).first()
+        if not db_dom: return False
+        
+        # RE-VERIFY INTEGRITY (SAFETY GATE)
+        check = ClienteService.check_domicilio_integrity(db, dom_id)
+        if not check["safe"]:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=400, detail=f"Soberanía: Intento de purga ilegal. {check['message']}")
+            
+        db.delete(db_dom)
+        db.commit()
+        return True

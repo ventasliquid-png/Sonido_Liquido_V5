@@ -32,6 +32,8 @@ class DomicilioBase(BaseModel):
     origen_logistico: Optional[str] = None
     observaciones: Optional[str] = None
     is_maps_manual: bool = False # [V15.2 GOLD]
+    bit_identidad: int = 0 # [V5.2.3 GOLD]
+    flags_infra: int = 0 # [V5.2.3 GOLD]
     
     calle_entrega: Optional[str] = None
     numero_entrega: Optional[str] = None
@@ -74,6 +76,11 @@ class DomicilioUpdate(BaseModel):
     cp_entrega: Optional[str] = None
     localidad_entrega: Optional[str] = None
     provincia_entrega_id: Optional[str] = None
+    
+    # [V5.2.3.1 GOLD] Sovereignty bits
+    is_active: Optional[bool] = None
+    bit_identidad: Optional[int] = None
+    flags_infra: Optional[int] = None
 
 class DomicilioResponse(BaseModel):
     id: UUID
@@ -111,8 +118,10 @@ class DomicilioResponse(BaseModel):
     usage_count: Optional[int] = 0
     provincia_nombre: Optional[str] = None # [V5.2-HUB]
     clientes_vinculados: Optional[List[str]] = [] # [V5.2-HUB]
-    vinculos_detalles: Optional[List[dict]] = []  # List of {id, razon_social}
+    vinculos_detalles: Optional[List[dict]] = []  # List of {id, razon_social, rol_display, mirror_active}
     is_maps_manual: bool = False # [V15.2 GOLD]
+    bit_identidad: int = 0 # [V5.2.3 GOLD]
+    flags_infra: int = 0 # [V5.2.3 GOLD]
 
     class Config:
         from_attributes = True

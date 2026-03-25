@@ -192,7 +192,7 @@
                         :class="errors?.domicilio ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]' : 'border-fuchsia-500/20'"
                       >
                           <div class="flex justify-between items-center mb-2 border-b border-fuchsia-500/10 pb-1">
-                              <label class="text-[10px] font-bold text-fuchsia-400 uppercase tracking-widest"><i class="fas fa-file-invoice mr-1"></i> Domicilio Fiscal <span v-if="form.cuit && !['00000000000', '11111111119', '11111111111'].includes(form.cuit) && !(form.condicion_iva_id && condicionesIva.find(i => i.id === form.condicion_iva_id)?.nombre.toUpperCase().includes('CONSUMIDOR FINAL'))" class="text-red-400">*</span></label>
+                              <label class="text-[10px] font-bold text-fuchsia-400 uppercase tracking-widest"><i class="fas fa-file-invoice mr-1"></i> Domicilio Fiscal <span v-if="form.cuit && !['00000000000', '11111111119', '11111111111'].includes(form.cuit) && !(form.condicion_iva_id && condicionesIva.find(i => i.id === form.condicion_iva_id)?.nombre.toUpperCase().includes('CONSUMIDOR FINAL')) && clientColorMode !== 'pink'" class="text-red-400">*</span></label>
                               <div class="flex items-center gap-2">
                                   <div class="text-[9px] text-fuchsia-500/50 group-hover:text-fuchsia-400 transition-colors">
                                       <i class="fas fa-pencil-alt mr-1"></i> Editar
@@ -1403,9 +1403,9 @@ const validateForm = () => {
             if (!form.value.lista_precios_id) { errors.value.lista_precios_id = true; isValid = false; }
         }
         
-        // Validate Fiscal Domicile
-        // [GY-UX] V5-X Informal Mode: If no CUIT, Fiscal Address is NOT mandatory (or we use delivery)
+        // Validate Addresses (Power Pink Logic PIN 1974)
         const hasFiscal = domicilios.value.some(d => d.es_fiscal && d.activo !== false);
+        const hasEntrega = domicilios.value.some(d => d.es_entrega && d.activo !== false);
         
         // Check for Generic CUITs
         const isGenericCuit = ['00000000000', '11111111119', '11111111111'].includes(form.value.cuit);
@@ -1414,14 +1414,14 @@ const validateForm = () => {
         const isConsumidorFinal = form.value.condicion_iva_id && 
             condicionesIva.value.find(i => i.id === form.value.condicion_iva_id)?.nombre.toUpperCase().includes('CONSUMIDOR FINAL');
 
-        if (form.value.cuit && !isGenericCuit && !isConsumidorFinal && !hasFiscal) {
-             // Only enforce Fiscal Address for formal entities with CUIT (EXCEPT Generic ones or Consumer Final)
+        if (clientColorMode.value === 'pink') {
+             // Pink Rule: All addresses are optional (Store Pickup)
+             // No validation needed for addresses in Pink mode
+        } else if (form.value.cuit && !isGenericCuit && !isConsumidorFinal && !hasFiscal) {
+             // Formal Rule: Fiscal Address is mandatory
              errors.value.domicilio = true;
              isValid = false;
              notificationStore.add('El Domicilio Fiscal es obligatorio para clientes con CUIT formal.', 'warning');
-        } else if (!hasFiscal && !isGenericCuit && !isConsumidorFinal && domicilios.value.length > 0) {
-             // If they have addresses but none is Fiscal, mark first one as Fiscal if it's a formal CUIT?
-             // Or just warn. The user said it's mandatory.
         }
     }
     

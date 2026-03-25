@@ -45,4 +45,23 @@ TRANSPORTE_REQ_WEB = 1 << 1      # 0x02: Requiere carga en web externa
 TRANSPORTE_HAS_TRACKING = 1 << 2 # 0x04: Tiene tracking online
 TRANSPORTE_HOME_PICKUP = 1 << 3  # 0x08: Realiza retiro a domicilio
 TRANSPORTE_REQ_LABEL = 1 << 4    # 0x10: Requiere etiqueta impresa específica
-# RESERVED: 1<<5 to 1<<31
+
+# --- DOMICILIOS: IDENTIDAD (0x06) ---
+DOM_ACTIVO = 1 << 0              # 0x01
+DOM_HISTORIAL = 1 << 1           # 0x02 - Registro con historia (Protección de borrado)
+DOM_FISCAL = 1 << 2              # 0x04 - Domicilio Legal
+DOM_PROVEEDOR = 1 << 3           # 0x08
+DOM_TRANSPORTE = 1 << 4          # 0x10 - Terminal/Depósito de fletes
+DOM_PARTICULAR = 1 << 5          # 0x20
+DOM_HUB = 1 << 6                 # 0x40 - Multi-vínculo (>1)
+DOM_PROPIO = 1 << 7              # 0x80 - Punto de Sonido Líquido S.R.L.
+DOM_RESTRICCIONES = 1 << 8       # 0x100 - Notas de acceso (zorrita, horarios)
+DOM_MAPS_VERIFIED = 1 << 9       # 0x200 - Validado manualmente
+DOM_RECEPTORIA = 1 << 10         # 0x400 - Punto de retiro de terceros
+DOM_ZONA_DIFICIL = 1 << 11       # 0x800 - Alerta de logística/seguridad
+DOM_SOBERANIA_GOLD = 1 << 12     # 0x1000 - Registro auditado y normalizado (Bit 13)
+
+# --- DOMICILIOS: INFRAESTRUCTURA (0x07) ---
+DOM_INFRA_RAMPA = 1 << 0         # 0x01
+DOM_INFRA_DOCK = 1 << 1          # 0x02
+DOM_INFRA_ASCENSOR = 1 << 2      # 0x04

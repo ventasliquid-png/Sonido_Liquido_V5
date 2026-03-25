@@ -29,20 +29,30 @@
 
            <div v-else class="space-y-3">
              <div v-for="v in address.vinculos_detalles" :key="v.id" class="group flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-white/10 transition-all">
-               <div class="flex items-center gap-3">
-                 <div class="h-8 w-8 rounded-lg bg-white/5 flex items-center justify-center text-white/40">
-                    <i class="fas fa-user-tie text-[10px]"></i>
-                 </div>
-                 <span class="text-xs font-bold text-white/80 group-hover:text-white transition-colors">{{ v.nombre }}</span>
-               </div>
-               <button 
-                @click="handleUnlink(v.id)"
-                class="h-8 w-8 rounded-lg bg-red-500/10 text-red-400 opacity-0 group-hover:opacity-100 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center"
-                title="Desvincular"
-               >
-                 <i class="fas fa-trash-alt text-[10px]"></i>
-               </button>
-             </div>
+                <div class="flex items-center gap-4 flex-1">
+                  <div class="h-8 w-8 rounded-lg bg-white/5 flex items-center justify-center text-white/40 shrink-0">
+                     <i class="fas fa-user-tie text-[10px]"></i>
+                  </div>
+                  <div class="flex flex-col gap-1 min-w-0">
+                    <span class="text-xs font-bold text-white/80 group-hover:text-white transition-colors truncate">{{ v.nombre }}</span>
+                    <div class="flex items-center gap-2">
+                      <span class="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                        {{ v.rol_display || 'Vínculo' }}
+                      </span>
+                      <span v-if="v.mirror_active" class="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center gap-1">
+                        <i class="fas fa-link text-[8px]"></i> ESPEJO
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <button 
+                 @click="handleUnlink(v.id)"
+                 class="h-10 w-10 rounded-xl bg-red-500/10 text-red-400 opacity-0 group-hover:opacity-100 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center shrink-0 ml-4 shadow-lg shadow-red-500/10"
+                 title="Desvincular"
+                >
+                  <i class="fas fa-trash-alt text-xs"></i>
+                </button>
+              </div>
            </div>
         </div>
 

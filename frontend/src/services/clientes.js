@@ -44,5 +44,16 @@ export default {
 
     // [V5.2 GOLD] Mirror & Fork Protocol
     syncFiscal: (clienteId) => api.post(`/clientes/${clienteId}/domicilios/sync-fiscal`),
-    forkDomicilio: (clienteId, domicilioId, data) => api.post(`/clientes/${clienteId}/domicilios/${domicilioId}/fork`, data)
+    forkDomicilio: (clienteId, domicilioId, data) => api.post(`/clientes/${clienteId}/domicilios/${domicilioId}/fork`, data),
+
+    // [V5.2 GOLD] Hub Soberano
+    hubList: () => api.get('/clientes/hub/list'),
+    hubSearch: (q) => api.get('/clientes/hub/search', { params: { q } }),
+    hubUpdate: (id, data) => api.put(`/clientes/hub/${id}`, data),
+    hubDelete: (id) => api.delete(`/clientes/hub/${id}`),
+
+    // [V5.2.4 GOLD] Master Tools Hub Extensions
+    hubOrphaned: () => api.get('/clientes/hub/orphaned'),
+    hubIntegrityCheck: (id) => api.get(`/clientes/hub/${id}/integrity_check`),
+    hubHardDelete: (id) => api.delete(`/clientes/hub/${id}/hard`),
 };

@@ -21,12 +21,19 @@
           >
             Productos Inactivos
           </button>
-           <button 
+          <button 
              @click="loadData('contactos')"
              :class="['px-4 py-1 rounded-md text-sm transition-colors', currentType === 'contactos' ? 'bg-indigo-900/50 text-indigo-200 border border-indigo-500/30' : 'text-gray-400 hover:text-gray-200']"
              :disabled="loading"
           >
             Contactos Inactivos
+          </button>
+          <button 
+             @click="loadData('domicilios')"
+             :class="['px-4 py-1 rounded-md text-sm transition-all', currentType === 'domicilios' ? 'bg-amber-900/50 text-amber-200 border border-amber-500/30' : 'text-gray-400 hover:text-gray-200']"
+             :disabled="loading"
+          >
+            Hub Domicilios
           </button>
         </div>
       </div>
@@ -112,10 +119,10 @@
                       </div>
                       <div>
                           <h3 class="font-bold text-white text-sm">
-                              {{ currentType === 'clientes' ? item.razon_social : item.nombre }}
+                              {{ currentType === 'clientes' ? item.razon_social : (currentType === 'domicilios' ? (item.calle + ' ' + (item.numero || '')) : item.nombre) }}
                           </h3>
                           <p class="text-xs text-gray-500 font-mono">
-                              ID: {{ currentType === 'clientes' ? (item.cuit || 'Sin CUIT') : (item.sku || 'Sin SKU') }}
+                              {{ currentType === 'clientes' ? (item.cuit || 'Sin CUIT') : (currentType === 'domicilios' ? (item.localidad || 'Sin Localidad') : (item.sku || 'Sin SKU')) }}
                           </p>
                       </div>
                   </div>
@@ -214,23 +221,35 @@ const loadData = async (type) => {
     selectedIds.value = []; // Reset selection on type change
     
     try {
-        let endpoint = type === 'clientes' ? '/clientes/' : (type === 'productos' ? '/productos/' : '/contactos');
+        let endpoint = '';
+        let res;
         
-        // Fetch Inactive Items
-        // Contactos API might handle this differently, usually /contactos?activo=false or just q with filter
-        // For V5 standard: include_inactive=true is widely used so we try that first
-        const res = await api.get(endpoint, { params: { include_inactive: true, limit: 1000 } });
+        if (type === 'clientes') {
+            res = await api.get('/clientes/', { params: { include_inactive: true, limit: 1000 } });
+        } else if (type === 'productos') {
+            res = await api.get('/productos/', { params: { include_inactive: true, limit: 1000 } });
+        } else if (type === 'contactos') {
+            res = await api.get('/contactos', { params: { include_inactive: true, limit: 1000 } });
+        } else if (type === 'domicilios') {
+            res = await api.get('/clientes/hub/orphaned');
+        }
         
         // Filter ONLY inactive items (Baja Lógica)
-        const inactives = res.data.filter(i => i.activo === false);
+        // Domicilios orphaned is already filtered by backend
+        const inactives = type === 'domicilios' ? res.data : res.data.filter(i => i.activo === false);
         
         // Check Integrity for each
         const checkedItems = await Promise.all(inactives.map(async (item) => {
              try {
                 const id = item.id; 
+                let checkEndpoint = '';
+                if (type === 'clientes') checkEndpoint = `/clientes/${id}/integrity_check`;
+                else if (type === 'productos') checkEndpoint = `/productos/${id}/integrity_check`;
+                else if (type === 'domicilios') checkEndpoint = `/clientes/hub/${id}/integrity_check`;
+                
                 if (type === 'contactos') return { ...item, integrity: { safe: true, message: 'Sin dependencias críticas' } };
                 
-                const checkRes = await api.get(`${endpoint}${id}/integrity_check`);
+                const checkRes = await api.get(checkEndpoint);
                 const integrity = checkRes.data;
 
                 // [GENOMA V14.8] Shield Protection for History Records (Bit 1 = 2)
@@ -307,6 +326,8 @@ const rescueItem = async (item) => {
             await clientesStore.updateCliente(item.id, payload);
         } else if (currentType.value === 'contactos') {
             await contactosStore.updateContacto(item.id, payload);
+        } else if (currentType.value === 'domicilios') {
+            await api.put(`/clientes/hub/${item.id}`, { ...item, is_active: true });
         } else {
             // Products
             await productosStore.updateProducto(item.id, payload);
@@ -430,6 +451,8 @@ const executeHardDelete = async (id) => {
         await clientesStore.hardDeleteCliente(id);
     } else if (currentType.value === 'contactos') {
         await contactosStore.hardDeleteContacto(id);
+    } else if (currentType.value === 'domicilios') {
+        await api.delete(`/clientes/hub/${id}/hard`);
     } else {
         await api.delete(`/productos/${id}/hard`);
         productosStore.fetchProductos();

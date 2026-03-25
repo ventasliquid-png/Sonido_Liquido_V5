@@ -260,3 +260,23 @@ def unlink_hub_domicilio(domicilio_id: UUID, cliente_id: UUID, db: Session = Dep
     if not success:
         raise HTTPException(status_code=404, detail="Vínculo no encontrado.")
     return {"status": "success"}
+
+# --- [V5.2.4 GOLD] Master Tools Extensions ---
+
+@router.get("/hub/orphaned", response_model=List[DomicilioResponse])
+def get_hub_orphaned(db: Session = Depends(get_db)):
+    """[V5.2.4 GOLD] Lista domicilios inactivos para Purgatorio."""
+    return ClienteService.get_hub_orphaned(db)
+
+@router.get("/hub/{domicilio_id}/integrity_check")
+def check_domicilio_integrity(domicilio_id: UUID, db: Session = Depends(get_db)):
+    """[V5.2.4 GOLD] Consulta si un domicilio es purgable."""
+    return ClienteService.check_domicilio_integrity(db, domicilio_id)
+
+@router.delete("/hub/{domicilio_id}/hard")
+def hard_delete_hub_domicilio(domicilio_id: UUID, db: Session = Depends(get_db)):
+    """[V5.2.4 GOLD] Eliminar físicamente un domicilio del Hub."""
+    success = ClienteService.hard_delete_hub_domicilio(db, domicilio_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Domicilio no encontrado")
+    return {"status": "success"}
