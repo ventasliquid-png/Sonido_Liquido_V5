@@ -82,6 +82,7 @@ class RemitoResponse(RemitoBase):
     
     # [V5] Extra info from models.py properties
     razon_social: Optional[str] = None
+    cliente_id: Optional[UUID] = None
     
     class Config:
         from_attributes = True
@@ -112,6 +113,8 @@ class IngestionPayload(BaseModel):
     items: List[IngestionItem]
     transporte_id: Optional[UUID] = None # Permite elegir transporte en la UI de ingesta
     domicilio_id: Optional[UUID] = None # Permite elegir sucursal en la UI de ingesta
+    bultos: Optional[int] = 1
+    valor_declarado: Optional[float] = 0.0
     solo_actualizar_cliente: bool = False
 
 # --- MANUAL REMITO (V15.1.4) ---

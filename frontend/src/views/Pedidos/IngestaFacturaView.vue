@@ -146,17 +146,28 @@
                                     <option v-for="t in maestrosStore.transportes" :key="t.id" :value="t.id">{{ t.nombre }}</option>
                                 </select>
                              </div>
-                             <div class="space-y-1" v-if="clientAddresses.length > 0">
-                                <label class="text-[10px] uppercase text-blue-500 font-black block mb-1 tracking-widest">Sede de Entrega</label>
-                                <select 
-                                    v-model="selectedAddressId" 
-                                    class="w-full bg-slate-950 border border-blue-900/30 rounded-lg px-3 py-2 text-xs text-white focus:border-blue-500 outline-none transition-all appearance-none"
-                                >
-                                    <option v-for="d in clientAddresses" :key="d.id" :value="d.id">{{ d.alias || (d.calle + ' ' + d.numero) }}</option>
-                                </select>
-                             </div>
+                    <!-- LOGISTICS EXTENSION: COSTOS Y BULTOS -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 pb-4">
+                        <div class="md:col-span-2 space-y-1" v-if="clientAddresses.length > 0">
+                            <label class="text-[10px] uppercase text-blue-500 font-black block mb-1 tracking-widest">Sede de Entrega (Padrón)</label>
+                            <select 
+                                v-model="selectedAddressId" 
+                                class="w-full bg-slate-950 border border-blue-900/30 rounded-lg px-3 py-2 text-xs text-white focus:border-blue-500 outline-none transition-all appearance-none"
+                            >
+                                <option v-for="d in clientAddresses" :key="d.id" :value="d.id">{{ d.alias || (d.calle + ' ' + d.numero) }}</option>
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] uppercase text-blue-500 font-black block mb-1 tracking-widest">Bultos</label>
+                            <input type="number" v-model.number="bultos" class="w-full bg-slate-950 border border-blue-900/30 rounded-lg px-3 py-2 text-xs text-white focus:border-blue-500 outline-none transition-all text-center" />
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] uppercase text-blue-500 font-black block mb-1 tracking-widest">Valor Decl.</label>
+                            <input type="number" v-model.number="valor_declarado" class="w-full bg-slate-950 border border-blue-900/30 rounded-lg px-3 py-2 text-xs text-white focus:border-blue-500 outline-none transition-all text-center" />
                         </div>
                     </div>
+                </div>
+            </div>
 
                     <!-- Items List -->
                     <div class="flex-1 overflow-y-auto p-4 bg-slate-900/30">
@@ -278,6 +289,8 @@ const showClientAbm = ref(false);
 const clientAddresses = ref([]);
 const selectedTransportId = ref(null);
 const selectedAddressId = ref(null);
+const bultos = ref(1);
+const valor_declarado = ref(0.0);
 
 // SE ELIMINARON MOCKS DE VISTA PREVIA
 
@@ -339,6 +352,8 @@ const processFile = async (file) => {
 
 const reset = () => {
     parsedData.value = null;
+    bultos.value = 1;
+    valor_declarado.value = 0.0;
     if (fileInput.value) fileInput.value.value = '';
 };
 
@@ -444,7 +459,9 @@ const confirmIngesta = async () => {
                 precio_unitario: 0.0, // Assuming 0 for Remito logic
                 codigo: item.codigo || null
             })),
-            transporte_id: selectedTransportId.value
+            transporte_id: selectedTransportId.value,
+            bultos: bultos.value,
+            valor_declarado: valor_declarado.value
         };
 
         // Si hay domicilio seleccionado, el backend intentará asignarlo

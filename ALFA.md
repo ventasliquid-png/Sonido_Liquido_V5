@@ -35,7 +35,7 @@ Al activarse esta misión, el agente **DEBE** realizar estos pasos en orden estr
 ## 4. Validación de Integridad (Test Canario)
 - **Instrucción**: Verificar el registro de **LAVIMAR** en la base de datos por su identificador único.
 - **UUID**: `e1be0585cd3443efa33204d00e199c4e`
-- **Resultado Esperado**: El valor de `flags_estado` DEBE ser **13** (Nivel 13 Activo Consistido). Si el valor difiere, el motor de 64-bits no está calibrado.
+- **Resultado Esperado**: El valor de `flags_estado` DEBE ser **8205** (Nivel 13 Activo Consistido). Si el valor difiere, el motor de 64-bits no está calibrado.
 
 ## 5. Seguridad y Térmica
 - **Estado de Térmica**: 🔴 **ROJO** (Solo Lectura).

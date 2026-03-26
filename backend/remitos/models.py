@@ -57,6 +57,10 @@ class Remito(Base):
     items = relationship("RemitoItem", back_populates="remito", cascade="all, delete-orphan")
 
     @property
+    def cliente_id(self):
+        return self.pedido.cliente_id if self.pedido else None
+
+    @property
     def razon_social(self):
         return self.pedido.cliente.razon_social if self.pedido and self.pedido.cliente else "Desconocido"
 

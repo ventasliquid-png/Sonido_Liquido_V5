@@ -179,7 +179,7 @@
       <footer class="shrink-0 bg-indigo-950/20 border-t border-indigo-500/20 p-6 flex justify-between items-center px-12">
         <div class="flex items-center gap-2 text-indigo-400/50">
            <i class="fas fa-info-circle"></i>
-           <span class="text-[10px] font-bold uppercase tracking-widest">Serie automática 0015-XXXXXXXX</span>
+           <span class="text-[10px] font-bold uppercase tracking-widest">Serie automática 0015-00003010+</span>
         </div>
         
         <div class="flex gap-4">

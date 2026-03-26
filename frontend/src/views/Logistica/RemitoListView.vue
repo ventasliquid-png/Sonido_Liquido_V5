@@ -71,7 +71,7 @@
                 <!-- Cliente -->
                 <div class="flex items-center gap-3 flex-1 min-w-0 px-4">
                     <div class="min-w-0 flex-1">
-                        <h3 class="font-bold text-blue-50 text-sm truncate group-hover:text-blue-300 transition-colors">{{ remito.pedido?.cliente?.razon_social || 'Desconocido' }}</h3>
+                        <h3 class="font-bold text-blue-50 text-sm truncate group-hover:text-blue-300 transition-colors">{{ remito.razon_social || 'Desconocido' }}</h3>
                         <p class="text-[10px] text-blue-200/30 font-mono italic">Pedido #{{ remito.pedido_id }}</p>
                     </div>
                 </div>
@@ -128,11 +128,20 @@
             <header class="bg-blue-600/10 p-6 border-b border-blue-500/20 flex justify-between items-center shrink-0">
                 <div>
                     <h3 class="text-xl font-bold text-white tracking-tight uppercase">Soberanía Total: Editar Remito</h3>
-                    <p class="text-[10px] text-blue-400 font-bold tracking-widest uppercase italic">Estado: BORRADOR • ID: {{ editingRemito.id }}</p>
+                    <p class="text-[10px] text-blue-400 font-bold tracking-widest uppercase italic">Estado: BORRADOR • ID: {{ editingRemito?.id }}</p>
                 </div>
-                <button @click="closeEditModal" class="text-gray-500 hover:text-white transition-colors">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
+                <div class="flex items-center gap-6">
+                    <button 
+                        @click="printRemito(editingRemito)" 
+                        title="Imprimir Remito Oficial PDF"
+                        class="group flex items-center justify-center w-10 h-10 rounded-full bg-slate-800/80 border border-slate-700 hover:bg-blue-600 hover:border-blue-500 transition-all shadow-lg"
+                    >
+                        <i class="fas fa-print text-slate-300 group-hover:text-white"></i>
+                    </button>
+                    <button @click="closeEditModal" class="text-gray-500 hover:text-white transition-colors">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
             </header>
 
             <div class="p-8 space-y-8 overflow-y-auto custom-scrollbar flex-1">
@@ -252,8 +261,18 @@
                 </div>
             </div>
 
-            <footer class="bg-blue-600/5 p-6 border-t border-blue-500/20 flex justify-end gap-4 shrink-0">
-                <button @click="closeEditModal" class="px-6 py-2 text-sm font-bold text-slate-400 hover:text-white transition-colors">Cancelar</button>
+            <footer class="bg-blue-600/5 p-6 border-t border-blue-500/20 flex flex-wrap justify-between gap-4 shrink-0">
+                <div class="flex gap-2">
+                    <button 
+                        @click="deleteRemito(editingRemito)" 
+                        title="Eliminar Remito Permanentemente"
+                        class="px-4 py-2 bg-red-900/50 hover:bg-red-500 text-red-200 hover:text-white font-bold rounded-xl shadow-lg transition-all"
+                    >
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+                <div class="flex gap-4">
+                    <button @click="closeEditModal" class="px-6 py-2 text-sm font-bold text-slate-400 hover:text-white transition-colors">Cancelar</button>
                 <button 
                     @click="saveEdition" 
                     :disabled="isSaving"
@@ -262,6 +281,7 @@
                     <i v-if="isSaving" class="fas fa-spinner fa-spin mr-2"></i>
                     Guardar Cambios Totales
                 </button>
+                </div>
             </footer>
          </div>
       </div>
@@ -349,8 +369,11 @@ const openEditModal = async (remito) => {
         return;
     }
 
-    editingRemito.value = remito;
-    editForm.cliente_id = remito.pedido?.cliente_id;
+    // Fallback robusto para asegurar el ID del cliente
+    let c_id = remito.cliente_id || (remito.pedido && remito.pedido.cliente_id);
+    
+    editingRemito.value = { ...remito };
+    editForm.cliente_id = c_id;
     editForm.numero_legal = remito.numero_legal || '';
     editForm.cae = remito.cae || '';
     editForm.vto_cae = remito.vto_cae ? new Date(remito.vto_cae).toISOString().split('T')[0] : '';
@@ -407,6 +430,26 @@ const saveEdition = async () => {
         notification.add('Error al actualizar: ' + (e.response?.data?.detail || e.message), 'error');
     } finally {
         isSaving.value = false;
+    }
+}
+
+const printRemito = (remito) => {
+    if (!remito || !remito.id) return;
+    const pdfUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/remitos/${remito.id}/pdf`;
+    window.open(pdfUrl, '_blank');
+}
+
+const deleteRemito = async (remito) => {
+    if (!remito) return;
+    if (confirm(`¿Está seguro de eliminar definitivamente el remito ${remito.numero_legal || 'nuevo'} y su pedido asociado?`)) {
+        try {
+            await api.delete(`/remitos/${remito.id}`);
+            notification.add('Remito y Pedido fantasma eliminados', 'success');
+            refresh();
+            closeEditModal();
+        } catch (error) {
+            notification.add('Error al eliminar: ' + (error.response?.data?.detail || error.message), 'error');
+        }
     }
 }
 

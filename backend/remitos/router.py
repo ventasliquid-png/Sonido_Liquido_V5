@@ -226,3 +226,30 @@ def update_remito(remito_id: str, payload: schemas.RemitoUpdate, db: Session = D
     except Exception as e:
         print(f"Error updating Remito {remito_id}: {e}")
         raise HTTPException(status_code=500, detail="Error interno al actualizar remito")
+
+@router.delete("/{remito_id}")
+def delete_remito(remito_id: str, db: Session = Depends(get_db)):
+    """
+    Elimina un remito en estado BORRADOR y su pedido asociado (si es huérfano de ingesta).
+    """
+    remito = db.query(models.Remito).filter(models.Remito.id == remito_id).first()
+    if not remito:
+        raise HTTPException(status_code=404, detail="Remito no encontrado")
+        
+    if remito.estado != "BORRADOR":
+        raise HTTPException(status_code=400, detail="Solo se pueden eliminar remitos en estado BORRADOR")
+        
+    pedido_id = remito.pedido_id
+    
+    # Delete remito (cascades to remito_items)
+    db.delete(remito)
+    db.flush()
+    
+    # Check if we should delete the Pedido too
+    from backend.pedidos.models import Pedido
+    pedido = db.query(Pedido).filter(Pedido.id == pedido_id).first()
+    if pedido and pedido.origen == "INGESTA_PDF":
+        db.delete(pedido) # This cascades to pedido_items
+        
+    db.commit()
+    return {"message": "Remito eliminado correctamente"}

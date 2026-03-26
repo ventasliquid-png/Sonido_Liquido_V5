@@ -43,9 +43,13 @@ class RemitosService:
         # 1. FIND CLIENT (Anti-Duplication Strategy)
         payload_cuit = (payload.cliente.cuit or "").replace("-", "").strip()
         payload_name = (payload.cliente.razon_social or "").strip()
+        payload_id = getattr(payload.cliente, 'id', None)
         
         cliente = None
-        if payload_cuit and payload_cuit != "00000000000":
+        if payload_id:
+            cliente = db.query(Cliente).filter(Cliente.id == payload_id).first()
+            
+        if not cliente and payload_cuit and payload_cuit != "00000000000":
             # Primary search: CUIT (normalized)
             cliente = db.query(Cliente).filter(
                 or_(
@@ -256,7 +260,9 @@ class RemitosService:
             aprobado_para_despacho=True,
             cae=payload.factura.cae,
             vto_cae=vto_cae_date,
-            numero_legal=numero_legal
+            numero_legal=numero_legal,
+            bultos=getattr(payload, 'bultos', 1),
+            valor_declarado=getattr(payload, 'valor_declarado', 0.0)
         )
         db.add(remito)
         db.flush()
@@ -363,16 +369,16 @@ class RemitosService:
         # 2. CALCULATE NEXT 0015- NUMBER
         last_remito = db.query(models.Remito).filter(models.Remito.numero_legal.like("0015-%")).order_by(models.Remito.numero_legal.desc()).first()
         
-        next_val = 3001
+        next_val = 3010
         if last_remito and last_remito.numero_legal:
              try:
-                  # Expected format: 0015-00003001
+                  # Expected format: 0015-00003010
                   current_str = last_remito.numero_legal.split("-")[-1]
                   next_val = int(current_str) + 1
              except:
-                  next_val = 3001
+                  next_val = 3010
         
-        if next_val < 3001: next_val = 3001
+        if next_val < 3010: next_val = 3010
         numero_legal = f"0015-{str(next_val).zfill(8)}"
 
         # 3. CREATE GHOST PEDIDO
