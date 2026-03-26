@@ -195,7 +195,7 @@ import { ref, onMounted, computed, onUnmounted, watch } from 'vue'
 import { useLogisticaStore } from '../../../stores/logistica'
 import { useMaestrosStore } from '../../../stores/maestros'
 import { useNotificationStore } from '../../../stores/notification'
-import TransporteCanvas from './TransporteCanvas.vue'
+import TransporteCanvas from '../../Logistica/components/TransporteCanvas.vue'
 
 const props = defineProps({
     isModal: {

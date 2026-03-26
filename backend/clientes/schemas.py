@@ -5,8 +5,6 @@ from pydantic import BaseModel, EmailStr, Field, field_validator, model_validato
 import re
 from backend.agenda.schemas import VinculoComercialCreate, VinculoComercialUpdate
 
-
-
 # --- Domicilio Schemas ---
 class DomicilioBase(BaseModel):
     alias: Optional[str] = None
@@ -31,9 +29,10 @@ class DomicilioBase(BaseModel):
     modalidad_envio: Optional[str] = None
     origen_logistico: Optional[str] = None
     observaciones: Optional[str] = None
-    is_maps_manual: bool = False # [V15.2 GOLD]
-    bit_identidad: int = 0 # [V5.2.3 GOLD]
-    flags_infra: int = 0 # [V5.2.3 GOLD]
+    is_maps_manual: bool = False 
+    bit_identidad: int = 0 
+    flags_infra: int = 0
+    flags_estado: int = 0 # [V5.8] Genoma Soberano
     
     calle_entrega: Optional[str] = None
     numero_entrega: Optional[str] = None
@@ -68,7 +67,6 @@ class DomicilioUpdate(BaseModel):
     modalidad_envio: Optional[str] = None
     origen_logistico: Optional[str] = None
     
-    # [V14-FIX] Added missing fields to prevent Pydantic from dropping them during update
     calle_entrega: Optional[str] = None
     numero_entrega: Optional[str] = None
     piso_entrega: Optional[str] = None
@@ -77,10 +75,10 @@ class DomicilioUpdate(BaseModel):
     localidad_entrega: Optional[str] = None
     provincia_entrega_id: Optional[str] = None
     
-    # [V5.2.3.1 GOLD] Sovereignty bits
     is_active: Optional[bool] = None
     bit_identidad: Optional[int] = None
     flags_infra: Optional[int] = None
+    flags_estado: Optional[int] = None
 
 class DomicilioResponse(BaseModel):
     id: UUID
@@ -106,7 +104,6 @@ class DomicilioResponse(BaseModel):
     metodo_entrega: Optional[str] = None
     origen_logistico: Optional[str] = None
 
-    # [V14-FIX] Added missing fields to reflect split address state in UI
     calle_entrega: Optional[str] = None
     numero_entrega: Optional[str] = None
     piso_entrega: Optional[str] = None
@@ -116,12 +113,13 @@ class DomicilioResponse(BaseModel):
     provincia_entrega_id: Optional[str] = None
 
     usage_count: Optional[int] = 0
-    provincia_nombre: Optional[str] = None # [V5.2-HUB]
-    clientes_vinculados: Optional[List[str]] = [] # [V5.2-HUB]
-    vinculos_detalles: Optional[List[dict]] = []  # List of {id, razon_social, rol_display, mirror_active}
-    is_maps_manual: bool = False # [V15.2 GOLD]
-    bit_identidad: int = 0 # [V5.2.3 GOLD]
-    flags_infra: int = 0 # [V5.2.3 GOLD]
+    provincia_nombre: Optional[str] = None 
+    clientes_vinculados: Optional[List[str]] = [] 
+    vinculos_detalles: Optional[List[dict]] = []  
+    is_maps_manual: bool = False 
+    bit_identidad: int = 0 
+    flags_infra: int = 0
+    flags_estado: int = 0
 
     class Config:
         from_attributes = True
@@ -141,10 +139,8 @@ class DomicilioResponse(BaseModel):
 class ClienteBase(BaseModel):
     razon_social: str
     nombre_fantasia: Optional[str] = None
-    # [V5-X] Hybrid Architecture: CUIT is optional
     cuit: Optional[str] = None
     
-    # [V5-X] Hybrid Flags
     flags_estado: int = 0
     codigo_interno: Optional[int] = None
     
@@ -154,7 +150,6 @@ class ClienteBase(BaseModel):
     activo: Optional[bool] = True
     requiere_auditoria: Optional[bool] = False
     
-    # Nuevos campos V5.1
     legacy_id_bas: Optional[str] = None
     whatsapp_empresa: Optional[str] = None
     web_portal_pagos: Optional[str] = None
@@ -162,10 +157,10 @@ class ClienteBase(BaseModel):
     observaciones: Optional[str] = None
     estado_arca: Optional[str] = "PENDIENTE"
     
-    # Referencia al vendedor
     vendedor_id: Optional[int] = None
     estrategia_precio: Optional[str] = "MAYORISTA_FISCAL"
     fecha_alta: Optional[datetime] = None
+    transporte_habitual_id: Optional[UUID] = None
 
     @field_validator('cuit')
     @classmethod
@@ -178,21 +173,15 @@ class ClienteCreate(ClienteBase):
     domicilios: List[DomicilioCreate] = []
     vinculos: List[VinculoComercialCreate] = []
 
-    # [V5-X] Pydantic Validator for Hybrid Logic
     @model_validator(mode='after')
     def check_fiscal_consistency(self):
-        # Bitmasks constants (Hardcoded to avoid circular imports)
         FISCAL_REQUIRED = 0x004
-        
         is_strict = (self.flags_estado & FISCAL_REQUIRED) != 0
         has_cuit = bool(self.cuit and len(self.cuit) > 5)
-        
         if is_strict and not has_cuit:
             raise ValueError("Incoherencia: Flag FISCAL_REQUIRED activo pero falta CUIT (Modo Gold/Silver requiere CUIT).")
-            
         if not is_strict and not self.razon_social:
              raise ValueError("Mínimo Vital: Un cliente Bronze requiere al menos Razón Social.")
-             
         return self
 
 class ClienteUpdate(BaseModel):
@@ -212,6 +201,7 @@ class ClienteUpdate(BaseModel):
     observaciones: Optional[str] = None
     estado_arca: Optional[str] = None
     transporte_id: Optional[UUID] = None
+    transporte_habitual_id: Optional[UUID] = None
     vendedor_id: Optional[int] = None
     estrategia_precio: Optional[str] = None
     fecha_alta: Optional[datetime] = None
@@ -227,15 +217,11 @@ from backend.contactos.schemas import ContactoRead, VinculoRead, PersonaBasicRea
 from pydantic import computed_field
 
 class ClienteVinculoResponse(BaseModel):
-    """
-    Schema híbrido para mostrar vinculos DESDE la perspectiva del Cliente.
-    Muestra la Persona adjunta al vinculo.
-    """
     id: UUID
     rol: Optional[str] = None
     area: Optional[str] = None
     activo: bool
-    persona: Optional[PersonaBasicRead] = None # Nested Persona info (Basic to avoid recursion)
+    persona: Optional[PersonaBasicRead] = None 
 
     class Config:
         from_attributes = True
@@ -248,10 +234,6 @@ class ClienteResponse(ClienteBase):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     domicilios: List[DomicilioResponse] = []
-    # [GY-TEMP] Disable vinculos to fix 500 error on list view
-    # vinculos: List[ClienteVinculoResponse] = []
-    
-    # Nuevos Campos Visuales (Propiedades @property del modelo)
     domicilio_fiscal_resumen: Optional[str] = None
     requiere_entrega: bool = False
     fecha_alta: Optional[datetime] = None
@@ -266,16 +248,10 @@ class ClienteListResponse(ClienteBase):
     contador_uso: Optional[int] = 0
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-    
-    # Nuevos Campos Visuales (Propiedades @property del modelo)
     domicilio_fiscal_resumen: Optional[str] = None
     requiere_entrega: bool = False
     fecha_alta: Optional[datetime] = None
-    # [GY-TEMP] Disable contacto_principal_nombre to fix 500 error on list view
-    # contacto_principal_nombre: Optional[str] = None
     
-    # Exclude nested lists for performance
-
     class Config:
         from_attributes = True
 
@@ -294,5 +270,5 @@ class ClienteSummary(BaseModel):
         from_attributes = True
 
 class CuitCheckResponse(BaseModel):
-    status: str # NEW, EXISTS, INACTIVE
+    status: str 
     existing_clients: List[ClienteSummary] = []

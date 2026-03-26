@@ -15,46 +15,29 @@ class LogisticaService:
         ).first()
         
         if existing:
-            status_msg = "activa" if existing.activo else "inactiva"
+            # Bit 1 (Value 2): ACTIVE
+            is_active = (existing.flags_estado & 2) == 2
+            status_msg = "activa" if is_active else "inactiva"
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"Ya existe una empresa de transporte con el nombre '{existing.nombre}' ({status_msg})."
             )
 
+        db_empresa = models.EmpresaTransporte(**empresa_in.model_dump())
         db.add(db_empresa)
         db.commit()
         db.refresh(db_empresa)
         
-        # [VAULT SYNC] Register Transporte Addresses
-        from backend.clientes.models import Domicilio
-        from backend.contactos.models import VinculoGeografico
-        
-        # A. Central/Fiscal
-        if db_empresa.direccion:
-            dom = Domicilio(calle=db_empresa.direccion, localidad=db_empresa.localidad or 'S/D', provincia_id=db_empresa.provincia_id or 'X', activo=True)
-            db.add(dom)
-            db.flush()
-            vg = VinculoGeografico(entidad_tipo='TRANSPORTE', entidad_id=db_empresa.id, domicilio_id=dom.id, alias='Administrativa', flags_relacion=1, activo=True)
-            db.add(vg)
-            
-        # B. Despacho
-        if db_empresa.direccion_despacho and db_empresa.direccion_despacho != db_empresa.direccion:
-            dom = Domicilio(calle=db_empresa.direccion_despacho, localidad=db_empresa.localidad or 'S/D', provincia_id=db_empresa.provincia_id or 'X', activo=True)
-            db.add(dom)
-            db.flush()
-            vg = VinculoGeografico(entidad_tipo='TRANSPORTE', entidad_id=db_empresa.id, domicilio_id=dom.id, alias='Despacho', flags_relacion=2, activo=True)
-            db.add(vg)
-        
-        db.commit()
         return db_empresa
 
     @staticmethod
     def get_empresas(db: Session, status: str = "active") -> List[models.EmpresaTransporte]:
         query = db.query(models.EmpresaTransporte)
         if status == "active":
-            query = query.filter(models.EmpresaTransporte.activo == True)
+            # Usar bitwise para ACTIVE (Bit 1 = 2)
+            query = query.filter(models.EmpresaTransporte.flags_estado.op('&')(2) == 2)
         elif status == "inactive":
-            query = query.filter(models.EmpresaTransporte.activo == False)
+            query = query.filter(models.EmpresaTransporte.flags_estado.op('&')(2) == 0)
         # If "all", no filter applied
         return query.all()
 
@@ -76,36 +59,10 @@ class LogisticaService:
         db.commit()
         db.refresh(db_empresa)
         
-        # [VAULT SYNC] Sync changes
-        from backend.contactos.models import VinculoGeografico
-        from backend.clientes.models import Domicilio
+        # [V5] El vínculo con el Address Hub es gestionado directamente 
+        # desde la UI a través de VinculoGeografico. El servicio ya no 
+        # realiza sincronización manual de campos legacy.
         
-        if 'direccion' in update_data:
-            vg = db.query(VinculoGeografico).filter(VinculoGeografico.entidad_tipo == 'TRANSPORTE', VinculoGeografico.entidad_id == db_empresa.id, VinculoGeografico.alias == 'Administrativa').first()
-            if vg and vg.domicilio:
-                vg.domicilio.calle = db_empresa.direccion
-                db.add(vg.domicilio)
-            elif db_empresa.direccion:
-                dom = Domicilio(calle=db_empresa.direccion, localidad=db_empresa.localidad or 'S/D', provincia_id=db_empresa.provincia_id or 'X', activo=True)
-                db.add(dom)
-                db.flush()
-                vg = VinculoGeografico(entidad_tipo='TRANSPORTE', entidad_id=db_empresa.id, domicilio_id=dom.id, alias='Administrativa', flags_relacion=1, activo=True)
-                db.add(vg)
-
-        if 'direccion_despacho' in update_data:
-            # Sync Despacho
-            vg = db.query(VinculoGeografico).filter(VinculoGeografico.entidad_tipo == 'TRANSPORTE', VinculoGeografico.entidad_id == db_empresa.id, VinculoGeografico.alias == 'Despacho').first()
-            if vg and vg.domicilio:
-                vg.domicilio.calle = db_empresa.direccion_despacho
-                db.add(vg.domicilio)
-            elif db_empresa.direccion_despacho:
-                dom = Domicilio(calle=db_empresa.direccion_despacho, localidad=db_empresa.localidad or 'S/D', provincia_id=db_empresa.provincia_id or 'X', activo=True)
-                db.add(dom)
-                db.flush()
-                vg = VinculoGeografico(entidad_tipo='TRANSPORTE', entidad_id=db_empresa.id, domicilio_id=dom.id, alias='Despacho', flags_relacion=2, activo=True)
-                db.add(vg)
-
-        db.commit()
         return db_empresa
 
     @staticmethod

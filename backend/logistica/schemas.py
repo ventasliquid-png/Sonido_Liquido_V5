@@ -7,59 +7,58 @@ from pydantic import BaseModel
 class EmpresaTransporteBase(BaseModel):
     nombre: str
     
-    # Datos Fiscales / Central
+    # [V5] Datos Fiscales
     cuit: Optional[str] = None
     condicion_iva_id: Optional[UUID] = None # UUID
-    direccion: Optional[str] = None
-    localidad: Optional[str] = None
-    provincia_id: Optional[str] = None # FK to Provincias
 
     # Contacto Central
     whatsapp: Optional[str] = None
     email: Optional[str] = None
 
-    # Datos Operativos CABA
-    direccion_despacho: Optional[str] = None
-    horario_despacho: Optional[str] = None
-    telefono_despacho: Optional[str] = None
-
     observaciones: Optional[str] = None
 
     web_tracking: Optional[str] = None
     telefono_reclamos: Optional[str] = None
-    servicio_retiro_domicilio: bool = False
-    requiere_carga_web: bool = False
     formato_etiqueta: str = 'PROPIA' # 'PROPIA', 'EXTERNA_PDF'
-    activo: bool = True
+    flags_estado: int = 3 # Existence + Active
 
 class EmpresaTransporteCreate(EmpresaTransporteBase):
     pass
 
 class EmpresaTransporteUpdate(BaseModel):
     nombre: Optional[str] = None
+    # [V5]
     cuit: Optional[str] = None
     condicion_iva_id: Optional[UUID] = None
-    direccion: Optional[str] = None
-    localidad: Optional[str] = None
-    provincia_id: Optional[str] = None
     
     whatsapp: Optional[str] = None
     email: Optional[str] = None
     
-    direccion_despacho: Optional[str] = None
-    horario_despacho: Optional[str] = None
-    telefono_despacho: Optional[str] = None
-
     observaciones: Optional[str] = None
     web_tracking: Optional[str] = None
     telefono_reclamos: Optional[str] = None
-    servicio_retiro_domicilio: Optional[bool] = None
-    requiere_carga_web: Optional[bool] = None
     formato_etiqueta: Optional[str] = None
-    activo: Optional[bool] = None
+    flags_estado: Optional[int] = None
+
+from backend.clientes.schemas import DomicilioResponse
+
+class VinculoGeograficoResponse(BaseModel):
+    id: UUID
+    entidad_tipo: str
+    entidad_id: UUID
+    domicilio_id: UUID
+    alias: Optional[str] = None
+    flags_relacion: int = 0
+    activo: bool = True
+    domicilio: Optional[DomicilioResponse] = None
+
+    class Config:
+        from_attributes = True
 
 class EmpresaTransporteResponse(EmpresaTransporteBase):
     id: UUID
+    vinculos_geograficos: List[VinculoGeograficoResponse] = []
+    
     class Config:
         from_attributes = True
 

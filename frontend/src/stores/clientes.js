@@ -19,7 +19,10 @@ export const useClientesStore = defineStore('clientes', {
                 const fullParams = { include_inactive: true, ...params };
                 const response = await clientesService.getAll(fullParams);
                 if (Array.isArray(response.data)) {
-                    this.clientes = response.data;
+                    this.clientes = response.data.map(c => ({
+                        ...c,
+                        oc_required: !!(c.flags_estado & 64)
+                    }));
                 } else {
                     console.error("API Error: Expected Array but got", typeof response.data, response.data);
                     // [GY-FIX] Prevent App Crash if API returns HTML (Index.html)
@@ -39,9 +42,16 @@ export const useClientesStore = defineStore('clientes', {
                 // Update local list cache to ensure Grid/List view is fresh
                 const index = this.clientes.findIndex(c => c.id === id);
                 if (index !== -1) {
-                    this.clientes[index] = response.data;
+                    const client = {
+                        ...response.data,
+                        oc_required: !!(response.data.flags_estado & 64)
+                    };
+                    this.clientes[index] = client;
                 }
-                return response.data;
+                return {
+                    ...response.data,
+                    oc_required: !!(response.data.flags_estado & 64)
+                };
             } catch (error) {
                 console.error(`Error fetching cliente ${id}:`, error);
                 throw error;
@@ -61,8 +71,12 @@ export const useClientesStore = defineStore('clientes', {
         async createCliente(data) {
             try {
                 const response = await clientesService.create(data);
-                this.clientes.push(response.data);
-                return response.data;
+                const newClient = {
+                    ...response.data,
+                    oc_required: !!(response.data.flags_estado & 64)
+                };
+                this.clientes.push(newClient);
+                return newClient;
             } catch (error) {
                 throw error;
             }
@@ -73,11 +87,15 @@ export const useClientesStore = defineStore('clientes', {
                 const response = await clientesService.update(id, data);
                 // [GY-FIX] Use splice to guarantee Reactivity in Vue 3/Pinia for Array updates
                 // Direct assignment (this.clientes[index] = ...) sometimes fails to trigger deep watchers
+                const updatedClient = {
+                    ...response.data,
+                    oc_required: !!(response.data.flags_estado & 64)
+                };
                 const index = this.clientes.findIndex(c => c.id === id);
                 if (index !== -1) {
-                    this.clientes.splice(index, 1, response.data);
+                    this.clientes.splice(index, 1, updatedClient);
                 }
-                return response.data;
+                return updatedClient;
             } catch (error) {
                 throw error;
             }

@@ -5,6 +5,8 @@ from sqlalchemy import Column, String, Boolean, Enum, ForeignKey, Integer, Text,
 from sqlalchemy.dialects.postgresql import UUID as pgUUID
 from sqlalchemy.orm import relationship
 from backend.core.database import Base, GUID
+from backend.maestros.models import CondicionIva, Provincia
+from backend.contactos.models import VinculoGeografico
 
 class EmpresaTransporte(Base):
     """
@@ -20,48 +22,33 @@ class EmpresaTransporte(Base):
     cuit = Column(String(15), nullable=True)
     condicion_iva_id = Column(GUID(), ForeignKey("condiciones_iva.id"), nullable=True) # UUID FK
 
-    # Ubicación Central (Administrativa/Fiscal)
-    direccion = Column(String, nullable=True) 
-    localidad = Column(String, nullable=True)
-    provincia_id = Column(String(5), ForeignKey("provincias.id"), nullable=True)
-
     # Contacto Central
-    whatsapp = Column(String, nullable=True)
-    email = Column(String, nullable=True)
+    whatsapp = Column(String(30), nullable=True)
+    email = Column(String(100), nullable=True)
     
-    # Datos Operativos CABA (Recepción/Despacho)
-    direccion_despacho = Column(String, nullable=True) # Si difiere de central
-    horario_despacho = Column(String, nullable=True)
-    telefono_despacho = Column(String, nullable=True)
-
     observaciones = Column(Text, nullable=True)
-
-    web_tracking = Column(String, nullable=True) # URL genérica
-    telefono_reclamos = Column(String, nullable=True)
+    web_tracking = Column(String(255), nullable=True)
+    telefono_reclamos = Column(String(50), nullable=True)
     
-    # Flags operativos
-    servicio_retiro_domicilio = Column(Boolean, default=False) # Pick-up logic
-    requiere_carga_web = Column(Boolean, default=False) # Bloquea cierre si no se carga en portal
+    # [GENOMA 64-bit] Sovereign Flags (64-bit)
+    # Bit 0: EXISTENCE (1)
+    # Bit 1: ACTIVE (2)
+    # Bit 2: PICKUP (4) 
+    # Bit 3: RECOMMENDED (8)
+    # Bit 4: WH_PICKUP (16) 
+    # Bit 5: WEB_REQUIRED (32) 
+    # Bit 21: MIRROR (2097152) -> Despacho = Fiscal
+    flags_estado = Column(BigInteger, default=3, nullable=False) # 1+2 (Existence + Active)
+    
     formato_etiqueta = Column(Enum('PROPIA', 'EXTERNA_PDF', name='formato_etiqueta_enum'), default='PROPIA')
-    # [GENOMA 64-bit] Hybrid Flags (64-bit)
-    flags_estado = Column(BigInteger, default=0, nullable=False)
-    activo = Column(Boolean, default=True)
 
     # Relaciones
-    condicion_iva = relationship("backend.maestros.models.CondicionIva")
-    provincia = relationship("backend.maestros.models.Provincia")
+    condicion_iva = relationship("CondicionIva")
     
-    # [NUEVO V6 Multiplex] Relación Polimórfica Inversa
-    vinculos_rel = relationship(
-        "backend.contactos.models.Vinculo",
-        primaryjoin="and_(foreign(backend.contactos.models.Vinculo.entidad_id)==EmpresaTransporte.id, backend.contactos.models.Vinculo.entidad_tipo=='TRANSPORTE')",
-        viewonly=True,
-    )
-
-    # [V5 UNIVERSAL VAULT]
+    # [V5 UNIVERSAL VAULT] - Address Hub Integration
     vinculos_geograficos = relationship(
-        "backend.contactos.models.VinculoGeografico",
-        primaryjoin="and_(foreign(backend.contactos.models.VinculoGeografico.entidad_id)==EmpresaTransporte.id, backend.contactos.models.VinculoGeografico.entidad_tipo=='TRANSPORTE')",
+        "VinculoGeografico",
+        primaryjoin="and_(foreign(VinculoGeografico.entidad_id)==EmpresaTransporte.id, VinculoGeografico.entidad_tipo=='TRANSPORTE')",
         viewonly=True,
     )
 
@@ -97,12 +84,12 @@ class NodoTransporte(Base):
 
     # Relaciones
     empresa = relationship("EmpresaTransporte")
-    provincia = relationship("backend.maestros.models.Provincia")
+    provincia = relationship("Provincia")
     
     # [V5 UNIVERSAL VAULT]
     vinculos_geograficos = relationship(
-        "backend.contactos.models.VinculoGeografico",
-        primaryjoin="and_(foreign(backend.contactos.models.VinculoGeografico.entidad_id)==NodoTransporte.id, backend.contactos.models.VinculoGeografico.entidad_tipo=='NODO_TRANSPORTE')",
+        "VinculoGeografico",
+        primaryjoin="and_(foreign(VinculoGeografico.entidad_id)==NodoTransporte.id, VinculoGeografico.entidad_tipo=='NODO_TRANSPORTE')",
         viewonly=True,
     )
 

@@ -1,5 +1,5 @@
 # MANUAL OPERATIVO V5 - SONIDO LÍQUIDO
-**Versión del Documento:** 1.1 (Updated OMEGA 5.2)
+**Versión del Documento:** 1.2 (Updated OMEGA 5.8)
 **Estado:** VIGENTE
 **Código de Doctrina:** DEOU-2025
 
@@ -497,3 +497,20 @@ El padrón de domicilios ahora es independiente y soberano, funcionando como una
     - Al hacer clic en el contador de **Vínculos**, se abre un gestor que permite "Enganchar" múltiples clientes a una misma dirección física.
     - Ideal para sucursales compartidas o grupos empresarios (ej: Poblet y Gelato compartiendo fiscalía).
 *   **SEO Doctrine (F10)**: En cualquier formulario de domicilio, presione **F10** para guardar y cerrar instantáneamente.
+
+## CAPÍTULO 15: CIMIENTOS DEL PEDIDO INTELIGENTE (V5.8)
+A partir de la versión 5.8, el sistema incorpora inteligencia logística basada en el genoma de 64 bits.
+
+### 15.1 El Observador de Oficina (Poka-Yoke Roseti)
+El sistema ahora reconoce automáticamente el "Centro de Gravedad" operativo (**Roseti 1482**).
+- **Activación**: Al seleccionar un domicilio marcado como oficina (Bit 7), el panel de logística se configura instantáneamente en modo **Retiro en Planta**.
+- **Beneficio**: Elimina el error humano de cargar fletes externos o transportes para retiros locales, colapsando el árbol de selección de transporte para mayor claridad.
+
+### 15.2 Mandato de Orden de Compra (OC)
+Para clientes con requisitos administrativos estrictos (Bit 6), el sistema actúa como un guardián:
+- **Alerta Roja**: Si un cliente requiere OC obligatoria y el campo está vacío, el inspector de pedidos mostrará una advertencia pulsante en rojo.
+- **Validación**: Esta marca es crítica para asegurar que no se emitan remitos que luego sean rechazados por falta de referencia legal.
+
+### 15.3 Herencia Logística y Sello de Confianza
+- **Transporte Habitual**: El perfil del cliente ahora permite definir un transportista predeterminado. Al crear un pedido, el sistema lo selecciona automáticamente.
+- **Los Albertos (Certificados)**: Los transportes recomendados (Bit 3) aparecen destacados con un sello de confianza ("Alberto") en los buscadores dinámicos.

@@ -244,11 +244,18 @@
                 </div>
 
                 <!-- O.C. (Editable) -->
-                <div class="bg-blue-500/5 border-l-2 border-blue-500/30 p-3 rounded-r relative group/oc">
-                    <label class="block text-[10px] uppercase tracking-wider font-bold text-blue-500/70 mb-1">Orden de Compra (O.C.)</label>
+                <div class="bg-blue-500/5 border-l-2 p-3 rounded-r relative group/oc" :class="modelValue.cliente?.oc_required && !modelValue.oc ? 'border-red-500 bg-red-500/10' : 'border-blue-500/30'">
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="block text-[10px] uppercase tracking-wider font-bold" :class="modelValue.cliente?.oc_required && !modelValue.oc ? 'text-red-400' : 'text-blue-500/70'">
+                            Orden de Compra (O.C.)
+                        </label>
+                        <span v-if="modelValue.cliente?.oc_required" class="text-[8px] bg-red-500 text-white px-1.5 py-0.5 rounded font-black uppercase animate-pulse">Obligatoria</span>
+                    </div>
                     
                     <div v-if="!isEditingOC" class="flex justify-between items-start">
-                         <p class="text-xs text-blue-100/80 font-mono tracking-wide min-h-[1.5rem]">{{ modelValue.oc || '-' }}</p>
+                         <p class="text-xs font-mono tracking-wide min-h-[1.5rem]" :class="modelValue.cliente?.oc_required && !modelValue.oc ? 'text-red-200 italic' : 'text-blue-100/80'">
+                            {{ modelValue.oc || (modelValue.cliente?.oc_required ? 'FALTA REFERENCIA OC' : '-') }}
+                         </p>
                          <button 
                             @click="startEditingOC"
                             class="text-blue-500/30 hover:text-blue-400 opacity-0 group-hover/oc:opacity-100 transition-opacity no-zen"

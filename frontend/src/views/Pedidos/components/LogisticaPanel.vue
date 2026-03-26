@@ -156,12 +156,19 @@ onMounted(async () => {
         logisticaStore.fetchAllNodos()
     ]);
 
-    // Pre-selection logic for new orders
+    // Pre-selection logic for new orders (V5.8 Inheritance)
     if (!props.modelValue.transporte_id && props.modelValue.cliente_id) {
-        lastUsedId.value = await pedidosStore.fetchLastUsedTransport(props.modelValue.cliente_id);
-        if (lastUsedId.value) {
-            updateTransport(lastUsedId.value);
-            notification.add('Se pre-seleccionó el último transporte utilizado', 'info');
+        // 1. Try Habitual Transport from Client Profile
+        if (props.modelValue.cliente?.transporte_habitual_id) {
+             updateTransport(props.modelValue.cliente.transporte_habitual_id);
+             notification.add('Se aplicó el Transporte Habitual del cliente', 'success');
+        } else {
+            // 2. Fallback to Last Used
+            lastUsedId.value = await pedidosStore.fetchLastUsedTransport(props.modelValue.cliente_id);
+            if (lastUsedId.value) {
+                updateTransport(lastUsedId.value);
+                notification.add('Se pre-seleccionó el último transporte utilizado', 'info');
+            }
         }
     }
 });
@@ -249,8 +256,21 @@ const statusColorClass = computed(() => {
 // Updates
 const updateAddress = async (domicilioId) => {
     try {
-        await pedidosStore.updatePedido(props.modelValue.id, { domicilio_entrega_id: domicilioId });
-        props.modelValue.domicilio_entrega_id = domicilioId; // Optimistic
+        const dom = clientAddresses.value.find(d => d.id === domicilioId);
+        const isOffice = !!(dom?.flags_estado & 128); // Bit 7
+
+        const updateData = { domicilio_entrega_id: domicilioId };
+        
+        // [V5.8 POKA-YOKE] Office Observer
+        if (isOffice) {
+            updateData.metodo_entrega = 'RETIRO_LOCAL';
+            updateData.origen_logistico = 'RETIRO_EN_PLANTA';
+            updateData.transporte_id = null; // Colapsar árbol
+            notification.add('📍 Roseti Detectado: Modo "Retiro en Planta" activado.', 'info');
+        }
+
+        await pedidosStore.updatePedido(props.modelValue.id, updateData);
+        Object.assign(props.modelValue, updateData); // Optimistic update
         notification.add('Domicilio de entrega actualizado', 'success');
     } catch (e) {
         notification.add('Error actualizando domicilio', 'error');

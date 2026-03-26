@@ -24,7 +24,7 @@ if /i "%git_pull%"=="S" (
 echo.
 
 :: 2. LECTURA DE BITS Y CARGA DE COMANDO
-python scripts/manager_status.py read | python -c "import sys, subprocess; cmd=sys.stdin.read().split('STATUS_STR:')[1].strip(); subprocess.run(['clip.exe'], input='Gy, ejecutá el Protocolo ALFA.md y reportá estado. BitStatus: ' + cmd, encoding='utf16')"
+python scripts/manager_status.py read | python -c "import sys, subprocess; cmd=sys.stdin.read().split('STATUS_STR:')[1].strip(); subprocess.run(['clip.exe'], input='Gy, ejecutá el Canario V2.0 y reportá el estado del cielo. BitStatus: ' + cmd, encoding='utf16')"
 
 echo ========================================================
 echo        COMANDO COPIADO AL PORTAPAPELES

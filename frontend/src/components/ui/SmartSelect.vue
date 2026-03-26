@@ -385,6 +385,9 @@ onUnmounted(() => {
                             >
                                 <div class="flex items-center gap-2">
                                     <span v-if="opt._isPriority" class="text-xs">⭐</span>
+                                    <span v-if="opt.recommended" class="text-[10px] bg-amber-500/20 text-amber-500 px-1 rounded border border-amber-500/30 font-black uppercase tracking-tighter" title="Recomendado (Sello de Confianza)">
+                                        <i class="fas fa-certificate mr-0.5"></i> Alberto
+                                    </span>
                                     <span v-if="opt.sku" class="text-[10px] font-mono bg-gray-100 text-gray-500 px-1 rounded border border-gray-200" :class="{'bg-white/20 text-white border-white/30': index === highlightedIndex}">{{ opt.sku }}</span>
                                     <span>{{ opt.nombre || opt.razon_social || opt.descripcion }}</span>
                                 </div>

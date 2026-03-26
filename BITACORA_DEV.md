@@ -31,6 +31,15 @@
 - Datos de Visualización: Implementación de @property para razon_social y descripcion_display con carga lazy/eager calibrada.
 - Estado: NOMINAL GOLD (BitStatus 338).
 - Protocolo OMEGA: Cierre de Sesión Ejecutado. PIN 1974.
+# 2026-03-26 18:45
+- Protocolo Canario V2.0 (V5.5): Depuración de nomenclaturas. Script `canario_v2.py` certificado (0.029s - NOMINAL GOLD).
+- Misión Soberanía Logística (V5.4): Erradicación física de campos legacy en favor del genoma de 64 bits (`flags_estado`).
+- Misión Cimientos del Pedido Inteligente (V5.8): Inyección de flags soberanos `IS_OFFICE` (Bit 7), `OC_REQUIRED` (Bit 6) y `RECOMMENDED` (Bit 3).
+- Herencia Logística: Implementación de `transporte_habitual_id` en Clientes y auto-fill en Pedidos.
+- Poka-Yoke UI: Implementación de "Observador de Oficina" (Auto-Retiro en Roseti) y aviso de OC Obligatoria.
+- Estabilización Global: Resolución de 500s en `/contactos` (validadores Pydantic para SQLite JSON) y `/logistica/empresas` (refactor bitwise).
+- Estado: NOMINAL GOLD (Protocolo V5.8).
+- Protocolo OMEGA: Fase de Cierre Certificada. PIN 1974.
 # 2026-03-25 00:15
 - Purga de Transacciones (V5.3.6): Eliminación física de pedidos para restauración a Estado Virgen.
 - Preservación Logística: Exclusión explícita de remitos en la purga sistémica.

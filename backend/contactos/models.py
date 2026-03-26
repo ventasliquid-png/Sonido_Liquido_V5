@@ -8,6 +8,7 @@ from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 
 from backend.core.database import Base, GUID
+from backend.clientes.models import Domicilio
 
 class Persona(Base):
     """
@@ -131,7 +132,7 @@ class VinculoGeografico(Base):
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relaciones
-    domicilio = relationship("backend.clientes.models.Domicilio")
+    domicilio = relationship("Domicilio")
 
     def __repr__(self):
         return f"<VinculoGeografico({self.entidad_tipo}:{self.entidad_id} -> {self.domicilio_id})>"

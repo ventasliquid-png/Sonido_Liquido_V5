@@ -1,7 +1,8 @@
 from datetime import datetime
 from uuid import UUID
 from typing import List, Optional, Any, Dict
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+import json
 
 # --- VINCULOS / ROLES ---
 class VinculoRead(BaseModel):
@@ -12,6 +13,7 @@ class VinculoRead(BaseModel):
     tipo_contacto_id: Optional[str] = None # [Legacy V5]
     
     rol: Optional[str] = None
+    roles: List[str] = []
     area: Optional[str] = None
     activo: bool
     canales_laborales: Optional[List[Dict[str, Any]]] = None
@@ -19,6 +21,14 @@ class VinculoRead(BaseModel):
 
     class Config:
         from_attributes = True
+
+    @field_validator('canales_laborales', 'roles', mode='before')
+    @classmethod
+    def parse_json_fields(cls, v):
+        if isinstance(v, str):
+            try: return json.loads(v)
+            except: return []
+        return v
 
 class VinculoUpdate(BaseModel):
     # Update specific link fields
@@ -63,6 +73,14 @@ class ContactoRead(BaseModel):
 
     class Config:
         from_attributes = True
+
+    @field_validator('canales_personales', mode='before')
+    @classmethod
+    def parse_canales_personales(cls, v):
+        if isinstance(v, str):
+            try: return json.loads(v)
+            except: return []
+        return v
 
 class ContactoCreate(BaseModel):
     nombre: str

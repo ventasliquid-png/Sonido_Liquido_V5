@@ -63,6 +63,9 @@ class Cliente(Base):
     segmento_id = Column(GUID(), ForeignKey("segmentos.id"), nullable=True)
     vendedor_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True) # Account Manager
     
+    # [NEW V5.8] Inheritance: Favorite Transport
+    transporte_habitual_id = Column(GUID(), ForeignKey("empresas_transporte.id"), nullable=True)
+    
     # Motor de Precios V5
     estrategia_precio = Column(String, default='MAYORISTA_FISCAL') # 'Sabor' del Cliente
     
@@ -115,6 +118,8 @@ class Cliente(Base):
         foreign_keys="[Vinculo.entidad_id]"
     )
     
+    transporte_habitual = relationship("EmpresaTransporte")
+
     # [V5 UNIVERSAL VAULT]
     vinculos_geograficos = relationship(
         "VinculoGeografico",
@@ -202,6 +207,7 @@ class Domicilio(Base):
     # [GENOMA 64-bit] Sede Identity Parity
     # Asigna un bit único (2^0 a 2^63) para identificar esta sede en el CUIT único.
     bit_identidad = Column(BigInteger, default=0, nullable=False)
+    flags_estado = Column(BigInteger, default=0, nullable=False) # [V5.8] Genoma Soberano
 
     # Flags de uso
     # [V5.2 GOLD] New Naming Convention

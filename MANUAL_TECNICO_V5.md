@@ -1,6 +1,6 @@
 # 📘 MANUAL TÉCNICO V5: "INDEPENDENCIA"
-**Versión:** 1.4 Release (Updated V15.1.5 Blindado)
-**Fecha:** 19-03-2026
+**Versión:** 1.5 Release (Updated V5.8 Cimientos Inteligentes)
+**Fecha:** 26-03-2026
 
 ## 1. DOCTRINA DE PRECIOS: "LA ROCA Y LA MÁSCARA"
 El sistema V5 implementa una estrategia psicológica de precios:
@@ -212,3 +212,13 @@ Implementada el 25-03-2026 para otorgar control absoluto al operador sobre la in
 * **Modelo Editable E2E**: El flujo de ingesta (`process_pdf_ingestion` -> `create_from_ingestion`) ahora permite el override total de datos extraídos (Razón Social, CUIT, Ítems) antes de la persistencia.
 * **Blindaje de Mapeo SQLAlchemy**: Se corrigió el error `InvalidRequestError` causado por rutas de módulos circulares en las relaciones. Se estandarizó el uso de nombres de clase simples (`"Pedido"`, `"Cliente"`) en lugar de rutas completas (`backend.pedidos.models...`).
 * **Propiedades Dinámicas**: Se implementaron `@property` en el modelo para `razon_social` y `descripcion_display`, permitiendo visibilidad de datos sin necesidad de almacenamiento redundante en la tabla de remitos.
+
+## 24. ARQUITECTURA DE 64-BITS (GY GENOMA V5.8)
+Implementada para erradicar la deuda técnica de columnas booleanas legacy (`activo`, `direccion`, etc.).
+* **Unificación de Genoma**: Todas las entidades nucleares (`Cliente`, `Domicilio`, `EmpresaTransporte`) utilizan ahora `flags_estado` (BigInteger) como fuente de verdad operativa.
+* **Mapeo de Bits V5.8**:
+    - **Bit 6 (64)**: `OC_REQUIRED` (Clientes). Dispara el mandato de OC Obligatoria en el Pedido.
+    - **Bit 7 (128)**: `IS_OFFICE` (Domicilios). Identifica puntos de despacho internos (Roseti) y activa el **Poka-Yoke de Retiro**.
+    - **Bit 3 (8)**: `RECOMMENDED` (Transportes). Identifica transportistas preferenciales ("Albertos").
+* **Herencia de Transporte**: El `Cliente` posee ahora un puntero `transporte_habitual_id` que automatiza la selección logística en nuevos pedidos.
+* **Puente Pinia (Frontend)**: Los stores (`clientes.js`, `logistica.js`) actúan como traductores dinámicos de bits a flags booleanos, garantizando retrocompatibilidad total de la UI.

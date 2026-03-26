@@ -3,7 +3,7 @@ import { ref, reactive, watch, onMounted, onUnmounted, computed } from 'vue';
 import { useMaestrosStore } from '../../../stores/maestros';
 import { useLogisticaStore } from '../../../stores/logistica';
 import SmartSelect from '@/components/ui/SmartSelect.vue';
-import TransporteCanvas from './TransporteCanvas.vue';
+import TransporteCanvas from '@/views/Logistica/components/TransporteCanvas.vue';
 
 const props = defineProps({
     show: Boolean,

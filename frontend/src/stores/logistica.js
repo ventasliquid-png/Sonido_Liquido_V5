@@ -12,7 +12,12 @@ export const useLogisticaStore = defineStore('logistica', () => {
         loading.value = true;
         try {
             const response = await logisticaService.getEmpresas({ status: filter });
-            empresas.value = response.data;
+            // BRIDGE: Map flags_estado to legacy 'activo' and new V5.8 flags
+            empresas.value = response.data.map(emp => ({
+                ...emp,
+                activo: !!(emp.flags_estado & 2),
+                recommended: !!(emp.flags_estado & 8) // Bit 3
+            }));
         } catch (err) {
             error.value = err.message || 'Error al cargar empresas';
             console.error(err);
@@ -22,11 +27,22 @@ export const useLogisticaStore = defineStore('logistica', () => {
     }
 
     async function createEmpresa(data) {
+        // BRIDGE: Map 'activo' back to flags_estado for backend
+        if (data.activo !== undefined) {
+           if (!data.flags_estado) data.flags_estado = 1; 
+           if (data.activo) data.flags_estado |= 2;
+           else data.flags_estado &= ~2;
+        }
         loading.value = true;
         try {
             const response = await logisticaService.createEmpresa(data);
-            empresas.value.push(response.data);
-            return response.data;
+            const newEmp = {
+                ...response.data,
+                activo: !!(response.data.flags_estado & 2),
+                recommended: !!(response.data.flags_estado & 8)
+            };
+            empresas.value.push(newEmp);
+            return newEmp;
         } catch (err) {
             error.value = err.message || 'Error al crear empresa';
             throw err;
@@ -36,14 +52,25 @@ export const useLogisticaStore = defineStore('logistica', () => {
     }
 
     async function updateEmpresa(id, data) {
+        // BRIDGE: Map 'activo' back to flags_estado for backend
+        if (data.activo !== undefined) {
+           if (!data.flags_estado) data.flags_estado = 1;
+           if (data.activo) data.flags_estado |= 2;
+           else data.flags_estado &= ~2;
+        }
         loading.value = true;
         try {
             const response = await logisticaService.updateEmpresa(id, data);
+            const updatedEmp = {
+                ...response.data,
+                activo: !!(response.data.flags_estado & 2),
+                recommended: !!(response.data.flags_estado & 8)
+            };
             const index = empresas.value.findIndex(e => e.id === id);
             if (index !== -1) {
-                empresas.value[index] = response.data;
+                empresas.value[index] = updatedEmp;
             }
-            return response.data;
+            return updatedEmp;
         } catch (err) {
             error.value = err.message || 'Error al actualizar empresa';
             throw err;
@@ -139,7 +166,7 @@ export const useLogisticaStore = defineStore('logistica', () => {
             const empNodos = nodos.value.filter(n => n.empresa_id === emp.id);
             empNodos.forEach(nodo => {
                 options.push({
-                    id: nodo.id, // Careful with ID collision? No, UUIDs should be unique across tables usually, or we prefix
+                    id: nodo.id, 
                     nombre: `${emp.nombre} (${nodo.nombre_nodo})`,
                     type: 'nodo',
                     empresa_id: emp.id,
