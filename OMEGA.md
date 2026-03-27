@@ -23,7 +23,10 @@ No se considera una sesión finalizada sin:
 Antes del PUSH, el agente debe:
 1.  **Filtro de Tamaño**: Listar archivos que superen los 5MB (excepto .db si es intencional). Abortar si se detectan `.exe` o `.zip` no autorizados.
 2.  **Verificación de .gitignore**: Asegurar que no se estén subiendo binarios pesados por error.
-3.  **Ojo de Halcón (Auditoría V5.2)**: 
+3.  **Regla de Oro (Límite 100)**: 
+    - **PROHIBIDO** realizar un commit que incluya más de 100 archivos modificados/nuevos sin autorización explícita del usuario.
+    - Esta regla previene la subida accidental de directorios como `node_modules`.
+4.  **Ojo de Halcón (Auditoría V5.2)**: 
     - Ejecutar `python audit_v5.py`.
     - **Bloqueo de Seguridad**: Si `audit_v5.py` reporta archivos modificados que `git status` no tiene en Staging, o que no están en `ARCHIVOS_SESION`, la sesión queda BLOQUEADA. Prohibido solicitar PIN 1974. Corregir discrepancias antes de seguir.
 

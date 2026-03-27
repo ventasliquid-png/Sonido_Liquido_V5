@@ -20,11 +20,19 @@ Implementada en Marzo 2026, esta arquitectura desacopla los domicilios físicos 
     - **Bit 3 (8):** Temporal / Excepcional.
 * **Resolución de Domicilio**: El `RemitosService` ahora consulta la Bóveda para determinar el destino legal y físico del envío, eliminando la dependencia de columnas fijas en la tabla `pedidos`.
 
-## 3. ARQUITECTURA DE DESPLIEGUE
-* **Modo Instalación:** Se despliega el paquete completo con base de datos vacía.
-* **Modo Actualización:** Se reemplazan solo carpetas `frontend` y `backend`. NUNCA se toca el archivo `.db` del usuario ni el archivo `.env`.
+## 4. DESPLIEGUE DE TERMINALES REMOTAS (V5-LS SATÉLITE)
+Implementado en Marzo 2026 para el operador Tomy. Esta configuración permite la independencia total de la terminal de producción.
+* **Configuración de Red**:
+    - **Host**: 192.168.0.34
+    - **Puerto API**: 8090 (Backend Uvicorn/FastAPI)
+    - **Puerto WEB**: 5174 (Frontend Python Server)
+* **Punteros de Base de Datos**:
+    - El sistema utiliza `V5_LS_MASTER.db` como identidad legítima (Malla de Oro).
+    - Los ruteos internos han sido sintonizados para ignorar la base de desarrollo `pilot_v5x.db`.
+* **Lanzador Maestro**: Se utiliza `LANZAR_V5_SOBERANA.bat` para el arranque dual armonizado.
+* **Firewall Awareness**: Las llamadas de Axios han sido inyectadas con rutas absolutas al puerto 8090 para evitar bloqueos por políticas de seguridad del navegador.
 
-## 4. SOPORTE TÉCNICO Y GEM
+## 5. SOPORTE TÉCNICO Y GEM
 El soporte de Nivel 1 es realizado por el Agente IA "Ayuda HAWE".
 * **Fuente de Verdad:** El Agente lee este manual directamente desde Google Drive.
 * **Instrucción al Usuario:** Ante cualquier error (pantalla blanca, error 500), el usuario debe copiar el mensaje y pegarlo en el chat de Ayuda.
