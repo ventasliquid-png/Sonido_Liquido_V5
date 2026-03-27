@@ -25,9 +25,11 @@ abs_db_path = os.path.abspath(os.path.join(ROOT_DIR, "pilot_v5x.db"))
 os.environ["DATABASE_URL"] = f"sqlite:///{abs_db_path}"
 print(f"--- [BOOT] Usando DATABASE (FORZADO ABSOLUTO): {os.environ['DATABASE_URL']} ---")
     
-# FORCE DISABLE IOWA (Cloud Costs Saving)
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = ""
-os.environ["ENABLE_AI"] = "False"
+# ACTIVATE AI (Vertex AI) - V14.0 Handshake Ready
+new_creds_path = os.path.abspath(os.path.join(ROOT_DIR, ".google_credentials_nueva.json", "sistema-liquid-sound-dea230ca8250.json"))
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = new_creds_path
+os.environ["ENABLE_AI"] = "True"
+print(f"--- [BOOT] Google Credentials: {new_creds_path} ---")
 
 # backend/main.py
 from fastapi import FastAPI, Request
@@ -169,26 +171,16 @@ async def lifespan(app: FastAPI):
         print(f"--- [SESIÓN #{count}]: Contador verificado. Backup disparado: {triggered} ---")
     except Exception as e:
         print(f"[X] [BACKUP ERROR]: Falla en lógica de sesión 4/6: {e}")
-    # ---------------------------------------------------
-
-    # --- [Parche de Autenticación (ACTIVO)] ---
-    # --- [INICIO PARCHE V10.12] ---
-    # MURO CIELO CERRADO: Bloqueo de chequeo de credenciales externas
-    # La ruta ahora es relativa a la raíz (donde corre Uvicorn), no a backend/
-    # creds_path_file = ".google_credentials"
-    # google_creds_env = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+    # ---------------------------------------------------    # --- [Parche de Autenticación V14] ---
+    google_creds_env = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
     
-    # Verificar si las credenciales de Google están disponibles
-    # if google_creds_env and os.path.exists(google_creds_env):
-    #     print(f"[OK] Verificación de arranque: GOOGLE_APPLICATION_CREDENTIALS... ENCONTRADO.")
-    # elif os.path.exists(creds_path_file):
-    #     print(f"[OK] Verificación de arranque: GOOGLE_APPLICATION_CREDENTIALS... ENCONTRADO (archivo local).")
-    #     # FIX: Set the env var so the AI client can find it
-    #     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.abspath(creds_path_file)
-    # else:
-    #     # Advertencia, no error - el servidor puede arrancar sin IA
-    print(f"[WARN] CIELO CERRADO ACTIVADO. GOOGLE_APPLICATION_CREDENTIALS bloqueado.")
-    print(f"   El servidor arrancará forzosamente sin funcionalidades de IA externas.")
+    if google_creds_env and os.path.exists(google_creds_env):
+        print(f"[OK] [CIELO ABIERTO]: GOOGLE_APPLICATION_CREDENTIALS... ENCONTRADO.")
+        print(f" [HANDSHAKE] Ruta: {google_creds_env}")
+    else:
+        print(f"[ERR] [CIELO CERRADO]: GOOGLE_APPLICATION_CREDENTIALS NO ENCONTRADO.")
+        print(f"       Ruta fallida: {google_creds_env}")
+        print(f"       El servidor arrancará forzosamente sin funcionalidades de IA externas.")
    
     print("--- [Atenea V5 Backend]: Secuencia de arranque finalizada. ---")
     yield

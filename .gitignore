@@ -40,3 +40,8 @@ _GY/
 *.key
 *.p12
 backend/modules/sabueso/certs/
+# Credenciales de Google
+.google_credentials*
+*.json
+__pycache__/
+*.pyc
