@@ -123,14 +123,26 @@
                   <span class="text-[8px] font-bold text-cyan-500/30 uppercase tracking-[0.2em]">Fecha de Alta</span>
                   <span class="font-mono text-[10px] text-cyan-500/60 transition-all hover:text-cyan-400 cursor-default">{{ formatDate(form.fecha_alta) }}</span>
               </div>
-              <!-- Status Switch (Header) -->
-              <div class="flex items-center justify-between bg-black/40 rounded-lg px-2 py-1 border border-white/10 h-[26px]">
-                   <span class="text-[8px] font-bold uppercase truncate mr-2" :class="form.activo ? 'text-green-400' : 'text-red-400'">
-                       {{ form.activo ? 'OPERATIVO' : 'INACTIVO' }}
-                   </span>
-                   <button @click="form.activo = !form.activo" class="relative inline-flex h-3 w-6 items-center rounded-full transition-colors focus:outline-none bg-white/10 shrink-0" :class="form.activo ? 'bg-green-500/50' : 'bg-red-500/50'">
-                       <span class="inline-block h-2 w-2 transform rounded-full bg-white transition-transform" :class="form.activo ? 'translate-x-3' : 'translate-x-0.5'" />
-                   </button>
+               <div class="flex items-center gap-1">
+                 <!-- Status Switch (Header) -->
+                 <div class="flex items-center justify-between bg-black/40 rounded-lg px-2 py-1 border border-white/10 h-[26px]">
+                    <span class="text-[8px] font-bold uppercase truncate mr-2" :class="form.activo ? 'text-green-400' : 'text-red-400'">
+                        {{ form.activo ? 'OPERATIVO' : 'INACTIVO' }}
+                    </span>
+                    <button @click="form.activo = !form.activo" class="relative inline-flex h-3 w-6 items-center rounded-full transition-colors focus:outline-none bg-white/10 shrink-0" :class="form.activo ? 'bg-green-500/50' : 'bg-red-500/50'">
+                        <span class="inline-block h-2 w-2 transform rounded-full bg-white transition-transform" :class="form.activo ? 'translate-x-3' : 'translate-x-0.5'" />
+                    </button>
+                 </div>
+
+                 <!-- [POKA-YOKE V5.9] OC Required Switch (Bit 6) -->
+                 <div class="flex items-center justify-between bg-black/40 rounded-lg px-2 py-1 border border-white/10 h-[26px]">
+                    <span class="text-[8px] font-bold uppercase truncate mr-2" :class="isOCRequired ? 'text-cyan-400' : 'text-white/20'">
+                        {{ isOCRequired ? 'OC REQUERIDA' : 'OC OPCIONAL' }}
+                    </span>
+                    <button @click="toggleBit6" class="relative inline-flex h-3 w-6 items-center rounded-full transition-colors focus:outline-none bg-white/10 shrink-0" :class="isOCRequired ? 'bg-cyan-500/50' : 'bg-white/5'">
+                        <span class="inline-block h-2 w-2 transform rounded-full bg-white transition-transform" :class="isOCRequired ? 'translate-x-3' : 'translate-x-0.5'" />
+                    </button>
+                 </div>
                </div>
               <div class="h-6 w-px bg-white/10 mx-2"></div>
               <button v-if="!isNew" @click="goToNew" class="text-xs font-bold text-white/40 hover:text-white uppercase tracking-tighter">
@@ -2026,6 +2038,16 @@ const hasSabuesoAlert = computed(() => {
     // Only triggers if Bit 2 (Gold) is also active
     return (flags & 16) && (flags & 4);
 })
+
+// [POKA-YOKE V5.9] OC Logic
+const isOCRequired = computed(() => !!(form.value.flags_estado & 64));
+const toggleBit6 = () => {
+    if (isOCRequired.value) {
+        form.value.flags_estado &= ~64;
+    } else {
+        form.value.flags_estado |= 64;
+    }
+};
 
 </script>
 

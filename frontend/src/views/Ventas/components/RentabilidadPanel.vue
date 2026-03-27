@@ -37,22 +37,22 @@
                         <i class="fas fa-dollar-sign text-6xl text-orange-500"></i>
                     </div>
 
-                     <div class="flex justify-between mb-2 relative z-10">
+                      <div class="flex justify-between mb-2 relative z-10">
                         <span class="text-xs text-orange-300 font-medium">Costo Total</span>
-                        <span class="font-mono text-white">$ 356,760.00</span>
+                        <span class="font-mono text-white">$ {{ totalCosto.toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</span>
                     </div>
                     <div class="flex justify-between mb-2 relative z-10">
-                        <span class="text-xs text-green-400 font-medium">Venta Neta</span>
-                        <span class="font-mono text-white">$ 492,480.00</span>
+                        <span class="text-xs text-green-400 font-medium">Venta Neta (Subtotal)</span>
+                        <span class="font-mono text-white">$ {{ subtotal.toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</span>
                     </div>
                     <div class="h-px bg-white/10 my-3 relative z-10"></div>
                     <div class="flex justify-between items-center relative z-10">
-                        <span class="font-bold text-sm text-white uppercase tracking-wider">Utilidad</span>
+                        <span class="font-bold text-sm text-white uppercase tracking-wider">Utilidad Bruta</span>
                         <div class="text-right">
-                             <div class="font-mono font-bold text-xl text-orange-400">$ 135,720.00</div>
+                             <div class="font-mono font-bold text-xl text-orange-400">$ {{ utilidad.toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</div>
                              <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-orange-500/20 border border-orange-500/30 mt-1">
                                 <i class="fas fa-arrow-up text-[10px] text-orange-500"></i>
-                                <span class="text-xs text-orange-400 font-bold">27.5%</span>
+                                <span class="text-xs text-orange-400 font-bold">{{ rentabilidadGlobal.toFixed(1) }}%</span>
                              </div>
                         </div>
                     </div>
@@ -72,15 +72,15 @@
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-white/5 text-xs">
-                                <tr class="hover:bg-white/5 transition-colors">
-                                    <td class="px-3 py-2 text-gray-300">Surgizime E2 1Lt</td>
-                                    <td class="px-3 py-2 text-right font-mono text-gray-400">$ 7,620</td>
-                                    <td class="px-3 py-2 text-right font-mono text-emerald-400 font-bold">31%</td>
-                                </tr>
-                                <tr class="hover:bg-white/5 transition-colors">
-                                    <td class="px-3 py-2 text-gray-300">Surgizime E2 5Lts</td>
-                                    <td class="px-3 py-2 text-right font-mono text-gray-400">$ 28,980</td>
-                                    <td class="px-3 py-2 text-right font-mono text-emerald-400 font-bold">31%</td>
+                                <tr v-for="item in (items || [])" :key="item.id" class="hover:bg-white/5 transition-colors">
+                                    <td class="px-3 py-2 text-gray-300 max-w-[150px] truncate">{{ item.descripcion }}</td>
+                                    <td class="px-3 py-2 text-right font-mono text-gray-400">
+                                        $ {{ (Number(item.producto_obj?.costos?.costo_reposicion || 0) * item.cantidad).toLocaleString('es-AR') }}
+                                    </td>
+                                    <td class="px-3 py-2 text-right font-mono font-bold" 
+                                        :class="(item.total - (item.producto_obj?.costos?.costo_reposicion || 0) * item.cantidad) > 0 ? 'text-emerald-400' : 'text-red-400'">
+                                        {{ calculateItemMargin(item) }}%
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
@@ -93,12 +93,20 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted } from 'vue';
+import { onMounted, onUnmounted, computed } from 'vue';
 
 const props = defineProps({
     modelValue: {
         type: Boolean,
         default: false
+    },
+    items: {
+        type: Array,
+        default: () => []
+    },
+    subtotal: {
+        type: Number,
+        default: 0
     }
 });
 
@@ -110,6 +118,31 @@ const toggle = () => {
 
 const close = () => {
     emit('update:modelValue', false);
+};
+
+
+
+const totalCosto = computed(() => {
+    if (!props.items) return 0;
+    return props.items.reduce((sum, item) => {
+        const costo = Number(item.producto_obj?.costos?.costo_reposicion || 0);
+        return sum + (costo * item.cantidad);
+    }, 0);
+});
+
+const utilidad = computed(() => props.subtotal - totalCosto.value);
+
+const rentabilidadGlobal = computed(() => {
+    if (props.subtotal === 0) return 0;
+    return (utilidad.value / props.subtotal) * 100;
+});
+
+const calculateItemMargin = (item) => {
+    if (!item) return 0;
+    const vta = Number(item.total) || 0;
+    const cto = Number(item.producto_obj?.costos?.costo_reposicion || 0) * (Number(item.cantidad) || 0);
+    if (vta === 0) return 0;
+    return (((vta - cto) / vta) * 100).toFixed(1);
 };
 
 // Keyboard Shortcuts Logic

@@ -9,7 +9,7 @@
                         <i class="fas fa-arrow-left"></i>
                     </button>
                     <h1 class="text-lg font-bold text-emerald-400 tracking-wider flex items-center gap-3">
-                        <i class="fas fa-file-invoice"></i> NUEVO PEDIDO
+                        <i class="fas fa-file-invoice"></i> {{ route.params.id ? `FICHA DEL PEDIDO #${route.params.id}` : 'NUEVO PEDIDO' }}
                     </h1>
                 </div>
                 <div class="flex gap-3">
@@ -126,23 +126,38 @@
                     </div>
 
                     <!-- 4. CUIT -->
-                    <div class="col-span-2">
+                    <div class="col-span-1">
                         <label class="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">CUIT</label>
                         <input type="text" 
                              :value="clienteSeleccionado?.cuit || '---'"
                              readonly
-                             class="w-full bg-white/5 border border-white/10 rounded-lg py-2 px-3 text-base font-mono text-gray-300 text-center cursor-default"
+                             class="w-full bg-white/5 border border-white/10 rounded-lg py-2 px-1 text-[11px] font-mono text-gray-300 text-center cursor-default"
                         >
                     </div>
 
-                    <!-- 5. OC -->
-                    <div class="col-span-1">
-                        <label class="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">O. Compra</label>
-                        <input type="text" 
-                            v-model="nroOC"
-                            placeholder="---" 
-                            class="w-full bg-transparent border-b border-white/10 focus:border-emerald-500/50 text-white text-base py-2 focus:outline-none transition-colors placeholder-white/10 text-center"
-                        >
+                    <!-- 5. OC (Poka-Yoke V5.9) -->
+                    <div class="col-span-2">
+                        <label class="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">
+                            O. Compra <span v-if="isOCRequired && !omitirOC" class="text-red-500 font-bold">*</span>
+                        </label>
+                        <div class="flex items-center gap-2">
+                            <input type="text" 
+                                ref="nroOCRef"
+                                v-model="nroOC"
+                                @keydown.enter.prevent="focusFirstRow"
+                                :placeholder="isOCRequired ? 'OC Requerida (o S/N)' : '---'" 
+                                class="flex-1 bg-transparent border-b border-white/10 focus:border-emerald-500/50 text-white text-sm py-2 focus:outline-none transition-all placeholder-white/20 text-center"
+                                :class="{ 'shadow-[0_0_10px_#00ffff] border-[#00ffff] border rounded px-2': isOCRequired && !isOCValid && !nroOC }"
+                            >
+                            <!-- Deslizador de Override -->
+                            <div v-if="isOCRequired" class="flex flex-col items-center shrink-0">
+                                 <span class="text-[7px] text-gray-600 font-bold uppercase leading-none mb-1">Omitir</span>
+                                 <label class="relative inline-flex items-center cursor-pointer scale-75">
+                                    <input type="checkbox" v-model="omitirOC" class="sr-only peer">
+                                    <div class="w-7 h-3.5 bg-gray-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:border-gray-300 after:border after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-cyan-500"></div>
+                                </label>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- 6. ENTREGA -->
@@ -563,7 +578,7 @@
                               <span class="font-outfit text-3xl font-bold text-white tracking-tight">$ {{ totalFinal.toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</span>
                          </div>
                          <button @click="savePedido" 
-                                 :disabled="isSaving || items.length === 0 || !clienteSeleccionado"
+                                 :disabled="isSaving || items.length === 0 || !clienteSeleccionado || !isOCValid"
                                  class="bg-emerald-500 hover:bg-emerald-400 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 uppercase tracking-wider text-sm">
                             <i v-if="isSaving" class="fas fa-spinner fa-spin"></i>
                             <i v-else class="fas fa-save"></i>
@@ -582,7 +597,11 @@
         </div>
         
         <!-- RENTABILIDAD PANEL (Moving to Root for Fixed Positioning Safety) -->
-        <RentabilidadPanel v-model="showCostDrawer" />
+        <RentabilidadPanel 
+            v-model="showCostDrawer" 
+            :items="items"
+            :subtotal="subtotal"
+        />
 
         <!-- [GY-UX] CLIENTE INSPECTOR MODAL -->
         <Teleport to="body">
@@ -717,6 +736,8 @@ const loadPedido = async (id) => {
         nroPedido.value = p.id;
         fechaPedido.value = p.fecha ? p.fecha.split('T')[0] : new Date().toISOString().split('T')[0];
         notas.value = p.nota || '';
+        nroOC.value = p.oc || '';
+        omitirOC.value = !!p.flags_estado && (p.flags_estado & 64) ? false : false; // Placeholder if we had oc_override in DB, but for now just load OC
         // TODO: Handle Order Status specifically if needed (locked state?)
 
         // Hydrate Client
@@ -724,10 +745,10 @@ const loadPedido = async (id) => {
         // We might need to handle "Client not in list" if it's external, but for now try find
         const foundCliente = clientesStore.clientes.find(c => c.id === p.cliente_id);
         if (foundCliente) {
-            selectCliente(foundCliente);
+            selectCliente(foundCliente, false);
         } else if (p.cliente) {
              // Fallback: use embedded client data if available
-             selectCliente(p.cliente);
+             selectCliente(p.cliente, false);
         }
 
         // Hydrate Items
@@ -778,9 +799,38 @@ const showNotes = ref(false); // Toggle for Notes Widget
 const nroPedido = ref('---');
 const fechaPedido = ref(new Date().toISOString().split('T')[0]);
 const fechaEntrega = ref('');
-const nroOC = ref('');
 const notas = ref('');
 const expandedRows = ref(new Set());
+
+// [POKA-YOKE V5.9] OC Control State
+const omitirOC = ref(false);
+const nroOC = ref('');
+
+const isOCRequired = computed(() => {
+    return !!(clienteSeleccionado.value?.flags_estado & 64);
+});
+
+const isOCValid = computed(() => {
+    if (!isOCRequired.value) return true;
+    if (omitirOC.value) return true;
+    const cleanOC = (nroOC.value || '').trim().toUpperCase();
+    if (cleanOC === 'S/N') return true;
+    return cleanOC.length > 0;
+});
+
+// Regex & S/N Logic for OC
+watch(nroOC, (val) => {
+    if (!val) return;
+    // Regex: Alfanuméricos, /, ., : y espacio
+    const regex = /^[a-zA-Z0-9\/.: ]*$/;
+    if (!regex.test(val)) {
+        nroOC.value = val.replace(/[^a-zA-Z0-9\/.: ]/g, '');
+    }
+    // Auto-sync S/N with omitirOC
+    if (val.trim().toUpperCase() === 'S/N') {
+        omitirOC.value = true;
+    }
+});
 const toggleDetails = (index) => {
     const newSet = new Set(expandedRows.value);
     if (newSet.has(index)) {
@@ -991,6 +1041,7 @@ const altaProductoContext = () => {
 const clientInputRef = ref(null);
 const inputQtyRef = ref(null);
 const inputPriceRef = ref(null);
+const nroOCRef = ref(null);
 const inputDescPctRef = ref(null);
 const itemsContainerRef = ref(null); // Ref for auto-scroll
 
@@ -1002,6 +1053,11 @@ const focusPrice = () => {
 const focusDescPct = () => {
     inputDescPctRef.value?.focus();
     inputDescPctRef.value?.select();
+};
+
+const focusFirstRow = () => {
+    inputSkuRef.value?.focus();
+    setTimeout(() => inputSkuRef.value?.select(), 50);
 };
 // Deprecated: clientEditUrl removed in favor of irAFicha method
 
@@ -1228,7 +1284,7 @@ const selectProductHighlighted = () => {
 };
 
 // --- METHODS ---
-const selectCliente = async (cliente) => {
+const selectCliente = async (cliente, triggerFocus = true) => {
     // 1. Initial set for instant UI feedback
     clienteSeleccionado.value = cliente;
     busquedaCliente.value = cliente.razon_social;
@@ -1247,7 +1303,9 @@ const selectCliente = async (cliente) => {
         console.warn("Could not load full client details, running with partial data", e);
     }
 
-    setTimeout(() => inputSkuRef.value?.focus(), 100);
+    if (triggerFocus) {
+        setTimeout(() => nroOCRef.value?.focus(), 100);
+    }
 };
 
 const activateSearch = (field) => {
@@ -1605,7 +1663,9 @@ const savePedido = async () => {
                 nota: "" // Future use
             })),
             nota: notas.value,
-            oc: nroOC.value,
+            oc: nroOC.value.trim(),
+            oc_override: omitirOC.value,
+            estado: "PENDIENTE",
             fecha_compromiso: fechaEntrega.value ? new Date(fechaEntrega.value).toISOString() : null,
             descuento_global_porcentaje: Number(descuentoGlobalPorcentaje.value) || 0,
             descuento_global_importe: Number(descuentoGlobalValor.value) || 0,

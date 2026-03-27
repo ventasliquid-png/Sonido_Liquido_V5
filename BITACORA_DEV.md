@@ -1,3 +1,20 @@
+# 2026-03-26 23:15
+- Misión Ficha del Pedido Soberana (OMEGA V5.5): Transición total del Grid a Ficha #ID.
+- Precisión Decimal: Erradicación de TypeErrors via `Decimal(str())` en 8 puntos críticos de Pedidos.
+- Poka-Yoke OC: Borde Azul Fluo, asterisco dinámico y validación de Bit 6 (OC_REQUIRED).
+- UX Mouse-Free: Calibración de Foco (Cliente -> OC -> Items) y navegación por Enter optimizada.
+- Inteligencia de Negocios: Dinamización del Panel de Rentabilidad (F8) con Costos de Reposición reales.
+- Backend: Expansión de `ProductoCosto` con `margen_sugerido` para análisis de rendimiento.
+- Estado: NOMINAL GOLD (Protocolo V8.6).
+- Protocolo OMEGA: Cierre de Sesión Parte 2 Ejecutado. PIN 1974.
+# 2026-03-26 18:45
+- Misión Logística & Binding N/M (V5.2 GOLD Parte 3): Resolución de orfandad "Desconocido" en ingesta.
+- Expansión de Pydantic Schema: Inyección de cliente_id explícito vía @property sin costo N+1.
+- Erradicación de Remitos: Endpoint DELETE robusto con interceptación en cascada para pedidos inútiles.
+- Poka-Yoke UI: Botón Print (Header) aislado del botón Delete (Footer) en RemitoListView.
+- Arquitectura Logística: Definido plan de transición Transporte -> Clientes en `ANALISIS_TRANSPORTE_LOGISTICA.md`.
+- Estado: NOMINAL GOLD (BitStatus 338).
+- Protocolo OMEGA: Cierre de Sesión Parte 3 Ejecutado. PIN 1974.
 # 2026-03-21 13:25
 - Protocolo ALFA V5.2 Ejecutado. BitStatus 338 (Trinchera/Paridad/Sabueso/OrigenCA).
 - Extensión de persistencia de Remitos: adición de bultos y valor_declarado.

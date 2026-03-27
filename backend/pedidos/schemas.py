@@ -23,6 +23,7 @@ class PedidoCreate(BaseModel):
     fecha: Optional[datetime] = None
     nota: Optional[str] = None
     oc: Optional[str] = None
+    oc_override: Optional[bool] = False
     estado: Optional[str] = "PENDIENTE"
     tipo_facturacion: Optional[str] = "X"
     origen: Optional[str] = "DIRECTO"
@@ -44,6 +45,7 @@ class PedidoUpdate(BaseModel):
     fecha: Optional[datetime] = None
     nota: Optional[str] = None
     oc: Optional[str] = None
+    oc_override: Optional[bool] = None
     estado: Optional[str] = None
     tipo_facturacion: Optional[str] = None
     origen: Optional[str] = None

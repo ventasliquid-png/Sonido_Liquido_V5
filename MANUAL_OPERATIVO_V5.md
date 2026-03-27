@@ -8,6 +8,7 @@
 
 ## Control de Cambios
 - **V5.3 (Vector Update):** Implementación de Historial Vectorial y Toggle de Excel en Carga Táctica.
+- **V5.8 (Omega Intelligence):** Cimientos del Pedido Inteligente, OC Fluo, Foco UX y Rentabilidad Dinámica.
 - **V6.0 (Hybrid Engine):** Motor de Precios Híbrido, Jerarquía de Rendimiento, Búsqueda por SKU y Protocolo de Higiene de Datos.
 
 ## 1. Carga Táctica (Tactical Loader)
@@ -207,12 +208,17 @@ El centro de control de ventas (`Tablero Pedidos`) ofrece una vista densa y ráp
     *   🟣 **INTERNO:** Pedidos administrativos o de movimiento interno.
 *   **Filtros:** Barra superior para filtrar rápidamente por estado.
 
-### 6.2 Cargador Táctico (GridLoader)
-Interfaz de alta velocidad para la toma de pedidos. Visualmente similar a una hoja de cálculo.
-*   **Navegación:** Diseñada para usarse sin mouse (Enter para nueva fila, Flechas para navegar).
-*   **Inteligencia de Precios:** Al seleccionar un cliente y un producto, el sistema busca automáticamente la **última venta** de ese producto a ese cliente y sugiere ese precio (respetando la historia comercial real).
-*   **Consumidor Final:** Lógica especial que omite validaciones estrictas de CUIT/Domicilio para ventas rápidas de mostrador.
-*   **Exportación:** Generación instantánea de Excel con el detalle del pedido para procesar en sistemas legacy o enviar por mail.
+### 6.2 Cargador Táctico / Ficha del Pedido
+Interfaz de alta velocidad para la toma de pedidos. Evolucionada de una grilla simple a una **Ficha Soberana**.
+*   **Identidad Dinámica**: El encabezado muestra **"FICHA DEL PEDIDO #ID"** al consultar pedidos existentes, permitiendo una rápida auditoría visual.
+*   **Navegación Mouse-Free (Foco UX)**:
+    - Selección de Cliente -> Salto automático a campo **OC**.
+    - `ENTER` sobre OC -> Salto automático al primer **SKU** del cuerpo.
+    - `ENTER` sobre SKU -> Salto a **Cantidad**.
+*   **Inteligencia de Precios**: Al seleccionar un cliente y un producto, el sistema busca automáticamente la **última venta** real de ese producto a ese cliente y sugiere ese precio (respetando la historia comercial real).
+*   **Análisis de Rentabilidad (F8)**: Panel dinámico que calcula Utilidad Bruta y Margen por ítem en tiempo real basándose en el **Costo de Reposición** actual.
+*   **Consumidor Final**: Lógica especial que omite validaciones estrictas de CUIT/Domicilio para ventas rápidas de mostrador.
+*   **Exportación**: Generación instantánea de Excel con el detalle del pedido para procesar en sistemas legacy o enviar por mail.
 
 
 
@@ -508,7 +514,7 @@ El sistema ahora reconoce automáticamente el "Centro de Gravedad" operativo (**
 
 ### 15.2 Mandato de Orden de Compra (OC)
 Para clientes con requisitos administrativos estrictos (Bit 6), el sistema actúa como un guardián:
-- **Alerta Roja**: Si un cliente requiere OC obligatoria y el campo está vacío, el inspector de pedidos mostrará una advertencia pulsante en rojo.
+- **Alerta Neón Blue**: Si un cliente requiere OC obligatoria y el campo está vacío, el campo mostrará un **borde azul cian fluo** con sombra pulsante. El asterisco rojo indica obligatoriedad persistente.
 - **Validación**: Esta marca es crítica para asegurar que no se emitan remitos que luego sean rechazados por falta de referencia legal.
 
 ### 15.3 Herencia Logística y Sello de Confianza

@@ -6,6 +6,7 @@ import pandas as pd
 from io import BytesIO
 from fastapi.responses import Response
 from datetime import datetime
+from decimal import Decimal
 
 from backend.core.database import get_db
 from backend.pedidos import models, schemas
@@ -77,12 +78,22 @@ def create_pedido_tactico(
         if not cliente:
             raise HTTPException(status_code=404, detail="Cliente no encontrado")
 
-        # 2. Crear Pedido Header
+        # [POKA-YOKE V5.9] Validación de Bit 6 (OC Requerida)
+        # Si el cliente tiene Bit 6 (64) y no hay OC, se requiere override o 'S/N'
+        if cliente.flags_estado & 64:
+            is_sn = (pedido_data.oc or "").strip().upper() == "S/N"
+            if not pedido_data.oc and not pedido_data.oc_override and not is_sn:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="ORDEN DE COMPRA REQUERIDA: El cliente tiene activada la protección de OC obligatoria. "
+                           "Ingrese el número, escriba 'S/N' o active el deslizador de omisión."
+                )
         # Si el usuario mandó un ID manual (simulado en nota o algo), aqui usamos el autoincrement de la BD
         # El "Nro Pedido" manual del frontend por ahora se guarda en la NOTA del header si el usuario lo pone ahi, 
         # o podríamos forzar el ID si la BD lo permitiera (pero es serial).
         # Asumimos que la "sugerencia" del frontend es visual para que coincida con el ID que se va a generar.
         
+        print(f"[DEBUG] Creando Pedido - OC: '{pedido_data.oc}' - Override: {pedido_data.oc_override}")
         nuevo_pedido = models.Pedido(
             cliente_id=pedido_data.cliente_id,
             fecha=pedido_data.fecha,
@@ -147,8 +158,8 @@ def create_pedido_tactico(
             
             # [LOGISTICA V7] Registrar Reserva de Stock
             if producto.stock_reservado is None: 
-                producto.stock_reservado = 0.0
-            producto.stock_reservado += item.cantidad
+                producto.stock_reservado = Decimal("0.0")
+            producto.stock_reservado += Decimal(str(item.cantidad))
 
         # 4. Actualizar Total (Restando descuento global y aplicando IVA si corresponde)
         raw_neto = total_pedido - (nuevo_pedido.descuento_global_importe or 0.0)
@@ -170,6 +181,8 @@ def create_pedido_tactico(
 
     except Exception as e:
         db.rollback()
+        if isinstance(e, HTTPException):
+            raise e
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error creando pedido: {str(e)}")
@@ -464,7 +477,7 @@ def update_pedido(
         for old_item in old_items:
             prod = old_item.producto
             if prod.stock_reservado is not None:
-                prod.stock_reservado -= old_item.cantidad
+                prod.stock_reservado -= Decimal(str(old_item.cantidad))
                 
         # 2. Delete old items
         db.query(models.PedidoItem).filter(models.PedidoItem.pedido_id == pedido_id).delete()
@@ -488,8 +501,8 @@ def update_pedido(
             # [LOGISTICA V7] Reserva de Stock (Nuevo Item)
             producto = db.query(Producto).get(it['producto_id'])
             if producto:
-                if producto.stock_reservado is None: producto.stock_reservado = 0.0
-                producto.stock_reservado += it['cantidad']
+                if producto.stock_reservado is None: producto.stock_reservado = Decimal("0.0")
+                producto.stock_reservado += Decimal(str(it['cantidad']))
         
         # We need to commit the deletes/inserts now so subsequent sum() works if we don't use the list directly
         db.flush() 
@@ -555,8 +568,8 @@ def add_pedido_item(
     
     # [LOGISTICA V7] Incrementar Reserva
     if producto.stock_reservado is None:
-        producto.stock_reservado = 0.0
-    producto.stock_reservado += item_create.cantidad
+        producto.stock_reservado = Decimal("0.0")
+    producto.stock_reservado += Decimal(str(item_create.cantidad))
     
     # Update Total (Recalculate with IVA logic)
     raw_neto = sum(i.subtotal for i in pedido.items) - (pedido.descuento_global_importe or 0.0)
@@ -601,8 +614,8 @@ def update_pedido_item(
         diff = new_qty - old_qty
         
         prod = item.producto
-        if prod.stock_reservado is None: prod.stock_reservado = 0.0
-        prod.stock_reservado += diff
+        if prod.stock_reservado is None: prod.stock_reservado = Decimal("0.0")
+        prod.stock_reservado += Decimal(str(diff))
     
     for key, value in update_data.items():
         setattr(item, key, value)
@@ -650,7 +663,7 @@ def delete_pedido_item(item_id: int, db: Session = Depends(get_db)):
     # [LOGISTICA V7] Liberar Reserva
     prod = item.producto
     if prod.stock_reservado is not None:
-        prod.stock_reservado -= item.cantidad
+        prod.stock_reservado -= Decimal(str(item.cantidad))
         
     db.delete(item)
     db.commit()
@@ -708,8 +721,8 @@ def clone_pedido(pedido_id: int, db: Session = Depends(get_db)):
         
         # [LOGISTICA V7] Reserva de Stock
         prod = item.producto
-        if prod.stock_reservado is None: prod.stock_reservado = 0.0
-        prod.stock_reservado += item.cantidad
+        if prod.stock_reservado is None: prod.stock_reservado = Decimal("0.0")
+        prod.stock_reservado += Decimal(str(item.cantidad))
         
     db.commit()
     
@@ -737,7 +750,7 @@ def delete_pedido(pedido_id: int, db: Session = Depends(get_db)):
     for item in pedido.items:
         prod = item.producto
         if prod.stock_reservado is not None:
-            prod.stock_reservado -= item.cantidad
+            prod.stock_reservado -= Decimal(str(item.cantidad))
             
     db.delete(pedido)
     db.commit()

@@ -9,7 +9,10 @@ Se ha completado la **Cimentación del Pedido Inteligente (V5.8)**, logrando la 
 - [x] **64-bit Genome**: Migración de `flags_estado` en todas las entidades.
 - [x] **Poka-Yoke Roseti**: Activación automática de Retiro en Planta.
 - [x] **Inheritance Engine**: Herencia de transporte habitual del cliente.
-- [x] **OC Mandate**: Bloqueo visual preventivo por falta de OC.
+- [x] **OC Mandate**: Bloqueo visual preventivo por falta de OC (Borde Neón).
+- [x] **Decimal Sovereignty**: Error de tipos erradicado en backend de pedidos.
+- [x] **Ficha del Pedido**: Identidad inteligente y flujo de foco mouse-free.
+- [x] **Performance Dinámico**: Panel de rentabilidad F8 con cálculos reales.
 
 ## 🛡️ Certificación Técnica
 - **Canario V2.0**: 0.029s (Nominal < 0.06s).
