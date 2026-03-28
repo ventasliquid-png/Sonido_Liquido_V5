@@ -1,0 +1,33 @@
+C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\pydantic\_internal\_config.py:383: UserWarning: Valid config keys have changed in V2:
+* 'orm_mode' has been renamed to 'from_attributes'
+  warnings.warn(message, UserWarning)
+Traceback (most recent call last):
+  File "C:\dev\Sonido_Liquido_V5\backend\pedidos\router.py", line 86, in create_pedido_tactico
+    raise HTTPException(
+fastapi.exceptions.HTTPException: 400: ORDEN DE COMPRA REQUERIDA: El cliente tiene activada la protecci¾n de OC obligatoria. Ingrese el n·mero, escriba 'S/N' o active el deslizador de omisi¾n.
+INFO:httpx:HTTP Request: POST http://testserver/pedidos/tactico "HTTP/1.1 500 Internal Server Error"
+--- [BOOT] Cargando variables de entorno desde: C:\dev\Sonido_Liquido_V5\.env ---
+--- [BOOT] Usando DATABASE (FORZADO ABSOLUTO): sqlite:///C:\dev\Sonido_Liquido_V5\pilot_v5x.db ---
+--- [Atenea V10.E]: Core/Config (IA, Seguridad JWT, CORS) cargado. ---
+--- [DATABASE] Usando DATABASE_URL de entorno: sqlite:///C:\dev\Sonido_Liquido_V5\pilot_v5x.db ---
+--- [Atenea V11.4]: Capa ORM (GUID Unified) inicializada. ---
+--- [Atenea V10.10]: Auth/Models ('Usuario', 'Rol') definidos. ---
+--- [Atenea V10.E]: Auth/Service (L¾gica AuthN/AuthZ y Tokens) definida. ---
+--- [Atenea V10.E]: Auth/Schemas (Pydantic con Tokens) definidos. ---
+--- [Atenea V10.E]: Auth/Router (Seguridad y Login) definido. ---
+--- [Atenea V10.E]: Auth/Dependencies (Seguridad JWT) definidas. ---
+--- [LOAD] Remitos Router (SoberanÝa Total V5.1) cargado con Úxito ---
+--- [Atenea V5 Backend]: M¾dulo 'main.py' V10.16 (Modular Estable) cargado y listo. ---
+Testing with Client: GELATO SA (2fbeb6eb-ffc6-49ff-81d1-e324f410eed6) - Flags: 77
+Traceback (most recent call last):
+RE-Check Flags: 77
+
+--- TEST 1: No OC, No Override (Should Fail) ---
+Status: 500
+FULL RESPONSE: {"detail":"Error creando pedido: 400: ORDEN DE COMPRA REQUERIDA: El cliente tiene activada la protecci¾n de OC obligatoria. Ingrese el n·mero, escriba 'S/N' o active el deslizador de omisi¾n."}
+  File "C:\dev\Sonido_Liquido_V5\verify_poka_yoke.py", line 84, in <module>
+    verify_poka_yoke()
+  File "C:\dev\Sonido_Liquido_V5\verify_poka_yoke.py", line 49, in verify_poka_yoke
+    assert res.status_code == 400
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

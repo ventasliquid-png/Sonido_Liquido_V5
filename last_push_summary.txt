@@ -1,0 +1,23 @@
+4911169e Protocolo OMEGA: Perfección Soberana (Ficha del Pedido & Decimal Fix) - Larga Vida a la Limpieza Técnica
+.gitignore
+BITACORA_DEV.md
+INFORMES_HISTORICOS/INFORME_PERFECCION_SOBERANA_2026_03_26.md
+INFORME_CIERRE_SESION.md
+MANUAL_OPERATIVO_V5.md
+_GY/_MD/CAJA_NEGRA.md
+backend/pedidos/__pycache__/__init__.cpython-311.pyc
+backend/pedidos/__pycache__/models.cpython-311.pyc
+backend/pedidos/__pycache__/pricing.cpython-311.pyc
+backend/pedidos/__pycache__/router.cpython-311.pyc
+backend/pedidos/__pycache__/schemas.cpython-311.pyc
+backend/pedidos/router.py
+backend/pedidos/schemas.py
+backend/pedidos/services/__pycache__/excel_export.cpython-311.pyc
+backend/productos/__pycache__/models.cpython-311.pyc
+backend/productos/__pycache__/router.cpython-311.pyc
+backend/productos/__pycache__/schemas.cpython-311.pyc
+backend/productos/models.py
+backend/productos/schemas.py
+frontend/src/views/Hawe/ClientCanvas.vue
+frontend/src/views/Ventas/PedidoCanvas.vue
+frontend/src/views/Ventas/components/RentabilidadPanel.vue

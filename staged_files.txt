@@ -1,0 +1,24 @@
+
+M  .gitignore
+M  BITACORA_DEV.md
+A  INFORMES_HISTORICOS/INFORME_PERFECCION_SOBERANA_2026_03_26.md
+M  INFORME_CIERRE_SESION.md
+M  MANUAL_OPERATIVO_V5.md
+A  _GY/_MD/CAJA_NEGRA.md
+A  backend/pedidos/__pycache__/__init__.cpython-311.pyc
+A  backend/pedidos/__pycache__/models.cpython-311.pyc
+A  backend/pedidos/__pycache__/pricing.cpython-311.pyc
+A  backend/pedidos/__pycache__/router.cpython-311.pyc
+A  backend/pedidos/__pycache__/schemas.cpython-311.pyc
+M  backend/pedidos/router.py
+M  backend/pedidos/schemas.py
+A  backend/pedidos/services/__pycache__/excel_export.cpython-311.pyc
+A  backend/productos/__pycache__/models.cpython-311.pyc
+A  backend/productos/__pycache__/router.cpython-311.pyc
+A  backend/productos/__pycache__/schemas.cpython-311.pyc
+M  backend/productos/models.py
+M  backend/productos/schemas.py
+M  frontend/src/views/Hawe/ClientCanvas.vue
+M  frontend/src/views/Ventas/PedidoCanvas.vue
+M  frontend/src/views/Ventas/components/RentabilidadPanel.vue
+

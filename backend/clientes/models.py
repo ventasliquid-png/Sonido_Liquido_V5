@@ -11,7 +11,9 @@ from datetime import datetime, timezone
 from backend.core.database import Base, GUID
 from backend.maestros.models import CondicionIva, ListaPrecios, Segmento, Provincia
 from backend.auth.models import Usuario # [GY-FIX-IMPORT] Explicit Import for Relationship
+from backend.contactos.models import Vinculo, VinculoGeografico # [GY-FIX] Resolve NameError in primaryjoin
 from sqlalchemy.orm import foreign, remote
+
 from sqlalchemy import Table
 
 # --- [V5.2 GOLD] N:M Bridge ---

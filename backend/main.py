@@ -26,7 +26,7 @@ os.environ["DATABASE_URL"] = f"sqlite:///{abs_db_path}"
 print(f"--- [BOOT] Usando DATABASE (FORZADO ABSOLUTO): {os.environ['DATABASE_URL']} ---")
     
 # ACTIVATE AI (Vertex AI) - V14.0 Handshake Ready
-new_creds_path = os.path.abspath(os.path.join(ROOT_DIR, ".google_credentials_nueva.json", "sistema-liquid-sound-dea230ca8250.json"))
+new_creds_path = os.path.abspath(os.path.join(ROOT_DIR, "Clave-Jason.jason", "sistema-liquid-sound-e6aefd316f1d.json"))
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = new_creds_path
 os.environ["ENABLE_AI"] = "True"
 print(f"--- [BOOT] Google Credentials: {new_creds_path} ---")

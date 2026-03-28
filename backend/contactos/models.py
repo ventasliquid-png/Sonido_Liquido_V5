@@ -8,7 +8,7 @@ from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 
 from backend.core.database import Base, GUID
-from backend.clientes.models import Domicilio
+# from backend.clientes.models import Domicilio
 
 class Persona(Base):
     """

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Módulo Core (V10.10): Configuración y Constantes de IA.
 Contiene las variables de configuración para los modelos de IA.
 
@@ -7,10 +7,9 @@ Añadidas constantes para la generación de Tokens JWT.
 """
 import os
 
-# --- Configuración de IA y Región ---
-APP_LOCATION = "us-central1"
+# --- Configuración de IA (Autonomía Local) ---
 EMBEDDINGS_MODEL_NAME = "text-embedding-004"
-GEMINI_MODEL_NAME = "gemini-pro"
+GEMINI_MODEL_NAME = "gemini-3.1-pro"
 
 # --- [INICIO FASE 10.E (SEGURIDAD)] ---
 

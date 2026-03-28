@@ -333,11 +333,17 @@ def create_producto(producto: schemas.ProductoCreate, db: Session = Depends(get_
         if "codigo_visual" in error_info:
             detail = "El Código Visual ya existe en otro producto."
         elif "sku" in error_info:
-            detail = "El SKU generado ya existe."
+            # [ABR V12] Check for Inactive SKU
+            inactive_prod = db.query(models.Producto).filter(models.Producto.sku == producto.sku, models.Producto.activo == False).first()
+            if inactive_prod:
+                detail = f"ABR V12: El SKU {producto.sku} existe pero está INACTIVO. Use el flujo de reactivación (Doble Aceptación)."
+            else:
+                detail = "El SKU generado ya existe."
         elif "rubro_id" in error_info:
             detail = "El Rubro seleccionado no es válido."
         
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail)
+
         
     except Exception as e:
         db.rollback()
@@ -429,21 +435,37 @@ def check_producto_integrity(producto_id: int, db: Session = Depends(get_db)):
 @router.delete("/{producto_id}/hard", status_code=status.HTTP_204_NO_CONTENT)
 def hard_delete_producto(producto_id: int, db: Session = Depends(get_db)):
     from sqlalchemy.exc import IntegrityError
+    from backend.clientes.constants import ClientFlags
+    
     db_producto = db.query(models.Producto).filter(models.Producto.id == producto_id).first()
     if not db_producto:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
+    
+    # [LEY DE VIRGINIDAD UNIVERSAL]
+    # 1. Check Bit 1 (VIRGINITY)
+    is_virgin = (db_producto.flags_estado & ClientFlags.VIRGINITY)
+    
+    # 2. Check Physical dependencies (PedidoItems)
+    from backend.pedidos.models import PedidoItem
+    has_history = db.query(PedidoItem).filter(PedidoItem.producto_id == producto_id).first()
+    
+    if not is_virgin or has_history:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="VIOLACIÓN DE LEY DE VIRGINIDAD: No se puede eliminar físicamente un producto con historial o que no sea virgen."
+        )
     
     try:
         db.delete(db_producto)
         db.commit()
     except IntegrityError:
-        # Rollback automatically handled by session context usually, but explicit here
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="No se puede eliminar el producto porque tiene registros asociados (ventas)."
+            detail="Error de integridad: El producto tiene registros vinculados imprevistos."
         )
     return None
+
 
 # --- PROVEEDORES ALTERNATIVOS (V5.4) ---
 

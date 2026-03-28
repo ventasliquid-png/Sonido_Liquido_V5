@@ -20,8 +20,16 @@ class ClientFlags:
     # Bit 3 (8): ESTRUCTURA V14 (Protocolo Apolo)
     V14_STRUCT = 8
     
-    # Bit 4 (16): SABUESO_ALERT (Alerta de líos/deudas)
-    SABUESO_ALERT = 16
+    # Bit 4 (16): DOC_A_PERMITTED (Paz Binaria / Fiscal V14)
+    DOC_A_PERMITTED = 16
+    
+    # Bit 5 (32): IS_GHOST (Operaciones Ocultas / Sin Rastro)
+    IS_GHOST = 32
+    
+    # Bit 6 (64): OC_REQUIRED (Poka-Yoke V5.9)
+    # Note: Grep showed this bit used in router.py for OC check.
+    OC_REQUIRED = 64
+
     
     # --- [NIVELES COMBINADOS] ---
     LEVEL_NEW = 15    # 1+2+4+8 (Virgen Validado V14)

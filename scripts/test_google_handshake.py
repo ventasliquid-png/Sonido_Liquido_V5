@@ -20,12 +20,12 @@ def test_handshake():
         print("[!] ERROR: No se encuentran las credenciales.")
         return False
         
-    print(f"[*] Inicializando VertexAIEmbeddings (Region: {config.APP_LOCATION})...")
+    print(f"[*] Inicializando VertexAIEmbeddings (Modelo: {config.EMBEDDINGS_MODEL_NAME})...")
     try:
         embeddings = VertexAIEmbeddings(
-            model_name=config.EMBEDDINGS_MODEL_NAME,
-            location=config.APP_LOCATION
+            model_name=config.EMBEDDINGS_MODEL_NAME
         )
+
         
         print("[*] Ejecutando Handshake (Generando embedding de prueba)...")
         test_text = "Handshake test for Sonido Liquido V5"
@@ -40,11 +40,10 @@ def test_handshake():
 
 if __name__ == "__main__":
     # Aseguro que las variables estén seteadas como en main.py (para el test directo)
-    if not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
-        # Si corremos el script solo, buscamos la ruta manualmente
-        root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        new_creds = os.path.join(root_dir, ".google_credentials_nueva.json", "sistema-liquid-sound-dea230ca8250.json")
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = new_creds
+    # Buscamos la ruta manualmente para el test
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    new_creds = os.path.join(root_dir, "Clave-Jason.jason", "sistema-liquid-sound-e6aefd316f1d.json")
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = new_creds
 
     success = test_handshake()
     if success:

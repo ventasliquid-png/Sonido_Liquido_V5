@@ -1,0 +1,61 @@
+Traceback (most recent call last):
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlite3.OperationalError: no such column: clientes.transporte_habitual_id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\dev\Sonido_Liquido_V5\debug_500.py", line 27, in <module>
+    stats = get_dashboard_stats(db)
+            ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\dev\Sonido_Liquido_V5\backend\stats\router.py", line 21, in get_dashboard_stats
+    total_clientes = db.query(Cliente).count()
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\query.py", line 3146, in count
+    self._legacy_from_self(col).enable_eagerloads(False).scalar()
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\query.py", line 2835, in scalar
+    ret = self.one()
+          ^^^^^^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\query.py", line 2808, in one
+    return self._iter().one()  # type: ignore
+           ^^^^^^^^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\query.py", line 2857, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+                                                  ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py", line 2351, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+             ^^^^^^^^^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute
+    return meth(
+           ^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\sql\elements.py", line 526, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py", line 2355, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such column: clientes.transporte_habitual_id
+[SQL: SELECT count(*) AS count_1 
+FROM (SELECT clientes.id AS clientes_id, clientes.razon_social AS clientes_razon_social, clientes.nombre_fantasia AS clientes_nombre_fantasia, clientes.cuit AS clientes_cuit, clientes.codigo_interno AS clientes_codigo_interno, clientes.legacy_id_bas AS clientes_legacy_id_bas, clientes.flags_estado AS clientes_flags_estado, clientes.whatsapp_empresa AS clientes_whatsapp_empresa, clientes.web_portal_pagos AS clientes_web_portal_pagos, clientes.datos_acceso_pagos AS clientes_datos_acceso_pagos, clientes.observaciones AS clientes_observaciones, clientes.condicion_iva_id AS clientes_condicion_iva_id, clientes.lista_precios_id AS clientes_lista_precios_id, clientes.segmento_id AS clientes_segmento_id, clientes.vendedor_id AS clientes_vendedor_id, clientes.transporte_habitual_id AS clientes_transporte_habitual_id, clientes.estrategia_precio AS clientes_estrategia_precio, clientes.saldo_actual AS clientes_saldo_actual, clientes.activo AS clientes_activo, clientes.requiere_auditoria AS clientes_requiere_auditoria, clientes.contador_uso AS clientes_contador_uso, clientes.historial_cache AS clientes_historial_cache, clientes.estado_arca AS clientes_estado_arca, clientes.datos_arca_last_update AS clientes_datos_arca_last_update, clientes.fecha_alta AS clientes_fecha_alta, clientes.created_at AS clientes_created_at, clientes.updated_at AS clientes_updated_at 
+FROM clientes) AS anon_1]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)

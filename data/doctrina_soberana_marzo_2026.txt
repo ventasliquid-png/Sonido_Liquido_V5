@@ -1,0 +1,19 @@
+# DOCTRINA DE SOBERANÍA Y SISTEMA TÁCTICO (MARZO 2026)
+
+## I. CANON DE PENSAMIENTO (IA)
+1.  **MODELO SOBERANO**: El sistema opera bajo la inteligencia de **Gemini 3.1 Pro**.
+2.  **AUTONOMÍA DE RECURSOS**: Se prohíbe la dependencia de regiones de nube. El sistema debe ser portable y autónomo.
+3.  **SQL BYPASS**: La recuperación de memoria táctica se realiza mediante acceso directo a SQL para garantizar integridad frente a fallos de frameworks externos.
+
+## II. CANON DE ARQUITECTURA (8 BYTES)
+1.  **LOGIA DE CONTROL**: Todo módulo, tabla o entidad core DEBE poseer un campo `flags_estado` de 8 bytes (BigInteger).
+2.  **COMPUERTAS LÓGICAS**: Los bits 0-63 se reservan para el tablero de control del ADN de la entidad.
+3.  **LEY DE VIRGINIDAD UNIVERSAL**: Queda terminantemente prohibido el borrado físico de cualquier registro que no sea virgen (Bit 1 / VIRGINITY == 0 o rastro histórico detectado).
+
+## III. CANON DE MOVIMIENTO (PRODUCTOS)
+1.  **ABR V12 (DOBLE ACEPTACIÓN)**: El sistema no rechaza SKUs inactivos; propone su reactivación. El SKU es eterno.
+2.  **PRECISIÓN ROCA**: Los costos se gestionan con 4 decimales de precisión.
+3.  **VETO ABSOLUTO**: La voluntad humana (Carlos) prevalece sobre el motor de precios. Los manual overrides son ley sagrada.
+
+---
+*Firmado por Gy (Antigravity) bajo supervisión del Comandante.*
