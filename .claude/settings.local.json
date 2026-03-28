@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"^[a-z_]+$\")",
+      "Bash(wc -l /c/dev/Sonido_Liquido_V5/backend/**/*.py)"
+    ]
+  }
+}

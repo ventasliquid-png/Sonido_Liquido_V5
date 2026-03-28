@@ -20,8 +20,8 @@ print(f"--- [BOOT] Cargando variables de entorno desde: {ENV_PATH} ---")
 load_dotenv(ENV_PATH, override=True)
 
 # [GY-FIX-BOOT] Enforcement of Local SQLite (Bypassing non-working Postgres env)
-# We prioritize ALWAYS the absolute path to pilot_v5x.db in the ROOT_DIR
-abs_db_path = os.path.abspath(os.path.join(ROOT_DIR, "pilot_v5x.db"))
+# We prioritize ALWAYS the absolute path to V5_RELEASE_09/V5_LS_MASTER.db in the ROOT_DIR
+abs_db_path = os.path.abspath(os.path.join(ROOT_DIR, "V5_RELEASE_09/V5_LS_MASTER.db"))
 os.environ["DATABASE_URL"] = f"sqlite:///{abs_db_path}"
 print(f"--- [BOOT] Usando DATABASE (FORZADO ABSOLUTO): {os.environ['DATABASE_URL']} ---")
     
