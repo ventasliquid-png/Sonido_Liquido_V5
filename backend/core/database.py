@@ -8,11 +8,8 @@ import uuid
 from urllib.parse import urlparse, quote_plus
 from dotenv import dotenv_values
 
-# --- [FIX IP FANTASMA & RUTA ABSOLUTA] ---
-# --- [FIX IP FANTASMA & RUTA ABSOLUTA] ---
-config = dotenv_values(".env")
-# DATABASE_URL_FROM_ENV_FILE = config.get("DATABASE_URL")
-DATABASE_URL_FROM_ENV_FILE = None # FORCE LOCAL FALLBACK
+# --- [SINTONÍA FINA V12] ---
+# Eliminación de overrides manuales.
 
 class GUID(TypeDecorator):
     """Platform-independent GUID type.
@@ -52,55 +49,36 @@ class GUID(TypeDecorator):
 
 def _get_clean_database_url():
     """
-    Construye la URL de conexión ignorando variables de entorno viciadas.
-    Prioriza os.environ (inyectado por main.py) y luego el archivo .env local.
-    FALLBACK: Si falla, busca pilot.db en la RAÍZ DEL PROYECTO (absoluto).
+    Obtiene la URL de base de datos desde el entorno (.env).
+    Si es SQLite con path relativo, lo convierte a absoluto respecto a la raíz.
     """
-    # 1. Prioridad: Variable de entorno explícita (fijada por main.py con path absoluto)
-    env_url = os.environ.get("DATABASE_URL")
-    if env_url:
-        print(f"--- [DATABASE] Usando DATABASE_URL de entorno: {env_url} ---")
-        return env_url
-    pass
-
-    # 2. Prioridad: Archivo .env local (fallback)
-    url_candidate = DATABASE_URL_FROM_ENV_FILE
+    url = os.environ.get("DATABASE_URL")
     
-    # [GY-FIX-BOOT] Detectar Ruta Absoluta a pilot_v5x.db (Raíz Proyecto)
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.abspath(os.path.join(current_dir, "..", ".."))
-    pilot_db_path = os.path.abspath(os.path.join(project_root, "pilot_v5x.db"))
+    if not url:
+        # Fallback de emergencia a la raíz del proyecto
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.abspath(os.path.join(current_dir, "..", ".."))
+        db_path = os.path.join(project_root, "pilot_v5x.db")
+        url = f"sqlite:///{db_path}"
+        print(f"--- [DATABASE] ALERTA: DATABASE_URL no definida. Usando fallback: {url} ---")
+        return url
+
+    if url.startswith("sqlite:///"):
+        path = url.replace("sqlite:///", "")
+        if path.startswith("./") or not os.path.isabs(path):
+            # Resolver path relativo a la raíz del proyecto
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.abspath(os.path.join(current_dir, "..", ".."))
+            clean_path = path.lstrip("./")
+            abs_path = os.path.abspath(os.path.join(project_root, clean_path))
+            url = f"sqlite:///{abs_path}"
+            print(f"--- [DATABASE] Path relativo resuelto a: {url} ---")
+        else:
+            print(f"--- [DATABASE] Usando path absoluto: {url} ---")
+    else:
+        print(f"--- [DATABASE] Usando URL externa: {url} ---")
     
-    # FORZAMOS LA RUTA ABSOLUTA PARA EVITAR INCONSISTENCIAS DE ./
-    url_candidate = f"sqlite:///{pilot_db_path}"
-    print(f"--- [DATABASE] Usando RUTA ABSOLUTA FORZADA: {url_candidate} ---")
-    return url_candidate
-
-    try:
-        parsed = urlparse(url_candidate)
-        user = parsed.username or "postgres"
-        password = parsed.password or os.getenv("DB_PASSWORD")
-        host = parsed.hostname or "104.197.57.226" 
-        port = parsed.port or "5432"
-        dbname = parsed.path.lstrip("/") or "postgres"
-        query = parsed.query
-
-        if host == "34.95.172.190":
-            host = "104.197.57.226"
-
-        password_escaped = quote_plus(password)
-        netloc = f"{user}:{password_escaped}@{host}:{port}"
-        
-        clean_url = f"postgresql://{netloc}/{dbname}"
-        if query:
-            clean_url += f"?{query}"
-            
-        print(f"[OK] CONEXION DB: {host}:{port} ({dbname})")
-        return clean_url
-
-    except Exception as e:
-        print(f"[ERROR] Error parseando URL de DB: {e}")
-        return url_candidate
+    return url
 
 # --- [INICIO] ---
 DATABASE_URL = _get_clean_database_url()
