@@ -5,7 +5,7 @@ import subprocess
 import time
 
 # CONFIGURACIÓN GEOMETRÍA LÓGICA
-DB_PATH = 'pilot_v5x.db'
+DB_PATH = r'C:\dev\Sonido_Liquido_V5\pilot_v5x.db'
 UUID_LAVIMAR = 'e1be0585cd3443efa33204d00e199c4e'
 TARGET_FLAGS = 8205
 TRINCHERA_FLAGS = 8207

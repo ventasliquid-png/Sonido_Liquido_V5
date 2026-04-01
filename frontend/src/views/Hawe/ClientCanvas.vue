@@ -1529,7 +1529,7 @@ const saveCliente = async () => {
         if (isNew.value) {
             payload.domicilios = domicilios.value;
             const resCreated = await store.createCliente(payload)
-            emit('save', resCreated?.data || payload)
+            emit('save', resCreated || payload)
             notificationStore.add('Cliente creado exitosamente', 'success')
         } else {
             // [GY-FIX] Drop domicilios from main payload as backend Pydantic 'ClienteUpdate' doesn't support them.

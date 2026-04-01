@@ -1562,6 +1562,8 @@ const handleGlobalKeys = (e) => {
     }
     
     if (e.key === 'F10') {
+        // Si el modal de cliente está abierto, dejar que ClientCanvas lo maneje
+        if (showClientModal.value) return;
         e.preventDefault();
         // Prevent double trigger if already saving or conditions not met
         if (!isSaving.value && items.value.length > 0 && clienteSeleccionado.value) {

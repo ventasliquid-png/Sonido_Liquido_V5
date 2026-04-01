@@ -19,18 +19,18 @@
                         v-model="username" 
                         type="text" 
                         required 
-                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
                     >
                 </div>
 
                 <div>
                     <label for="password" class="block text-sm font-medium text-gray-700">Contraseña</label>
-                    <input 
-                        id="password" 
-                        v-model="password" 
-                        type="password" 
-                        required 
-                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    <input
+                        id="password"
+                        v-model="password"
+                        type="password"
+                        required
+                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
                     >
                 </div>
 
@@ -70,10 +70,7 @@ const handleLogin = async () => {
         params.append('username', username.value);
         params.append('password', password.value);
 
-        // Usamos axios directo en lugar de la instancia 'api' para evitar
-        // interferencias con headers globales (application/json) o interceptores.
-        // [DEBUG-LAN] Dynamic IP for localhost/LAN support
-        const response = await axios.post(`http://${window.location.hostname}:8000/auth/token`, params, {
+        const response = await api.post('/auth/token', params, {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
             }
