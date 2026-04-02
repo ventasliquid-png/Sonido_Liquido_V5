@@ -46,3 +46,10 @@ __pycache__/
 *.pyc
 
 Clave-Jason.jason/
+
+# Export folders (análisis externo, no versionar)
+_CODE_EXPORT/
+_DOCS_EXPORT/
+
+# Archivos pesados locales
+mapa_sistema.txt

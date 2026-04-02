@@ -67,6 +67,11 @@ El soporte de Nivel 1 es realizado por el Agente IA "Ayuda HAWE".
 ## 9. PROTOCOLO PUENTE RAR-V5 (ARCA)
 Incorporado en V6.3, este módulo conecta V5 con el legacy RAR V1 para validación fiscal.
 *   **Arquitectura:** `AfipBridgeService` carga dinámicamente el módulo `Conexion_Blindada.py` de RAR.
+*   **Resolución de OpenSSL (desde V5 02/04/2026):** El ejecutable se resuelve en orden:
+    1. Variable de entorno `OPENSSL_PATH` (configurable en `.env`).
+    2. Búsqueda automática en `PATH` del sistema via `shutil.which("openssl")`.
+    3. Fallback: lista de rutas conocidas Windows (Git for Windows / System32).
+    Ver `.env.example` para documentación de la variable.
 *   **Puente Multi-Identidad (CUIT 20/30):** Debido a discrepancias en permisos fiscales, el puente conmuta automáticamente entre certificados:
     *   **Identidad Personal (20132967572):** Utilizada para servicios de Consulta de Padrón A13.
     *   **Identidad Empresa (30715603973):** Utilizada para servicios de Emisión (MTXCA/WSFE).
