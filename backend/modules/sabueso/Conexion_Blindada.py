@@ -1,4 +1,4 @@
-import sys, os, subprocess, base64, re, json
+import sys, os, subprocess, base64, re, json, shutil
 from datetime import datetime, timedelta
 from lxml import etree
 from zeep import Client
@@ -72,11 +72,20 @@ def obtener_token(service="ws_sr_padron_a13"):
         log_arca_trace("CACHE_ERR", {"error": str(e)})
 
     # --- 2. GENERACIÓN DE NUEVO TA ---
-    rutas = [r"C:\Program Files\Git\usr\bin\openssl.exe", r"C:\Program Files\Git\mingw64\bin\openssl.exe", r"C:\Windows\System32\openssl.exe"]
-    openssl = next((r for r in rutas if os.path.exists(r)), None)
-    
+    # Resolución de OpenSSL: env var → PATH → fallback Windows conocido
+    openssl = os.environ.get("OPENSSL_PATH") or shutil.which("openssl")
     if not openssl:
-        raise Exception("OpenSSL no encontrado en rutas estándar.")
+        _rutas_fallback = [
+            r"C:\Program Files\Git\usr\bin\openssl.exe",
+            r"C:\Program Files\Git\mingw64\bin\openssl.exe",
+            r"C:\Windows\System32\openssl.exe",
+        ]
+        openssl = next((r for r in _rutas_fallback if os.path.exists(r)), None)
+
+    if not openssl:
+        raise Exception(
+            "OpenSSL no encontrado. Definí OPENSSL_PATH en .env o agregá openssl al PATH del sistema."
+        )
 
     now = datetime.now()
     tra = etree.Element("loginTicketRequest", version="1.0")
