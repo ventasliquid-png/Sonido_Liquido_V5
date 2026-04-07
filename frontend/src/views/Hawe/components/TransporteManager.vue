@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Hawe\components\TransporteManager.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
   <div class="flex h-full w-full bg-[var(--hawe-bg-main)] text-gray-200 overflow-hidden font-sans relative">
     <!-- Main Content Area -->

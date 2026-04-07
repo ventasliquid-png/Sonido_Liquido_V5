@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Maestros\components\RubroReassignWizard.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
   <div v-if="show" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
     <div class="bg-[#0f172a] w-full max-w-2xl rounded-xl shadow-2xl border border-rose-500/30 overflow-hidden flex flex-col max-h-[90vh]">

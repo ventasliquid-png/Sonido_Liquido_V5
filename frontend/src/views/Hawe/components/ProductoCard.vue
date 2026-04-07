@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Hawe\components\ProductoCard.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
   <div
     class="producto-card group relative flex flex-col rounded-xl border border-white/10 bg-white/5 p-4 transition-all duration-300 hover:border-rose-500/50 hover:bg-white/10 hover:shadow-lg hover:shadow-rose-500/20 cursor-pointer"

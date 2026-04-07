@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Logistica\components\TransporteCanvas.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
     <div class="bg-[#0f172a] w-full max-w-[95vw] h-[90vh] rounded-xl border border-amber-500/30 shadow-[0_0_50px_rgba(245,158,11,0.1)] flex flex-col overflow-hidden relative">

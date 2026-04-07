@@ -1,0 +1,72 @@
+>>> Script starting...
+--- [DEBUG] Forcing SQLITE LOCAL: sqlite:///C:\dev\pilot.db ---
+>>> debug_clients function called
+>>> [DEBUG] Fetching clients (limit=5)...
+[CRITICAL] Script failed: (sqlite3.OperationalError) no such table: clientes
+[SQL: SELECT anon_1.clientes_id AS anon_1_clientes_id, anon_1.clientes_razon_social AS anon_1_clientes_razon_social, anon_1.clientes_nombre_fantasia AS anon_1_clientes_nombre_fantasia, anon_1.clientes_cuit AS anon_1_clientes_cuit, anon_1.clientes_codigo_interno AS anon_1_clientes_codigo_interno, anon_1.clientes_legacy_id_bas AS anon_1_clientes_legacy_id_bas, anon_1.clientes_flags_estado AS anon_1_clientes_flags_estado, anon_1.clientes_whatsapp_empresa AS anon_1_clientes_whatsapp_empresa, anon_1.clientes_web_portal_pagos AS anon_1_clientes_web_portal_pagos, anon_1.clientes_datos_acceso_pagos AS anon_1_clientes_datos_acceso_pagos, anon_1.clientes_observaciones AS anon_1_clientes_observaciones, anon_1.clientes_condicion_iva_id AS anon_1_clientes_condicion_iva_id, anon_1.clientes_lista_precios_id AS anon_1_clientes_lista_precios_id, anon_1.clientes_segmento_id AS anon_1_clientes_segmento_id, anon_1.clientes_vendedor_id AS anon_1_clientes_vendedor_id, anon_1.clientes_estrategia_precio AS anon_1_clientes_estrategia_precio, anon_1.clientes_saldo_actual AS anon_1_clientes_saldo_actual, anon_1.clientes_activo AS anon_1_clientes_activo, anon_1.clientes_requiere_auditoria AS anon_1_clientes_requiere_auditoria, anon_1.clientes_contador_uso AS anon_1_clientes_contador_uso, anon_1.clientes_historial_cache AS anon_1_clientes_historial_cache, anon_1.clientes_estado_arca AS anon_1_clientes_estado_arca, anon_1.clientes_datos_arca_last_update AS anon_1_clientes_datos_arca_last_update, anon_1.clientes_created_at AS anon_1_clientes_created_at, anon_1.clientes_updated_at AS anon_1_clientes_updated_at, provincias_1.id AS provincias_1_id, provincias_1.nombre AS provincias_1_nombre, domicilios_1.id AS domicilios_1_id, domicilios_1.cliente_id AS domicilios_1_cliente_id, domicilios_1.alias AS domicilios_1_alias, domicilios_1.calle AS domicilios_1_calle, domicilios_1.numero AS domicilios_1_numero, domicilios_1.piso AS domicilios_1_piso, domicilios_1.depto AS domicilios_1_depto, domicilios_1.maps_link AS domicilios_1_maps_link, domicilios_1.notas_logistica AS domicilios_1_notas_logistica, domicilios_1.contacto_id AS domicilios_1_contacto_id, domicilios_1.cp AS domicilios_1_cp, domicilios_1.localidad AS domicilios_1_localidad, domicilios_1.provincia_id AS domicilios_1_provincia_id, domicilios_1.activo AS domicilios_1_activo, domicilios_1.es_fiscal AS domicilios_1_es_fiscal, domicilios_1.es_entrega AS domicilios_1_es_entrega, domicilios_1.observaciones AS domicilios_1_observaciones, domicilios_1.calle_entrega AS domicilios_1_calle_entrega, domicilios_1.numero_entrega AS domicilios_1_numero_entrega, domicilios_1.piso_entrega AS domicilios_1_piso_entrega, domicilios_1.depto_entrega AS domicilios_1_depto_entrega, domicilios_1.cp_entrega AS domicilios_1_cp_entrega, domicilios_1.localidad_entrega AS domicilios_1_localidad_entrega, domicilios_1.provincia_entrega_id AS domicilios_1_provincia_entrega_id, domicilios_1.transporte_habitual_nodo_id AS domicilios_1_transporte_habitual_nodo_id, domicilios_1.transporte_id AS domicilios_1_transporte_id, domicilios_1.intermediario_id AS domicilios_1_intermediario_id, domicilios_1.metodo_entrega AS domicilios_1_metodo_entrega, domicilios_1.modalidad_envio AS domicilios_1_modalidad_envio, domicilios_1.origen_logistico AS domicilios_1_origen_logistico 
+FROM (SELECT clientes.id AS clientes_id, clientes.razon_social AS clientes_razon_social, clientes.nombre_fantasia AS clientes_nombre_fantasia, clientes.cuit AS clientes_cuit, clientes.codigo_interno AS clientes_codigo_interno, clientes.legacy_id_bas AS clientes_legacy_id_bas, clientes.flags_estado AS clientes_flags_estado, clientes.whatsapp_empresa AS clientes_whatsapp_empresa, clientes.web_portal_pagos AS clientes_web_portal_pagos, clientes.datos_acceso_pagos AS clientes_datos_acceso_pagos, clientes.observaciones AS clientes_observaciones, clientes.condicion_iva_id AS clientes_condicion_iva_id, clientes.lista_precios_id AS clientes_lista_precios_id, clientes.segmento_id AS clientes_segmento_id, clientes.vendedor_id AS clientes_vendedor_id, clientes.estrategia_precio AS clientes_estrategia_precio, clientes.saldo_actual AS clientes_saldo_actual, clientes.activo AS clientes_activo, clientes.requiere_auditoria AS clientes_requiere_auditoria, clientes.contador_uso AS clientes_contador_uso, clientes.historial_cache AS clientes_historial_cache, clientes.estado_arca AS clientes_estado_arca, clientes.datos_arca_last_update AS clientes_datos_arca_last_update, clientes.created_at AS clientes_created_at, clientes.updated_at AS clientes_updated_at 
+FROM clientes ORDER BY clientes.razon_social
+ LIMIT ? OFFSET ?) AS anon_1 LEFT OUTER JOIN domicilios AS domicilios_1 ON anon_1.clientes_id = domicilios_1.cliente_id LEFT OUTER JOIN provincias AS provincias_1 ON provincias_1.id = domicilios_1.provincia_id ORDER BY anon_1.clientes_razon_social]
+[parameters: (5, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+Traceback (most recent call last):
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlite3.OperationalError: no such table: clientes
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\dev\Sonido_Liquido_V5\scripts\debug_clients_data.py", line 40, in debug_clients
+    clients = ClienteService.get_clientes(db, skip=0, limit=5, include_inactive=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\dev\Sonido_Liquido_V5\backend\clientes\service.py", line 141, in get_clientes
+    return query.offset(skip).limit(limit).all()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\query.py", line 2704, in all
+    return self._iter().all()  # type: ignore
+           ^^^^^^^^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\query.py", line 2857, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+                                                  ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py", line 2351, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+             ^^^^^^^^^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute
+    return meth(
+           ^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\sql\elements.py", line 526, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py", line 2355, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Users\USUARIO\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such table: clientes
+[SQL: SELECT anon_1.clientes_id AS anon_1_clientes_id, anon_1.clientes_razon_social AS anon_1_clientes_razon_social, anon_1.clientes_nombre_fantasia AS anon_1_clientes_nombre_fantasia, anon_1.clientes_cuit AS anon_1_clientes_cuit, anon_1.clientes_codigo_interno AS anon_1_clientes_codigo_interno, anon_1.clientes_legacy_id_bas AS anon_1_clientes_legacy_id_bas, anon_1.clientes_flags_estado AS anon_1_clientes_flags_estado, anon_1.clientes_whatsapp_empresa AS anon_1_clientes_whatsapp_empresa, anon_1.clientes_web_portal_pagos AS anon_1_clientes_web_portal_pagos, anon_1.clientes_datos_acceso_pagos AS anon_1_clientes_datos_acceso_pagos, anon_1.clientes_observaciones AS anon_1_clientes_observaciones, anon_1.clientes_condicion_iva_id AS anon_1_clientes_condicion_iva_id, anon_1.clientes_lista_precios_id AS anon_1_clientes_lista_precios_id, anon_1.clientes_segmento_id AS anon_1_clientes_segmento_id, anon_1.clientes_vendedor_id AS anon_1_clientes_vendedor_id, anon_1.clientes_estrategia_precio AS anon_1_clientes_estrategia_precio, anon_1.clientes_saldo_actual AS anon_1_clientes_saldo_actual, anon_1.clientes_activo AS anon_1_clientes_activo, anon_1.clientes_requiere_auditoria AS anon_1_clientes_requiere_auditoria, anon_1.clientes_contador_uso AS anon_1_clientes_contador_uso, anon_1.clientes_historial_cache AS anon_1_clientes_historial_cache, anon_1.clientes_estado_arca AS anon_1_clientes_estado_arca, anon_1.clientes_datos_arca_last_update AS anon_1_clientes_datos_arca_last_update, anon_1.clientes_created_at AS anon_1_clientes_created_at, anon_1.clientes_updated_at AS anon_1_clientes_updated_at, provincias_1.id AS provincias_1_id, provincias_1.nombre AS provincias_1_nombre, domicilios_1.id AS domicilios_1_id, domicilios_1.cliente_id AS domicilios_1_cliente_id, domicilios_1.alias AS domicilios_1_alias, domicilios_1.calle AS domicilios_1_calle, domicilios_1.numero AS domicilios_1_numero, domicilios_1.piso AS domicilios_1_piso, domicilios_1.depto AS domicilios_1_depto, domicilios_1.maps_link AS domicilios_1_maps_link, domicilios_1.notas_logistica AS domicilios_1_notas_logistica, domicilios_1.contacto_id AS domicilios_1_contacto_id, domicilios_1.cp AS domicilios_1_cp, domicilios_1.localidad AS domicilios_1_localidad, domicilios_1.provincia_id AS domicilios_1_provincia_id, domicilios_1.activo AS domicilios_1_activo, domicilios_1.es_fiscal AS domicilios_1_es_fiscal, domicilios_1.es_entrega AS domicilios_1_es_entrega, domicilios_1.observaciones AS domicilios_1_observaciones, domicilios_1.calle_entrega AS domicilios_1_calle_entrega, domicilios_1.numero_entrega AS domicilios_1_numero_entrega, domicilios_1.piso_entrega AS domicilios_1_piso_entrega, domicilios_1.depto_entrega AS domicilios_1_depto_entrega, domicilios_1.cp_entrega AS domicilios_1_cp_entrega, domicilios_1.localidad_entrega AS domicilios_1_localidad_entrega, domicilios_1.provincia_entrega_id AS domicilios_1_provincia_entrega_id, domicilios_1.transporte_habitual_nodo_id AS domicilios_1_transporte_habitual_nodo_id, domicilios_1.transporte_id AS domicilios_1_transporte_id, domicilios_1.intermediario_id AS domicilios_1_intermediario_id, domicilios_1.metodo_entrega AS domicilios_1_metodo_entrega, domicilios_1.modalidad_envio AS domicilios_1_modalidad_envio, domicilios_1.origen_logistico AS domicilios_1_origen_logistico 
+FROM (SELECT clientes.id AS clientes_id, clientes.razon_social AS clientes_razon_social, clientes.nombre_fantasia AS clientes_nombre_fantasia, clientes.cuit AS clientes_cuit, clientes.codigo_interno AS clientes_codigo_interno, clientes.legacy_id_bas AS clientes_legacy_id_bas, clientes.flags_estado AS clientes_flags_estado, clientes.whatsapp_empresa AS clientes_whatsapp_empresa, clientes.web_portal_pagos AS clientes_web_portal_pagos, clientes.datos_acceso_pagos AS clientes_datos_acceso_pagos, clientes.observaciones AS clientes_observaciones, clientes.condicion_iva_id AS clientes_condicion_iva_id, clientes.lista_precios_id AS clientes_lista_precios_id, clientes.segmento_id AS clientes_segmento_id, clientes.vendedor_id AS clientes_vendedor_id, clientes.estrategia_precio AS clientes_estrategia_precio, clientes.saldo_actual AS clientes_saldo_actual, clientes.activo AS clientes_activo, clientes.requiere_auditoria AS clientes_requiere_auditoria, clientes.contador_uso AS clientes_contador_uso, clientes.historial_cache AS clientes_historial_cache, clientes.estado_arca AS clientes_estado_arca, clientes.datos_arca_last_update AS clientes_datos_arca_last_update, clientes.created_at AS clientes_created_at, clientes.updated_at AS clientes_updated_at 
+FROM clientes ORDER BY clientes.razon_social
+ LIMIT ? OFFSET ?) AS anon_1 LEFT OUTER JOIN domicilios AS domicilios_1 ON anon_1.clientes_id = domicilios_1.cliente_id LEFT OUTER JOIN provincias AS provincias_1 ON provincias_1.id = domicilios_1.provincia_id ORDER BY anon_1.clientes_razon_social]
+[parameters: (5, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+--- [DATABASE] Usando DATABASE_URL de entorno: sqlite:///C:\dev\pilot.db ---
+--- [Atenea V11.4]: Capa ORM (GUID Unified) inicializada. ---
+--- [Atenea V10.10]: Auth/Models ('Usuario', 'Rol') definidos. ---

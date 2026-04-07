@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Logistica\components\RemitoTemplate.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
   <div class="fixed inset-0 z-[99999] bg-white flex flex-col overflow-hidden" v-if="propRemito">
     <!-- Toolbar (No-Print) -->

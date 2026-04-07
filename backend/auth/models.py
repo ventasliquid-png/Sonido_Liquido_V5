@@ -1,4 +1,8 @@
-﻿"""
+# [IDENTIDAD] - backend\auth\models.py
+# Versión: V5.6 GOLD | Sincronización: 20260407130827
+# ---------------------------------------------------------
+
+"""
 Módulo Auth (V10.10): Modelos ORM (SQLAlchemy).
 Define las tablas 'roles' y 'usuarios'.
 """

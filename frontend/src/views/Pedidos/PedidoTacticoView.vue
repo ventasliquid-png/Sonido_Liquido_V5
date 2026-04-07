@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Pedidos\PedidoTacticoView.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useClientesStore } from '@/stores/clientes';

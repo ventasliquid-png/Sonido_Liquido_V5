@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\services\canteraService.js
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 import axios from 'axios'
 const API_URL = '' // Use internal proxy for LAN stability
 

@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Hawe\ProductosView.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
   <div class="flex h-full w-full bg-[#0f172a] overflow-hidden tokyo-bg neon-red rounded-2xl border-2 border-rose-500 shadow-[0_0_30px_rgba(244,63,94,0.4)] p-6 relative">
     <!-- Sidebar is handled by Layout -->

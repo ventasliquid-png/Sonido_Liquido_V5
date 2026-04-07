@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Hawe\PedidosView.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
     <div class="flex h-full w-full bg-[#0e1f12] text-white overflow-hidden relative">
         <!-- Background Pattern -->

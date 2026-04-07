@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Hawe\components\AddressSelector.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
   <div class="space-y-4">
     <!-- OmniSearch Input -->

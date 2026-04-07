@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Logistica\components\TransporteAbmModal.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
     <!-- BRIDGE TO SOBERANÍA: Replaces legacy modal with the Sovereign Canvas -->
     <TransporteCanvas 

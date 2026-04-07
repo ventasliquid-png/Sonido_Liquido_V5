@@ -1,3 +1,7 @@
+# [IDENTIDAD] - backend\agenda\models.py
+# Versión: V5.6 GOLD | Sincronización: 20260407130827
+# ---------------------------------------------------------
+
 # Archivo: backend/agenda/models.py
 # Módulo Agenda Viva (V5) - CRM Relacional
 import uuid

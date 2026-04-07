@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Maestros\ProvinciaForm.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <script setup>
 import { ref, reactive, watch, onMounted, onUnmounted } from 'vue';
 import { useMaestrosStore } from '../../stores/maestros';

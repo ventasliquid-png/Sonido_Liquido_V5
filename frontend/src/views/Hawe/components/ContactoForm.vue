@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Hawe\components\ContactoForm.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
     <div v-if="show" class="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
         <div class="bg-[#0a253a] border border-white/10 rounded-xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">

@@ -1,3 +1,7 @@
+# [IDENTIDAD] - backend\pedidos\models.py
+# Versión: V5.6 GOLD | Sincronización: 20260407130827
+# ---------------------------------------------------------
+
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Boolean, Text, BigInteger
 from sqlalchemy.dialects.postgresql import UUID as pgUUID
 from sqlalchemy.orm import relationship

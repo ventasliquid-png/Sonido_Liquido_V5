@@ -53,3 +53,10 @@ _DOCS_EXPORT/
 
 # Archivos pesados locales
 mapa_sistema.txt
+mapa_tactico_v5.txt
+
+# Generated Assets & Backups (Drip Bloat)
+DOCUMENTOS_GENERADOS_RAR/
+_BACKUPS_IOWA/
+_SISTEMA_INTERNO/
+*.pdf

@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Agenda\components\ContactoInspector.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
     <div class="p-6 flex flex-col h-full min-w-[20rem] text-gray-200">
         <div class="flex justify-between items-center mb-6">

@@ -1,3 +1,7 @@
+# [IDENTIDAD] - backend\maestros\service.py
+# Versión: V5.6 GOLD | Sincronización: 20260407130827
+# ---------------------------------------------------------
+
 # backend/maestros/service.py
 from typing import List, Optional
 from uuid import UUID

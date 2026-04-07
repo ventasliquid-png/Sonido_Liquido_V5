@@ -1,6 +1,6 @@
 import os
 
-RELEASE_DIR = r'C:\dev\V5_RELEASE_09'
+RELEASE_DIR = r'C:\dev\V5-LS\current'
 OLD_DB = 'pilot_v5x.db'
 NEW_DB = 'V5_LS_MASTER.db'
 
@@ -36,7 +36,7 @@ def operacion_identidad_master():
     env_path = os.path.join(RELEASE_DIR, '.env')
     try:
         with open(env_path, 'w', encoding='utf-8') as f:
-            f.write(f"DATABASE_URL=sqlite:///{NEW_DB}\n")
+            f.write(f"DATABASE_URL=sqlite:///C:/dev/V5-LS/data/{NEW_DB}\n")
             f.write("PORT=8090\n")
             f.write("HOST=0.0.0.0\n")
             f.write("ENABLE_AI=True\n")

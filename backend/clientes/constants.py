@@ -1,3 +1,7 @@
+# [IDENTIDAD] - backend\clientes\constants.py
+# Versión: V5.6 GOLD | Sincronización: 20260407130827
+# ---------------------------------------------------------
+
 # Archivo: backend/clientes/constants.py
 
 class ClientFlags:

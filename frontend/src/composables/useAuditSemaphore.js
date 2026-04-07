@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\composables\useAuditSemaphore.js
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 import { computed } from 'vue';
 
 /**

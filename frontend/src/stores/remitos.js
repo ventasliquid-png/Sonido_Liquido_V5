@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\stores\remitos.js
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import remitosService from '../services/remitos';

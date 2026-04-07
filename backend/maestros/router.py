@@ -1,3 +1,7 @@
+# [IDENTIDAD] - backend\maestros\router.py
+# Versión: V5.6 GOLD | Sincronización: 20260407130827
+# ---------------------------------------------------------
+
 # backend/maestros/router.py
 from typing import List
 from uuid import UUID

@@ -1,3 +1,7 @@
+# [IDENTIDAD] - backend\logistica\models.py
+# Versión: V5.6 GOLD | Sincronización: 20260407130827
+# ---------------------------------------------------------
+
 # Archivo: backend/logistica/models.py
 # Módulo Logística (V5) - Hub & Spoke
 import uuid

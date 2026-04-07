@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Hawe\components\DomicilioList.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
     <div class="p-6 h-full flex flex-col bg-[#0a1f2e]">
         <!-- Header -->

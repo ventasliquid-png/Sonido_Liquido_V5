@@ -1,3 +1,7 @@
+# [IDENTIDAD] - backend\auth\dependencies.py
+# Versión: V5.6 GOLD | Sincronización: 20260407130827
+# ---------------------------------------------------------
+
 """
 Módulo Auth (V10.E): Dependencias de Seguridad para FastAPI.
 Define dependencias reutilizables para proteger endpoints con autenticación JWT.

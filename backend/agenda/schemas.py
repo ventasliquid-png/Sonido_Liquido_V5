@@ -1,3 +1,7 @@
+# [IDENTIDAD] - backend\agenda\schemas.py
+# Versión: V5.6 GOLD | Sincronización: 20260407130827
+# ---------------------------------------------------------
+
 # backend/agenda/schemas.py
 from typing import List, Optional
 from uuid import UUID

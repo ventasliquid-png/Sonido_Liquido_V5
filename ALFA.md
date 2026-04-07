@@ -59,6 +59,39 @@ Si la sesión anterior cerró con **Bit 3 activo** (estado CRÍTICO/CATATÓNICO)
 
 ---
 
+---
+
+## Protocolo de Seguridad y Autorización (MANDATORIO)
+
+Cualquier plan que implique acciones de **limpieza, refactorización, eliminación de datos o cambios estructurales profundos** requiere validación humana explícita.
+
+1. **PROHIBICIÓN**: No se permite avanzar basándose en "autorización automática" del sistema.
+2. **PIN DE VALIDACIÓN**: El agente debe solicitar y el usuario debe proveer el **PIN 1974** para autorizar la ejecución del plan.
+3. **REGISTRO**: La autorización debe quedar plasmada en la bitácora o en el reporte de la sesión vinculado al PIN.
+
+---
+
+## Protocolo de Identidad y Trazabilidad (V5.6 GOLD)
+
+Todo archivo fuente (`.py`, `.js`, `.vue`) en el core debe contener una cabecera de identidad con el siguiente formato:
+
+- **Python**: 
+  ```python
+  # [IDENTIDAD] - {relative_path}
+  # Versión: V5.6 GOLD | Sincronización: YYYYMMDDHHMMSS
+  # ---------------------------------------------------------
+  ```
+- **JS/Vue**:
+  ```javascript
+  // [IDENTIDAD] - {relative_path}
+  // Versión: V5.6 GOLD | Sincronización: YYYYMMDDHHMMSS
+  // ------------------------------------------
+  ```
+
+Este protocolo asegura que el agente sepa exactamente qué archivo está editando y su versión de sincronización respecto a la última auditoría de Soberanía.
+
+---
+
 *Scripts alternativos (versiones anteriores, no canónicas):*
 `canary_alfa.py` · `verify_alfa.py` · `verify_alfa_integrity.py` · `audit_alfa.py`
 

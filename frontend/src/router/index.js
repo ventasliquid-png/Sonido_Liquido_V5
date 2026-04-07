@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\router\index.js
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 import { createRouter, createWebHistory } from 'vue-router';
 import SegmentoList from '../views/Maestros/SegmentoList.vue';
 import VendedorList from '../views/Maestros/VendedorList.vue';

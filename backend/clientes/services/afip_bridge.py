@@ -1,3 +1,7 @@
+# [IDENTIDAD] - backend\clientes\services\afip_bridge.py
+# Versión: V5.6 GOLD | Sincronización: 20260407130827
+# ---------------------------------------------------------
+
 import sys
 import os
 import logging

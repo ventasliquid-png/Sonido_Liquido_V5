@@ -1,3 +1,7 @@
+# [IDENTIDAD] - backend\maestros\schemas.py
+# Versión: V5.6 GOLD | Sincronización: 20260407130827
+# ---------------------------------------------------------
+
 # backend/maestros/schemas.py
 from typing import Optional
 from uuid import UUID

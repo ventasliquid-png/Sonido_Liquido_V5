@@ -298,10 +298,24 @@ def read_productos(
 @router.post("", response_model=schemas.ProductoRead)
 def create_producto(producto: schemas.ProductoCreate, db: Session = Depends(get_db)):
     from sqlalchemy.exc import IntegrityError
+    from sqlalchemy import func
     try:
         # 1. Crear Producto
         producto_data = producto.dict(exclude={'costos'})
         db_producto = models.Producto(**producto_data)
+        
+        # [ABR V13] Auto-assign SKU if missing
+        if not db_producto.sku:
+            max_sku = db.query(func.max(models.Producto.sku)).scalar()
+            # Si no hay productos, empezamos en 5001. Si hay, sumamos 1 al máximo.
+            try:
+                next_sku = int(max_sku or 10000) + 1
+            except (ValueError, TypeError):
+                next_sku = 10001
+            
+            db_producto.sku = next_sku
+            print(f"[AUTO-SKU] Asignado SKU {db_producto.sku} para {db_producto.nombre}")
+
         db.add(db_producto)
         db.commit()
         db.refresh(db_producto)
@@ -314,11 +328,6 @@ def create_producto(producto: schemas.ProductoCreate, db: Session = Depends(get_
         try:
             db.commit()
         except Exception:
-            # If costs fail, we should probably delete the product or rollback?
-            # But the product commit was successful. 
-            # Ideally we want atomic transaction.
-            # But current logic has two commits.
-            # Moving all to one commit is better.
             raise 
 
         # Recargar con relaciones

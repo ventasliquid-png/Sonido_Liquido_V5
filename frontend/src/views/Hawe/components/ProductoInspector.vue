@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Hawe\components\ProductoInspector.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
   <div class="flex h-[92vh] w-[1300px] max-w-[95vw] flex-col bg-[#0f172a] text-gray-100 rounded-xl shadow-2xl overflow-hidden hud-border-red">
     <!-- Header with Breadcrumb Style -->

@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Ventas\components\RentabilidadPanel.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
     <div>
         <!-- DRAWER TOGGLE BUTTON (Floating right edge when closed) -->

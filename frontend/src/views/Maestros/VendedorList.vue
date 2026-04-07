@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Maestros\VendedorList.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
     <div :class="['p-6', 'bg-[#0a0a0a] min-h-screen text-white']">
         <!-- Header -->

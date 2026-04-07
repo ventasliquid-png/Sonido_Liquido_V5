@@ -1,7 +1,7 @@
 import os
 import re
 
-RELEASE_DIR = r'C:\dev\V5_RELEASE_09'
+RELEASE_DIR = r'C:\dev\V5-LS\current'
 NEW_IP = '192.168.0.34'
 NEW_BACKEND_PORT = '8090'
 NEW_FRONTEND_PORT = '5174'

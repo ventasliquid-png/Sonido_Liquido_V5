@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\AteneaChat.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 Set-Content -Path "src/views/AteneaChat.vue" -Encoding utf8 -Value @'
 <template>
   <div class="atenea-container">

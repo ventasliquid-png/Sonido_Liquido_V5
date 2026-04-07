@@ -1,3 +1,7 @@
+# [IDENTIDAD] - backend\auth\schemas.py
+# Versión: V5.6 GOLD | Sincronización: 20260407130827
+# ---------------------------------------------------------
+
 ﻿"""
 Módulo Auth (V10.E): Esquemas Pydantic.
 Define los modelos de datos de entrada (Create) y salida (Out) para la API.

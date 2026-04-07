@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Logistica\ManualRemitoView.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
   <div class="min-h-screen w-full bg-[#0f172a] p-4 flex justify-center items-start font-sans">
     <div class="w-full max-w-6xl bg-[#0f172a] rounded-3xl border-2 border-indigo-500/30 shadow-[0_0_50px_-12px_rgba(99,102,241,0.3)] overflow-hidden flex flex-col h-[90vh]">

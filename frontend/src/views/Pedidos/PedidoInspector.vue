@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Pedidos\PedidoInspector.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
     <div ref="inspectorRef" class="h-full flex flex-col bg-[#021812] border-l border-emerald-900/30" :class="{ 'zen-active': isZenMode }" @contextmenu.prevent="handleGlobalContextMenu">
         <!-- Empty State -->

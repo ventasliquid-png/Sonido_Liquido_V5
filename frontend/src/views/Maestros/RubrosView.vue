@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Maestros\RubrosView.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
   <div class="flex h-full w-full bg-[#0f172a] text-gray-200 overflow-hidden font-sans hud-border-amber">
     

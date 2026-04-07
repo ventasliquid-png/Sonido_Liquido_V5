@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Maestros\components\RubroTreeItem.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
   <div class="pl-4">
     <div 

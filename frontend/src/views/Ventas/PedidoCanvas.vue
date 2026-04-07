@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Ventas\PedidoCanvas.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
     <div class="min-h-screen w-full bg-[#0f172a] p-2 flex justify-center items-start">
         <div class="w-full max-w-[98%] bg-[#0f172a] rounded-2xl border-2 border-emerald-500 shadow-[0_0_40px_-10px_rgba(16,185,129,0.5)] overflow-hidden relative flex flex-col h-screen">
@@ -75,9 +79,9 @@
                                         : 'border-white/10 text-white focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50'
                                 ]"
                             >
-                            <!-- Validation Warning -->
-                            <div v-if="clienteSeleccionado && !clientValidation.valid" class="absolute -top-3 right-0 bg-amber-900/90 border border-amber-500 text-amber-500 text-[10px] px-2 py-0.5 rounded uppercase font-bold tracking-wider animate-pulse flex items-center gap-2 shadow-lg z-10">
-                                <i class="fas fa-exclamation-triangle"></i> DATOS FALTANTES
+                            <!-- Validation Warning [GY-V5.9.1] -->
+                            <div v-if="clienteSeleccionado && !clientValidation.valid" class="absolute -top-3 right-0 bg-amber-900/90 border border-amber-500 text-amber-500 text-[9px] px-2 py-0.5 rounded uppercase font-bold tracking-wider animate-pulse flex items-center gap-2 shadow-lg z-10" :title="'Faltan: ' + clientValidation.missing.join(', ')">
+                                <i class="fas fa-exclamation-triangle"></i> FALTAN: {{ clientValidation.missing.join(', ') }}
                             </div>
                             
                             <!-- Context Menu Teleport -->

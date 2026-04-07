@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Register.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <script setup>
 import { ref } from 'vue'
 import axios from 'axios'

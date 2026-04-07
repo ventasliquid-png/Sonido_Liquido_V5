@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Agenda\ContactosView.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
   <div class="flex h-screen w-screen bg-[#0a0a0a] overflow-hidden">
     <!-- Global Sidebar (Integrated for Standalone View) -->

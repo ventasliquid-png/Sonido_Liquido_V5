@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Maestros\TipoContactoList.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
     <div :class="['p-6', isStacked ? 'bg-white' : '']">
         <!-- Header -->

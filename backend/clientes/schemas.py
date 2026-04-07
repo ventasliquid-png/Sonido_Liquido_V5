@@ -1,3 +1,7 @@
+# [IDENTIDAD] - backend\clientes\schemas.py
+# Versión: V5.6 GOLD | Sincronización: 20260407130827
+# ---------------------------------------------------------
+
 from typing import List, Optional
 from uuid import UUID
 from datetime import datetime

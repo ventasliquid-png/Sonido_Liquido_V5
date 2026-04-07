@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\stores\pedidos.js
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 import { defineStore } from 'pinia';
 import apiClient from '@/services/api';
 

@@ -1,3 +1,7 @@
+# [IDENTIDAD] - backend\agenda\google_mock_router.py
+# Versión: V5.6 GOLD | Sincronización: 20260407130827
+# ---------------------------------------------------------
+
 from fastapi import APIRouter, HTTPException
 import asyncio
 import random

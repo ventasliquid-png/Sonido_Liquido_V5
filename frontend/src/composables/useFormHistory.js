@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\composables\useFormHistory.js
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 import { ref, watch, toRaw } from 'vue'
 
 export function useFormHistory(initialState) {

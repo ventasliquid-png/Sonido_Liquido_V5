@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Logistica\RemitoListView.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
   <div class="flex h-full w-full bg-[#0f172a] text-gray-200 overflow-hidden font-sans tokyo-bg neon-blue rounded-2xl border-2 border-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.4)] p-6">
     

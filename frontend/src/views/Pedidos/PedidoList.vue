@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Pedidos\PedidoList.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
   <div class="flex h-full w-full bg-[#0f172a] text-gray-200 overflow-hidden font-sans tokyo-bg neon-green rounded-2xl border-2 border-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.4)] p-6">
     
@@ -106,8 +110,9 @@
               <div 
                   v-for="pedido in sortedAndFilteredPedidos" 
                   :key="pedido.id"
-                  class="group flex items-center justify-between p-4 mb-2 rounded-xl border transition-all relative overflow-hidden"
+                  class="group flex items-center justify-between p-4 mb-2 rounded-xl border transition-all relative"
                   :class="[
+                    statusMenuOpen === pedido.id ? 'z-50 shadow-2xl' : 'z-auto overflow-hidden',
                     selectedPedido?.id === pedido.id 
                     ? 'border-emerald-500 bg-emerald-500/10 ring-1 ring-emerald-500/30 shadow-lg shadow-emerald-500/10 scale-[1.01]' 
                     : 'border-emerald-900/20 bg-[#07241d] hover:bg-[#0a2e26] hover:border-emerald-500/30 hover:shadow-lg hover:shadow-black/40 hover:-translate-y-px'

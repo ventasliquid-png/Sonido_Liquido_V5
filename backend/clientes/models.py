@@ -1,3 +1,7 @@
+# [IDENTIDAD] - backend\clientes\models.py
+# Versión: V5.6 GOLD | Sincronización: 20260407130827
+# ---------------------------------------------------------
+
 # Archivo: backend/clientes/models.py
 # Módulo Clientes (V5) - Implementación Jerárquica (Nike S)
 

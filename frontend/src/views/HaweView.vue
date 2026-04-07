@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\HaweView.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
   <div class="flex h-screen w-full bg-[#081c26] text-gray-200 overflow-hidden font-sans">
     

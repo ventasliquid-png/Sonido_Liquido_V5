@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Hawe\components\ClienteInspector.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
   <div class="flex flex-col h-full w-full backdrop-blur-xl transition-all hud-border-cyan rounded-xl" 
        :class="isCompact ? 'bg-[#0f172a]/90 border-l border-cyan-500' : 'bg-[#0f172a]'">
@@ -868,7 +872,7 @@ const handleAfipInfiltration = async (payload) => {
             const targetProv = provincias.value.find(p => 
                 p.nombre.toUpperCase() === provName || 
                 provName.includes(p.nombre.toUpperCase()) ||
-                p.nombre.toUpperCase().includes(provName)
+                p.nombre?.toUpperCase().includes(provName)
             )
             if (targetProv) {
                 fiscalForm.value.provincia_id = targetProv.id

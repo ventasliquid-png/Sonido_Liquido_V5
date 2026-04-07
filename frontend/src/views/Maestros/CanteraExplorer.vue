@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Maestros\CanteraExplorer.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
   <div class="flex h-screen w-full bg-[#050c12] text-gray-200 overflow-hidden font-sans">
     

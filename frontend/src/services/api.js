@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\services\api.js
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 import axios from 'axios';
 
 const api = axios.create({

@@ -1,3 +1,7 @@
+# [IDENTIDAD] - backend\pedidos\schemas.py
+# Versión: V5.6 GOLD | Sincronización: 20260407130827
+# ---------------------------------------------------------
+
 from pydantic import BaseModel
 from typing import List, Optional, Union
 from datetime import datetime

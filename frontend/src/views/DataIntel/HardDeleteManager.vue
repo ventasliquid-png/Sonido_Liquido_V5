@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\DataIntel\HardDeleteManager.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
   <div class="h-full flex flex-col bg-[#0f172a] text-white">
     <!-- Header -->

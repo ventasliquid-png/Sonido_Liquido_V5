@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Maestros\SegmentoInspector.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
     <div class="h-full flex flex-col bg-[#05151f]/95 border-l border-cyan-900/30">
         <!-- Empty State -->

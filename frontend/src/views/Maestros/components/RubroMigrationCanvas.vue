@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Maestros\components\RubroMigrationCanvas.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
   <div class="absolute inset-0 z-40 bg-[#1a050b] text-gray-200 flex flex-col font-sans">
     <!-- Header -->

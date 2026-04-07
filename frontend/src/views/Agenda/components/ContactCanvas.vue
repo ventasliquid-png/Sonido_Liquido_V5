@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Agenda\components\ContactCanvas.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
     <div class="fixed inset-y-0 right-0 w-[700px] bg-[#1a1a1a] border-l border-white/10 shadow-2xl z-50 flex flex-col font-sans">
         

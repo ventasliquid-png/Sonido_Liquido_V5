@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Hawe\components\ContactoPopover.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
     <div class="absolute top-full left-0 mt-2 w-72 bg-[#0f172a] border border-cyan-500/30 rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.5)] overflow-hidden z-[60] backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-200">
         <!-- Header -->

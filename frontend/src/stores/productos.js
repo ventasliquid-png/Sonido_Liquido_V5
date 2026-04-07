@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\stores\productos.js
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 import { defineStore } from 'pinia';
 import { ref, reactive } from 'vue';
 import productosApi from '../services/productosApi';

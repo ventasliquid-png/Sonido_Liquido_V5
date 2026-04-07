@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Hawe\ClientCanvas.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
   <div class="flex flex-col h-full w-full bg-[#0f172a] rounded-2xl border-2 border-cyan-500 shadow-[0_0_30px_rgba(6,182,212,0.4)] overflow-hidden relative tokyo-bg neon-cyan">
       
@@ -204,7 +208,7 @@
                         :class="errors?.domicilio ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]' : 'border-fuchsia-500/20'"
                       >
                           <div class="flex justify-between items-center mb-2 border-b border-fuchsia-500/10 pb-1">
-                              <label class="text-[10px] font-bold text-fuchsia-400 uppercase tracking-widest"><i class="fas fa-file-invoice mr-1"></i> Domicilio Fiscal <span v-if="form.cuit && !['00000000000', '11111111119', '11111111111'].includes(form.cuit) && !(form.condicion_iva_id && condicionesIva.find(i => i.id === form.condicion_iva_id)?.nombre.toUpperCase().includes('CONSUMIDOR FINAL')) && clientColorMode !== 'pink'" class="text-red-400">*</span></label>
+                              <label class="text-[10px] font-bold text-fuchsia-400 uppercase tracking-widest"><i class="fas fa-file-invoice mr-1"></i> Domicilio Fiscal <span v-if="form.cuit && !['00000000000', '11111111119', '11111111111'].includes(form.cuit) && !(form.condicion_iva_id && condicionesIva?.find(i => i.id === form.condicion_iva_id)?.nombre?.toUpperCase().includes('CONSUMIDOR FINAL')) && clientColorMode !== 'pink'" class="text-red-400">*</span></label>
                               <div class="flex items-center gap-2">
                                   <div class="text-[9px] text-fuchsia-500/50 group-hover:text-fuchsia-400 transition-colors">
                                       <i class="fas fa-pencil-alt mr-1"></i> Editar
@@ -455,6 +459,9 @@ import ContextMenu from '../../components/common/ContextMenu.vue'
 import { useLogisticaStore } from '../../stores/logistica'
 import { useAuditSemaphore } from '../../composables/useAuditSemaphore'
 
+// [V5.6 GOLD] Async Shield
+const abortController = new AbortController();
+
 const route = useRoute()
 const router = useRouter()
 const store = useClientesStore()
@@ -570,7 +577,7 @@ const consultarAfip = async () => {
         if (!form.value.razon_social) {
             form.value.razon_social = commonCuitNames[form.value.cuit] || 'CONSUMIDOR FINAL'
         }
-        form.value.condicion_iva_id = condicionesIva.value.find(c => c.nombre.toUpperCase().includes('FINAL'))?.id || 5
+        form.value.condicion_iva_id = condicionesIva.value?.find(c => c.nombre?.toUpperCase().includes('FINAL'))?.id || 5
         return
     }
     
@@ -729,14 +736,17 @@ const consultarAfip = async () => {
             
              // Map Province (Fuzzy Search)
             if (pa.provincia || (isPersonaFisica && hasGoldenAddress && isArcaEmpty && props.initialData.provincia)) {
-                const provName = (pa.provincia || props.initialData.provincia).toUpperCase()
-                const targetProv = maestrosStore.provincias.find(p => 
-                    p.nombre.toUpperCase() === provName || 
-                    provName.includes(p.nombre.toUpperCase()) ||
-                    p.nombre.toUpperCase().includes(provName)
-                )
-                if (targetProv) {
-                    fiscalNode.provincia_id = targetProv.id
+                const provSource = (pa.provincia || props.initialData.provincia)
+                if (provSource) {
+                    const provName = provSource.toUpperCase()
+                    const targetProv = maestrosStore.provincias.find(p => 
+                        p.nombre?.toUpperCase() === provName || 
+                        provName.includes(p.nombre?.toUpperCase() || '') ||
+                        p.nombre?.toUpperCase().includes(provName)
+                    )
+                    if (targetProv) {
+                        fiscalNode.provincia_id = targetProv.id
+                    }
                 }
             }
 
@@ -1264,6 +1274,7 @@ onMounted(async () => {
     if (props.isModal) {
         if (props.id === 'new') {
             isNew.value = true
+            resetForm() // [GY-FIX] Ensure defaults are applied before merging initialData
             if (props.initialData) {
                 form.value = { ...form.value, ...props.initialData }
                 if (props.initialData.domicilio && isNew.value) {
@@ -1277,8 +1288,6 @@ onMounted(async () => {
                     }]
                 }
                 if (props.initialData.cuit) checkCuitStatus(false)
-            } else {
-                resetForm()
             }
         } else if (props.id) {
             isNew.value = false
@@ -1333,7 +1342,11 @@ onUnmounted(() => {
 const resetForm = () => {
     form.value = {
         id: null, razon_social: '', nombre_fantasia: '', cuit: '',
-        condicion_iva_id: null, lista_precios_id: null, vendedor_id: null, segmento_id: null,
+        // [GY-FIX] Safe Defaults for tommy-v5-ls environment
+        condicion_iva_id: 'f9cb56f12b2c47169b0f7bed74196d4c', // Consumidor Final
+        lista_precios_id: null, // null = Lista Automática
+        vendedor_id: null, 
+        segmento_id: 'e5589396817940868bdb97d4ee94297b', // General
         limite_credito: 0, dias_vencimiento: 30, activo: true, observaciones: '',
         web_portal_pagos: '', datos_acceso_pagos: '', saldo: 0, fecha_ultima_compra: null,
         codigo_interno: ''
@@ -1424,7 +1437,7 @@ const validateForm = () => {
         
         // Check for Consumidor Final IVA condition
         const isConsumidorFinal = form.value.condicion_iva_id && 
-            condicionesIva.value.find(i => i.id === form.value.condicion_iva_id)?.nombre.toUpperCase().includes('CONSUMIDOR FINAL');
+            condicionesIva.value?.find(i => i.id === form.value.condicion_iva_id)?.nombre?.toUpperCase().includes('CONSUMIDOR FINAL');
 
         if (clientColorMode.value === 'pink') {
              // Pink Rule: All addresses are optional (Store Pickup)
@@ -1586,10 +1599,21 @@ const saveCliente = async () => {
         
         notificationStore.add(msg, 'error', 10000); // Long duration for reading
         console.log("V2 Error Handler Active"); // Verification tag
-        // [GY-TEMP] Force Alert to ensure user sees the backend error reasoning
-        alert(`No se pudo guardar:\n\n${msg}`);
+        
+        // [V5.6 GOLD] Smart Alert for Duplicates
+        if (msg.includes('BLOQUEO DE DUPLICADO')) {
+            alert(`⚠️ ALERTA DE SEGURIDAD:\n\n${msg}\n\nNo se permite la creación de registros duplicados.`);
+        } else {
+            alert(`No se pudo guardar:\n\n${msg}`);
+        }
     }
 }
+
+onUnmounted(() => {
+    // [V5.6 GOLD] Kill any pending async listeners to avoid "message channel closed" errors
+    abortController.abort();
+    console.log("[V5.6] Async Shield Activated: Pending requests aborted.");
+});
 
 
 const cloneCliente = () => {
@@ -2006,7 +2030,7 @@ const clientColorMode = computed(() => {
     const cuit = (form.value.cuit || '').replace(/[^0-9]/g, '');
     const isGeneric = ['00000000000', '11111111119', '11111111111', '99999999999'].includes(cuit);
     const isConsumidorFinal = form.value.condicion_iva_id && 
-            condicionesIva.value.find(i => i.id === form.value.condicion_iva_id)?.nombre.toUpperCase().includes('CONSUMIDOR FINAL');
+            condicionesIva.value?.find(i => i.id === form.value.condicion_iva_id)?.nombre?.toUpperCase().includes('CONSUMIDOR FINAL');
 
     // 1. [V15.1] POWER PINK (Bit 19 - 524288) o Reglas Difusas (Informales)
     if ((flags & 524288) || (flags & 15) === 9 || (flags & 15) === 11 || !cuit || cuit.length < 5 || isGeneric || isConsumidorFinal || !form.value.condicion_iva_id) {

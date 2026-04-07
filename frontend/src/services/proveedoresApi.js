@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\services\proveedoresApi.js
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 import api from './api';
 
 export default {

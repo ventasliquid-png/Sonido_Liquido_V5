@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\stores\agenda.js
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 import { defineStore } from 'pinia';
 import agendaService from '../services/agenda';
 

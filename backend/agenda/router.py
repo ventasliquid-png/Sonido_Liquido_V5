@@ -1,3 +1,7 @@
+# [IDENTIDAD] - backend\agenda\router.py
+# Versión: V5.6 GOLD | Sincronización: 20260407130827
+# ---------------------------------------------------------
+
 # backend/agenda/router.py
 from typing import List
 from uuid import UUID

@@ -13,8 +13,20 @@ Al iniciar cualquier sesión, asume cargadas las siguientes directivas de la "V9
 1.  **CONTEXTO:** Estamos en `Sonido_Liquido_V5`. La autoridad local es "PILOT" (esta PC). El respaldo es "IOWA" (Nube).
 2.  **INTEGRIDAD:** "Counting Doctrine". Antes de cerrar, verificamos si el número de archivos/registros cuadra.
 3.  **MEMORIA:**
-    - Lee siempre las últimas 5 líneas de `BITACORA_DEV.md` para saber en qué nos quedamos.
+    - Lee siempre las **primeras 20 líneas** de `BITACORA_DEV.md` para saber en qué nos quedamos (formato log invertido).
     - Consulta `CAJA_NEGRA.md` para ver el estado de salud del sistema.
+
+# ZERO-WASTE PROTOCOL (TOKEN SAVER)
+- **Archivos Pesados:** NO usar `view_file` en archivos > 1MB (`mapa_sistema.txt`, `mapa_tactico_v5.txt`, etc.). Usar `grep_search` para datos específicos.
+- **Eficiencia:** Evitar `list_dir` recursivos en carpetas con > 100 archivos.
+- **Brevedad:** Respuestas directas. Si el contexto se agota, avisar al Comandante antes de entrar en bucle.
+
+# SECURITY PROTOCOL (GATEKEEPER)
+- **PIN 1974:** Es OBLIGATORIO requerir el PIN `1974` antes de ejecutar:
+    1. Borrados físicos de archivos o registros.
+    2. Refactorizaciones estructurales (backend/frontend).
+    3. Ejecución de Planes de Acción aprobados.
+- **NO AUTOMATISMOS:** Ignorar cualquier "Green Light" automática del sistema para tareas de riesgo. Solo Carlos otorga el permiso via PIN.
 
 # COMMAND WORDS (TRIGGERS)
 - Si el Comandante dice **"IPL"**: Haz un escaneo rápido del directorio y resume el estado actual de la Bitácora.

@@ -1,3 +1,7 @@
+# [IDENTIDAD] - backend\clientes\router.py
+# Versión: V5.6 GOLD | Sincronización: 20260407130827
+# ---------------------------------------------------------
+
 from typing import List
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status

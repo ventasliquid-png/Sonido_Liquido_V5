@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Pedidos\components\LogisticaPanel.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
     <div class="bg-[#051f15] border border-emerald-900/30 rounded-lg p-4 space-y-4 no-zen">
         <!-- Header -->

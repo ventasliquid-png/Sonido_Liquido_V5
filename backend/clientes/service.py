@@ -1,3 +1,7 @@
+# [IDENTIDAD] - backend\clientes\service.py
+# Versión: V5.6 GOLD | Sincronización: 20260407130827
+# ---------------------------------------------------------
+
 from typing import List, Optional
 from uuid import UUID
 import uuid
@@ -16,16 +20,41 @@ class ClienteService:
     @staticmethod
     def create_cliente(db: Session, cliente_in: schemas.ClienteCreate) -> Cliente:
         try:
-            # Libertad Vigilada: Check for duplicates
-            # If CUIT exists, mark for audit but ALLOW creation
+            # [V5.6 GOLD - BLINDAJE] Strict Duplicate Prevention
+            # GENERIC CUITs are excluded from the block
             GENERIC_CUITS = ['00000000000', '11111111119', '11111111111', '99999999999']
             
-            existing = None
+            # 1. CUIT Block
             if cliente_in.cuit and cliente_in.cuit not in GENERIC_CUITS:
-                 existing = db.query(Cliente).filter(Cliente.cuit == cliente_in.cuit).first()
+                 existing_cuit = db.query(Cliente).filter(Cliente.cuit == cliente_in.cuit).first()
+                 if existing_cuit:
+                     raise HTTPException(
+                         status_code=status.HTTP_400_BAD_REQUEST, 
+                         detail=f"BLOQUEO DE DUPLICADO: El CUIT {cliente_in.cuit} ya está registrado bajo '{existing_cuit.razon_social}'."
+                     )
             
-            if existing:
-                cliente_in.requiere_auditoria = True
+            # 2. Razón Social Block (Escudo GY - Robust Normalization)
+            new_name_clean = ClienteService.normalize_name(cliente_in.razon_social)
+            
+            # Fast check first (ilike)
+            existing_name = db.query(Cliente).filter(Cliente.razon_social.ilike(cliente_in.razon_social.strip())).first()
+            
+            if not existing_name:
+                # Deep scan if fast check fails (Shield against "Inapryl S. R.L." vs "Inapryl S.R.L.")
+                # We fetch names and ids to avoid performance issues in huge datasets
+                all_clients = db.query(Cliente.id, Cliente.razon_social).filter(Cliente.activo == True).all()
+                for c_id, c_name in all_clients:
+                    if ClienteService.normalize_name(c_name) == new_name_clean:
+                        existing_name = db.query(Cliente).filter(Cliente.id == c_id).first()
+                        break
+            
+            if existing_name:
+                # If it's an exact match of a non-generic name, block it
+                if new_name_clean not in ['CONSUMIDORFINAL', 'CLIENTEEVENTUAL']:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST, 
+                        detail=f"BLOQUEO DE DUPLICADO: La Razón Social '{cliente_in.razon_social}' colisiona semánticamente con '{existing_name.razon_social}'."
+                    )
             
             # Auto-assign Legacy ID (Internal Code)
             from sqlalchemy import func
@@ -747,6 +776,23 @@ class ClienteService:
             return text
 
         return f"{clean(calle)}|{clean(numero)}|{clean(piso)}|{clean(depto)}"
+
+    @staticmethod
+    def normalize_name(name: str) -> str:
+        """
+        [GY-FIX-V16] Normalizador de Razón Social (Blindaje de Duplicados).
+        Remueve espacios, puntos, guiones y caracteres no alfanuméricos.
+        """
+        if not name: return ""
+        import unicodedata
+        import re
+        # Normalizar a NFKD para separar acentos
+        text = unicodedata.normalize('NFKD', str(name))
+        # Remover caracteres que no sean ASCII (acentos)
+        text = text.encode('ASCII', 'ignore').decode('ASCII')
+        # Limpieza total: solo letras y números
+        text = re.sub(r'[^a-zA-Z0-9]', '', text)
+        return text.upper()
 
     @staticmethod
     def find_matching_domicilio(db: Session, data: dict) -> Optional[Domicilio]:

@@ -1,3 +1,7 @@
+# [IDENTIDAD] - backend\maestros\models.py
+# Versión: V5.6 GOLD | Sincronización: 20260407130827
+# ---------------------------------------------------------
+
 # Archivo: backend/maestros/models.py
 # Módulo Maestros (V5) - Tablas Base
 import uuid

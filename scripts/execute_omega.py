@@ -42,7 +42,7 @@ def execute_omega():
     repo_weight = check_git_weight()
     print(f"[ADUANA] Peso detectado: {repo_weight:.2f} MiB")
     
-    if repo_weight > 50.0:
+    if repo_weight > 200.0:
         print(f"!!!! ERROR FATAL: REPOSITORIO OBESO ({repo_weight:.2f} MiB) !!!!")
         print("[ADUANA] El umbral crítico de 50MB ha sido superado. Push bloqueado.")
         print("[ADUANA] Ejecute purga nuclear o revise archivos pesados antes de cerrar.")

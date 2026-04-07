@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Logistica\LogisticaSplitter.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
   <div class="min-h-screen bg-slate-900 text-white p-6 font-sans">
     <!-- HEADER -->

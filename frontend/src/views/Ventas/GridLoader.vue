@@ -1,3 +1,7 @@
+// [IDENTIDAD] - frontend\src\views\Ventas\GridLoader.vue
+// Versión: V5.6 GOLD | Sincronización: 20260407130827
+// ------------------------------------------
+
 <template>
     <div class="flex flex-col h-full font-sans text-emerald-50 transition-colors duration-500 ease-in-out" :class="mainThemeClass">
         
