@@ -62,12 +62,20 @@ Antes del push:
 
 ---
 
-## FASE 5: EJECUCIÓN GIT (solo tras PIN 1974)
+## FASE 5: EJECUCIÓN TÉCNICA (solo tras PIN 1974)
 
+1. **Sello de Pasaporte y Polizón**: Generar snapshot de la DB activa y actualizar metadatos.
+```powershell
+Copy-Item [db_activa] POLIZON_MAESTRO.bak -Force
+$pasaporte = @{ origen = $env:COMPUTERNAME; fecha = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'); estado = '[ESTADO_FASE1]' }
+$pasaporte | ConvertTo-Json | Set-Content -Path '.pasaporte_v5.json' -Encoding UTF8
+```
+
+2. **Commit y Push**:
 ```cmd
 git add .
 git status
-git commit -m "Omega: [Resumen de Misión] (PIN 1974)"
+git commit -m "Omega: [Resumen] (PIN 1974)"
 git push origin [rama_actual]
 ```
 
@@ -97,4 +105,4 @@ Si se activa el Bit 3 al cerrar, la limpieza es responsabilidad del próximo age
 
 ---
 
-*Última actualización: 2026-03-31 — OF*
+*Última actualización: 2026-04-08 — GY (Atenea Core V5)*
