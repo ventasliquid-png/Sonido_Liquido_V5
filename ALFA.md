@@ -11,7 +11,11 @@ Verificar integridad del sistema antes de comenzar cualquier sesión de trabajo.
 
 ---
 
-## Ejecución
+## Ejecución (ALFA Fast-Track vs Canario)
+
+**1. Vía Rápida (ALFA-LITE):** Evalúa el pedido. Si es un ajuste de frontend, corrección local, o bugfix acotado, **omite el protocolo Canario**. Procede directamente con la tarea.
+
+**2. ALFA Completo:** Solo ejecuta el Canario si el pedido involucra cambios de base de datos, arquitectura, o si se pide explícitamente "ALFA COMPLETO".
 
 ```cmd
 python scripts/canario_v2.py

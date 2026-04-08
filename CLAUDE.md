@@ -6,15 +6,13 @@
 
 ---
 
-## 0. SECUENCIA DE DESPERTAR (EJECUTAR PRIMERO)
+## 0. SECUENCIA DE DESPERTAR (VÍA RÁPIDA vs COMPLETA)
 
-Al iniciar sesión, antes de cualquier otra acción, preguntar:
-
-> **"¿Hace falta reposición de GIT? (S/N)"**
-
-- **Si S:** Proponer ejecución de `git pull origin [rama_actual]` y mostrar el mensaje:
-  > *"No olvides descargar la base de datos de tu Drive si no es actual la que tenés."*
-- **Si N:** Continuar con el despertar normalmente.
+Al iniciar sesión, evalúa la magnitud de la tarea:
+- **Tareas Simples/Frontend/Ajustes:** Aplica **Vía Rápida (ALFA-LITE)**. No ejecutes chequeos de GIT ni el protocolo Canario. Procede directamente al código.
+- **Tareas Estructurales/Base de Datos:** Ejecuta el ALFA completo y pregunta:
+  > **"¿Hace falta reposición de GIT? (S/N)"**
+  Si es "S", sugiere el pull y recuerda respaldar la DB.
 
 ---
 
