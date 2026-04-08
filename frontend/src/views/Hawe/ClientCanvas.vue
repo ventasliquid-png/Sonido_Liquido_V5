@@ -162,6 +162,25 @@
           <section class="bg-black/40 border border-white/10 rounded-2xl p-4 backdrop-blur-md shadow-xl relative group">
               <div class="absolute top-0 left-0 w-1 h-full bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.8)]"></div>
               
+              <!-- [Protocolo Nike] Similarity Warnings -->
+              <div v-if="similarityMatches.length > 0" class="mb-4 space-y-2">
+                  <div v-for="match in similarityMatches" :key="match.id" 
+                       class="flex items-center justify-between p-3 rounded-xl border animate-pulse"
+                       :class="match.score === 1.0 ? 'bg-red-500/10 border-red-500 text-red-500' : 'bg-orange-500/10 border-orange-500/50 text-orange-400'"
+                  >
+                      <div class="flex items-center gap-3">
+                          <i class="fas transition-all" :class="match.score === 1.0 ? 'fa-radiation-alt text-lg' : 'fa-exclamation-triangle'"></i>
+                          <div>
+                              <p class="text-xs font-black uppercase tracking-widest">
+                                  {{ match.score === 1.0 ? 'BLOQUEO: Registro Idéntico Detectado' : 'ALERTA: Similitud Detectada (' + (match.score * 100).toFixed(0) + '%)' }}
+                              </p>
+                              <p class="text-[10px] font-mono opacity-80">Ya existe: "{{ match.nombre }}"</p>
+                          </div>
+                      </div>
+                      <button @click="loadCliente(match.id)" class="px-3 py-1 bg-white/10 hover:bg-white/20 rounded text-[9px] font-bold uppercase transition-all">Ver Registro</button>
+                  </div>
+              </div>
+
               <div class="space-y-4">
                   <!-- LINE 1: FISCAL & COMMERCIAL (CUIT / IVA / Lista / Segmento) -->
                   <div class="grid grid-cols-12 gap-3 items-end pb-4">
@@ -379,7 +398,8 @@
               
               <button 
                   @click="saveCliente"
-                  class="px-10 py-3 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transition-all flex items-center gap-3 active:scale-95"
+                  :disabled="isCanonicalDuplicate"
+                  class="px-10 py-3 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transition-all flex items-center gap-3 active:scale-95 disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed"
               >
                   {{ isNew ? 'Crear Cliente' : 'Actualizar Registro' }} <i class="fas" :class="isNew ? 'fa-plus' : 'fa-check'"></i>
               </button>
@@ -458,6 +478,7 @@ import TransporteCanvas from '@/views/Logistica/components/TransporteCanvas.vue'
 import ContextMenu from '../../components/common/ContextMenu.vue'
 import { useLogisticaStore } from '../../stores/logistica'
 import { useAuditSemaphore } from '../../composables/useAuditSemaphore'
+import debounce from 'lodash/debounce'
 
 // [V5.6 GOLD] Async Shield
 const abortController = new AbortController();
@@ -1028,6 +1049,38 @@ const scrollToContacts = () => {
 const canteraResults = ref([])
 const isSearching = ref(false)
 let searchTimeout = null
+
+// --- Nuclear Similarity Logic (Protocolo Nike) ---
+const similarityMatches = ref([])
+const loadingSimilarity = ref(false)
+const isCanonicalDuplicate = computed(() => similarityMatches.value.some(m => m.score === 1.0))
+
+const checkSimilarity = debounce(async (name) => {
+    if (!name || name.length < 4 || !isNew.value) {
+        similarityMatches.value = []
+        return
+    }
+    
+    loadingSimilarity.value = true
+    try {
+        const res = await clientesService.checkSimilarity(name)
+        similarityMatches.value = res.data || []
+        
+        if (isCanonicalDuplicate.value) {
+            notificationStore.add('BLOQUEO NUCLEAR: Se detectó un duplicado idéntico por clave canónica.', 'error')
+        }
+    } catch (e) {
+        console.error("Error checking similarity", e)
+    } finally {
+        loadingSimilarity.value = false
+    }
+}, 500)
+
+watch(() => form.value.razon_social, (newVal) => {
+    if (isNew.value) {
+        checkSimilarity(newVal)
+    }
+})
 
 const toggleActive = () => {
     if (form.value.activo) {

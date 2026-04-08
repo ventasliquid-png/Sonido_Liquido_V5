@@ -42,6 +42,7 @@ class Cliente(Base):
     id = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
     # Identidad e Identificadores
     razon_social = Column(String, nullable=False, index=True)
+    razon_social_canon = Column(String, unique=True, index=True, nullable=True)
     nombre_fantasia = Column(String, nullable=True)
     
     # [V5-X] Hybrid Architecture: CUIT is now nullable

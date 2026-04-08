@@ -33,28 +33,26 @@ class ClienteService:
                          detail=f"BLOQUEO DE DUPLICADO: El CUIT {cliente_in.cuit} ya está registrado bajo '{existing_cuit.razon_social}'."
                      )
             
-            # 2. Razón Social Block (Escudo GY - Robust Normalization)
-            new_name_clean = ClienteService.normalize_name(cliente_in.razon_social)
+            # 2. Razón Social Block (Protocolo Nike - Nuclear Normalization)
+            canon_name = ClienteService.normalize_name(cliente_in.razon_social)
             
-            # Fast check first (ilike)
-            existing_name = db.query(Cliente).filter(Cliente.razon_social.ilike(cliente_in.razon_social.strip())).first()
-            
-            if not existing_name:
-                # Deep scan if fast check fails (Shield against "Inapryl S. R.L." vs "Inapryl S.R.L.")
-                # We fetch names and ids to avoid performance issues in huge datasets
-                all_clients = db.query(Cliente.id, Cliente.razon_social).filter(Cliente.activo == True).all()
-                for c_id, c_name in all_clients:
-                    if ClienteService.normalize_name(c_name) == new_name_clean:
-                        existing_name = db.query(Cliente).filter(Cliente.id == c_id).first()
-                        break
-            
-            if existing_name:
-                # If it's an exact match of a non-generic name, block it
-                if new_name_clean not in ['CONSUMIDORFINAL', 'CLIENTEEVENTUAL']:
+            # Bloqueo por Clave Canónica (Exacta Limpia)
+            if canon_name not in ['CONSUMIDORFINAL', 'CLIENTEEVENTUAL']:
+                existing_canon = db.query(Cliente).filter(Cliente.razon_social_canon == canon_name).first()
+                if existing_canon:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST, 
-                        detail=f"BLOQUEO DE DUPLICADO: La Razón Social '{cliente_in.razon_social}' colisiona semánticamente con '{existing_name.razon_social}'."
+                        detail=f"BLOQUEO NUCLEAR: Ya existe un registro coincidente ('{existing_canon.razon_social}'). La Clave Canónica '{canon_name}' ya está en uso."
                     )
+            
+            # [V5.6 GOLD] Fallback fast check (ilike)
+            existing_name = db.query(Cliente).filter(Cliente.razon_social.ilike(cliente_in.razon_social.strip())).first()
+            
+            if existing_name and canon_name not in ['CONSUMIDORFINAL', 'CLIENTEEVENTUAL']:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST, 
+                    detail=f"BLOQUEO DE DUPLICADO: La Razón Social '{cliente_in.razon_social}' colisiona con '{existing_name.razon_social}'."
+                )
             
             # Auto-assign Legacy ID (Internal Code)
             from sqlalchemy import func
@@ -63,7 +61,8 @@ class ClienteService:
 
             # Crear Cliente
             db_cliente = Cliente(
-                razon_social=cliente_in.razon_social,
+                razon_social=cliente_in.razon_social.strip(),
+                razon_social_canon=canon_name,
                 cuit=cliente_in.cuit,
                 codigo_interno=next_id, # Auto-assigned
                 condicion_iva_id=cliente_in.condicion_iva_id,
@@ -780,19 +779,64 @@ class ClienteService:
     @staticmethod
     def normalize_name(name: str) -> str:
         """
-        [GY-FIX-V16] Normalizador de Razón Social (Blindaje de Duplicados).
-        Remueve espacios, puntos, guiones y caracteres no alfanuméricos.
+        [GY-FIX-V16.2] Protocolo de Tokenización Alfabética (Bag of Words - Blindaje Nike).
+        Remueve acentos, unifica siglas (quita puntos), tokeniza por palabras,
+        elimina ruido (<2 chars), ordena alfabéticamente y sella la cadena única.
         """
         if not name: return ""
         import unicodedata
         import re
-        # Normalizar a NFKD para separar acentos
+        
+        # 1. Normalización Unicode (Mata acentos)
         text = unicodedata.normalize('NFKD', str(name))
-        # Remover caracteres que no sean ASCII (acentos)
-        text = text.encode('ASCII', 'ignore').decode('ASCII')
-        # Limpieza total: solo letras y números
-        text = re.sub(r'[^a-zA-Z0-9]', '', text)
-        return text.upper()
+        text = text.encode('ASCII', 'ignore').decode('ASCII').upper()
+        
+        # 2. Unificación de Siglas: "S.R.L." -> "SRL" antes de tokenizar
+        text = text.replace('.', '')
+        
+        # 3. Tokenización: Reemplazar todo lo no-alfanumérico por ESPACIO
+        text = re.sub(r'[^A-Z0-9]', ' ', text)
+        tokens = text.split()
+        
+        # 4. Limpieza de Ruido (Filtramos palabras de 1 solo caracter)
+        tokens = [t for t in tokens if len(t) >= 2]
+        
+        # 5. Ordenamiento Alfabético [EL TALLER SRL] -> [EL, SRL, TALLER]
+        tokens.sort()
+        
+        # 6. Sellado: Unir sin espacios
+        return "".join(tokens)
+
+    @staticmethod
+    def check_similarity(db: Session, name: str, threshold: float = 0.85) -> List[dict]:
+        """
+        [V5.7] Fuzzy Matching para detección de similitud (Protocolo Nike).
+        """
+        from difflib import SequenceMatcher
+        
+        target_canon = ClienteService.normalize_name(name)
+        if not target_canon or target_canon in ['CONSUMIDORFINAL', 'CLIENTEEVENTUAL']:
+            return []
+
+        # Buscamos en la DB candidatos (solo activos)
+        candidates = db.query(Cliente.id, Cliente.razon_social, Cliente.razon_social_canon).filter(Cliente.activo == True).all()
+        
+        matches = []
+        for c_id, c_name, c_canon in candidates:
+            # Primero comparación rápida por canon si el canon ya existe en la DB
+            if c_canon == target_canon:
+                matches.append({"id": str(c_id), "nombre": c_name, "score": 1.0, "tipo": "CANON"})
+                continue
+            
+            # Fuzzy Match
+            # Usamos difflib contra el nombre original (pero limpio de espacios extra)
+            ratio = SequenceMatcher(None, name.upper().strip(), c_name.upper().strip()).ratio()
+            if ratio >= threshold:
+                matches.append({"id": str(c_id), "nombre": c_name, "score": round(ratio, 2), "tipo": "FUZZY"})
+                
+        # Ordenar por puntaje
+        matches.sort(key=lambda x: x['score'], reverse=True)
+        return matches[:5] # Retornar top 5
 
     @staticmethod
     def find_matching_domicilio(db: Session, data: dict) -> Optional[Domicilio]:

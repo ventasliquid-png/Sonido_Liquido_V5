@@ -97,8 +97,8 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from backend.core.database import get_db
-from backend.clientes.models import Cliente
 from backend.clientes.models import Cliente, Domicilio
+from backend.clientes.service import ClienteService
 from backend.productos.models import Producto, Rubro, ProductoCosto
 from decimal import Decimal
 
@@ -135,36 +135,37 @@ def commit_candidates(type: str, db: Session = Depends(get_db)):
                     cuit_limpio = str(row.get("cuit", "")).replace("-", "").replace("/", "").strip()
                     nombre = row.get("nombre_final", row.get("nombre_original"))
                     
+                    # [Protocolo Nike] Canonización Nuclear
+                    canon_nombre = ClienteService.normalize_name(nombre)
+                    
+                    # 1. Chequeo por CUIT (Prioritario)
                     if cuit_limpio:
                         exists = db.query(Cliente).filter(Cliente.cuit == cuit_limpio).first()
                         if exists:
-                            # [SMART UPDATE]
-                            # Si es 100% igual, "chilla" (Marca EXISTENTE).
-                            # Si es diferente, actualiza.
-                            if exists.razon_social == nombre:
+                            # Si ya existe por CUIT, actualizamos o saltamos
+                            if ClienteService.normalize_name(exists.razon_social) == canon_nombre:
                                 df.at[index, 'estado'] = 'EXISTENTE'
-                                errores.append(f"Cliente {nombre} ya existe idéntico. (Skip)")
+                                errores.append(f"Cliente {nombre} ya existe (CUIT {cuit_limpio}). (Skip)")
                                 continue
                             else:
-                                # Update existing
-                                old_name = exists.razon_social
                                 exists.razon_social = nombre
+                                exists.razon_social_canon = canon_nombre
                                 db.add(exists)
-                                
-                                # Add to Master (New Version)
-                                master_rows.append({
-                                    "id_legacy": row.get("id", ""), 
-                                    "razon_social": nombre,
-                                    "cuit": cuit_limpio,
-                                    "fecha_importacion": pd.Timestamp.now().isoformat()
-                                })
-                                
                                 df.at[index, 'estado'] = 'ACTUALIZADO'
                                 count += 1
                                 continue
                     
+                    # 2. Chequeo por Canon (Escudo contra Variantes: "Inapyr S. R.L." vs "Inapyr S.R.L.")
+                    exists_by_canon = db.query(Cliente).filter(Cliente.razon_social_canon == canon_nombre).first()
+                    if exists_by_canon:
+                        df.at[index, 'estado'] = 'EXISTENTE'
+                        errores.append(f"Bloqueo Nuclear: '{nombre}' colisiona semánticamente con '{exists_by_canon.razon_social}'. (Skip)")
+                        continue
+                    
+                    # 3. Creación de Nuevo (Con Canon)
                     nuevo_cliente = Cliente(
                         razon_social=nombre,
+                        razon_social_canon=canon_nombre,
                         cuit=cuit_limpio,
                         activo=True
                     )

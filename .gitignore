@@ -11,6 +11,8 @@ debug_*.py
 BUILD_PILOTO/
 .venv/
 *.db*
+!POLIZON_MAESTRO.bak
+!.pasaporte_v5.json
 
 # Releases
 VERSIONES_LIBERADAS/

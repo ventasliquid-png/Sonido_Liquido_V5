@@ -50,6 +50,13 @@ def consultar_web(cuit: str):
 def check_cuit(cuit: str, exclude_id: UUID = None, db: Session = Depends(get_db)):
     return ClienteService.check_cuit(db, cuit, exclude_id)
 
+@router.get("/check-similarity")
+def check_similarity(name: str, threshold: float = 0.85, db: Session = Depends(get_db)):
+    """
+    Detección preventiva de duplicados por similitud (Protocolo Nike).
+    """
+    return ClienteService.check_similarity(db, name, threshold)
+
 @router.get("/{cliente_id}/transportes-habituales")
 def get_transportes_habituales(cliente_id: UUID, db: Session = Depends(get_db)):
     return ClienteService.get_transportes_habituales(db, cliente_id)

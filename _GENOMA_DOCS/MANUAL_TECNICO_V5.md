@@ -235,3 +235,16 @@ Implementada para erradicar la deuda técnica de columnas booleanas legacy (`act
     - **Bit 3 (8)**: `RECOMMENDED` (Transportes). Identifica transportistas preferenciales ("Albertos").
 * **Herencia de Transporte**: El `Cliente` posee ahora un puntero `transporte_habitual_id` que automatiza la selección logística en nuevos pedidos.
 * **Puente Pinia (Frontend)**: Los stores (`clientes.js`, `logistica.js`) actúan como traductores dinámicos de bits a flags booleanos, garantizando retrocompatibilidad total de la UI.
+
+## 25. ESCUDO DE IDENTIDAD NIKE V16.2 (BAG OF WORDS)
+Implementado el 08-04-2026 para erradicar las colisiones por variaciones cosméticas en la Razón Social.
+* **Lógica Bag of Words (BOW)**: El sistema ya no compara strings lineales. Descompone el nombre en "bolsas de palabras".
+* **Algoritmo de Canonización**:
+    1. **Normalización Unicode**: Eliminación de acentos y caracteres especiales.
+    2. **Limpieza de Siglas**: "S.R.L." se convierte en "SRL" mediante remoción de puntos.
+    3. **Tokenización**: División por espacios en blanco.
+    4. **Filtro de Ruido**: Eliminación de tokens irrelevantes (longitud < 2 caracteres).
+    5. **Ordenamiento Alfabético**: Los tokens se ordenan (Ej: `['SRL', 'INAPYR']` -> `['INAPYR', 'SRL']`).
+    6. **Sellado Único**: Unión de tokens ordenados sin espacios en la columna `razon_social_canon`.
+* **Sensor de Colisión (Frontend)**: `ClientCanvas.vue` invoca `/check-similarity` on-type. Si el score es 1.0 (Colisión de Identidad), el sistema dispara un bloqueo visual perentorio.
+* **Homologación D-P**: Esta lógica está sincronizada tanto en el repo de desarrollo como en el satélite de producción (`V5-LS`).
