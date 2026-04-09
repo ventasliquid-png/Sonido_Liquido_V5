@@ -17,6 +17,13 @@ En contraposición a la rigidez tradicional de bases de datos, Sonido Líquido V
     2.  El nuevo cliente se crea con el flag `requiere_auditoria = True`.
     3.  Visualmente, estas fichas aparecen marcadas (alerta amarilla) en los listados hasta que un supervisor las "Valida" (`requiere_auditoria = False`).
 
+### 1.2. Identity Shield (Protocolo Nike / BOW)
+Para evitar la duplicidad accidental por variaciones de formato o sintaxis, se implementa el blindaje **Bag of Words**.
+
+*   **El Concepto:** El sistema es insensible al orden de las palabras, mayúsculas, acentos o siglas (ej: "S.R.L." == "SRL").
+*   **La Regla de Oro:** Si el nombre canónico ya existe, el sistema aplica un **Bloqueo Nuclear (HTTP 400)**, impidiendo la creación del duplicado.
+*   **Híbrido:** Coexiste con la Libertad Vigilada del CUIT, priorizando la identidad nominal sobre la fiscal.
+
 ### 1.2. Higiene de Datos: Borrado Físico vs. Lógico
 Para mantener la integridad referencial sin acumular basura digital, se aplican dos niveles de eliminación:
 
