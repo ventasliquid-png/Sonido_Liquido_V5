@@ -95,6 +95,7 @@ class IngestionCliente(BaseModel):
     domicilio: Optional[str] = None
     condicion_iva: Optional[str] = None
     canal: Optional[str] = None
+    domicilios_disponibles: Optional[List[dict]] = []
 
 class IngestionFactura(BaseModel):
     numero: Optional[str] = None
@@ -116,6 +117,7 @@ class IngestionPayload(BaseModel):
     bultos: Optional[int] = 1
     valor_declarado: Optional[float] = 0.0
     solo_actualizar_cliente: bool = False
+    nuevo_domicilio: Optional[ForcedAddress] = None
 
 # --- MANUAL REMITO (V15.1.4) ---
 class ManualRemitoItem(BaseModel):

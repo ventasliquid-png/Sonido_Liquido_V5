@@ -10,7 +10,9 @@
 
 Al iniciar sesión, evalúa la magnitud de la tarea:
 - **Tareas Simples/Frontend/Ajustes:** Aplica **Vía Rápida (ALFA-LITE)**. No ejecutes chequeos de GIT ni el protocolo Canario. Procede directamente al código.
-- **Tareas Estructurales/Base de Datos:** Ejecuta el ALFA completo y pregunta:
+  > [!CAUTION]
+  > **REGLA PIN**: Si el ajuste requiere un **Plan de Corrección** o afecta la **identidad (UUIDs/IDs)** de productos, solicita el **PIN 1974**.
+- **Tareas Estructurales/Base de Datos:** Ejecuta el ALFA completo y solicita el **PIN 1974** para autorizar el plan de ejecución.
   > **"¿Hace falta reposición de GIT? (S/N)"**
   Si es "S", sugiere el pull y recuerda respaldar la DB.
 
@@ -116,9 +118,10 @@ No asumir comportamiento de bits sin verificar la versión del esquema.
 
 - ✅ Puede leer y analizar el código libremente
 - ✅ Puede sugerir cambios, refactors y mejoras
-- ⚠️ Acciones destructivas (sobrescribir bases, eliminar archivos) requieren confirmación explícita de Carlos
-- ❌ No ejecutar migraciones de schema sin autorización
+- ⚠️ Acciones destructivas (sobrescribir bases, eliminar archivos) requieren confirmación explícita de Carlos via **PIN 1974**
+- ❌ No ejecutar migraciones de schema sin autorización (PIN 1974 obligatorio)
 - ❌ No modificar `V5_LS_MASTER.db` sin PIN 1974
+- 🛑 **Aceptación automática**: Los botones del sistema NO sustituyen al PIN 1974 para planes críticos.
 
 ---
 
@@ -142,4 +145,4 @@ El repo se sincroniza entre locaciones via Git. Las bases de datos se respaldan 
 
 ---
 
-*Última actualización: 2026-03-31 — OF*
+*Última actualización: 2026-04-10 — OF (V5.8 GOLD)*

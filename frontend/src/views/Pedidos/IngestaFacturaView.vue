@@ -153,13 +153,65 @@
                     <!-- LOGISTICS EXTENSION: COSTOS Y BULTOS -->
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 pb-4">
                         <div class="md:col-span-2 space-y-1" v-if="clientAddresses.length > 0">
-                            <label class="text-[10px] uppercase text-blue-500 font-black block mb-1 tracking-widest">Sede de Entrega (Padrón)</label>
-                            <select 
-                                v-model="selectedAddressId" 
-                                class="w-full bg-slate-950 border border-blue-900/30 rounded-lg px-3 py-2 text-xs text-white focus:border-blue-500 outline-none transition-all appearance-none"
-                            >
-                                <option v-for="d in clientAddresses" :key="d.id" :value="d.id">{{ d.alias || (d.calle + ' ' + d.numero) }}</option>
-                            </select>
+                            <label class="text-[10px] uppercase text-blue-500 font-black block mb-1 tracking-widest flex items-center justify-between">
+                                <span>Sede de Entrega (Padrón)</span>
+                                <span v-if="addressAmbiguity" class="text-amber-500 animate-pulse flex items-center gap-1">
+                                    <i class="fas fa-exclamation-triangle text-[8px]"></i> AMBIGÜEDAD: CONFIRME SEDE
+                                </span>
+                            </label>
+                            <div class="relative group">
+                                <select 
+                                    v-model="selectedAddressId" 
+                                    @change="onAddressSelectChange"
+                                    class="w-full bg-slate-950 border rounded-lg px-3 py-2 text-xs text-white focus:border-blue-500 outline-none transition-all appearance-none pr-8"
+                                    :class="[
+                                        addressAmbiguity && !manualAddressChange ? 'border-amber-500/50 shadow-[0_0_10px_rgba(245,158,11,0.2)]' : 'border-blue-900/30',
+                                        isSuggestedSelected ? 'border-emerald-500/50 shadow-[0_0_10px_rgba(16,185,129,0.2)]' : ''
+                                    ]"
+                                >
+                                    <!-- Options from DB -->
+                                    <option v-for="d in clientAddresses" :key="d.id" :value="d.id">
+                                        {{ d.is_suggested ? '🪄' : (d.es_entrega ? '🚛' : '🏠') }} 
+                                        {{ d.alias || (d.calle + ' ' + (d.numero || '')) }} 
+                                        {{ d.is_suggested ? '(SUGERIDO)' : (d.es_fiscal ? '(FISCAL)' : '') }}
+                                    </option>
+                                    
+                                    <!-- Management Options -->
+                                    <option value="ADD_NEW" class="text-blue-400 font-bold">➕ AGREGAR NUEVA DIRECCIÓN...</option>
+                                </select>
+                                <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 group-hover:text-blue-400">
+                                    <i class="fas" :class="isSuggestedSelected ? 'fa-magic text-emerald-400' : 'fa-chevron-down'"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- NEW ADDRESS MINI-FORM -->
+                        <div v-if="selectedAddressId === 'ADD_NEW'" class="md:col-span-4 bg-blue-500/5 border border-blue-500/20 rounded-xl p-4 mt-2 animate-in fade-in slide-in-from-top-4 duration-300">
+                            <div class="flex items-center gap-2 mb-3">
+                                <i class="fas fa-plus-circle text-blue-400"></i>
+                                <span class="text-[10px] uppercase font-bold text-blue-200 tracking-wider">Alta de Nueva Sede de Entrega</span>
+                            </div>
+                            <div class="grid grid-cols-12 gap-3">
+                                <div class="col-span-8">
+                                    <label class="text-[8px] uppercase text-blue-400/50 font-bold block mb-1">Calle</label>
+                                    <input v-model="newAddress.calle" type="text" class="w-full bg-slate-950 border border-blue-900/40 rounded px-2 py-1 text-xs text-white focus:border-blue-500 outline-none" placeholder="Calle..." />
+                                </div>
+                                <div class="col-span-4">
+                                    <label class="text-[8px] uppercase text-blue-400/50 font-bold block mb-1">Número</label>
+                                    <input v-model="newAddress.numero" type="text" class="w-full bg-slate-950 border border-blue-900/40 rounded px-2 py-1 text-xs text-white focus:border-blue-500 outline-none" placeholder="Nro..." />
+                                </div>
+                                <div class="col-span-6">
+                                    <label class="text-[8px] uppercase text-blue-400/50 font-bold block mb-1">Localidad</label>
+                                    <input v-model="newAddress.localidad" type="text" class="w-full bg-slate-950 border border-blue-900/40 rounded px-2 py-1 text-xs text-white focus:border-blue-500 outline-none" placeholder="Localidad..." />
+                                </div>
+                                <div class="col-span-6">
+                                    <label class="text-[8px] uppercase text-blue-400/50 font-bold block mb-1">Provincia (ID)</label>
+                                    <input v-model="newAddress.provincia_id" type="text" class="w-full bg-slate-950 border border-blue-900/40 rounded px-2 py-1 text-xs text-white focus:border-blue-500 outline-none uppercase" placeholder="B / X / C..." />
+                                </div>
+                            </div>
+                            <p class="text-[9px] text-blue-400/40 italic mt-3 flex items-center gap-1">
+                                <i class="fas fa-info-circle"></i> Al confirmar, esta sede se guardará permanentemente en la ficha del cliente.
+                            </p>
                         </div>
                         <div class="space-y-1">
                             <label class="text-[10px] uppercase text-blue-500 font-black block mb-1 tracking-widest">Bultos</label>
@@ -295,6 +347,19 @@ const selectedTransportId = ref(null);
 const selectedAddressId = ref(null);
 const bultos = ref(1);
 const valor_declarado = ref(0.0);
+const addressAmbiguity = ref(false);
+const manualAddressChange = ref(false);
+const isSuggestedSelected = computed(() => {
+    const selected = clientAddresses.value.find(d => d.id === selectedAddressId.value);
+    return selected?.is_suggested || false;
+});
+
+const newAddress = ref({
+    calle: '',
+    numero: '',
+    localidad: '',
+    provincia_id: 'X'
+});
 
 // SE ELIMINARON MOCKS DE VISTA PREVIA
 
@@ -338,7 +403,13 @@ const processFile = async (file) => {
             
             // Auto-load client details if matched in DB
             if (parsedData.value.cliente?.id) {
-                await loadClientDetails(parsedData.value.cliente.id);
+                // [V5.8] Use addresses returned by the API during ingestion to avoid Round-trip delay
+                if (parsedData.value.cliente.domicilios_disponibles?.length > 0) {
+                    clientAddresses.value = parsedData.value.cliente.domicilios_disponibles;
+                    autoSelectAddress();
+                } else {
+                    await loadClientDetails(parsedData.value.cliente.id);
+                }
             }
         } else {
             const errorMsg = res.data?.error || 'El servidor no pudo interpretar el archivo.';
@@ -422,12 +493,57 @@ const loadClientDetails = async (clientId) => {
     try {
         const res = await api.get(`/clientes/${clientId}`);
         clientAddresses.value = res.data.domicilios || [];
-        // Predeterminado: primer domicilio
-        if (clientAddresses.value.length > 0) {
-            selectedAddressId.value = clientAddresses.value[0].id;
-        }
+        autoSelectAddress();
     } catch (e) {
         console.error("[V5] No se pudieron cargar domicilios del cliente", e);
+    }
+}
+
+const onAddressSelectChange = () => {
+    manualAddressChange.value = true;
+    if (selectedAddressId.value === 'ADD_NEW') {
+        const extracted = parsedData.value?.cliente?.domicilio || '';
+        // Heurística básica de limpieza para el formulario
+        const clean = extracted.replace('[EXTRACTED] ', '').replace('SIN DOMICILIO FISCAL', '').trim();
+        
+        // Intentar separar Calle y Número (Simple split por último espacio que sea número?)
+        // Por ahora lo ponemos todo en calle y el usuario separa en el mini-form
+        newAddress.value.calle = clean;
+        newAddress.value.numero = '';
+        newAddress.value.localidad = 'CABA'; // Default situational
+        newAddress.value.provincia_id = 'C';
+    }
+}
+
+const autoSelectAddress = () => {
+    if (clientAddresses.value.length === 0) return;
+    
+    manualAddressChange.value = false;
+    addressAmbiguity.value = false;
+    
+    // Logic V15.8 (Carlos Policy):
+    // 1. [V15.8.5 GOLD] Priorizar Sugerencia Heurística (Magic Wand)
+    const suggested = clientAddresses.value.find(d => d.is_suggested);
+    if (suggested) {
+        selectedAddressId.value = suggested.id;
+        return;
+    }
+
+    // 2. Find all "Entrega" addresses
+    const deliveryAddresses = clientAddresses.value.filter(d => d.es_entrega);
+    
+    if (deliveryAddresses.length === 1) {
+        // Correct unique delivery address
+        selectedAddressId.value = deliveryAddresses[0].id;
+    } else if (deliveryAddresses.length > 1) {
+        // Ambiguedad: multiple delivery
+        selectedAddressId.value = deliveryAddresses[0].id; // Suggest first
+        addressAmbiguity.value = true;
+        notification.add('Atención: El cliente tiene múltiples sedes de entrega. Verifique cuál corresponde.', 'warning');
+    } else {
+        // Fallback: Fiscal
+        const fiscal = clientAddresses.value.find(d => d.es_fiscal);
+        selectedAddressId.value = fiscal ? fiscal.id : clientAddresses.value[0].id;
     }
 }
 
@@ -465,15 +581,12 @@ const confirmIngesta = async () => {
             })),
             transporte_id: selectedTransportId.value,
             bultos: bultos.value,
-            valor_declarado: valor_declarado.value
+            valor_declarado: valor_declarado.value,
+            nuevo_domicilio: selectedAddressId.value === 'ADD_NEW' ? newAddress.value : null
         };
 
-        // Si hay domicilio seleccionado, el backend intentará asignarlo
-        // Nota: El schema IngestionPayload no tiene campo 'domicilio_id' explícito aún, 
-        // pero podemos enviarlo como parte del cliente o ampliar el schema.
-        // Por ahora, el service.py usa el predeterminado del cliente. 
-        // Si queremos forzarlo, deberíamos enviarlo.
-        if (selectedAddressId.value) {
+        // Si hay domicilio seleccionado de la lista
+        if (selectedAddressId.value && selectedAddressId.value !== 'ADD_NEW') {
             payload.domicilio_id = selectedAddressId.value;
         }
 

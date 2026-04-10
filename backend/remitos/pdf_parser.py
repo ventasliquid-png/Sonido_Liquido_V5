@@ -184,7 +184,7 @@ def parse_invoice_data(text: str) -> dict:
     if "ROSETI" in final_domicilio.upper():
         final_domicilio = "S/D"
 
-    data["cliente"]["domicilio"] = final_domicilio if final_domicilio else "S/D"
+    data["cliente"]["domicilio"] = f"[EXTRACTED] {final_domicilio}" if final_domicilio else "S/D"
 
     # 3. ITEMS (Anchor Strategy V2)
     # Pattern looks for: Description, Price/Tax (ignored here but used as anchor), Quantity, Unit

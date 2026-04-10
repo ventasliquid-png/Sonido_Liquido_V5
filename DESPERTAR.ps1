@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = "SilentlyContinue"
+$ErrorActionPreference = "SilentlyContinue"
 [console]::Title = "DESPERTAR - Aduana Inteligente (Protocolo Nike)"
 Write-Host "========================================================" -ForegroundColor Cyan
 Write-Host "       SONIDO LÍQUIDO V5 - ADUANA DE IMPORTACIÓN" -ForegroundColor Cyan
@@ -11,7 +11,11 @@ git fetch origin HEAD > $null 2>&1
 
 $remotePasaporte = $null
 try {
-    $remotePasaporteStr = git show origin/HEAD:.pasaporte_v5.json 2>$null
+    # Detectar rama actual dinámicamente
+    $branch = git branch --show-current
+    if (-not $branch) { $branch = "main" }
+    
+    $remotePasaporteStr = git show "origin/$branch":.pasaporte_v5.json 2>$null
     if ($remotePasaporteStr) { $remotePasaporte = $remotePasaporteStr | ConvertFrom-Json }
 } catch {}
 
@@ -80,7 +84,7 @@ if (Test-Path "POLIZON_MAESTRO.bak") {
         $pFechaObj = [datetime]::ParseExact($remotePasaporte.fecha_cierre_real, "yyyy-MM-dd HH:mm:ss", $null)
         $lFechaObj = (Get-Item $localDb).LastWriteTime
 
-        Write-Host " - Polizón (Remoto): $remotePasaporte.fecha_cierre_real"
+        Write-Host " - Polizón (Remoto): $($remotePasaporte.fecha_cierre_real)"
         Write-Host " - Base Local      : $($lFechaObj.ToString('yyyy-MM-dd HH:mm:ss'))"
 
         if ($pFechaObj -gt $lFechaObj) {

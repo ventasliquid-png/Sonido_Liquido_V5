@@ -1,3 +1,25 @@
+# 2026-04-10 17:35 (Misión Productos V5.8 GOLD & Resolución Remitos)
+- **Estado**: **NOMINAL GOLD (V5.8 Certified)**.
+- **Hito Remitos**: Implementación de **Matching Heurístico (🪄)** y **Alta Dinámica de Sedes (➕)**. Resolución definitiva del truncamiento de ARCA mediante SSoT.
+- **Hito Productos**: Inicio de la Modernización **Protocolo Alfa (Fase 1)**. Extracción de lógica a `service.py`. Saneamiento de Routers.
+- **Auditoría de Paridad**: Espejado 1:1 de los cambios en los repositorios Desarrollo (V5) y Producción (V5-LS). Paridad absoluta alcanzada.
+- **Seguridad**: Protocolo **PIN 1974** integrado como norma obligatoria para planes de corrección y cambios de base.
+- **Cierre**: Ejecución de Protocolo Omega solicitada por Carlos.
+
+# 2026-04-10 11:35 (Refuerzo de Seguridad - Protocolo 1974)
+- **Estado**: **NOMINAL GOLD (V5.7 Certified)**.
+- **Protocolo ALFA**: Actualizado para requerir **PIN 1974** en cualquier Plan de Corrección, incluso en modo ALFA-LITE.
+- **Protocolo CLAUDE.md**: Sincronizado con la norma de seguridad. Prohibición de uso de "aceptación automática" para tareas críticas.
+- **Seguridad**: Blindaje de base de datos y cambios estructurales bajo autorización humana explícita.
+- **Operador**: Carlos (Autor de la norma).
+
+# 2026-04-10 11:20 (Fix Crítico IVA_V1 - Multi-Alícuota)
+- **Estado**: **NOMINAL GOLD (V5.7 Certified)**.
+- **Resolución Bug IVA**: Refactor estructural de `src/reports.py` en SATELITE IVA_V1. Suma omni-direccional implementada.
+- **Optimización Bridge**: Actualización de `src/bridge.py` para exportar desgloses por alícuota hacia el sistema central V5.
+- **Verificación**: Lógica de cálculo auditada y certificada para 21%, 10.5%, 27%, 5% y 2.5%.
+- **Cierre**: Pendiente de ayer 21:50 SOLUCIONADO.
+
 # 2026-04-09 21:50 (Protocolo Omega - Espejado 1:1 CA-OF)
 - **Estado**: **NOMINAL GOLD (V5.7 Certified)**.
 - **Espejo Forjado**: Sincronización absoluta con la rama `stable-v5-of-20260330`.

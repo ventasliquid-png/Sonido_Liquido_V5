@@ -10,6 +10,7 @@ from backend.pedidos.models import Pedido, PedidoItem
 from backend.logistica.models import EmpresaTransporte
 from backend.maestros.models import CondicionIva
 from backend.contactos.models import Vinculo, VinculoGeografico
+from backend.clientes.service import ClienteService # [V5.8] Para alta de sedes
 
 class RemitosService:
     
@@ -106,14 +107,15 @@ class RemitosService:
             db.add(domicilio_def)
             db.flush()
         else:
-            # [V5 Healing] Si el cliente existe, aprovechamos para actualizar su domicilio si vino en la factura
-            # y el cliente no tiene domicilios activos, o el usuario lo desea.
-            if payload.cliente.domicilio and payload.cliente.domicilio != "S/D":
+            # [V5.2 SOLIDITY] Priorizar datos de la Base de Datos (SSoT)
+            # Solo actualizar el domicilio si el actual es Nulo o marcado como SIN DOMICILIO FISCAL
+            # y el nuevo dato parece válido (no es S/D ni [EXTRACTED] vacío).
+            if payload.cliente.domicilio and "[EXTRACTED]" not in payload.cliente.domicilio:
                 fiscal = next((d for d in cliente.domicilios if d.es_fiscal and d.activo), None)
-                if fiscal and (not fiscal.calle or fiscal.calle == "S/D"):
-                    fiscal.calle = payload.cliente.domicilio
+                if fiscal and (not fiscal.calle or "SIN DOMICILIO" in (fiscal.calle or "").upper()):
+                    fiscal.calle = payload.cliente.domicilio.replace("[EXTRACTED] ", "").strip()
                     db.add(fiscal)
-                    print(f"Ingestion: Domicilio actualizado para {cliente.razon_social}")
+                    print(f"Ingestion: Domicilio sanado para {cliente.razon_social} con datos válidos.")
             
             # [NUEVO] Sanación de IVA si está en blanco
             if not cliente.condicion_iva_id and payload.cliente.condicion_iva:
@@ -130,13 +132,37 @@ class RemitosService:
              return None # Retornamos None (el router debe manejar esto)
 
         # 2. RESOLVE LOGISTICS via Universal Vault (Vanguard V5)
-        # --- [ADDRESS RESOLUTION] ---
+        # --- [ADDRESS RESOLUTION - SSoT] ---
         domicilio = None
-        if payload.domicilio_id:
+        
+        # [V5.8 GOLD] Alta de Nueva Sede directamente desde Ingesta
+        if payload.nuevo_domicilio:
+            from backend.clientes import schemas as cliente_schemas
+            dom_in = cliente_schemas.DomicilioCreate(
+                calle=payload.nuevo_domicilio.calle,
+                numero=payload.nuevo_domicilio.numero,
+                localidad=payload.nuevo_domicilio.localidad,
+                provincia_id=payload.nuevo_domicilio.provincia_id or "X",
+                es_entrega=True,
+                activo=True
+            )
+            # Persistimos en Domicilios y vinculamos a Cliente
+            domicilio = ClienteService.create_domicilio(db, cliente.id, dom_in)
+            print(f"Ingesta: Creada nueva sede de entrega '{domicilio.calle}' para {cliente.razon_social}")
+
+        if not domicilio and payload.domicilio_id:
             domicilio = db.query(Domicilio).get(payload.domicilio_id)
             
         if not domicilio:
-            # Try to resolve via Vinculo (Principal/Fiscal)
+            # Prioridad 1: Domicilio Fiscal Activo del Cliente
+            domicilio = next((d for d in cliente.domicilios if d.es_fiscal and d.activo), None)
+            
+        if not domicilio:
+            # Prioridad 2: Domicilio de Entrega Activo
+            domicilio = next((d for d in cliente.domicilios if d.es_entrega and d.activo), None)
+
+        if not domicilio:
+            # Prioridad 3: Resolver vía VinculoGeografico (Universal Vault)
             from backend.contactos.models import VinculoGeografico
             vinculo = db.query(VinculoGeografico).filter(
                 VinculoGeografico.entidad_tipo == 'CLIENTE',
@@ -146,12 +172,13 @@ class RemitosService:
                 (VinculoGeografico.flags_relacion.op('&')(2)).desc(), # Prioritize Principal (Bit 1)
                 (VinculoGeografico.flags_relacion.op('&')(1)).desc()  # Then Fiscal (Bit 0)
             ).first()
-            
             domicilio = vinculo.domicilio if vinculo else None
         
         if not domicilio:
-            # Deep Fallback (Legacy check)
-            domicilio = db.query(Domicilio).filter(Domicilio.cliente_id == cliente.id).first()
+            # Prioridad 4: Cualquier domicilio activo o fallback absoluto
+            domicilio = next((d for d in cliente.domicilios if d.activo), None)
+            if not domicilio and cliente.domicilios:
+                domicilio = cliente.domicilios[0]
             
         # Default Transport
         # --- [LOGISTICS RESOLUTION] ---

@@ -161,6 +161,44 @@ async def ingest_invoice_pdf(file: UploadFile = File(...), db: Session = Depends
                 result["data"]["cliente"]["db_status"] = "EXISTE"
                 result["data"]["cliente"]["flags_estado"] = cliente_db.flags_estado
                 result["data"]["cliente"]["razon_social"] = cliente_db.razon_social # Overrule PDF with DB truth
+                result["data"]["cliente"]["domicilio"] = cliente_db.domicilio_fiscal_resumen or result["data"]["cliente"]["domicilio"]
+                # [V5.8 GOLD] Heurística de Matching
+                extracted_dom = result["data"]["cliente"]["domicilio"].replace("[EXTRACTED] ", "").upper()
+                
+                def calculate_score(d_obj, extracted_text):
+                    score = 0
+                    # Si la calle está contenida (Fuzzy Match simple)
+                    if d_obj.calle and d_obj.calle.upper() in extracted_text: score += 50
+                    # Si el número coincide perfectamente
+                    if d_obj.numero and d_obj.numero in extracted_text: score += 30
+                    # Prioridad por tipo
+                    if d_obj.es_entrega: score += 10
+                    if d_obj.es_fiscal: score += 5
+                    return score
+
+                domicilios_raw = []
+                for d in cliente_db.domicilios:
+                    if not d.activo: continue
+                    d_dict = {
+                        "id": str(d.id), 
+                        "calle": d.calle, 
+                        "numero": d.numero, 
+                        "localidad": d.localidad, 
+                        "es_fiscal": d.es_fiscal, 
+                        "es_entrega": d.es_entrega, 
+                        "alias": d.alias,
+                        "score": calculate_score(d, extracted_dom)
+                    }
+                    domicilios_raw.append(d_dict)
+                
+                # Ordenar por score descendente
+                domicilios_raw.sort(key=lambda x: x['score'], reverse=True)
+                
+                # Marcar el mejor como sugerido si supera el umbral
+                if domicilios_raw and domicilios_raw[0]['score'] >= 50:
+                    domicilios_raw[0]['is_suggested'] = True
+
+                result["data"]["cliente"]["domicilios_disponibles"] = domicilios_raw
                 result["data"]["suggested_action"] = "EDIT_CLIENT"
             else:
                 result["data"]["cliente"]["db_status"] = "NO_EXISTE"
