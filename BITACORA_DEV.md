@@ -4,6 +4,7 @@
 - **Purga de Raíz**: Limpieza física de logs, baks y archivos untracked (98% cleanup).
 - **Trasplante Polizonte**: Restauración de ADN `pilot_v5x.db` desde `POLIZON_MAESTRO.bak` (Sello 18:26:38).
 - **AlfaLite**: Protocolo de vía rápida activado en `ALFA.md`.
+- **Auditoría Satélite**: Reporte de fallo crítico en `IVA_V1` (Multi-alícuota) documentado en `informe_bug_sistema_IVA.md`.
 - **Cierre**: Sesión sellada bajo Protocolo Omega. PIN 1974.
 
 # 2026-04-09 18:15 (Protocolo Omega - Homologación Identity Shield)
