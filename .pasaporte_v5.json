@@ -1,6 +1,6 @@
-﻿{
-    "origen":  "MEDIO",
-    "fecha_cierre_real":  "2026-04-09 18:26:38",
+{
+    "origen":  "CASA",
+    "fecha_cierre_real":  "2026-04-10 01:02:15",
     "estado_salud":  "GOLD",
     "db_fuente":  "pilot_v5x.db"
 }

@@ -478,7 +478,13 @@ A partir de Marzo 2026, las sesiones de desarrollo y carga crítica se rigen por
 - Antes de cerrar, el sistema ejecuta el script `audit_v5.py`.
 - **Regla de Oro**: No se permite el cierre si el disco físico tiene cambios que no han sido registrados en el control de versiones (Git).
 
-### 14.2 El Ticket de Salida
+### 14.3 Protocolo ALFA-LITE (V5.7 Speed)
+Para optimizar el flujo de trabajo en sesiones de mantenimiento menor, se ha habilitado la **Vía Rápida (ALFA-LITE)**:
+- **Cuándo aplica**: Ajustes de interfaz, correcciones de texto o bugfixes que no toquen el esquema de la base de datos.
+- **Ventaja**: Omite la ejecución completa del Canario, basándose en la última certificación de integridad lograda en la sesión previa.
+- **Activación**: Se solicita explícitamente al agente GY al inicio de la jornada.
+
+### 14.4 El Ticket de Salida
 - Tras finalizar la subida de datos, el sistema emite un **Ticket de Salida** físico (`git show`). Este documento certifica que el trabajo está a salvo en el servidor y listo para ser "despertado" en otra terminal (Oficina/Casa).
 
 ### 13.3 Edición de Remitos Emitidos (Doble Clic)
