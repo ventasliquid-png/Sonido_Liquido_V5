@@ -1,6 +1,17 @@
 {
-    "origen":  "CASA",
-    "fecha_cierre_real":  "2026-04-10 01:02:15",
+    "origen":  "OF",
+    "maquina": "DESKTOP-4S7F5DT",
+    "fecha_cierre_real":  "2026-04-12 00:00:00",
     "estado_salud":  "GOLD",
-    "db_fuente":  "pilot_v5x.db"
+    "db_fuente":  "pilot_v5x.db",
+    "rama_activa": "main",
+    "commit_head": "7a32dfa6",
+    "sesion_id": "Omega-20260412",
+    "hitos": [
+        "Exorcismo BOM: authStore.js (causa raiz frontend crash)",
+        "Exorcismo BOM: auth/router.py, schemas.py, service.py",
+        "Consolidacion Main: merge uti/restauracion-fenix fast-forward",
+        "Trasplante BOW: normalize_name, check_duplicate_name, reactivate_producto",
+        "Upgrade 64-bit: ProductFlags → ProductoFlags en reactivate_producto"
+    ]
 }

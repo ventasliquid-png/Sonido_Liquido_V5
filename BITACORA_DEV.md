@@ -1,3 +1,12 @@
+# 2026-04-12 (UTI Fénix — Exorcismo BOM y Consolidación Main)
+- **Estado**: **NOMINAL GOLD (Post-UTI Certified)**.
+- **Causa Raíz Resuelta**: BOM (U+FEFF) incrustado en línea 5 de `authStore.js` impedía que Vite transformara `import { defineStore } from 'pinia'`. El browser recibía el bare specifier crudo y lo rechazaba con `Failed to resolve module specifier "pinia"` at `(index):1`.
+- **Exorcismo Masivo**: 4 archivos purgados de BOM — `authStore.js` (frontend), `auth/router.py`, `auth/schemas.py`, `auth/service.py` (backend). Satélites V5-LS, RAR-V1 e IVA-V1 auditados — limpios.
+- **Consolidación Main**: `git reset --hard c057a0a6` + `git merge uti/restauracion-fenix` (fast-forward). Main absorbe V5.8 GOLD + Hardening 64-bit del UTI.
+- **Trasplante BOW**: Métodos `normalize_name()`, `check_duplicate_name()` y `reactivate_producto()` de Gy integrados en `service.py` con upgrade a `ProductoFlags` 64-bit soberano.
+- **Fix Vue**: Anti-patrones de Gy corregidos en `ToastNotification.vue`, `AppSidebar.vue`, `GlobalStatsBar.vue` (composables fuera de setup).
+- **Cierre**: Protocolo Omega ejecutado. PIN 1974.
+
 # 2026-04-10 17:35 (Misión Productos V5.8 GOLD & Resolución Remitos)
 - **Estado**: **NOMINAL GOLD (V5.8 Certified)**.
 - **Hito Remitos**: Implementación de **Matching Heurístico (🪄)** y **Alta Dinámica de Sedes (➕)**. Resolución definitiva del truncamiento de ARCA mediante SSoT.
