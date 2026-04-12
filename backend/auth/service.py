@@ -2,7 +2,7 @@
 # Versión: V5.6 GOLD | Sincronización: 20260407130827
 # ---------------------------------------------------------
 
-﻿"""
+"""
 Módulo Auth (V10.E): Lógica de Negocio de Autenticación.
 Contiene las funciones de hashing y las consultas ORM puras.
 

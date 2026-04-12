@@ -2,7 +2,7 @@
 # Versión: V5.6 GOLD | Sincronización: 20260407130827
 # ---------------------------------------------------------
 
-﻿"""
+"""
 Módulo Auth (V10.E): Rutas de API (/auth).
 Define los endpoints para '/register' y '/token'.
 
