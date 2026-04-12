@@ -2,7 +2,7 @@ import sqlite3
 import os
 
 # FORCE PILOT.DB
-DB_PATH = "pilot.db" 
+DB_PATH = "pilot.db"
 
 def migrate():
     if not os.path.exists(DB_PATH):
@@ -12,7 +12,7 @@ def migrate():
     print(f"Migrating {DB_PATH}...")
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    
+
     # helper for column existence
     def add_column(table, col_def):
         try:
@@ -29,13 +29,13 @@ def migrate():
     add_column("pedidos", "transporte_id CHAR(32)")
     add_column("remitos", "cae VARCHAR")
     add_column("remitos", "vto_cae DATE")
-    
-    # CRITICAL 500 ERROR FIXES
-    add_column("clientes", "flags_estado INTEGER DEFAULT 0 NOT NULL")
-    add_column("productos", "flags_estado INTEGER DEFAULT 0 NOT NULL")
-    add_column("empresas_transporte", "flags_estado INTEGER DEFAULT 0 NOT NULL")
-    add_column("pedidos", "flags_estado INTEGER DEFAULT 0 NOT NULL")
-    
+
+    # [HARDENING 64-BIT] flags_estado como BIGINT en todas las tablas
+    add_column("clientes", "flags_estado BIGINT DEFAULT 0 NOT NULL")
+    add_column("productos", "flags_estado BIGINT DEFAULT 0 NOT NULL")
+    add_column("empresas_transporte", "flags_estado BIGINT DEFAULT 0 NOT NULL")
+    add_column("pedidos", "flags_estado BIGINT DEFAULT 0 NOT NULL")
+
     conn.commit()
     conn.close()
     print("Migration Fix Complete for PILOT.DB.")

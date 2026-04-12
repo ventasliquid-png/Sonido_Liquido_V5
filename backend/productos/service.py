@@ -6,10 +6,10 @@ from decimal import Decimal
 
 from backend.productos import models, schemas
 from backend.pricing_engine import calculate_lists
-from backend.clientes.constants import ClientFlags # [V5] Para Ley de Virginidad
+from backend.productos.constants import ProductoFlags
 
 class ProductoService:
-    
+
     @staticmethod
     def calculate_prices(producto: models.Producto):
         """Helper para calcular precios basados en costos usando el MOTOR V5."""
@@ -18,19 +18,19 @@ class ProductoService:
             producto.precio_distribuidor = 0
             producto.precio_minorista = 0
             return producto
-        
+
         # Motor V5: Cascada Clásica
         listas = calculate_lists(producto.costos.costo_reposicion, producto.costos.rentabilidad_target)
-        
+
         # Mapeo de Referencia para UI
-        producto.precio_mayorista = listas.get('lista_1', 0)    
-        producto.precio_distribuidor = listas.get('lista_3', 0) 
-        producto.precio_minorista = listas.get('lista_5', 0)    
-        
+        producto.precio_mayorista = listas.get('lista_1', 0)
+        producto.precio_distribuidor = listas.get('lista_3', 0)
+        producto.precio_minorista = listas.get('lista_5', 0)
+
         return producto
 
     # --- RUBROS ---
-    
+
     @staticmethod
     def list_rubros(db: Session, skip: int = 0, limit: int = 100):
         return db.query(models.Rubro).offset(skip).limit(limit).all()
@@ -52,7 +52,7 @@ class ProductoService:
     def update_rubro(db: Session, rubro_id: int, rubro_in: schemas.RubroUpdate):
         db_rubro = db.query(models.Rubro).filter(models.Rubro.id == rubro_id).first()
         if not db_rubro: raise HTTPException(status_code=404, detail="Rubro no encontrado")
-        
+
         if rubro_in.codigo and rubro_in.codigo != db_rubro.codigo:
             if db.query(models.Rubro).filter(models.Rubro.codigo == rubro_in.codigo).first():
                 raise HTTPException(status_code=400, detail=f"El código '{rubro_in.codigo}' ya existe.")
@@ -73,7 +73,7 @@ class ProductoService:
 
         for key, value in rubro_in.dict(exclude_unset=True).items():
             setattr(db_rubro, key, value)
-        
+
         db.commit()
         db.refresh(db_rubro)
         return db_rubro
@@ -81,10 +81,10 @@ class ProductoService:
     # --- PRODUCTOS ---
 
     @staticmethod
-    def list_productos(db: Session, skip: int = 0, limit: int = 1000, activo: Optional[bool] = None, 
+    def list_productos(db: Session, skip: int = 0, limit: int = 1000, activo: Optional[bool] = None,
                        rubro_id: Optional[int] = None, search: Optional[str] = None):
         query = db.query(models.Producto).options(
-            joinedload(models.Producto.costos), 
+            joinedload(models.Producto.costos),
             joinedload(models.Producto.rubro)
         )
         if activo is not None:
@@ -109,7 +109,7 @@ class ProductoService:
         # 1. Crear Producto
         producto_data = prod_in.dict(exclude={'costos'})
         db_producto = models.Producto(**producto_data)
-        
+
         # [AUTO-SKU V5.8]
         if not db_producto.sku:
             max_sku = db.query(func.max(models.Producto.sku)).scalar()
@@ -123,7 +123,7 @@ class ProductoService:
             raise HTTPException(status_code=409, detail=f"Conflicto de integridad: {str(e)}")
 
         db.refresh(db_producto)
-        
+
         # 2. Crear Costos
         costos_data = prod_in.costos.dict()
         db_costos = models.ProductoCosto(**costos_data, producto_id=db_producto.id)
@@ -141,7 +141,7 @@ class ProductoService:
         prod_data = prod_in.dict(exclude_unset=True, exclude={'costos'})
         for key, value in prod_data.items():
             setattr(db_producto, key, value)
-        
+
         if prod_in.costos:
             if db_producto.costos:
                 for key, value in prod_in.costos.dict(exclude_unset=True).items():
@@ -159,20 +159,20 @@ class ProductoService:
         """[LEY DE VIRGINIDAD UNIVERSAL - PIN 1974]"""
         db_producto = db.query(models.Producto).filter(models.Producto.id == producto_id).first()
         if not db_producto: raise HTTPException(status_code=404, detail="Producto no encontrado")
-        
-        # 1. Check Bit 1 (VIRGINITY)
-        is_virgin = (db_producto.flags_estado & ClientFlags.VIRGINITY)
-        
+
+        # 1. Check Bit 1 (VIRGINITY) — usando ProductoFlags soberano
+        is_virgin = (db_producto.flags_estado & ProductoFlags.VIRGINITY)
+
         # 2. Check Physical dependencies (PedidoItems)
         from backend.pedidos.models import PedidoItem
         has_history = db.query(PedidoItem).filter(PedidoItem.producto_id == producto_id).first()
-        
+
         if not is_virgin or has_history:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="VIOLACIÓN DE LEY DE VIRGINIDAD: No se puede eliminar físicamente un producto con historial o que no sea virgen [PIN 1974]."
             )
-        
+
         db.delete(db_producto)
         db.commit()
         return True
