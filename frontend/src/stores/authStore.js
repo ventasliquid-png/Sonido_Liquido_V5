@@ -2,7 +2,7 @@
 // Versión: V5.6 GOLD | Sincronización: 20260407130827
 // ------------------------------------------
 
-﻿import { defineStore } from 'pinia'
+import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
 /**

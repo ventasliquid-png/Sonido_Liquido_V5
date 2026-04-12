@@ -1,3 +1,5 @@
+import unicodedata
+import re
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, cast, String, func
 from typing import List, Optional
@@ -9,6 +11,33 @@ from backend.pricing_engine import calculate_lists
 from backend.productos.constants import ProductoFlags
 
 class ProductoService:
+
+    @staticmethod
+    def normalize_name(name: str) -> str:
+        """
+        [GY-V16.2 → UTI-64bit] Protocolo de Tokenización Alfabética (Bag of Words).
+        Remueve acentos, unifica siglas, tokeniza, elimina ruido y ordena alfabéticamente.
+        """
+        if not name: return ""
+        text = unicodedata.normalize('NFKD', str(name))
+        text = text.encode('ASCII', 'ignore').decode('ASCII').upper()
+        text = text.replace('.', '')
+        text = re.sub(r'[^A-Z0-9]', ' ', text)
+        tokens = text.split()
+        tokens = [t for t in tokens if len(t) >= 2]
+        tokens.sort()
+        return "".join(tokens)
+
+    @staticmethod
+    def check_duplicate_name(db: Session, name: str, exclude_id: int = None) -> bool:
+        """Verifica si existe un producto con el mismo nombre canónico (BOW)."""
+        canon_name = ProductoService.normalize_name(name)
+        if not canon_name:
+            return False
+        query = db.query(models.Producto).filter(models.Producto.nombre_canon == canon_name)
+        if exclude_id:
+            query = query.filter(models.Producto.id != exclude_id)
+        return query.first() is not None
 
     @staticmethod
     def calculate_prices(producto: models.Producto):
@@ -153,6 +182,27 @@ class ProductoService:
         db.commit()
         db.refresh(db_producto)
         return ProductoService.calculate_prices(db_producto)
+
+    @staticmethod
+    def reactivate_producto(db: Session, producto_id: int, confirm: bool = False) -> models.Producto:
+        """[PROTOCOLO FÉNIX] Doble Aceptación para reactivación."""
+        db_producto = db.query(models.Producto).filter(models.Producto.id == producto_id).first()
+        if not db_producto:
+            raise HTTPException(status_code=404, detail="Producto no encontrado")
+
+        if db_producto.activo:
+            return db_producto
+
+        if not confirm:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Doble Aceptación Requerida: ¿Está seguro que desea reactivar este SKU?"
+            )
+
+        db_producto.activo = True
+        db_producto.flags_estado |= ProductoFlags.IS_ACTIVE  # [64-bit] ProductoFlags soberano
+        db.commit()
+        return db_producto
 
     @staticmethod
     def hard_delete_producto(db: Session, producto_id: int):
