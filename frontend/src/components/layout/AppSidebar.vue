@@ -10,6 +10,7 @@
         <i class="fas fa-bolt text-cyan-400"></i>
       </div>
       <span class="font-outfit text-lg font-bold tracking-tight text-white">HAWE <span class="text-cyan-400">V5</span></span>
+      <span class="ml-2 text-[10px] text-gray-600 font-mono tracking-widest select-none">v5.9.000G</span>
     </div>
 
     <!-- Search / Command Palette Trigger -->

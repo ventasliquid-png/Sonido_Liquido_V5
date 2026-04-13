@@ -231,7 +231,7 @@ const loadData = async (type) => {
         if (type === 'clientes') {
             res = await api.get('/clientes/', { params: { include_inactive: true, limit: 1000 } });
         } else if (type === 'productos') {
-            res = await api.get('/productos/', { params: { include_inactive: true, limit: 1000 } });
+            res = await api.get('/productos', { params: { activo: false, limit: 1000 } });
         } else if (type === 'contactos') {
             res = await api.get('/contactos', { params: { include_inactive: true, limit: 1000 } });
         } else if (type === 'domicilios') {

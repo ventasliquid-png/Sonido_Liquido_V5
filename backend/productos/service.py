@@ -206,14 +206,20 @@ class ProductoService:
 
     @staticmethod
     def hard_delete_producto(db: Session, producto_id: int):
-        """[LEY DE VIRGINIDAD UNIVERSAL - PIN 1974]"""
+        """[LEY DE VIRGINIDAD UNIVERSAL - PIN 1974]
+        Doble guarda:
+        1. Bit VIRGINITY (flags_estado & 2) — marca soberana seteada en creación,
+           limpiada en primera operación. Ausencia de PedidoItem no equivale a virginidad
+           (un pedido hard-deleted borra sus items en cascade).
+        2. PedidoItem — dependencias físicas actuales.
+        """
         db_producto = db.query(models.Producto).filter(models.Producto.id == producto_id).first()
         if not db_producto: raise HTTPException(status_code=404, detail="Producto no encontrado")
 
-        # 1. Check Bit 1 (VIRGINITY) — usando ProductoFlags soberano
+        # 1. Check Bit 1 (VIRGINITY) — marca soberana
         is_virgin = (db_producto.flags_estado & ProductoFlags.VIRGINITY)
 
-        # 2. Check Physical dependencies (PedidoItems)
+        # 2. Check dependencias físicas actuales
         from backend.pedidos.models import PedidoItem
         has_history = db.query(PedidoItem).filter(PedidoItem.producto_id == producto_id).first()
 

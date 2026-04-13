@@ -65,17 +65,25 @@ from backend.core import config
 from backend.core.database import engine, Base
 
 # Precargar TODOS los modelos para evitar InvalidRequestError en mappers circulares
-import backend.auth.models as auth_models 
+import backend.auth.models as auth_models
 import backend.maestros.models as maestros_models
 import backend.logistica.models as logistica_models
-import backend.contactos.models as contactos_models 
-import backend.clientes.models as clientes_models 
+import backend.contactos.models as contactos_models
+import backend.clientes.models as clientes_models
 import backend.productos.models as productos_models
-import backend.pedidos.models as pedidos_models 
+import backend.pedidos.models as pedidos_models
 import backend.proveedores.models as proveedores_models
 import backend.agenda.models as agenda_models
-import backend.remitos.models as remitos_models 
-import backend.core.models as core_models 
+import backend.remitos.models as remitos_models
+import backend.core.models as core_models
+
+# [FIX RACE CONDITION V5.9] — configure_mappers() al nivel de módulo.
+# El frontend dispara múltiples requests en paralelo al iniciar. Si el lifespan
+# no terminó todavía (seed_all, etc.), los primeros requests llegan con los
+# mappers sin configurar → 500 en stats, clientes, maestros.
+# Llamarlo aquí garantiza que está listo antes de que el servidor acepte conexiones.
+from sqlalchemy.orm import configure_mappers as _configure_mappers
+_configure_mappers()
 
 # Imports de Routers
 from backend.auth.router import router as auth_router

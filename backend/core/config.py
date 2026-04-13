@@ -30,4 +30,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 1500 # 1500 minutos (25 horas)
 # --- 4. CORS Config ---
 CORS_ORIGINS = ["*"]
 
+# --- Versión del Sistema ---
+VERSION = "v5.9.000G"
+
 print("--- [Atenea V10.E]: Core/Config (IA, Seguridad JWT, CORS) cargado. ---")
