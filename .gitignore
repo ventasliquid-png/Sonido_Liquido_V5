@@ -40,6 +40,7 @@ _GY/
 # SEGURIDAD SABUESO
 *.crt
 *.key
+*.pem
 *.p12
 backend/modules/sabueso/certs/
 # Credenciales de Google
@@ -62,3 +63,20 @@ DOCUMENTOS_GENERADOS_RAR/
 _BACKUPS_IOWA/
 _SISTEMA_INTERNO/
 *.pdf
+
+# Bases de datos alternativas (Soberanía)
+*.sqlite
+*.sqlite3
+
+# Artefactos de compilación
+build/
+
+# Sistema Operativo Windows
+desktop.ini
+Thumbs.db
+
+# Editores
+.vscode/
+.idea/
+*.swp
+*.swo
