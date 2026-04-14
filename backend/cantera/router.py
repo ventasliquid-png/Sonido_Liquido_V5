@@ -102,25 +102,38 @@ def import_producto_from_cantera(producto_id: str, db: Session = Depends(get_db)
                     db.commit()
         
         # 2. Crear Producto
-        # Mapeamos SKU a un tipo compatible (el mirror lo tiene como float/int)
-        sku_val = full_data.get("sku")
-        
+        # Mapeamos SKU a entero; si viene vacío desde cantera, auto-asignamos desde 9001
+        sku_raw = full_data.get("sku")
+        if sku_raw:
+            try:
+                sku_val = int(float(sku_raw))
+            except (ValueError, TypeError):
+                sku_val = None
+        else:
+            sku_val = None
+
+        if not sku_val:
+            from sqlalchemy import func
+            max_sku = db.query(func.max(models.Producto.sku)).scalar()
+            sku_val = max(int(max_sku or 0) + 1, 9001)
+
         new_prod = models.Producto(
             id=int(producto_id),
-            sku=str(sku_val) if sku_val else None,
+            sku=sku_val,
             nombre=full_data.get("nombre"),
             rubro_id=rubro_id,
-            activo=1
+            activo=1,
+            flags_estado=3,  # Bit 0 (ACTIVE) + Bit 1 (VIRGIN) — creado limpio desde cantera
         )
         db.add(new_prod)
-        
+
         # 3. Crear Costos base (evita 500 en el front)
         db.flush() # Para tener el id si fuera autoincremental
         from decimal import Decimal
         new_costo = models.ProductoCosto(
             producto_id=new_prod.id,
             costo_reposicion=Decimal("0.00"),
-            margen_mayorista=Decimal("0.00"),
+            rentabilidad_target=Decimal("30.00"),
             iva_alicuota=Decimal("21.00")
         )
         db.add(new_costo)
@@ -133,9 +146,10 @@ def import_producto_from_cantera(producto_id: str, db: Session = Depends(get_db)
         
         # [FIX V5.6.1] Return full structure for GridLoader
         return {
-            "status": "success", 
+            "status": "success",
             "imported_id": str(new_prod.id),
             "id": new_prod.id,
+            "sku": new_prod.sku,
             "descripcion": new_prod.nombre,
             "precio_unitario": 0.00,
             "alicuota_iva": 21.00, # Defaulting to 21%

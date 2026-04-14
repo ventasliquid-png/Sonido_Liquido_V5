@@ -70,7 +70,12 @@ if ($gitPrompt -match "^[sS]") {
 }
 
 # 2. ADUANA DE POLIZÓN (TRASPLANTE)
-if (Test-Path "POLIZON_MAESTRO.bak") {
+if (-not (Test-Path "POLIZON_MAESTRO.bak")) {
+    Write-Host ""
+    Write-Host "[!] No hay POLIZON_MAESTRO.bak disponible." -ForegroundColor Yellow
+    Write-Host "    (No estás conectado, Git no disponible, o cerraste en este mismo puesto.)" -ForegroundColor DarkGray
+    Write-Host "    Continuando sin sincronización de base de datos." -ForegroundColor DarkGray
+} else {
     Write-Host ""
     Write-Host "[*] Analizando carga del Polizón..." -ForegroundColor Cyan
     
@@ -79,7 +84,7 @@ if (Test-Path "POLIZON_MAESTRO.bak") {
     if (Test-Path "V5_LS_MASTER.db") { $localDb = "V5_LS_MASTER.db" }
     elseif (Test-Path "pilot_v5x.db") { $localDb = "pilot_v5x.db" }
 
-    if ($localDb -ne "") {
+    if ($localDb -ne "" -and $remotePasaporte) {
         # Obtener fechas
         $pFechaObj = [datetime]::ParseExact($remotePasaporte.fecha_cierre_real, "yyyy-MM-dd HH:mm:ss", $null)
         $lFechaObj = (Get-Item $localDb).LastWriteTime

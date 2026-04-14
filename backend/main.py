@@ -377,7 +377,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/", tags=["Estado"])
+@app.get("/health", tags=["Estado"])
 async def get_root_status():
     return {
         "estado_servidor": "OK",

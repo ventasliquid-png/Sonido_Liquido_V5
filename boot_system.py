@@ -5,6 +5,7 @@ import os
 import signal
 import sys
 import threading
+import urllib.request
 
 def stream_reader(pipe, prefix):
     """Lee la salida de un proceso y la imprime con un prefijo."""
@@ -28,7 +29,11 @@ def main():
     last_restart_time = time.time()
     
     # Define command correctly in scope
-    backend_cmd = [sys.executable, "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8080", "--reload"]
+    backend_cmd = [
+        sys.executable, "-m", "uvicorn", "backend.main:app",
+        "--host", "0.0.0.0", "--port", "8080", "--reload",
+        "--reload-dir", os.path.join(root_dir, "backend"),
+    ]
 
     def start_backend():
         print(f">>> Iniciando Backend (Intento #{backend_restarts + 1})...")
@@ -63,10 +68,19 @@ def main():
     threading.Thread(target=stream_reader, args=(frontend_process.stdout, "FRONTEND"), daemon=True).start()
     threading.Thread(target=stream_reader, args=(frontend_process.stderr, "FRONT_ERR"), daemon=True).start()
 
-    # 3. Abrir Navegador
-    print(">>> [3/3] Abriendo Navegador en 5 segundos...")
-    time.sleep(5)
+    # 3. Abrir Navegador (esperar hasta que el backend responda)
+    print(">>> [3/3] Esperando que el backend esté listo...")
     url = "http://localhost:5173"
+    backend_health = "http://localhost:8080/docs"
+    for _ in range(30):  # max 30 segundos
+        try:
+            urllib.request.urlopen(backend_health, timeout=1)
+            print(">>> Backend listo. Abriendo navegador...")
+            break
+        except Exception:
+            time.sleep(1)
+    else:
+        print(">>> [WARN] Backend no respondió en 30s, abriendo navegador igual...")
     webbrowser.open(url)
 
     print(f">>> SISTEMA CORRIENDO EN: {url}")

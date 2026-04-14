@@ -1579,22 +1579,12 @@ const handleGlobalKeys = (e) => {
         e.preventDefault();
         const active = document.activeElement;
         
-        // 1. Check CLIENT Focus - Trigger Modal
-        if (active === clientInputRef.value || !active || active === document.body) {
-             newClientData.value = {
-                razon_social: busquedaCliente.value,
-                cuit: '',
-                activo: true
-            };
-            showClientModal.value = true;
-            return;
-        }
-
-        // 2. Product Focus (Keep Satellite for now)
+        // 2. Product Focus — chequear primero si hay búsqueda de producto activa
         const activeSku = active === inputSkuRef.value;
         const activeDesc = active === inputDescRef.value;
-        
-        if (activeSku || activeDesc) {
+        const productSearchActive = showProductResults.value || activeSku || activeDesc;
+
+        if (productSearchActive) {
             // Dimensions for Satellite
             const width = 1700;
             const height = 900;
@@ -1603,11 +1593,22 @@ const handleGlobalKeys = (e) => {
             const features = `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,status=no,menubar=no,toolbar=no,location=no`;
 
             const searchTerm = activeSku ? newItem.value.sku : newItem.value.descripcion;
-            const { href } = router.resolve({ 
-                name: 'Productos', 
+            const { href } = router.resolve({
+                name: 'Productos',
                 query: { action: 'new', search: searchTerm, mode: 'satellite' }
             });
             window.open(href, 'AltaProductoSalto', features);
+            return;
+        }
+
+        // 1. Client Focus — solo si el foco está explícitamente en el campo cliente
+        if (active === clientInputRef.value) {
+            newClientData.value = {
+                razon_social: busquedaCliente.value,
+                cuit: '',
+                activo: true
+            };
+            showClientModal.value = true;
         }
     }
 

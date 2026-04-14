@@ -49,16 +49,20 @@
 
               <!-- Rubro -->
               <div class="col-span-2">
-                   <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Rubro</label>
+                   <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-1">
+                     Rubro <span class="text-rose-500">*</span>
+                   </label>
                    <SelectorCreatable
                         v-model="localProducto.rubro_id"
                         :options="flattenedRubros"
                         item-key="id"
                         display-key="nombre"
                         size="sm"
-                        placeholder="Rubro..."
+                        placeholder="Seleccionar rubro (obligatorio)..."
+                        :class="rubroError ? 'ring-1 ring-rose-500 rounded-lg' : ''"
                         @create="handleCreateRubro"
                    />
+                   <p v-if="rubroError" class="text-rose-400 text-[10px] mt-1">⚠ El rubro es obligatorio para guardar</p>
               </div>
 
               <!-- IVA -->
@@ -398,6 +402,7 @@ const flattenedRubros = computed(() => {
 
 // --- BRAIN LOGIC (TRIDIRECCIONAL) ---
 const isUpdating = ref(false)
+const rubroError = ref(false)
 
 // Computed for Final Price (Display)
 const finalPrice = computed(() => {
@@ -615,10 +620,11 @@ const save = async () => {
     }
 
     if (!localProducto.value.rubro_id) {
-        console.warn('[ProductoInspector] Validation Failed: Rubro missing');
+        rubroError.value = true
         notification.add('Debe seleccionar un Rubro / Categoría', 'error')
         return
     }
+    rubroError.value = false
 
     const costo = Number(localCostos.value.costo_reposicion) || 0
     if (costo <= 0) {
