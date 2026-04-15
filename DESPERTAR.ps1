@@ -21,7 +21,7 @@ try {
 
 if ($remotePasaporte) {
     Write-Host "========================================================" -ForegroundColor Cyan
-    Write-Host "📦 PASAPORTE REMOTO DETECTADO" -ForegroundColor Yellow
+    Write-Host "[PKG] PASAPORTE REMOTO DETECTADO" -ForegroundColor Yellow
     $rOrigen = $remotePasaporte.origen
     $rFecha  = $remotePasaporte.fecha_cierre_real
     $rEstado = $remotePasaporte.estado_salud

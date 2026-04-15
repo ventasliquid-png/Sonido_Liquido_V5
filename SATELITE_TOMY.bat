@@ -4,20 +4,33 @@ color 0B
 
 echo ==================================================
 echo   SONIDO LIQUIDO V5 - MODO SATELITE
-echo   Conectando al servidor...
+echo   Verificando servidor...
 echo ==================================================
 echo.
-echo   Servidor: 192.168.0.34
-echo   Puerto:   8090
+
+powershell -NoProfile -Command "try { Invoke-WebRequest -Uri 'http://192.168.0.34:8090' -TimeoutSec 4 -UseBasicParsing | Out-Null; exit 0 } catch { exit 1 }" > nul 2>&1
+if %errorlevel% NEQ 0 (
+    color 4F
+    echo ==================================================
+    echo   [!] SERVIDOR NO RESPONDE
+echo ==================================================
+    echo.
+    echo   El sistema no esta activo en este momento.
+    echo   Avisale a Carlos para que lo levante.
+    echo.
+    echo   (Esperado en: 192.168.0.34:8090)
+    echo.
+    pause
+    exit
+)
+
+echo   Servidor activo. Abriendo sistema...
 echo.
-echo   El navegador se abrira en 3 segundos...
-echo.
-timeout /t 3 /nobreak > nul
+timeout /t 2 /nobreak > nul
 start http://192.168.0.34:8090
 echo.
 echo   Si la pagina no carga:
-echo   1. Verifica que el servidor este encendido
-echo   2. Verifica que estes en la misma red WiFi
-echo   3. Avisale a Carlos
+echo   1. Verifica que estes en la misma red
+echo   2. Avisale a Carlos
 echo.
 pause

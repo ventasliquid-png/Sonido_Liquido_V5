@@ -56,8 +56,11 @@ const clienteSeleccionado = computed(() => {
 const clienteEsVerde = computed(() => {
     const c = clienteSeleccionado.value;
     if (!c) return false;
+    // Rosa clients (flags_estado nibble bajo == 9 u 11) no requieren CUIT ni domicilio
+    const isRosa = [9, 11].includes((c.flags_estado || 0) & 15);
+    if (isRosa) return true;
     const hasCuit = c.cuit && c.cuit.length >= 11;
-    const hasAddress = c.domicilio_fiscal_resumen || (c.domicilios && c.domicilios.some(d => d.es_fiscal && d.activo));
+    const hasAddress = c.domicilio_fiscal_resumen || (c.domicilios?.some(d => d.es_fiscal && d.activo));
     const hasCond = !!c.condicion_iva_id || !!c.condicion_iva;
     return hasCuit && hasAddress && hasCond;
 });

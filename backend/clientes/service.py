@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
 
 from datetime import datetime, timezone
-from backend.clientes.models import Cliente, Domicilio
+from backend.clientes.models import Cliente, Domicilio, domicilios_clientes
 from backend.clientes import schemas
 from backend.clientes.constants import ClientFlags
 from backend.agenda import models as agenda_models
@@ -538,7 +538,7 @@ class ClienteService:
         
         # [V7] Native Columns: Do not exclude piso/depto. 
         # Exclude legacy pipe logic.
-        dom_data = domicilio_in.model_dump(exclude={'provincia', 'zona_id', 'provincia_id'})
+        dom_data = domicilio_in.model_dump(exclude={'provincia', 'zona_id', 'provincia_id', 'is_maps_manual'})
 
         # [GY-PROTOCOL-PIPE DEPRECATED for V7]
         # We now store pure 'calle' and 'piso/depto' in separate columns.
@@ -559,7 +559,17 @@ class ClienteService:
             db.add(db_domicilio)
             db.commit()
             db.refresh(db_domicilio)
-            
+
+            # [V5.2-FIX] Link domicilio into N:M junction so GET /clientes/{id} can see it
+            # (get_cliente uses joinedload(Cliente.domicilios) which traverses domicilios_clientes)
+            db.execute(domicilios_clientes.insert().values(
+                cliente_id=cliente_id,
+                domicilio_id=db_domicilio.id,
+                es_predeterminado=bool(domicilio_in.es_predeterminado),
+                alias=db_domicilio.alias,
+            ))
+            db.commit()
+
             # [GY-DOCTRINA-V14] RE-AUDIT PARENT
             db_cliente = ClienteService.get_cliente(db, cliente_id)
             if db_cliente:

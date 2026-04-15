@@ -1680,9 +1680,13 @@ const savePedido = async () => {
             transporte_id: selectedTransporteId.value
         };
 
-        // Tactical Mode Order Creation
-        await api.post('/pedidos/tactico', payload);
-        
+        // [FIX] Edit mode → PATCH existing pedido. Create mode → POST new pedido.
+        if (route.params.id) {
+            await api.patch(`/pedidos/${route.params.id}`, payload);
+        } else {
+            await api.post('/pedidos/tactico', payload);
+        }
+
         notificationStore.add('Pedido guardado exitosamente.', 'success');
         
         // Reset or Redirect

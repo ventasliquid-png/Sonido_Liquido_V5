@@ -145,10 +145,14 @@ export const useClientesStore = defineStore('clientes', {
         async createDomicilio(clienteId, data) {
             try {
                 const response = await clientesService.createDomicilio(clienteId, data);
-                // [GY-FIX] Update local cache to reflect changes immediately in UI
+                // [GY-FIX] Add the new domicilio into the client's domicilios array.
+                // Do NOT splice the client out — response.data is a Domicilio, not a Cliente.
                 const index = this.clientes.findIndex(c => c.id === clienteId);
                 if (index !== -1) {
-                    this.clientes.splice(index, 1, response.data);
+                    const client = this.clientes[index];
+                    if (client.domicilios) {
+                        client.domicilios.push(response.data);
+                    }
                 }
                 return response.data;
             } catch (error) {

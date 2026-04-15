@@ -28,6 +28,12 @@ El módulo de carga rápida (`/ventas/loader`) permite la creación ágil de ped
 - **F4 / "+" :** Agregar Producto.
 - **F10:** Guardar Pedido.
 
+### Edición de Pedidos Existentes (v5.9)
+Para modificar un pedido ya creado, abrirlo desde la lista y hacer clic en Editar. El sistema carga todos los datos y al guardar **actualiza el pedido original** — no crea uno nuevo. Para agregar una nota de anulación, buscar el ícono ✏ en el panel derecho del inspector (siempre visible).
+
+### Clientes Rosa / Sin CUIT (v5.9)
+Clientes informales aparecen como **AUDITADO** (verde) en el selector de pedidos aunque no tengan CUIT ni domicilio cargado. El sistema los reconoce automáticamente por su categoría interna y no bloquea la operación.
+
 ## CAPÍTULO 1: LA DOCTRINA DE INTERFAZ (DEOU)
 
 El sistema V5 se rige por la **Doctrina de Eficiencia Operativa Unificada (DEOU)**, diseñada para maximizar la velocidad de operación y reducir la carga cognitiva del usuario.
@@ -526,3 +532,22 @@ Para clientes con requisitos administrativos estrictos (Bit 6), el sistema actú
 ### 15.3 Herencia Logística y Sello de Confianza
 - **Transporte Habitual**: El perfil del cliente ahora permite definir un transportista predeterminado. Al crear un pedido, el sistema lo selecciona automáticamente.
 - **Los Albertos (Certificados)**: Los transportes recomendados (Bit 3) aparecen destacados con un sello de confianza ("Alberto") en los buscadores dinámicos.
+
+## 16. F4 CONTEXTUAL EN PEDIDO CANVAS (V5.9 — 14/04/2026)
+La tecla F4 en la pantalla de carga de pedidos tiene comportamiento inteligente según el contexto del cursor:
+
+| Foco activo | Acción de F4 |
+|---|---|
+| Campo SKU o Descripción del ítem | Abre formulario de **Alta de Producto** |
+| Resultado de búsqueda de producto visible | Abre formulario de **Alta de Producto** |
+| Campo de cliente | Abre modal de **Búsqueda de Cliente** |
+| Cualquier otro campo | Sin acción (no abre nada por defecto) |
+
+**Regla de prioridad**: La búsqueda de producto tiene precedencia. Solo si el foco está explícitamente en el campo de cliente se abre el modal de cliente.
+
+## 17. RUBRO OBLIGATORIO EN FICHA DE PRODUCTO (V5.9 — 14/04/2026)
+El campo **Rubro** en `ProductoInspector` es obligatorio para guardar un producto.
+
+* **Indicador visual**: Asterisco rojo `*` en el label del selector.
+* **Validación**: Si se intenta guardar sin rubro, el selector muestra un ring rojo (`ring-1 ring-rose-500`) y un mensaje de error debajo.
+* **Estado reactivo**: `rubroError` se limpia automáticamente al seleccionar un rubro válido.

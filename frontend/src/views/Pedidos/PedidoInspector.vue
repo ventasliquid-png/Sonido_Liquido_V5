@@ -225,9 +225,9 @@
                     
                     <div v-if="!isEditingNote" class="flex justify-between items-start">
                          <p class="text-xs text-yellow-100/80 italic min-h-[1.5rem]">{{ modelValue.nota || 'Sin nota' }}</p>
-                         <button 
+                         <button
                             @click="startEditingNote"
-                            class="text-yellow-500/30 hover:text-yellow-400 opacity-0 group-hover/nota:opacity-100 transition-opacity no-zen"
+                            class="text-yellow-500/50 hover:text-yellow-400 transition-colors no-zen"
                             title="Editar Nota"
                         >
                             <i class="fas fa-pencil-alt"></i>

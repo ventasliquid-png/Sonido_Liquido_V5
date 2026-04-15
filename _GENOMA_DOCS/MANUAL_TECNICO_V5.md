@@ -1,6 +1,41 @@
 # 📘 MANUAL TÉCNICO V5: "INDEPENDENCIA"
-**Versión:** 1.5 Release (Updated V5.8 Cimientos Inteligentes)
-**Fecha:** 26-03-2026
+**Versión:** 1.6 Release (Updated V5.9 Producción Soberana)
+**Fecha:** 2026-04-15
+
+## 15. ORÍGENES DE PEDIDO — DOCTRINA DE TRAZABILIDAD (Diseño v5.9, implementación pendiente)
+
+Un Pedido puede nacer de tres orígenes distintos. El origen queda registrado en el campo `origen` y en bits de `flags_estado`:
+
+| Origen | `origen` field | Bit `flags_estado` | Descripción |
+|---|---|---|---|
+| Operador | `DIRECTO` | — | Flujo normal. El operador crea el pedido. |
+| Forzado por Remito | `FORZADO_REMITO` | `BIT_ORIGEN_REMITO` | El movimiento físico llegó sin pedido previo. Sin respaldo contable. Pendiente de facturar. |
+| Forzado por Factura | `FORZADO_FACTURA` | `BIT_ORIGEN_FACTURA` | Se ingresó una factura AFIP sin pedido previo. **Tiene respaldo contable — no anular livianamente.** |
+
+**Regla crítica:** El Remito siempre tiene `pedido_id NOT NULL`. Si no existe un pedido real, el sistema crea uno "forzado" con los datos de la factura/remito. No existe tabla separada de huérfanos.
+
+**Flujo de ingesta de facturas (pendiente de implementación):**
+1. Sistema pregunta: ¿A qué pedido corresponde esta factura?
+2. Operador selecciona uno existente → vinculación directa.
+3. Operador indica "ninguno" → sistema crea Pedido con datos reales (cliente, items, totales) + `flags_estado |= BIT_ORIGEN_FACTURA`.
+
+## 16. ARQUITECTURA DE DOMICILIOS — JUNCTION TABLE N:M
+
+El sistema tiene dos rutas de relación Cliente↔Domicilio:
+
+- **Legacy (1:N):** `domicilios.cliente_id` FK directa. Usada por `create_domicilio` para guardar el registro.
+- **Activa (N:M):** `domicilios_clientes` junction table. Usada por `GET /clientes/{id}` via `joinedload(Cliente.domicilios)`.
+
+**Invariante crítico:** Todo domicilio creado para un cliente DEBE insertarse en `domicilios_clientes` además de en `domicilios`. Si solo se inserta en `domicilios`, el domicilio es invisible para todos los endpoints de lectura.
+
+## 17. CLIENTES ROSA — FLAGS Y COMPORTAMIENTO EN PEDIDOS
+
+Clientes Rosa identificados por: `(flags_estado & 15) in [9, 11]`
+
+- No requieren CUIT válido (≥11 dígitos).
+- No requieren domicilio fiscal activo.
+- No requieren condición IVA para operar.
+- En `PedidoTacticoView`, el computed `clienteEsVerde` retorna `true` directamente para Rosa → sin badge rojo ni confirm dialog.
 
 ## 1. DOCTRINA DE PRECIOS: "LA ROCA Y LA MÁSCARA"
 El sistema V5 implementa una estrategia psicológica de precios:
@@ -248,3 +283,20 @@ Implementado el 08-04-2026 para erradicar las colisiones por variaciones cosmét
     6. **Sellado Único**: Unión de tokens ordenados sin espacios en la columna `razon_social_canon`.
 * **Sensor de Colisión (Frontend)**: `ClientCanvas.vue` invoca `/check-similarity` on-type. Si el score es 1.0 (Colisión de Identidad), el sistema dispara un bloqueo visual perentorio.
 * **Homologación D-P**: Esta lógica está sincronizada tanto en el repo de desarrollo como en el satélite de producción (`V5-LS`).
+
+## 15. PROTOCOLO DE IMPORTACIÓN DESDE CANTERA (V5.9 — 14/04/2026)
+El módulo Cantera (`/bridge/productos/{id}/import`) es el camino estándar para incorporar productos del sistema legado al ERP activo.
+
+### Auto-SKU (Rango Cantera)
+* Cuando el producto del mirror JSON no tiene SKU (caso habitual en migración desde sistema anterior), el endpoint asigna automáticamente `MAX(sku) + 1` con un **piso de 9001**.
+* Los SKUs de cantera quedan en el rango **9001–9999**, diferenciados de los manuales (10000+).
+* El mirror puede serializar SKUs como floats (`"123.0"`). El parser usa `int(float(sku_raw))` para normalizar.
+
+### flags_estado en Creación
+* Todo producto importado desde cantera nace con `flags_estado = 3` (Bit 0 ACTIVE + Bit 1 VIRGIN).
+* Esto lo hace elegible para la **Ley de Virginidad** (hard delete habilitado).
+* Antes de este fix, los productos llegaban con `flags_estado = 0`, bloqueando el hard delete y causando confusión operativa.
+
+### Endpoint `/health`
+* La ruta raíz `/` fue renombrada a `/health` en D y P para liberar el catch-all `/{full_path:path}` que sirve el SPA.
+* Sin este cambio, acceder a `http://host:puerto/` devolvía JSON en lugar de `index.html`, causando pantalla en blanco en el satélite de Tomy.
