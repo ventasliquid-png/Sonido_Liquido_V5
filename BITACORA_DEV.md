@@ -1,3 +1,12 @@
+# 2026-04-16 (Misión Estabilización V5-LS & Saneamiento RAR-V1)
+- **Estado**: **NOMINAL GOLD (V5-LS Certified)**.
+- **Saneamiento RAR-V1**: Remitos normalizados. `bultos` y `valor_declarado` ahora son opcionales (Nullable). QR oficial apuntando a `liquid-sound.com.ar`.
+- **Hito Identidad**: Erradicación del "Bug de Reversión". El CUIT corregido ahora persiste soberanamente tras la validación de ARCA, bloqueando la orfandad de Cantera.
+- **Blindaje Backend**: Fix Error 500 en `_audit_sovereignty` (Protocolo Null-Safe) y blindaje de transacciones en `update_domicilio`.
+- **Integridad de Dirección**: Implementación de `@property resumen` para visualización completa de domicilios en remitos.
+- **Homologación**: Paridad total 1:1 alcanzada entre Desarrollo (D) y Producción (V5-LS).
+- **Seguridad**: Protocolo **PIN 1974** validado. Cierre Omega ejecutado.
+
 # 2026-04-12 (UTI Fénix — Exorcismo BOM y Consolidación Main)
 - **Estado**: **NOMINAL GOLD (Post-UTI Certified)**.
 - **Causa Raíz Resuelta**: BOM (U+FEFF) incrustado en línea 5 de `authStore.js` impedía que Vite transformara `import { defineStore } from 'pinia'`. El browser recibía el bare specifier crudo y lo rechazaba con `Failed to resolve module specifier "pinia"` at `(index):1`.

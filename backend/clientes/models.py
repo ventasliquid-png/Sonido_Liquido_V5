@@ -264,5 +264,26 @@ class Domicilio(Base):
     transporte = relationship("EmpresaTransporte", foreign_keys=[transporte_id])
     intermediario = relationship("EmpresaTransporte", foreign_keys=[intermediario_id])
 
+    @property
+    def resumen(self):
+        """Retorna una cadena formateada con todos los datos del domicilio"""
+        numero = f" {self.numero}" if self.numero else ""
+        piso_depto = ""
+        if self.piso or self.depto:
+            piso_str = f"Piso {self.piso}" if self.piso else ""
+            depto_str = f"Dto {self.depto}" if self.depto else ""
+            piso_depto = f" ({piso_str} {depto_str})".replace("  ", " ")
+        
+        localidad = f", {self.localidad}" if self.localidad else ""
+        provincia = ""
+        if self.provincia:
+            provincia = f" ({self.provincia.nombre})"
+        elif self.provincia_id:
+            provincia = f" ({self.provincia_id})"
+            
+        cp = f" [CP: {self.cp}]" if self.cp else ""
+        
+        return f"{self.calle or 'S/D'}{numero}{piso_depto}{localidad}{provincia}{cp}"
+
     def __repr__(self):
         return f"<Domicilio(alias='{self.alias}', calle='{self.calle}')>"

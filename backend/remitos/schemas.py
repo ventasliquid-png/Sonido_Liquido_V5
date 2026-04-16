@@ -39,8 +39,8 @@ class RemitoBase(BaseModel):
     aprobado_para_despacho: bool = False
     cae: Optional[str] = None
     vto_cae: Optional[datetime] = None
-    bultos: Optional[int] = 1
-    valor_declarado: Optional[float] = 0.0
+    bultos: Optional[int] = None
+    valor_declarado: Optional[float] = None
     razon_social: Optional[str] = None
 
 class RemitoCreate(RemitoBase):
@@ -114,8 +114,8 @@ class IngestionPayload(BaseModel):
     items: List[IngestionItem]
     transporte_id: Optional[UUID] = None # Permite elegir transporte en la UI de ingesta
     domicilio_id: Optional[UUID] = None # Permite elegir sucursal en la UI de ingesta
-    bultos: Optional[int] = 1
-    valor_declarado: Optional[float] = 0.0
+    bultos: Optional[int] = None
+    valor_declarado: Optional[float] = None
     solo_actualizar_cliente: bool = False
     nuevo_domicilio: Optional[ForcedAddress] = None
 
@@ -132,6 +132,6 @@ class ManualRemitoPayload(BaseModel):
     transporte_id: Optional[str] = None # UUID
     items: List[ManualRemitoItem]
     observaciones: Optional[str] = ""
-    valor_declarado: Optional[float] = 0.0
-    bultos: Optional[int] = 1
+    valor_declarado: Optional[float] = None
+    bultos: Optional[int] = None
     aprobado_para_despacho: bool = True

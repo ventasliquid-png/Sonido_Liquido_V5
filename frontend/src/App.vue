@@ -5,6 +5,7 @@ import ToastNotification from './components/ui/ToastNotification.vue';
 import { useClientesStore } from './stores/clientes';
 import { useProductosStore } from './stores/productos';
 import { useMaestrosStore } from './stores/maestros';
+import DevBadge from './components/common/DevBadge.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -102,6 +103,7 @@ const logout = () => {
 
 <template>
   <div v-if="ready">
+    <DevBadge />
     <!-- GLOBAL SPLASH / BOOT SCREEN -->
     <transition name="fade">
         <div v-if="booting" class="fixed inset-0 z-[100] bg-[#020617] flex flex-col items-center justify-center overflow-hidden">

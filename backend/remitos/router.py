@@ -98,7 +98,7 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
         cliente_data = {
             "razon_social": cliente.razon_social,
             "cuit": cliente.cuit,
-            "domicilio_fiscal": next((d.calle for d in cliente.domicilios if d.es_fiscal), "SIN DOMICILIO FISCAL"),
+            "domicilio_fiscal": remito.domicilio_entrega.resumen if remito.domicilio_entrega else cliente.domicilio_fiscal_resumen or "SIN DOMICILIO FISCAL",
             "condicion_iva": "RESPONSABLE INSCRIPTO", # Default for now
             "factura_vinculada": remito.pedido.nota.replace("Ingesta Automática Factura: ", "") if remito.pedido.nota else "",
             "cae": cae_val,

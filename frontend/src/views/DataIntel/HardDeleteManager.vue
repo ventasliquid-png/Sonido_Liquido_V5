@@ -177,6 +177,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
+import { useKeyboardShortcuts } from '../../composables/useKeyboardShortcuts';
 import api from '../../services/api';
 import { useClientesStore } from '../../stores/clientes';
 import { useProductosStore } from '../../stores/productos';
@@ -187,6 +188,18 @@ const clientesStore = useClientesStore();
 const productosStore = useProductosStore();
 const contactosStore = useContactosStore();
 const notificationStore = useNotificationStore();
+
+// --- KEYBOARD SHORTCUTS ---
+useKeyboardShortcuts({
+    '1': () => loadData('clientes'),
+    '2': () => loadData('productos'),
+    '3': () => loadData('contactos'),
+    '4': () => loadData('domicilios'),
+    'r': () => reloadData(),
+    'R': () => reloadData(),
+    'a': () => toggleSelectAll(),
+    'A': () => toggleSelectAll()
+});
 
 // --- DATA STATE ---
 const currentType = ref('clientes');

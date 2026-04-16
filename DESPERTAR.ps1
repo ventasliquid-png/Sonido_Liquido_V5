@@ -1,3 +1,8 @@
+﻿param(
+    [string]$Pull      = "",   # S/N para Git Pull (vacío = preguntar)
+    [string]$Restaurar = "",   # S/N para restaurar DB (vacío = preguntar)
+    [string]$Mode      = ""    # L=AlfaLite, C=Canario (vacío = preguntar)
+)
 $ErrorActionPreference = "SilentlyContinue"
 [console]::Title = "DESPERTAR - Aduana Inteligente (Protocolo Nike)"
 Write-Host "========================================================" -ForegroundColor Cyan
@@ -38,7 +43,12 @@ if ($remotePasaporte) {
 Write-Host ""
 
 # 1. GIT PULL Y CONTROL DE CONFLICTOS
-$gitPrompt = Read-Host "¿Desea bajar la carga de la otra oficina (Git Pull)? (S/N)"
+if ($Pull -ne "") {
+    $gitPrompt = $Pull
+    Write-Host "[AUTO] Git Pull: $Pull" -ForegroundColor DarkGray
+} else {
+    $gitPrompt = Read-Host "¿Desea bajar la carga de la otra oficina (Git Pull)? (S/N)"
+}
 if ($gitPrompt -match "^[sS]") {
     
     # Paracaídas automático antes de tocar nada si es crítico
@@ -85,14 +95,19 @@ if (-not (Test-Path "POLIZON_MAESTRO.bak")) {
     elseif (Test-Path "pilot_v5x.db") { $localDb = "pilot_v5x.db" }
 
     if ($localDb -ne "" -and $remotePasaporte) {
-        # Obtener fechas
-        $pFechaObj = [datetime]::ParseExact($remotePasaporte.fecha_cierre_real, "yyyy-MM-dd HH:mm:ss", $null)
+        # Obtener fechas (ParseExact puede lanzar excepción terminante si el formato no coincide)
+        $pFechaObj = $null
+        try {
+            $pFechaObj = [datetime]::ParseExact($remotePasaporte.fecha_cierre_real, "yyyy-MM-dd HH:mm:ss", $null)
+        } catch {
+            Write-Host " [!] No se pudo leer la fecha del Polizón: $($_.Exception.Message)" -ForegroundColor DarkGray
+        }
         $lFechaObj = (Get-Item $localDb).LastWriteTime
 
         Write-Host " - Polizón (Remoto): $($remotePasaporte.fecha_cierre_real)"
         Write-Host " - Base Local      : $($lFechaObj.ToString('yyyy-MM-dd HH:mm:ss'))"
 
-        if ($pFechaObj -gt $lFechaObj) {
+        if ($pFechaObj -and $pFechaObj -gt $lFechaObj) {
             Write-Host " >>> RECOMENDACIÓN: EL POLIZÓN ES MÁS RECIENTE. RESTAURAR." -ForegroundColor Green
         } else {
             Write-Host " >>> ADVERTENCIA: EL POLIZÓN ES MÁS VIEJO QUE TU BASE LOCAL." -ForegroundColor Red
@@ -100,8 +115,12 @@ if (-not (Test-Path "POLIZON_MAESTRO.bak")) {
         }
         
         Write-Host ""
-        $restaurar = Read-Host "¿Deseas RESTAURAR la base local desde el Polizón? (S/N)"
-        if ($restaurar -match "^[sS]") {
+        if ($Restaurar -ne "") {
+            Write-Host "[AUTO] Restaurar DB: $Restaurar" -ForegroundColor DarkGray
+        } else {
+            $Restaurar = Read-Host "¿Deseas RESTAURAR la base local desde el Polizón? (S/N)"
+        }
+        if ($Restaurar -match "^[sS]") {
             Write-Host "[*] Asegurando base local antigua (respaldo_pre_trasplante.db.bak)..." -ForegroundColor Yellow
             Copy-Item $localDb "$localDb.pre_trasplante.bak" -Force
             
@@ -131,7 +150,12 @@ if ($statusL -match "CRÍTICO") {
 Write-Host "========================================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "[L] ALFA-LITE | [C] CANARIO | [X] SALIR"
-$opc = Read-Host "Seleccione"
+if ($Mode -ne "") {
+    $opc = $Mode
+    Write-Host "[AUTO] Modo: $Mode" -ForegroundColor DarkGray
+} else {
+    $opc = Read-Host "Seleccione"
+}
 
 if ($opc -match "^[lL]") {
     Set-Clipboard -Value "Gy, arrancamos bajo ALFA-LITE (Vía rápida). El entorno está despejado. Tarea: "

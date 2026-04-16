@@ -7,15 +7,6 @@ from backend.core.database import SessionLocal
 from backend.clientes.models import Cliente, Domicilio
 from backend.agenda.models import VinculoComercial
 from backend.maestros.models import CondicionIva, ListaPrecios, Provincia, Segmento
-from backend.core.database import SessionLocal
-from backend.clientes.models import Cliente, Domicilio
-from backend.agenda.models import VinculoComercial
-from backend.maestros.models import CondicionIva, ListaPrecios, Provincia, Segmento
-from backend.logistica.models import EmpresaTransporte
-from backend.core.database import SessionLocal
-from backend.clientes.models import Cliente, Domicilio
-from backend.agenda.models import VinculoComercial
-from backend.maestros.models import CondicionIva, ListaPrecios, Provincia, Segmento
 from backend.logistica.models import EmpresaTransporte
 from backend.auth.models import Usuario
 from backend.pedidos.models import Pedido

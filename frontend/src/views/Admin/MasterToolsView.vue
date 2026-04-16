@@ -80,6 +80,7 @@
 
 <script setup>
 import { ref, computed, nextTick, onMounted, defineAsyncComponent } from 'vue';
+import { useKeyboardShortcuts } from '../../composables/useKeyboardShortcuts';
 
 // --- AUTH ---
 const CONST_ADMIN_PIN = "1974"; // Hardcoded for V5
@@ -104,6 +105,13 @@ const lock = () => {
     pinInput.value = '';
     nextTick(() => pinInputRef.value?.focus());
 };
+
+// --- KEYBOARD SHORTCUTS ---
+useKeyboardShortcuts({
+    'l': () => { if (isAuthenticated.value) lock(); },
+    'L': () => { if (isAuthenticated.value) lock(); },
+    'Escape': () => { if (isAuthenticated.value) lock(); }
+});
 
 // --- TABS & COMPONENTS ---
 const currentTab = ref('purgatorio');

@@ -134,9 +134,8 @@ class PDFRemito(FPDF):
             # X posiciones
             X_QR = MARGIN_X
             
-            # --- 1. QR (Izquierda) ---
-            # Si no hay url, generamos una basada en el numero de remito (placeholder)
-            qr_data = self.qrcode_url or f"https://www.afip.gob.ar/fe/qr/?p={self.remito_numero}"
+            # QR Code (Left) - Always point to official website if no specific URL is provided
+            qr_data = self.qrcode_url or "https://liquid-sound.com.ar/"
             
             try:
                 qr = qrcode.QRCode(version=1, box_size=10, border=4)
@@ -298,23 +297,27 @@ class PDFRemito(FPDF):
         self.multi_cell(140, 4, obs_text, 0)
         
         # Valor Declarado y Bultos (C64 -> Y=226mm)
+        # [RAR-V1] Etiquetas FIJAS por pedido del usuario. Datos condicionales.
         set_bas_xy(64, 4)
         self.set_font('Arial', 'B', 8)
         self.cell(25, 5, "VALOR DECL.:", 0)
         
-        set_bas_xy(64, 12)
-        self.set_font('Arial', '', 8)
-        val_text = str(cliente_data.get('valor_declarado', ''))
-        self.cell(40, 5, val_text, 0)
+        val_raw = cliente_data.get('valor_declarado')
+        if val_raw is not None and val_raw != 0:
+            set_bas_xy(64, 25) # Desplazamiento para el dato
+            self.set_font('Arial', '', 8)
+            val_text = f"$ {val_raw:,.2f}" if isinstance(val_raw, (int, float)) else str(val_raw)
+            self.cell(40, 5, val_text, 0)
         
-        set_bas_xy(64, 25)
+        set_bas_xy(64, 45) # Movido a la derecha para no superponer
         self.set_font('Arial', 'B', 8)
         self.cell(20, 5, "BULTOS:", 0)
         
-        set_bas_xy(64, 31)
-        self.set_font('Arial', '', 8)
-        bultos_text = str(cliente_data.get('bultos', ''))
-        self.cell(20, 5, bultos_text, 0)
+        bultos_raw = cliente_data.get('bultos')
+        if bultos_raw is not None and bultos_raw != 0:
+            set_bas_xy(64, 60) # Desplazamiento para el dato
+            self.set_font('Arial', '', 8)
+            self.cell(20, 5, str(bultos_raw), 0)
 
         # [V5] Invoice Link (Pie de Página Legal)
         # [SABUESO ORO] Footer handling is now automatic via pdf.footer()

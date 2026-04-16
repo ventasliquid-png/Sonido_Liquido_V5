@@ -175,7 +175,7 @@ def create_domicilio(cliente_id: UUID, domicilio: DomicilioCreate, db: Session =
 
 @router.put("/{cliente_id}/domicilios/{domicilio_id}", response_model=DomicilioResponse)
 def update_domicilio(cliente_id: UUID, domicilio_id: UUID, domicilio: DomicilioUpdate, db: Session = Depends(get_db)):
-    db_domicilio = ClienteService.update_domicilio(db, domicilio_id, domicilio)
+    db_domicilio = ClienteService.update_domicilio(db, cliente_id, domicilio_id, domicilio)
     if db_domicilio is None:
         raise HTTPException(status_code=404, detail="Domicilio no encontrado")
     return db_domicilio

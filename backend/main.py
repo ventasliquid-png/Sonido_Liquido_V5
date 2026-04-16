@@ -19,6 +19,10 @@ ENV_PATH = os.path.join(ROOT_DIR, ".env")
 print(f"--- [BOOT] Cargando variables de entorno desde: {ENV_PATH} ---")
 load_dotenv(ENV_PATH, override=True)
 
+# [V5.9 AUDIT] Log the active Database path for the user
+db_url = os.environ.get("DATABASE_URL", "NOT_FOUND")
+print(f"--- [DATABASE AUDIT]: {db_url} ---")
+
 # [GY-FIX-BOOT] Enforcement of Local SQLite removed. Pulling from .env.
     
 # ACTIVATE AI (Vertex AI) - V14.0 Handshake Ready

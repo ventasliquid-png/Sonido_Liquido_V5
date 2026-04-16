@@ -145,4 +145,4 @@ El repo se sincroniza entre locaciones via Git. Las bases de datos se respaldan 
 
 ---
 
-*Última actualización: 2026-04-10 — OF (V5.8 GOLD)*
+*Última actualización: 2026-04-16 — OF (V5-LS Estabilización)*

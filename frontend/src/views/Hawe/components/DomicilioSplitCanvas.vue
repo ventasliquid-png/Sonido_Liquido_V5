@@ -33,7 +33,8 @@ const form = reactive({
     origen_logistico: 'DESPACHO_NUESTRO', linked_delivery_id: null,
     calle_entrega: '', numero_entrega: '', piso_entrega: '',
     depto_entrega: '', cp_entrega: '', localidad_entrega: '',
-    provincia_entrega_id: null
+    provincia_entrega_id: null,
+    flags: 0 // [V5.9] Bitmask del join table (Bit 21 = Espejo Fiscal)
 });
 
 const initialFiscalCalle = ref('');
@@ -83,7 +84,8 @@ watch(() => props.domicilio, (newVal) => {
             transporte_id: sourceDelivery.transporte_id || null,
             modalidad_envio: sourceDelivery.modalidad_envio || 'A_DOMICILIO',
             origen_logistico: sourceDelivery.origen_logistico || 'DESPACHO_NUESTRO',
-            linked_delivery_id: linkedId
+            linked_delivery_id: linkedId,
+            flags: sourceDelivery.flags || 0
         });
         
         initialFiscalCalle.value = newVal.calle || '';
@@ -108,7 +110,8 @@ watch(() => props.domicilio, (newVal) => {
             piso: '', depto: '', maps_link: '', notas_logistica: '',
             observaciones: '', contacto_id: null, metodo_entrega: 'TRANSPORTE',
             transporte_id: props.defaultTransportId || null, modalidad_envio: 'A_DOMICILIO',
-            origen_logistico: 'DESPACHO_NUESTRO', linked_delivery_id: null
+            origen_logistico: 'DESPACHO_NUESTRO', linked_delivery_id: null,
+            flags: 2097152 // [V5.9] Default: Mirror ON for new addresses
         });
         Object.keys(dirtyFields).forEach(k => dirtyFields[k] = false);
         initialFiscalCalle.value = '';
@@ -119,7 +122,17 @@ watch(() => props.domicilio, (newVal) => {
 watch(() => form.calle, (val, oldVal) => { if (!isEditing.value && form.calle_entrega === oldVal && !dirtyFields.calle) form.calle_entrega = val; });
 watch(() => form.numero, (val, oldVal) => { if (!isEditing.value && form.numero_entrega === oldVal && !dirtyFields.numero) form.numero_entrega = val; });
 
-const markDirty = (field) => { dirtyFields[field] = true; };
+const MIRROR_BIT = 2097152;
+const isMirrored = computed(() => (form.flags & MIRROR_BIT) !== 0);
+
+const markDirty = (field) => { 
+    dirtyFields[field] = true; 
+    // [V5.9 GOLD] Bifurcación: Si se edita manualmente la logística, rompemos el espejo fiscal
+    if (isMirrored.value) {
+        console.log(`[GOLD] Mirror Break: Edición manual détectada en ${field}. Desactivando Bit 21.`);
+        form.flags &= ~MIRROR_BIT;
+    }
+};
 
 const toggleFiscal = () => {
     if (form.es_fiscal) return;
@@ -214,6 +227,36 @@ const handleTransporteCanvasCreate = async (id) => {
     showTransporteCanvas.value = false;
 };
 
+// --- [LÓGICA DE ESPEJADO TÁCTICO] ---
+const mirrorToDelivery = () => {
+    form.calle_entrega = form.calle;
+    form.numero_entrega = form.numero;
+    form.piso_entrega = form.piso;
+    form.depto_entrega = form.depto;
+    form.cp_entrega = form.cp;
+    form.localidad_entrega = form.localidad;
+    form.provincia_entrega_id = form.provincia_id;
+    // [V5.9] Activamos el Bit 21 (Espejo Fiscal)
+    form.flags |= MIRROR_BIT;
+};
+
+const mirrorToFiscal = () => {
+    // Solo permitimos espejar hacia fiscal si el usuario está en modo fiscal
+    if (!form.es_fiscal) {
+         form.es_fiscal = true;
+    }
+    form.calle = form.calle_entrega;
+    form.numero = form.numero_entrega;
+    form.piso = form.piso_entrega;
+    form.depto = form.depto_entrega;
+    form.cp = form.cp_entrega;
+    form.localidad = form.localidad_entrega;
+    form.provincia_id = form.provincia_entrega_id;
+    
+    // [V5.9.3 GOLD] Activar Bit 21 para persistencia del espejo inverso
+    form.flags |= MIRROR_BIT;
+};
+
 onMounted(() => {
     window.addEventListener('keydown', handleKeydown);
     if (store.provincias.length === 0) store.fetchProvincias();
@@ -229,16 +272,35 @@ onUnmounted(() => {
     <div class="flex flex-col bg-[#0f172a] w-full max-w-7xl h-[85vh] rounded-xl shadow-2xl border border-white/10 overflow-hidden animate-fade-in relative z-50">
         
         <!-- HEADER -->
-        <div class="h-14 px-6 py-3 flex items-center justify-between border-b border-white/5 bg-white/5 shrink-0">
+        <div class="h-14 px-6 py-3 flex items-center justify-between border-b border-white/5 bg-white/5 shrink-0 relative">
             <h2 class="font-outfit text-lg font-bold text-white flex items-center gap-2">
                 <i class="fa-solid fa-map-location-dot text-cyan-400"></i>
-                {{ isEditing ? 'Editar Domicilio (Split View)' : 'Nuevo Domicilio' }}
+                {{ isEditing ? 'Editar Domicilio' : 'Nuevo Domicilio' }}
                 <span v-if="isEditing" class="text-[9px] bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded border border-amber-500/30 ml-2 uppercase tracking-widest">Editando</span>
-                <span v-else class="text-[9px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30 ml-2 uppercase tracking-widest">Nueva Sucursal</span>
             </h2>
+
+            <!-- CENTRAL MIRROR CONTROL (NUEVA POSICIÓN ELEVADA) -->
+            <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] flex flex-col items-center pointer-events-none">
+                <div class="px-4 py-0.5 bg-black/40 backdrop-blur-md rounded-full border border-white/10 flex items-center gap-4 shadow-xl">
+                    <span class="text-[8px] font-bold text-cyan-400/60 tracking-[0.2em] uppercase">Espejar</span>
+                    <div class="flex gap-4 pointer-events-auto">
+                        <button @click="mirrorToFiscal" class="text-emerald-500 hover:text-emerald-400 transition-all hover:scale-125" title="Logística -> Fiscal">
+                            <i class="fa-solid fa-arrow-left text-xs"></i>
+                        </button>
+                        <button @click="mirrorToDelivery" class="text-fuchsia-500 hover:text-fuchsia-400 transition-all hover:scale-125" title="Fiscal -> Logística">
+                            <i class="fa-solid fa-arrow-right text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+                <!-- Indicador de Vínculo Activo -->
+                <div v-if="isMirrored" class="absolute -bottom-3 flex items-center gap-1">
+                    <span class="text-[7px] text-cyan-400 font-bold uppercase tracking-tighter animate-pulse">Vínculo Activo</span>
+                </div>
+            </div>
+
             <div class="flex gap-2">
                 <button @click="$emit('close')" class="px-3 py-1.5 rounded-lg text-white/50 hover:text-white text-xs font-bold transition-colors">
-                    CANCELAR (ESC)
+                    CANCELAR
                 </button>
                 <button @click="handleSave" class="px-4 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold shadow-lg shadow-cyan-500/20 transition-all flex items-center gap-2">
                     <i class="fa-solid fa-save"></i>
@@ -248,7 +310,7 @@ onUnmounted(() => {
         </div>
 
         <!-- SPLIT VIEW BODY -->
-        <div class="flex-1 flex min-h-0">
+        <div class="flex-1 flex min-h-0 relative">
             
             <!-- LEFT PANEL: UBICACIÓN (Physical & Legal) -->
             <div class="w-1/2 border-r border-white/10 flex flex-col bg-fuchsia-900/10">

@@ -83,6 +83,7 @@ class DomicilioUpdate(BaseModel):
     bit_identidad: Optional[int] = None
     flags_infra: Optional[int] = None
     flags_estado: Optional[int] = None
+    flags: Optional[int] = None # [V5.9] Persistencia de bits de relación (Espejo, etc.)
 
 class DomicilioResponse(BaseModel):
     id: UUID
@@ -119,11 +120,12 @@ class DomicilioResponse(BaseModel):
     usage_count: Optional[int] = 0
     provincia_nombre: Optional[str] = None 
     clientes_vinculados: Optional[List[str]] = [] 
-    vinculos_detalles: Optional[List[dict]] = []  
-    is_maps_manual: bool = False 
-    bit_identidad: int = 0 
+    vinculos_detalles: Optional[List[dict]] = []
+    is_maps_manual: bool = False
+    bit_identidad: int = 0
     flags_infra: int = 0
     flags_estado: int = 0
+    flags: int = 0  # [V5.9] Flags del join table domicilios_clientes (Bit 21 = espejo fiscal)
 
     class Config:
         from_attributes = True

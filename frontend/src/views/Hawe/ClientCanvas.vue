@@ -1609,9 +1609,15 @@ const saveCliente = async () => {
             // 1. Core Update
             const resUpdated = await store.updateCliente(form.value.id, payload)
             
+            // [GY-FIX] Ensure the reactive form has the latest CUIT from the successful Update
+            if (resUpdated?.cuit) {
+                form.value.cuit = resUpdated.cuit;
+            }
+
             // 2. Explicit Address Sync (e.g. after ARCA validation)
             if (forceAddressSync.value && domicilios.value.length > 0) {
                 console.log("[SAVE] Force Address Sync Active - Sending Explicit Domicilios requests");
+                let syncErrors = 0;
                 for (const dom of domicilios.value) {
                      try {
                          if (dom.id) {
@@ -1621,14 +1627,19 @@ const saveCliente = async () => {
                          }
                      } catch (err) {
                          console.error("Partial failure syncing address:", err);
+                         syncErrors++;
                      }
                 }
                 
+                if (syncErrors > 0) {
+                    notificationStore.add(`Aviso: ${syncErrors} dirección(es) no pudieron sincronizarse. Verifique los datos de domicilio.`, 'warning');
+                }
+
                 // 3. Hydrate full client object to return back with actual Domicilio IDs to listeners
                 const fullClient = await store.fetchClienteById(form.value.id);
-                emit('save', fullClient || resUpdated?.data || payload)
+                emit('save', fullClient || resUpdated || payload)
             } else {
-                emit('save', resUpdated?.data || payload)
+                emit('save', resUpdated || payload)
             }
 
             notificationStore.add('Cliente actualizado exitosamente', 'success')
@@ -1913,14 +1924,20 @@ const handleDomicilioSaved = async (domicilioData) => {
             // [V5.2 GOLD] Fork Detection (Bit 21 Mirror Protection)
             const isMirrored = !!(domicilioData.flags & 2097152);
             
+            // [GY-FIX] Robust ID check to prevent /null endpoints (Error 422 reported in 'Salud Privada SRL')
+            const domId = domicilioData.id;
+            const isValidId = domId && String(domId) !== 'null' && String(domId) !== 'undefined';
+            
             let savedDom;
-            if (isMirrored) {
+            if (isMirrored && isValidId) {
                 // BIT 21 ON: Perform "Bifurcación" (Fork) instead of Update
-                savedDom = await store.forkDomicilio(form.value.id, domicilioData.id, payload);
+                savedDom = await store.forkDomicilio(form.value.id, domId, payload);
                 notificationStore.add('Bifurcación Completa: Se creó una entrega independiente', 'success');
-            } else if (domicilioData.id) {
-                savedDom = await store.updateDomicilio(form.value.id, domicilioData.id, payload);
+            } else if (isValidId) {
+                savedDom = await store.updateDomicilio(form.value.id, domId, payload);
             } else {
+                // Ensure es_fiscal is true if this is the first one or specifically marked
+                if (domicilios.value.length === 0) payload.es_fiscal = true;
                 savedDom = await store.createDomicilio(form.value.id, payload);
             }
             // Sync & Reload

@@ -288,8 +288,8 @@ class RemitosService:
             cae=payload.factura.cae,
             vto_cae=vto_cae_date,
             numero_legal=numero_legal,
-            bultos=getattr(payload, 'bultos', 1),
-            valor_declarado=getattr(payload, 'valor_declarado', 0.0)
+            bultos=payload.bultos,
+            valor_declarado=payload.valor_declarado
         )
         db.add(remito)
         db.flush()

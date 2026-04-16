@@ -122,12 +122,25 @@ class ClienteService:
     @staticmethod
     def get_cliente(db: Session, cliente_id: UUID) -> Optional[Cliente]:
         from sqlalchemy.orm import joinedload
-        return db.query(Cliente).options(
+        cliente = db.query(Cliente).options(
             joinedload(Cliente.domicilios),
-            # [GY-TEMP] Disable eager load of vinculos to fix 500
+            # [GY-TEMP] Disable eager load de vinculos para evitar 500
             # joinedload(Cliente.vinculos).joinedload(agenda_models.VinculoComercial.persona),
             # joinedload(Cliente.vinculos).joinedload(agenda_models.VinculoComercial.tipo_contacto)
         ).filter(Cliente.id == cliente_id).first()
+
+        if cliente:
+            # [V5.9] Hidratar flags del join table para espejo fiscal (Bit 21)
+            rows = db.execute(
+                domicilios_clientes.select().where(
+                    domicilios_clientes.c.cliente_id == cliente_id
+                )
+            ).all()
+            link_flags = {row.domicilio_id: row.flags for row in rows}
+            for dom in cliente.domicilios:
+                dom.flags = link_flags.get(dom.id, 0)
+
+        return cliente
 
     @staticmethod
     def get_clientes(db: Session, skip: int = 0, limit: int = 100, include_inactive: bool = False, q: str = None) -> List[Cliente]:
@@ -268,8 +281,10 @@ class ClienteService:
         is_formal = (db_cliente.flags_estado & 15) in [13, 15]
         is_generic = db_cliente.cuit in ['00000000000', '11111111119', '11111111111', '99999999999']
         is_cf = False
-        if db_cliente.condicion_iva and "CONSUMIDOR FINAL" in db_cliente.condicion_iva.nombre.upper():
-            is_cf = True
+        is_cf = False
+        if db_cliente.condicion_iva and db_cliente.condicion_iva.nombre:
+            if "CONSUMIDOR FINAL" in db_cliente.condicion_iva.nombre.upper():
+                is_cf = True
 
         # --- REGLA 1: POWER_PINK (Bit 19) ---
         # Requisito: Nivel 9/11 + (Lista, Segmento) O CF/Genérico
@@ -602,7 +617,7 @@ class ClienteService:
             raise HTTPException(status_code=400, detail=f"Error al guardar domicilio: {str(e)}")
 
     @staticmethod
-    def update_domicilio(db: Session, domicilio_id: UUID, domicilio_in: schemas.DomicilioUpdate) -> Optional[Domicilio]:
+    def update_domicilio(db: Session, cliente_id: UUID, domicilio_id: UUID, domicilio_in: schemas.DomicilioUpdate) -> Optional[Domicilio]:
         db_domicilio = db.query(Domicilio).filter(Domicilio.id == domicilio_id).first()
         if not db_domicilio:
             return None
@@ -623,14 +638,27 @@ class ClienteService:
         if 'zona_id' in update_data:
             update_data.pop('zona_id')
 
+        # [V5.9 GOLD] Persistencia de Flags de Relación (Bit 21 / Espejo)
+        # Sincronizamos los bits de la tabla puente domicilios_clientes
+        rel_flags = update_data.pop('flags', None)
+        if rel_flags is not None:
+             from backend.clientes.models import domicilios_clientes
+             db.execute(
+                 domicilios_clientes.update().where(
+                     domicilios_clientes.c.cliente_id == cliente_id,
+                     domicilios_clientes.c.domicilio_id == domicilio_id
+                 ).values(flags=rel_flags)
+             )
+             print(f"[GOLD] Sincronización de BITMASK en Tabla Puente: Cliente:{cliente_id} Domicilio:{domicilio_id} Flags:{rel_flags}")
+
         # [V5.2.3 GOLD] BIFURCATION LOGIC (Mirror Break)
         # If Bit 21 (Mirror) is active for this client and notes are modified,
         # we must clone the address and link the child independently.
         from backend.clientes.models import domicilios_clientes
         current_link = db.execute(
             domicilios_clientes.select().where(
-                domicilios_clientes.c.cliente_id == db_domicilio.cliente_id,
-                domicilios_clientes.c.domicilio_id == db_domicilio.id
+                domicilios_clientes.c.cliente_id == cliente_id,
+                domicilios_clientes.c.domicilio_id == domicilio_id
             )
         ).fetchone()
 
@@ -648,25 +676,27 @@ class ClienteService:
                 if col not in forked_data:
                     forked_data[col] = getattr(db_domicilio, col)
             
-            # Reset Mirror Bit on the new child relation
-            new_dom = ClienteService.fork_domicilio(db, db_domicilio.cliente_id, db_domicilio.id, forked_data)
+            # [V5.9 GOLD] Preservar Flags (Espejo) en la bifurcación si vienen del frontend
+            target_rel_flags = rel_flags if rel_flags is not None else 0
+            new_dom = ClienteService.fork_domicilio(db, cliente_id, domicilio_id, forked_data, flags=target_rel_flags)
             return new_dom
 
         # Enforce Single Fiscal Domicile Logic
         if update_data.get('es_fiscal'):
             db.query(Domicilio).filter(
-                Domicilio.cliente_id == db_domicilio.cliente_id,
                 Domicilio.id != domicilio_id,
                 Domicilio.es_fiscal == True
-            ).update({"es_fiscal": False})
+            ).join(domicilios_clientes).filter(domicilios_clientes.c.cliente_id == cliente_id).update({"es_fiscal": False}, synchronize_session=False)
         
         # Enforce Single Primary Domicile Logic
         if update_data.get('es_predeterminado'):
-            db.query(Domicilio).filter(
-                Domicilio.cliente_id == db_domicilio.cliente_id,
-                Domicilio.id != domicilio_id,
-                Domicilio.es_predeterminado == True
-            ).update({"es_predeterminado": False})
+            # Clear other predeterminados for THIS client in the join table
+            db.execute(
+                domicilios_clientes.update().where(
+                    domicilios_clientes.c.cliente_id == cliente_id,
+                    domicilios_clientes.c.domicilio_id != domicilio_id
+                ).values(es_predeterminado=False)
+            )
 
         # [GY-FIX-V5] Fix Persistence Conflict: Empresa vs Nodo
         # If updating Empresa (transporte_id), clear Legacy Nodo (transporte_habitual_nodo_id)
@@ -695,7 +725,7 @@ class ClienteService:
         from backend.contactos.models import VinculoGeografico
         vg = db.query(VinculoGeografico).filter(
             VinculoGeografico.entidad_tipo == 'CLIENTE',
-            VinculoGeografico.entidad_id == db_domicilio.cliente_id,
+            VinculoGeografico.entidad_id == cliente_id,
             VinculoGeografico.domicilio_id == db_domicilio.id
         ).first()
         
@@ -716,12 +746,15 @@ class ClienteService:
             db.add(vg)
             db.commit()
 
-        # [GY-DOCTRINA-V14] RE-AUDIT PARENT
-        db_p = ClienteService.get_cliente(db, db_domicilio.cliente_id)
-        if db_p:
-            ClienteService._audit_sovereignty(db_p)
-            db.add(db_p)
-            db.commit()
+        # [GY-DOCTRINA-V14] RE-AUDIT PARENT (Shielded)
+        try:
+            db_p = ClienteService.get_cliente(db, cliente_id)
+            if db_p:
+                ClienteService._audit_sovereignty(db_p)
+                db.commit() # Final commit for audit flags
+        except Exception as audit_err:
+            print(f"⚠️ [WARN] Audit failure post-domicile update: {audit_err}")
+            # We don't raise here as the core domicile data was already committed at line 719
         
         # Return Domicilio object
         return db_domicilio
@@ -751,7 +784,7 @@ class ClienteService:
             db.commit()
 
             # [GY-DOCTRINA-V14] RE-AUDIT PARENT
-            target_parent_id = cliente_id or db_domicilio.cliente_id
+            target_parent_id = cliente_id
             if target_parent_id:
                 db_p = ClienteService.get_cliente(db, target_parent_id)
                 if db_p:
@@ -928,7 +961,7 @@ class ClienteService:
         return db_cliente
 
     @staticmethod
-    def fork_domicilio(db: Session, cliente_id: UUID, domicilio_id: UUID, new_data: dict) -> Domicilio:
+    def fork_domicilio(db: Session, cliente_id: UUID, domicilio_id: UUID, new_data: dict, flags: int = 0) -> Domicilio:
         """
         [V5.2 GOLD] Fork Protocol.
         Clona un domicilio espejado para convertirlo en independiente (Bit 21 OFF).
@@ -947,7 +980,7 @@ class ClienteService:
             domicilios_clientes.update().where(
                 domicilios_clientes.c.cliente_id == cliente_id,
                 domicilios_clientes.c.domicilio_id == domicilio_id
-            ).values(domicilio_id=new_dom.id, flags=0, alias=new_data.get('alias', 'ENTREGA INDEPENDIENTE'))
+            ).values(domicilio_id=new_dom.id, flags=flags, alias=new_data.get('alias', 'ENTREGA INDEPENDIENTE'))
         )
         db.commit()
         return new_dom

@@ -46,8 +46,8 @@ class Remito(Base):
     aprobado_para_despacho = Column(Boolean, default=False)
 
     # Datos Logísticos (V15.1.4)
-    bultos = Column(Integer, default=1)
-    valor_declarado = Column(Float, default=0.0)
+    bultos = Column(Integer, nullable=True)
+    valor_declarado = Column(Float, nullable=True)
 
     # Relaciones
     pedido = relationship("Pedido", backref="remitos")

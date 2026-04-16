@@ -212,15 +212,23 @@ class ProductoService:
            limpiada en primera operación. Ausencia de PedidoItem no equivale a virginidad
            (un pedido hard-deleted borra sus items en cascade).
         2. PedidoItem — dependencias físicas actuales.
+        3. [V5.8 GOLD] Respaldo en PapeleraRegistro antes de eliminación.
         """
+        from backend.core.models import PapeleraRegistro
+        from backend.pedidos.models import PedidoItem
+        from backend.clientes.models import Cliente
+        from backend.logistica.models import EmpresaTransporte
+        from datetime import datetime
+        import json
+        import uuid
+
         db_producto = db.query(models.Producto).filter(models.Producto.id == producto_id).first()
         if not db_producto: raise HTTPException(status_code=404, detail="Producto no encontrado")
 
         # 1. Check Bit 1 (VIRGINITY) — marca soberana
-        is_virgin = (db_producto.flags_estado & ProductoFlags.VIRGINITY)
+        is_virgin = (db_producto.flags_estado or 0) & ProductoFlags.VIRGINITY
 
         # 2. Check dependencias físicas actuales
-        from backend.pedidos.models import PedidoItem
         has_history = db.query(PedidoItem).filter(PedidoItem.producto_id == producto_id).first()
 
         if not is_virgin or has_history:
@@ -229,6 +237,44 @@ class ProductoService:
                 detail="VIOLACIÓN DE LEY DE VIRGINIDAD: No se puede eliminar físicamente un producto con historial o que no sea virgen [PIN 1974]."
             )
 
-        db.delete(db_producto)
-        db.commit()
-        return True
+        try:
+            # 3. Serializar para Papelera (Sincronizado con ClienteService)
+            def json_safe(obj):
+                if isinstance(obj, dict):
+                    return {k: json_safe(v) for k, v in obj.items()}
+                elif isinstance(obj, list):
+                    return [json_safe(v) for v in obj]
+                elif isinstance(obj, Decimal):
+                    return float(obj)
+                elif isinstance(obj, (datetime, uuid.UUID)):
+                    return str(obj)
+                return obj
+
+            prod_dict = {}
+            for column in db_producto.__table__.columns:
+                prod_dict[column.name] = getattr(db_producto, column.name)
+            
+            prod_dict = json_safe(prod_dict)
+
+            # 4. Guardar en Papelera (Entidad ID como String para soportar Integer)
+            trash_entry = PapeleraRegistro(
+                entidad_tipo='PRODUCTO',
+                entidad_id=str(db_producto.id), # Cast to string for GUID compatibility
+                data=prod_dict,
+                borrado_por="MASTER_TOOLS_PIN_1974"
+            )
+            db.add(trash_entry)
+            
+            print(f"[TRASH] Preparando borrado de Producto {db_producto.nombre} (SKU: {db_producto.sku})")
+
+            # 5. Borrado físico real
+            db.delete(db_producto)
+            db.commit()
+            return True
+        except Exception as e:
+            db.rollback()
+            print(f"[X] CRITICAL PRODUCT TRASH ERROR: {str(e)}")
+            raise HTTPException(
+                status_code=500, 
+                detail=f"ERROR INTERNO (Papelera/DB): {str(e)}"
+            )
