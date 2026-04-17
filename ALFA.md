@@ -15,11 +15,11 @@ Verificar integridad del sistema antes de comenzar cualquier sesión de trabajo.
 
 **1. Vía Rápida (ALFA-LITE):** Evalúa el pedido. Si es un ajuste de frontend, corrección local, o bugfix acotado, **omite el protocolo Canario**. 
 > [!CAUTION]
-> **SEGURIDAD**: Si la tarea requiere generar un **Plan de Corrección** (Implementation Plan), es obligatorio solicitar y validar el **PIN 1974** antes de la ejecución, incluso en modo LITE. La "aceptación automática" del sistema no es válida para estos casos.
+> **SEGURIDAD — BLOQUEO DE AUTO-APROBACIÓN**: Si la tarea requiere generar un **Plan de Corrección** (Implementation Plan), es obligatorio solicitar y recibir el **PIN 1974** tipeado manualmente por el usuario. La "aceptación automática" del sistema **NO HABILITA** la ejecución. El PIN debe ser solicitado y validado *para cada plan individual*.
 
 **2. ALFA Completo:** Se ejecuta el Canario si el pedido involucra cambios de base de datos, arquitectura, o si se pide explícitamente "ALFA COMPLETO".
 > [!IMPORTANT]
-> **SEGURIDAD**: Todo **Cambio de Base de Datos**, refactorización estructural o plan de alto impacto requiere obligatoriamente el **PIN 1974**. Prohibido proceder mediante autorización automática del sistema.
+> **AUTORIZACIÓN MANUAL CRÍTICA**: Todo cambio de alto impacto requiere obligatoriamente el **PIN 1974**. Queda estrictamente prohibido proceder basándose en la persistencia del PIN de pedidos anteriores o en la aprobación automática del frontend.
 
 ```cmd
 python scripts/canario_v2.py

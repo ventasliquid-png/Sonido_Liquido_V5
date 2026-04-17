@@ -1,3 +1,25 @@
+# CAJA NEGRA: Saneamiento Remitos (RAR-V1) + Resiliencia de Identidad (2026-04-16)
+
+## 1. Saneamiento de Remitos (RAR-V1)
+- **Flexibilidad de Datos**: Modificación de `schemas.py` y `models.py` para que `bultos` y `valor_declarado` sean opcionales (`nullable`).
+- **QR Oficial**: URL actualizada a `https://liquid-sound.com.ar/` en el motor de PDF.
+- **Estética de PDF**: Etiquetas fijas ("BULTOS:", "VALOR DECL.:") con valores condicionales para evitar ceros innecesarios.
+- **Dirección Completa**: Integración de `@property resumen` en el modelo `Domicilio` para visualización unificada en remitos desde ingesta.
+
+## 2. Resiliencia de Identidad (V5-LS)
+- **Fix Reversión CUIT**: Implementación de sincronización soberana en `ClientCanvas.vue`. Tras validación ARCA, el CUIT corregido sobreescribe reactivamente el dato de Cantera durante el `updateCliente`.
+- **Fix Error 500**: Null-safety inyectado en `_audit_sovereignty` de `service.py`. El sistema ya no crashea si un cliente importado carece de Condición IVA durante la auditoría de domicilios.
+- **Blindaje 422**: Manejo de IDs nulos en persistencia de domicilios, redirigiendo correctamente a `POST` cuando el registro es nuevo.
+
+## 3. Homologación de Entornos
+- Sincronización binaria total de los módulos `clientes`, `remitos` y `Canvas` hacia el repositorio de producción `V5-LS`.
+
+---
+**Marcador de Sesión**: 2026-04-16_OMEGA_ESTABILIZACION_SOBERANA
+**Agente**: Antigravity (Gy V5)
+
+---
+
 # CAJA NEGRA: Producción Soberana — Fixes Operativos + Diseño Doctrinal (2026-04-15)
 
 ## 1. Fix Domicilios — Triple Causa del 500

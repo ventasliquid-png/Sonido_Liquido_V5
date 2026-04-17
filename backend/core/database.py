@@ -1,5 +1,5 @@
 # --- backend/core/database.py (V11.4 - GUID Unified) ---
-from sqlalchemy import create_engine, TypeDecorator, CHAR
+from sqlalchemy import create_engine, TypeDecorator, CHAR, event
 from sqlalchemy.dialects.postgresql import UUID as pgUUID
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -89,6 +89,16 @@ if "sqlite" in DATABASE_URL:
     engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 else:
     engine = create_engine(DATABASE_URL)
+
+# --- [WAL MODE ENFORCEMENT] ---
+@event.listens_for(engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    if "sqlite" in DATABASE_URL:
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA synchronous=NORMAL")
+        cursor.close()
+# ------------------------------
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()

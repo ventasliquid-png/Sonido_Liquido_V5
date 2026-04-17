@@ -22,7 +22,7 @@ echo - BACKEND: ventana ROJA
 echo - FRONTEND: ventana VERDE
 echo - NO las cierres mientras trabajes.
 echo - El navegador se abrira en 5 segundos...
-timeout /t 5
+timeout /t 10
 start http://localhost:5173
 
 exit

@@ -3,6 +3,16 @@ import os
 import sys
 import subprocess
 import time
+import io
+
+# [GY-FIX-WINDOWS] Configuración de Encoding para evitar UnicodeEncodeError en emojis
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except AttributeError:
+        # Fallback para Python < 3.7 si fuera necesario, aunque el workspace usa 3.11
+        import codecs
+        sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 
 # CONFIGURACIÓN GEOMETRÍA LÓGICA
 DB_PATH = r'C:\dev\Sonido_Liquido_V5\pilot_v5x.db'
@@ -138,7 +148,11 @@ def main():
         else:
             print(f"\n[!] 🔴 TORMENTA: El cielo está horrible y el canario ha muerto. Flags desconocidos: {flags}")
     except Exception as e:
-        print(f"\n[!] 🔴 TORMENTA: Falla en reporte final. {e}")
+        # Fallback safe print if encoding still fails
+        try:
+            print(f"\n[!] ERROR FINAL: {e}")
+        except:
+             pass
     
     elapsed = time.time() - start_time
     print(f"========================================================")

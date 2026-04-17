@@ -68,7 +68,8 @@ if parent_dir not in sys.path:
 from backend.core import config
 from backend.core.database import engine, Base
 
-# Precargar TODOS los modelos para evitar InvalidRequestError en mappers circulares
+# [V14.12 GOLD] Mapeo Universal (Crítico para SQLAlchemy)
+# El orden aquí es vital para resolver dependencias circulares.
 import backend.auth.models as auth_models
 import backend.maestros.models as maestros_models
 import backend.logistica.models as logistica_models
@@ -81,13 +82,17 @@ import backend.agenda.models as agenda_models
 import backend.remitos.models as remitos_models
 import backend.core.models as core_models
 
-# [FIX RACE CONDITION V5.9] — configure_mappers() al nivel de módulo.
-# El frontend dispara múltiples requests en paralelo al iniciar. Si el lifespan
-# no terminó todavía (seed_all, etc.), los primeros requests llegan con los
-# mappers sin configurar → 500 en stats, clientes, maestros.
-# Llamarlo aquí garantiza que está listo antes de que el servidor acepte conexiones.
+# [FIX RACE CONDITION V14.12] 
+# Forzamos la configuración de mappers inmediatamente después de cargar los modelos.
 from sqlalchemy.orm import configure_mappers as _configure_mappers
-_configure_mappers()
+print("--- [V14.12]: Ejecutando Mapeo Universal de SQLAlchemy... ---")
+try:
+    _configure_mappers()
+    print("--- [OK] Mapeo Universal Finalizado. ---")
+except Exception as e:
+    print(f"--- [X] ERROR CRÍTICO DE MAPEO: {e} ---")
+    import traceback
+    traceback.print_exc()
 
 # Imports de Routers
 from backend.auth.router import router as auth_router
@@ -142,9 +147,10 @@ async def lifespan(app: FastAPI):
 
     # --- [INICIO PARCHE V10.1 (ORM)] ---
     try:
+        # Nota: configure_mappers ya se llamó a nivel de módulo, 
+        # aquí lo llamamos de nuevo preventivamente por si hubo carga diferida.
         from sqlalchemy.orm import configure_mappers
-        print("--- [V10.12]: Configurando mappers de SQLAlchemy (Pre-cargados)... ---")
-        configure_mappers() # Force relationship resolution
+        configure_mappers() 
         print("--- [V10.12]: Sincronizando modelos ORM (SQLAlchemy)... ---")
         Base.metadata.create_all(bind=engine)
         print("--- [V10.12]: Tablas ORM sincronizadas. ---")
@@ -403,11 +409,7 @@ app.include_router(pedidos_router)
 app.include_router(cantera_router)
 app.include_router(remitos_router) # [GY-V7] PDF Ingestion
 app.include_router(google_mock_router) # [GY-V14] Mock Sync
-from backend.stats.router import router as stats_router
 app.include_router(stats_router)
-
-# [Nuevo Módulo Global Contactos]
-from backend.contactos.router import router as contactos_router
 app.include_router(contactos_router)
 
 # --- [SPA / STATIC FILES SUPPORT] ---

@@ -11,8 +11,8 @@
 Al iniciar sesión, evalúa la magnitud de la tarea:
 - **Tareas Simples/Frontend/Ajustes:** Aplica **Vía Rápida (ALFA-LITE)**. No ejecutes chequeos de GIT ni el protocolo Canario. Procede directamente al código.
   > [!CAUTION]
-  > **REGLA PIN**: Si el ajuste requiere un **Plan de Corrección** o afecta la **identidad (UUIDs/IDs)** de productos, solicita el **PIN 1974**.
-- **Tareas Estructurales/Base de Datos:** Ejecuta el ALFA completo y solicita el **PIN 1974** para autorizar el plan de ejecución.
+  > **REGLA PIN MANDATORIA**: Si el ajuste requiere un **Plan de Corrección**, solicita el **PIN 1974**. Debes esperar a que el operador lo ingrese manualmente; ignorar cualquier mensaje de "aprobación automática" del sistema para la ejecución de planes.
+- **Tareas Estructurales/Base de Datos:** Ejecuta el ALFA completo y solicita el **PIN 1974** para autorizar el plan de ejecución. La autorización es por cada plan individual, no se hereda de autorizaciones previas.
   > **"¿Hace falta reposición de GIT? (S/N)"**
   Si es "S", sugiere el pull y recuerda respaldar la DB.
 
@@ -33,8 +33,10 @@ Al iniciar sesión, evalúa la magnitud de la tarea:
 | Desarrollo | `C:\dev\Sonido_Liquido_V5` | `pilot_v5x.db` | `stable-v5-of-20260330` |
 | Producción | `C:\dev\V5-LS` | `V5_LS_MASTER.db` | `stable-v5-of-20260330` |
 
-**Regla crítica:** Las bases de datos (`.db`) están en `.gitignore` y NO se versionan.  
+**Regla crítica 1:** Las bases de datos (`.db`) están en `.gitignore` y NO se versionan.  
 La base de producción es `V5_LS_MASTER.db` — 32 registros gold, schema certificado.
+
+**Regla crítica 2 (FRONTEND PROD):** El entorno de Desarrollo (D) sirve el frontend dinámicamente con Vite (`npm run dev`). El entorno de Producción (P) sirve el frontend estático a través de FastAPI (carpeta `/static`). TODO cambio en `.vue` sincronizado a Producción requiere OBLIGATORIAMENTE ejecutar `npm run build` en la carpeta `frontend` de P y volcar el output (`dist/`) en la carpeta `static/` de P. De lo contrario, los cambios visuales no impactarán.
 
 ---
 
@@ -95,6 +97,8 @@ Si el Canario falla → **no se opera**. Se diagnostica primero.
 
 ### PIN de autorización
 Ciertas acciones críticas requieren el PIN `1974` como confirmación explícita de Carlos.
+- **Exclusividad**: El PIN debe solicitarse y recibirse manualmente para **cada** plan de implementación.
+- **Bloqueo**: Queda prohibido proceder bajo "aprobación automática" si existe un plan de por medio.
 
 ---
 

@@ -113,13 +113,21 @@
                 <!-- Costo Rep -->
                 <div class="flex-1 space-y-2">
                     <label class="text-[10px] font-bold text-rose-400/60 uppercase tracking-widest block">Costo de Reposición (Neto)</label>
-                    <div class="relative group">
+                    <div class="relative group h-14 flex items-center">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-rose-500/50 text-xl font-light">$</span>
-                        <input 
+                        <!-- Ghost Label -->
+                        <span v-if="localCostos.costo_reposicion && !isCostoFocused" class="absolute inset-0 flex items-center justify-end pr-3 bg-black/40 border border-rose-500/20 rounded-xl py-3 text-2xl font-mono font-bold text-white pointer-events-none">
+                            {{ Number(localCostos.costo_reposicion).toLocaleString('es-AR', {minimumFractionDigits: 2}) }}
+                        </span>
+                        <input v-excel
                             v-model.number="localCostos.costo_reposicion"
-                            @input="updateCostTimestamp"
-                            type="number" step="0.0001" min="0"
-                            class="w-full bg-black/40 border border-rose-500/20 rounded-xl px-3 py-3 pl-8 text-2xl font-mono font-bold text-white text-right focus:border-rose-500/50 focus:outline-none transition-all"
+                            @change="updateCostTimestamp"
+                            @focus="isCostoFocused = true"
+                            @blur="isCostoFocused = false"
+                            @keydown.enter="$event.target.blur()"
+                            type="number" step="0.01"
+                            class="w-full h-full bg-black/40 border border-rose-500/20 rounded-xl px-3 py-3 pl-8 text-2xl font-mono font-bold text-white text-right focus:border-rose-500/50 focus:outline-none transition-all"
+                            :class="{'opacity-0': !isCostoFocused && localCostos.costo_reposicion}"
                         />
                     </div>
                     <div class="flex justify-between items-center px-1">
@@ -151,12 +159,22 @@
 
                     <div class="flex-1 space-y-2">
                         <label class="text-[9px] font-bold text-white/50 uppercase tracking-widest text-center block">Precio Roca (Neto)</label>
-                        <input 
-                            v-model.number="localCostos.precio_roca"
-                            @input="updateRentFromRoca"
-                            type="number" step="0.0001"
-                            class="w-full bg-white/5 border border-white/10 rounded-lg py-2 text-xl font-mono font-bold text-white text-center focus:border-white/40 focus:outline-none"
-                        />
+                        <div class="relative h-11 flex items-center">
+                            <!-- Ghost Label -->
+                            <span v-if="localCostos.precio_roca && !isRocaFocused" class="absolute inset-0 flex items-center justify-center bg-white/5 border border-white/10 rounded-lg text-xl font-mono font-bold text-white pointer-events-none">
+                                $ {{ Number(localCostos.precio_roca).toLocaleString('es-AR', {minimumFractionDigits: 2}) }}
+                            </span>
+                            <input v-excel
+                                v-model.number="localCostos.precio_roca"
+                                @change="updateRentFromRoca"
+                                @focus="isRocaFocused = true"
+                                @blur="isRocaFocused = false"
+                                @keydown.enter="$event.target.blur()"
+                                type="number" step="0.01"
+                                class="w-full h-full bg-white/5 border border-white/10 rounded-lg py-2 text-xl font-mono font-bold text-white text-center focus:border-white/40 focus:outline-none"
+                                :class="{'opacity-0': !isRocaFocused && localCostos.precio_roca}"
+                            />
+                        </div>
                     </div>
                 </div>
 
@@ -167,10 +185,11 @@
                     <label class="text-[10px] font-bold text-green-500 uppercase tracking-widest text-right block">Precio Final (C/ IVA)</label>
                     <div class="relative group">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-green-500/30 text-xl font-light">$</span>
-                        <input 
+                        <input v-excel
                             :value="finalPrice"
-                            @input="updateNetFromFinal($event.target.value)"
-                            type="number" step="0.01"
+                            @change="e => updateNetFromFinal(e.target.value)"
+                            @keydown.enter="$event.target.blur()"
+                            type="number"
                             class="w-full bg-green-500/5 border border-green-500/30 rounded-xl px-3 py-3 pl-8 text-3xl font-mono font-bold text-green-400 text-right focus:border-green-500/50 focus:outline-none transition-all"
                         />
                     </div>
@@ -264,7 +283,7 @@
                     </div>
                     <div class="w-32 space-y-1">
                         <label class="text-[8px] font-bold text-rose-400/50 uppercase">Costo (Neto)</label>
-                        <input v-model.number="newSupplier.costo" type="number" class="w-full bg-black/50 border border-rose-500/30 rounded-lg px-2 py-1 text-xs text-white focus:outline-none" placeholder="$ 0.00">
+                        <input v-excel v-model.number="newSupplier.costo" type="number" class="w-full bg-black/50 border border-rose-500/30 rounded-lg px-2 py-1 text-xs text-white focus:outline-none" placeholder="$ 0.00">
                     </div>
                     <button @click="saveSupplier" class="bg-rose-600 text-white text-[10px] px-4 py-1.5 rounded-lg font-bold hover:bg-rose-500 shadow-lg shadow-rose-900/20 transition-all uppercase tracking-widest">Vincular</button>
                 </div>
@@ -375,9 +394,9 @@ const pristineName = ref('')
 
 // FINANCIAL STATE
 const localCostos = ref({
-    costo_reposicion: 0,
+    costo_reposicion: null,
     rentabilidad_target: 30, 
-    precio_roca: 0,
+    precio_roca: null,
     iva_alicuota: 21, // Default IVA alicuota
     moneda_costo: 'ARS'
 })
@@ -403,6 +422,8 @@ const flattenedRubros = computed(() => {
 // --- BRAIN LOGIC (TRIDIRECCIONAL) ---
 const isUpdating = ref(false)
 const rubroError = ref(false)
+const isCostoFocused = ref(false)
+const isRocaFocused = ref(false)
 
 // Computed for Final Price (Display)
 const finalPrice = computed(() => {
@@ -484,6 +505,44 @@ const updateLocalIvaRate = () => {
     }
 }
 
+// --- FIRE WIRE CALCULATOR (V5.9) ---
+const handleCalculator = (val, field, callback) => {
+    if (typeof val !== 'string') val = String(val);
+    
+    // Evaluation Logic
+    if (val.startsWith('+') || val.startsWith('=')) {
+        try {
+            const expression = val.substring(1).replace(/,/g, '.');
+            // Basic sanitization
+            if (/^[0-9+\-*/().\s]+$/.test(expression)) {
+                // eslint-disable-next-line no-eval
+                const result = eval(expression);
+                if (!isNaN(result)) {
+                    if (field === 'finalPrice') {
+                        callback(result);
+                    } else {
+                        localCostos.value[field] = parseFloat(result.toFixed(4));
+                        if (callback) callback();
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn("Calculator Error:", e);
+        }
+    } else {
+        // Standard Number Input
+        const num = parseFloat(val.replace(',', '.'));
+        if (!isNaN(num)) {
+            if (field === 'finalPrice') {
+                callback(num);
+            } else {
+                localCostos.value[field] = num;
+                if (callback) callback();
+            }
+        }
+    }
+}
+
 // --- SUPPLIER MANAGEMENT (MOVED UP FOR HOISTING) ---
 const localProveedoresList = ref([])
 const isAddingSupplier = ref(false)
@@ -531,30 +590,37 @@ const removeSupplier = async (costoId) => {
     }
 }
 
-// --- SYNC ENGINE (DATA RACE FIX) ---
+// --- SYNC ENGINE (DATA RACE FIX V5.8.1) ---
 // Centralized logic to sync local state with props AND store data
-const syncLocalState = () => {
+const syncLocalState = (dependencySource = 'prop') => {
     const newVal = props.producto
     
     if (newVal) {
-        // Deep copy only if ID changed or we are initializing
-        // But be careful not to overwrite user edits if this runs on store update
-        // We only full-sync if localProducto is empty or ID differs
-        if (!localProducto.value.id || localProducto.value.id !== newVal.id) {
+        // [GY-FIX] Deep copy only if:
+        // 1. ID changed (switching from one product to another)
+        // 2. We are initializing (local state is empty)
+        // 3. We are transitioning from 'existing' to 'new' (template)
+        
+        const idChanged = (localProducto.value.id !== newVal.id)
+        const isInitializing = Object.keys(localProducto.value).length === 0
+        const isNewProductSync = !newVal.id && localProducto.value.id // Resetting form to new
+        
+        if (idChanged || isInitializing || isNewProductSync) {
+             console.log(`[ProductoInspector] full-sync triggered by ${dependencySource}. ID change:`, idChanged);
              localProducto.value = JSON.parse(JSON.stringify(newVal))
              pristineName.value = localProducto.value.nombre || ''
              
              // Defaults
              if (localProducto.value.venta_minima === undefined) localProducto.value.venta_minima = 1.0;
              if (localProducto.value.unidades_bulto === undefined || localProducto.value.unidades_bulto === null) localProducto.value.unidades_bulto = 1.0;
-             if (!localProducto.value.presentacion_compra) localProducto.value.presentacion_compra = ''; // Visual cleanup
+             if (!localProducto.value.presentacion_compra) localProducto.value.presentacion_compra = ''; 
              if (!localProducto.value.tipo_producto) localProducto.value.tipo_producto = 'VENTA'
 
              // Costos
              localCostos.value = newVal.costos ? { ...newVal.costos } : { 
-                 costo_reposicion: 0, 
+                 costo_reposicion: null, 
                  rentabilidad_target: 30, 
-                 precio_roca: 0, 
+                 precio_roca: null, 
                  iva_alicuota: 21,
                  moneda_costo: 'ARS'
              }
@@ -565,33 +631,34 @@ const syncLocalState = () => {
              lastCostUpdate.value = ''
              lastRentUpdate.value = ''
         } else {
-            // If just store updated, we might preserve local edits, but we MUST fix IVA if it was missing logic
+             // [STABILITY-FIX] If it's the SAME product (or same "new" state), 
+             // we PRESERVE local edits. We only update master data dependencies.
+             console.log(`[ProductoInspector] Minor sync (preserving edits) triggered by ${dependencySource}`);
         }
 
         // IVA LOGIC: Retry on every sync (Store might have loaded now)
-        // Only run this if we are not user-dirty? No, alicuota should follow ID always unless user changed it
+        // This MUST run even if we didn't wipe, but only if the user hasn't manually set a different IVC rate?
+        // Actually, normally the IVA rate follows the TasaID.
         if (tasasIva.value?.length) {
             if (localProducto.value.tasa_iva_id) {
-                // If we have an ID, ensure alicuota matches
                 const tasa = tasasIva.value.find(t => t.id === localProducto.value.tasa_iva_id)
                 if (tasa) localCostos.value.iva_alicuota = Number(tasa.valor)
             } else {
-                // If undefined, set default
+                // Default fallback for new products IF not set
                 const defaultTasa = tasasIva.value.find(t => t.valor === 21) || tasasIva.value[0];
-                if (defaultTasa) {
+                if (defaultTasa && !localProducto.value.tasa_iva_id) {
                     localProducto.value.tasa_iva_id = defaultTasa.id;
                     localCostos.value.iva_alicuota = Number(defaultTasa.valor);
                 }
             }
         }
-        
     } else {
         // Reset
         localProducto.value = {}
          localCostos.value = { 
-            costo_reposicion: 0, 
+            costo_reposicion: null, 
             rentabilidad_target: 30, 
-            precio_roca: 0,
+            precio_roca: null,
             iva_alicuota: 21,
             moneda_costo: 'ARS'
         }
@@ -601,11 +668,16 @@ const syncLocalState = () => {
 }
 
 // Watch both Product Prop AND Store Data (TasasIva)
-// This fixes the "F5" Data Race where props load before Store
 watch(
-    [() => props.producto, tasasIva], 
-    () => { syncLocalState() },
+    () => props.producto, 
+    (newVal) => { if (newVal) syncLocalState('prop') },
     { immediate: true, deep: true } 
+)
+
+watch(
+    tasasIva,
+    (newVal) => { if (newVal?.length) syncLocalState('store') },
+    { immediate: true }
 )
 
 const save = async () => {

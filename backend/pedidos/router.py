@@ -476,6 +476,11 @@ def update_pedido(
     
     if items_changed:
         # REPLACE ALL ITEMS (Tactical Mode Pattern)
+        new_items_count = len(update_data["items"])
+        if new_items_count == 0:
+             # Safety: Normally frontend blocks this, but backend must be sovereign
+             raise HTTPException(status_code=400, detail="El pedido debe tener al menos un ítem.")
+
         # 1. Release Stock of old items
         old_items = db.query(models.PedidoItem).filter(models.PedidoItem.pedido_id == pedido_id).all()
         for old_item in old_items:
@@ -488,8 +493,16 @@ def update_pedido(
         
         # 3. Insert new ones
         for it in update_data["items"]:
+            # [STRICT-CHECK] Get product with lock or direct hit to ensure it exists
+            producto = db.query(Producto).get(it['producto_id'])
+            if not producto:
+                 raise HTTPException(
+                     status_code=404, 
+                     detail=f"Producto con ID {it['producto_id']} no encontrado durante la actualización."
+                 )
+
             # Recalculate subtotal for safety
-            subtotal = (it['cantidad'] * it['precio_unitario']) - (it.get('descuento_importe') or 0)
+            subtotal = (it['cantidad'] * it['precio_unitario']) - (it.get('descuento_importe') or 0.0)
             new_item = models.PedidoItem(
                 pedido_id=pedido_id,
                 producto_id=it['producto_id'],
@@ -503,10 +516,8 @@ def update_pedido(
             db.add(new_item)
             
             # [LOGISTICA V7] Reserva de Stock (Nuevo Item)
-            producto = db.query(Producto).get(it['producto_id'])
-            if producto:
-                if producto.stock_reservado is None: producto.stock_reservado = Decimal("0.0")
-                producto.stock_reservado += Decimal(str(it['cantidad']))
+            if producto.stock_reservado is None: producto.stock_reservado = Decimal("0.0")
+            producto.stock_reservado += Decimal(str(it['cantidad']))
         
         # We need to commit the deletes/inserts now so subsequent sum() works if we don't use the list directly
         db.flush() 

@@ -479,6 +479,7 @@ import ContextMenu from '../../components/common/ContextMenu.vue'
 import { useLogisticaStore } from '../../stores/logistica'
 import { useAuditSemaphore } from '../../composables/useAuditSemaphore'
 import debounce from 'lodash/debounce'
+import { useFormHistory } from '../../composables/useFormHistory'
 
 // [V5.6 GOLD] Async Shield
 const abortController = new AbortController();
@@ -876,6 +877,17 @@ const domicilios = ref([])
 const contactos = ref([])
 const historial = ref([])
 const productosHabituales = ref([])
+
+// --- [GY-UX] Motor de Deshacer Híbrido ---
+const genome = computed({
+    get: () => ({ form: form.value, domicilios: domicilios.value, contactos: contactos.value }),
+    set: (val) => {
+        form.value = JSON.parse(JSON.stringify(val.form))
+        domicilios.value = JSON.parse(JSON.stringify(val.domicilios))
+        contactos.value = JSON.parse(JSON.stringify(val.contactos))
+    }
+})
+const { snapshot, undo, redo, canUndo, canRedo } = useFormHistory(genome)
 
 // Computed Helpers
 const condicionesIva = computed(() => maestrosStore.condicionesIva)
@@ -1954,6 +1966,7 @@ const handleDomicilioSaved = async (domicilioData) => {
 
 const handleSyncFiscal = async (dom) => {
     try {
+        snapshot() // Foto previa al desastre
         await store.syncFiscal(form.value.id);
         notificationStore.add('Sincronía Espejo activada (Bit 21 ON)', 'success');
         await loadCliente(form.value.id);
@@ -1979,6 +1992,8 @@ const handleDomicilioRestore = async (dom) => {
 const handleDomicilioDelete = async (dom) => {
     if (dom.es_fiscal) return;
     if (!confirm(`¿Seguro que desea dar de baja el domicilio en ${dom.calle || dom.alias}?`)) return;
+    
+    snapshot() // Foto previa al desastre
     
     try {
         if (dom.id) {
@@ -2074,6 +2089,26 @@ const handleKeydown = (e) => {
     if (e.key === 'F10') { 
         e.preventDefault()
         saveCliente() 
+    }
+
+    // Lógica Híbrida de Undo/Redo
+    const activeElement = document.activeElement;
+    const isInput = activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA' || activeElement.isContentEditable);
+    
+    let keyCombo = e.key.toLowerCase();
+    
+    if (e.ctrlKey && e.shiftKey && keyCombo === 'z') {
+        if (!isInput && canRedo()) {
+            e.preventDefault()
+            redo()
+            notificationStore.add('Rehacer: Estado restaurado', 'success', 2000)
+        }
+    } else if (e.ctrlKey && keyCombo === 'z') {
+        if (!isInput && canUndo()) {
+            e.preventDefault()
+            undo()
+            notificationStore.add('Deshacer: Estado recuperado', 'info', 2000)
+        }
     }
 }
 

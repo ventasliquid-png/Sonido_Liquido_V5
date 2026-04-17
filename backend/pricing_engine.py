@@ -8,37 +8,39 @@ from decimal import Decimal, ROUND_HALF_UP, ROUND_FLOOR
 
 # --- 1. PRECISIÓN & REDONDEO INTELIGENTE ---
 
-def smart_round(value: Decimal) -> Decimal:
+def smart_round(precio: Decimal) -> Decimal:
     """
-    Política de Redondeo Inteligente (Smart Rounding):
-    - Rango A (< 100): 2 decimales.
-    - Rango B (100 - 999): Entero más cercano.
-    - Rango C (1.000 - 9.999): Centena más cercana (100).
-    - Rango D (>= 10.000): Millar más cercano (1.000).
+    Aplica redondeo psicológico escalonado (Smart Rounding).
+    Conserva la resolución de 4 decimales de "La Roca" y sólo formatea la cara externa.
+    
+    Reglas de Arquitectura:
+    - Rango 1 (< $100): Conservar 2 decimales exactos.
+    - Rango 2 ($100 - $999): Redondear a la unidad entera.
+    - Rango 3 ($1.000 - $9.999): Redondear a la centena.
+    - Rango 4 (>= $10.000): Redondear al millar.
     """
-    if value is None: return Decimal(0)
+    if precio is None: return Decimal(0)
     
-    # Asegurar Decimal
-    val = Decimal(str(value)) # String conversion avoids float precision issues
-    
-    abs_val = abs(val)
-
-    if abs_val < 100:
-        # Rango A: 2 decimales (Ej: 7.892 -> 7.89)
-        return val.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-    
-    elif abs_val < 1000:
-        # Rango B: Unidad (Ej: 150.50 -> 151)
-        return val.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+    if not isinstance(precio, Decimal):
+        precio = Decimal(str(precio))
         
-    elif abs_val < 10000:
-        # Rango C: Centena (Ej: 4150 -> 4200)
-        # Técnica: Dividir por 100, redondear entero, multiplicar por 100
-        return (val / 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP) * 100
+    p = precio.quantize(Decimal('0.0001'), rounding=ROUND_HALF_UP)
+    
+    abs_p = abs(p)
+
+    if abs_p < Decimal('100'):
+        return p.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        
+    elif abs_p < Decimal('1000'):
+        return p.quantize(Decimal('1'), rounding=ROUND_HALF_UP)
+        
+    elif abs_p < Decimal('10000'):
+        centenas = (p / Decimal('100')).quantize(Decimal('1'), rounding=ROUND_HALF_UP)
+        return centenas * Decimal('100')
         
     else:
-        # Rango D: Millar (Ej: 22400 -> 22000)
-        return (val / 1000).quantize(Decimal("1"), rounding=ROUND_HALF_UP) * 1000
+        millares = (p / Decimal('1000')).quantize(Decimal('1'), rounding=ROUND_HALF_UP)
+        return millares * Decimal('1000')
 
 # --- 2. CÁLCULO DE LISTAS (LA CASCADA) ---
 
@@ -139,11 +141,11 @@ def get_virtual_price(producto_costos, cliente) -> dict:
         elif "TIENDA" in seg_nombre:
             nivel_lista = 7
         else:
-             # Strict Mode: No match -> No price
-             nivel_lista = None
+             # Fallback: Distribuidor (Lista 3) o la más cercana segura
+             nivel_lista = 3
     else:
-        # Strict Mode: No Segment -> No price
-        nivel_lista = None
+        # Fallback si no tiene segmento asignado
+        nivel_lista = 3
     
     # --- STRICT MODE ENFORCEMENT ---
     # Si no se pudo determinar una lista (ni manual ni por segmento), DETENERSE.
@@ -172,5 +174,7 @@ def get_virtual_price(producto_costos, cliente) -> dict:
     return {
         "precio": precio_final,
         "lista_origen": nivel_lista,
-        "debug_listas": listas 
+        "debug_listas": listas,
+        "costo_reposicion": (producto_costos.costo_reposicion if producto_costos else 0) or 0,
+        "rentabilidad_base": (producto_costos.rentabilidad_target if producto_costos else 0) or 0
     }

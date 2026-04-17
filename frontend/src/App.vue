@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import ToastNotification from './components/ui/ToastNotification.vue';
+import HotCalculator from './components/ui/HotCalculator.vue';
 import { useClientesStore } from './stores/clientes';
 import { useProductosStore } from './stores/productos';
 import { useMaestrosStore } from './stores/maestros';
@@ -193,6 +194,7 @@ const logout = () => {
             </router-view>
         </main>
     </div>
+    <HotCalculator />
   </div>
 </template>
 

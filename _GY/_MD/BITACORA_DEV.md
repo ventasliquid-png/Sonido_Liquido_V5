@@ -1,3 +1,25 @@
+## SESIÓN 792: SANEAMIENTO REMITOS (RAR-V1) + RESILIENCIA DE IDENTIDAD (V5-LS)
+**Fecha:** 2026-04-16
+**Objetivo:** Estabilizar motor de remitos, corregir el bug de reversión de CUIT y eliminar Error 500 en auditoría de domicilios. Paridad total D/P.
+
+### Hito 1: Saneamiento Remitos (RAR-V1)
+*   **Flexibilidad**: Campos `bultos` y `valor_declarado` ahora son Nullable (Base y Schema).
+*   **PDF Engine**: Etiquetas fijas ("BULTOS:", "VALOR DECL.:") con impresión condicional de valores. QR oficial: `https://liquid-sound.com.ar/`.
+*   **Datoscopio**: Implementación de `@property resumen` en modelo `Domicilio` para visualización unificada de direcciones en remitos legales.
+
+### Hito 2: Resiliencia de Identidad (V5-LS)
+*   **Soberanía CUIT**: Tras validación ARCA, el CUIT corregido sobreescribe reactivamente el dato de Cantera en el frontend (`ClientCanvas.vue`). Erradicado el bug de reversión a datos legacy.
+*   **Error 500 Audit**: Null-safety en `_audit_sovereignty` de `service.py`. Ya no falla ante clientes con Condición IVA incompleta.
+*   **Error 422**: Manejo robusto de IDs de domicilio malformados (`null`), redirigiendo a `POST` cuando es necesario.
+
+### Hito 3: Homologación P/D (Omega Sync)
+*   Sincronización total de módulos hacia `C:\dev\V5-LS\current`.
+*   Paridad absoluta de lógicas de negocio y blindaje de identidad.
+
+**Estado:** NOMINAL GOLD. Protocolo Omega ejecutado. PIN 1974.
+
+---
+
 ## SESIÓN 791: PRODUCCIÓN SOBERANA — FIXES OPERATIVOS + DISEÑO DOCTRINAL
 **Fecha:** 2026-04-15
 **Objetivo:** Corregir bugs detectados en tiempo real por Tomy en producción (D/V5-LS). Sync completo a P.

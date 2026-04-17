@@ -11,15 +11,11 @@ def check_roles(db: Session):
         print("[SEED] Creando Rol 'Administrador' (ID 1)...")
         # Intentamos buscar por nombre para evitar duplicados si ID difiere
         existing = db.query(models.Rol).filter(models.Rol.name == "Administrador").first()
-        if existing:
-             print(f"[WARN] [SEED] Rol 'Administrador' ya existe con ID {existing.id}. Saltando creación forzada de ID 1.")
-        else:
+        if not existing:
             new_rol = models.Rol(id=1, name="Administrador", description="Acceso total al sistema")
             db.add(new_rol)
-            db.commit()
-            print("[OK] [SEED] Rol 'Administrador' creado.")
-    else:
-        print("[OK] [SEED] Rol 'Administrador' verificado.")
+            db.flush()
+            print("[OK] [SEED] Rol 'Administrador' preparado.")
 
 def check_admin_user(db: Session):
     """Verifica y crea el usuario admin (idempotente)."""
@@ -35,36 +31,28 @@ def check_admin_user(db: Session):
             rol_id=1
         )
         db.add(new_admin)
-        db.commit()
-        print("[OK] [SEED] Usuario 'admin' creado exitosamente.")
-    else:
-        print("[OK] [SEED] Usuario 'admin' verificado.")
+        db.flush()
+        print("[OK] [SEED] Usuario 'admin' preparado.")
 
 def check_condiciones_iva(db: Session):
     """Crea condiciones de IVA básicas si no existen."""
-    defaults = [
-        "Responsable Inscripto",
-        "Monotributista",
-        "Exento",
-        "Consumidor Final",
-        "No Responsable"
-    ]
+    defaults = ["Responsable Inscripto", "Monotributista", "Exento", "Consumidor Final", "No Responsable"]
+    existing = {iva.nombre for iva in db.query(maestros_models.CondicionIva).all()}
     for nombre in defaults:
-        exists = db.query(maestros_models.CondicionIva).filter(maestros_models.CondicionIva.nombre == nombre).first()
-        if not exists:
-            print(f"[SEED] Creando Condición IVA: {nombre}")
+        if nombre not in existing:
+            print(f"[SEED] Preparando Condición IVA: {nombre}")
             db.add(maestros_models.CondicionIva(nombre=nombre))
-    db.commit()
+    db.flush()
 
 def check_segmentos(db: Session):
     """Crea segmentos básicos si no existen."""
     defaults = ["General", "Premium", "Distribuidor", "Retail"]
+    existing = {s.nombre for s in db.query(maestros_models.Segmento).all()}
     for nombre in defaults:
-        exists = db.query(maestros_models.Segmento).filter(maestros_models.Segmento.nombre == nombre).first()
-        if not exists:
-            print(f"[SEED] Creando Segmento: {nombre}")
+        if nombre not in existing:
+            print(f"[SEED] Preparando Segmento: {nombre}")
             db.add(maestros_models.Segmento(nombre=nombre, activo=True))
-    db.commit()
+    db.flush()
 
 def check_provincias(db: Session):
     """Crea provincias de Argentina si no existen."""
@@ -103,15 +91,15 @@ def check_provincias(db: Session):
             # Sync name if already exists but different (Update protocol)
             if exists.nombre != nombre:
                 exists.nombre = nombre
-    db.commit()
+    db.flush()
 
 def check_vendedores(db: Session):
     """Crea vendedor por defecto si no existe."""
     exists = db.query(maestros_models.Vendedor).first()
     if not exists:
-        print("[SEED] Creando Vendedor por defecto: CASA CENTRAL")
+        print("[SEED] Preparando Vendedor: CASA CENTRAL")
         db.add(maestros_models.Vendedor(nombre="CASA CENTRAL", activo=True))
-    db.commit()
+    db.flush()
 
 def seed_all():
     """Ejecuta toda la lógica de siembra."""
@@ -124,8 +112,12 @@ def seed_all():
         check_segmentos(db)
         check_provincias(db)
         check_vendedores(db)
-        print("--- [Atenea V5 Seed]: Protocolo Finalizado CORRECTAMENTE. ---")
+        
+        # [V5.9 GOLD] Commit Final Unificado
+        db.commit()
+        print("--- [Atenea V5 Seed]: Protocolo Finalizado y COMMITEADO correctamente. ---")
     except Exception as e:
+        db.rollback()
         print(f"[ERROR] [SEED ERROR] Fallo en siembra automática: {e}")
     finally:
         db.close()

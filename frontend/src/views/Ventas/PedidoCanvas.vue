@@ -378,19 +378,25 @@
                             </div>
 
                             <!-- Precio Unit. -->
-                            <div class="col-span-1 text-right">
-                                <input type="number" 
+                            <div class="col-span-1 text-right relative">
+                                <input v-excel type="number" 
                                     ref="inputPriceRef"
                                     v-model.number="newItem.precio" 
                                     @input="updateRowTotal"
                                     @keydown.enter.prevent="focusDescPct"
                                     class="w-full bg-transparent border-b border-emerald-500/30 text-gray-300 font-mono text-right focus:outline-none focus:border-emerald-500"
                                 >
+                                <!-- Ventana Flotante de Lectura (Sugerido por Arquitectura) -->
+                                <div v-if="newItem._debug_cotizacion" class="absolute -bottom-8 right-0 bg-emerald-950/90 border border-emerald-500/30 px-2 py-0.5 rounded text-[8px] whitespace-nowrap text-emerald-300 shadow-xl opacity-80 pointer-events-none flex gap-3">
+                                     <span>Roca: <b class="text-white">${{ (newItem._debug_cotizacion.precio_roca || 0).toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</b></span>
+                                     <span>Costo: <b class="text-white">${{ (newItem._debug_cotizacion.costo_reposicion || 0).toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</b></span>
+                                     <span>MG: <b class="text-yellow-400">{{ newItem._debug_cotizacion.rentabilidad_base }}%</b></span>
+                                </div>
                             </div>
 
                             <!-- Descuento % -->
                             <div class="col-span-1 text-right">
-                                <input type="number" 
+                                <input v-excel type="number" 
                                     ref="inputDescPctRef"
                                     v-model.number="newItem.descuento_porcentaje" 
                                     @input="updateRowDescPct"
@@ -401,7 +407,7 @@
                             </div>
                             <!-- Descuento $ (Restored) -->
                             <div class="col-span-1 text-right">
-                                <input type="number" 
+                                <input v-excel type="number" 
                                     v-model.number="newItem.descuento_valor" 
                                     @input="updateRowDescVal"
                                     @keydown.enter.prevent="commitRow"
@@ -451,7 +457,7 @@
                                 <!-- Precio (Editable) -->
                                 <div class="col-span-1 text-right relative">
                                     <span class="absolute left-0 text-gray-600 font-mono text-xs">$</span>
-                                    <input type="number" 
+                                    <input v-excel type="number" 
                                         v-model.number="item.precio" 
                                         @input="updateItemTotal(item)"
                                         @keydown.enter="$event.target.blur()"
@@ -461,7 +467,7 @@
 
                                <!-- Descuento % (Editable) -->
                                 <div class="col-span-1 text-right">
-                                    <input type="number" 
+                                    <input v-excel type="number" 
                                         :value="item.descuento_porcentaje" 
                                         @input="(e) => { item.descuento_porcentaje = parseFloat(e.target.value); updateItemDescPct(item); }"
                                         @keydown.enter="$event.target.blur()"
@@ -472,7 +478,7 @@
 
                                 <!-- Descuento $ (Editable - Restored) -->
                                 <div class="col-span-1 text-right">
-                                    <input type="number" 
+                                    <input v-excel type="number" 
                                         v-model.number="item.descuento_valor" 
                                         @input="updateItemDescVal(item)"
                                         @keydown.enter="$event.target.blur()"
@@ -557,11 +563,11 @@
                         <div class="text-[10px] font-bold uppercase tracking-widest text-yellow-600 mb-1">Descuento Gral.</div>
                         <div class="flex items-center gap-2">
                              <div class="relative w-16">
-                                <input type="number" v-model.number="descuentoGlobalPorcentaje" @input="updateGlobalDescPct" class="w-full bg-transparent border-b border-white/10 text-right font-mono text-sm text-yellow-500 focus:outline-none focus:border-yellow-500" placeholder="%">
+                                <input v-excel type="number" v-model.number="descuentoGlobalPorcentaje" @input="updateGlobalDescPct" class="w-full bg-transparent border-b border-white/10 text-right font-mono text-sm text-yellow-500 focus:outline-none focus:border-yellow-500" placeholder="%">
                                 <span class="absolute right-0 top-0 text-[10px] text-gray-600 pointer-events-none">%</span>
                              </div>
                              <div class="relative w-20">
-                                <input type="number" v-model.number="descuentoGlobalValor" @input="updateGlobalDescVal" class="w-full bg-transparent border-b border-white/10 text-right font-mono text-sm text-yellow-500 focus:outline-none focus:border-yellow-500" placeholder="$">
+                                <input v-excel type="number" v-model.number="descuentoGlobalValor" @input="updateGlobalDescVal" class="w-full bg-transparent border-b border-white/10 text-right font-mono text-sm text-yellow-500 focus:outline-none focus:border-yellow-500" placeholder="$">
                                 <span class="absolute left-0 top-0 text-[10px] text-gray-600 pointer-events-none">$</span>
                              </div>
                         </div>
@@ -709,7 +715,10 @@ onMounted(async () => {
     // 5. Global Keys
     window.addEventListener('keydown', handleGlobalKeys);
     
-    // 6. Auto-Sync on Focus (Satellite Return)
+    // 6. Message Listener for Satellites (V5.6)
+    window.addEventListener('message', handleMessage);
+
+    // 7. Auto-Sync on Focus (Satellite Return)
     window.addEventListener('focus', checkClientSync);
 });
 
@@ -757,7 +766,8 @@ const loadPedido = async (id) => {
 
         // Hydrate Items
         items.value = p.items.map(i => ({
-            id: i.producto_id,
+            id: `line_${Math.random().toString(36).substr(2, 9)}`, // Unique key for UI
+            producto_id: i.producto_id,
             sku: i.producto?.sku || '???',
             descripcion: i.producto?.nombre || 'Producto Desconocido',
             cantidad: Number(i.cantidad),
@@ -1103,7 +1113,8 @@ const newItem = ref({
     descuento_porcentaje: '',
     descuento_valor: '',
     total: 0,
-    producto_obj: null
+    producto_obj: null,
+    _debug_cotizacion: null
 });
 const showProductResults = ref(false);
 const inputSkuRef = ref(null);
@@ -1332,6 +1343,7 @@ const selectProduct = async (prod) => {
                 cantidad: newItem.value.cantidad || 1
             });
             newItem.value.precio = res.precio_final_sugerido;
+            newItem.value._debug_cotizacion = res.debug;
             console.log(`[V5 Engine] Cotización: ${res.origen} -> $${res.precio_final_sugerido}`);
         } catch (e) {
             console.error("[V5 Engine] Error cotizando:", e);
@@ -1458,9 +1470,9 @@ const commitRow = () => {
     console.log("Committing Row:", payload);
 
     items.value.push({ 
-        ...payload, // Spread first to get basic properties
-        id: payload.producto_obj?.id || Date.now(),
-        // [DEBUG] Force SKU preservation from multiple sources
+        ...payload,
+        id: `line_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, // Robust UI Key
+        producto_id: payload.producto_obj?.id || payload.producto_id, 
         sku: String(payload.sku || payload.producto_obj?.sku || ''), 
         descripcion: payload.descripcion, 
         cantidad: Number(payload.cantidad),
@@ -1662,12 +1674,12 @@ const savePedido = async () => {
             cliente_id: clienteSeleccionado.value.id || clienteSeleccionado.value._id,
             fecha: new Date(fechaPedido.value).toISOString(),
             items: items.value.map(i => ({
-                producto_id: i.producto_obj?.id || i.id,
-                cantidad: i.cantidad,
-                precio_unitario: i.precio,
+                producto_id: i.producto_id || i.producto_obj?.id,
+                cantidad: Number(i.cantidad),
+                precio_unitario: Number(i.precio),
                 descuento_porcentaje: Number(i.descuento_porcentaje) || 0,
                 descuento_importe: Number(i.descuento_valor) || 0,
-                nota: "" // Future use
+                nota: "" 
             })),
             nota: notas.value,
             oc: nroOC.value.trim(),
@@ -1726,20 +1738,7 @@ const handleMessage = async (event) => {
     }
 };
 
-onMounted(() => {
-    window.addEventListener('keydown', handleGlobalKeys)
-    window.addEventListener('message', handleMessage);
-    
-    // Initial ID suggestion
-    api.get('/pedidos/sugerir_id').then(res => {
-        nroPedido.value = res.data;
-    }).catch(console.error);
-})
-
-onUnmounted(() => {
-    window.removeEventListener('keydown', handleGlobalKeys)
-    window.removeEventListener('message', handleMessage);
-})
+// --- REMOVED REDUNDANT ONMOUNTED (CLEANUP V5.8.2) ---
 
 </script>
 
