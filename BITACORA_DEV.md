@@ -1,3 +1,12 @@
+# 2026-04-17 (Misión Rubros V5.9 — Genoma 64-bit & Protocolo de Exilio)
+- **Estado**: **NOMINAL GOLD (V5.9 Certified)**.
+- **Hito Precios**: Implementación de **Hot Calculator** (4 decimales ARCA) y **Ghost Overlay** en `ProductoInspector.vue`. Fallback de seguridad a Lista 3 en ausencia de segmentación.
+- **Hito Rubros V5.9**: Migración de la tabla `rubros` a 64-bits (`flags_estado`). Saneamiento masivo de duplicados "GENERAL".
+- **Protocolo de Exilio**: Implementación de Bit 3 (**EXPATRIADO**) y automatización de migración a rubro "General" con manifiesto CSV en `/exports`.
+- **Master Tools**: Integración de Rubros en el Purgatorio de Bajas Físicas.
+- **Soberanía P**: Despliegue certificado y build en Entorno de Producción (V5-LS).
+- **Cierre**: Sesión sellada bajo Protocolo Omega. PIN 1974.
+
 # 2026-04-16 (Misión Estabilización V5-LS & Saneamiento RAR-V1)
 - **Estado**: **NOMINAL GOLD (V5-LS Certified)**.
 - **Saneamiento RAR-V1**: Remitos normalizados. `bultos` y `valor_declarado` ahora son opcionales (Nullable). QR oficial apuntando a `liquid-sound.com.ar`.
