@@ -61,8 +61,12 @@ class ProductoService:
     # --- RUBROS ---
 
     @staticmethod
-    def list_rubros(db: Session, skip: int = 0, limit: int = 100):
-        return db.query(models.Rubro).offset(skip).limit(limit).all()
+    def list_rubros(db: Session, skip: int = 0, limit: int = 100, include_banned: bool = False):
+        query = db.query(models.Rubro)
+        if not include_banned:
+            # [V5.9 GOLD] Ocultar borrados lógicos por defecto (Bit 2 = 4)
+            query = query.filter((models.Rubro.flags_estado.op('&')(4) == 0))
+        return query.offset(skip).limit(limit).all()
 
     @staticmethod
     def create_rubro(db: Session, rubro_in: schemas.RubroCreate):
@@ -278,3 +282,42 @@ class ProductoService:
                 status_code=500, 
                 detail=f"ERROR INTERNO (Papelera/DB): {str(e)}"
             )
+
+    @staticmethod
+    def hard_delete_rubro(db: Session, rubro_id: int):
+        """[LEY DE VIRGINIDAD - RUBROS]
+        Permite el borrado físico de un rubro si no tiene dependencias.
+        """
+        from backend.core.models import PapeleraRegistro
+        import json
+
+        db_rubro = db.query(models.Rubro).filter(models.Rubro.id == rubro_id).first()
+        if not db_rubro: raise HTTPException(status_code=404, detail="Rubro no encontrado")
+
+        # Check dependencias
+        has_hijos = db.query(models.Rubro).filter(models.Rubro.padre_id == rubro_id).first()
+        has_prods = db.query(models.Producto).filter(models.Producto.rubro_id == rubro_id).first()
+
+        if has_hijos or has_prods:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se puede eliminar físicamente un rubro con hijos o productos asociados. Mígrelos primero."
+            )
+
+        try:
+            # Serializar para Papelera
+            rubro_dict = {column.name: getattr(db_rubro, column.name) for column in db_rubro.__table__.columns}
+            
+            trash_entry = PapeleraRegistro(
+                entidad_tipo='RUBRO',
+                entidad_id=str(db_rubro.id),
+                data=rubro_dict,
+                borrado_por="MASTER_TOOLS_PIN_1974"
+            )
+            db.add(trash_entry)
+            db.delete(db_rubro)
+            db.commit()
+            return True
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(status_code=500, detail=str(e))

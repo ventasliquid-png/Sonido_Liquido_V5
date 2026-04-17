@@ -11,6 +11,7 @@ class RubroBase(BaseModel):
     nombre: str
     padre_id: Optional[int] = None
     activo: bool = True
+    flags_estado: int = 0
     margen_default: Decimal = Field(0.0, max_digits=6, decimal_places=2)
 
 class RubroCreate(RubroBase):

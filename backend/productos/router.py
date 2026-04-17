@@ -4,6 +4,10 @@ from typing import List, Optional
 from backend.core.database import get_db
 from backend.productos import models, schemas
 from backend.productos.service import ProductoService
+import csv
+import os
+from datetime import datetime
+from sqlalchemy import text
 
 router = APIRouter(
     prefix="/productos",
@@ -13,8 +17,8 @@ router = APIRouter(
 # --- RUBROS ---
 
 @router.get("/rubros", response_model=List[schemas.RubroRead])
-def read_rubros(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return ProductoService.list_rubros(db, skip, limit)
+def read_rubros(skip: int = 0, limit: int = 100, include_banned: bool = False, db: Session = Depends(get_db)):
+    return ProductoService.list_rubros(db, skip, limit, include_banned)
 
 @router.post("/rubros", response_model=schemas.RubroRead)
 def create_rubro(rubro: schemas.RubroCreate, db: Session = Depends(get_db)):
@@ -27,16 +31,60 @@ def update_rubro(rubro_id: int, rubro: schemas.RubroUpdate, db: Session = Depend
 @router.delete("/rubros/{rubro_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_rubro(rubro_id: int, db: Session = Depends(get_db)):
     db_rubro = db.query(models.Rubro).filter(models.Rubro.id == rubro_id).first()
-    if not db_rubro:
-        raise HTTPException(status_code=404, detail="Rubro no encontrado")
+    # [V5.9 GOLD - PIN 1974]
+    # 1. Encontrar Rubro General para el refugio de huérfanos
+    if db_rubro.nombre == "General":
+         raise HTTPException(status_code=400, detail="El rubro 'General' es un pilar maestro del sistema y no puede ser eliminado.")
 
-    if db.query(models.Rubro).filter(models.Rubro.padre_id == rubro_id, models.Rubro.activo == True).first():
-        raise HTTPException(status_code=400, detail="No se puede eliminar un rubro que tiene sub-rubros activos.")
+    general = db.query(models.Rubro).filter(models.Rubro.nombre == "General").first()
+    target_id = general.id if general else None
 
-    if db.query(models.Producto).filter(models.Producto.rubro_id == rubro_id, models.Producto.activo == True).first():
-        raise HTTPException(status_code=400, detail="No se puede eliminar un rubro que tiene productos activos asociados.")
+    if not target_id and db_rubro.nombre != "General":
+         # Si no existe rubro General, estamos en problemas de integridad
+         raise HTTPException(status_code=500, detail="Falta Rubro 'General' en la BD como refugio de seguridad.")
 
+    # 2. Migrar Sub-rubros (al padre del actual o a General)
+    new_parent_id = db_rubro.padre_id if db_rubro.padre_id else target_id
+    db.query(models.Rubro).filter(models.Rubro.padre_id == rubro_id).update(
+        {models.Rubro.padre_id: new_parent_id}, synchronize_session=False
+    )
+
+    # 3. Rutina de Exilio: Migrar Productos (a General) y marcar como EXPATRIADOS (Bit 3)
+    if target_id and db_rubro.id != target_id:
+        productos_afectados = db.query(models.Producto).filter(models.Producto.rubro_id == rubro_id).all()
+        
+        if productos_afectados:
+            # A. Generar Manifiesto de Exilio (CSV)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"exilio_rubro_{rubro_id}_{timestamp}.csv"
+            export_path = os.path.join(os.getcwd(), "exports", filename)
+            
+            try:
+                os.makedirs(os.path.dirname(export_path), exist_ok=True)
+                with open(export_path, mode='w', newline='', encoding='utf-8') as f:
+                    writer = csv.writer(f)
+                    writer.writerow(['SKU', 'Descripcion', 'ID_Rubro_Anterior', 'Nombre_Rubro_Anterior'])
+                    for p in productos_afectados:
+                        writer.writerow([p.sku, p.nombre, rubro_id, db_rubro.nombre])
+                print(f"--- [EXILIO] Manifiesto generado en: {export_path} ---")
+            except Exception as e:
+                # No bloqueamos el exilio por falla en reporte, pero lo logueamos
+                print(f"--- [ERROR EXILIO] No se pudo generar el manifiesto: {e} ---")
+
+            # B. Ejecución Bitwise: Mover a General y encender Bit 3 (8)
+            # Usamos update masivo con operacin bitwise para eficiencia y seguridad
+            db.query(models.Producto).filter(models.Producto.rubro_id == rubro_id).update(
+                {
+                    "rubro_id": target_id,
+                    "flags_estado": models.Producto.flags_estado.op('|')(8)
+                }, 
+                synchronize_session=False
+            )
+
+    # 4. Borrado Lgico V5.9 (Bit 2 = 4)
     db_rubro.activo = False
+    db_rubro.flags_estado |= 4
+    
     db.commit()
     return None
 
@@ -60,6 +108,25 @@ def read_rubro_products(rubro_id: int, db: Session = Depends(get_db)):
     for p in productos:
         ProductoService.calculate_prices(p)
     return productos
+
+@router.get("/rubros/{rubro_id}/integrity_check")
+def check_rubro_integrity(rubro_id: int, db: Session = Depends(get_db)):
+    """Verifica si es seguro eliminar físicamente un rubro."""
+    hijos_count = db.query(models.Rubro).filter(models.Rubro.padre_id == rubro_id).count()
+    productos_count = db.query(models.Producto).filter(models.Producto.rubro_id == rubro_id).count()
+    
+    is_safe = (hijos_count == 0 and productos_count == 0)
+    message = "Sin dependencias. Seguro para eliminar." if is_safe else f"Contiene {hijos_count} sub-rubros y {productos_count} productos."
+    
+    return {
+        "safe": is_safe,
+        "dependencies": hijos_count + productos_count,
+        "message": message
+    }
+
+@router.delete("/rubros/{rubro_id}/hard", status_code=status.HTTP_204_NO_CONTENT)
+def hard_delete_rubro(rubro_id: int, db: Session = Depends(get_db)):
+    return ProductoService.hard_delete_rubro(db, rubro_id)
 
 @router.post("/rubros/{rubro_id}/migrate_and_delete", status_code=status.HTTP_200_OK)
 def migrate_and_delete_rubro(rubro_id: int, migration: schemas.RubroMigration, db: Session = Depends(get_db)):

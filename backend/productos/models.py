@@ -12,6 +12,7 @@ class Rubro(Base):
     nombre = Column(String(50), unique=True, index=True, nullable=False)
     padre_id = Column(Integer, ForeignKey('rubros.id'), nullable=True)
     activo = Column(Boolean, default=True)
+    flags_estado = Column(BigInteger, default=0, nullable=False)
     
     # Motor de Precios V6
     margen_default = Column(Numeric(6, 2), default=0.0) # Margen propuesto para el rubro

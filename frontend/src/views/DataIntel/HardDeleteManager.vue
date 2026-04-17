@@ -39,6 +39,13 @@
           >
             Hub Domicilios
           </button>
+          <button 
+             @click="loadData('rubros')"
+             :class="['px-4 py-1 rounded-md text-sm transition-all', currentType === 'rubros' ? 'bg-orange-900/50 text-orange-200 border border-orange-500/30' : 'text-gray-400 hover:text-gray-200']"
+             :disabled="loading"
+          >
+            Rubros Inactivos
+          </button>
         </div>
       </div>
       
@@ -126,7 +133,7 @@
                               {{ currentType === 'clientes' ? item.razon_social : (currentType === 'domicilios' ? (item.calle + ' ' + (item.numero || '')) : item.nombre) }}
                           </h3>
                           <p class="text-xs text-gray-500 font-mono">
-                              {{ currentType === 'clientes' ? (item.cuit || 'Sin CUIT') : (currentType === 'domicilios' ? (item.localidad || 'Sin Localidad') : (item.sku || 'Sin SKU')) }}
+                              {{ currentType === 'clientes' ? (item.cuit || 'Sin CUIT') : (currentType === 'domicilios' ? (item.localidad || 'Sin Localidad') : (currentType === 'rubros' ? item.codigo : (item.sku || 'Sin SKU'))) }}
                           </p>
                       </div>
                   </div>
@@ -195,6 +202,7 @@ useKeyboardShortcuts({
     '2': () => loadData('productos'),
     '3': () => loadData('contactos'),
     '4': () => loadData('domicilios'),
+    '5': () => loadData('rubros'),
     'r': () => reloadData(),
     'R': () => reloadData(),
     'a': () => toggleSelectAll(),
@@ -249,6 +257,8 @@ const loadData = async (type) => {
             res = await api.get('/contactos', { params: { include_inactive: true, limit: 1000 } });
         } else if (type === 'domicilios') {
             res = await api.get('/clientes/hub/orphaned');
+        } else if (type === 'rubros') {
+            res = await api.get('/productos/rubros', { params: { include_banned: true, limit: 1000 } });
         }
         
         // Filter ONLY inactive items (Baja Lógica)
@@ -263,6 +273,7 @@ const loadData = async (type) => {
                 if (type === 'clientes') checkEndpoint = `/clientes/${id}/integrity_check`;
                 else if (type === 'productos') checkEndpoint = `/productos/${id}/integrity_check`;
                 else if (type === 'domicilios') checkEndpoint = `/clientes/hub/${id}/integrity_check`;
+                else if (type === 'rubros') checkEndpoint = `/productos/rubros/${id}/integrity_check`;
                 
                 if (type === 'contactos') return { ...item, integrity: { safe: true, message: 'Sin dependencias críticas' } };
                 
@@ -345,6 +356,8 @@ const rescueItem = async (item) => {
             await contactosStore.updateContacto(item.id, payload);
         } else if (currentType.value === 'domicilios') {
             await api.put(`/clientes/hub/${item.id}`, { ...item, is_active: true });
+        } else if (currentType.value === 'rubros') {
+            await productosStore.updateRubro(item.id, { ...item, activo: true, flags_estado: (item.flags_estado || 0) & ~4 });
         } else {
             // Products
             await productosStore.updateProducto(item.id, payload);
@@ -387,6 +400,8 @@ const handleBulkRescue = async () => {
                 await clientesStore.updateCliente(id, { ...item, activo: targetActiveStatus });
             } else if (currentType.value === 'contactos') {
                 await contactosStore.updateContacto(id, { ...item, activo: targetActiveStatus });
+            } else if (currentType.value === 'rubros') {
+                await productosStore.updateRubro(id, { ...item, activo: targetActiveStatus, flags_estado: (item.flags_estado || 0) & ~4 });
             } else {
                 await productosStore.updateProducto(id, { ...item, activo: targetActiveStatus });
             }
@@ -470,6 +485,9 @@ const executeHardDelete = async (id) => {
         await contactosStore.hardDeleteContacto(id);
     } else if (currentType.value === 'domicilios') {
         await api.delete(`/clientes/hub/${id}/hard`);
+    } else if (currentType.value === 'rubros') {
+        await api.delete(`/productos/rubros/${id}/hard`);
+        productosStore.fetchRubros();
     } else {
         await api.delete(`/productos/${id}/hard`);
         productosStore.fetchProductos();
