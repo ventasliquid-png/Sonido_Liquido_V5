@@ -50,7 +50,8 @@
       "Bash(rm:*)",
       "Bash(python3:*)",
       "Bash(rm -rf \"C:/dev/IVA_V1_BACKUP_temp\")",
-      "Bash(rm -rf \"C:/dev/IVA_V1\")"
+      "Bash(rm -rf \"C:/dev/IVA_V1\")",
+      "Bash(env)"
     ]
   }
 }

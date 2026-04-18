@@ -305,9 +305,16 @@ class ProductoService:
             )
 
         try:
-            # Serializar para Papelera
-            rubro_dict = {column.name: getattr(db_rubro, column.name) for column in db_rubro.__table__.columns}
-            
+            # Serializar para Papelera (convertir tipos no JSON-serializables)
+            rubro_dict = {}
+            for column in db_rubro.__table__.columns:
+                val = getattr(db_rubro, column.name)
+                if isinstance(val, Decimal):
+                    val = float(val)
+                elif hasattr(val, 'isoformat'):
+                    val = val.isoformat()
+                rubro_dict[column.name] = val
+
             trash_entry = PapeleraRegistro(
                 entidad_tipo='RUBRO',
                 entidad_id=str(db_rubro.id),
