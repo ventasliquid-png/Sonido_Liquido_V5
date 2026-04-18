@@ -3,7 +3,11 @@
 // ------------------------------------------
 
 <template>
-  <div class="flex h-[92vh] w-[1300px] max-w-[95vw] flex-col bg-[#0f172a] text-gray-100 rounded-xl shadow-2xl overflow-hidden hud-border-red">
+  <div
+    class="flex h-[92vh] w-[1300px] max-w-[95vw] flex-col bg-[#0f172a] text-gray-100 rounded-xl shadow-2xl overflow-hidden transition-all"
+    :class="localProducto?.flags_estado & 8 ? '' : 'hud-border-red'"
+    :style="localProducto?.flags_estado & 8 ? 'border: 2px solid #24e70f; box-shadow: 0 0 24px #24e70f44, 0 0 60px #24e70f22' : ''"
+  >
     <!-- Header with Breadcrumb Style -->
     <div class="flex items-center justify-between border-b border-rose-900/30 bg-black/40 p-3 shrink-0 backdrop-blur-md sticky top-0 z-50">
       <div class="flex items-center gap-4 flex-1">
@@ -343,6 +347,147 @@
 
     </div>
 
+    <!-- ===== MODAL: ALTA RÁPIDA DE RUBRO (F4) ===== -->
+    <Teleport to="body">
+      <div
+        v-if="showRubroModal"
+        class="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+        @click.self="showRubroModal = false"
+      >
+        <div class="w-full max-w-md bg-[#0f172a] border border-amber-500/40 rounded-2xl shadow-2xl shadow-amber-900/30 overflow-hidden animate-fade-in-up">
+          <!-- Header -->
+          <div class="flex items-center justify-between px-6 py-4 border-b border-amber-500/20 bg-amber-500/5">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400 border border-amber-500/30">
+                <i class="fas fa-tag text-sm"></i>
+              </div>
+              <div>
+                <h3 class="text-sm font-bold text-amber-300 uppercase tracking-widest">Alta de Rubro</h3>
+                <p class="text-[10px] text-amber-500/50">El código se genera automáticamente</p>
+              </div>
+            </div>
+            <button @click="showRubroModal = false" class="text-white/30 hover:text-white transition-colors">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+
+          <!-- Form -->
+          <div class="p-6 space-y-4">
+            <!-- Nombre -->
+            <div>
+              <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                Nombre <span class="text-rose-500">*</span>
+              </label>
+              <input
+                v-model="rubroNewForm.nombre"
+                ref="rubroNombreInput"
+                type="text"
+                class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-amber-500/50 focus:outline-none transition-all"
+                placeholder="Ej: Desinfectantes Industriales"
+                @keydown.enter="saveRubroFromModal"
+                @keydown.escape="showRubroModal = false"
+              />
+            </div>
+
+            <!-- Código (lectura, auto-generado) -->
+            <div>
+              <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                Código <span class="text-white/20">(auto)</span>
+              </label>
+              <input
+                v-model="rubroNewForm.codigo"
+                type="text"
+                maxlength="3"
+                class="w-full bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-amber-400 font-mono text-sm focus:border-amber-500/50 focus:outline-none transition-all uppercase"
+                placeholder="Auto"
+              />
+            </div>
+
+            <!-- Margen Default -->
+            <div>
+              <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                Margen Propuesto <span class="text-white/20">(%)</span>
+              </label>
+              <input
+                v-model.number="rubroNewForm.margen_default"
+                type="number"
+                min="0"
+                max="100"
+                step="0.5"
+                class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-amber-500/50 focus:outline-none transition-all"
+                placeholder="0"
+              />
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="px-6 pb-6 flex justify-end gap-3">
+            <button
+              @click="showRubroModal = false"
+              class="px-4 py-2 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-colors text-sm font-bold uppercase tracking-wider"
+            >
+              Cancelar
+            </button>
+            <button
+              @click="saveRubroFromModal"
+              :disabled="!rubroNewForm.nombre.trim()"
+              class="px-6 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm uppercase tracking-wider shadow-lg shadow-amber-900/30 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              <i class="fas fa-save"></i>
+              <span>Crear Rubro</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- ===== MODAL: CONFIRMACIÓN ADOPCIÓN EN GENERAL ===== -->
+    <Teleport to="body">
+      <div
+        v-if="showAdopcionGeneralConfirm"
+        class="fixed inset-0 z-[210] flex items-center justify-center bg-black/80 backdrop-blur-sm"
+      >
+        <div class="w-full max-w-sm bg-[#0f172a] border border-yellow-500/50 rounded-2xl shadow-2xl shadow-yellow-900/40 overflow-hidden animate-fade-in-up">
+          <!-- Header -->
+          <div class="flex items-center gap-3 px-6 py-4 border-b border-yellow-500/20 bg-yellow-500/5">
+            <div class="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-400 border border-yellow-500/30 text-lg">
+              <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-yellow-300 uppercase tracking-widest">Adopción en General</h3>
+              <p class="text-[10px] text-yellow-500/50">Este producto es Huérfano</p>
+            </div>
+          </div>
+
+          <!-- Body -->
+          <div class="px-6 py-5 space-y-3">
+            <p class="text-sm text-white/80 leading-relaxed">
+              Este producto no tiene un rubro propio. ¿Confirmar que queda en <span class="font-bold text-white">General</span> y se lo da por <span class="font-bold text-yellow-300">adoptado</span>?
+            </p>
+            <p class="text-xs text-white/30 italic">
+              Si querés asignarle un rubro específico, cerrá y elegí uno antes de guardar.
+            </p>
+          </div>
+
+          <!-- Footer -->
+          <div class="px-6 pb-6 flex gap-3">
+            <button
+              @click="showAdopcionGeneralConfirm = false; _pendingPayload = null"
+              class="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-white/50 hover:text-white hover:border-white/30 transition-colors text-sm font-bold uppercase tracking-wider"
+            >
+              <i class="fas fa-arrow-left mr-1"></i> Elegir otro rubro
+            </button>
+            <button
+              @click="confirmAdopcionGeneral"
+              class="flex-1 px-4 py-2.5 rounded-xl bg-yellow-600 hover:bg-yellow-500 text-white font-bold text-sm uppercase tracking-wider shadow-lg shadow-yellow-900/30 transition-all active:scale-95 flex items-center justify-center gap-2"
+            >
+              <i class="fas fa-check"></i> Sí, queda en General
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
     <!-- Sticky Footer -->
     <div class="shrink-0 p-4 border-t border-rose-900/30 bg-black/40 flex justify-end items-center gap-4 backdrop-blur-md z-50">
         <div class="mr-auto text-[10px] text-white/20 hidden md:block italic">
@@ -667,26 +812,63 @@ const syncLocalState = (dependencySource = 'prop') => {
     }
 }
 
+// --- ALTA RÁPIDA DE RUBRO (F4) — declarado aquí para que los watches lo puedan referenciar ---
+const showRubroModal = ref(false)
+
 // Watch both Product Prop AND Store Data (TasasIva)
 watch(
-    () => props.producto, 
-    (newVal) => { if (newVal) syncLocalState('prop') },
-    { immediate: true, deep: true } 
+    () => props.producto,
+    (newVal) => {
+        if (showRubroModal.value) return  // 🔒 No sincronizar mientras el modal de rubro está abierto
+        if (newVal) syncLocalState('prop')
+    },
+    { immediate: true, deep: true }
 )
 
 watch(
     tasasIva,
-    (newVal) => { if (newVal?.length) syncLocalState('store') },
+    (newVal) => {
+        if (showRubroModal.value) return  // 🔒 No sincronizar mientras el modal de rubro está abierto
+        if (newVal?.length) syncLocalState('store')
+    },
     { immediate: true }
 )
 
+// [V5.9 ADOPCIÓN GENERAL] Confirmación especial cuando un huérfano queda en General
+const showAdopcionGeneralConfirm = ref(false)
+let _pendingPayload = null  // Guardamos el payload mientras el operador confirma
+
+const _executeSave = async (payload) => {
+    try {
+        let result;
+        if (payload.id) {
+            result = await productosStore.updateProducto(payload.id, payload)
+            notification.add('Producto actualizado correctamente', 'success')
+        } else {
+            result = await productosStore.createProducto(payload)
+            notification.add('Producto creado correctamente', 'success')
+            localProducto.value.id = result.id
+            emit('close')
+        }
+        emit('save', result)
+    } catch (e) {
+        console.error('[ProductoInspector] Save Error:', e)
+        const msg = e.response?.data?.detail || e.message || 'Error desconocido'
+        notification.add('Error al guardar: ' + msg, 'error')
+    }
+}
+
+const confirmAdopcionGeneral = async () => {
+    showAdopcionGeneralConfirm.value = false
+    if (_pendingPayload) await _executeSave(_pendingPayload)
+    _pendingPayload = null
+}
+
 const save = async () => {
     console.log('[ProductoInspector] Start Save...');
-    // Debug
     console.log('LocalProducto:', localProducto.value);
-    
+
     if (!localProducto.value || !localProducto.value.nombre) {
-        console.warn('[ProductoInspector] Validation Failed: Name missing');
         notification.add('El nombre del producto es obligatorio', 'error')
         return
     }
@@ -701,53 +883,31 @@ const save = async () => {
     const costo = Number(localCostos.value.costo_reposicion) || 0
     if (costo <= 0) {
         if (!confirm('⚠ ALERTA DE COSTOS: El Costo de Reposición es $0.00.\n\n¿Está SEGURO que desea continuar?')) {
-             return
+            return
         }
     }
 
-    // Sanitize Unique Fields (Prevent collision on empty strings)
-    // [GY-FIX] Empty string "" violates unique constraint in some DBs or conflicts if multiple have "".
     if (!localProducto.value.codigo_visual || localProducto.value.codigo_visual.trim() === '') {
-        localProducto.value.codigo_visual = null;
+        localProducto.value.codigo_visual = null
     }
 
     const payload = {
         ...localProducto.value,
         costos: { ...localCostos.value }
     }
-    console.log('[ProductoInspector] Payload ready:', payload);
 
-    try {
-        let result;
-        if (localProducto.value.id) {
-             console.log('[ProductoInspector] Updating ID:', localProducto.value.id);
-             result = await productosStore.updateProducto(localProducto.value.id, payload)
-             console.log('[ProductoInspector] Update Success:', result);
-             notification.add('Producto actualizado correctamente', 'success')
-        } else {
-             console.log('[ProductoInspector] Creating New Product...');
-             result = await productosStore.createProducto(payload)
-             console.log('[ProductoInspector] Create Success:', result);
-             notification.add('Producto creado correctamente', 'success')
-             
-             // Update local state to avoid "create again" if clicked again
-             localProducto.value.id = result.id; 
-             
-             // If triggered from "New Product" mode, we usually want to close or reset.
-             // But if we close, we lose the context. The user expects it to be "Saved".
-             // We emit 'close' to return to grid, OR we wait for user to close.
-             // User preference: "que devuelva el paquete correcto" implies functionality works.
-             // The PREVIOUS behavior (before my fix) was likely closing on success.
-             emit('close'); 
-        }
-        
-        emit('save', result)
+    // [V5.9 ADOPCIÓN GENERAL] Interceptar: huérfano + rubro = General → confirmar
+    const isOrphan = !!(localProducto.value.flags_estado & 8)
+    const generalRubro = flattenedRubros.value.find(r => r.nombre === 'General')
+    const goingToGeneral = generalRubro && localProducto.value.rubro_id === generalRubro.id
 
-    } catch (e) {
-        console.error('[ProductoInspector] Save Error:', e)
-        const msg = e.response?.data?.detail || e.message || 'Error desconocido';
-        notification.add('Error al guardar: ' + msg, 'error')
+    if (isOrphan && goingToGeneral) {
+        _pendingPayload = payload
+        showAdopcionGeneralConfirm.value = true
+        return  // Esperar confirmación del operador
     }
+
+    await _executeSave(payload)
 }
 
 // --- Dynamic Masters Handlers (V5.5) ---
@@ -782,21 +942,46 @@ const handleCreateTasaIva = async (newVal) => {
     }
 }
 
-const handleCreateRubro = async (newVal) => {
+// --- ALTA RÁPIDA DE RUBRO (F4) ---
+const rubroNombreInput = ref(null)
+const rubroNewForm = ref({ nombre: '', codigo: '', margen_default: 0 })
+
+const handleCreateRubro = (query = '') => {
+    // Abrir modal ABM completo, pre-llenando nombre con lo que escribió el operador
+    rubroNewForm.value = { nombre: query || '', codigo: '', margen_default: 0 }
+    showRubroModal.value = true
+    // Focus en el campo nombre al abrir
+    nextTick(() => {
+        if (rubroNombreInput.value) rubroNombreInput.value.focus()
+    })
+}
+
+const saveRubroFromModal = async () => {
+    if (!rubroNewForm.value.nombre.trim()) return
     try {
-        // V5.6.1 Dynamic Rubro creation
-        const res = await maestrosApi.createRubro({ nombre: newVal })
-        notification.add(`Rubro "${res.data.nombre}" creado`, 'success')
-        
-        // Refresh Store
-        await productosStore.fetchRubros()
-        
-        // Select new val
-        localProducto.value.rubro_id = res.data.id
-        
+        const payload = {
+            nombre: rubroNewForm.value.nombre.trim(),
+            margen_default: rubroNewForm.value.margen_default || 0
+        }
+        if (rubroNewForm.value.codigo.trim()) {
+            payload.codigo = rubroNewForm.value.codigo.trim().toUpperCase()
+        }
+
+        const res = await maestrosApi.createRubro(payload)
+        const newRubro = res.data
+
+        // Push directo al array del store — sin re-fetch, sin reemplazo reactivo
+        productosStore.rubros.push(newRubro)
+
+        // Asignación directa: no toca currentProducto, no dispara el watch del inspector
+        localProducto.value.rubro_id = newRubro.id
+
+        notification.add(`Rubro "${newRubro.nombre}" creado`, 'success')
+        showRubroModal.value = false
     } catch (e) {
         console.error(e)
-        notification.add('Error al crear Rubro: ' + e.message, 'error')
+        const detail = e?.response?.data?.detail || e.message
+        notification.add('Error al crear Rubro: ' + detail, 'error')
     }
 }
 
@@ -815,10 +1000,18 @@ const formatCurrency = (val) => new Intl.NumberFormat('es-AR', { style: 'currenc
 const handleKeydown = (e) => {
     if (e.key === 'F10') {
         e.preventDefault()
+        if (showRubroModal.value) {
+            saveRubroFromModal()  // F10 confirma el modal de rubro cuando está abierto
+            return
+        }
         save()
     }
     if (e.key === 'Escape') {
-         emit('close')
+        if (showRubroModal.value) {
+            showRubroModal.value = false
+            return
+        }
+        emit('close')
     }
 }
 

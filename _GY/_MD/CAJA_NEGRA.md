@@ -1,3 +1,32 @@
+# CAJA NEGRA: Huérfanos + Alta de Rubro en Caliente + Adopción (2026-04-18)
+
+## 1. Indicadores de Huérfandad (Bit 3)
+- Dot neon `#24e70f` en tarjetas y listado. Borde verde en inspector. Filtro "Huérfanos" client-side.
+- **Fix crítico**: `flags_estado` faltaba en `ProductoRead` → frontend recibía `undefined` → dots nunca aparecían.
+
+## 2. Alta de Rubro en Caliente (F4)
+- Modal ámbar desde el selector de Rubro. Backend genera `codigo` automáticamente (3 chars ASCII + sufijo numérico).
+- `SelectorCreatable`: F4 siempre emite `create`. "Crear..." visible al fondo cuando hay texto.
+
+## 3. Protocolo de Adopción V5.9
+- Reasignación a cualquier rubro → Bit 3 limpiado silenciosamente en backend.
+- Reasignación a General desde huérfano → modal de confirmación especial antes de guardar.
+
+## 4. Fix Ciclo Reactivo (bug alto de rubro)
+- `fetchRubros()` → reemplazo reactivo del store → watch `deep:true` disparaba `full-sync` borrando el form.
+- Solución: `productosStore.rubros.push(newRubro)` directo + `localProducto.value.rubro_id = id`. Sin re-fetch.
+- F10 ruteado: si modal abierto → `saveRubroFromModal`; si no → `save()` del producto.
+- `showRubroModal` hoisted antes de los watches (fix Temporal Dead Zone).
+
+## 5. Fix handleSave
+- `ProductosView.handleSave` llamaba doble a `updateProducto`. Simplificado a actualizar lista local con resultado del inspector.
+
+---
+**Marcador de Sesión**: 2026-04-18_OMEGA_HUERFANOS_ALTA_RUBRO
+**Agente**: Claude Code (Sonnet 4.6)
+
+---
+
 # CAJA NEGRA: Saneamiento Remitos (RAR-V1) + Resiliencia de Identidad (2026-04-16)
 
 ## 1. Saneamiento de Remitos (RAR-V1)

@@ -69,7 +69,24 @@ class ProductoService:
         return query.offset(skip).limit(limit).all()
 
     @staticmethod
+    def _auto_codigo(db: Session, nombre: str) -> str:
+        """[AUTO-CODIGO V5.9] Genera un código de 3 chars único a partir del nombre."""
+        import re as _re
+        base = unicodedata.normalize('NFKD', nombre).encode('ASCII', 'ignore').decode('ASCII').upper()
+        base = _re.sub(r'[^A-Z0-9]', '', base)[:3].ljust(3, 'X')
+        candidate = base
+        suffix = 1
+        while db.query(models.Rubro).filter(models.Rubro.codigo == candidate).first():
+            candidate = base[:2] + str(suffix)
+            suffix += 1
+        return candidate
+
+    @staticmethod
     def create_rubro(db: Session, rubro_in: schemas.RubroCreate):
+        # [AUTO-CODIGO V5.9] Si no viene código, generarlo automáticamente
+        if not rubro_in.codigo:
+            rubro_in.codigo = ProductoService._auto_codigo(db, rubro_in.nombre)
+
         if db.query(models.Rubro).filter(models.Rubro.codigo == rubro_in.codigo).first():
             raise HTTPException(status_code=400, detail=f"El código '{rubro_in.codigo}' ya existe.")
         if db.query(models.Rubro).filter(models.Rubro.nombre == rubro_in.nombre).first():
@@ -172,6 +189,11 @@ class ProductoService:
         if not db_producto: raise HTTPException(status_code=404, detail="Producto no encontrado")
 
         prod_data = prod_in.dict(exclude_unset=True, exclude={'costos'})
+
+        # [V5.9 ADOPCIÓN] Si el operador re-asigna rubro explícitamente, limpiar flag EXPATRIADO (Bit 3)
+        if 'rubro_id' in prod_data and (db_producto.flags_estado & 8):
+            db_producto.flags_estado = db_producto.flags_estado & ~8
+
         for key, value in prod_data.items():
             setattr(db_producto, key, value)
 

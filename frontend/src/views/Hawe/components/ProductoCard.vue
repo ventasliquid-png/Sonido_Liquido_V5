@@ -13,6 +13,14 @@
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
   >
+    <!-- Orphan Indicator (Bit 3 = EXPATRIADO) -->
+    <div
+      v-if="producto.flags_estado & 8"
+      class="absolute left-3 top-3 z-30 w-3 h-3 rounded-full animate-pulse"
+      style="background-color: #24e70f; box-shadow: 0 0 10px #24e70f, 0 0 20px #24e70f88; outline: 2.5px solid #0a0f1a"
+      title="Huérfano — rubro de origen eliminado"
+    ></div>
+
     <!-- Status Action Slot (Top Right) -->
     <div class="absolute right-3 top-3 z-30 transform scale-90">
       <slot name="status-action"></slot>

@@ -1,3 +1,12 @@
+# 2026-04-18 (Misión Huérfanos + Alta de Rubro en Caliente + Adopción V5.9)
+- **Estado**: **NOMINAL GOLD**.
+- **Indicadores Huérfandad**: Dot neon Bit 3 en tarjetas, listado e inspector. Filtro "Huérfanos" en ProductosView. Fix crítico: `flags_estado` faltaba en `ProductoRead` → frontend nunca lo recibía.
+- **Alta Rubro en Caliente (F4)**: Modal ámbar desde selector de Rubro. `_auto_codigo` en backend. `SelectorCreatable` con F4 universal y "Crear..." siempre visible.
+- **Adopción V5.9**: Reasignación silenciosa (Bit 3 limpiado en backend). Confirmación especial para adopción en General.
+- **Fix Ciclo Reactivo**: `fetchRubros()` borraba el form vía watch deep. Solución: push directo al store + F10 routing + guard `showRubroModal` en watches + fix Temporal Dead Zone.
+- **Soberanía P**: 6 builds sucesivos. Paridad D↔P confirmada byte a byte. PIN 1974.
+- **Pendiente**: Script consolidación duplicados (unificar SKUs → restituir VIRGINITY → hard delete).
+
 # 2026-04-17 (Misión Rubros V5.9 — Genoma 64-bit & Protocolo de Exilio)
 - **Estado**: **NOMINAL GOLD (V5.9 Certified)**.
 - **Hito Precios**: Implementación de **Hot Calculator** (4 decimales ARCA) y **Ghost Overlay** en `ProductoInspector.vue`. Fallback de seguridad a Lista 3 en ausencia de segmentación.

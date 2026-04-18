@@ -75,12 +75,20 @@
               >
                   Activos
               </button>
-              <button 
+              <button
                   @click="setFilter('inactive')"
                   class="px-3 py-1.5 text-xs font-bold rounded-md transition-all"
                   :class="filterStatus === 'inactive' ? 'bg-red-600/70 text-white shadow-md ring-1 ring-red-500' : 'text-white/40 hover:text-white hover:bg-white/5'"
               >
                   Inactivos
+              </button>
+              <button
+                  @click="setFilter('huerfanos')"
+                  class="px-3 py-1.5 text-xs font-bold rounded-md transition-all"
+                  :class="filterStatus === 'huerfanos' ? 'text-white shadow-md ring-1' : 'text-white/40 hover:text-white hover:bg-white/5'"
+                  :style="filterStatus === 'huerfanos' ? 'background-color: #24e70f22; ring-color: #24e70f; box-shadow: 0 0 8px #24e70f44; color: #24e70f' : ''"
+              >
+                  <span :style="filterStatus === 'huerfanos' ? 'color: #24e70f' : ''">● Huérfanos</span>
               </button>
           </div>
 
@@ -241,8 +249,15 @@
                     </div>
 
                     <div class="flex items-center gap-3 flex-1 min-w-0">
-                        <div class="h-8 w-8 rounded bg-[#2e0a13] flex items-center justify-center text-rose-500 border border-rose-900/30">
+                        <div class="relative h-8 w-8 rounded bg-[#2e0a13] flex items-center justify-center text-rose-500 border border-rose-900/30">
                             <i class="fas fa-box text-xs"></i>
+                            <!-- Orphan dot (Bit 3 = EXPATRIADO) -->
+                            <div
+                              v-if="producto.flags_estado & 8"
+                              class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full animate-pulse"
+                              style="background-color: #24e70f; box-shadow: 0 0 6px #24e70f"
+                              title="Huérfano — rubro de origen eliminado"
+                            ></div>
                         </div>
                         <div class="min-w-0">
                             <div class="font-bold text-rose-100 text-sm truncate">{{ producto.nombre }}</div>
@@ -379,12 +394,17 @@ const getRubroName = (id) => flattenedRubros.value.find(r => r.id === id)?.nombr
 const sortedProductos = computed(() => {
     // Create a copy to sort
     let items = [...productosStore.productos];
-    
+
+    // Client-side filter for huérfanos (Bit 3 = 8)
+    if (filterStatus.value === 'huerfanos') {
+        items = items.filter(p => p.flags_estado & 8);
+    }
+
     return items.sort((a,b) => {
         switch (sortBy.value) {
             case 'alpha_asc': return a.nombre.localeCompare(b.nombre);
             case 'alpha_desc': return b.nombre.localeCompare(a.nombre);
-            case 'id_desc': return b.id - a.id; 
+            case 'id_desc': return b.id - a.id;
             default: return 0;
         }
     });
@@ -405,7 +425,8 @@ const setFilter = (status) => {
     if (status === 'all') productosStore.filters.activo = null
     else if (status === 'active') productosStore.filters.activo = true
     else if (status === 'inactive') productosStore.filters.activo = false
-    
+    else if (status === 'huerfanos') productosStore.filters.activo = null  // traer todos, filtrar client-side por Bit 3
+
     productosStore.fetchProductos()
 }
 
@@ -599,13 +620,14 @@ const closeInspector = () => {
 
 const handleSave = async (payload) => {
     try {
-        let savedItem;
-        if (payload.id) {
-            savedItem = await productosStore.updateProducto(payload.id, payload)
-            notificationStore.add('Producto actualizado', 'success')
-        } else {
-            savedItem = await productosStore.createProducto(payload)
-            notificationStore.add('Producto creado correctamente', 'success')
+        // El Inspector ya llamó al store — aquí recibimos el resultado guardado.
+        // Solo actualizamos el item en la lista con el dato fresco del servidor.
+        const savedItem = payload  // payload = response.data del backend (tiene flags_estado actualizado)
+        if (savedItem?.id) {
+            const index = productosStore.productos.findIndex(p => p.id === savedItem.id)
+            if (index !== -1) {
+                productosStore.productos[index] = { ...savedItem }
+            }
         }
         
         // Logic for Satellite Mode

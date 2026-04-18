@@ -7,6 +7,7 @@
             class="w-full border-none py-2 pl-3 pr-10 text-xs leading-5 text-white bg-transparent focus:ring-0 placeholder-white/30"
             :displayValue="(item) => item ? displayFunction(item) : ''"
             @change="query = $event.target.value"
+            @keydown.f4.prevent="emit('create', query)"
             :placeholder="placeholder"
           />
           <ComboboxButton class="absolute inset-y-0 right-0 flex items-center pr-2">
@@ -22,12 +23,12 @@
           <ComboboxOptions
             class="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-[#1a050b] py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm z-50 border border-white/10"
           >
+            <!-- Sin resultados -->
             <div
               v-if="filteredPeople.length === 0 && query !== ''"
-              class="relative cursor-pointer select-none px-4 py-2 text-white/70 italic hover:bg-white/5"
-              @click="createNew"
+              class="relative select-none px-4 py-2 text-white/30 text-xs italic"
             >
-              Crear "{{ query }}"...
+              Sin coincidencias
             </div>
 
             <ComboboxOption
@@ -59,6 +60,17 @@
                 </span>
               </li>
             </ComboboxOption>
+
+            <!-- Crear nuevo — siempre visible al fondo cuando hay texto (F4) -->
+            <div
+              v-if="query !== ''"
+              class="relative cursor-pointer select-none px-4 py-2 text-xs font-bold border-t border-white/10 hover:bg-white/5 transition-colors flex items-center gap-2"
+              style="color: #24e70f"
+              @click="createNew"
+            >
+              <i class="fas fa-plus-circle"></i>
+              <span>Crear "{{ query }}"&nbsp;<span class="font-normal opacity-50">(F4)</span></span>
+            </div>
           </ComboboxOptions>
         </TransitionRoot>
       </div>

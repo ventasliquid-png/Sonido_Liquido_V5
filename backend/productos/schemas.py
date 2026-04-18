@@ -7,7 +7,7 @@ from uuid import UUID
 # --- RUBROS ---
 
 class RubroBase(BaseModel):
-    codigo: str
+    codigo: Optional[str] = None
     nombre: str
     padre_id: Optional[int] = None
     activo: bool = True
@@ -15,8 +15,10 @@ class RubroBase(BaseModel):
     margen_default: Decimal = Field(0.0, max_digits=6, decimal_places=2)
 
 class RubroCreate(RubroBase):
-    @validator('codigo')
+    @validator('codigo', pre=True, always=True)
     def validate_codigo(cls, v):
+        if v is None:
+            return v  # El service lo auto-generará
         if len(v) > 3:
             raise ValueError('El código no puede tener más de 3 caracteres')
         return v.upper()
@@ -133,6 +135,7 @@ class ProductoUpdate(ProductoBase):
 class ProductoRead(ProductoBase):
     id: int
     sku: Optional[int] = None
+    flags_estado: int = 0  # [V5.9] Expuesto para indicadores visuales (Bit 3 = EXPATRIADO)
     created_at: datetime
     rubro: Optional[RubroRead] = None
     costos: Optional[ProductoCostoRead] = None
