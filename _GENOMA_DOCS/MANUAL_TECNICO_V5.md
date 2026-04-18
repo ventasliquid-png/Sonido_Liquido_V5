@@ -300,3 +300,41 @@ El módulo Cantera (`/bridge/productos/{id}/import`) es el camino estándar para
 ### Endpoint `/health`
 * La ruta raíz `/` fue renombrada a `/health` en D y P para liberar el catch-all `/{full_path:path}` que sirve el SPA.
 * Sin este cambio, acceder a `http://host:puerto/` devolvía JSON en lugar de `index.html`, causando pantalla en blanco en el satélite de Tomy.
+
+## 26. SISTEMA DE GESTIÓN DE RUBROS V5.9 (18/04/2026)
+
+### Tabla `rubros` — flags_estado
+La tabla `rubros` opera con `flags_estado` (BigInteger):
+- **Bit 2 (4):** `BANNED` — rubro dado de baja lógica (Purgatorio). No se muestra en listados por defecto.
+
+### Auto-Código de Rubro
+El backend genera automáticamente el `codigo` (3 chars) si no se provee:
+1. Toma los primeros 3 chars ASCII del nombre (normalizado, sin acentos, mayúsculas).
+2. En caso de colisión: `base[:2] + str(suffix)` (sufijo numérico incremental).
+3. `codigo` es `Optional[str]` en `RubroCreate` — nunca obligatorio desde el frontend.
+
+### Protocolo de Exilio (Bit 3 en Productos)
+Cuando un rubro es dado de baja, sus productos son migrados automáticamente al rubro "General":
+- Se activa **Bit 3 (8) = EXPATRIADO** en `productos.flags_estado`.
+- El producto queda funcional pero marcado como "huérfano" para trazabilidad.
+
+### Protocolo de Adopción
+- **Reasignación a cualquier rubro:** El backend limpia Bit 3 silenciosamente en `update_producto` (`flags_estado & ~8`). Sin fricción.
+- **Reasignación a General desde huérfano:** El frontend intercepta antes de guardar y exige confirmación explícita del operador ("¿Queda en General no Huérfano?").
+
+### Alta de Rubro en Caliente (F4)
+Desde el inspector de Producto, el operador puede crear un rubro sin salir del formulario:
+- **F4** en el selector de Rubro → abre modal ámbar (z-200).
+- Campos: Nombre (obligatorio), Código (auto, editable, máx 3 chars), Margen Propuesto.
+- Sin campo Padre (política V2 — rubros siempre en nivel raíz desde este flujo).
+- Al confirmar: `productosStore.rubros.push(newRubro)` directo (sin re-fetch) + asignación `localProducto.rubro_id`.
+- **F10** con el modal abierto → confirma el alta del rubro (no guarda el producto).
+
+### Indicadores Visuales de Huérfandad (Frontend)
+- **Tarjetas:** Dot neon `#24e70f` con glow y outline oscuro. Posición absoluta top-left, `animate-pulse`.
+- **Listado por renglones:** Mismo dot sobre el ícono del producto.
+- **Inspector abierto:** Borde verde neon reemplaza `hud-border-red`.
+- **Filtro "Huérfanos":** Botón en el grupo Todos/Activos/Inactivos. Filtra client-side por `flags_estado & 8`.
+
+### flags_estado en ProductoRead (fix crítico)
+`flags_estado` debe estar explícitamente declarado en el schema `ProductoRead` (`flags_estado: int = 0`). Sin esto, el campo no viaja en la respuesta JSON y el frontend recibe `undefined` — todos los cálculos de bits devuelven 0 y los indicadores nunca se muestran.
