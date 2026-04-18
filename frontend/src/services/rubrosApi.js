@@ -6,7 +6,7 @@ import api from './api';
 
 export default {
     getAll() {
-        return api.get('/productos/rubros');
+        return api.get('/productos/rubros?include_banned=true');
     },
     create(data) {
         return api.post('/productos/rubros', data);
