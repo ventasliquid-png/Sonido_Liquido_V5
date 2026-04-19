@@ -1,3 +1,10 @@
+# 2026-04-18 Sesión 2 (Forense Git Tom + Diagnóstico DB CA)
+- **Estado**: NOMINAL GOLD.
+- **Remoto `produccion` eliminado de D**: D tenía `produccion → v5-ls-Tom.git`. No era automático pero era un vector de push manual accidental. Eliminado.
+- **Diagnóstico Tom CA**: DB en `data/` tiene 9 pedidos, rubros con códigos numéricos pre-refactor. DB real con ~18 pedidos está atrapada en OF (gitignoreada).
+- **Plan mañana**: Ir a OF → copiar `data/V5_LS_MASTER.db` de Tom al Drive → bajar en CA → verificar Canario.
+- **Router.py + rubrosApi.js de Tom**: cambios del Protocolo de Exilio (V5.9) que faltaban en el Omega de las 20:02 → commiteados ahora.
+
 # 2026-04-18 (Misión Huérfanos + Alta de Rubro en Caliente + Adopción V5.9)
 - **Estado**: **NOMINAL GOLD**.
 - **Indicadores Huérfandad**: Dot neon Bit 3 en tarjetas, listado e inspector. Filtro "Huérfanos" en ProductosView. Fix crítico: `flags_estado` faltaba en `ProductoRead` → frontend nunca lo recibía.

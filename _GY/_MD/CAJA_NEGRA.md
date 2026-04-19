@@ -1,3 +1,23 @@
+# CAJA NEGRA: Forense Git Tom + Diagnóstico DB CA (2026-04-18 — Sesión 2)
+
+## 1. Remoto `produccion` eliminado de D
+- D tenía configurado `produccion → v5-ls-Tom.git`. No era automático (CIERRE solo hace push a `origin`), pero era un vector de push manual. Eliminado con `git remote remove produccion`. D ahora tiene un único remoto: `origin`.
+
+## 2. Tom's CIERRE.ps1 y OMEGA.md — sin cross-push
+- Tom empuja a `prod` (remoto inexistente → falla silenciosa con `SilentlyContinue`). Sin riesgo.
+- OMEGA.md de Tom: push a `origin` (Tom's own GitHub). Sin riesgo.
+
+## 3. DB de Tom en CA — diagnóstico
+- `data/V5_LS_MASTER.db` (CA): 9 pedidos, 37 clientes. Rubros con códigos numéricos pre-refactor (`'6'`, `'26'`, `'27'`). Sin LAVIMAR.
+- DB con ~18 pedidos (OF real) está **atrapada en OF** — gitignoreada, nunca viajó. Hay que ir a buscarla físicamente o subirla al Drive.
+- `.bak` del commit 13-Apr en git: sin tablas (WAL no checkpointed al commitear).
+
+---
+**Marcador de Sesión**: 2026-04-18_OMEGA2_FORENSE_GIT_TOM
+**Agente**: Claude Code (Sonnet 4.6)
+
+---
+
 # CAJA NEGRA: Huérfanos + Alta de Rubro en Caliente + Adopción (2026-04-18)
 
 ## 1. Indicadores de Huérfandad (Bit 3)
