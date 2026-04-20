@@ -80,3 +80,8 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# Bulk Import Silo (JSON & Processed Files)
+scripts/imports/
+scripts/imports/*.json
+.claude/processed_imports/

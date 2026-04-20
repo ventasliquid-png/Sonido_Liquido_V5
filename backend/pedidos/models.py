@@ -7,6 +7,7 @@ from sqlalchemy.dialects.postgresql import UUID as pgUUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from backend.core.database import Base, GUID
+from backend.productos.models import Producto # [AUDIT FIX] Resolve InvalidRequestError in Mapper initialization
 
 class Pedido(Base):
     __tablename__ = "pedidos"

@@ -1,3 +1,31 @@
+## SESIÓN 793: SIEMBRA DE CONTACTOS + SOBERANÍA LOCAL (PURGA POSTGRESQL)
+**Fecha:** 2026-04-19
+**Objetivo:** Importación masiva de contactos (Person-Centric) y eliminación total de dependencias a base de datos externa.
+
+### Hito 1: Purga PostgreSQL — Soberanía Total
+*   **Raíz del problema**: Variable de entorno de sistema Windows `DATABASE_URL=postgresql://...34.95.172.190` pisaba todo el stack. Toda sesión de scripts apuntaba a la nube sin importar .env.
+*   **Capas eliminadas**: (1) variable de sistema Windows (`SetEnvironmentVariable null`), (2) `backend/.env` reescrito a SQLite, (3) `backend/.env.bak` y `.env.postgres_fail` eliminados.
+*   **Defensa instalada**: `import_contactos_bulk.py` carga `.env` local y rechaza cualquier URL postgres antes de inicializar ORM.
+
+### Hito 2: Reparación de Mappers SQLAlchemy
+*   `backend/clientes/models.py`: imports explícitos de `EmpresaTransporte` y `Pedido` → eliminados `InvalidRequestError` en cadena.
+*   `backend/pedidos/models.py`: import explícito de `Producto` → resuelto mapper de `PedidoItem`.
+*   `backend/contactos/models.py`: campo `notas_sistema` (Text, nullable) → segregación notas script vs notas usuario.
+*   SQLite: `ALTER TABLE personas ADD COLUMN notas_sistema TEXT DEFAULT NULL`.
+
+### Hito 3: Siembra de Contactos Person-Centric
+*   Script `import_contactos_bulk.py` ejecutado sobre `contactos_siembra_gmail_20260419_01.json` (10 registros).
+*   Resultado: 10 personas nuevas, 7 vínculos comerciales, 3 `[ENTIDAD_PENDIENTE]` (Rizobacter).
+*   Genoma: Bit 5 (CANTERA_NIKE=16) en todos. Bit 6 (VINCULO_DUDOSO=32) en 5 fuzzy 70-98%.
+*   `notas_sistema` auditadas por registro: origen, % fuzzy, cargo, entidad pendiente.
+
+### Hito 4: Limpieza de Lastre
+*   Eliminados: `ingest_memory.py`, `config.py`, `backend/data/*.txt`, `atenea_memory.db` — todos dependían de Google Cloud.
+
+**Estado:** NOMINAL GOLD. Protocolo Omega ejecutado. PIN 1974.
+
+---
+
 ## SESIÓN 792: SANEAMIENTO REMITOS (RAR-V1) + RESILIENCIA DE IDENTIDAD (V5-LS)
 **Fecha:** 2026-04-16
 **Objetivo:** Estabilizar motor de remitos, corregir el bug de reversión de CUIT y eliminar Error 500 en auditoría de domicilios. Paridad total D/P.

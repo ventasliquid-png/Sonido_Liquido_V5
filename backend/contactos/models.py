@@ -31,7 +31,8 @@ class Persona(Base):
     # Ej: [{"tipo": "WHATSAPP", "valor": "+54...", "etiqueta": "Personal"}]
     canales_personales = Column(JSON, default=list)
 
-    notas_globales = Column(Text, nullable=True)
+    notas_globales = Column(Text, nullable=True)  # Usuario (Carlos escribe)
+    notas_sistema = Column(Text, nullable=True)   # Script (Auditoría de importación)
     
     # Auditoría
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

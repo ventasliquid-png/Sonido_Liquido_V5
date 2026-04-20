@@ -1,3 +1,30 @@
+# CAJA NEGRA: Siembra Contactos + Purga PostgreSQL (2026-04-19)
+
+## 1. Variable de sistema Windows — la fuente real del problema
+`DATABASE_URL=postgresql://postgres:Spawn8559@34.95.172.190:5432/postgres` estaba seteada a nivel de usuario en el registro Windows (`HKCU\Environment`). Esta variable pisaba cualquier `.env`, cualquier fallback en `database.py`, y cualquier override manual. Todos los scripts apuntaban a la nube sin excepción. Eliminada con `[System.Environment]::SetEnvironmentVariable('DATABASE_URL', $null, 'User')`.
+
+## 2. IP `34.95.172.190` vs `104.197.57.226`
+El sistema tenía dos IPs de Postgres distintas en diferentes archivos. `34.95.172.190` era la variable de sistema (Spawn8559). `104.197.57.226` era la de `backend/.env` (SonidoV5_2025). Ambas eliminadas. El stack opera 100% local.
+
+## 3. Defensa en capas en `import_contactos_bulk.py`
+El script ahora: (1) carga el `.env` raíz del proyecto vía `load_dotenv`, (2) si la URL resultante sigue siendo postgres, fuerza `sqlite:///pilot_v5x.db`. Esto hace al script inmune a contaminación de entorno sin importar qué haya en el sistema operativo.
+
+## 4. Segregación notas en Persona (Person-Centric)
+- `notas_globales`: texto visible para el operador (Carlos escribe, asigna tags)
+- `notas_sistema`: auditoría del script (origen, % fuzzy match, cargo detectado, ENTIDAD_PENDIENTE)
+Los dos campos son independientes para evitar que el audit sobreescriba notas comerciales.
+
+## 5. Genoma de la siembra (10 contactos)
+- flags=16 (solo Bit5): María E. Garrido, Joshua Sosa, Sebastián Fiorito, Facundo Ardissone, Ignacio Gonzalo
+- flags=48 (Bit5+Bit6): Marcelo Massel, Agustina Verea, Matias E. Castelo, Carolina Papatanasi, Vanesa Vinciguerra
+- 3 contactos con `[ENTIDAD_PENDIENTE: Rizobacter*]` — listos para vincular cuando se cree la empresa
+
+---
+**Marcador de Sesión**: 2026-04-19_OMEGA_SIEMBRA_SOBERANIA_LOCAL
+**Agente**: Claude Code (Sonnet 4.6)
+
+---
+
 # CAJA NEGRA: Forense Git Tom + Diagnóstico DB CA (2026-04-18 — Sesión 2)
 
 ## 1. Remoto `produccion` eliminado de D
