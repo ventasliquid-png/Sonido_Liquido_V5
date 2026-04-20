@@ -11,6 +11,18 @@ Verificar integridad del sistema antes de comenzar cualquier sesión de trabajo.
 
 ---
 
+## PASO 0: LEER INBOX DE DRIVE (SIEMPRE, ANTES QUE TODO)
+
+Antes de cualquier verificación, leer:
+```
+O:\Mi unidad\V5_Silo_Claude\INBOX.md
+```
+Este archivo contiene mensajes de sesiones anteriores: bugs pendientes, contexto crítico, tareas pre-arranque. Si hay entradas no procesadas, reportarlas a Carlos antes de continuar. Después de procesar una entrada, moverla a `O:\Mi unidad\V5_Silo_Claude\LEIDOS\YYYY-MM-DD_titulo.md`.
+
+Si `O:` no está disponible (Drive no montado): avisar a Carlos y continuar sin bloquear.
+
+---
+
 ## Ejecución (ALFA Fast-Track vs Canario)
 
 **1. Vía Rápida (ALFA-LITE):** Evalúa el pedido. Si es un ajuste de frontend, corrección local, o bugfix acotado, **omite el protocolo Canario**. 
