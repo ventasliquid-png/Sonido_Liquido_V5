@@ -55,7 +55,14 @@ def get_contacto(db: Session, contacto_id: UUID) -> Optional[Persona]:
 
 def create_contacto(db: Session, contacto_in: schemas.ContactoCreate) -> Persona:
     # 1. Crear Persona
-    canales_data = [c.model_dump() for c in contacto_in.canales] if contacto_in.canales else []
+    # Canales pueden ser diccionarios o objetos Pydantic
+    canales_data = []
+    if contacto_in.canales:
+        for c in contacto_in.canales:
+            if isinstance(c, dict):
+                canales_data.append(c)
+            else:
+                canales_data.append(c.model_dump())
 
     persona = Persona(
         nombre=contacto_in.nombre,
@@ -174,11 +181,25 @@ def update_contacto(db: Session, contacto_id: UUID, contacto_in: schemas.Contact
             if contacto_in.puesto is not None: target_vinculo.rol = contacto_in.puesto
             if contacto_in.tipo_contacto_id is not None: target_vinculo.tipo_contacto_id = contacto_in.tipo_contacto_id 
             if contacto_in.roles is not None: target_vinculo.roles = contacto_in.roles
-            if contacto_in.canales is not None: 
-                target_vinculo.canales_laborales = [c.model_dump() for c in contacto_in.canales]
+            if contacto_in.canales is not None:
+                # Canales pueden ser diccionarios o objetos Pydantic
+                canales_laborales = []
+                for c in contacto_in.canales:
+                    if isinstance(c, dict):
+                        canales_laborales.append(c)
+                    else:
+                        canales_laborales.append(c.model_dump())
+                target_vinculo.canales_laborales = canales_laborales
             if contacto_in.estado is not None: target_vinculo.activo = contacto_in.estado
     elif contacto_in.canales is not None:
-        persona.canales_personales = [c.model_dump() for c in contacto_in.canales]
+        # Canales pueden ser diccionarios o objetos Pydantic
+        canales_personales = []
+        for c in contacto_in.canales:
+            if isinstance(c, dict):
+                canales_personales.append(c)
+            else:
+                canales_personales.append(c.model_dump())
+        persona.canales_personales = canales_personales
     
     db.commit()
     db.refresh(persona)
