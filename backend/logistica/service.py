@@ -5,9 +5,10 @@
 # backend/logistica/service.py
 from typing import List, Optional
 from uuid import UUID
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from fastapi import HTTPException, status
 from backend.logistica import models, schemas
+from backend.contactos.models import Vinculo, Persona # [V6 Multiplex]
 
 class LogisticaService:
     # --- EmpresaTransporte ---
@@ -47,7 +48,33 @@ class LogisticaService:
 
     @staticmethod
     def get_empresa(db: Session, empresa_id: UUID) -> Optional[models.EmpresaTransporte]:
-        return db.query(models.EmpresaTransporte).filter(models.EmpresaTransporte.id == empresa_id).first()
+        empresa = db.query(models.EmpresaTransporte).options(
+            joinedload(models.EmpresaTransporte.vinculos).joinedload(Vinculo.persona)
+        ).filter(models.EmpresaTransporte.id == empresa_id).first()
+
+        if empresa:
+            # Flatten contacts for the response
+            empresa.vinculos_detalles = []
+            for v in empresa.vinculos:
+                # Find labor email/phone in canales_laborales
+                email = next((c['valor'] for c in (v.canales_laborales or []) if c.get('tipo') == 'EMAIL'), None)
+                tel = next((c['valor'] for c in (v.canales_laborales or []) if c.get('tipo') == 'TEL_ESCRITORIO' or c.get('tipo') == 'TELEFONO'), None)
+                
+                empresa.vinculos_detalles.append({
+                    "id": v.id,
+                    "persona_id": v.persona_id,
+                    "nombre": f"{v.persona.nombre} {v.persona.apellido}".strip() if v.persona else "Sin Nombre",
+                    "email": email,
+                    "telefono": tel,
+                    "es_principal": False, # TODO: Add principal flag in V6 if needed
+                    "tipo_contacto_id": v.tipo_contacto_id,
+                    "rol": v.rol
+                })
+            
+            # Use a different attribute name to avoid overwriting the ORM relationship
+            empresa.vinculos_multiplex = empresa.vinculos_detalles 
+
+        return empresa
 
     @staticmethod
     def update_empresa(db: Session, empresa_id: UUID, empresa_in: schemas.EmpresaTransporteUpdate) -> Optional[models.EmpresaTransporte]:

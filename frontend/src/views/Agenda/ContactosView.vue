@@ -119,13 +119,9 @@
                     
                     <!-- Footer: Empresa context -->
                     <div class="mt-4 pt-3 border-t border-white/5 flex flex-col gap-1">
-                        <div v-if="contacto.transporte" class="flex items-center gap-2 text-xs text-amber-500/80">
-                            <i class="fa-solid fa-truck text-[10px]"></i>
-                            <span class="truncate">{{ contacto.transporte.nombre }}</span>
-                        </div>
-                        <div v-else-if="contacto.cliente" class="flex items-center gap-2 text-xs text-blue-400/80">
-                            <i class="fa-solid fa-building text-[10px]"></i>
-                            <span class="truncate">{{ contacto.cliente.razon_social }}</span>
+                        <div v-if="getMainEntity(contacto)" class="flex items-center gap-2 text-xs" :class="getMainEntity(contacto).entidad_tipo === 'TRANSPORTE' ? 'text-amber-500/80' : 'text-blue-400/80'">
+                            <i :class="getMainEntity(contacto).entidad_tipo === 'TRANSPORTE' ? 'fa-solid fa-truck' : 'fa-solid fa-building'" class="text-[10px]"></i>
+                            <span class="truncate">{{ getMainEntity(contacto).entidad_nombre }}</span>
                         </div>
                         <div v-else class="flex items-center gap-2 text-xs text-gray-500">
                             <i class="fa-regular fa-user"></i>
@@ -155,8 +151,9 @@
                                 </div>
                                 <p class="text-sm text-white/50 truncate hidden sm:block">{{ getDisplayRole(contacto) }}</p>
                                 <div class="hidden sm:block truncate text-xs">
-                                    <span v-if="contacto.transporte" class="text-amber-500">{{ contacto.transporte.nombre }}</span>
-                                    <span v-else-if="contacto.cliente" class="text-blue-400">{{ contacto.cliente.razon_social }}</span>
+                                    <span v-if="getMainEntity(contacto)" :class="getMainEntity(contacto).entidad_tipo === 'TRANSPORTE' ? 'text-amber-500' : 'text-blue-400'">
+                                        {{ getMainEntity(contacto).entidad_nombre }}
+                                    </span>
                                     <span v-else class="text-gray-500">Particular</span>
                                 </div>
                             </div>
@@ -234,11 +231,15 @@ const filteredContactos = computed(() => {
 })
 
 // [FIX] Multiplex V6 Helpers
+const getMainEntity = (c) => {
+    if (!c.vinculos || c.vinculos.length === 0) return null
+    return c.vinculos.find(v => v.activo) || c.vinculos[0]
+}
+
 // Extract 'puesto' from the first active vinculo
 const getMainRole = (c) => {
-    if (!c.vinculos || c.vinculos.length === 0) return null
-    // Try to find active link first
-    const active = c.vinculos.find(v => v.activo) || c.vinculos[0]
+    const active = getMainEntity(c)
+    if (!active) return null
     // Get rol text if available, fallback to something
     return active.rol || 'Vinculado'
 }

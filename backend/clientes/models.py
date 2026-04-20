@@ -15,8 +15,6 @@ from datetime import datetime, timezone
 from backend.core.database import Base, GUID
 from backend.maestros.models import CondicionIva, ListaPrecios, Segmento, Provincia
 from backend.auth.models import Usuario # [GY-FIX-IMPORT] Explicit Import for Relationship
-from backend.contactos.models import Vinculo, VinculoGeografico # [GY-FIX] Resolve NameError in primaryjoin
-from backend.logistica.models import EmpresaTransporte # [FIX] Import for transporte_habitual relationship
 from backend.pedidos.models import Pedido # [AUDIT FIX] Resolve InvalidRequestError in Mapper initialization
 from sqlalchemy.orm import foreign, remote
 
@@ -124,7 +122,7 @@ class Cliente(Base):
         "Vinculo",
         primaryjoin="and_(foreign(Vinculo.entidad_id)==Cliente.id, Vinculo.entidad_tipo=='CLIENTE')",
         viewonly=True,
-        foreign_keys="[Vinculo.entidad_id]"
+        overlaps="vinculos" 
     )
     
     transporte_habitual = relationship("EmpresaTransporte")

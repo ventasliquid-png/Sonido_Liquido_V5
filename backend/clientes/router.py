@@ -187,25 +187,48 @@ def delete_domicilio(cliente_id: UUID, domicilio_id: UUID, db: Session = Depends
         raise HTTPException(status_code=404, detail="Domicilio no encontrado")
     return None
 
-# --- Vinculos (Delegated to AgendaService but exposed here for convenience) ---
-from backend.agenda import schemas as agenda_schemas
-from backend.agenda.service import AgendaService
+# --- Vinculos (V6 Multiplex Sync) ---
+from backend.contactos import schemas as contactos_schemas
+from backend.contactos import service as contactos_service
 
-@router.post("/{cliente_id}/vinculos", response_model=agenda_schemas.VinculoComercialResponse, status_code=status.HTTP_201_CREATED)
-def create_vinculo(cliente_id: UUID, vinculo: agenda_schemas.VinculoComercialCreate, db: Session = Depends(get_db)):
+@router.post("/{cliente_id}/vinculos", response_model=contactos_schemas.VinculoRead, status_code=status.HTTP_201_CREATED)
+def create_vinculo(cliente_id: UUID, vinculo: contactos_schemas.ContactoCreate, db: Session = Depends(get_db)):
+    """
+    [V6 MULTIPLEX] Crea un vínculo entre un cliente y una persona.
+    """
     if vinculo.cliente_id != cliente_id:
         raise HTTPException(status_code=400, detail="ID de cliente no coincide")
-    return AgendaService.create_vinculo(db, vinculo)
+    
+    # Si viene con nombre, es un alta de persona + vinculo. 
+    # Si viene solo con persona_id (TODO), sería solo agregar vínculo.
+    return contactos_service.create_contacto(db, vinculo)
 
-@router.put("/{cliente_id}/vinculos/{vinculo_id}", response_model=agenda_schemas.VinculoComercialResponse)
-def update_vinculo(cliente_id: UUID, vinculo_id: UUID, vinculo: agenda_schemas.VinculoComercialUpdate, db: Session = Depends(get_db)):
-    return AgendaService.update_vinculo(db, vinculo_id, vinculo)
+@router.put("/{cliente_id}/vinculos/{vinculo_id}", response_model=contactos_schemas.VinculoRead)
+def update_vinculo(cliente_id: UUID, vinculo_id: UUID, vinculo: contactos_schemas.VinculoUpdate, db: Session = Depends(get_db)):
+    """
+    [V6 MULTIPLEX] Actualiza un vínculo existente.
+    """
+    # En V6, update_vinculo necesita el contacto_id (persona_id).
+    # Necesitamos buscar el vínculo primero para saber a quién pertenece.
+    db_vinculo = db.query(contactos_service.models.Vinculo).filter(contactos_service.models.Vinculo.id == vinculo_id).first()
+    if not db_vinculo:
+        raise HTTPException(status_code=404, detail="Vínculo no encontrado")
+        
+    return contactos_service.update_vinculo(db, db_vinculo.persona_id, vinculo_id, vinculo)
 
 @router.delete("/{cliente_id}/vinculos/{vinculo_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_vinculo(cliente_id: UUID, vinculo_id: UUID, db: Session = Depends(get_db)):
-    # Verify vinculo belongs to cliente?
-    # AgendaService.delete_vinculo just deletes by ID.
-    return AgendaService.delete_vinculo(db, vinculo_id)
+    """
+    [V6 MULTIPLEX] Elimina un vínculo.
+    """
+    db_vinculo = db.query(contactos_service.models.Vinculo).filter(contactos_service.models.Vinculo.id == vinculo_id).first()
+    if not db_vinculo:
+        raise HTTPException(status_code=404, detail="Vínculo no encontrado")
+        
+    success = contactos_service.delete_vinculo(db, db_vinculo.persona_id, vinculo_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Vínculo no encontrado")
+    return None
 
 # --- [V5.2 GOLD] Address Hub Soberano ---
 

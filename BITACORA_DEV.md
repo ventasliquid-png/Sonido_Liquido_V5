@@ -1,4 +1,11 @@
-# 2026-04-18 Sesión 2 (Forense Git Tom + Diagnóstico DB CA)
+# 2026-04-20 (Misión Homologación Multiplex & Resolución de Deadlock)
+- **Estado**: **NOMINAL GOLD**.
+- **Homologación V6**: Sistema de contactos unificado. El módulo de Logística ahora usa el mismo motor de vínculos polimórficos que Clientes.
+- **Resolución Boot Hang**: Erradicación de dependencias circulares en SQLAlchemy mediante resolución de mappers por strings. El sistema arranca sin bloqueos.
+- **Restauración P**: Entorno V5-LS (Tomy) estabilizado en puerto 8090. Paridad total D↔P.
+- **Cierre**: Protocolo OMEGA ejecutado bajo PIN 1974.
+
+
 - **Estado**: NOMINAL GOLD.
 - **Remoto `produccion` eliminado de D**: D tenía `produccion → v5-ls-Tom.git`. No era automático pero era un vector de push manual accidental. Eliminado.
 - **Diagnóstico Tom CA**: DB en `data/` tiene 9 pedidos, rubros con códigos numéricos pre-refactor. DB real con ~18 pedidos está atrapada en OF (gitignoreada).

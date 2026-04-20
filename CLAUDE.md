@@ -38,7 +38,10 @@ La base de producción es `V5_LS_MASTER.db` — 32 registros gold, schema certif
 
 **Regla crítica 2 (FRONTEND PROD):** El entorno de Desarrollo (D) sirve el frontend dinámicamente con Vite (`npm run dev`). El entorno de Producción (P) sirve el frontend estático a través de FastAPI (carpeta `/static`). TODO cambio en `.vue` sincronizado a Producción requiere OBLIGATORIAMENTE ejecutar `npm run build` en la carpeta `frontend` de P y volcar el output (`dist/`) en la carpeta `static/` de P. De lo contrario, los cambios visuales no impactarán.
 
+**Regla crítica 3 (MODELOS - ANTI-DEADLOCK):** Para evitar fallos de arranque (`InvalidRequestError`) por dependencias circulares entre Clientes, Logística y Contactos, las relaciones de SQLAlchemy deben definirse SIEMPRE usando el nombre de la clase como **string** (ej: `relationship("Vinculo")`) en lugar de la referencia directa a la clase. Esto asegura que el mapeo se resuelva de forma diferida tras cargar todos los módulos.
+
 ---
+
 
 ## 3. Stack Tecnológico
 

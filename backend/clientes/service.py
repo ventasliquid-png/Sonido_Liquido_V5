@@ -14,6 +14,7 @@ from backend.clientes.models import Cliente, Domicilio, domicilios_clientes
 from backend.clientes import schemas
 from backend.clientes.constants import ClientFlags
 from backend.agenda import models as agenda_models
+from backend.contactos.models import Vinculo # [V6 Multiplex Sync]
 from backend.pedidos.models import Pedido # [V5.2-FIX] Load Pedido to avoid Mapper Registry KeyError
 
 class ClienteService:
@@ -124,9 +125,7 @@ class ClienteService:
         from sqlalchemy.orm import joinedload
         cliente = db.query(Cliente).options(
             joinedload(Cliente.domicilios),
-            # [GY-TEMP] Disable eager load de vinculos para evitar 500
-            # joinedload(Cliente.vinculos).joinedload(agenda_models.VinculoComercial.persona),
-            # joinedload(Cliente.vinculos).joinedload(agenda_models.VinculoComercial.tipo_contacto)
+            joinedload(Cliente.vinculos).joinedload(Vinculo.persona)
         ).filter(Cliente.id == cliente_id).first()
 
         if cliente:
@@ -149,9 +148,6 @@ class ClienteService:
         
         query = db.query(Cliente).options(
             joinedload(Cliente.domicilios).joinedload(Domicilio.provincia),
-            # [GY-TEMP] Disable eager load of vinculos to fix 500
-            # joinedload(Cliente.vinculos).joinedload(agenda_models.VinculoComercial.persona),
-            # joinedload(Cliente.vinculos).joinedload(agenda_models.VinculoComercial.tipo_contacto)
         )
 
         # Filter by active status unless requested otherwise

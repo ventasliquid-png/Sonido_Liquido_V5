@@ -9,6 +9,7 @@ class VinculoRead(BaseModel):
     id: UUID
     entidad_tipo: str # CLIENTE, TRANSPORTE
     entidad_id: UUID
+    entidad_nombre: Optional[str] = None 
     
     tipo_contacto_id: Optional[str] = None # [Legacy V5]
     

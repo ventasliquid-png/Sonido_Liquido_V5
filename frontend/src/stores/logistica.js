@@ -156,6 +156,45 @@ export const useLogisticaStore = defineStore('logistica', () => {
         }
     }
 
+    // --- Vinculos (V6 Multiplex Sync) ---
+    async function createVinculo(empresaId, data) {
+        loading.value = true;
+        try {
+            const response = await logisticaService.createVinculo(empresaId, data);
+            return response.data;
+        } catch (err) {
+            error.value = err.message || 'Error al crear vínculo';
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function updateVinculo(empresaId, vinculoId, data) {
+        loading.value = true;
+        try {
+            const response = await logisticaService.updateVinculo(empresaId, vinculoId, data);
+            return response.data;
+        } catch (err) {
+            error.value = err.message || 'Error al actualizar vínculo';
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function deleteVinculo(empresaId, vinculoId) {
+        loading.value = true;
+        try {
+            await logisticaService.deleteVinculo(empresaId, vinculoId);
+        } catch (err) {
+            error.value = err.message || 'Error al eliminar vínculo';
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    }
+
     const transportOptions = computed(() => {
         const options = [];
         // Add Brands
@@ -195,6 +234,9 @@ export const useLogisticaStore = defineStore('logistica', () => {
         createNodo,
         updateNodo,
         deleteNodo,
+        createVinculo,
+        updateVinculo,
+        deleteVinculo,
         transportOptions
     };
 });

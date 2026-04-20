@@ -8,6 +8,8 @@ from sqlalchemy import or_
 
 from backend.contactos import models, schemas
 from backend.contactos.models import Persona, Vinculo
+from backend.clientes.models import Cliente # [Multiplex Helper]
+from backend.logistica.models import EmpresaTransporte # [Multiplex Helper]
 
 def get_contactos(
     db: Session, 
@@ -48,10 +50,18 @@ def get_contactos(
     # Ordenar por nombre
     query = query.order_by(Persona.nombre.asc())
     
-    return query.offset(skip).limit(limit).all()
+    personas = query.offset(skip).limit(limit).all()
+    
+    # [V6 MULTIPLEX] Batch Resolve Entity Names
+    _resolve_entidad_names(db, personas)
+    
+    return personas
 
 def get_contacto(db: Session, contacto_id: UUID) -> Optional[Persona]:
-    return db.query(Persona).filter(Persona.id == contacto_id).options(joinedload(Persona.vinculos)).first()
+    persona = db.query(Persona).filter(Persona.id == contacto_id).options(joinedload(Persona.vinculos)).first()
+    if persona:
+        _resolve_entidad_names(db, [persona])
+    return persona
 
 def create_contacto(db: Session, contacto_in: schemas.ContactoCreate) -> Persona:
     # 1. Crear Persona
@@ -292,3 +302,38 @@ def update_vinculo(db: Session, contacto_id: UUID, vinculo_id: UUID, vinculo_in:
     db.commit()
     db.refresh(vinculo)
     return vinculo
+
+
+def _resolve_entidad_names(db: Session, personas: List[Persona]):
+    if not personas: return
+    
+    all_vinculos = []
+    for p in personas:
+        if p.vinculos:
+            all_vinculos.extend(p.vinculos)
+    
+    if not all_vinculos: return
+    
+    # Collect IDs by type
+    cliente_ids = {v.entidad_id for v in all_vinculos if v.entidad_tipo == 'CLIENTE'}
+    transporte_ids = {v.entidad_id for v in all_vinculos if v.entidad_tipo == 'TRANSPORTE'}
+    
+    # Batch Fetch Names
+    cliente_names = {}
+    if cliente_ids:
+        rows = db.query(Cliente.id, Cliente.razon_social).filter(Cliente.id.in_(cliente_ids)).all()
+        cliente_names = {row.id: row.razon_social for row in rows}
+    
+    transporte_names = {}
+    if transporte_ids:
+        rows = db.query(EmpresaTransporte.id, EmpresaTransporte.nombre).filter(EmpresaTransporte.id.in_(transporte_ids)).all()
+        transporte_names = {row.id: row.nombre for row in rows}
+    
+    # Map back to vinculos
+    for v in all_vinculos:
+        if v.entidad_tipo == 'CLIENTE':
+            v.entidad_nombre = cliente_names.get(v.entidad_id, 'Cliente Desconocido')
+        elif v.entidad_tipo == 'TRANSPORTE':
+            v.entidad_nombre = transporte_names.get(v.entidad_id, 'Transporte Desconocido')
+        else:
+            v.entidad_nombre = f'{v.entidad_tipo}:{v.entidad_id}'

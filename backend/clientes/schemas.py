@@ -2,7 +2,7 @@
 # Versión: V5.6 GOLD | Sincronización: 20260407130827
 # ---------------------------------------------------------
 
-from typing import List, Optional
+from typing import List, Optional, Any, Dict
 from uuid import UUID
 from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator, computed_field
@@ -227,10 +227,53 @@ class ClienteVinculoResponse(BaseModel):
     rol: Optional[str] = None
     area: Optional[str] = None
     activo: bool
+    canales_laborales: Optional[List[Dict[str, Any]]] = None
     persona: Optional[PersonaBasicRead] = None 
 
     class Config:
         from_attributes = True
+
+    @computed_field
+    @property
+    def nombre(self) -> str:
+        return self.persona.nombre_completo if self.persona else "NN"
+
+    @computed_field
+    @property
+    def email(self) -> Optional[str]:
+        # 1. Buscar en canales laborales
+        if hasattr(self, 'canales_laborales') and self.canales_laborales:
+            for c in self.canales_laborales:
+                if c.get('tipo', '').upper() == 'EMAIL':
+                    return c.get('valor')
+        
+        # 2. Buscar en canales personales de la persona
+        if self.persona and self.persona.canales_personales:
+            for c in self.persona.canales_personales:
+                if c.get('tipo', '').upper() == 'EMAIL':
+                    return c.get('valor')
+        return None
+
+    @computed_field
+    @property
+    def telefono(self) -> Optional[str]:
+        # Buscar en canales laborales
+        if hasattr(self, 'canales_laborales') and self.canales_laborales:
+            for c in self.canales_laborales:
+                if c.get('tipo', '').upper() in ['CELULAR', 'TELEFONO', 'WHATSAPP']:
+                    return c.get('valor')
+        
+        # Buscar en canales personales
+        if self.persona and self.persona.canales_personales:
+            for c in self.persona.canales_personales:
+                if c.get('tipo', '').upper() in ['CELULAR', 'TELEFONO', 'WHATSAPP']:
+                    return c.get('valor')
+        return None
+
+    @computed_field
+    @property
+    def celular(self) -> Optional[str]:
+        return self.telefono # Aliasing for frontend compatibility
 
 class ClienteResponse(ClienteBase):
     id: UUID
@@ -240,6 +283,7 @@ class ClienteResponse(ClienteBase):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     domicilios: List[DomicilioResponse] = []
+    vinculos: List[ClienteVinculoResponse] = []
     domicilio_fiscal_resumen: Optional[str] = None
     requiere_entrega: bool = False
     fecha_alta: Optional[datetime] = None

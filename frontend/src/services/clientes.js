@@ -28,18 +28,16 @@ export default {
     updateDomicilio: (clienteId, domicilioId, data) => api.put(`/clientes/${clienteId}/domicilios/${domicilioId}`, data),
     deleteDomicilio: (clienteId, domicilioId) => api.delete(`/clientes/${clienteId}/domicilios/${domicilioId}`),
 
-    // Vinculos (Redirected to Agenda API V5)
+    // Vinculos (Migrated to V6 Multiplex)
     createVinculo(clienteId, data) {
-        // Data usually comes with client_id, but we ensure it matches
         const payload = { ...data, cliente_id: clienteId };
-        return api.post(`/agenda/vinculos`, payload);
+        return api.post(`/clientes/${clienteId}/vinculos`, payload);
     },
     updateVinculo(clienteId, vinculoId, data) {
-        // Standard Agenda Endpoint
-        return api.put(`/agenda/vinculos/${vinculoId}`, data);
+        return api.put(`/clientes/${clienteId}/vinculos/${vinculoId}`, data);
     },
     deleteVinculo(clienteId, vinculoId) {
-        return api.delete(`/agenda/vinculos/${vinculoId}`);
+        return api.delete(`/clientes/${clienteId}/vinculos/${vinculoId}`);
     },
 
     // Usage Ranking (V5.2)
