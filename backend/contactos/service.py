@@ -211,8 +211,15 @@ def add_vinculo(db: Session, contacto_id: UUID, vinculo_in: schemas.ContactoCrea
     
     if existe:
         return existe
-    
-    canales_data = [c.model_dump() for c in vinculo_in.canales] if vinculo_in.canales else []
+
+    # Canales pueden ser diccionarios o objetos Pydantic
+    canales_data = []
+    if vinculo_in.canales:
+        for c in vinculo_in.canales:
+            if isinstance(c, dict):
+                canales_data.append(c)
+            else:
+                canales_data.append(c.model_dump())
 
     vinculo = Vinculo(
         persona_id=persona.id,
