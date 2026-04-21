@@ -1,3 +1,10 @@
+# 2026-04-21 (Misión Reparación P: Sincronización de ADN & Diagnóstico de Costos)
+- **Estado**: **NOMINAL GOLD**.
+- **Reparación P (V5-LS)**: Resolución del Error 500 en la creación de rubros mediante el parche de `models.py` (Adición de `flags_estado` en la entidad `Rubro`).
+- **Diagnóstico Desincro**: Se identificó que la desincronización ocurrió por un trasplante de base de datos sin el correspondiente Git Pull de código en el entorno P.
+- **Auditoría de Precios**: Se detectó que el 77% de los productos en P carecen de costos cargados, causando cotizaciones en $0 bajo el Motor V5 (Strict Mode).
+- **Cierre**: Protocolo OMEGA ejecutado en ambos servicios (D y P) con éxito. PIN 1974.
+
 # 2026-04-20 (Misión Homologación Multiplex & Resolución de Deadlock)
 - **Estado**: **NOMINAL GOLD**.
 - **Homologación V6**: Sistema de contactos unificado. El módulo de Logística ahora usa el mismo motor de vínculos polimórficos que Clientes.

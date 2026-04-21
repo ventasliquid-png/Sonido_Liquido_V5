@@ -152,4 +152,4 @@ El repo se sincroniza entre locaciones via Git. Las bases de datos se respaldan 
 
 ---
 
-*Última actualización: 2026-04-17 — OF (V5.9 GOLD - Rubros & Precios)*
+*Última actualización: 2026-04-21 — OF (Misión Reparación P: Sincronización de ADN)*
