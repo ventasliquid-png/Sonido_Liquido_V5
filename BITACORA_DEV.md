@@ -1,3 +1,12 @@
+# 2026-04-22 (Misión Motor Bipolar & Puente Logístico RAR-V1)
+- **Estado**: **NOMINAL GOLD**.
+- **Genoma Bipolar (Bit 1024)**: Implementación del bit `NO_FISCAL_FORCE` en Pedidos. Permite la bifurcación instantánea y reversible entre circuitos Oficial e Interno.
+- **Split-Brain UI**: Actualización de `PedidoList.vue` con identidad visual dual (Esmeralda vs Violeta/Índigo) y filtrado dinámico.
+- **Asistente de Facturación (V5.10)**: Creación del Dashboard de Facturación "Modo Espejo ARCA" para carga manual asistida de CAE.
+- **Puente Logístico RAR-V1**: Integración asíncrona tras el sellado fiscal para generación automática de remitos amparados.
+- **Robustez & UX**: Resolución de error 422 de fechas, fix de importaciones (@api), hotkey F10 y sincronización de Proxy/Routers.
+- **Cierre**: Protocolo OMEGA ejecutado bajo PIN 1974.
+
 # 2026-04-21 (Misión Reparación P: Sincronización de ADN & Diagnóstico de Costos)
 - **Estado**: **NOMINAL GOLD**.
 - **Reparación P (V5-LS)**: Resolución del Error 500 en la creación de rubros mediante el parche de `models.py` (Adición de `flags_estado` en la entidad `Rubro`).

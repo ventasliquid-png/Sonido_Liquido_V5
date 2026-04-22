@@ -301,6 +301,14 @@ El módulo Cantera (`/bridge/productos/{id}/import`) es el camino estándar para
 * La ruta raíz `/` fue renombrada a `/health` en D y P para liberar el catch-all `/{full_path:path}` que sirve el SPA.
 * Sin este cambio, acceder a `http://host:puerto/` devolvía JSON en lugar de `index.html`, causando pantalla en blanco en el satélite de Tomy.
 
+### 26. GESTIÓN DE RUBROS — GENOMA 64-BIT (V5.9)
+La tabla `rubros` ahora implementa la arquitectura de **Genoma (64-bit)** mediante la columna `flags_estado` (BigInteger).
+
+- **Bit 2 (4):** `BANNED`. Indica que el rubro ha sido dado de baja lógica (Purgatorio). No se muestra en los selectores del frontend, pero se preserva por integridad de los productos asociados.
+- **Bit 3 (8):** `EXPATRIADO` (En Productos). Cuando un rubro es eliminado, sus productos migran al rubro "General" y activan este bit para auditoría de orfandad.
+
+**Regla de Sincronización P (Aviso 21/04/2026):** Es crítico que el modelo SQLAlchemy en `current/backend` coincida con la base de datos Maestra. La ausencia de la columna en el modelo causa fallos de instanciación (Error 500) incluso si la columna existe físicamente en SQLite.
+
 ## 26. SISTEMA DE GESTIÓN DE RUBROS V5.9 (18/04/2026)
 
 ### Tabla `rubros` — flags_estado

@@ -66,7 +66,11 @@
             </a>
             <a href="#" @click.prevent="navigate('IngestaFactura')" class="nav-item-sub" :class="{ 'active-link-emerald': isActive('IngestaFactura') }">
                 <i class="fas fa-file-import w-4"></i> 
-                <span>Ingesta Facturas</span>
+                <span>Ingesta Facturas Proveedores</span>
+            </a>
+            <a href="#" @click.prevent="navigate('FacturacionDashboard')" class="nav-item-sub" :class="{ 'active-link-indigo': isActive('FacturacionDashboard') }">
+                <i class="fas fa-file-invoice-dollar w-4 text-indigo-400"></i> 
+                <span>Facturación (AFIP)</span>
             </a>
             <a href="#" @click.prevent="navigate('RemitoList')" class="nav-item-sub" :class="{ 'active-link-emerald': isActive('RemitoList') }">
                 <i class="fas fa-truck-loading w-4"></i> 
@@ -259,7 +263,7 @@ const isGroupActive = (group) => {
     if (group === 'CLIENTES') return ['HaweHome', 'Segmentos', 'Vendedores', 'HaweClientCanvas'].includes(route.name)
     if (group === 'PRODUCTOS') return ['Productos', 'Rubros', 'ListasPrecios'].includes(route.name)
     if (group === 'MAESTROS') return ['Contactos', 'Transportes', 'CanteraExplorer', 'MasterTools', 'AddressHub'].includes(route.name)
-    if (group === 'PEDIDOS') return ['PedidoList', 'TacticalLoader', 'IngestaFactura', 'RemitoList', 'ManualRemito'].includes(route.name)
+    if (group === 'PEDIDOS') return ['PedidoList', 'TacticalLoader', 'IngestaFactura', 'RemitoList', 'ManualRemito', 'FacturacionDashboard'].includes(route.name)
     if (group === 'INTEL') return ['data-cleaner'].includes(route.name)
     return false
 }

@@ -1,7 +1,6 @@
 ﻿{
-    "nota":  "Siembra Contactos + Purga PostgreSQL",
-    "origen":  "DESKTOP-4S7F5DT",
-    "estado":  "NOMINAL GOLD",
-    "sesion":  "793",
-    "fecha":  "2026-04-19 22:39:28"
+    "origen":  "MEDIO",
+    "fecha_cierre_real":  "2026-04-22 18:04:49",
+    "estado_salud":  "GOLD",
+    "db_fuente":  "pilot_v5x.db"
 }

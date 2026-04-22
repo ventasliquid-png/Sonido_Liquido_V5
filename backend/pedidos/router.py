@@ -818,3 +818,30 @@ def cotizar_precio(req: CotizacionRequest, db: Session = Depends(get_db)):
         "estrategia": "HARD_LOGIC_V5",
         "debug": resultado
     }
+
+# --- GENOMA BIPOLAR ---
+from backend.pedidos.constants import PedidoFlags
+
+class BipolarRequest(BaseModel):
+    is_interno: bool
+
+@router.patch("/{pedido_id}/circuito-bipolar", response_model=schemas.PedidoResponse)
+def toggle_circuito_bipolar(pedido_id: int, req: BipolarRequest, db: Session = Depends(get_db)):
+    """
+    Alterna el bit NO_FISCAL_FORCE (1024) para transitar entre circuito Blanco y Negro.
+    """
+    pedido = db.query(models.Pedido).filter(models.Pedido.id == pedido_id).first()
+    if not pedido:
+        raise HTTPException(status_code=404, detail="Pedido no encontrado")
+        
+    current_flags = pedido.flags_estado or 0
+    if req.is_interno:
+        current_flags |= PedidoFlags.NO_FISCAL_FORCE.value
+    else:
+        current_flags &= ~PedidoFlags.NO_FISCAL_FORCE.value
+        
+    pedido.flags_estado = current_flags
+    db.commit()
+    db.refresh(pedido)
+    return pedido
+

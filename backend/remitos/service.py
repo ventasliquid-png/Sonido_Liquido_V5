@@ -600,3 +600,74 @@ class RemitosService:
         db.commit()
         db.refresh(remito)
         return remito
+
+    @staticmethod
+    def create_puente_factura(db: Session, factura_id: int):
+        """
+        Crea o vincula un remito logístico a partir de una Factura sellada.
+        Diseñado para el flujo: Sellar Factura AFIP -> Asistir Logística.
+        """
+        from backend.facturacion.models import Factura
+        from backend.logistica.models import EmpresaTransporte
+        
+        factura = db.query(Factura).filter(Factura.id == factura_id).first()
+        if not factura:
+            raise ValueError("Factura no encontrada para el puente logístico.")
+            
+        pedido = factura.pedido
+        if not pedido:
+            raise ValueError("Factura sin pedido táctico origen.")
+            
+        # 1. Si ya existe un remito en el pedido, le inyectamos los datos del fisco (CAE)
+        remito_existente = db.query(models.Remito).filter(models.Remito.pedido_id == pedido.id).first()
+        if remito_existente:
+            remito_existente.cae = factura.cae
+            remito_existente.vto_cae = factura.fecha_vto_cae
+            if not remito_existente.numero_legal or "0015" in remito_existente.numero_legal:
+                 # Actualizar la familia de Prefijo hacia "16" (RAR Blanco) 
+                 # o conservamos si tiene su propia línea
+                 remito_existente.numero_legal = f"0016-{str(remito_existente.id).zfill(8)}"
+            db.add(remito_existente)
+            db.commit()
+            db.refresh(remito_existente)
+            return remito_existente
+            
+        # 2. Si no existe, lo creamos fresco (Flujo RAR Asíncrono)
+        transporte_id = pedido.transporte_id
+        if not transporte_id:
+            transporte = db.query(EmpresaTransporte).filter(EmpresaTransporte.activo == True).first()
+            transporte_id = transporte.id if transporte else None
+
+        domicilio_id = pedido.domicilio_entrega_id
+        if not domicilio_id:
+            d_fiscal = next((d for d in pedido.cliente.domicilios if d.es_fiscal and d.activo), None)
+            domicilio_id = d_fiscal.id if d_fiscal else (pedido.cliente.domicilios[0].id if pedido.cliente.domicilios else None)
+
+        remito = models.Remito(
+            pedido_id=pedido.id,
+            domicilio_entrega_id=domicilio_id,
+            transporte_id=transporte_id,
+            estado="BORRADOR",
+            aprobado_para_despacho=True,
+            cae=factura.cae,
+            vto_cae=factura.fecha_vto_cae,
+            numero_legal=f"0016-{str(pedido.id).zfill(8)}", # Mirror ID
+            bultos=int(pedido.bultos) if hasattr(pedido, 'bultos') and pedido.bultos else 1,
+            valor_declarado=factura.total_bruto if hasattr(factura, 'total_bruto') else 0.0
+        )
+        db.add(remito)
+        db.flush()
+
+        for p_item in pedido.items:
+            r_item = models.RemitoItem(
+                remito_id=remito.id,
+                pedido_item_id=p_item.id,
+                cantidad=p_item.cantidad
+            )
+            db.add(r_item)
+            
+        db.commit()
+        db.refresh(remito)
+        print(f"Logística Asíncrona: Remito {remito.numero_legal} generado para Factura #{factura.id}")
+        return remito
+

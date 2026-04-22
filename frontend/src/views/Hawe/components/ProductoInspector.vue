@@ -109,9 +109,22 @@
         
         <!-- BLOCK 1: ESTRUCTURA DE COSTOS (Horizontal) -->
         <section class="bg-black/20 border border-rose-500/10 rounded-2xl p-4 shadow-xl">
-            <h3 class="text-xs font-bold text-rose-500/50 uppercase tracking-widest flex items-center gap-2 mb-4">
-                <i class="fas fa-brain text-rose-500"></i> Estructura de Costos & Precios
-            </h3>
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xs font-bold text-rose-500/50 uppercase tracking-widest flex items-center gap-2">
+                    <i class="fas fa-brain text-rose-500"></i> Estructura de Costos & Precios
+                </h3>
+                <div v-if="localProducto.needs_cost" class="px-2 py-1 bg-amber-500/10 border border-amber-500/30 rounded flex items-center gap-2 animate-pulse">
+                    <i class="fas fa-exclamation-triangle text-amber-500 text-[10px]"></i>
+                    <span class="text-[9px] font-black text-amber-200 uppercase tracking-tighter">SIN COSTO</span>
+                </div>
+            </div>
+
+            <div v-if="localProducto.needs_cost" class="mb-4 p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl flex items-center gap-3">
+                <div class="text-[9px] font-medium text-amber-500/80 leading-tight">
+                    <span class="font-bold text-amber-400">PROTOCOLO V5.9.1:</span> Este producto no tiene base imponible. 
+                    Las cotizaciones automáticas resultarán en <span class="underline">$ 0,00</span> bloqueando la rentabilidad.
+                </div>
+            </div>
             
             <div class="flex items-center gap-8">
                 <!-- Costo Rep -->

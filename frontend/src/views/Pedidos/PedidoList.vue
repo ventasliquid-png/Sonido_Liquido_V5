@@ -14,10 +14,28 @@
         <header class="relative z-20 flex h-16 items-center justify-between border-b border-emerald-900/20 bg-black/20 px-6 backdrop-blur-sm shrink-0">
           <!-- Title -->
           <div>
-              <h1 class="font-outfit text-xl font-semibold text-white">
+              <h1 class="font-outfit text-xl font-semibold transition-colors" :class="circuitMode === 'OFICIAL' ? 'text-white' : 'text-gray-300'">
                   Gestión de Pedidos
               </h1>
-              <p class="text-xs text-emerald-400/50 font-medium uppercase tracking-wider">Tablero Táctico</p>
+              <p class="text-xs font-medium uppercase tracking-wider" :class="circuitMode === 'OFICIAL' ? 'text-emerald-400/50' : 'text-gray-500'">Tablero Táctico</p>
+          </div>
+
+          <!-- Split-Brain Toggle (Circuitos) -->
+          <div class="flex items-center bg-[#020a06] p-1 rounded-lg border border-white/5 shadow-inner mx-4">
+              <button 
+                  @click="circuitMode = 'OFICIAL'" 
+                  :class="circuitMode === 'OFICIAL' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20' : 'text-gray-500 hover:text-white'" 
+                  class="px-4 py-1.5 text-xs font-bold rounded transition-all flex items-center gap-2"
+              >
+                  <i class="fas fa-file-invoice" v-if="circuitMode === 'OFICIAL'"></i> Circuito Oficial
+              </button>
+              <button 
+                  @click="circuitMode = 'INTERNO'" 
+                  :class="circuitMode === 'INTERNO' ? 'bg-gray-700 text-white shadow-lg shadow-black/50' : 'text-gray-500 hover:text-white'" 
+                  class="px-4 py-1.5 text-xs font-bold rounded transition-all flex items-center gap-2"
+              >
+                  <i class="fas fa-user-ninja" v-if="circuitMode === 'INTERNO'"></i> Circuito Interno
+              </button>
           </div>
 
           <!-- Search & Tools -->
@@ -114,8 +132,12 @@
                   :class="[
                     statusMenuOpen === pedido.id ? 'z-50 shadow-2xl' : 'z-auto overflow-hidden',
                     selectedPedido?.id === pedido.id 
-                    ? 'border-emerald-500 bg-emerald-500/10 ring-1 ring-emerald-500/30 shadow-lg shadow-emerald-500/10 scale-[1.01]' 
-                    : 'border-emerald-900/20 bg-[#07241d] hover:bg-[#0a2e26] hover:border-emerald-500/30 hover:shadow-lg hover:shadow-black/40 hover:-translate-y-px'
+                    ? (circuitMode === 'OFICIAL' ? 'border-emerald-500 bg-emerald-500/10 ring-1 ring-emerald-500/30 shadow-lg shadow-emerald-500/10 scale-[1.01]' : 'border-indigo-500 bg-indigo-500/10 ring-1 ring-indigo-500/30 shadow-lg shadow-black/50 scale-[1.01]')
+                    : ( (pedido.flags_estado & 1024) 
+                        ? 'border-indigo-900/40 bg-[#120a1f] hover:bg-[#1a0e2c] hover:border-indigo-500/30 shadow-inner shadow-black/20' 
+                        : (circuitMode === 'OFICIAL' ? 'border-emerald-900/20 bg-[#07241d] hover:bg-[#0a2e26] hover:border-emerald-500/30' : 'border-gray-800/40 bg-[#12161f] hover:bg-[#1a202c] hover:border-gray-500/30')
+                      ),
+                    'hover:shadow-lg hover:shadow-black/40 hover:-translate-y-px'
                   ]"
                   @click="openPedido(pedido)"
                   @dblclick="editInTactical(pedido)"
@@ -293,6 +315,21 @@
                   <i class="fas fa-copy text-emerald-400"></i>
                   Clonar Pedido
               </button>
+               <button 
+                  v-if="circuitMode === 'OFICIAL' && !(contextMenu.pedido?.flags_estado & 1024)"
+                  @click="executeContextMenuAction('liquidar')"
+                  class="w-full px-4 py-2 text-left text-xs font-bold text-indigo-300 hover:bg-indigo-900/40 flex items-center gap-2 transition-colors border-t border-emerald-900/10 mt-1 pt-2"
+              >
+                  <i class="fas fa-file-invoice-dollar text-indigo-400"></i>
+                  Liquidar (Asistente AFIP)
+              </button>
+              <button 
+                  @click="executeContextMenuAction('toggle_bipolar')"
+                  class="w-full px-4 py-2 text-left text-xs font-bold text-gray-300 hover:bg-gray-800 flex items-center gap-2 transition-colors border-t border-emerald-900/10 mt-1 pt-2"
+              >
+                  <i class="fas fa-random text-gray-400"></i>
+                  {{ (contextMenu.pedido?.flags_estado & 1024) ? 'Mover a Blanco (Oficial)' : 'Mover a Negro (Interno)' }}
+              </button>
           </div>
       </Teleport>
 
@@ -304,8 +341,9 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePedidosStore } from '@/stores/pedidos' 
-import { useNotificationStore } from '../../stores/notification'
+import { useNotificationStore } from '@/stores/notification'
 import PedidoInspector from './PedidoInspector.vue'
+import api from '@/services/api'
 
 const router = useRouter()
 const notificationStore = useNotificationStore()
@@ -313,6 +351,7 @@ const store = usePedidosStore()
 
 const searchQuery = ref('')
 const activeFilter = ref('all') 
+const circuitMode = ref('OFICIAL') // 'OFICIAL', 'INTERNO'
 const selectedPedido = ref(null)
 const statusMenuOpen = ref(null)
 const contextMenu = ref({ visible: false, x: 0, y: 0, pedido: null })
@@ -396,6 +435,13 @@ const setFilter = (key) => {
 
 const sortedAndFilteredPedidos = computed(() => {
     let result = store.pedidos
+    
+    // Bifurcacion Maestro (Genoma Bipolar: Bit 1024)
+    if (circuitMode.value === 'OFICIAL') {
+        result = result.filter(p => !(p.flags_estado & 1024))
+    } else {
+        result = result.filter(p => (p.flags_estado & 1024))
+    }
     
     if (activeFilter.value !== 'all') {
         if (activeFilter.value === 'PRESUPUESTO') {
@@ -508,6 +554,41 @@ const executeContextMenuAction = (action) => {
     } else if (action === 'clone') {
         selectedPedido.value = pedido
         handleClone()
+    } else if (action === 'liquidar') {
+        selectedPedido.value = pedido
+        handleLiquidacion()
+    } else if (action === 'toggle_bipolar') {
+        handleToggleBipolar(pedido)
+    }
+}
+
+const handleLiquidacion = async () => {
+    if (!selectedPedido.value) return;
+    try {
+        notificationStore.add('Generando borrador fiscal...', 'info');
+        const { data } = await api.post(`/facturacion/borrador/pedido/${selectedPedido.value.id}`);
+        notificationStore.add('Borrador generado. Abriendo Asistente...', 'success');
+        router.push({ name: 'FacturacionDashboard' });
+    } catch(e) {
+        notificationStore.add('Error al liquidar: ' + (e.response?.data?.detail || e.message), 'error');
+    }
+}
+
+const handleToggleBipolar = async (pedido) => {
+    const isInterno = !(pedido.flags_estado & 1024)
+    try {
+        notificationStore.add(`Cambiando circuito a ${isInterno ? 'INTERNO' : 'OFICIAL'}...`, 'info')
+        const { data } = await api.patch(`/pedidos/${pedido.id}/circuito-bipolar`, { is_interno: isInterno })
+        
+        // Update store
+        const idx = store.pedidos.findIndex(p => p.id === pedido.id)
+        if (idx !== -1) {
+            store.pedidos[idx] = data
+        }
+        
+        notificationStore.add(`Pedido #${pedido.id} movido a circuito ${isInterno ? 'Interno' : 'Oficial'}`, 'success')
+    } catch (e) {
+        notificationStore.add('Error al cambiar circuito: ' + (e.response?.data?.detail || e.message), 'error')
     }
 }
 

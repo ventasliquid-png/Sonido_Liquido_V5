@@ -4,6 +4,20 @@
 **Código de Doctrina:** DEOU-2025
 
 ---
+
+### ⚠️ DIAGNÓSTICO: PRECIOS EN $0 (STRICT MODE)
+Si al navegar o cotizar un producto el sistema muestra `$0` o `LISTA_0`, se debe a la activación del **Strict Mode** del Motor V5. 
+
+**Causas y Solución:**
+1. **Falta de Costo de Reposición**: El motor no puede calcular la cascada de 7 listas si el producto no tiene un costo base. 
+   - *Solución*: Ingresar al **Inspector de Producto (F2)** -> Pestaña **Costos** -> Cargar **Costo de Reposición**.
+2. **Falta de Segmentación del Cliente**: Si el cliente no tiene asignado un Segmento (Retail, Premium, etc.) o una Lista de Precios, el sistema no puede determinar qué nivel de la cascada aplicar.
+   - *Solución*: Ingresar a la ficha del cliente y asignar **Segmento** y **Lista de Precios**.
+
+**Contexto Producción**: Se ha detectado que una gran parte de la base de datos en Producción (V5-LS) no posee costos cargados tras el trasplante del Polizón. Se recomienda auditoría masiva de costos antes de operar.
+
+---
+
 # Manual Operativo V5
 
 ## Control de Cambios

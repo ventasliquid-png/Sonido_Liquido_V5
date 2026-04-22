@@ -42,14 +42,18 @@ class ProductoService:
     @staticmethod
     def calculate_prices(producto: models.Producto):
         """Helper para calcular precios basados en costos usando el MOTOR V5."""
-        if not producto.costos:
+        if not producto.costos or not producto.costos.costo_reposicion:
             producto.precio_mayorista = 0
             producto.precio_distribuidor = 0
             producto.precio_minorista = 0
+            producto.needs_cost = True
             return producto
 
         # Motor V5: Cascada Clásica
         listas = calculate_lists(producto.costos.costo_reposicion, producto.costos.rentabilidad_target)
+
+        # Propagar needs_cost desde el motor
+        producto.needs_cost = listas.get('_needs_cost', False)
 
         # Mapeo de Referencia para UI
         producto.precio_mayorista = listas.get('lista_1', 0)
