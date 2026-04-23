@@ -147,4 +147,26 @@ El sistema evita la navegación entre páginas (routers) para la carga de datos.
 *   **Pedidos:** El núcleo transaccional que unirá Clientes, Productos y Logística.
 
 ---
-*Fin del Documento - Generado por CLIO (AI Agent)*
+
+## 5. ARQUITECTURAS ESTRATÉGICAS (V5.10+)
+
+### 5.1. El Genoma Bipolar (Bit 1024)
+Para manejar la dualidad fiscal argentina sin duplicar la base de datos, se implementó la **Naturaleza Bipolar** del Pedido.
+*   **Bit 1024 (`NO_FISCAL_FORCE`)**: Este bit determina el "universo" del pedido.
+    *   **Bit = 0 (Circuito Oficial - Esmeralda)**: Pedidos destinados a ser facturados legalmente. Aparecen en el Dashboard de Facturación.
+    *   **Bit = 1 (Circuito Interno - Índigo)**: Pedidos de consumo interno o preventas que no tocan el fisco.
+*   **Reversibilidad**: Un pedido puede "saltar" entre circuitos mediante el switcher en el frontend, permitiendo corregir errores de categorización sin perder la trazabilidad de los ítems.
+
+### 5.2. Soberanía Fiscal (Asistente ARCA)
+Dada la demora en la integración vía WebService, se adoptó la **Arquitectura Soberana**:
+1.  **Cálculo Autónomo**: HAWE calcula los montos netos, IVA y exentos con precisión decimal superior, actuando como la fuente de verdad.
+2.  **Modo Espejo (Mirroring)**: El sistema ofrece una interfaz que calca el formulario de AFIP (ARCA) para facilitar la carga manual.
+3.  **Sellado Asincrónico**: Los tokens legales (CAE, Número de Comprobante) son externos. El sistema los recibe como inputs tras la emisión manual para legalizar el registro interno.
+
+### 5.3. Puente Logístico RAR-V1
+El Remito se desacopla de la Factura:
+*   **Independencia**: Se puede emitir remito antes, durante o después de la factura.
+*   **Regado de CAE**: Si existe una factura previa, el remito absorbe automáticamente el CAE para convertirse en un **Remito Amparado (RAR)**, legalizando el transporte de mercadería.
+
+---
+*Fin del Documento - Actualizado por Antigravity (Gy V5) - 2026-04-23*

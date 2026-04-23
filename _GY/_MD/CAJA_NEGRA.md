@@ -1,3 +1,23 @@
+# CAJA NEGRA: Estrategia de Soberanía Fiscal & Centro de Liquidación (2026-04-23)
+
+## 1. Validación de Arquitectura "Soberana" (Fase 1)
+Se ratificó el funcionamiento del **Asistente de Facturación (Modo Espejo ARCA)**. La premisa es que el sistema asume la soberanía del cálculo fiscal (prorrateos de descuentos e IVA) para evitar errores humanos al cargar en la web oficial de AFIP. 
+- **Carga Manual**: Se confirmó que el CAE y el Número de Comprobante son tokens externos generados por ARCA que el usuario debe re-ingresar en HAWE para "sellar" la operación.
+- **Estado Nominal**: Verificación exitosa del bitmask de sesión (Bit 851) y la paridad de datos.
+
+## 2. Definición de Fase 2: Ingesta Asincrónica
+Se esbozó la lógica de **Ingesta de CAE**:
+- El sistema permitirá arrastrar el PDF de la factura emitida en AFIP o importar un CSV de "Comprobantes Emitidos" para automatizar el sellado de los borradores, eliminando el "copia-pega" manual.
+
+## 3. Calibración Bipolar
+Se revisó la lógica de filtrado en `PedidoList.vue`. El Bit 1024 (`NO_FISCAL_FORCE`) opera como el switch maestro entre los circuitos **Oficial (Esmeralda)** e **Interno (Índigo)**.
+
+---
+**Marcador de Sesión**: 2026-04-23_OMEGA_ESTRATEGIA_FISCAL
+**Agente**: Antigravity (Gy V5)
+
+---
+
 # CAJA NEGRA: Siembra Contactos + Purga PostgreSQL (2026-04-19)
 
 ## 1. Variable de sistema Windows — la fuente real del problema
