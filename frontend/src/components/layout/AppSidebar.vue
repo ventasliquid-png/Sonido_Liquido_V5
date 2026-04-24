@@ -66,7 +66,7 @@
             </a>
             <a href="#" @click.prevent="navigate('IngestaFactura')" class="nav-item-sub" :class="{ 'active-link-emerald': isActive('IngestaFactura') }">
                 <i class="fas fa-file-import w-4"></i> 
-                <span>Ingesta Facturas Proveedores</span>
+                <span>Ingesta Facturas Propias</span>
             </a>
             <a href="#" @click.prevent="navigate('FacturacionDashboard')" class="nav-item-sub" :class="{ 'active-link-indigo': isActive('FacturacionDashboard') }">
                 <i class="fas fa-file-invoice-dollar w-4 text-indigo-400"></i> 

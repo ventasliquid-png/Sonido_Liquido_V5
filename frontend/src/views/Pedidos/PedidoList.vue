@@ -693,7 +693,7 @@ const exportExcel = async () => {
         // We use window.open or fetch blob. Since it's a file download derived from GET, window.open is easiest but auth token might be issue if logic requires it.
         // Better use axios with blob response
         const token = localStorage.getItem('token')
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/pedidos/export/excel`, {
+        const response = await fetch(`/pedidos/export/excel`, {
             headers: { 'Authorization': `Bearer ${token}` }
         })
         

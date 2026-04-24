@@ -1,3 +1,11 @@
+# 2026-04-24 (Misión Modernización IVA & Espejado Soberano D↔P)
+- **Estado**: **NOMINAL GOLD**.
+- **Modernización IVA V1**: Implementación de Web UI (FastAPI) con Drag&Drop. Refactor de `reports.py` para incluir columnas de Tipo y Σ Retenciones (Otros Tributos). Lanzador `LANZAR_IVA_WEB.bat` operativo.
+- **Soberanía P (V5-LS)**: Ejecución de **Espejado Total de Código**. Sincronización 1:1 de Backend y Re-build de Frontend en Producción.
+- **Estabilización BioTenk**: Resolución de orfandad de remito (re-vinculación a Pedido #28) y corrección de truncado de dirección en PDF (Calle + Altura + Localidad).
+- **Identidad Visual**: Corrección de Favicon (Violeta/Lila) en Producción para eliminar confusión con entorno D.
+- **Cierre**: Protocolo OMEGA ejecutado en D, P e IVA bajo PIN 1974.
+
 # 2026-04-23 (Inducción y Estrategia de Soberanía Fiscal)
 - **Estado**: **NOMINAL GOLD**.
 - **Soberanía Fiscal**: Sesión de inducción sobre el Centro de Liquidación. Validación del flujo "Copia-Fácil" (ARCA Mirror) y sellado manual de CAE.

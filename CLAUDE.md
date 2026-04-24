@@ -152,4 +152,4 @@ El repo se sincroniza entre locaciones via Git. Las bases de datos se respaldan 
 
 ---
 
-*Última actualización: 2026-04-21 — OF (Misión Reparación P: Sincronización de ADN)*
+*Última actualización: 2026-04-24 — OF (Misión Modernización IVA & Espejado D↔P)*

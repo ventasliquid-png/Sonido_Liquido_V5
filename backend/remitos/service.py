@@ -256,12 +256,16 @@ class RemitosService:
                 pedido_id=nuevo_pedido.id,
                 producto_id=producto.id,
                 cantidad=item.cantidad,
-                precio_unitario=item.precio_unitario or 0.0,
+                precio_unitario=item.precio_unitario if item.precio_unitario is not None else 0.0,
+                subtotal=(item.cantidad * (item.precio_unitario or 0.0)),
                 nota=""
             )
             db.add(new_p_item)
             db.flush() 
             pedido_items.append(new_p_item)
+
+        # Update Pedido Total
+        nuevo_pedido.total = sum(i.subtotal for i in pedido_items)
 
         # 5. CREATE REMITO
         vto_cae_date = None

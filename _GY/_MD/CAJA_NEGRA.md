@@ -1,3 +1,27 @@
+# CAJA NEGRA: Modernización IVA V1 & Espejado Soberano D↔P (2026-04-24)
+
+## 1. Modernización IVA V1 (Satelite)
+Se eliminó la dependencia de consola (`.bat` arcaico) para la ingesta. Se implementó una **Interfaz Web (FastAPI + Jinja2)** que permite:
+- **Drag & Drop**: Ingesta intuitiva de archivos ZIP/CSV de ARCA.
+- **Reportería Avanzada**: El `ReportGenerator` ahora incluye el campo `Tipo` (FAC/NC/ND) y la sumatoria de `Σ (Otros Tributos)`, crucial para el saldo operativo fiscal.
+- **Lanzador**: Se creó `LANZAR_IVA_WEB.bat` para facilitar el acceso de Tomy.
+
+## 2. Espejado Soberano D↔P
+Se detectaron divergencias críticas entre el entorno de Desarrollo (D) y Producción (P).
+- **Acción**: Sincronización binaria del Backend y reconstrucción (`npm run build`) del Frontend en P.
+- **Resultado**: Paridad 1:1 alcanzada. El nuevo módulo de **Facturación** y las mejoras de logística ahora son nativas en Producción.
+
+## 3. Estabilización de Producción (BioTenk)
+- **Remitos**: Se resolvió la orfandad del remito #2528 re-vinculándolo al Pedido #28 tras la purga del duplicado #29.
+- **PDF Engine**: Se corrigió el truncado de domicilios en `remito_engine.py` mediante la concatenación de `calle + numero + localidad` en el Router.
+- **UX**: Se forzó el cambio de Favicon a **Lila/Violeta** en P para evitar errores de contexto operativo.
+
+---
+**Marcador de Sesión**: 2026-04-24_OMEGA_MODERNIZACION_ESPEJADO
+**Agente**: Antigravity (Gy V5)
+
+---
+
 # CAJA NEGRA: Estrategia de Soberanía Fiscal & Centro de Liquidación (2026-04-23)
 
 ## 1. Validación de Arquitectura "Soberana" (Fase 1)
