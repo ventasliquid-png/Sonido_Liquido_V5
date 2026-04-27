@@ -1,0 +1,45 @@
+=== ESTADO SISTEMA ===
+IDENTIDAD:              D
+VERSION:                5.9.0000
+FLAGS_ESTADO:           0
+SEMAFORO:               CIELO_DESPEJADO
+CODE_DIRTY:             NO
+DB_DIRTY:               NO
+POLIZON_LISTO:          NO
+BACKUP_DRIVE_VENCIDO:   NO
+IDENTIDAD_PROTEGIDA:    SI
+SESION_LIBRE:           SI
+SOBERANO:               NO
+ESPEJO_OK:              NO
+FECHA_ULTIMO_GIT_PUSH:  2026-04-27
+FECHA_ULTIMO_BACKUP:    2026-04-27
+FECHA_CIERRE:           -
+
+--- QUÉ HACER SI EL SISTEMA NO ARRANCA ---
+SEMAFORO ROJO (TERMICA=SI):
+  1. NO tocar nada. Llamar a Carlos: 1144130905
+  2. El sistema está bloqueado por PIN 1974
+  3. Solo el administrador puede liberar
+
+SEMAFORO AMARILLO (ADVERTENCIA=SI):
+  1. Podés entrar pero con cuidado
+  2. Avisarle a Carlos antes de cargar pedidos
+  3. No emitir remitos ni facturas hasta confirmar
+
+SEMAFORO NARANJA (AISLAMIENTO=SI):
+  1. El sistema funciona en modo local
+  2. No hay conexión con ARCA/AFIP
+  3. Podés cargar pedidos pero NO facturar
+
+SEMAFORO VERDE (CIELO_DESPEJADO):
+  Todo normal. Podés trabajar sin restricciones.
+
+--- ÚLTIMO BACKUP CONOCIDO ---
+BACKUP_DRIVE:    2026-04-27
+BACKUP_LOCAL:    2026-04-27
+UBICACION_DRIVE: Q:\Mi unidad\HAWE
+
+--- CONTACTO DE EMERGENCIA ---
+ADMINISTRADOR:   Carlos Paturzo
+CONTACTO:        11 5654 8438 (oficina)
+=== FIN ESTADO ===

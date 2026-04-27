@@ -96,9 +96,29 @@ class DomicilioRelationFlags:
 
 class SystemFlags:
     """
-    [DOCTRINA V14] GENOMA DE SISTEMA (Byte 0)
+    [DOCTRINA V14] GENOMA DE SISTEMA (SystemFlags)
+    Bit 63 reservado por SQLite (signo BigInteger)
+    Bit 62 = ESPEJO_OK (meta-bit de sincronización)
     """
-    TERMICA = 1    # Bloqueo total (Rojo)
-    ADVERTENCIA = 2 # Discrepancia (Amarillo)
-    AISLAMIENTO = 4 # Sin conexión ARCA (Naranja)
+    # SEMÁFORO OPERATIVO (Bits 0-2) — existentes
+    TERMICA          = 1          # Bit 0 🔴 Bloqueo total — PIN 1974
+    ADVERTENCIA      = 2          # Bit 1 🟡 Discrepancias — operar con cuidado
+    AISLAMIENTO      = 4          # Bit 2 🟠 Sin conexión ARCA — solo local
+
+    # ESTADO DE SINCRONIZACIÓN (Bits 3-9) — nuevos
+    CODE_DIRTY       = 8          # Bit 3 — Código modificado sin pushear
+    DB_DIRTY         = 16         # Bit 4 — Base tocada, polizón desactualizado
+    POLIZON_LISTO    = 32         # Bit 5 — .bak generado, listo para Git
+    BACKUP_DRIVE_VENCIDO = 64     # Bit 6 — +7 días sin backup a Drive
+    IDENTIDAD_PROTEGIDA  = 128    # Bit 7 — Archivos de identidad intocables
+    SESION_LIBRE     = 256        # Bit 8 — Sin login obligatorio en inicio
+    SOBERANO         = 512        # Bit 9 — Sistema autónomo, no depende de OF
+
+    # META-BIT (Bit 62)
+    ESPEJO_OK        = 1 << 62    # BD + JSON + TXT sincronizados
+
+    # ESTADOS COMBINADOS
+    CIELO_DESPEJADO  = 0          # Verde — arranque sin restricciones
+    CIELO_NUBLADO    = ADVERTENCIA | CODE_DIRTY  # Amarillo — revisar antes de operar
+    TORMENTA         = TERMICA    # Rojo — bloqueo total
 

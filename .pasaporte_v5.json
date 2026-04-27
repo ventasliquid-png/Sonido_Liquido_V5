@@ -1,5 +1,13 @@
-﻿{
-    "origen":  "MEDIO",
-    "estado":  "NOMINAL GOLD",
-    "fecha":  "2026-04-24 19:16:28"
+{
+    "identidad": "D",
+    "version": "5.9.0000",
+    "origen": "MEDIO",
+    "estado_salud": "GOLD",
+    "db_fuente": "pilot_v5x.db",
+    "flags_estado": 0,
+    "semaforo": "CIELO_DESPEJADO",
+    "fecha_cierre": "2026-04-27",
+    "fecha_ultimo_git_push": "2026-04-27",
+    "fecha_ultimo_backup_drive": null,
+    "backup_drive_dias_limite": 7
 }
