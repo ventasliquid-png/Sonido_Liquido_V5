@@ -107,6 +107,8 @@ class IngestionItem(BaseModel):
     descripcion: str
     cantidad: float
     precio_unitario: Optional[float] = None
+    precio_unitario_neto: Optional[float] = None
+    alicuota_iva: Optional[float] = 21.0
 
 class IngestionPayload(BaseModel):
     cliente: IngestionCliente

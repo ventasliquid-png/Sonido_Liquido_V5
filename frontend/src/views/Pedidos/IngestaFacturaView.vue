@@ -550,7 +550,7 @@ const autoSelectAddress = () => {
 }
 
 const confirmIngesta = async () => {
-    if (!parsedData.value) return;
+    if (!parsedData.value || loading.value) return;
 
     // [V5] Interception Check (ABM Workflow)
     if (!checkClientStatus()) {

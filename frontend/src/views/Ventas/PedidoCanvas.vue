@@ -1695,8 +1695,10 @@ const savePedido = async () => {
 
         // [FIX] Edit mode → PATCH existing pedido. Create mode → POST new pedido.
         if (route.params.id) {
+            // Edit Mode Order Update
             await api.patch(`/pedidos/${route.params.id}`, payload);
         } else {
+            // Tactical Mode Order Creation
             await api.post('/pedidos/tactico', payload);
         }
 

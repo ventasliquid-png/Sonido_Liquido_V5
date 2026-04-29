@@ -18,6 +18,11 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const { config } = error;
+    // [GY-FIX] Only retry GET requests to prevent double-submissions on POST/PUT
+    if (config.method !== 'get') {
+        return Promise.reject(error);
+    }
+
     // Error de red o conexión rechazada (Backend caido/reiniciando)
     if (!error.response || error.code === 'ERR_NETWORK' || error.code === 'ECONNABORTED') {
       config.__retryCount = config.__retryCount || 0;

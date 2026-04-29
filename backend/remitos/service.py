@@ -27,19 +27,28 @@ class RemitosService:
         """
         Creates a Pedido and Remito from PDF Ingestion Data.
         """
-        # [V5] Anti-Zombi: Verify if Remito already exists for this Invoice
+        # [V5.2 OMEGA] Anti-Zombi: Verify if Remito OR Pedido already exists
         original_invoice = payload.factura.numero or ""
         numero_legal = ""
         if "-" in original_invoice:
-            # [V5.4 Robustness] Use full invoice number instead of just suffix to avoid collisions
-            # Example: 0001-12345678 -> 0016-0001-12345678
-            inv_body = original_invoice.replace("-", "-") # Keep all parts
-            numero_legal = f"0016-{inv_body}"
+            numero_legal = f"0016-{original_invoice}"
         
+        # Guard 1: Existing Remito (Committed)
         if numero_legal:
             existing_remito = db.query(models.Remito).filter(models.Remito.numero_legal == numero_legal).first()
             if existing_remito:
-                raise ValueError(f"Ya existe el Remito {numero_legal} asociado a esta Factura.")
+                print(f"[INGESTA] Bloqueo: Remito {numero_legal} ya existe.")
+                return existing_remito
+        
+        # Guard 2: Existing Pedido (Prevent Ghosting during slow transactions)
+        if original_invoice:
+            note_search = f"Ingesta Automática Factura: {original_invoice}"
+            existing_pedido = db.query(Pedido).filter(Pedido.nota == note_search).first()
+            if existing_pedido:
+                print(f"[INGESTA] Bloqueo OMEGA: Pedido {existing_pedido.id} detectado para factura {original_invoice}.")
+                from fastapi import HTTPException
+                raise HTTPException(status_code=409, detail=f"La factura {original_invoice} ya está siendo procesada.")
+
             
         # 1. FIND CLIENT (Anti-Duplication Strategy)
         payload_cuit = (payload.cliente.cuit or "").replace("-", "").strip()
@@ -252,12 +261,26 @@ class RemitosService:
                 db.flush()
                 print(f"[INGESTA] Producto auto-creado: {codigo_vs} - {producto.nombre}")
                 
+            es_responsable_inscripto = False
+            if cliente.condicion_iva_id:
+                from backend.maestros.models import CondicionIva
+                cond = db.query(CondicionIva).filter(CondicionIva.id == cliente.condicion_iva_id).first()
+                if cond and 'INSCRIPTO' in (cond.nombre or '').upper():
+                    es_responsable_inscripto = True
+
+            if es_responsable_inscripto:
+                precio_unitario_final = precio_pdf
+            else:
+                precio_unitario_final = round(precio_pdf * (1 + alicuota / 100), 4)
+            
+            print(f"[INGESTA-TRACE] Item: {item.descripcion} - Neto: {precio_pdf} - RI: {es_responsable_inscripto} - Final: {precio_unitario_final}")
+
             new_p_item = PedidoItem(
                 pedido_id=nuevo_pedido.id,
                 producto_id=producto.id,
                 cantidad=item.cantidad,
-                precio_unitario=item.precio_unitario if item.precio_unitario is not None else 0.0,
-                subtotal=(item.cantidad * (item.precio_unitario or 0.0)),
+                precio_unitario=precio_unitario_final,
+                subtotal=(item.cantidad * precio_unitario_final),
                 nota=""
             )
             db.add(new_p_item)
@@ -298,14 +321,21 @@ class RemitosService:
         db.add(remito)
         db.flush()
 
-        # 6. CREATE REMITO ITEMS
+        # 6. CREATE REMITO ITEMS (GY-TRACE)
+        print(f"[REMITO-TRACE] Procesando {len(pedido_items)} items para Remito {remito.id} (Pedido {nuevo_pedido.id})")
         for p_item in pedido_items:
+            # [GY-FIX] Verificación estricta de pertenencia: 1 Remito = 1 Pedido
+            if p_item.pedido_id != nuevo_pedido.id:
+                print(f"[REMITO-CRITICAL] ERROR DE INTEGRIDAD: PedidoItem {p_item.id} (Pedido {p_item.pedido_id}) no coincide con el Pedido del Remito ({nuevo_pedido.id}). Omitiendo asociación.")
+                continue
+
             r_item = models.RemitoItem(
                 remito_id=remito.id,
                 pedido_item_id=p_item.id,
                 cantidad=p_item.cantidad
             )
             db.add(r_item)
+            print(f"[REMITO-TRACE] Item vinculado: Remito {remito.id} -> PedidoItem {p_item.id}")
             
         # 7. [VANGUARD CANON] Genoma 64-bit Evolution - PIN 1974
         from backend.clientes.constants import ClientFlags
@@ -501,7 +531,8 @@ class RemitosService:
         db.add(remito)
         db.flush()
 
-        # 6. CREATE REMITO ITEMS
+        # 6. CREATE REMITO ITEMS (GY-TRACE)
+        print(f"[REMITO-TRACE] Procesando {len(pedido_items)} items para Remito {remito.id} (Pedido {nuevo_pedido.id})")
         for p_item in pedido_items:
             r_item = models.RemitoItem(
                 remito_id=remito.id,
