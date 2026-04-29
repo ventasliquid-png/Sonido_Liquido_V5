@@ -155,14 +155,14 @@
                         <div class="md:col-span-2 space-y-1" v-if="clientAddresses.length > 0">
                             <label class="text-[10px] uppercase text-blue-500 font-black block mb-1 tracking-widest flex items-center justify-between">
                                 <span>Sede de Entrega (Padrón)</span>
-                                <span v-if="addressAmbiguity" class="text-amber-500 animate-pulse flex items-center gap-1">
+                                <span v-if="addressAmbiguity && !manualAddressChange" class="text-amber-500 animate-pulse flex items-center gap-1">
                                     <i class="fas fa-exclamation-triangle text-[8px]"></i> AMBIGÜEDAD: CONFIRME SEDE
                                 </span>
                             </label>
                             <div class="relative group">
                                 <select 
                                     v-model="selectedAddressId" 
-                                    @change="onAddressSelectChange"
+                                    @change="manualAddressChange = true; onAddressSelectChange()"
                                     class="w-full bg-slate-950 border rounded-lg px-3 py-2 text-xs text-white focus:border-blue-500 outline-none transition-all appearance-none pr-8"
                                     :class="[
                                         addressAmbiguity && !manualAddressChange ? 'border-amber-500/50 shadow-[0_0_10px_rgba(245,158,11,0.2)]' : 'border-blue-900/30',
@@ -182,6 +182,10 @@
                                 <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 group-hover:text-blue-400">
                                     <i class="fas" :class="isSuggestedSelected ? 'fa-magic text-emerald-400' : 'fa-chevron-down'"></i>
                                 </div>
+                            </div>
+                            <!-- Help text for Ambiguity [GY-UX] -->
+                            <div v-if="addressAmbiguity && !manualAddressChange" class="mt-1 text-[9px] text-amber-500/70 italic flex items-center gap-1">
+                                <i class="fas fa-arrow-up"></i> Haga clic para seleccionar la sede correcta de la lista
                             </div>
                         </div>
                         
@@ -232,24 +236,35 @@
                                 <tr>
                                     <th class="py-2 pl-2">Descripción</th>
                                     <th class="py-2 text-right w-24">Cant.</th>
+                                    <th class="py-2 text-right w-28">P. Unit. Neto</th>
                                     <th class="py-2 w-10"></th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-800">
                                 <tr v-for="(item, idx) in parsedData.items" :key="idx" class="group hover:bg-slate-800/50">
                                     <td class="py-2 pl-2">
-                                        <input 
-                                            v-model="item.descripcion" 
-                                            type="text" 
+                                        <input
+                                            v-model="item.descripcion"
+                                            type="text"
                                             class="w-full bg-transparent border-none text-sm text-slate-300 group-hover:text-white focus:outline-none focus:ring-1 focus:ring-blue-500/50 rounded px-1 transition-all"
                                             placeholder="Descripción del ítem..."
                                         />
                                     </td>
                                     <td class="py-2 text-right">
-                                        <input 
-                                            v-model.number="item.cantidad" 
-                                            type="number" 
-                                            class="w-20 bg-blue-500/10 border border-blue-500/20 rounded px-2 py-1 text-right text-sm font-mono font-bold text-blue-300 focus:outline-none focus:border-blue-500 transition-all"
+                                        <input
+                                            v-model.number="item.cantidad"
+                                            type="number"
+                                            class="w-20 bg-blue-500/10 border rounded px-2 py-1 text-right text-sm font-mono font-bold transition-all"
+                                            :class="item.cantidad <= 0 ? 'border-red-500 text-red-400 shadow-[0_0_10px_rgba(239,68,68,0.3)]' : 'border-blue-500/20 text-blue-300 focus:border-blue-500'"
+                                        />
+                                    </td>
+                                    <td class="py-2 text-right">
+                                        <input
+                                            v-model.number="item.precio_unitario_neto"
+                                            type="number"
+                                            class="w-28 bg-emerald-500/10 border rounded px-2 py-1 text-right text-sm font-mono font-bold transition-all"
+                                            :class="item.precio_unitario_neto <= 0 ? 'border-red-500 text-red-400 shadow-[0_0_10px_rgba(239,68,68,0.3)]' : 'border-emerald-500/20 text-emerald-300 focus:border-emerald-500'"
+                                            placeholder="0.00"
                                         />
                                     </td>
                                     <td class="py-2 text-center">
@@ -285,12 +300,16 @@
                         <!-- PREVIEW NATIVO REMOVIDO -->
                         <button 
                             @click="confirmIngesta"
-                            :disabled="loading"
-                            class="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-lg shadow-lg shadow-blue-900/30 flex items-center gap-2"
+                            :disabled="loading || hasZeroValues"
+                            class="px-6 py-2 font-bold rounded-lg shadow-lg flex items-center gap-2 transition-all"
+                            :class="[
+                                (loading || hasZeroValues) 
+                                ? 'bg-slate-700 text-slate-500 cursor-not-allowed shadow-none' 
+                                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-900/30'
+                            ]"
                         >
-                            <i v-if="loading" class="fas fa-circle-notch fa-spin"></i>
-                            <span>{{ loading ? 'Procesando...' : 'Generar Remito' }}</span>
-                            <i v-if="!loading" class="fas fa-file-import"></i>
+                            <span>{{ hasZeroValues ? 'Corregir Valores en 0' : 'Generar Remito' }}</span>
+                            <i class="fas" :class="loading ? 'fa-spinner fa-spin' : 'fa-file-import'"></i>
                         </button>
                     </div>
                 </div>
@@ -299,6 +318,100 @@
     </div>
 
     <!-- SE ELIMINÓ EL MODAL PREVIEW DE VUE -->
+
+    <!-- MODAL SELECCIÓN DE FLUJO DE INGESTA -->
+    <Teleport to="body">
+        <div v-if="showModoIngesta" class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-[#0f172a] border-2 border-blue-500/50 rounded-2xl w-full max-w-2xl shadow-[0_0_30px_rgba(59,130,246,0.3)] p-6">
+
+                <h2 class="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                    <i class="fas fa-code-branch text-blue-400"></i>
+                    ¿Qué hacemos con esta factura?
+                </h2>
+                <p class="text-sm text-slate-400 mb-6">
+                    {{ parsedData?.cliente?.razon_social }} — {{ parsedData?.factura?.numero }}
+                </p>
+
+                <!-- CANDIDATOS -->
+                <div v-if="pedidosCandidatos.length > 0" class="mb-4">
+                    <p class="text-xs uppercase font-bold text-blue-400 mb-2 tracking-wider">
+                        Pedidos activos de este cliente
+                    </p>
+                    <div class="space-y-2 max-h-48 overflow-y-auto">
+                        <button
+                            v-for="p in pedidosCandidatos.slice(0,5)"
+                            :key="p.pedido_id"
+                            @click="pedidoVinculadoId = p.pedido_id; modoIngestaSeleccionado = p.estado === 'CUMPLIDO' ? 'VINCULAR_CUMPLIDO' : 'VINCULAR_EXISTENTE'; showModoIngesta = false; confirmIngesta()"
+                            class="w-full text-left bg-slate-800 hover:bg-blue-900/30 border rounded-lg px-4 py-3 transition-all"
+                            :class="p.score > 30 ? 'border-blue-500/50' : 'border-slate-700'"
+                        >
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-white">Pedido #{{ p.pedido_id }}</span>
+                                <span class="text-xs px-2 py-1 rounded-full"
+                                    :class="p.es_interno ? 'bg-orange-900/50 text-orange-400' : p.estado === 'CUMPLIDO' ? 'bg-green-900/50 text-green-400' : 'bg-blue-900/50 text-blue-400'">
+                                    {{ p.estado }}
+                                </span>
+                            </div>
+                            <div class="text-xs text-slate-400 mt-1">
+                                {{ p.fecha }} — {{ p.items_count }} ítems — ${{ p.total?.toLocaleString('es-AR') }}
+                                <span v-if="p.score > 30" class="ml-2 text-blue-400">
+                                    <i class="fas fa-magic"></i> Sugerido
+                                </span>
+                            </div>
+                            <div v-if="p.es_interno" class="text-xs text-orange-400 mt-1 flex items-center gap-1">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Pedido INTERNO — los precios pueden diferir del PDF. Verificar antes de vincular.
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- OPCIONES -->
+                <div class="grid grid-cols-1 gap-3 mt-4">
+                    <button
+                        v-if="pedidosCandidatos.length === 0"
+                        class="w-full text-center py-3 bg-slate-800 border border-slate-700 rounded-lg text-slate-400 text-sm italic"
+                        disabled
+                    >
+                        No hay pedidos activos para este cliente
+                    </button>
+
+                    <button
+                        @click="modoIngestaSeleccionado = 'NUEVO'; showModoIngesta = false; confirmIngesta()"
+                        class="w-full text-left px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg transition-all"
+                    >
+                        <div class="font-bold text-white flex items-center gap-2">
+                            <i class="fas fa-plus-circle text-green-400"></i>
+                            Crear pedido nuevo con datos de esta factura
+                        </div>
+                        <div class="text-xs text-slate-400 mt-1">
+                            La factura no corresponde a ningún pedido previo
+                        </div>
+                    </button>
+
+                    <button
+                        @click="modoIngestaSeleccionado = 'DIRECTO'; showModoIngesta = false; confirmIngesta()"
+                        class="w-full text-left px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg transition-all"
+                    >
+                        <div class="font-bold text-white flex items-center gap-2">
+                            <i class="fas fa-check-circle text-amber-400"></i>
+                            Venta directa — ya entregado, sin pedido pendiente
+                        </div>
+                        <div class="text-xs text-slate-400 mt-1">
+                            Mostrador, entrega inmediata. Solo registrar la factura.
+                        </div>
+                    </button>
+
+                    <button
+                        @click="showModoIngesta = false"
+                        class="w-full text-center py-2 text-slate-500 hover:text-white transition text-sm"
+                    >
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </Teleport>
 
     <!-- CLIENT ABM MODAL (SABUESO INTERVENTION) -->
     <Teleport to="body">
@@ -351,6 +464,10 @@ const bultos = ref(1);
 const valor_declarado = ref(0.0);
 const addressAmbiguity = ref(false);
 const manualAddressChange = ref(false);
+const hasZeroValues = computed(() => {
+    if (!parsedData.value || !parsedData.value.items) return false;
+    return parsedData.value.items.some(item => item.cantidad <= 0 || item.precio_unitario_neto <= 0);
+});
 const isSuggestedSelected = computed(() => {
     const selected = clientAddresses.value.find(d => d.id === selectedAddressId.value);
     return selected?.is_suggested || false;
@@ -362,6 +479,11 @@ const newAddress = ref({
     localidad: '',
     provincia_id: 'X'
 });
+
+const showModoIngesta = ref(false);
+const pedidosCandidatos = ref([]);
+const modoIngestaSeleccionado = ref(null);
+const pedidoVinculadoId = ref(null);
 
 // SE ELIMINARON MOCKS DE VISTA PREVIA
 
@@ -432,6 +554,10 @@ const reset = () => {
     bultos.value = 1;
     valor_declarado.value = 0.0;
     if (fileInput.value) fileInput.value.value = '';
+    modoIngestaSeleccionado.value = null;
+    pedidoVinculadoId.value = null;
+    showModoIngesta.value = false;
+    pedidosCandidatos.value = [];
 };
 
 const addItem = () => {
@@ -475,20 +601,20 @@ const closeClientAbm = () => {
 
 const onClientSaved = async (savedClient) => {
     showClientAbm.value = false;
-    notification.add('Cliente consistido. Procediendo a generar remito...', 'success');
-    
+
     // Update local data with the new verified status
     if (parsedData.value && savedClient) {
         parsedData.value.cliente.db_status = 'EXISTE';
         parsedData.value.cliente.flags_estado = savedClient.flags_estado;
         parsedData.value.cliente.razon_social = savedClient.razon_social;
-        parsedData.value.cliente.id = savedClient.id; // Guarda el ID real devuelto por la DB
-        
+        parsedData.value.cliente.id = savedClient.id;
+
         await loadClientDetails(savedClient.id);
     }
-    
-    // Auto-resume formulation  
-    confirmIngesta();
+
+    // [V5-FIX] BUG pedidos fantasma: no auto-confirmar.
+    // El usuario revisa domicilio y confirma manualmente.
+    notification.add('Cliente consistido. Revisá la sede de entrega y presioná "Generar Remito".', 'info');
 };
 
 const loadClientDetails = async (clientId) => {
@@ -516,6 +642,24 @@ const onAddressSelectChange = () => {
         newAddress.value.provincia_id = 'C';
     }
 }
+
+const buscarPedidosCandidatos = async () => {
+    if (!parsedData.value?.cliente?.cuit) return;
+    try {
+        const cuit = parsedData.value.cliente.cuit.replace(/-/g, '').trim();
+        const items = parsedData.value.items.map(i => ({
+            descripcion: i.descripcion,
+            cantidad: i.cantidad
+        }));
+        const res = await api.post('/remitos/ingesta-buscar-pedidos', { cuit, items });
+        pedidosCandidatos.value = res.data.candidatos || [];
+        showModoIngesta.value = true;
+    } catch(e) {
+        console.error('[V5] Error buscando candidatos:', e);
+        pedidosCandidatos.value = [];
+        showModoIngesta.value = true;
+    }
+};
 
 const autoSelectAddress = () => {
     if (clientAddresses.value.length === 0) return;
@@ -552,6 +696,20 @@ const autoSelectAddress = () => {
 const confirmIngesta = async () => {
     if (!parsedData.value || loading.value) return;
 
+    // [V5-FIX] Guardia de ingesta incompleta: bloquear si el parser no extrajo datos mínimos
+    const cuit = (parsedData.value.cliente?.cuit || '').replace(/-/g, '').trim();
+    const items = parsedData.value.items || [];
+    if (!cuit || cuit === '00000000000' || items.length === 0) {
+        notification.add('El PDF no pudo extraer CUIT o ítems. Revisá el documento o completá los datos manualmente antes de continuar.', 'error');
+        return;
+    }
+
+    // [V5-FLUJO-C] Si no se eligió modo de ingesta, buscar candidatos primero
+    if (!modoIngestaSeleccionado.value) {
+        await buscarPedidosCandidatos();
+        return;
+    }
+
     // [V5] Interception Check (ABM Workflow)
     if (!checkClientStatus()) {
         notification.add('El cliente no existe o requiere consistencia AFIP. Complete la ficha técnica.', 'warning');
@@ -578,13 +736,16 @@ const confirmIngesta = async () => {
             items: parsedData.value.items.map(item => ({
                 descripcion: item.descripcion,
                 cantidad: parseFloat(item.cantidad),
-                precio_unitario: parseFloat(item.precio_unitario || 0.0),
+                precio_unitario_neto: parseFloat(item.precio_unitario_neto) || 0.0,
+                alicuota_iva: parseFloat(item.alicuota_iva) || 21.0,
                 codigo: item.codigo || null
             })),
             transporte_id: selectedTransportId.value,
             bultos: bultos.value,
             valor_declarado: valor_declarado.value,
-            nuevo_domicilio: selectedAddressId.value === 'ADD_NEW' ? newAddress.value : null
+            nuevo_domicilio: selectedAddressId.value === 'ADD_NEW' ? newAddress.value : null,
+            modo_ingesta: modoIngestaSeleccionado.value || 'NUEVO',
+            pedido_id_vinculado: pedidoVinculadoId.value || null,
         };
 
         // Si hay domicilio seleccionado de la lista
@@ -593,15 +754,19 @@ const confirmIngesta = async () => {
         }
 
         const res = await remitosService.confirmIngesta(payload);
-        
+
         if (res.data && res.data.id) {
-            notification.add('Remito generado con éxito en Base de Datos', 'success');
-            // [GY-FIX] Ya no mostramos la Vista Previa de Vue, sino que abrimos
-            // el PDF Oficial generado por el Motor Python FPDF (Estilo RAR)
-            const pdfUrl = `/remitos/${res.data.id}/pdf`;
-            window.open(pdfUrl, '_blank');
-            
-            reset();
+            if (modoIngestaSeleccionado.value === 'NUEVO') {
+                // Pedido nuevo: redirigir a la ficha para revisión/aprobación antes de confirmar
+                notification.add('Pedido creado. Revisá y aprobá la ficha antes de continuar.', 'info');
+                reset();
+                router.push({ name: 'PedidoEditar', params: { id: res.data.pedido_id } });
+            } else {
+                notification.add('Remito generado con éxito en Base de Datos', 'success');
+                const pdfUrl = `/remitos/${res.data.id}/pdf`;
+                window.open(pdfUrl, '_blank');
+                reset();
+            }
         }
 
     } catch (e) {

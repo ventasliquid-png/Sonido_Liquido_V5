@@ -42,6 +42,14 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
         logger.error(f"Error reading PDF with fitz: {e}")
         raise e
 
+def _parse_ar_float(s: str) -> float:
+    """Parse Argentine number format: '9.750,00' or '9750,00' → 9750.0"""
+    s = s.strip()
+    if ',' in s:
+        return float(s.replace('.', '').replace(',', '.'))
+    return float(s)
+
+
 def parse_invoice_data(text: str) -> dict:
     """
     Parses raw text from AFIP Invoice using Sabueso Heuristics (Doctrina 2026).
@@ -80,56 +88,44 @@ def parse_invoice_data(text: str) -> dict:
     if match_vto:
         data["factura"]["vto_cae"] = match_vto.group(1)
 
-    # 2. CLIENTE (CUIT Detection)
-    # Extended patterns to catch varied CUIT prefixes
-    patrones_cuit = re.findall(r'\b((?:20|23|24|27|30|33|34)\-?\d{8}\-?\d{1})\b', text)
-    cuits_limpios = [c.replace("-", "") for c in patrones_cuit]
-    
-    # Filtramos nuestro propio CUIT el que sobra es el del cliente
-    cuits_filtrados = [c for c in cuits_limpios if c != ISSUER_CUIT]
+    # 2. CLIENTE (CUIT Detection - Prioritized Strategy)
     cuit_final = None
-    if cuits_filtrados:
-        cuit_final = cuits_filtrados[0]
-    else:
-        # Fallback por si no pasamos el CUIT emisor
-        if len(cuits_limpios) >= 2:
-            cuit_final = cuits_limpios[1]
-        elif len(cuits_limpios) == 1:
-            cuit_final = cuits_limpios[0]
+    
+    # Priority 1: Find CUIT following a "CUIT:" label that is NOT the issuer's
+    labels_cuit = re.finditer(r"(?:CUIT|CUIL)[:\s|]*((?:20|23|24|27|30|33|34)\-?\d{8}\-?\d{1})", text, re.IGNORECASE)
+    for match in labels_cuit:
+        c = match.group(1).replace("-", "").strip()
+        if c != ISSUER_CUIT:
+            cuit_final = c
+            break
+    
+    # Priority 2: Fallback to any CUIT-like pattern found in text
+    if not cuit_final:
+        patrones_cuit = re.findall(r'\b((?:20|23|24|27|30|33|34)\-?\d{8}\-?\d{1})\b', text)
+        cuits_limpios = [c.replace("-", "") for c in patrones_cuit]
+        cuits_filtrados = [c for c in cuits_limpios if c != ISSUER_CUIT]
+        if cuits_filtrados:
+            cuit_final = cuits_filtrados[0]
 
     if cuit_final:
-        # Standardize: Always digits-only for internal logic/DB, format for UI is separate
-        clean_cuit = cuit_final.replace("-", "").strip()
-        data["cliente"]["cuit"] = clean_cuit
+        data["cliente"]["cuit"] = cuit_final
 
     # Name and Address Detection (Context-aware)
     blocks = [b.strip() for b in text.split('|')]
     cuit_pattern = cuit_final if cuit_final else "NO_CUIT_FOUND"
     
     # [V5 BRAIN] Strategy: Inverted AFIP detection.
-    # If we find "Razón Social" but the block before it contains the CUIT + Name, use that.
     razon_social = None
     
     # Strategy B: Block-based (Near CUIT) - HIGH PRIORITY FOR INVERTED
     if cuit_final:
         for idx, block in enumerate(blocks):
             if cuit_pattern in block.replace("-", ""):
-                # Is the name in this same block? (e.g. "30611306632 BIOTENK S A")
                 clean_candidate = block.replace("-", "").replace(cuit_pattern, "").strip()
                 if len(clean_candidate) > 3:
                     razon_social = clean_candidate
                     break
-                # Or maybe in the block JUST BEFORE the "Razón Social" label?
-                # Find where "Razón Social" label is
-                for j in range(len(blocks)):
-                    if "RAZÓN SOCIAL" in blocks[j].upper() or "APELLIDO Y NOMBRE" in blocks[j].upper():
-                        if j > 0:
-                            candidate = blocks[j-1].strip()
-                            if len(candidate) > 3 and not any(x in candidate.upper() for x in ["CUIT", "EMISIÓN", ISSUER_CUIT]):
-                                razon_social = candidate
-                                break
-                if razon_social: break
-
+    
     # Strategy A: Label-based (Fallback)
     if not razon_social:
         name_match = re.search(r"(?:Apellido y Nombre|Razón Social)\s*[:\|]?\s*([^|]{3,})(?=\s*\||$)", text, re.IGNORECASE)
@@ -139,10 +135,18 @@ def parse_invoice_data(text: str) -> dict:
                 razon_social = candidate
 
     if razon_social:
-        # Remove common labels if they leaked in
         razon_social = re.sub(r'(?:Apellido y Nombre|Razón Social)[:\s]*', '', razon_social, flags=re.I).strip()
         razon_social = razon_social.replace('|', '').strip()
-        data["cliente"]["razon_social"] = razon_social
+        data["cliente"]["razon_social"] = razon_social.upper()
+
+    # [LOG TRACE] Guardar lo que se leyó para diagnóstico
+    try:
+        with open("sabueso_trace.log", "a", encoding="utf-8") as log_f:
+            import datetime
+            now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            log_f.write(f"[{now}] CUIT: {cuit_final} | Cliente: {razon_social} | Factura: {data['factura'].get('numero')}\n")
+    except:
+        pass
 
     # [NUEVO] Condición IVA
     iva_match = re.search(r"(?:Condición frente al IVA|IVA)[:\|]?\s*([^|]{5,30})(?=\s*\||$)", text, re.IGNORECASE)
@@ -186,36 +190,91 @@ def parse_invoice_data(text: str) -> dict:
 
     data["cliente"]["domicilio"] = f"[EXTRACTED] {final_domicilio}" if final_domicilio else "S/D"
 
-    # 3. ITEMS (Anchor Strategy V2)
-    # Pattern looks for: Description, Price/Tax (ignored here but used as anchor), Quantity, Unit
-    # AFIP structure: [Qty] [Unit] [Description] ... or [Description] [Qty] [Unit]
-    # Block-based extraction usually keeps item lines together.
-    
+    # 3. ITEMS (Triangulación: Cantidad + Unidad + Precio/Número posterior)
     lines = text.split('|')
-    item_pattern = re.compile(r"(\d+[\.,]\d{2,3})\s+(unidades|un|u\.|litros|kg|mts|bultos|oz)", re.IGNORECASE)
-    
+    # Exigimos 'unidades' o 'un.' (con punto) para evitar falsos positivos como 'X 100 UN'
+    item_pattern = re.compile(r"(\d+[\d\.,]*)\s+(unidades|un\.|u\.|litros|kg|mts|bultos|oz)\s+(\d+[\d\.,]*)", re.IGNORECASE)
+
+    HEADER_NOISE = ["SUBTOTAL", "IMPORTES", "ALICUOTA", "IVA", "IMPORTE", "CAE", "FECHA",
+                    "CUIT", "CONDICIÓN", "CÓDIGO", "PRODUCTO / SERVICIO", "U. MEDIDA",
+                    "PRECIO UNIT", "TRIBUTOS", "NETO GRAVADO", "SONIDO LIQUIDO",
+                    "DOMICILIO", "RAZÓN SOCIAL", "PUNTO DE VENTA", "COMP"]
+
     items_found = []
+    prev_desc = ""
+
     for line in lines:
-        match = item_pattern.search(line)
-        if match:
-            # We found a quantity and unit. The description is usually before or after.
-            # In AFIP, it's often: [Desc] [Qty] [Unit] [Price] ...
-            # We'll take the whole block as description candidate and clean it.
-            qty_str = match.group(1).replace('.', '').replace(',', '.')
-            unit = match.group(2)
+        line = line.strip()
+        if not line: continue
+        
+        # logger.info(f"[SABUESO-ITEM-SCAN] Line: {line[:50]}...")
+
+
+        # [SABUESO ORO V4] ESTRATEGIA DE ANCLAJE (Derecha a Izquierda)
+        # Limpiamos la línea de caños y ruidos
+        clean_line = line.replace('|', ' ').strip()
+        words = clean_line.split()
+        
+        # Unidades de medida válidas (Anclas)
+        VALID_UNITS = ["UNIDADES", "UN.", "U.", "LITROS", "KG", "MTS", "BULTOS", "OZ", "UN"]
+        
+        found_item = None
+        for i, word in enumerate(words):
+            if word.upper() in VALID_UNITS:
+                # Encontramos un ancla. Los datos reales están a sus flancos.
+                if i > 0 and i < len(words) - 1:
+                    qty_str = words[i-1]
+                    price_str = words[i+1]
+                    
+                    # Validamos que sean números
+                    if re.match(r'^\d+[\d\.,]*$', qty_str) and re.match(r'^\d+[\d\.,]*$', price_str):
+                        qty = _parse_ar_float(qty_str)
+                        p_unit = _parse_ar_float(price_str)
+                        
+                        # Capturamos la descripción (todo lo que está a la izquierda de la cantidad)
+                        desc_part = " ".join(words[:i-1]).strip()
+                        
+                        # [SABUESO PRIORIDAD] Seguimos buscando por si hay otro ancla más a la derecha
+                        found_item = {
+                            "descripcion": (prev_desc + " " + desc_part).strip() if prev_desc else desc_part,
+                            "cantidad": qty,
+                            "precio_unitario_neto": p_unit,
+                            "alicuota_iva": 21.0, # Default, se refina abajo
+                            "words_index": i
+                        }
+        
+        if found_item:
+            # Refinamos la alícuota con el resto de la línea
+            remaining = " ".join(words[found_item["words_index"]+2:])
+            iva_match = re.search(r'(\d+)\s*%', remaining)
+            if iva_match:
+                found_item["alicuota_iva"] = float(iva_match.group(1))
             
-            # Clean description: remove the qty/unit and trailing noise
-            desc = line.replace(match.group(0), '').strip()
-            # Remove financial columns (approximate)
-            desc = re.sub(r'\s+\d+[\.,]\d{2}.*', '', desc) 
-            
-            if len(desc) > 3 and not any(noise in desc.upper() for noise in ["SUBTOTAL", "IMPORTES", "ALICUOTA", "IVA"]):
-                items_found.append({
-                    "descripcion": desc,
-                    "cantidad": float(qty_str)
-                })
-            
+            items_found.append({
+                "descripcion": found_item["descripcion"].upper(),
+                "cantidad": found_item["cantidad"],
+                "precio_unitario_neto": found_item["precio_unitario_neto"],
+                "alicuota_iva": found_item["alicuota_iva"]
+            })
+            prev_desc = ""
+            continue
+
+
+        # 2. Si no tiene ancla, acumulamos como descripción probable
+        upper = clean_line.upper()
+        if len(clean_line) > 2 and not any(noise in upper for noise in HEADER_NOISE):
+            if prev_desc:
+                prev_desc += " " + clean_line
+            else:
+                prev_desc = clean_line
+
+
     data["items"] = items_found
+
+    # [NUEVO] OC Detection
+    oc_match = re.search(r'OC:\s*(OC\s+[\w\d]+)', text, re.IGNORECASE)
+    if oc_match:
+        data["factura"]["oc"] = oc_match.group(1).strip()
 
     # [NUEVO] Detección de Canal (Marketing DNA)
     if "MERCADO LIBRE" in text.upper() or "MELI" in text.upper():
