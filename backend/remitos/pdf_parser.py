@@ -9,35 +9,38 @@ from fastapi import UploadFile
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def extract_text_from_pdf(file_bytes: bytes) -> str:
+def extract_text_from_pdf(file_bytes: bytes):
     """
     Infiltra un PDF de ARCA/AFIP usando PyMuPDF (fitz) para extraer bloques 
-    ordenados espacialmente, sorteando el desorden de AFIP.
+    y palabras con coordenadas exactas.
     """
     try:
         doc = fitz.open(stream=file_bytes, filetype="pdf")
         text_blocks = []
+        words_data = []
         
-        # [ALFA-CA] REGLA DE PAGINA 1: Solo analizamos la primera página 
-        # para evitar triplicación de items y asegurar paridad Sabueso Oro.
         if doc.page_count > 0:
             page = doc[0]
+            # 1. Blocks for legacy text search
             blocks = page.get_text("blocks")
-            # Ordenamos por Y (arriba a abajo) y luego X (izq a der)
             blocks.sort(key=lambda b: (b[1], b[0]))
             for b in blocks:
-                # b[4] es el texto del bloque
                 text_blocks.append(b[4].replace("\n", " ").strip())
+            
+            # 2. Words for Zonal parsing
+            words_data = page.get_text("words")
         
         doc.close()
-        # [SABUESO ORO] Joining with pipes for robust regex targeting
         full_text = " | ".join(text_blocks)
+        
+        # Debug trace
         try:
              with open("pdf_debug.txt", "w", encoding="utf-8") as f:
                   f.write(full_text)
         except:
              pass
-        return full_text
+             
+        return full_text, words_data
     except Exception as e:
         logger.error(f"Error reading PDF with fitz: {e}")
         raise e
@@ -50,13 +53,23 @@ def _parse_ar_float(s: str) -> float:
     return float(s)
 
 
-def parse_invoice_data(text: str) -> dict:
+def parse_invoice_data(text: str, words_data: list = None) -> dict:
     """
-    Parses raw text from AFIP Invoice using Sabueso Heuristics (Doctrina 2026).
-    Robust patterns ported from RAR repository.
+    Parses raw text and word data using Sabueso Zonal Heuristics (V5.5).
     """
     data = {"cliente": {}, "factura": {}, "items": []}
     ISSUER_CUIT = "30715603973"
+
+    # [ZONAS AFIP CALIBRADAS 2026]
+    ZONAS = {
+        "descripcion": (0, 235),
+        "cantidad":    (235, 280),
+        "u_medida":    (280, 330),
+        "precio_unit": (330, 385), # Narrower to avoid Bonif (390+)
+        "subtotal":    (410, 485),
+        "alicuota":    (485, 525),
+        "total_item":  (525, 600)
+    }
 
     # 1. FACTURA & CAE (Protocolo Sabueso Oro - RAR Port)
     # Pto Vta and Comp Nro
@@ -190,86 +203,114 @@ def parse_invoice_data(text: str) -> dict:
 
     data["cliente"]["domicilio"] = f"[EXTRACTED] {final_domicilio}" if final_domicilio else "S/D"
 
-    # 3. ITEMS (Triangulación: Cantidad + Unidad + Precio/Número posterior)
-    lines = text.split('|')
-    # Exigimos 'unidades' o 'un.' (con punto) para evitar falsos positivos como 'X 100 UN'
-    item_pattern = re.compile(r"(\d+[\d\.,]*)\s+(unidades|un\.|u\.|litros|kg|mts|bultos|oz)\s+(\d+[\d\.,]*)", re.IGNORECASE)
+    # [V5] Detección de Totales (Pie de Factura)
+    match_neto = re.search(r'Importe Neto Gravado:\s*\$?\s*([\d\.,]+)', text, re.IGNORECASE)
+    if match_neto:
+        data["factura"]["total_neto"] = _parse_ar_float(match_neto.group(1))
+    
+    match_total = re.search(r'Importe Total:\s*\$?\s*([\d\.,]+)', text, re.IGNORECASE)
+    if match_total:
+        data["factura"]["total_final"] = _parse_ar_float(match_total.group(1))
 
-    HEADER_NOISE = ["SUBTOTAL", "IMPORTES", "ALICUOTA", "IVA", "IMPORTE", "CAE", "FECHA",
-                    "CUIT", "CONDICIÓN", "CÓDIGO", "PRODUCTO / SERVICIO", "U. MEDIDA",
-                    "PRECIO UNIT", "TRIBUTOS", "NETO GRAVADO", "SONIDO LIQUIDO",
-                    "DOMICILIO", "RAZÓN SOCIAL", "PUNTO DE VENTA", "COMP"]
-
-    items_found = []
-    prev_desc = ""
-
-    for line in lines:
-        line = line.strip()
-        if not line: continue
+    # --- [SABUESO V5.5 ZONAL ITEMS] ---
+    if words_data:
+        # 1. Agrupamos palabras por línea (Y0) con tolerancia de 4 pts
+        lines = {}
+        for w in words_data:
+            x0, y0, x1, y1, val, *_ = w
+            y_key = round(y0 / 4) * 4
+            if y_key not in lines: lines[y_key] = []
+            lines[y_key].append({"x0": x0, "text": val})
         
-        # logger.info(f"[SABUESO-ITEM-SCAN] Line: {line[:50]}...")
-
-
-        # [SABUESO ORO V4] ESTRATEGIA DE ANCLAJE (Derecha a Izquierda)
-        # Limpiamos la línea de caños y ruidos
-        clean_line = line.replace('|', ' ').strip()
-        words = clean_line.split()
-        
-        # Unidades de medida válidas (Anclas)
+        sorted_y = sorted(lines.keys())
+        items_v55 = []
+        current_item = None
+        desc_buffer = "" # [V5.5] Buffer para descripciones pre-data
+        table_started = False
         VALID_UNITS = ["UNIDADES", "UN.", "U.", "LITROS", "KG", "MTS", "BULTOS", "OZ", "UN"]
-        
-        found_item = None
-        for i, word in enumerate(words):
-            if word.upper() in VALID_UNITS:
-                # Encontramos un ancla. Los datos reales están a sus flancos.
-                if i > 0 and i < len(words) - 1:
-                    qty_str = words[i-1]
-                    price_str = words[i+1]
-                    
-                    # Validamos que sean números
-                    if re.match(r'^\d+[\d\.,]*$', qty_str) and re.match(r'^\d+[\d\.,]*$', price_str):
-                        qty = _parse_ar_float(qty_str)
-                        p_unit = _parse_ar_float(price_str)
-                        
-                        # Capturamos la descripción (todo lo que está a la izquierda de la cantidad)
-                        desc_part = " ".join(words[:i-1]).strip()
-                        
-                        # [SABUESO PRIORIDAD] Seguimos buscando por si hay otro ancla más a la derecha
-                        found_item = {
-                            "descripcion": (prev_desc + " " + desc_part).strip() if prev_desc else desc_part,
-                            "cantidad": qty,
-                            "precio_unitario_neto": p_unit,
-                            "alicuota_iva": 21.0, # Default, se refina abajo
-                            "words_index": i
-                        }
-        
-        if found_item:
-            # Refinamos la alícuota con el resto de la línea
-            remaining = " ".join(words[found_item["words_index"]+2:])
-            iva_match = re.search(r'(\d+)\s*%', remaining)
-            if iva_match:
-                found_item["alicuota_iva"] = float(iva_match.group(1))
+
+        for y in sorted_y:
+            row_words = sorted(lines[y], key=lambda w: w["x0"])
+            row_text = " ".join(w["text"] for w in row_words).upper()
             
-            items_found.append({
-                "descripcion": found_item["descripcion"].upper(),
-                "cantidad": found_item["cantidad"],
-                "precio_unitario_neto": found_item["precio_unitario_neto"],
-                "alicuota_iva": found_item["alicuota_iva"]
-            })
-            prev_desc = ""
-            continue
+            # [V5.5] Gate de Salida: Si detectamos el pie de página, cortamos.
+            if table_started and any(term in row_text for term in ["NETO GRAVADO", "TOTAL VTA", "SUBTOTAL", "SON PESOS"]):
+                table_started = False
+                current_item = None
+                desc_buffer = ""
+                continue
 
+            if not table_started:
+                if "PRODUCTO / SERVICIO" in row_text or "CÓDIGO" in row_text:
+                    table_started = True
+                continue
 
-        # 2. Si no tiene ancla, acumulamos como descripción probable
-        upper = clean_line.upper()
-        if len(clean_line) > 2 and not any(noise in upper for noise in HEADER_NOISE):
-            if prev_desc:
-                prev_desc += " " + clean_line
-            else:
-                prev_desc = clean_line
+            # Clasificar por zonas
+            row_data = {"descripcion": "", "cantidad": None, "u_medida": None, "precio": None, "iva": 21.0}
+            has_data_anchor = False
 
+            for w in row_words:
+                x = w["x0"]
+                txt = w["text"]
+                
+                if x < ZONAS["descripcion"][1]:
+                    row_data["descripcion"] += " " + txt
+                elif ZONAS["cantidad"][0] <= x < ZONAS["cantidad"][1]:
+                    if re.match(r'^\d+[\d\.,]*$', txt) and row_data["cantidad"] is None:
+                         row_data["cantidad"] = _parse_ar_float(txt)
+                elif ZONAS["u_medida"][0] <= x < ZONAS["u_medida"][1]:
+                    if txt.upper() in VALID_UNITS: 
+                        row_data["u_medida"] = txt
+                        has_data_anchor = True
+                elif ZONAS["precio_unit"][0] <= x < ZONAS["precio_unit"][1]:
+                    if re.match(r'^\d+[\d\.,]*$', txt) and row_data["precio"] is None:
+                         row_data["precio"] = _parse_ar_float(txt)
+                elif ZONAS["alicuota"][0] <= x < ZONAS["alicuota"][1]:
+                    if "%" in txt:
+                        try: row_data["iva"] = float(txt.replace("%", "").replace(",", "."))
+                        except: pass
 
-    data["items"] = items_found
+            row_data["descripcion"] = row_data["descripcion"].strip()
+
+            # Lógica de ensamblaje de ítem (Buffer-Aware)
+            if has_data_anchor and row_data["cantidad"] is not None:
+                # Línea primaria: consumimos buffer acumulado
+                full_desc = (desc_buffer + " " + row_data["descripcion"]).strip()
+                current_item = {
+                    "descripcion": full_desc,
+                    "cantidad": row_data["cantidad"],
+                    "precio_unitario_neto": row_data["precio"] or 0.0,
+                    "alicuota_iva": row_data["iva"],
+                    "subtotal": round(row_data["cantidad"] * (row_data["precio"] or 0.0), 2)
+                }
+                items_v55.append(current_item)
+                desc_buffer = "" # Limpiamos buffer
+            elif row_data["descripcion"] and not any(n in row_data["descripcion"].upper() for n in ["SUBTOTAL", "TOTAL", "CAE", "NETO", "FACTURA", "PAG.", "IMPORTE"]):
+                # Línea de extensión
+                if current_item:
+                    # Pertenece al ítem actual (Post-Data Extension)
+                    current_item["descripcion"] += " " + row_data["descripcion"]
+                else:
+                    # No hay ítem activo, se acumula para el próximo (Pre-Data Buffer)
+                    desc_buffer += " " + row_data["descripcion"]
+
+        # Limpieza final de ruidos
+        HEADER_NOISE = ["SUBTOTAL", "IMPORTES", "ALICUOTA", "IVA", "IMPORTE", "CAE", "FECHA", "CUIT", "CONDICIÓN", "U. MEDIDA", "PRODUCTO / SERVICIO"]
+        for it in items_v55:
+            for noise in HEADER_NOISE:
+                it["descripcion"] = re.sub(rf'\b{noise}\b', '', it["descripcion"], flags=re.I).strip()
+            it["descripcion"] = re.sub(r'\s+', ' ', it["descripcion"]).strip()
+
+        data["items"] = items_v55
+
+    # [V5.5] Macro-Validación: Consulta Flag
+    if data["factura"].get("total_neto") and data["items"]:
+        suma_items = sum(it["subtotal"] for it in data["items"])
+        if abs(suma_items - data["factura"]["total_neto"]) < 0.5:
+            data["factura"]["audit_status"] = "VERIFICADO_OK"
+        else:
+            data["factura"]["audit_status"] = "CONSULTA_FLAG"
+            data["factura"]["audit_warning"] = f"La suma de ítems (${suma_items}) no coincide con el Neto de la factura (${data['factura']['total_neto']})"
 
     # [NUEVO] OC Detection
     oc_match = re.search(r'OC:\s*(OC\s+[\w\d]+)', text, re.IGNORECASE)
@@ -283,6 +324,7 @@ def parse_invoice_data(text: str) -> dict:
         data["cliente"]["canal"] = "TIENDANUBE"
         
     return data
+
 
 async def process_pdf_ingestion(file: UploadFile):
     try:
@@ -308,12 +350,12 @@ async def process_pdf_ingestion(file: UploadFile):
         if not content:
              return {"success": False, "error": "El archivo está vacío."}
              
-        text = extract_text_from_pdf(content)
+        text, words_data = extract_text_from_pdf(content)
         
         if not text or len(text.strip()) < 10:
              return {"success": False, "error": "No se pudo extraer texto del PDF (¿Es una imagen?)."}
              
-        parsed_data = parse_invoice_data(text)
+        parsed_data = parse_invoice_data(text, words_data)
         
         # [V5 EVO] Validation of results
         if not parsed_data['cliente'].get('cuit') or not parsed_data['items']:

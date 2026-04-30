@@ -261,6 +261,9 @@ class RemitosService:
                 db.flush()
                 print(f"[INGESTA] Producto auto-creado: {codigo_vs} - {producto.nombre}")
                 
+            precio_pdf = item.precio_unitario_neto or 0.0
+            alicuota = item.alicuota_iva or 21.0
+
             es_responsable_inscripto = False
             if cliente.condicion_iva_id:
                 from backend.maestros.models import CondicionIva
