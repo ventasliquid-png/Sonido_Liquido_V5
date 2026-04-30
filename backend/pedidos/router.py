@@ -97,6 +97,20 @@ def create_pedido_tactico(
         # o podríamos forzar el ID si la BD lo permitiera (pero es serial).
         # Asumimos que la "sugerencia" del frontend es visual para que coincida con el ID que se va a generar.
         
+        # [OMEGA GUARD] Anti-Ghosting Idempotency Check
+        if pedido_data.nota and "Ingesta Automática Factura:" in pedido_data.nota:
+            # Check if an order with this exact note already exists to prevent duplicate POSTs
+            existing = db.query(models.Pedido).filter(models.Pedido.nota == pedido_data.nota).first()
+            if existing:
+                print(f"[OMEGA] Bloqueo de duplicado táctico detectado para nota: {pedido_data.nota}")
+                # We return the existing one as if it was just created (idempotent) 
+                # or raise 409 Conflict. Given the UI flow, 409 is safer to alert the user.
+                raise HTTPException(
+                    status_code=409, 
+                    detail=f"CONFLICTO DE DUPLICACIÓN: El pedido para esta factura ya existe (Pedido #{existing.id}). "
+                           "La operación fue bloqueada por seguridad."
+                )
+
         print(f"[DEBUG] Creando Pedido - OC: '{pedido_data.oc}' - Override: {pedido_data.oc_override}")
         nuevo_pedido = models.Pedido(
             cliente_id=pedido_data.cliente_id,

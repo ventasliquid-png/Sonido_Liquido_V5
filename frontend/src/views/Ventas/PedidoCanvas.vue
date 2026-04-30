@@ -4,7 +4,7 @@
 
 <template>
     <div class="min-h-screen w-full bg-[#0f172a] p-2 flex justify-center items-start">
-        <div class="w-full max-w-[98%] bg-[#0f172a] rounded-2xl border-2 border-emerald-500 shadow-[0_0_40px_-10px_rgba(16,185,129,0.5)] overflow-hidden relative flex flex-col h-screen">
+        <div class="w-full max-w-[98%] bg-[#0f172a] rounded-2xl border-2 border-emerald-500 shadow-[0_0_40px_-10px_rgba(16,185,129,0.5)] overflow-hidden relative flex flex-col h-[calc(100vh-45px)]">
             <!-- HEADER (User Provided Style) -->
             <!-- HEADER (Compact Mode) -->
             <div class="w-full bg-emerald-950/30 border-b border-emerald-500/20 py-2 px-4 flex justify-between items-center backdrop-blur-sm shrink-0">
@@ -378,25 +378,19 @@
                             </div>
 
                             <!-- Precio Unit. -->
-                            <div class="col-span-1 text-right relative">
-                                <input v-excel type="number" 
+                            <div class="col-span-1 text-right">
+                                <input type="number" 
                                     ref="inputPriceRef"
                                     v-model.number="newItem.precio" 
                                     @input="updateRowTotal"
                                     @keydown.enter.prevent="focusDescPct"
                                     class="w-full bg-transparent border-b border-emerald-500/30 text-gray-300 font-mono text-right focus:outline-none focus:border-emerald-500"
                                 >
-                                <!-- Ventana Flotante de Lectura (Sugerido por Arquitectura) -->
-                                <div v-if="newItem._debug_cotizacion" class="absolute -bottom-8 right-0 bg-emerald-950/90 border border-emerald-500/30 px-2 py-0.5 rounded text-[8px] whitespace-nowrap text-emerald-300 shadow-xl opacity-80 pointer-events-none flex gap-3">
-                                     <span>Roca: <b class="text-white">${{ (newItem._debug_cotizacion.precio_roca || 0).toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</b></span>
-                                     <span>Costo: <b class="text-white">${{ (newItem._debug_cotizacion.costo_reposicion || 0).toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</b></span>
-                                     <span>MG: <b class="text-yellow-400">{{ newItem._debug_cotizacion.rentabilidad_base }}%</b></span>
-                                </div>
                             </div>
 
                             <!-- Descuento % -->
                             <div class="col-span-1 text-right">
-                                <input v-excel type="number" 
+                                <input type="number" 
                                     ref="inputDescPctRef"
                                     v-model.number="newItem.descuento_porcentaje" 
                                     @input="updateRowDescPct"
@@ -407,7 +401,7 @@
                             </div>
                             <!-- Descuento $ (Restored) -->
                             <div class="col-span-1 text-right">
-                                <input v-excel type="number" 
+                                <input type="number" 
                                     v-model.number="newItem.descuento_valor" 
                                     @input="updateRowDescVal"
                                     @keydown.enter.prevent="commitRow"
@@ -425,8 +419,7 @@
 
                         <!-- SAVED ROWS -->
                         <div v-for="(item, index) in items" :key="item.sku || index" :class="{'bg-white/10': expandedRows.has(index)}">
-                            <div class="grid grid-cols-12 px-4 py-3 gap-2 bg-white/[0.02] hover:bg-white/5 rounded-lg items-center group transition-colors border border-transparent hover:border-white/5 relative"
-                                 :class="{'bg-red-500/10 border-red-500/30': item.precio === 0 || item.producto_obj?.needs_cost}">
+                            <div class="grid grid-cols-12 px-4 py-3 gap-2 bg-white/[0.02] hover:bg-white/5 rounded-lg items-center group transition-colors border border-transparent hover:border-white/5 relative">
                             
                                 <!-- Index -->
                                 <div class="col-span-1 text-center font-mono text-gray-500 text-xs select-none">
@@ -458,7 +451,7 @@
                                 <!-- Precio (Editable) -->
                                 <div class="col-span-1 text-right relative">
                                     <span class="absolute left-0 text-gray-600 font-mono text-xs">$</span>
-                                    <input v-excel type="number" 
+                                    <input type="number" 
                                         v-model.number="item.precio" 
                                         @input="updateItemTotal(item)"
                                         @keydown.enter="$event.target.blur()"
@@ -468,7 +461,7 @@
 
                                <!-- Descuento % (Editable) -->
                                 <div class="col-span-1 text-right">
-                                    <input v-excel type="number" 
+                                    <input type="number" 
                                         :value="item.descuento_porcentaje" 
                                         @input="(e) => { item.descuento_porcentaje = parseFloat(e.target.value); updateItemDescPct(item); }"
                                         @keydown.enter="$event.target.blur()"
@@ -479,7 +472,7 @@
 
                                 <!-- Descuento $ (Editable - Restored) -->
                                 <div class="col-span-1 text-right">
-                                    <input v-excel type="number" 
+                                    <input type="number" 
                                         v-model.number="item.descuento_valor" 
                                         @input="updateItemDescVal(item)"
                                         @keydown.enter="$event.target.blur()"
@@ -524,7 +517,7 @@
             </div> <!-- End of overflow-hidden relative wrapper -->
 
             <!-- SECTION 3: FOOTER -->
-            <footer class="shrink-0 bg-[#0e0e0e] border-t border-white/10 p-4 relative z-40">
+            <footer class="shrink-0 bg-[#0e0e0e] border-t border-white/10 p-4 pb-10 relative z-40">
                 
                 <!-- NOTES WIDGET (Bottom Left) -->
                 <div class="absolute left-6 bottom-6 z-50">
@@ -564,11 +557,11 @@
                         <div class="text-[10px] font-bold uppercase tracking-widest text-yellow-600 mb-1">Descuento Gral.</div>
                         <div class="flex items-center gap-2">
                              <div class="relative w-16">
-                                <input v-excel type="number" v-model.number="descuentoGlobalPorcentaje" @input="updateGlobalDescPct" class="w-full bg-transparent border-b border-white/10 text-right font-mono text-sm text-yellow-500 focus:outline-none focus:border-yellow-500" placeholder="%">
+                                <input type="number" v-model.number="descuentoGlobalPorcentaje" @input="updateGlobalDescPct" class="w-full bg-transparent border-b border-white/10 text-right font-mono text-sm text-yellow-500 focus:outline-none focus:border-yellow-500" placeholder="%">
                                 <span class="absolute right-0 top-0 text-[10px] text-gray-600 pointer-events-none">%</span>
                              </div>
                              <div class="relative w-20">
-                                <input v-excel type="number" v-model.number="descuentoGlobalValor" @input="updateGlobalDescVal" class="w-full bg-transparent border-b border-white/10 text-right font-mono text-sm text-yellow-500 focus:outline-none focus:border-yellow-500" placeholder="$">
+                                <input type="number" v-model.number="descuentoGlobalValor" @input="updateGlobalDescVal" class="w-full bg-transparent border-b border-white/10 text-right font-mono text-sm text-yellow-500 focus:outline-none focus:border-yellow-500" placeholder="$">
                                 <span class="absolute left-0 top-0 text-[10px] text-gray-600 pointer-events-none">$</span>
                              </div>
                         </div>
@@ -716,10 +709,7 @@ onMounted(async () => {
     // 5. Global Keys
     window.addEventListener('keydown', handleGlobalKeys);
     
-    // 6. Message Listener for Satellites (V5.6)
-    window.addEventListener('message', handleMessage);
-
-    // 7. Auto-Sync on Focus (Satellite Return)
+    // 6. Auto-Sync on Focus (Satellite Return)
     window.addEventListener('focus', checkClientSync);
 });
 
@@ -741,6 +731,7 @@ const checkClientSync = async () => {
 };
 
 const loadPedido = async (id) => {
+    hasSaved.value = false; // [GY-OMEGA] Resetear bit de seguridad al cargar
     try {
         notificationStore.add('Cargando pedido...', 'info');
         const res = await api.get(`/pedidos/${id}`);
@@ -767,8 +758,7 @@ const loadPedido = async (id) => {
 
         // Hydrate Items
         items.value = p.items.map(i => ({
-            id: `line_${Math.random().toString(36).substr(2, 9)}`, // Unique key for UI
-            producto_id: i.producto_id,
+            id: i.producto_id,
             sku: i.producto?.sku || '???',
             descripcion: i.producto?.nombre || 'Producto Desconocido',
             cantidad: Number(i.cantidad),
@@ -1114,8 +1104,7 @@ const newItem = ref({
     descuento_porcentaje: '',
     descuento_valor: '',
     total: 0,
-    producto_obj: null,
-    _debug_cotizacion: null
+    producto_obj: null
 });
 const showProductResults = ref(false);
 const inputSkuRef = ref(null);
@@ -1344,7 +1333,6 @@ const selectProduct = async (prod) => {
                 cantidad: newItem.value.cantidad || 1
             });
             newItem.value.precio = res.precio_final_sugerido;
-            newItem.value._debug_cotizacion = res.debug;
             console.log(`[V5 Engine] Cotización: ${res.origen} -> $${res.precio_final_sugerido}`);
         } catch (e) {
             console.error("[V5 Engine] Error cotizando:", e);
@@ -1471,9 +1459,9 @@ const commitRow = () => {
     console.log("Committing Row:", payload);
 
     items.value.push({ 
-        ...payload,
-        id: `line_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, // Robust UI Key
-        producto_id: payload.producto_obj?.id || payload.producto_id, 
+        ...payload, // Spread first to get basic properties
+        id: payload.producto_obj?.id || Date.now(),
+        // [DEBUG] Force SKU preservation from multiple sources
         sku: String(payload.sku || payload.producto_obj?.sku || ''), 
         descripcion: payload.descripcion, 
         cantidad: Number(payload.cantidad),
@@ -1592,12 +1580,22 @@ const handleGlobalKeys = (e) => {
         e.preventDefault();
         const active = document.activeElement;
         
-        // 2. Product Focus — chequear primero si hay búsqueda de producto activa
+        // 1. Check CLIENT Focus - Trigger Modal
+        if (active === clientInputRef.value || !active || active === document.body) {
+             newClientData.value = {
+                razon_social: busquedaCliente.value,
+                cuit: '',
+                activo: true
+            };
+            showClientModal.value = true;
+            return;
+        }
+
+        // 2. Product Focus (Keep Satellite for now)
         const activeSku = active === inputSkuRef.value;
         const activeDesc = active === inputDescRef.value;
-        const productSearchActive = showProductResults.value || activeSku || activeDesc;
-
-        if (productSearchActive) {
+        
+        if (activeSku || activeDesc) {
             // Dimensions for Satellite
             const width = 1700;
             const height = 900;
@@ -1606,22 +1604,11 @@ const handleGlobalKeys = (e) => {
             const features = `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,status=no,menubar=no,toolbar=no,location=no`;
 
             const searchTerm = activeSku ? newItem.value.sku : newItem.value.descripcion;
-            const { href } = router.resolve({
-                name: 'Productos',
+            const { href } = router.resolve({ 
+                name: 'Productos', 
                 query: { action: 'new', search: searchTerm, mode: 'satellite' }
             });
             window.open(href, 'AltaProductoSalto', features);
-            return;
-        }
-
-        // 1. Client Focus — solo si el foco está explícitamente en el campo cliente
-        if (active === clientInputRef.value) {
-            newClientData.value = {
-                razon_social: busquedaCliente.value,
-                cuit: '',
-                activo: true
-            };
-            showClientModal.value = true;
         }
     }
 
@@ -1639,6 +1626,7 @@ const resetPedido = async () => {
     }
     
     // Reset State
+    hasSaved.value = false; // [GY-OMEGA] Resetear bit de seguridad
     nroPedido.value = '---';
     fechaPedido.value = new Date().toISOString().split('T')[0];
     clienteSeleccionado.value = null;
@@ -1664,23 +1652,26 @@ const resetPedido = async () => {
 };
 
 const isSaving = ref(false);
+const hasSaved = ref(false); // [GY-OMEGA] BIT DE GRABACIÓN: Evita re-grabación en la misma sesión.
 
 const savePedido = async () => {
     if (!clienteSeleccionado.value) return notificationStore.add('Seleccione un cliente.', 'error');
     if (items.value.length === 0) return notificationStore.add('Agregue al menos un producto.', 'error');
 
+    if (hasSaved.value) return notificationStore.add('Este pedido ya fue grabado. No es posible re-grabar.', 'warning');
+    
     isSaving.value = true;
     try {
         const payload = {
             cliente_id: clienteSeleccionado.value.id || clienteSeleccionado.value._id,
             fecha: new Date(fechaPedido.value).toISOString(),
             items: items.value.map(i => ({
-                producto_id: i.producto_id || i.producto_obj?.id,
-                cantidad: Number(i.cantidad),
-                precio_unitario: Number(i.precio),
+                producto_id: i.producto_obj?.id || i.id,
+                cantidad: i.cantidad,
+                precio_unitario: i.precio,
                 descuento_porcentaje: Number(i.descuento_porcentaje) || 0,
                 descuento_importe: Number(i.descuento_valor) || 0,
-                nota: "" 
+                nota: "" // Future use
             })),
             nota: notas.value,
             oc: nroOC.value.trim(),
@@ -1693,7 +1684,6 @@ const savePedido = async () => {
             transporte_id: selectedTransporteId.value
         };
 
-        // [FIX] Edit mode → PATCH existing pedido. Create mode → POST new pedido.
         if (route.params.id) {
             // Edit Mode Order Update
             await api.patch(`/pedidos/${route.params.id}`, payload);
@@ -1701,8 +1691,9 @@ const savePedido = async () => {
             // Tactical Mode Order Creation
             await api.post('/pedidos/tactico', payload);
         }
-
+        
         notificationStore.add('Pedido guardado exitosamente.', 'success');
+        hasSaved.value = true; // ACTIVAR BIT DE GRABACIÓN
         
         // Reset or Redirect
         setTimeout(() => {
@@ -1741,7 +1732,20 @@ const handleMessage = async (event) => {
     }
 };
 
-// --- REMOVED REDUNDANT ONMOUNTED (CLEANUP V5.8.2) ---
+onMounted(() => {
+    window.addEventListener('keydown', handleGlobalKeys)
+    window.addEventListener('message', handleMessage);
+    
+    // Initial ID suggestion
+    api.get('/pedidos/sugerir_id').then(res => {
+        nroPedido.value = res.data;
+    }).catch(console.error);
+})
+
+onUnmounted(() => {
+    window.removeEventListener('keydown', handleGlobalKeys)
+    window.removeEventListener('message', handleMessage);
+})
 
 </script>
 

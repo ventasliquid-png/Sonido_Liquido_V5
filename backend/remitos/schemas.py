@@ -114,14 +114,24 @@ class IngestionPayload(BaseModel):
     cliente: IngestionCliente
     factura: IngestionFactura
     items: List[IngestionItem]
-    transporte_id: Optional[UUID] = None # Permite elegir transporte en la UI de ingesta
-    domicilio_id: Optional[UUID] = None # Permite elegir sucursal en la UI de ingesta
+    transporte_id: Optional[str] = None # Permite elegir transporte en la UI de ingesta (string o UUID)
+    domicilio_id: Optional[str] = None # Permite elegir sucursal en la UI de ingesta (string o UUID)
     bultos: Optional[int] = None
     valor_declarado: Optional[float] = None
     solo_actualizar_cliente: bool = False
     nuevo_domicilio: Optional[ForcedAddress] = None
+    pedido_id_vinculado: Optional[int] = None
+    modo_ingesta: Optional[str] = "NUEVO"
 
 # --- MANUAL REMITO (V15.1.4) ---
+class ItemBusqueda(BaseModel):
+    descripcion: str
+    cantidad: float = 1.0
+
+class BuscarPedidosPayload(BaseModel):
+    cuit: str
+    items: List[ItemBusqueda] = []
+
 class ManualRemitoItem(BaseModel):
     descripcion: str
     cantidad: float
