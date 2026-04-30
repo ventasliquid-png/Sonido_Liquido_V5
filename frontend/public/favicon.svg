@@ -1,11 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f43f5e" /> <!-- Rose -->
+      <stop offset="20%" style="stop-color:#f59e0b" /> <!-- Amber -->
+      <stop offset="40%" style="stop-color:#10b981" /> <!-- Emerald -->
+      <stop offset="60%" style="stop-color:#06b6d4" /> <!-- Cyan -->
+      <stop offset="80%" style="stop-color:#3b82f6" /> <!-- Blue -->
+      <stop offset="100%" style="stop-color:#8b5cf6" /> <!-- Violet -->
+    </linearGradient>
     <clipPath id="c">
       <rect width="100" height="100" rx="20"/>
     </clipPath>
   </defs>
   <g clip-path="url(#c)">
-    <rect x="0"  y="0"  width="100" height="100" fill="#6B21A8"/>
+    <rect x="0" y="0" width="100" height="100" fill="url(#g)"/>
   </g>
   <text x="50%" y="54%" dominant-baseline="central" text-anchor="middle"
         font-family="Arial Black, Arial, sans-serif" font-weight="900"

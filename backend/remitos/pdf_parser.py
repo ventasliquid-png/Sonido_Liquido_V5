@@ -57,7 +57,7 @@ def parse_invoice_data(text: str, words_data: list = None) -> dict:
     """
     Parses raw text and word data using Sabueso Zonal Heuristics (V5.5).
     """
-    data = {"cliente": {}, "factura": {}, "items": []}
+    data = {"cliente": {"domicilio": ""}, "factura": {}, "items": []}
     ISSUER_CUIT = "30715603973"
 
     # [ZONAS AFIP CALIBRADAS 2026]
@@ -171,6 +171,9 @@ def parse_invoice_data(text: str, words_data: list = None) -> dict:
         elif "EXENTO" in iva_val: data["cliente"]["condicion_iva"] = "Exento"
         elif "CONSUMIDOR FINAL" in iva_val: data["cliente"]["condicion_iva"] = "Consumidor Final"
         else: data["cliente"]["condicion_iva"] = iva_val
+    
+    dom_match = re.search(r"(?:Domicilio Comercial|Domicilio)[:\|]?\s*([^|]{5,100})(?=\s*\||$)", text, re.IGNORECASE)
+    if dom_match: data["cliente"]["domicilio"] = dom_match.group(1).strip()
 
     # Domicilio (Busqueda en bloques ruidosos)
     # Strategy: Find "Domicilio" block, and take the next significant blocks that look like an address

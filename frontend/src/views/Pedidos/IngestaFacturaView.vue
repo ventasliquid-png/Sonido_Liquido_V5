@@ -566,7 +566,7 @@ const addItem = () => {
     parsedData.value.items.push({
         descripcion: '',
         cantidad: 1,
-        precio_unitario: 0.0,
+        precio_unitario_neto: 0.0,
         codigo: null
     });
 };
@@ -675,17 +675,33 @@ const autoSelectAddress = () => {
         return;
     }
 
-    // 2. Find all "Entrega" addresses
-    const deliveryAddresses = clientAddresses.value.filter(d => d.es_entrega);
-    
-    if (deliveryAddresses.length === 1) {
-        // Correct unique delivery address
-        selectedAddressId.value = deliveryAddresses[0].id;
-    } else if (deliveryAddresses.length > 1) {
-        // Ambiguedad: multiple delivery
-        selectedAddressId.value = deliveryAddresses[0].id; // Suggest first
+    // 2. [V5.8.7] Heurística de Segmentación de Entrega (dedicated delivery vs fiscal-delivery)
+    const allDelivery = clientAddresses.value.filter(d => d.es_entrega && d.activo !== false);
+    const dedicatedDelivery = allDelivery.filter(d => !d.es_fiscal);
+
+    if (dedicatedDelivery.length === 1) {
+        // Encontramos exactamente un punto de entrega dedicado. Lo usamos sin warning.
+        selectedAddressId.value = dedicatedDelivery[0].id;
+        addressAmbiguity.value = false;
+    } else if (dedicatedDelivery.length > 1) {
+        // Ambigüedad entre varios puntos dedicados. Chequeamos predeterminado.
+        const primary = dedicatedDelivery.find(d => d.es_predeterminado);
+        if (primary) {
+            selectedAddressId.value = primary.id;
+            addressAmbiguity.value = false;
+        } else {
+            selectedAddressId.value = dedicatedDelivery[0].id;
+            addressAmbiguity.value = true;
+            notification.add('Atención: El cliente tiene múltiples sedes de entrega dedicadas. Verifique.', 'warning');
+        }
+    } else if (allDelivery.length === 1) {
+        // Solo un punto de entrega (probablemente el fiscal).
+        selectedAddressId.value = allDelivery[0].id;
+        addressAmbiguity.value = false;
+    } else if (allDelivery.length > 1) {
+        // Caso raro: múltiples fiscales marcados como entrega.
+        selectedAddressId.value = allDelivery[0].id;
         addressAmbiguity.value = true;
-        notification.add('Atención: El cliente tiene múltiples sedes de entrega. Verifique cuál corresponde.', 'warning');
     } else {
         // Fallback: Fiscal
         const fiscal = clientAddresses.value.find(d => d.es_fiscal);
@@ -736,7 +752,7 @@ const confirmIngesta = async () => {
             items: parsedData.value.items.map(item => ({
                 descripcion: item.descripcion,
                 cantidad: parseFloat(item.cantidad),
-                precio_unitario_neto: parseFloat(item.precio_unitario_neto) || 0.0,
+                precio_unitario_neto: parseFloat(item.precio_unitario_neto || item.precio_unitario) || 0.0,
                 alicuota_iva: parseFloat(item.alicuota_iva) || 21.0,
                 codigo: item.codigo || null
             })),

@@ -4,6 +4,8 @@
 
 import { ref, watch } from 'vue'
 import debounce from 'lodash/debounce'
+import cloneDeep from 'lodash/cloneDeep'
+import isEqual from 'lodash/isEqual'
 
 // [GY-UX] Pasamos un Ref directamente para que el Undo sobrescriba el estado origen
 export function useFormHistory(stateRef, maxHistory = 20) {
@@ -11,8 +13,8 @@ export function useFormHistory(stateRef, maxHistory = 20) {
     const future = ref([])
     const isUndoing = ref(false)
 
-    // Deep clone helper
-    const clone = (obj) => JSON.parse(JSON.stringify(obj))
+    // Helper for Deep Clone that safely ignores proxies and circular refs
+    const clone = (obj) => cloneDeep(obj)
 
     // Initialize history
     history.value.push(clone(stateRef.value))
