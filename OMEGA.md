@@ -105,4 +105,29 @@ Si se activa el Bit 3 al cerrar, la limpieza es responsabilidad del próximo age
 
 ---
 
-*Última actualización: 2026-04-08 — GY (Atenea Core V5)*
+## FASE 7: HIGIENE PROFILÁCTICA DE ANTIGRAVITY (OBLIGATORIA)
+
+**Contexto:** Antigravity acumula archivos transitorios (Cache, GPUCache, logs de sesión, blob_storage, etc.) que NO se limpian automáticamente. La acumulación sostenida degrada el canal IPC entre el servidor Go y Electron, aumentando el riesgo del bug crítico `state syncing error: key not found` que causa bloqueo total del agente.
+
+**Acción al cierre — requiere PIN 1974 para ejecutarse:**
+
+`CIERRE.bat` lo solicita automáticamente en el paso 6. Si no ingresás el PIN, la purga se omite y Antigravity conserva el contexto de sesión para repreguntas posteriores.
+
+> ⚠️ **Regla:** Solo ingresá el PIN 1974 cuando estés **seguro** de que no vas a volver a consultar a Gy en esta jornada. Si purgás y después necesitás contexto, Gy no va a recordar nada de la sesión.
+
+**Qué purga:**
+- `Cache`, `GPUCache`, `Code Cache` — caché de renderizado y red
+- `blob_storage`, `WebStorage`, `CachedData` — almacenamiento transitorio de sesión
+- `shared_proto_db`, `Network`, `Service Worker` — bases LevelDB y workers
+- `logs\` — sesiones anteriores al día actual (conserva los logs de hoy)
+
+**Qué NO toca:**
+- `User\` — configuración y settings del usuario
+- `Workspaces\` — historial de conversaciones
+- `Preferences` — configuración del IDE
+
+**Si Antigravity está corriendo:** el script avisa y purga lo que no esté bloqueado. Para purga completa, cerrar Antigravity primero.
+
+---
+
+*Última actualización: 2026-04-25 — Claude Code (Haiku 4.5) + Gy*

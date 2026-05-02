@@ -31,13 +31,14 @@ class FacturaBase(BaseModel):
     punto_venta: Optional[int] = None
     numero_comprobante: Optional[int] = None
     fecha_emision: Optional[date] = None
-    
+
     neto_gravado: float = 0.0
     iva_21: float = 0.0
     iva_105: float = 0.0
     exento: float = 0.0
     percepciones: float = 0.0
     total: float = 0.0
+    flags_estado: int = 3
 
 class FacturaCreate(FacturaBase):
     items: List[FacturaItemCreate]
@@ -45,16 +46,16 @@ class FacturaCreate(FacturaBase):
 class FacturaUpdate(BaseModel):
     estado: Optional[str] = None
     cae: Optional[str] = None
-    vto_cae: Optional[date] = None
+    cae_vencimiento: Optional[date] = None
     punto_venta: Optional[int] = None
     numero_comprobante: Optional[int] = None
 
 class FacturaResponse(FacturaBase):
     id: UUID
     cae: Optional[str]
-    vto_cae: Optional[date]
+    cae_vencimiento: Optional[date]
     created_at: datetime
     items: List[FacturaItemResponse]
-    
+
     # Aditional data could be added for frontend rendering (cliente name, etc)
     model_config = ConfigDict(from_attributes=True)

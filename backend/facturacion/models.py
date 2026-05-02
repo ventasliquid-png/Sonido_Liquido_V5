@@ -1,7 +1,7 @@
 # backend/facturacion/models.py
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Float, Boolean, ForeignKey, Integer, Date, Enum, Numeric, DateTime, Table
+from sqlalchemy import Column, String, Float, Boolean, ForeignKey, Integer, Date, Enum, Numeric, DateTime, Table, BigInteger, UniqueConstraint
 from sqlalchemy.orm import relationship
 from backend.core.database import Base, GUID
 
@@ -53,15 +53,31 @@ class Factura(Base):
     
     # Sincronización ARCA
     cae = Column(String, nullable=True)
-    vto_cae = Column(Date, nullable=True)
+    cae_vencimiento = Column(Date, nullable=True)
     
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    # Datos fiscales históricos (sin FK para soportar CUIT nulo y Sello Azul)
+    cuit_comprador = Column(String, nullable=True)
+
+    # Archivo original PDF
+    pdf_path = Column(String, nullable=True)
+
+    # Genoma 64 bits (Nike Arq 5.5 - Nivel GOLD)
+    flags_estado = Column(BigInteger, nullable=False, default=3)
 
     # Relaciones
     cliente = relationship("Cliente")
     pedido = relationship("Pedido")
     items = relationship("FacturaItem", back_populates="factura", cascade="all, delete-orphan")
     remitos = relationship("Remito", secondary=facturas_remitos, backref="facturas")
+
+    __table_args__ = (
+        UniqueConstraint(
+            'tipo_comprobante', 'punto_venta', 'numero_comprobante',
+            name='uq_factura_identificador_afip'
+        ),
+    )
 
     def __repr__(self):
         return f"<Factura(id={self.id}, tipo='{self.tipo_comprobante}', estado='{self.estado}')>"

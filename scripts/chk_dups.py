@@ -9,6 +9,7 @@ import backend.logistica.models
 import backend.maestros.models
 import backend.auth.models
 import backend.productos.models
+import backend.contactos.models
 from backend.pedidos.schemas import PedidoResponse
 
 db = SessionLocal()

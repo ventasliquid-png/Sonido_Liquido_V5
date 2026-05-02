@@ -1,3 +1,12 @@
+# 2026-04-26 (Auditoría Espejo Soberano & Habilitación Tom)
+- **Estado**: **ALERTA** — Tom operativo, deuda técnica de sync completo D→P pendiente para mañana.
+- **Auditoría de Informe Gy**: Diagnóstico del NameError Vinculo corregido (bug en script de diagnóstico, no en modelos). Fix espejado a Tom.
+- **Espejado Tom (Acción 1-4)**: WAL mode en database.py, configure_mappers V14.12 en main.py, service.py completo (Protocolo Nike), ClientCanvas.vue completo.
+- **Fixes adicionales**: useFormHistory.js (deepToRaw con WeakSet + isRef), Login.vue (URL relativa), router.py (endpoint check-similarity), clientes.js (checkSimilarity), models.py (razon_social_canon en ORM Cliente).
+- **Descubrimiento**: Tom estaba en commit 19/04 vs D en 24/04. El mirror_audit solo detectó 4 de varios archivos divergentes. Mañana: sync total D→Tom por diff completo, no espejado quirúrgico.
+- **Nike en Tom**: Formulario carga sin crash ✅. Verificación visual del panel de similarity pendiente (servidor necesitaba reinicio al cierre).
+- **Cierre**: OMEGA Tom ejecutado. D sin commits (cambios del 25/04 quedan para revisar en OF). PIN 1974.
+
 # 2026-04-24 (Misión Modernización IVA & Espejado Soberano D↔P)
 - **Estado**: **NOMINAL GOLD**.
 - **Modernización IVA V1**: Implementación de Web UI (FastAPI) con Drag&Drop. Refactor de `reports.py` para incluir columnas de Tipo y Σ Retenciones (Otros Tributos). Lanzador `LANZAR_IVA_WEB.bat` operativo.

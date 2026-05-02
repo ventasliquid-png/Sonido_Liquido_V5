@@ -123,8 +123,8 @@ class FacturacionService:
             factura.cae = update_data.cae
             factura.estado = "AUTORIZADA_AFIP" # Pasa a estado firme
         
-        if update_data.vto_cae:
-            factura.vto_cae = update_data.vto_cae
+        if update_data.cae_vencimiento:
+            factura.cae_vencimiento = update_data.cae_vencimiento
             
         if update_data.punto_venta:
             factura.punto_venta = update_data.punto_venta

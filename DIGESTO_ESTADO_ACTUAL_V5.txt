@@ -1,0 +1,675 @@
+================================================================================
+DIGESTO_ESTADO_ACTUAL_V5.txt
+Sonido Liquido V5 — Extraccion Arquitectonica para Arquitecta Principal (NB)
+Generado: 2026-05-01
+Agente extractor: Claude Code (Haiku 4.5)
+Repo: C:\dev\Sonido_Liquido_V5
+================================================================================
+
+INDICE
+------
+1. EL GENOMA EMPIRICO Y ARQUITECTURA DE DATOS (64-BITS)
+2. ESTADO OPERATIVO DE MODULOS CORE
+3. SATELITE RAR Y CONTRATO DE INGESTA
+4. ESTANQUEIDAD DE ENTORNOS Y SEGURIDAD
+5. CAJA NEGRA Y ROADMAP PENDIENTE
+
+================================================================================
+PILAR 1: EL GENOMA EMPIRICO Y ARQUITECTURA DE DATOS (64-BITS)
+================================================================================
+
+FILOSOFIA
+---------
+El sistema usa un campo BigInteger llamado `flags_estado` en todas las tablas
+core. Cada bit representa un estado booleano independiente. Esto reemplaza
+multiples columnas boolean y permite evolucionar el schema sin migraciones.
+
+REGISTRO DE CALIBRACION LAVIMAR (Canario de Integridad)
+--------------------------------------------------------
+UUID:    e1be0585cd3443efa33204d00e199c4e
+flags_estado nominal (V15): 8205
+flags_estado legacy  (V14): 13  <-- no usar como referencia en V15
+
+Descomposicion de 8205:
+  8192 = Bit 13  (reservado/LAVIMARseal)
+     8 = Bit  3  (V14_STRUCT)
+     4 = Bit  2  (GOLD_ARCA)
+     1 = Bit  0  (EXISTENCE)
+  Total: 8205
+
+--------------------------------------------------------------------------------
+CONSTANTES CANONICAS — backend/clientes/constants.py
+--------------------------------------------------------------------------------
+
+# [IDENTIDAD] - backend\clientes\constants.py
+# Version: V5.6 GOLD | Sincronizacion: 20260407130827
+
+class ClientFlags:
+    """
+    [DOCTRINA V14] GENOMA MASTER - PIN 1974
+    Suma de Potencias de 2 - Nibble Bajo (Identity DNA)
+    """
+    # Bit 0 (1): ACTIVO / EXISTENCIA
+    EXISTENCE = 1
+    IS_ACTIVE = 1
+
+    # Bit 1 (2): VIRGINIDAD (1 = Virgen / 0 = Operado)
+    VIRGINITY = 2
+    IS_VIRGIN = 2
+
+    # Bit 2 (4): GOLD_ARCA (Validado por Satelite)
+    GOLD_ARCA = 4
+    FISCAL_REQUIRED = 4
+
+    # Bit 3 (8): ESTRUCTURA V14 (Protocolo Apolo)
+    V14_STRUCT = 8
+
+    # Bit 4 (16): DOC_A_PERMITTED (Paz Binaria / Fiscal V14)
+    DOC_A_PERMITTED = 16
+
+    # Bit 5 (32): IS_GHOST (Operaciones Ocultas / Sin Rastro)
+    IS_GHOST = 32
+
+    # Bit 6 (64): OC_REQUIRED (Poka-Yoke V5.9)
+    OC_REQUIRED = 64
+
+    # --- [NIVELES COMBINADOS] ---
+    LEVEL_NEW     = 15  # 1+2+4+8  (Virgen Validado V14)
+    LEVEL_HISTORY = 13  # 1+4+8    (Operado Validado V14)
+    # Pao de Tandil: 9 (Historico) / 11 (Nuevo)
+
+    # --- [AUDITORIA Y UX] ---
+    PENDIENTE_REVISION = 1 << 20   # Bit 20 (1048576) — Color Amarillo
+
+    # --- [MARKETING DNA] ---
+    CH_TIENDANUBE = 1 << 30
+    CH_MLIBRE     = 1 << 31
+
+
+class DomicilioFlags:
+    """
+    [DOCTRINA V14] GENOMA MASTER - INDEPENDENCIA GEOGRAFICA
+    (Legacy field mappings, kept for compatibility)
+    """
+    ACTIVO    = 1
+    CONFLICTO = 2
+    ORO_FISCAL = 4
+    ORO_CURADO = 8
+    LOGISTICA  = 16
+
+    VERDE_ARCA   = 21   # 16+4+1
+    VERDE_MANUAL = 25   # 16+8+1
+    ORO_TOTAL    = 29   # 16+8+4+1
+    AMARILLO     = 23   # 16+4+2+1 (Conflicto)
+
+
+class DomicilioIdentity:
+    """
+    [V5.2.3.1 GOLD] SOBERANIA GEOGRAFICA (bit_identidad)
+    64-bit mask for hardware-level identity classification.
+    """
+    ACTIVO       = 1 << 0   # 1
+    HISTORIAL    = 1 << 1   # 2    - Proteccion de borrado
+    FISCAL       = 1 << 2   # 4    - Domicilio legal
+    PROVEEDOR    = 1 << 3   # 8
+    TRANSPORTE   = 1 << 4   # 16   - Terminal/Deposito de fletes
+    PARTICULAR   = 1 << 5   # 32
+    HUB          = 1 << 6   # 64   - Auto-Set: vinculos > 1
+    PROPIO       = 1 << 7   # 128  - Punto de Sonido Liquido S.R.L.
+    RESTRICCIONES = 1 << 8  # 256  - Notas de acceso
+    MAPS_VERIFIED = 1 << 9  # 512  - Validado manualmente
+    RECEPTORIA   = 1 << 10  # 1024 - Punto de retiro de terceros
+    ZONA_DIFICIL = 1 << 11  # 2048 - Alerta logistica/seguridad
+    SOBERANIA_GOLD = 1 << 12 # 4096 - Auditado y normalizado
+
+
+class DomicilioRelationFlags:
+    """
+    [V5.2.3.1 GOLD] N:M Bridge Flags (domicilios_clientes.flags)
+    """
+    FISCAL        = 1 << 0   # 1
+    ENTREGA       = 2         # 2
+    PREDETERMINADO = 1 << 2  # 4
+    MIRROR        = 1 << 21  # 2097152 - Espejo sincronizado
+
+
+class SystemFlags:
+    """
+    [DOCTRINA V14] GENOMA DE SISTEMA (Byte 0)
+    """
+    TERMICA     = 1   # Bloqueo total (Rojo)
+    ADVERTENCIA = 2   # Discrepancia (Amarillo)
+    AISLAMIENTO = 4   # Sin conexion ARCA (Naranja)
+
+
+GENOMA FACTURAS (Nuevo — Nike Arq 5.5 GOLD)
+--------------------------------------------
+Definido en migrate_facturas_v2.py (canonizado 2026-05-01):
+
+  Bit  0 (1)     EXISTENCE
+  Bit  1 (2)     VIRGINITY    — borrado fisico permitido
+  Bit  2 (4)     HAS_REMITO   — tiene remito asociado
+  Bit  3 (8)     ACTIVE       — no anulada
+  Bit  8 (256)   HAS_PEDIDO   — pedido_id poblado
+  Bit 10 (1024)  V15_STRUCT   — nacio bajo canon V15 [RESERVADO]
+  Bit 11 (2048)  DUPLICATE    — duplicado detectado en ingesta
+  Bit 12 (4096)  PAID         — cobrada
+  Bit 13 (8192)  [RESERVADO]  — colision con LAVIMAR 8205, NO USAR
+  Bit 14 (16384) CAE_EXPIRED  — cae_vencimiento superado
+  default = 3 (EXISTENCE + VIRGINITY)
+
+
+================================================================================
+PILAR 2: ESTADO OPERATIVO DE MODULOS CORE
+================================================================================
+
+STACK
+-----
+  Backend:  FastAPI + SQLAlchemy + SQLite (puerto 8080 dev / 8090 prod)
+  Frontend: Vue.js 3 + Pinia (puerto 5173 dev / 5174 prod)
+  BD dev:   pilot_v5x.db
+  BD prod:  V5_LS_MASTER.db (32 registros gold, schema certificado)
+  ORM:      SQLAlchemy declarative, tipo GUID custom (CHAR32 en SQLite)
+
+TABLAS EN pilot_v5x.db (post-migracion 2026-05-01)
+---------------------------------------------------
+clientes, condiciones_iva, depositos, domicilios, domicilios_clientes,
+domicilios_legacy, empresas_transporte, facturas, facturas_items,
+facturas_remitos, listas_precios, nodos_transporte, papelera_registros,
+pedidos, pedidos_items, personas, personas_legacy, productos,
+productos_costos, productos_proveedores, proveedores, provincias,
+remitos, remitos_items, roles, rubros, segmentos, sistema_metadata,
+sqlite_sequence, tasas_iva, tipos_contacto, unidades, usuarios,
+vendedores, vinculos, vinculos_comerciales, vinculos_geograficos
+Total: 37 tablas
+
+--------------------------------------------------------------------------------
+MODELO: backend/clientes/models.py
+--------------------------------------------------------------------------------
+
+# Tabla N:M Bridge
+domicilios_clientes = Table(
+    'domicilios_clientes', Base.metadata,
+    Column('cliente_id',        GUID(), ForeignKey('clientes.id'), primary_key=True),
+    Column('domicilio_id',      GUID(), ForeignKey('domicilios.id'), primary_key=True),
+    Column('flags',             BigInteger, default=2097152, nullable=False),  # Bit 21 Mirror
+    Column('alias',             String, nullable=True),
+    Column('es_predeterminado', Boolean, default=False),
+    Column('created_at',        DateTime, default=lambda: datetime.now(timezone.utc))
+)
+
+class Cliente(Base):
+    __tablename__ = "clientes"
+
+    id                   = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
+    razon_social         = Column(String, nullable=False, index=True)
+    razon_social_canon   = Column(String, unique=True, index=True, nullable=True)
+    nombre_fantasia      = Column(String, nullable=True)
+    cuit                 = Column(String, unique=False, nullable=True, index=True)
+    codigo_interno       = Column(Integer, unique=True, index=True, nullable=True)
+    legacy_id_bas        = Column(String, nullable=True)
+    flags_estado         = Column(BigInteger, default=0, nullable=False)
+    whatsapp_empresa     = Column(String, nullable=True)
+    web_portal_pagos     = Column(String, nullable=True)
+    datos_acceso_pagos   = Column(Text, nullable=True)
+    observaciones        = Column(Text, nullable=True)
+    condicion_iva_id     = Column(GUID(), ForeignKey("condiciones_iva.id"), nullable=True)
+    lista_precios_id     = Column(GUID(), ForeignKey("listas_precios.id"), nullable=True)
+    segmento_id          = Column(GUID(), ForeignKey("segmentos.id"), nullable=True)
+    vendedor_id          = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
+    transporte_habitual_id = Column(GUID(), ForeignKey("empresas_transporte.id"), nullable=True)
+    estrategia_precio    = Column(String, default='MAYORISTA_FISCAL')
+    saldo_actual         = Column(Numeric(18, 2), default=0.00)
+    activo               = Column(Boolean, default=True, nullable=False)   # [DEPRECATED]
+    requiere_auditoria   = Column(Boolean, default=False)
+    contador_uso         = Column(Integer, default=0)
+    historial_cache      = Column(JSON, nullable=True, default=list)
+    estado_arca          = Column(String, default='PENDIENTE', nullable=False)
+    datos_arca_last_update = Column(DateTime, nullable=True)
+    fecha_alta           = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at           = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at           = Column(DateTime, onupdate=lambda: datetime.now(timezone.utc))
+
+    # Relaciones
+    domicilios           = relationship("Domicilio", secondary=domicilios_clientes, back_populates="domicilios")
+    domicilios_legacy    = relationship("Domicilio", back_populates="cliente", foreign_keys="[Domicilio.cliente_id]", cascade="all, delete-orphan")
+    condicion_iva        = relationship(CondicionIva)
+    lista_precios        = relationship(ListaPrecios)
+    segmento             = relationship(Segmento)
+    vendedor             = relationship("Usuario")
+    pedidos              = relationship("Pedido", back_populates="cliente")
+    vinculos             = relationship("Vinculo", primaryjoin="and_(foreign(Vinculo.entidad_id)==Cliente.id, Vinculo.entidad_tipo=='CLIENTE')", viewonly=True)
+    transporte_habitual  = relationship("EmpresaTransporte")
+    vinculos_geograficos = relationship("VinculoGeografico", primaryjoin="and_(foreign(VinculoGeografico.entidad_id)==Cliente.id, VinculoGeografico.entidad_tipo=='CLIENTE')", viewonly=True)
+
+    # Propiedades computadas
+    @property
+    def domicilio_fiscal_resumen(self): ...  # Retorna string calle+numero+localidad+provincia
+    @property
+    def requiere_entrega(self): ...          # True si tiene domicilio entrega != RETIRO_EN_PLANTA
+    @property
+    def contacto_principal_nombre(self): ... # Primer vinculo activo con persona
+
+
+class Domicilio(Base):
+    __tablename__ = "domicilios"
+
+    id                        = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
+    cliente_id                = Column(GUID(), ForeignKey("clientes.id"), nullable=True)  # [DEPRECATED V5.2]
+    alias                     = Column(String, nullable=True, index=True)
+    calle                     = Column(String, nullable=True, index=True)
+    numero                    = Column(String, nullable=True)
+    piso                      = Column(String, nullable=True)
+    depto                     = Column(String, nullable=True)
+    maps_link                 = Column(String, nullable=True)
+    notas_logistica           = Column(Text, nullable=True)
+    contacto_id               = Column(Integer, nullable=True)
+    cp                        = Column(String, nullable=True)
+    localidad                 = Column(String, nullable=True, index=True)
+    provincia_id              = Column(String(5), ForeignKey("provincias.id"), nullable=True)
+    bit_identidad             = Column(BigInteger, default=0, nullable=False)
+    flags_estado              = Column(BigInteger, default=0, nullable=False)
+    is_active                 = Column(Boolean, default=True, nullable=False)
+    activo                    = Column(Boolean, default=True, nullable=False)
+    es_fiscal                 = Column(Boolean, default=False)
+    es_entrega                = Column(Boolean, default=False)
+    es_predeterminado         = Column(Boolean, default=False)
+    flags_infra               = Column(BigInteger, default=0, nullable=False)  # Bit0:RAMPA Bit1:DOCK Bit2:ASCENSOR
+    is_maps_manual            = Column(Boolean, default=False, nullable=False)
+    observaciones             = Column(Text, nullable=True)
+    calle_entrega             = Column(String, nullable=True)
+    numero_entrega            = Column(String, nullable=True)
+    piso_entrega              = Column(String, nullable=True)
+    depto_entrega             = Column(String, nullable=True)
+    cp_entrega                = Column(String, nullable=True)
+    localidad_entrega         = Column(String, nullable=True)
+    provincia_entrega_id      = Column(String(5), ForeignKey("provincias.id"), nullable=True)
+    transporte_habitual_nodo_id = Column(GUID(), ForeignKey("nodos_transporte.id"), nullable=True)
+    transporte_id             = Column(GUID(), ForeignKey("empresas_transporte.id"), nullable=True)
+    intermediario_id          = Column(GUID(), ForeignKey("empresas_transporte.id"), nullable=True)
+    metodo_entrega            = Column(String, nullable=True)  # RETIRO_LOCAL|TRANSPORTE|FLETE_MOTO|PLATAFORMA|DROPSHIPPING
+    modalidad_envio           = Column(String, nullable=True)  # A_DOMICILIO|A_SUCURSAL
+    origen_logistico          = Column(String, nullable=True)  # DESPACHO_NUESTRO|RETIRO_EN_PLANTA
+
+
+--------------------------------------------------------------------------------
+MODELO: backend/pedidos/models.py
+--------------------------------------------------------------------------------
+
+class Pedido(Base):
+    __tablename__ = "pedidos"
+
+    id                          = Column(Integer, primary_key=True, index=True)
+    fecha                       = Column(DateTime, default=datetime.now)
+    cliente_id                  = Column(GUID(), ForeignKey("clientes.id"), nullable=False)
+    total                       = Column(Float, default=0.0)
+    nota                        = Column(Text, nullable=True)
+    estado                      = Column(String, default="PENDIENTE")  # PENDIENTE|RESERVADO|CUMPLIDO|ANULADO|BORRADOR
+    tipo_facturacion            = Column(String, default="X")           # A|B|X
+    origen                      = Column(String, default="DIRECTO")     # MELI|TIENDA|DIRECTO
+    fecha_compromiso            = Column(DateTime, nullable=True)
+    liberado_despacho           = Column(Boolean, default=False)
+    oc                          = Column(String, nullable=True)
+    descuento_global_porcentaje = Column(Float, default=0.0)
+    descuento_global_importe    = Column(Float, default=0.0)
+    domicilio_entrega_id        = Column(GUID(), ForeignKey("domicilios.id"), nullable=True)
+    transporte_id               = Column(GUID(), ForeignKey("empresas_transporte.id"), nullable=True)
+    costo_envio_cliente         = Column(Float, default=0.0)
+    costo_flete_interno         = Column(Float, default=0.0)
+    estado_logistico            = Column(String, default="PENDIENTE")  # PENDIENTE|EN_PREPARACION|DESPACHADO|ENTREGADO
+    flags_estado                = Column(BigInteger, default=0, nullable=False)
+    created_at                  = Column(DateTime, default=datetime.now)
+    updated_at                  = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+class PedidoItem(Base):
+    __tablename__ = "pedidos_items"
+
+    id                    = Column(Integer, primary_key=True, index=True)
+    pedido_id             = Column(Integer, ForeignKey("pedidos.id"), nullable=False)
+    producto_id           = Column(Integer, ForeignKey("productos.id"), nullable=False)
+    cantidad              = Column(Float, default=1.0)
+    precio_unitario       = Column(Float, default=0.0)
+    descuento_porcentaje  = Column(Float, default=0.0)
+    descuento_importe     = Column(Float, default=0.0)
+    subtotal              = Column(Float, default=0.0)
+    nota                  = Column(String, nullable=True)
+
+
+--------------------------------------------------------------------------------
+MODELO: backend/remitos/models.py
+--------------------------------------------------------------------------------
+
+class Remito(Base):
+    __tablename__ = "remitos"
+
+    id                      = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
+    pedido_id               = Column(Integer, ForeignKey("pedidos.id"), nullable=False, index=True)
+    domicilio_entrega_id    = Column(GUID(), ForeignKey("domicilios.id"), nullable=False)
+    transporte_id           = Column(GUID(), ForeignKey("empresas_transporte.id"), nullable=False)
+    fecha_salida            = Column(DateTime, nullable=True)
+    fecha_creacion          = Column(DateTime, default=datetime.now)
+    estado                  = Column(String, default="BORRADOR")  # BORRADOR|PREPARACION|EN_CAMINO|ENTREGADO|ANULADO
+    numero_legal            = Column(String, nullable=True)        # Prefijos: 0015- Manual, 0016- Ingesta
+    cae                     = Column(String, nullable=True)
+    vto_cae                 = Column(DateTime, nullable=True)
+    aprobado_para_despacho  = Column(Boolean, default=False)       # Gate financiero
+    bultos                  = Column(Integer, nullable=True)
+    valor_declarado         = Column(Float, nullable=True)
+
+    # Propiedades computadas
+    @property
+    def cliente_id(self): ...    # -> self.pedido.cliente_id
+    @property
+    def razon_social(self): ...  # -> self.pedido.cliente.razon_social
+
+class RemitoItem(Base):
+    __tablename__ = "remitos_items"
+
+    id              = Column(Integer, primary_key=True, index=True)
+    remito_id       = Column(GUID(), ForeignKey("remitos.id"), nullable=False)
+    pedido_item_id  = Column(Integer, ForeignKey("pedidos_items.id"), nullable=False)
+    cantidad        = Column(Float, default=0.0)
+
+    @property
+    def descripcion_display(self): ...  # -> producto.nombre o pedido_item.nota
+
+
+--------------------------------------------------------------------------------
+MODELO: backend/facturacion/models.py
+--------------------------------------------------------------------------------
+
+# Tabla puente N:M
+facturas_remitos = Table(
+    'facturas_remitos', Base.metadata,
+    Column('factura_id', GUID(), ForeignKey('facturas.id'), primary_key=True),
+    Column('remito_id',  GUID(), ForeignKey('remitos.id'),  primary_key=True)
+)
+
+class Factura(Base):
+    __tablename__ = "facturas"
+
+    id                  = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
+    cliente_id          = Column(GUID(), ForeignKey("clientes.id"), nullable=False, index=True)
+    pedido_id           = Column(Integer, ForeignKey("pedidos.id"), nullable=True, index=True)
+    tipo_comprobante    = Column(String, default="PRESUPUESTO_X")  # FACTURA_A|FACTURA_B|PRESUPUESTO_X|NOTA_CREDITO_A
+    estado              = Column(String, default="BORRADOR")        # BORRADOR|LIQUIDADA_MANUAL|AUTORIZADA_AFIP|ANULADA
+    punto_venta         = Column(Integer, nullable=True)
+    numero_comprobante  = Column(Integer, nullable=True)
+    fecha_emision       = Column(Date, default=lambda: datetime.now(timezone.utc).date())
+    neto_gravado        = Column(Float, default=0.0)
+    iva_21              = Column(Float, default=0.0)
+    iva_105             = Column(Float, default=0.0)
+    exento              = Column(Float, default=0.0)
+    percepciones        = Column(Float, default=0.0)
+    total               = Column(Float, default=0.0)
+    cae                 = Column(String, nullable=True)
+    vto_cae             = Column(Date, nullable=True)
+    created_at          = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    # NOTA CRITICA: el modelo ORM NO tiene flags_estado
+    # La tabla fisica SI tiene flags_estado (creada por migrate_facturas_v2.py)
+    # Pendiente alinear modelo ORM con schema fisico en proxima sesion
+
+class FacturaItem(Base):
+    __tablename__ = "facturas_items"
+
+    id                    = Column(Integer, primary_key=True, autoincrement=True, index=True)
+    factura_id            = Column(GUID(), ForeignKey("facturas.id"), nullable=False)
+    pedido_item_id        = Column(Integer, ForeignKey("pedidos_items.id"), nullable=True)
+    remito_item_id        = Column(Integer, ForeignKey("remitos_items.id"), nullable=True)
+    descripcion           = Column(String, nullable=False)
+    cantidad              = Column(Float, default=1.0)
+    precio_unitario_neto  = Column(Float, default=0.0)
+    alicuota_iva          = Column(Float, default=21.0)  # 21.0 | 10.5 | 0.0
+    subtotal_neto         = Column(Float, default=0.0)
+
+
+--------------------------------------------------------------------------------
+MODELO: backend/logistica/models.py
+--------------------------------------------------------------------------------
+
+class EmpresaTransporte(Base):
+    __tablename__ = "empresas_transporte"
+
+    id                  = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
+    nombre              = Column(String, nullable=False, unique=True)
+    cuit                = Column(String(15), nullable=True)
+    condicion_iva_id    = Column(GUID(), ForeignKey("condiciones_iva.id"), nullable=True)
+    whatsapp            = Column(String(30), nullable=True)
+    email               = Column(String(100), nullable=True)
+    observaciones       = Column(Text, nullable=True)
+    web_tracking        = Column(String(255), nullable=True)
+    telefono_reclamos   = Column(String(50), nullable=True)
+    flags_estado        = Column(BigInteger, default=3, nullable=False)
+    # Bit 0: EXISTENCE | Bit 1: ACTIVE | Bit 2: PICKUP | Bit 3: RECOMMENDED
+    # Bit 4: WH_PICKUP | Bit 5: WEB_REQUIRED | Bit 21: MIRROR
+    formato_etiqueta    = Column(Enum('PROPIA', 'EXTERNA_PDF'), default='PROPIA')
+
+class NodoTransporte(Base):
+    __tablename__ = "nodos_transporte"
+
+    id                   = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
+    empresa_id           = Column(GUID(), ForeignKey("empresas_transporte.id"), nullable=False)
+    nombre_nodo          = Column(String, nullable=False)
+    direccion_completa   = Column(String, nullable=True)
+    localidad            = Column(String, nullable=True)
+    provincia_id         = Column(String(5), ForeignKey("provincias.id"), nullable=False)
+    telefono             = Column(String, nullable=True)
+    email                = Column(String, nullable=True)
+    es_punto_despacho    = Column(Boolean, default=False)
+    es_punto_retiro      = Column(Boolean, default=False)
+    horario_operativo    = Column(String, nullable=True)
+    contacto_operativo   = Column(String, nullable=True)
+
+class Deposito(Base):
+    __tablename__ = "depositos"
+
+    id      = Column(Integer, primary_key=True, index=True)
+    nombre  = Column(String, nullable=False, unique=True)
+    tipo    = Column(Enum('FISICO', 'VIRTUAL', 'CONSIGNACION', 'MOVIL'), default='FISICO')
+    activo  = Column(Boolean, default=True)
+
+
+================================================================================
+PILAR 3: SATELITE RAR Y CONTRATO DE INGESTA
+================================================================================
+
+FLUJO DE INGESTA PDF (Satelite RAR)
+------------------------------------
+1. Frontend sube PDF via POST /remitos/ingesta-pdf
+2. pdf_parser.process_pdf_ingestion() extrae datos fiscales
+3. Router verifica cliente por CUIT en BD:
+   - Si existe: devuelve datos DB + domicilios con score de matching
+   - Si no existe: suggested_action = "CREATE_CLIENT"
+4. Usuario confirma datos y envia POST /remitos/ingesta-process
+5. RemitosService.create_from_ingestion() ejecuta:
+   - Anti-Zombi: verifica duplicado por numero_legal (0016-XXXX-YYYYYYYY)
+   - Find Client: busca por ID > CUIT > Razon Social (Fuzzy)
+   - Resolve Logistics: domicilio (4 niveles de fallback) + transporte
+   - Create Pedido (origen=INGESTA_PDF)
+   - Resolve Items: busca producto, si no existe crea VS0001..VS9999
+   - Create Remito (numero_legal = 0016-{factura}, aprobado_para_despacho=True)
+   - Vanguard Canon: muta flags_estado del cliente (Nivel 13, pierde Virginidad)
+   - db.commit()
+
+CONTRATO DE NUMERACION DE REMITOS
+----------------------------------
+  0015-XXXXXXXX  Serie Manual (Rosa/Blanco sin CAE)
+                 Numeracion secuencial desde 00003010
+  0016-XXXX-YYYYYYYY  Serie Ingesta (Mirror de Factura AFIP)
+                      Donde XXXX-YYYYYYYY = numero de factura original
+
+ESQUEMA PYDANTIC — IngestionPayload (backend/remitos/schemas.py)
+----------------------------------------------------------------
+class IngestionPayload(BaseModel):
+    cliente:              IngestionCliente
+    factura:              IngestionFactura     # numero, cae, vto_cae (dd/mm/yyyy)
+    items:                List[IngestionItem]  # codigo, descripcion, cantidad, precio_unitario
+    transporte_id:        Optional[UUID] = None
+    domicilio_id:         Optional[UUID] = None
+    bultos:               Optional[int] = None
+    valor_declarado:      Optional[float] = None
+    solo_actualizar_cliente: bool = False
+    nuevo_domicilio:      Optional[ForcedAddress] = None
+
+ESQUEMA PYDANTIC — RemitoResponse (backend/remitos/schemas.py)
+-------------------------------------------------------------
+class RemitoResponse(RemitoBase):
+    id:             UUID
+    pedido_id:      int
+    fecha_creacion: datetime
+    items:          List[RemitoItemResponse] = []
+    razon_social:   Optional[str] = None
+    cliente_id:     Optional[UUID] = None
+
+    class Config:
+        from_attributes = True
+
+ESQUEMAS PYDANTIC — Facturacion (backend/facturacion/schemas.py)
+---------------------------------------------------------------
+class FacturaBase(BaseModel):
+    cliente_id:         UUID
+    pedido_id:          Optional[int] = None
+    tipo_comprobante:   str = "PRESUPUESTO_X"
+    estado:             str = "BORRADOR"
+    punto_venta:        Optional[int] = None
+    numero_comprobante: Optional[int] = None
+    fecha_emision:      Optional[date] = None
+    neto_gravado:       float = 0.0
+    iva_21:             float = 0.0
+    iva_105:            float = 0.0
+    exento:             float = 0.0
+    percepciones:       float = 0.0
+    total:              float = 0.0
+
+class FacturaResponse(FacturaBase):
+    id:         UUID
+    cae:        Optional[str]
+    vto_cae:    Optional[date]
+    created_at: datetime
+    items:      List[FacturaItemResponse]
+    model_config = ConfigDict(from_attributes=True)
+
+ENDPOINTS FACTURACION (backend/facturacion/router.py)
+------------------------------------------------------
+  POST /facturacion/borrador/pedido/{pedido_id}  — Genera draft desde Pedido
+  GET  /facturacion/{factura_id}                 — Lee factura con items
+  PATCH /facturacion/{factura_id}/sellar         — Sella con CAE (AUTORIZADA_AFIP)
+  GET  /facturacion/                             — Lista facturas (limit/offset)
+
+ENDPOINTS REMITOS (backend/remitos/router.py)
+--------------------------------------------
+  GET    /remitos/                              — Lista todos los remitos
+  GET    /remitos/{remito_id}                   — Detalle con eager loading
+  GET    /remitos/por_pedido/{pedido_id}        — Remitos de un pedido
+  POST   /remitos/{remito_id}/despachar         — Estado -> EN_CAMINO
+  GET    /remitos/{remito_id}/pdf               — Genera y sirve PDF
+  POST   /remitos/ingesta-pdf                   — Sube PDF, extrae datos
+  POST   /remitos/ingesta-process               — Confirma ingesta -> Crea Remito
+  POST   /remitos/manual                        — Crea remito manual (serie 0015-)
+  POST   /remitos/puente/desde_factura/{id}     — Crea Remito desde Factura sellada
+  PATCH  /remitos/{remito_id}                   — Actualiza remito (cabecera + items)
+  DELETE /remitos/{remito_id}                   — Elimina BORRADOR
+
+
+================================================================================
+PILAR 4: ESTANQUEIDAD DE ENTORNOS Y SEGURIDAD
+================================================================================
+
+ARQUITECTURA FISICA
+-------------------
+  D (Desarrollo):   C:\dev\Sonido_Liquido_V5\    puertos 5173 / 8080
+  P (Produccion):   C:\dev\v5-ls-Tom\            puertos 5174 / 8090
+  Maquinas:         Separadas por cable (no VPN, no Docker)
+  Sync:             Git (ramas independientes) + Drive (BDs manuales)
+
+REGLAS CRITICAS DE ESTANQUEIDAD
+---------------------------------
+1. BDs (.db) estan en .gitignore — NUNCA se versionan
+2. BD Produccion: V5_LS_MASTER.db — 32 registros gold, schema certificado
+3. Frontend PROD: servido por FastAPI como /static (NO Vite)
+   Cualquier cambio .vue en P requiere: npm run build -> volcar dist/ -> static/
+4. Modelos ORM: relaciones SIEMPRE como string ("Clase") para evitar
+   InvalidRequestError por dependencias circulares al inicializar mapper
+5. La tabla facturas fue recreada el 2026-05-01:
+   - v1 (DROP) - schema incorrecto (12 campos sin datos fiscales)
+   - v2 (CREATE) - schema canonico (19 campos + facturas_items + facturas_remitos)
+
+SISTEMA DE MIGRACIONES
+-----------------------
+NO usa Alembic. Migraciones ad-hoc en scripts/:
+  migrate_facturas_v2.py   (canonico 2026-05-01, GOLD)
+  migrate_cae.py           (agrego cae y vto_cae a remitos)
+  migrate_remitos.py       (creacion inicial tabla remitos)
+  migrate_v15.py           (migracion integral a V15)
+  migrate_genoma_vanguard.py
+  + ~25 scripts historicos en scripts/ y _DEPRECATED_2025/
+
+MOTOR ORM — backend/core/database.py
+-------------------------------------
+class GUID(TypeDecorator):
+    # PostgreSQL -> UUID nativo
+    # SQLite    -> CHAR(32) sin guiones (hex compacto)
+
+Pragmas SQLite:
+    PRAGMA journal_mode=WAL       # Write-Ahead Logging
+    PRAGMA synchronous=NORMAL     # Velocidad sobre durabilidad estricta
+
+DATABASE_URL: lee de entorno, fallback a pilot_v5x.db relativo a raiz
+
+
+================================================================================
+PILAR 5: CAJA NEGRA Y ROADMAP PENDIENTE
+================================================================================
+
+SESIONES DOCUMENTADAS (ultimas — CAJA_NEGRA.md)
+-------------------------------------------------
+2026-04-24  Modernizacion IVA V1 + Espejado D<->P (Paridad 1:1)
+2026-04-23  Estrategia Fiscal — Asistente ARCA, Ingesta CAE, Bit 1024
+2026-04-19  Siembra Contactos + Purga PostgreSQL (eliminacion DATABASE_URL sistema)
+2026-04-18  Forense Git Tom + Diagnostico DB CA (9 pedidos, sin LAVIMAR)
+2026-04-18  Huerfanos + Alta Rubro en Caliente + Adopcion (flags_estado en ProductoRead)
+            (historial completo de 21 sesiones en _GY/_MD/CAJA_NEGRA.md)
+
+DEUDAS TECNICAS CONOCIDAS
+--------------------------
+1. MODELO ORM FACTURA vs SCHEMA FISICO:
+   - Tabla fisica (v2) tiene: flags_estado, cuit_comprador, pdf_path
+   - Modelo ORM (facturacion/models.py) NO tiene estos campos
+   - Requiere: agregar Column(BigInteger, default=3) a Factura ORM
+   - Requiere: agregar Column(String) para cuit_comprador y pdf_path
+
+2. NO HAY ALEMBIC:
+   - Riesgo: sin trazabilidad ni rollback en migraciones
+   - Workaround actual: scripts idempotentes + CREATE IF NOT EXISTS
+
+3. FLAGS_ESTADO en FACTURAS (BigInteger) no declarado en ORM:
+   - FacturacionService no muta flags_estado al crear/sellar
+   - Genoma de facturas definido en SQL pero no en Python
+
+4. SISTEMA DE DOMICILIOS EN TRANSICION:
+   - Legacy: modelo Domicilio (tabla domicilios)
+   - Nuevo:  modelo VinculoGeografico (tabla vinculos_geograficos)
+   - Coexisten — diseno intencional hasta migracion completa
+
+5. V5_LS_MASTER.db (Produccion) NO tiene tabla facturas aun:
+   - migrate_facturas_v2.py debe ejecutarse en P con V5_ENV=prod
+   - Pending: sincronizar schema entre D y P
+
+6. Bit 13 (8192) RESERVADO en Facturas:
+   - Colisiona con flags_estado de LAVIMAR (8205 = 8192 + 13)
+   - No usar para semantica de facturas
+
+PROXIMOS PASOS RECOMENDADOS (para NB)
+--------------------------------------
+A. Ejecutar migrate_facturas_v2.py en P (V5_ENV=prod)
+B. Agregar flags_estado + cuit_comprador + pdf_path al modelo ORM Factura
+C. Implementar mutacion de flags_estado en FacturacionService.create_draft_from_pedido
+D. Evaluar Alembic para versionado de schema a futuro
+E. Completar migracion domicilios Legacy -> VinculoGeografico
+
+================================================================================
+FIN DEL DIGESTO — 2026-05-01
+Generado por Claude Code (Haiku 4.5) bajo instruccion de Carlos (operador)
+PIN de referencia de sesion: N/A (documento de extraccion, no de modificacion)
+================================================================================
