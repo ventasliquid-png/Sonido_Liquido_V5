@@ -3,7 +3,6 @@
 
 # --- CLIENTES (0x01) ---
 CLIENTE_IS_ACTIVE = 1 << 0       # 0x01: Cliente activo en sistema
-CLIENTE_IS_VIRGIN = 1 << 1       # 0x02: Cliente nuevo sin operaciones (Prospecto)
 CLIENTE_FISCAL_REQUIRED = 1 << 2 # 0x04: Requiere validación fiscal estricta (Gold/Silver)
 CLIENTE_REQUIRES_AUDIT = 1 << 3  # 0x08: Marcado para auditoría manual
 CLIENTE_ACCOUNT_BLOCKED = 1 << 4 # 0x10: Cuenta bloqueada por administración
