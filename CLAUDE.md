@@ -82,13 +82,13 @@ El Canario verifica:
 2. ¿Existe el registro LAVIMAR (UUID de calibración)?
 3. ¿`flags_estado` de LAVIMAR tiene el valor nominal?
 
-**Resultado esperado:** `INTEGRITY: NOMINAL GOLD` con `flags_estado = 8205`  
+**Resultado esperado:** `INTEGRITY: NOMINAL GOLD` con `flags_estado = 13`  
 Si el Canario falla → **no se opera**. Se diagnostica primero.
 
 ### Registro de calibración LAVIMAR
 - **UUID:** `e1be0585cd3443efa33204d00e199c4e`
-- **`flags_estado` nominal (V15):** `8205`
-- **`flags_estado` legacy (V14):** `13` ← valor histórico, no usar como referencia en V15
+- **`flags_estado` nominal:** `13` (EXISTENCE + GOLD_ARCA + V14_STRUCT)
+- **`flags_estado` saneado:** 2026-05-02 — eliminado bit fantasma 8192
 
 > Scripts de diagnóstico alternativos (versiones anteriores, no canónicas):
 > `canary_alfa.py`, `verify_alfa.py`, `verify_alfa_integrity.py`, `audit_alfa.py`

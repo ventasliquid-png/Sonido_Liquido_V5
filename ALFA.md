@@ -33,7 +33,7 @@ python scripts/canario_v2.py
 ### Resultado esperado:
 ```
 INTEGRITY: NOMINAL GOLD
-FLAGS: 8205
+FLAGS: 13
 ```
 
 ---
@@ -43,8 +43,8 @@ FLAGS: 8205
 | Campo | Valor |
 |---|---|
 | UUID | `e1be0585cd3443efa33204d00e199c4e` |
-| `flags_estado` nominal (V15) | `8205` |
-| `flags_estado` legacy (V14) | `13` ← no usar como referencia en V15 |
+| `flags_estado` nominal | `13` (EXISTENCE + GOLD_ARCA + V14_STRUCT) |
+| Saneamiento | 2026-05-02 — eliminado bit fantasma 8192 |
 
 ---
 
