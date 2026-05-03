@@ -313,11 +313,11 @@ class RemitosService:
         current_flags = getattr(cliente, 'flags_estado', 0) or 0
         
         # Base: Activo (1) | Arca (4) | V14 (8) -> Nivel 13
-        # Si ya operó, pierde la Virginidad (~2)
+        # Cliente con remito/factura → tocado. Apagar Bit 1 (HAS_ACTIVITY = 0).
         target_base = ClientFlags.EXISTENCE | ClientFlags.GOLD_ARCA | ClientFlags.V14_STRUCT
-        
-        # Mutación Doctrinal: Forzar Nivel 13 (Apagar Bit 1)
-        mutation_flags = (current_flags | target_base) & ~ClientFlags.VIRGINITY
+
+        # Mutación Doctrinal: Forzar Nivel 13 (Apagar Bit 1 = Desactivar HAS_ACTIVITY)
+        mutation_flags = (current_flags | target_base) & ~ClientFlags.HAS_ACTIVITY
         
         # Sello de Revisión: Si falta Segmento o Lista de Precios, marcar PENDIENTE_REVISION (Bit 20)
         if not cliente.segmento_id or not cliente.lista_precios_id:
