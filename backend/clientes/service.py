@@ -225,7 +225,7 @@ class ClienteService:
         if has_4_pillars:
             current_flags = db_cliente.flags_estado or 0
             current_flags &= ~ClientFlags.PENDIENTE_REVISION  # Bit 20 OFF
-            current_flags &= ~ClientFlags.IS_VIRGIN           # Bit 1 OFF: Promotion 15->13
+            current_flags &= ~ClientFlags.HAS_ACTIVITY        # Bit 1 OFF: Cliente SIN actividad tras validación
             current_flags |= ClientFlags.IS_ACTIVE            # Bit 0 ON
             db_cliente.flags_estado = current_flags
 
@@ -335,7 +335,7 @@ class ClienteService:
         """
         Hard delete with GENOMA V14.8 Protection:
         1. Backs up to PapeleraRegistro.
-        2. Blocks deletion of History Records (Bit 1 IS_VIRGIN must be 1).
+        2. Blocks deletion of clients with activity (Bit 1 HAS_ACTIVITY = 1).
         """
         from backend.core.models import PapeleraRegistro
         import json
@@ -343,14 +343,14 @@ class ClienteService:
         db_cliente = ClienteService.get_cliente(db, cliente_id)
         if not db_cliente:
             return None
-        
-        # [SECURITY] Protection against deleting Historical Data (Bit 1 is IS_VIRGIN)
-        # Robust check: handle NULL flags_estado by defaulting to 0 (which blocks deletion)
+
+        # [SECURITY] Bloquea borrado de clientes con historial operativo (Bit 1 = HAS_ACTIVITY)
+        # Robust check: handle NULL flags_estado by defaulting to 0 (sin actividad → permite borrado)
         current_flags = db_cliente.flags_estado or 0
-        if not (current_flags & ClientFlags.IS_VIRGIN):
+        if current_flags & ClientFlags.HAS_ACTIVITY:
              raise HTTPException(
-                 status_code=403, 
-                 detail="PROHIBIDO: No se puede eliminar físicamente un registro de HISTORIAL (No Virgen). Inactívelo en su lugar."
+                 status_code=403,
+                 detail="PROHIBIDO: Cliente con historial operativo. Inactívelo en su lugar."
              )
 
         try:
