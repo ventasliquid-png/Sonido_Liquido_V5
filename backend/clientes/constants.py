@@ -13,9 +13,8 @@ class ClientFlags:
     EXISTENCE = 1
     IS_ACTIVE = 1 
     
-    # Bit 1 (2): VIRGINIDAD (1 = Virgen / 0 = Operado)
-    VIRGINITY = 2
-    IS_VIRGIN = 2
+    # Bit 1 (2): HAS_ACTIVITY (0 = sin actividad → borrado habilitado / 1 = con historial → bloqueado)
+    HAS_ACTIVITY = 2  # Bit 1: cliente tocado → hard_delete bloqueado
     
     # Bit 2 (4): GOLD_ARCA (Validado por Satélite)
     GOLD_ARCA = 4
@@ -36,8 +35,8 @@ class ClientFlags:
 
     
     # --- [NIVELES COMBINADOS] ---
-    LEVEL_NEW = 15    # 1+2+4+8 (Virgen Validado V14)
-    LEVEL_HISTORY = 13 # 1+4+8 (Operado Validado V14)
+    LEVEL_NEW = 15    # 1+2+4+8 (Sin actividad, Validado V14 - habilitado para hard_delete)
+    LEVEL_HISTORY = 13 # 1+4+8 (Con actividad, Validado V14 - bloqueado para hard_delete)
     # Pao de Tandil: 9 (Histórico) / 11 (Nuevo)
     
     # --- [AUDITORÍA Y UX] ---
