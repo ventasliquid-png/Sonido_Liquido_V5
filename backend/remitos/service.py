@@ -349,6 +349,8 @@ class RemitosService:
         Creates a Manual Remito (Rosa/Blanco) from Frontend data.
         Serie 0015-00003001
         """
+        from backend.clientes.constants import ClientFlags
+
         # 1. RESOLVE CLIENT
         cliente = None
         if payload.cliente_id:
@@ -357,8 +359,7 @@ class RemitosService:
         if not cliente and payload.cliente_nuevo:
              # Create new client using similar logic to ingestion but allowing for "Rosa" status
              # In manual mode, the operator decides.
-             from backend.clientes.constants import ClientFlags
-             
+
              # Default Rosa Flags (Level 9/11): Existence (1) | V14 (8)
              # If user provides CUIT, we might treat as Blanco (Bit 4)
              has_cuit = payload.cliente_nuevo.cuit and payload.cliente_nuevo.cuit != "00000000000"
@@ -509,6 +510,12 @@ class RemitosService:
                 cantidad=p_item.cantidad
             )
             db.add(r_item)
+
+        # 7. [ARLEQUÍN V2] Cliente con remito manual → tocado. Apagar Bit 1.
+        current_flags = cliente.flags_estado or 0
+        if current_flags & ClientFlags.HAS_ACTIVITY:
+            cliente.flags_estado = current_flags & ~ClientFlags.HAS_ACTIVITY
+            db.add(cliente)
 
         db.commit()
         db.refresh(remito)
