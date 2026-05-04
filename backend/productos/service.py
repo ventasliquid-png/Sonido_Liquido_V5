@@ -160,9 +160,17 @@ class ProductoService:
 
     @staticmethod
     def create_producto(db: Session, prod_in: schemas.ProductoCreate):
-        # 1. Crear Producto
+        # 1. Verificar duplicado por nombre canónico BOW [ARLEQUÍN V2]
+        if ProductoService.check_duplicate_name(db, prod_in.nombre):
+            raise HTTPException(
+                status_code=409,
+                detail=f"Ya existe un producto con nombre equivalente a '{prod_in.nombre}'"
+            )
+
+        # 2. Crear Producto
         producto_data = prod_in.dict(exclude={'costos'})
         db_producto = models.Producto(**producto_data)
+        db_producto.nombre_canon = ProductoService.normalize_name(prod_in.nombre)  # [ARLEQUÍN V2]
 
         # [AUTO-SKU V5.8]
         if not db_producto.sku:

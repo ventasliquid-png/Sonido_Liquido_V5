@@ -38,6 +38,7 @@ class Producto(Base):
     sku = Column(Integer, unique=True, index=True)
     codigo_visual = Column(String(30), unique=True, nullable=True, index=True)
     nombre = Column(String(150), index=True, nullable=False)
+    nombre_canon = Column(String(300), nullable=True, index=True)  # [ARLEQUÍN V2] BOW dedup
     descripcion = Column(Text, nullable=True)
     rubro_id = Column(Integer, ForeignKey('rubros.id'), nullable=False)
     
