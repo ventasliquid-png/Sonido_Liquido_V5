@@ -54,7 +54,45 @@ causando colisiones entre productos que diferían solo por talle (S, M, L, X).
 - Procedimiento: LEY DE VIRGINIDAD validated, DELETE ejecutado
 - Resultado: ID 200 es ahora único canonical de SURGIBAC PA BIDÓN 5L
 
-**Summary:**
-- Ready for merge: feature/arleq-v2-productos
-- 3 commits totales (Bit1 + BOW + Talles + HardDelete)
+### Arlequín V2 — Reversión: BOW puro (sin TALLES_1CHAR)
+
+**Decisión arquitectónica:**
+- Revertir preservación de talles (S, M, L, X)
+- Restaurar doctrina BOW pura: len(token) >= 2 sin excepciones
+- Rationale: aggressiveness en matching, tolerancia a variaciones menores
+- Resultado: "Guantes talle L" == "Guantes talle S" (mismo producto core)
+
+**Impacto:**
+- Deduplicación más conservadora, menos falsos positivos
+- Algoritmo más simple y predecible
+- Consistencia con doctrina de tokenización pura
+
+### Arlequín V2 — Blindaje Remitos: Ingesta Solo Lectura
+
+**BREAKING CHANGE - Arquitectura de flujo:**
+
+**Problema:** Ingestion creaba auto-pedidos, productos, items sin control
+- 100 líneas de código generativo en remitos/service.py
+- Crear pedidos sin auditoría clara (orphaned)
+- Mezcla de lectura (parsear PDF) + escritura (crear entidades)
+
+**Resolución:**
+- Remitos module ahora es READ-ONLY para ingestion
+- Pedido DEBE pre-existir (creado en ABM Pedidos antes)
+- ValueError("PEDIDO_REQUERIDO:...") si falta pedido
+- HTTP 409 Conflict en /ingesta-process si no hay pedido
+
+**Cambios:**
+- service.py: -100 líneas (eliminar CREATE PEDIDO block)
+- router.py: +6 líneas (error handling estructurado)
+
+**Doctrina Pendiente (Arlequín V2 Fase 3):**
+- F1: Conciliación automática factura ↔ pedido
+- F2: Manejo de entregas parciales
+- F3: Factura huérfana (sin pedido) → queue para resolver
+
+**Summary - MERGE READY:**
+- Total commits: 5 (Bit1 + BOW + Talles + Revert + Remitos)
+- Módulos: productos (BOW dedup), remitos (solo lectura)
 - Database: limpia, deduplicada, listo para GOLD
+- Breaking changes: documented en MERGE_PENDING.md
