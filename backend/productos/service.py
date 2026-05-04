@@ -23,9 +23,8 @@ class ProductoService:
         text = text.encode('ASCII', 'ignore').decode('ASCII').upper()
         text = text.replace('.', '')
         text = re.sub(r'[^A-Z0-9]', ' ', text)
-        TALLES_1CHAR = {'X', 'S', 'M', 'L'}
         tokens = text.split()
-        tokens = [t for t in tokens if len(t) >= 2 or t in TALLES_1CHAR]
+        tokens = [t for t in tokens if len(t) >= 2]
         tokens.sort()
         return "".join(tokens)
 
