@@ -31,4 +31,30 @@ Unificación con semántica de clientes: HAS_ACTIVITY, Lectura B.
 **Impacto:**
 - Deuda técnica: 2 registros huérfanos desactivados
 - Integridad: sin pérdida de datos, solo consolidación
+
+### Arlequín V2 — Fix: Preservación de Talles en BOW
+
+**Problema:** El algoritmo BOW filtraba tokens de 1 carácter,
+causando colisiones entre productos que diferían solo por talle (S, M, L, X).
+
+**Resolución:**
+- Agregar TALLES_1CHAR = {'X', 'S', 'M', 'L'} a normalize_name()
+- Preservar estos caracteres durante tokenización
+- Verificado: 4 talles generan tokens BOW distintos
+
+**Impacto:**
+- Guantes talle L vs S vs M vs XL ahora diferenciables
+- Previene falsos positivos en deduplicación futura
+
+### Arlequín V2 — Hard Delete PIN 1974
+
+**Ejecución:**
+- Hard delete: Productos 204, 205 (duplicados consolidados)
+- Estado: ambos virgenes, sin PedidoItems
+- Procedimiento: LEY DE VIRGINIDAD validated, DELETE ejecutado
+- Resultado: ID 200 es ahora único canonical de SURGIBAC PA BIDÓN 5L
+
+**Summary:**
 - Ready for merge: feature/arleq-v2-productos
+- 3 commits totales (Bit1 + BOW + Talles + HardDelete)
+- Database: limpia, deduplicada, listo para GOLD
