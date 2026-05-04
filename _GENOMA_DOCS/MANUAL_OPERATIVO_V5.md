@@ -169,6 +169,14 @@ Para soportar la compra y el stock, se definen dos unidades:
 *   **Proveedores:** Entidades que abastecen los productos (vinculados como "Proveedor Habitual").
 *   **Depósitos Internos:** Ubicaciones físicas o virtuales donde reside el stock (ej: "Central", "Móvil").
 
+### Capítulo 3 — Adenda Arlequín V2
+El sistema ahora bloquea productos duplicados por nombre canónico (BOW).
+Si al crear un producto el sistema reporta "nombre equivalente existe",
+verificar el catálogo antes de insistir — puede ser el mismo producto
+con tipeo diferente.
+Variantes de talle/presentación son productos distintos — darlos de alta
+con nombres que incluyan el diferenciador explícito.
+
 ---
 
 ## CAPÍTULO 4: MÓDULO AGENDA & MAESTROS
@@ -491,6 +499,16 @@ Si al subir una factura el sistema lee mal un nombre o cantidad:
 *   **Edición Directa**: Haga clic sobre la descripción o cantidad en la tabla de resultados para corregirla.
 *   **Agregar Ítems**: Use el botón "Agregar Ítem Manual" si falta algún producto en la detección.
 *   **Eliminar**: Use la "X" roja para quitar líneas que no desea remitir.
+
+### Capítulo 13 — Adenda Arlequín V2
+La ingesta de facturas PDF es READ-ONLY para productos.
+Flujo obligatorio:
+1. Si la factura tiene pedido → vincular (VINCULAR_EXISTENTE)
+2. Si no tiene pedido → crear pedido primero → volver a ingestar
+3. Si un producto del PDF no existe en catálogo → darlo de alta
+   desde Módulo Productos → volver a ingestar
+El sistema nunca crea productos automáticamente desde una factura.
+
 ## CAPÍTULO 14: SEGURIDAD Y CIERRE (OMEGA 5.2)
 A partir de Marzo 2026, las sesiones de desarrollo y carga crítica se rigen por el **Protocolo Blindado**.
 

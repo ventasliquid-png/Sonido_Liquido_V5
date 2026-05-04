@@ -346,3 +346,30 @@ Desde el inspector de Producto, el operador puede crear un rubro sin salir del f
 
 ### flags_estado en ProductoRead (fix crítico)
 `flags_estado` debe estar explícitamente declarado en el schema `ProductoRead` (`flags_estado: int = 0`). Sin esto, el campo no viaja en la respuesta JSON y el frontend recibe `undefined` — todos los cálculos de bits devuelven 0 y los indicadores nunca se muestran.
+
+## 27. Códice Arlequín V2 — Productos (2026-05-04)
+
+### Bit 1 — HAS_ACTIVITY (valor 2)
+Semántica unificada para CLIENTES y PRODUCTOS.
+- Bit 1 = 0 → virgen/sin actividad → borrado físico habilitado
+- Bit 1 = 1 → tocado/con historial → borrado físico bloqueado
+Constante renombrada: IS_VIRGIN → HAS_ACTIVITY (inversión lógica).
+
+### nombre_canon — Deduplicación BOW
+Campo agregado a tabla productos (VARCHAR 300, nullable, indexed).
+Algoritmo: NFKD → ASCII → UPPER → tokenizar → filtro len>=2 → sort → concat.
+Activo en create_producto() vía check_duplicate_name().
+Decisión: tokens de 1 char excluidos por ambigüedad semántica.
+El freno humano es la barrera correcta para variantes de talle/presentación.
+
+### Doctrina Ingesta — Solo Lectura
+create_from_ingestion() es READ-ONLY para productos.
+Un producto desconocido en PDF → alta desde módulo Productos → reintentar ingesta.
+Una factura sin pedido vinculado → HTTP 409 PEDIDO_REQUERIDO.
+Auto-creation deshabilitado permanentemente.
+
+### Features Diferidas V6
+- F1: Conciliación factura/pedido con discrepancias
+- F2: Entregas parciales — bit ENTREGA_PARCIAL
+- F3: Facturas huérfanas — cola de revisión supervisor
+- Linaje de Productos: bifurcación SKUs con padre_id y bit RENOMBRADO

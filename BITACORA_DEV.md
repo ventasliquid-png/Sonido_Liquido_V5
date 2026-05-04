@@ -215,6 +215,9 @@
 - Estabilización Global: Resolución de 500s en `/contactos` (validadores Pydantic para SQLite JSON) y `/logistica/empresas` (refactor bitwise).
 - Estado: NOMINAL GOLD (Protocolo V5.8).
 - Protocolo OMEGA: Fase de Cierre Certificada. PIN 1974.
+# 2026-05-04 23:30
+- Arlequín V2 — Productos BOW Dedup + Remitos Blindaje. Ver INFORMES_HISTORICOS/2026-05-04_ARLEQUIN_V2_PRODUCTOS_REMITOS_BLINDAJE.md
+
 # 2026-03-25 00:15
 - Purga de Transacciones (V5.3.6): Eliminación física de pedidos para restauración a Estado Virgen.
 - Preservación Logística: Exclusión explícita de remitos en la purga sistémica.
