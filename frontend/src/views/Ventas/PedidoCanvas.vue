@@ -703,17 +703,17 @@ onMounted(async () => {
         if (pedidosStore.ingestaData) {
             const ingesta = pedidosStore.ingestaData;
 
-            // Pre-fill cliente from ingesta
-            if (ingesta.cliente) {
-                // Create a minimal client object for selection
-                const clienteFromIngesta = {
-                    id: ingesta.cliente.id || null,
-                    razon_social: ingesta.cliente.razon_social || '',
-                    cuit: ingesta.cliente.cuit || '',
-                    domicilios: ingesta.cliente.domicilios_disponibles || []
-                };
-                clienteSeleccionado.value = clienteFromIngesta;
-                busquedaCliente.value = clienteFromIngesta.razon_social;
+            // Pre-fill cliente: fetch full record from padrón by CUIT
+            if (ingesta.cliente?.cuit) {
+                try {
+                    const res = await api.get('/clientes/', { params: { cuit: ingesta.cliente.cuit } });
+                    if (res.data && res.data.length > 0) {
+                        // Use padrón data (wins over factura data)
+                        await selectCliente(res.data[0], false);
+                    }
+                } catch (e) {
+                    console.warn("[V5] No se pudo cargar cliente del padrón por CUIT", e);
+                }
             }
 
             // Pre-fill items from ingesta
