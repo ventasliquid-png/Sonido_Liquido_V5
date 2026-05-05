@@ -197,6 +197,16 @@ Configuración centralizada de alícuotas impositivas para asegurar consistencia
 
 ---
 
+### Capítulo 4 — Adenda Arlequín V2 (2026-05-04)
+El sistema bloquea productos duplicados por nombre canónico (BOW).
+Si al crear un producto el sistema reporta "nombre equivalente existe",
+verificar el catálogo antes de insistir — puede ser el mismo producto
+con tipeo diferente.
+Variantes de talle/presentación son productos distintos — darlos de alta
+con nombres que incluyan el diferenciador explícito (ej: "Guante Nitrilo L x100").
+
+---
+
 ## CAPÍTULO 5: ESTRATEGIA DE DATOS Y CONTINGENCIA
 
 Para garantizar la operación continua incluso sin conexión a internet o ante fallos del servidor central (IOWA), el sistema V5 implementa la **Doctrina de Blindaje de Datos**.
@@ -565,3 +575,12 @@ El campo **Rubro** en `ProductoInspector` es obligatorio para guardar un product
 * **Indicador visual**: Asterisco rojo `*` en el label del selector.
 * **Validación**: Si se intenta guardar sin rubro, el selector muestra un ring rojo (`ring-1 ring-rose-500`) y un mensaje de error debajo.
 * **Estado reactivo**: `rubroError` se limpia automáticamente al seleccionar un rubro válido.
+
+### Capítulo 13 — Adenda Arlequín V2 (2026-05-04)
+La ingesta de facturas PDF es READ-ONLY para productos.
+Flujo obligatorio:
+1. Si la factura tiene pedido → vincular (VINCULAR_EXISTENTE)
+2. Si no tiene pedido → crear pedido primero → volver a ingestar
+3. Si un producto del PDF no existe en catálogo → darlo de alta
+   desde Módulo Productos → volver a ingestar
+El sistema nunca crea productos automáticamente desde una factura.
