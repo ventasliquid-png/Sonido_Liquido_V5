@@ -140,6 +140,11 @@ const routes = [
                 path: 'domicilios',
                 name: 'AddressHub',
                 component: () => import('../views/Maestros/AddressHubView.vue')
+            },
+            {
+                path: 'facturacion',
+                name: 'FacturacionDashboard',
+                component: () => import('../views/Facturacion/FacturacionDashboard.vue')
             }
         ]
     },

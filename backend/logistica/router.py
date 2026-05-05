@@ -10,6 +10,8 @@ from sqlalchemy.orm import Session
 from backend.core.database import get_db
 from backend.auth.dependencies import get_current_user
 from backend.logistica import schemas, service
+from backend.contactos import schemas as contactos_schemas
+from backend.contactos import service as contactos_service
 
 router = APIRouter(
     prefix="/logistica",
@@ -58,6 +60,43 @@ def hard_delete_empresa(empresa_id: UUID, db: Session = Depends(get_db)):
             status_code=status.HTTP_409_CONFLICT, 
             detail="No se puede eliminar la empresa porque tiene registros asociados."
         )
+
+# --- Vinculos (V6 Multiplex Sync) ---
+
+@router.post("/empresas/{empresa_id}/vinculos", response_model=contactos_schemas.VinculoRead, status_code=status.HTTP_201_CREATED)
+def create_vinculo(empresa_id: UUID, vinculo: contactos_schemas.ContactoCreate, db: Session = Depends(get_db)):
+    """
+    [V6 MULTIPLEX] Crea un vínculo entre una empresa de transporte y una persona.
+    """
+    if vinculo.transporte_id != empresa_id:
+        raise HTTPException(status_code=400, detail="ID de transporte no coincide")
+    
+    return contactos_service.create_contacto(db, vinculo)
+
+@router.put("/empresas/{empresa_id}/vinculos/{vinculo_id}", response_model=contactos_schemas.VinculoRead)
+def update_vinculo(empresa_id: UUID, vinculo_id: UUID, vinculo: contactos_schemas.VinculoUpdate, db: Session = Depends(get_db)):
+    """
+    [V6 MULTIPLEX] Actualiza un vínculo existente.
+    """
+    db_vinculo = db.query(contactos_service.models.Vinculo).filter(contactos_service.models.Vinculo.id == vinculo_id).first()
+    if not db_vinculo:
+        raise HTTPException(status_code=404, detail="Vínculo no encontrado")
+        
+    return contactos_service.update_vinculo(db, db_vinculo.persona_id, vinculo_id, vinculo)
+
+@router.delete("/empresas/{empresa_id}/vinculos/{vinculo_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_vinculo(empresa_id: UUID, vinculo_id: UUID, db: Session = Depends(get_db)):
+    """
+    [V6 MULTIPLEX] Elimina un vínculo.
+    """
+    db_vinculo = db.query(contactos_service.models.Vinculo).filter(contactos_service.models.Vinculo.id == vinculo_id).first()
+    if not db_vinculo:
+        raise HTTPException(status_code=404, detail="Vínculo no encontrado")
+        
+    success = contactos_service.delete_vinculo(db, db_vinculo.persona_id, vinculo_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Vínculo no encontrado")
+    return None
 
 # --- Nodos ---
 @router.get("/nodos", response_model=List[schemas.NodoTransporteResponse])

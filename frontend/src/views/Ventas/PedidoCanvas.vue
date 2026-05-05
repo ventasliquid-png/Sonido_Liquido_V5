@@ -425,7 +425,8 @@
 
                         <!-- SAVED ROWS -->
                         <div v-for="(item, index) in items" :key="item.sku || index" :class="{'bg-white/10': expandedRows.has(index)}">
-                            <div class="grid grid-cols-12 px-4 py-3 gap-2 bg-white/[0.02] hover:bg-white/5 rounded-lg items-center group transition-colors border border-transparent hover:border-white/5 relative">
+                            <div class="grid grid-cols-12 px-4 py-3 gap-2 bg-white/[0.02] hover:bg-white/5 rounded-lg items-center group transition-colors border border-transparent hover:border-white/5 relative"
+                                 :class="{'bg-red-500/10 border-red-500/30': item.precio === 0 || item.producto_obj?.needs_cost}">
                             
                                 <!-- Index -->
                                 <div class="col-span-1 text-center font-mono text-gray-500 text-xs select-none">

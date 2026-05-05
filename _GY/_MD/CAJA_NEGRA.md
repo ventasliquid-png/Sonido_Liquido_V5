@@ -1,3 +1,55 @@
+# CAJA NEGRA: Arlequín V2 Merge CA — Doctrina Bit 1 Resuelta (2026-05-04)
+
+Sesión CA 2026-05-04. Merge quirúrgico feature/arleq-v2-productos en D (5 archivos). 3 bugs post-merge corregidos (VIRGINITY→HAS_ACTIVITY, default=2, lógica hard_delete). Doctrina Bit 1 canonizada: 1=virgen/borrable, 0=tocado/bloqueado. OMEGA V2.2 en D y P. Informe: `INFORMES_HISTORICOS/2026-05-04_ARLEQ_V2_MERGE_QUIRURGICO_CA.md`
+
+**Agente:** Sonnet (arquitecto) + Claude Code Haiku (ejecutor) — Hash D: f9ae409a — Hash P: 8ad0ad58
+
+---
+
+# CAJA NEGRA: Modernización IVA V1 & Espejado Soberano D↔P (2026-04-24)
+
+## 1. Modernización IVA V1 (Satelite)
+Se eliminó la dependencia de consola (`.bat` arcaico) para la ingesta. Se implementó una **Interfaz Web (FastAPI + Jinja2)** que permite:
+- **Drag & Drop**: Ingesta intuitiva de archivos ZIP/CSV de ARCA.
+- **Reportería Avanzada**: El `ReportGenerator` ahora incluye el campo `Tipo` (FAC/NC/ND) y la sumatoria de `Σ (Otros Tributos)`, crucial para el saldo operativo fiscal.
+- **Lanzador**: Se creó `LANZAR_IVA_WEB.bat` para facilitar el acceso de Tomy.
+
+## 2. Espejado Soberano D↔P
+Se detectaron divergencias críticas entre el entorno de Desarrollo (D) y Producción (P).
+- **Acción**: Sincronización binaria del Backend y reconstrucción (`npm run build`) del Frontend en P.
+- **Resultado**: Paridad 1:1 alcanzada. El nuevo módulo de **Facturación** y las mejoras de logística ahora son nativas en Producción.
+
+## 3. Estabilización de Producción (BioTenk)
+- **Remitos**: Se resolvió la orfandad del remito #2528 re-vinculándolo al Pedido #28 tras la purga del duplicado #29.
+- **PDF Engine**: Se corrigió el truncado de domicilios en `remito_engine.py` mediante la concatenación de `calle + numero + localidad` en el Router.
+- **UX**: Se forzó el cambio de Favicon a **Lila/Violeta** en P para evitar errores de contexto operativo.
+
+---
+**Marcador de Sesión**: 2026-04-24_OMEGA_MODERNIZACION_ESPEJADO
+**Agente**: Antigravity (Gy V5)
+
+---
+
+# CAJA NEGRA: Estrategia de Soberanía Fiscal & Centro de Liquidación (2026-04-23)
+
+## 1. Validación de Arquitectura "Soberana" (Fase 1)
+Se ratificó el funcionamiento del **Asistente de Facturación (Modo Espejo ARCA)**. La premisa es que el sistema asume la soberanía del cálculo fiscal (prorrateos de descuentos e IVA) para evitar errores humanos al cargar en la web oficial de AFIP. 
+- **Carga Manual**: Se confirmó que el CAE y el Número de Comprobante son tokens externos generados por ARCA que el usuario debe re-ingresar en HAWE para "sellar" la operación.
+- **Estado Nominal**: Verificación exitosa del bitmask de sesión (Bit 851) y la paridad de datos.
+
+## 2. Definición de Fase 2: Ingesta Asincrónica
+Se esbozó la lógica de **Ingesta de CAE**:
+- El sistema permitirá arrastrar el PDF de la factura emitida en AFIP o importar un CSV de "Comprobantes Emitidos" para automatizar el sellado de los borradores, eliminando el "copia-pega" manual.
+
+## 3. Calibración Bipolar
+Se revisó la lógica de filtrado en `PedidoList.vue`. El Bit 1024 (`NO_FISCAL_FORCE`) opera como el switch maestro entre los circuitos **Oficial (Esmeralda)** e **Interno (Índigo)**.
+
+---
+**Marcador de Sesión**: 2026-04-23_OMEGA_ESTRATEGIA_FISCAL
+**Agente**: Antigravity (Gy V5)
+
+---
+
 # CAJA NEGRA: Siembra Contactos + Purga PostgreSQL (2026-04-19)
 
 ## 1. Variable de sistema Windows — la fuente real del problema

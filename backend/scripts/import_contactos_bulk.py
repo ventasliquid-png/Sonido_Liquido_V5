@@ -524,7 +524,11 @@ def ejecutar_import(json_data: List[Dict], archivo_nombre: str, db) -> Dict:
 
             # INYECTAR BITS SEGÚN MATCH
             persona.flags_estado |= CANTERA_NIKE  # Bit 5 siempre
-            if match_nivel == "probable":
+            if match_nivel == "exacto":
+                # Limpiar Bit 6 si existía de ejecución anterior (match 100% = confianza total)
+                persona.flags_estado &= ~VINCULO_DUDOSO
+            elif match_nivel == "probable":
+                # Setear Bit 6 para match fuzzy 70-98% (requiere validación)
                 persona.flags_estado |= VINCULO_DUDOSO  # Bit 6
 
             # NOTAS SEGREGADAS
@@ -540,7 +544,8 @@ def ejecutar_import(json_data: List[Dict], archivo_nombre: str, db) -> Dict:
             # Crear vínculo si cliente existe
             if cliente_id:
                 try:
-                    contactos_service.add_vinculo(db, persona.id, cliente_id)
+                    vinculo_data = schemas.ContactoCreate(cliente_id=cliente_id)
+                    contactos_service.add_vinculo(db, persona.id, vinculo_data)
                 except:
                     pass
             else:

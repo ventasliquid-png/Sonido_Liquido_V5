@@ -285,10 +285,12 @@
                         <!-- PREVIEW NATIVO REMOVIDO -->
                         <button 
                             @click="confirmIngesta"
-                            class="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-lg shadow-lg shadow-blue-900/30 flex items-center gap-2"
+                            :disabled="loading"
+                            class="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-lg shadow-lg shadow-blue-900/30 flex items-center gap-2"
                         >
-                            <span>Generar Remito</span>
-                            <i class="fas fa-file-import"></i>
+                            <i v-if="loading" class="fas fa-circle-notch fa-spin"></i>
+                            <span>{{ loading ? 'Procesando...' : 'Generar Remito' }}</span>
+                            <i v-if="!loading" class="fas fa-file-import"></i>
                         </button>
                     </div>
                 </div>
@@ -576,7 +578,7 @@ const confirmIngesta = async () => {
             items: parsedData.value.items.map(item => ({
                 descripcion: item.descripcion,
                 cantidad: parseFloat(item.cantidad),
-                precio_unitario: 0.0, // Assuming 0 for Remito logic
+                precio_unitario: parseFloat(item.precio_unitario || 0.0),
                 codigo: item.codigo || null
             })),
             transporte_id: selectedTransportId.value,

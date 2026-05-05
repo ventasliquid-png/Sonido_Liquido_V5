@@ -51,7 +51,9 @@ def calculate_lists(costo_reposicion: Decimal, rentabilidad_target_percent: Deci
     """
     # Guard Clauses
     if not costo_reposicion or costo_reposicion == 0:
-        return {f"lista_{i}": Decimal(0) for i in range(1, 8)}
+        res = {f"lista_{i}": Decimal(0) for i in range(1, 8)}
+        res["_needs_cost"] = True
+        return res
     
     rent_percent = rentabilidad_target_percent if rentabilidad_target_percent is not None else Decimal(0)
 
@@ -111,7 +113,13 @@ def get_virtual_price(producto_costos, cliente) -> dict:
     Output: { "precio": Decimal, "iva_discriminado": Bool, "lista_origen": Int }
     """
     if not producto_costos or not cliente:
-        return {"precio": Decimal(0), "iva_discriminado": False, "lista_origen": 0}
+        return {
+            "precio": Decimal(0), 
+            "iva_discriminado": False, 
+            "lista_origen": 0,
+            "needs_cost": True,
+            "error": "PRODUCTO_SIN_COSTO"
+        }
 
     # 1. Calcular Escalera Completa
     listas = calculate_lists(producto_costos.costo_reposicion, producto_costos.rentabilidad_target)
@@ -170,11 +178,13 @@ def get_virtual_price(producto_costos, cliente) -> dict:
     
     target_key = f"lista_{nivel_lista}"
     precio_final = listas.get(target_key, Decimal(0))
+    needs_cost = listas.get("_needs_cost", False)
     
     return {
         "precio": precio_final,
         "lista_origen": nivel_lista,
         "debug_listas": listas,
         "costo_reposicion": (producto_costos.costo_reposicion if producto_costos else 0) or 0,
-        "rentabilidad_base": (producto_costos.rentabilidad_target if producto_costos else 0) or 0
+        "rentabilidad_base": (producto_costos.rentabilidad_target if producto_costos else 0) or 0,
+        "needs_cost": needs_cost
     }

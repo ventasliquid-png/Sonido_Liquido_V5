@@ -59,9 +59,23 @@ class VinculoGeograficoResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class TransporteVinculoResponse(BaseModel):
+    id: UUID # Vinculo ID
+    persona_id: UUID
+    tipo_contacto_id: str
+    nombre: str # Persona name
+    email: Optional[str] = None # Email laboral (Multiplex)
+    telefono: Optional[str] = None # Teléfono escritorio (Multiplex)
+    es_principal: bool = False
+    rol: Optional[str] = None # Puesto (Multiplex)
+
+    class Config:
+        from_attributes = True
+
 class EmpresaTransporteResponse(EmpresaTransporteBase):
     id: UUID
     vinculos_geograficos: List[VinculoGeograficoResponse] = []
+    vinculos_multiplex: List[TransporteVinculoResponse] = [] # V6 Multiplex
     
     class Config:
         from_attributes = True

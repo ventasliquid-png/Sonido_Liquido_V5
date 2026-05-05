@@ -8,6 +8,8 @@ from sqlalchemy import or_
 
 from backend.contactos import models, schemas
 from backend.contactos.models import Persona, Vinculo
+from backend.clientes.models import Cliente # [Multiplex Helper]
+from backend.logistica.models import EmpresaTransporte # [Multiplex Helper]
 
 def get_contactos(
     db: Session, 
@@ -48,14 +50,29 @@ def get_contactos(
     # Ordenar por nombre
     query = query.order_by(Persona.nombre.asc())
     
-    return query.offset(skip).limit(limit).all()
+    personas = query.offset(skip).limit(limit).all()
+    
+    # [V6 MULTIPLEX] Batch Resolve Entity Names
+    _resolve_entidad_names(db, personas)
+    
+    return personas
 
 def get_contacto(db: Session, contacto_id: UUID) -> Optional[Persona]:
-    return db.query(Persona).filter(Persona.id == contacto_id).options(joinedload(Persona.vinculos)).first()
+    persona = db.query(Persona).filter(Persona.id == contacto_id).options(joinedload(Persona.vinculos)).first()
+    if persona:
+        _resolve_entidad_names(db, [persona])
+    return persona
 
 def create_contacto(db: Session, contacto_in: schemas.ContactoCreate) -> Persona:
     # 1. Crear Persona
-    canales_data = [c.model_dump() for c in contacto_in.canales] if contacto_in.canales else []
+    # Canales pueden ser diccionarios o objetos Pydantic
+    canales_data = []
+    if contacto_in.canales:
+        for c in contacto_in.canales:
+            if isinstance(c, dict):
+                canales_data.append(c)
+            else:
+                canales_data.append(c.model_dump())
 
     persona = Persona(
         nombre=contacto_in.nombre,
@@ -174,11 +191,25 @@ def update_contacto(db: Session, contacto_id: UUID, contacto_in: schemas.Contact
             if contacto_in.puesto is not None: target_vinculo.rol = contacto_in.puesto
             if contacto_in.tipo_contacto_id is not None: target_vinculo.tipo_contacto_id = contacto_in.tipo_contacto_id 
             if contacto_in.roles is not None: target_vinculo.roles = contacto_in.roles
-            if contacto_in.canales is not None: 
-                target_vinculo.canales_laborales = [c.model_dump() for c in contacto_in.canales]
+            if contacto_in.canales is not None:
+                # Canales pueden ser diccionarios o objetos Pydantic
+                canales_laborales = []
+                for c in contacto_in.canales:
+                    if isinstance(c, dict):
+                        canales_laborales.append(c)
+                    else:
+                        canales_laborales.append(c.model_dump())
+                target_vinculo.canales_laborales = canales_laborales
             if contacto_in.estado is not None: target_vinculo.activo = contacto_in.estado
     elif contacto_in.canales is not None:
-        persona.canales_personales = [c.model_dump() for c in contacto_in.canales]
+        # Canales pueden ser diccionarios o objetos Pydantic
+        canales_personales = []
+        for c in contacto_in.canales:
+            if isinstance(c, dict):
+                canales_personales.append(c)
+            else:
+                canales_personales.append(c.model_dump())
+        persona.canales_personales = canales_personales
     
     db.commit()
     db.refresh(persona)
@@ -211,8 +242,15 @@ def add_vinculo(db: Session, contacto_id: UUID, vinculo_in: schemas.ContactoCrea
     
     if existe:
         return existe
-    
-    canales_data = [c.model_dump() for c in vinculo_in.canales] if vinculo_in.canales else []
+
+    # Canales pueden ser diccionarios o objetos Pydantic
+    canales_data = []
+    if vinculo_in.canales:
+        for c in vinculo_in.canales:
+            if isinstance(c, dict):
+                canales_data.append(c)
+            else:
+                canales_data.append(c.model_dump())
 
     vinculo = Vinculo(
         persona_id=persona.id,
@@ -264,3 +302,38 @@ def update_vinculo(db: Session, contacto_id: UUID, vinculo_id: UUID, vinculo_in:
     db.commit()
     db.refresh(vinculo)
     return vinculo
+
+
+def _resolve_entidad_names(db: Session, personas: List[Persona]):
+    if not personas: return
+    
+    all_vinculos = []
+    for p in personas:
+        if p.vinculos:
+            all_vinculos.extend(p.vinculos)
+    
+    if not all_vinculos: return
+    
+    # Collect IDs by type
+    cliente_ids = {v.entidad_id for v in all_vinculos if v.entidad_tipo == 'CLIENTE'}
+    transporte_ids = {v.entidad_id for v in all_vinculos if v.entidad_tipo == 'TRANSPORTE'}
+    
+    # Batch Fetch Names
+    cliente_names = {}
+    if cliente_ids:
+        rows = db.query(Cliente.id, Cliente.razon_social).filter(Cliente.id.in_(cliente_ids)).all()
+        cliente_names = {row.id: row.razon_social for row in rows}
+    
+    transporte_names = {}
+    if transporte_ids:
+        rows = db.query(EmpresaTransporte.id, EmpresaTransporte.nombre).filter(EmpresaTransporte.id.in_(transporte_ids)).all()
+        transporte_names = {row.id: row.nombre for row in rows}
+    
+    # Map back to vinculos
+    for v in all_vinculos:
+        if v.entidad_tipo == 'CLIENTE':
+            v.entidad_nombre = cliente_names.get(v.entidad_id, 'Cliente Desconocido')
+        elif v.entidad_tipo == 'TRANSPORTE':
+            v.entidad_nombre = transporte_names.get(v.entidad_id, 'Transporte Desconocido')
+        else:
+            v.entidad_nombre = f'{v.entidad_tipo}:{v.entidad_id}'

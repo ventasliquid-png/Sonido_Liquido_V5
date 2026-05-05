@@ -38,7 +38,10 @@ La base de producción es `V5_LS_MASTER.db` — 32 registros gold, schema certif
 
 **Regla crítica 2 (FRONTEND PROD):** El entorno de Desarrollo (D) sirve el frontend dinámicamente con Vite (`npm run dev`). El entorno de Producción (P) sirve el frontend estático a través de FastAPI (carpeta `/static`). TODO cambio en `.vue` sincronizado a Producción requiere OBLIGATORIAMENTE ejecutar `npm run build` en la carpeta `frontend` de P y volcar el output (`dist/`) en la carpeta `static/` de P. De lo contrario, los cambios visuales no impactarán.
 
+**Regla crítica 3 (MODELOS - ANTI-DEADLOCK):** Para evitar fallos de arranque (`InvalidRequestError`) por dependencias circulares entre Clientes, Logística y Contactos, las relaciones de SQLAlchemy deben definirse SIEMPRE usando el nombre de la clase como **string** (ej: `relationship("Vinculo")`) en lugar de la referencia directa a la clase. Esto asegura que el mapeo se resuelva de forma diferida tras cargar todos los módulos.
+
 ---
+
 
 ## 3. Stack Tecnológico
 
@@ -79,13 +82,13 @@ El Canario verifica:
 2. ¿Existe el registro LAVIMAR (UUID de calibración)?
 3. ¿`flags_estado` de LAVIMAR tiene el valor nominal?
 
-**Resultado esperado:** `INTEGRITY: NOMINAL GOLD` con `flags_estado = 8205`  
+**Resultado esperado:** `INTEGRITY: NOMINAL GOLD` con `flags_estado = 13`  
 Si el Canario falla → **no se opera**. Se diagnostica primero.
 
 ### Registro de calibración LAVIMAR
 - **UUID:** `e1be0585cd3443efa33204d00e199c4e`
-- **`flags_estado` nominal (V15):** `8205`
-- **`flags_estado` legacy (V14):** `13` ← valor histórico, no usar como referencia en V15
+- **`flags_estado` nominal:** `13` (EXISTENCE + GOLD_ARCA + V14_STRUCT)
+- **`flags_estado` saneado:** 2026-05-02 — eliminado bit fantasma 8192
 
 > Scripts de diagnóstico alternativos (versiones anteriores, no canónicas):
 > `canary_alfa.py`, `verify_alfa.py`, `verify_alfa_integrity.py`, `audit_alfa.py`
@@ -149,4 +152,4 @@ El repo se sincroniza entre locaciones via Git. Las bases de datos se respaldan 
 
 ---
 
-*Última actualización: 2026-04-17 — OF (V5.9 GOLD - Rubros & Precios)*
+*Última actualización: 2026-04-24 — OF (Misión Modernización IVA & Espejado D↔P)*

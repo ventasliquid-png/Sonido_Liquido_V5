@@ -69,4 +69,28 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "[!] Hubo un problema con la conexión o conflictos de Git." -ForegroundColor Red
 }
 
+# 6. PURGA PROFILÁCTICA DE ANTIGRAVITY (requiere PIN 1974)
+Write-Host ""
+Write-Host "========================================================" -ForegroundColor Magenta
+Write-Host "  PURGA DE SESIÓN — Solo si no vas a consultar más a Gy" -ForegroundColor Magenta
+Write-Host "========================================================" -ForegroundColor Magenta
+$pin1 = Read-Host "¿Confirmás que NO vas a consultar más a Gy hoy? PIN para continuar (Enter = omitir)"
+if ($pin1 -eq "1974") {
+    Write-Host ""
+    Write-Host "  [!] SEGUNDA CONFIRMACIÓN REQUERIDA" -ForegroundColor Red
+    Write-Host "  Esto borrará el contexto de sesión de Antigravity." -ForegroundColor Red
+    Write-Host "  Si alguien (vos, Gy o Nike) puso '1974' por inercia, este es el freno." -ForegroundColor DarkGray
+    Write-Host ""
+    $pin2 = Read-Host "  ¿Seguro? Escribí PURGAR (no el PIN) para confirmar"
+    if ($pin2 -eq "PURGAR") {
+        & powershell.exe -ExecutionPolicy Bypass -File "$PSScriptRoot\scripts\purgar_gy.ps1"
+        Write-Host "[OK] Sesión de Antigravity purgada." -ForegroundColor Green
+    } else {
+        Write-Host "[!] Purga cancelada en segunda confirmación." -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "[!] Purga omitida — Antigravity conserva el contexto de sesión." -ForegroundColor Yellow
+    Write-Host "    Recordá purgar manualmente antes del próximo DESPERTAR." -ForegroundColor DarkGray
+}
+
 Read-Host "Presione Enter para finalizar el protocolo OMEGA"

@@ -4,6 +4,20 @@
 **Código de Doctrina:** DEOU-2025
 
 ---
+
+### ⚠️ DIAGNÓSTICO: PRECIOS EN $0 (STRICT MODE)
+Si al navegar o cotizar un producto el sistema muestra `$0` o `LISTA_0`, se debe a la activación del **Strict Mode** del Motor V5. 
+
+**Causas y Solución:**
+1. **Falta de Costo de Reposición**: El motor no puede calcular la cascada de 7 listas si el producto no tiene un costo base. 
+   - *Solución*: Ingresar al **Inspector de Producto (F2)** -> Pestaña **Costos** -> Cargar **Costo de Reposición**.
+2. **Falta de Segmentación del Cliente**: Si el cliente no tiene asignado un Segmento (Retail, Premium, etc.) o una Lista de Precios, el sistema no puede determinar qué nivel de la cascada aplicar.
+   - *Solución*: Ingresar a la ficha del cliente y asignar **Segmento** y **Lista de Precios**.
+
+**Contexto Producción**: Se ha detectado que una gran parte de la base de datos en Producción (V5-LS) no posee costos cargados tras el trasplante del Polizón. Se recomienda auditoría masiva de costos antes de operar.
+
+---
+
 # Manual Operativo V5
 
 ## Control de Cambios
@@ -180,6 +194,16 @@ Configuración centralizada de alícuotas impositivas para asegurar consistencia
 *   **10.5%:** IVA Reducido.
 *   **27.0%:** IVA Diferencial.
 *   **0.0%:** Exento / No Gravado.
+
+---
+
+### Capítulo 4 — Adenda Arlequín V2 (2026-05-04)
+El sistema bloquea productos duplicados por nombre canónico (BOW).
+Si al crear un producto el sistema reporta "nombre equivalente existe",
+verificar el catálogo antes de insistir — puede ser el mismo producto
+con tipeo diferente.
+Variantes de talle/presentación son productos distintos — darlos de alta
+con nombres que incluyan el diferenciador explícito (ej: "Guante Nitrilo L x100").
 
 ---
 
@@ -551,3 +575,12 @@ El campo **Rubro** en `ProductoInspector` es obligatorio para guardar un product
 * **Indicador visual**: Asterisco rojo `*` en el label del selector.
 * **Validación**: Si se intenta guardar sin rubro, el selector muestra un ring rojo (`ring-1 ring-rose-500`) y un mensaje de error debajo.
 * **Estado reactivo**: `rubroError` se limpia automáticamente al seleccionar un rubro válido.
+
+### Capítulo 13 — Adenda Arlequín V2 (2026-05-04)
+La ingesta de facturas PDF es READ-ONLY para productos.
+Flujo obligatorio:
+1. Si la factura tiene pedido → vincular (VINCULAR_EXISTENTE)
+2. Si no tiene pedido → crear pedido primero → volver a ingestar
+3. Si un producto del PDF no existe en catálogo → darlo de alta
+   desde Módulo Productos → volver a ingestar
+El sistema nunca crea productos automáticamente desde una factura.

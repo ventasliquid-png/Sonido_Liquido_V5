@@ -439,7 +439,7 @@ const saveEdition = async () => {
 
 const printRemito = (remito) => {
     if (!remito || !remito.id) return;
-    const pdfUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/remitos/${remito.id}/pdf`;
+    const pdfUrl = `/remitos/${remito.id}/pdf`;
     window.open(pdfUrl, '_blank');
 }
 

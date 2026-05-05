@@ -176,6 +176,43 @@
                     <TransporteBranches :transport-id="localModel.id" />
                 </div>
             </section>
+            
+            <!-- RECTANGLE 5: CONTACTS (Multiplex) -->
+            <section class="bg-black/20 border border-white/5 rounded-2xl p-5 shadow-inner">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-users-gear text-cyan-500"></i>
+                        <h3 class="text-sm font-black text-cyan-500 uppercase tracking-[0.2em]">Contactos y Roles (Multiplex)</h3>
+                    </div>
+                </div>
+                
+                <div v-if="!isNew" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div v-for="vinculo in localModel.vinculos_multiplex" :key="vinculo.id" 
+                         class="bg-white/5 border border-white/10 rounded-xl p-4 hover:border-cyan-500/50 transition-all cursor-pointer group"
+                         @click="editContacto(vinculo)">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="h-8 w-8 rounded bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
+                                <i class="fas fa-user text-cyan-400 text-xs"></i>
+                            </div>
+                            <span class="text-[9px] font-black bg-cyan-900/40 text-cyan-400 px-2 py-0.5 rounded uppercase tracking-tighter">{{ vinculo.rol || 'Sin Rol' }}</span>
+                        </div>
+                        <p class="text-sm font-bold text-white group-hover:text-cyan-400 transition-colors">{{ vinculo.nombre }}</p>
+                        <p class="text-[10px] text-white/40 truncate">{{ vinculo.email || 'Email no cargado' }}</p>
+                        <p class="text-[10px] text-white/40">{{ vinculo.telefono || 'Sin teléfono' }}</p>
+                    </div>
+                    
+                    <!-- Add Contact Button -->
+                    <button @click="openNewContacto" class="border-2 border-dashed border-white/5 rounded-xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-white/5 hover:border-cyan-500/30 transition-all group min-h-[100px]">
+                        <div class="h-8 w-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-cyan-500/10 transition-colors">
+                            <i class="fas fa-plus text-white/20 group-hover:text-cyan-400"></i>
+                        </div>
+                        <span class="text-[10px] font-black text-white/20 uppercase tracking-widest group-hover:text-white/50">Nuevo Contacto</span>
+                    </button>
+                </div>
+                <div v-else class="text-[10px] text-white/20 uppercase font-bold tracking-[0.3em] py-4 text-center border border-dashed border-white/5 rounded-xl">
+                    Configure el transporte para habilitar contactos
+                </div>
+            </section>
 
             <!-- RECTANGLE 4: NOTES -->
             <section class="bg-black/20 border border-white/5 rounded-2xl p-5">
@@ -217,6 +254,15 @@
             @close="activeTab = 'TRANSPORTE'" 
             @saved="handleDomicilioSaved" 
         />
+
+        <ContactoForm 
+            v-if="activeTab === 'CONTACTO'"
+            :show="true"
+            :cliente-id="localModel.id"
+            :contacto="selectedContacto"
+            @close="activeTab = 'TRANSPORTE'"
+            @saved="handleContactoSaved"
+        />
     </div>
   </div>
 </template>
@@ -231,6 +277,8 @@ import { useNotificationStore } from '../../../stores/notification';
 import TransporteBranches from './TransporteBranches.vue'; 
 import AddressSelector from '../../Hawe/components/AddressSelector.vue';
 import DomicilioSplitCanvas from '../../Hawe/components/DomicilioSplitCanvas.vue';
+import ContactoPopover from '../../Hawe/components/ContactoPopover.vue';
+import ContactoForm from '../../Hawe/components/ContactoForm.vue';
 
 const props = defineProps({
     modelValue: {
@@ -249,8 +297,9 @@ const notification = useNotificationStore();
 // Local State
 const localModel = ref({ ...props.modelValue });
 const domicilios = ref([]);
-const activeTab = ref('TRANSPORTE'); // 'TRANSPORTE', 'DOMICILIO'
+const activeTab = ref('TRANSPORTE'); // 'TRANSPORTE', 'DOMICILIO', 'CONTACTO'
 const selectedDomicilio = ref(null);
+const selectedContacto = ref(null);
 const saving = ref(false);
 const nameInput = ref(null);
 
@@ -336,6 +385,42 @@ const handleDomicilioDelete = (dom) => {
 
 const handleDomicilioRestore = (dom) => {
     dom.activo = true;
+};
+
+// --- CONTACT EVENTS ---
+const openNewContacto = () => {
+    selectedContacto.value = null;
+    activeTab.value = 'CONTACTO';
+};
+
+const editContacto = (vinculo) => {
+    // Map the TransporteVinculoResponse to the format ContactoForm expects
+    // Note: ContactoForm expects a 'vinculo' object with persona inside
+    selectedContacto.value = {
+        ...vinculo,
+        persona: {
+            id: vinculo.persona_id,
+            nombre_completo: vinculo.nombre,
+            // email and telefono are flattened in TransporteVinculoResponse
+            email_laboral: vinculo.email,
+            telefono_escritorio: vinculo.telefono
+        }
+    };
+    activeTab.value = 'CONTACTO';
+};
+
+const handleContactoSaved = async () => {
+    notification.add('Contacto sincronizado', 'success');
+    activeTab.value = 'TRANSPORTE';
+    
+    // Refresh the company data to see the new contact
+    try {
+        const updated = await logisticaService.getEmpresaById(localModel.id);
+        localModel.value = updated.data;
+        mapVinculosToDomicilios();
+    } catch (err) {
+        console.error("Error refreshing contacts:", err);
+    }
 };
 
 // Watchers

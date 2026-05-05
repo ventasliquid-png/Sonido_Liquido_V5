@@ -19,5 +19,17 @@ export default {
     },
     createNodo: (data) => api.post('/logistica/nodos', data),
     updateNodo: (id, data) => api.put(`/logistica/nodos/${id}`, data),
-    hardDeleteNodo: (id) => api.delete(`/logistica/nodos/${id}/hard`)
+    hardDeleteNodo: (id) => api.delete(`/logistica/nodos/${id}/hard`),
+
+    // Vinculos (V6 Multiplex Sync)
+    createVinculo(empresaId, data) {
+        const payload = { ...data, transporte_id: empresaId };
+        return api.post(`/logistica/empresas/${empresaId}/vinculos`, payload);
+    },
+    updateVinculo(empresaId, vinculoId, data) {
+        return api.put(`/logistica/empresas/${empresaId}/vinculos/${vinculoId}`, data);
+    },
+    deleteVinculo(empresaId, vinculoId) {
+        return api.delete(`/logistica/empresas/${empresaId}/vinculos/${vinculoId}`);
+    }
 };

@@ -10,7 +10,7 @@ from sqlalchemy.dialects.postgresql import UUID as pgUUID
 from sqlalchemy.orm import relationship
 from backend.core.database import Base, GUID
 from backend.maestros.models import CondicionIva, Provincia
-from backend.contactos.models import VinculoGeografico
+from sqlalchemy.orm import foreign, remote
 
 class EmpresaTransporte(Base):
     """
@@ -53,6 +53,13 @@ class EmpresaTransporte(Base):
     vinculos_geograficos = relationship(
         "VinculoGeografico",
         primaryjoin="and_(foreign(VinculoGeografico.entidad_id)==EmpresaTransporte.id, VinculoGeografico.entidad_tipo=='TRANSPORTE')",
+        viewonly=True,
+    )
+
+    # [V6 MULTIPLEX] - Contact System Integration
+    vinculos = relationship(
+        "Vinculo",
+        primaryjoin="and_(foreign(Vinculo.entidad_id)==EmpresaTransporte.id, Vinculo.entidad_tipo=='TRANSPORTE')",
         viewonly=True,
     )
 

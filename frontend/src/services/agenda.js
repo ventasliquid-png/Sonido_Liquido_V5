@@ -6,18 +6,18 @@ import api from './api';
 
 export default {
     getPersonas(params = {}) {
-        return api.get('/agenda/personas', { params });
+        return api.get('/contactos', { params });
     },
     searchPersonas(query) {
-        return api.get('/agenda/personas/search', { params: { q: query } });
+        return api.get('/contactos', { params: { q: query } });
     },
     getPersona(id) {
-        return api.get(`/agenda/personas/${id}`);
+        return api.get(`/contactos/${id}`);
     },
     createPersona(data) {
-        return api.post('/agenda/personas', data);
+        return api.post('/contactos', data);
     },
     updatePersona(id, data) {
-        return api.put(`/agenda/personas/${id}`, data);
+        return api.put(`/contactos/${id}`, data);
     }
 };

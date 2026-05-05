@@ -301,6 +301,14 @@ El módulo Cantera (`/bridge/productos/{id}/import`) es el camino estándar para
 * La ruta raíz `/` fue renombrada a `/health` en D y P para liberar el catch-all `/{full_path:path}` que sirve el SPA.
 * Sin este cambio, acceder a `http://host:puerto/` devolvía JSON en lugar de `index.html`, causando pantalla en blanco en el satélite de Tomy.
 
+### 26. GESTIÓN DE RUBROS — GENOMA 64-BIT (V5.9)
+La tabla `rubros` ahora implementa la arquitectura de **Genoma (64-bit)** mediante la columna `flags_estado` (BigInteger).
+
+- **Bit 2 (4):** `BANNED`. Indica que el rubro ha sido dado de baja lógica (Purgatorio). No se muestra en los selectores del frontend, pero se preserva por integridad de los productos asociados.
+- **Bit 3 (8):** `EXPATRIADO` (En Productos). Cuando un rubro es eliminado, sus productos migran al rubro "General" y activan este bit para auditoría de orfandad.
+
+**Regla de Sincronización P (Aviso 21/04/2026):** Es crítico que el modelo SQLAlchemy en `current/backend` coincida con la base de datos Maestra. La ausencia de la columna en el modelo causa fallos de instanciación (Error 500) incluso si la columna existe físicamente en SQLite.
+
 ## 26. SISTEMA DE GESTIÓN DE RUBROS V5.9 (18/04/2026)
 
 ### Tabla `rubros` — flags_estado
@@ -338,3 +346,31 @@ Desde el inspector de Producto, el operador puede crear un rubro sin salir del f
 
 ### flags_estado en ProductoRead (fix crítico)
 `flags_estado` debe estar explícitamente declarado en el schema `ProductoRead` (`flags_estado: int = 0`). Sin esto, el campo no viaja en la respuesta JSON y el frontend recibe `undefined` — todos los cálculos de bits devuelven 0 y los indicadores nunca se muestran.
+
+## 27. Códice Arlequín V2 — Productos (2026-05-04)
+
+### Bit 1 — HAS_ACTIVITY (valor 2)
+Semántica unificada para CLIENTES y PRODUCTOS.
+- Bit 1 = 1 → virgen/sin actividad → borrado físico habilitado (nace encendido)
+- Bit 1 = 0 → tocado/con historial → borrado físico bloqueado (se apaga con primera operación)
+Constante renombrada: IS_VIRGIN → HAS_ACTIVITY. Semántica idéntica en ambos módulos.
+flags_estado default=2 en productos/models.py — todo producto nace virgen.
+
+### nombre_canon — Deduplicación BOW
+Campo agregado a tabla productos (VARCHAR 300, nullable, indexed).
+Algoritmo: NFKD → ASCII → UPPER → tokenizar → filtro len>=2 → sort → concat.
+Activo en create_producto() vía check_duplicate_name().
+Tokens de 1 char excluidos por ambigüedad semántica (L, S, M, X).
+El freno humano es la barrera correcta para variantes de talle/presentación.
+
+### Doctrina Ingesta — Solo Lectura
+create_from_ingestion() es READ-ONLY para productos y pedidos.
+Un producto desconocido en PDF → alta desde módulo Productos → reintentar ingesta.
+Una factura sin pedido vinculado → HTTP 409 PEDIDO_REQUERIDO.
+Auto-creation deshabilitado permanentemente.
+
+### Features Diferidas V6
+- F1: Conciliación factura/pedido con discrepancias
+- F2: Entregas parciales — bit ENTREGA_PARCIAL
+- F3: Facturas huérfanas — cola de revisión supervisor
+- Linaje de Productos: bifurcación SKUs con padre_id y bit RENOMBRADO

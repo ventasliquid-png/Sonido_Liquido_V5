@@ -147,6 +147,7 @@ class ProductoRead(ProductoBase):
     precio_mayorista: Optional[Decimal] = None
     precio_distribuidor: Optional[Decimal] = None
     precio_minorista: Optional[Decimal] = None
+    needs_cost: bool = False
 
     class Config:
         from_attributes = True

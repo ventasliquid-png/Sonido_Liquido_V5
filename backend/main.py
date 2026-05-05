@@ -80,6 +80,7 @@ import backend.pedidos.models as pedidos_models
 import backend.proveedores.models as proveedores_models
 import backend.agenda.models as agenda_models
 import backend.remitos.models as remitos_models
+import backend.facturacion.models as facturacion_models
 import backend.core.models as core_models
 
 # [FIX RACE CONDITION V14.12] 
@@ -109,6 +110,7 @@ from backend.cantera.router import router as cantera_router
 from backend.remitos.router import router as remitos_router 
 from backend.contactos.router import router as contactos_router
 from backend.stats.router import router as stats_router
+from backend.facturacion.router import router as facturacion_router
 
 # --- 2. Importaciones de LangGraph (El Cerebro) ---
 from langgraph.graph import StateGraph, END
@@ -411,6 +413,7 @@ app.include_router(remitos_router) # [GY-V7] PDF Ingestion
 app.include_router(google_mock_router) # [GY-V14] Mock Sync
 app.include_router(stats_router)
 app.include_router(contactos_router)
+app.include_router(facturacion_router)
 
 # --- [SPA / STATIC FILES SUPPORT] ---
 # Sirve los archivos estáticos compilados de Vue (JS, CSS, Img)
@@ -426,7 +429,7 @@ if os.path.exists(static_dir):
 async def serve_spa(full_path: str):
     # Ignorar rutas de API (ya manejadas arriba por include_router)
     # Ignorar rutas de API (ya manejadas arriba por include_router)
-    api_prefixes = ["api", "docs", "openapi", "clientes", "pedidos", "productos", "maestros", "logistica", "agenda", "proveedores", "auth", "bypass", "contactos", "stats", "remitos"]
+    api_prefixes = ["api", "docs", "openapi", "clientes", "pedidos", "productos", "maestros", "logistica", "agenda", "proveedores", "auth", "bypass", "contactos", "stats", "remitos", "facturacion"]
     # Check if the path (normalized) starts with any API prefix
     clean_path = full_path.strip("/")
     if any(clean_path.startswith(prefix) for prefix in api_prefixes):

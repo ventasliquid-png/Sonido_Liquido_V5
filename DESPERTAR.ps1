@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$Pull      = "",   # S/N para Git Pull (vacío = preguntar)
     [string]$Restaurar = "",   # S/N para restaurar DB (vacío = preguntar)
     [string]$Mode      = ""    # L=AlfaLite, C=Canario (vacío = preguntar)
@@ -9,6 +9,12 @@ Write-Host "========================================================" -Foregroun
 Write-Host "       SONIDO LÍQUIDO V5 - ADUANA DE IMPORTACIÓN" -ForegroundColor Cyan
 Write-Host "========================================================" -ForegroundColor Cyan
 Write-Host ""
+
+# --- CHEQUEO DE SALUD ANTIGRAVITY (PREVENCIÓN DE BLOQUEO) ---
+if (Test-Path "$PSScriptRoot\scripts\check_health.ps1") {
+    & powershell.exe -ExecutionPolicy Bypass -File "$PSScriptRoot\scripts\check_health.ps1"
+}
+# -----------------------------------------------------------
 
 # 0. FETCH PREVENTIVO (MIRADA SATELITAL)
 Write-Host "[*] Contactando a la Torre de Control (Git Fetch)..." -ForegroundColor DarkGray

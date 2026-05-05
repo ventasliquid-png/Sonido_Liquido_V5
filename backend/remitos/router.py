@@ -226,7 +226,13 @@ def create_remito_from_ingestion(payload: schemas.IngestionPayload, db: Session 
 
         return remito
     except ValueError as ve:
-        raise HTTPException(status_code=400, detail=str(ve))
+        msg = str(ve)
+        if msg.startswith("PEDIDO_REQUERIDO"):
+            raise HTTPException(status_code=409, detail={
+                "codigo": "PEDIDO_REQUERIDO",
+                "mensaje": msg
+            })
+        raise HTTPException(status_code=400, detail=msg)
     except Exception as e:
         print(f"Error creating Remito from Ingestion: {e}")
         import traceback
@@ -250,6 +256,25 @@ def create_manual_remito(payload: schemas.ManualRemitoPayload, db: Session = Dep
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+
+@router.post("/puente/desde_factura/{factura_id}", response_model=schemas.RemitoResponse)
+def originar_remito_desde_factura(factura_id: int, db: Session = Depends(get_db)):
+    """
+    Crea o vincula un remito logístico a partir de una Factura sellada.
+    Diseñado para el flujo: Sellar Factura AFIP -> Asistir Logística.
+    """
+    try:
+        from backend.remitos.service import RemitosService
+        remito = RemitosService.create_puente_factura(db, factura_id)
+        return remito
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        print(f"Error bridge Factura->Remito {factura_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+
 @router.patch("/{remito_id}", response_model=schemas.RemitoResponse)
 def update_remito(remito_id: str, payload: schemas.RemitoUpdate, db: Session = Depends(get_db)):
     """

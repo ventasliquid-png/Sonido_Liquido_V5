@@ -34,6 +34,7 @@ export default defineConfig({
       '/contactos': { target: 'http://localhost:8080', changeOrigin: true },
       '/bridge': { target: 'http://localhost:8080', changeOrigin: true },
       '/stats': { target: 'http://localhost:8080', changeOrigin: true },
+      '/facturacion': { target: 'http://localhost:8080', changeOrigin: true },
     },
     watch: {
       // Ignorar directorios que generan "ruido" en la consola

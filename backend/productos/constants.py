@@ -12,9 +12,8 @@ class ProductoFlags:
     EXISTENCE = 1
     IS_ACTIVE = 1
 
-    # Bit 1 (2): VIRGINIDAD (1 = Sin operaciones / 0 = Operado)
-    VIRGINITY = 2
-    IS_VIRGIN = 2
+    # Bit 1 (2): 0=virgen/borrable, 1=tocado/bloqueado
+    HAS_ACTIVITY = 2
 
     # Bit 2 (4): GOLD_CATALOGADO (Producto auditado y normalizado)
     GOLD_CATALOGED = 4
@@ -49,6 +48,3 @@ class ProductoFlags:
     # Bit 20 (1048576): PENDIENTE_REVISION
     PENDIENTE_REVISION = 1 << 20
 
-    # --- Niveles Combinados ---
-    LEVEL_NEW = 15          # 1+2+4+8 (Virgen, Catalogado, V15)
-    LEVEL_OPERATIONAL = 13  # 1+4+8 (Operado, Catalogado, V15)

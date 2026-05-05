@@ -1,4 +1,51 @@
-# 2026-04-18 Sesión 2 (Forense Git Tom + Diagnóstico DB CA)
+# 2026-04-26 (Auditoría Espejo Soberano & Habilitación Tom)
+- **Estado**: **ALERTA** — Tom operativo, deuda técnica de sync completo D→P pendiente para mañana.
+- **Auditoría de Informe Gy**: Diagnóstico del NameError Vinculo corregido (bug en script de diagnóstico, no en modelos). Fix espejado a Tom.
+- **Espejado Tom (Acción 1-4)**: WAL mode en database.py, configure_mappers V14.12 en main.py, service.py completo (Protocolo Nike), ClientCanvas.vue completo.
+- **Fixes adicionales**: useFormHistory.js (deepToRaw con WeakSet + isRef), Login.vue (URL relativa), router.py (endpoint check-similarity), clientes.js (checkSimilarity), models.py (razon_social_canon en ORM Cliente).
+- **Descubrimiento**: Tom estaba en commit 19/04 vs D en 24/04. El mirror_audit solo detectó 4 de varios archivos divergentes. Mañana: sync total D→Tom por diff completo, no espejado quirúrgico.
+- **Nike en Tom**: Formulario carga sin crash ✅. Verificación visual del panel de similarity pendiente (servidor necesitaba reinicio al cierre).
+- **Cierre**: OMEGA Tom ejecutado. D sin commits (cambios del 25/04 quedan para revisar en OF). PIN 1974.
+
+# 2026-04-24 (Misión Modernización IVA & Espejado Soberano D↔P)
+- **Estado**: **NOMINAL GOLD**.
+- **Modernización IVA V1**: Implementación de Web UI (FastAPI) con Drag&Drop. Refactor de `reports.py` para incluir columnas de Tipo y Σ Retenciones (Otros Tributos). Lanzador `LANZAR_IVA_WEB.bat` operativo.
+- **Soberanía P (V5-LS)**: Ejecución de **Espejado Total de Código**. Sincronización 1:1 de Backend y Re-build de Frontend en Producción.
+- **Estabilización BioTenk**: Resolución de orfandad de remito (re-vinculación a Pedido #28) y corrección de truncado de dirección en PDF (Calle + Altura + Localidad).
+- **Identidad Visual**: Corrección de Favicon (Violeta/Lila) en Producción para eliminar confusión con entorno D.
+- **Cierre**: Protocolo OMEGA ejecutado en D, P e IVA bajo PIN 1974.
+
+# 2026-04-23 (Inducción y Estrategia de Soberanía Fiscal)
+- **Estado**: **NOMINAL GOLD**.
+- **Soberanía Fiscal**: Sesión de inducción sobre el Centro de Liquidación. Validación del flujo "Copia-Fácil" (ARCA Mirror) y sellado manual de CAE.
+- **Definición Fase 2**: Acuerdo para implementar la Ingesta Asincrónica de Facturas (PDF/CSV) para automatizar el sellado sin WebService directo.
+- **Bitmask Check**: Sistema validado en Bit 851 (NOMINAL).
+- **Cierre**: Protocolo OMEGA ejecutado.
+
+# 2026-04-22 (Misión Motor Bipolar & Puente Logístico RAR-V1)
+- **Estado**: **NOMINAL GOLD**.
+- **Genoma Bipolar (Bit 1024)**: Implementación del bit `NO_FISCAL_FORCE` en Pedidos. Permite la bifurcación instantánea y reversible entre circuitos Oficial e Interno.
+- **Split-Brain UI**: Actualización de `PedidoList.vue` con identidad visual dual (Esmeralda vs Violeta/Índigo) y filtrado dinámico.
+- **Asistente de Facturación (V5.10)**: Creación del Dashboard de Facturación "Modo Espejo ARCA" para carga manual asistida de CAE.
+- **Puente Logístico RAR-V1**: Integración asíncrona tras el sellado fiscal para generación automática de remitos amparados.
+- **Robustez & UX**: Resolución de error 422 de fechas, fix de importaciones (@api), hotkey F10 y sincronización de Proxy/Routers.
+- **Cierre**: Protocolo OMEGA ejecutado bajo PIN 1974.
+
+# 2026-04-21 (Misión Reparación P: Sincronización de ADN & Diagnóstico de Costos)
+- **Estado**: **NOMINAL GOLD**.
+- **Reparación P (V5-LS)**: Resolución del Error 500 en la creación de rubros mediante el parche de `models.py` (Adición de `flags_estado` en la entidad `Rubro`).
+- **Diagnóstico Desincro**: Se identificó que la desincronización ocurrió por un trasplante de base de datos sin el correspondiente Git Pull de código en el entorno P.
+- **Auditoría de Precios**: Se detectó que el 77% de los productos en P carecen de costos cargados, causando cotizaciones en $0 bajo el Motor V5 (Strict Mode).
+- **Cierre**: Protocolo OMEGA ejecutado en ambos servicios (D y P) con éxito. PIN 1974.
+
+# 2026-04-20 (Misión Homologación Multiplex & Resolución de Deadlock)
+- **Estado**: **NOMINAL GOLD**.
+- **Homologación V6**: Sistema de contactos unificado. El módulo de Logística ahora usa el mismo motor de vínculos polimórficos que Clientes.
+- **Resolución Boot Hang**: Erradicación de dependencias circulares en SQLAlchemy mediante resolución de mappers por strings. El sistema arranca sin bloqueos.
+- **Restauración P**: Entorno V5-LS (Tomy) estabilizado en puerto 8090. Paridad total D↔P.
+- **Cierre**: Protocolo OMEGA ejecutado bajo PIN 1974.
+
+
 - **Estado**: NOMINAL GOLD.
 - **Remoto `produccion` eliminado de D**: D tenía `produccion → v5-ls-Tom.git`. No era automático pero era un vector de push manual accidental. Eliminado.
 - **Diagnóstico Tom CA**: DB en `data/` tiene 9 pedidos, rubros con códigos numéricos pre-refactor. DB real con ~18 pedidos está atrapada en OF (gitignoreada).
