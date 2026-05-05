@@ -706,10 +706,10 @@ onMounted(async () => {
             // Pre-fill cliente: fetch full record from padrón by CUIT
             if (ingesta.cliente?.cuit) {
                 try {
-                    const res = await api.get('/clientes/', { params: { cuit: ingesta.cliente.cuit } });
-                    if (res.data && res.data.length > 0) {
+                    const res = await api.get(`/clientes/check-cuit/${ingesta.cliente.cuit}`);
+                    if (res.data?.existing_clients?.length > 0) {
                         // Use padrón data (wins over factura data)
-                        await selectCliente(res.data[0], false);
+                        await selectCliente(res.data.existing_clients[0], false);
                     }
                 } catch (e) {
                     console.warn("[V5] No se pudo cargar cliente del padrón por CUIT", e);
