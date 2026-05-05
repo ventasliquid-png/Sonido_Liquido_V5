@@ -12,6 +12,18 @@
 - **Informe**: `INFORMES_HISTORICOS/2026-05-05_MODAL_INGESTA_ITEMS_UX_OF.md`
 - **Cierre**: Protocolo OMEGA ejecutado. PIN 1974.
 
+## [2026-05-05 ADDENDUM] P activo en sesión: diagnóstico de divergencia
+- **Hash P (HEAD)**: 1178a43
+- **Divergencia documentada**: 
+  - P adelante: parser fixes (pdf_parser.py Zonal V5.5, precio_unitario rename)
+  - D adelante: modal parche (296a120e PedidoCanvas.vue visual + UX)
+- **Últimos commits P**: 
+  1. 1178a43 Fix: Restore Zonal V5.5 parser, rename precio_unitario_neto → precio_unitario
+  2. 649a776 Fix: Extract precio_unitario from PDF parser
+  3. e3fac10 Sync data flow changes from D: ingesta→store→pedido form
+- **Sincronización pendiente**: Espejado bidireccional D↔P para sesión CA.
+- **Nota**: Parser fixes en P parecen estar en una rama paralela vs modal en D. Requiere análisis de rebase vs merge.
+
 # 2026-04-26 (Auditoría Espejo Soberano & Habilitación Tom)
 - **Estado**: **ALERTA** — Tom operativo, deuda técnica de sync completo D→P pendiente para mañana.
 - **Auditoría de Informe Gy**: Diagnóstico del NameError Vinculo corregido (bug en script de diagnóstico, no en modelos). Fix espejado a Tom.
