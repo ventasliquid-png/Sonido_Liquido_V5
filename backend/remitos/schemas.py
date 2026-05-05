@@ -118,6 +118,8 @@ class IngestionPayload(BaseModel):
     valor_declarado: Optional[float] = None
     solo_actualizar_cliente: bool = False
     nuevo_domicilio: Optional[ForcedAddress] = None
+    modo_ingesta: Optional[str] = None # "VINCULAR_EXISTENTE" | "VINCULAR_CUMPLIDO"
+    pedido_id_vinculado: Optional[int] = None # ID del pedido a vincular
 
 # --- MANUAL REMITO (V15.1.4) ---
 class ManualRemitoItem(BaseModel):

@@ -8,7 +8,8 @@ import apiClient from '@/services/api';
 export const usePedidosStore = defineStore('pedidos', {
     state: () => ({
         isLoading: false,
-        pedidos: [] // List for Dashboard
+        pedidos: [], // List for Dashboard
+        ingestaData: null // Temporary data from factura ingesta
     }),
 
     actions: {
@@ -171,6 +172,14 @@ export const usePedidosStore = defineStore('pedidos', {
                 console.error("Error fetching last used transport:", error);
                 return null;
             }
+        },
+
+        setIngestaData(data) {
+            this.ingestaData = data;
+        },
+
+        clearIngestaData() {
+            this.ingestaData = null;
         }
     }
 });

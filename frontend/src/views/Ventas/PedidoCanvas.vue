@@ -638,6 +638,7 @@ import { useRouter } from 'vue-router';
 import { useClientesStore } from '../../stores/clientes';
 import { useProductosStore } from '../../stores/productos';
 import { useMaestrosStore } from '../../stores/maestros';
+import { usePedidosStore } from '../../stores/pedidos';
 import RentabilidadPanel from './components/RentabilidadPanel.vue';
 import api from '../../services/api'; // Import API service
 import _ from 'lodash';
@@ -653,6 +654,7 @@ const notificationStore = useNotificationStore();
 const clientesStore = useClientesStore();
 const productosStore = useProductosStore();
 const maestrosStore = useMaestrosStore();
+const pedidosStore = usePedidosStore();
 
 // [GY-UX] Modal Imports
 import ClientCanvas from '../Hawe/ClientCanvas.vue';
@@ -695,6 +697,43 @@ onMounted(async () => {
         } catch (e) {
             console.error('Error fetching Suggestion ID:', e);
             // Fallback or leave as ---
+        }
+
+        // 1.5 Check for Ingesta Data (from factura ingestion flow)
+        if (pedidosStore.ingestaData) {
+            const ingesta = pedidosStore.ingestaData;
+
+            // Pre-fill cliente from ingesta
+            if (ingesta.cliente) {
+                // Create a minimal client object for selection
+                const clienteFromIngesta = {
+                    id: ingesta.cliente.id || null,
+                    razon_social: ingesta.cliente.razon_social || '',
+                    cuit: ingesta.cliente.cuit || '',
+                    domicilios: ingesta.cliente.domicilios_disponibles || []
+                };
+                clienteSeleccionado.value = clienteFromIngesta;
+                busquedaCliente.value = clienteFromIngesta.razon_social;
+            }
+
+            // Pre-fill items from ingesta
+            if (ingesta.items && Array.isArray(ingesta.items)) {
+                items.value = ingesta.items.map((item, idx) => ({
+                    id: `line_${Math.random().toString(36).substr(2, 9)}`,
+                    producto_id: null,
+                    sku: item.codigo || '',
+                    descripcion: item.descripcion || '',
+                    cantidad: Number(item.cantidad) || 1,
+                    precio: Number(item.precio_unitario) || 0,
+                    descuento_porcentaje: 0,
+                    descuento_valor: 0,
+                    total: (Number(item.cantidad) || 1) * (Number(item.precio_unitario) || 0),
+                    producto_obj: null
+                }));
+            }
+
+            // Clear ingesta data from store after use
+            pedidosStore.clearIngestaData();
         }
     }
 

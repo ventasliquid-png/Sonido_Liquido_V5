@@ -306,13 +306,93 @@
             <div class="border-2 border-cyan-500/50 rounded-2xl w-full max-w-5xl h-full max-h-[90vh] flex flex-col overflow-hidden shadow-[0_0_50px_rgba(6,182,212,0.2)] bg-[#0f172a]">
                 <!-- V5 HUD Border Wrapper for Inspector -->
                 <div class="flex-1 overflow-hidden relative">
-                     <ClientCanvas 
+                     <ClientCanvas
                          :isModal="true"
-                         id="new" 
+                         id="new"
                          :initialData="parsedData?.cliente"
                          @close="closeClientAbm"
                          @save="onClientSaved"
                      />
+                </div>
+            </div>
+        </div>
+    </Teleport>
+
+    <!-- 409 NO PEDIDO MODAL -->
+    <Teleport to="body">
+        <div v-if="show409Modal" class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" @keydown.esc="close409Modal">
+            <div class="bg-slate-900 border-2 border-amber-500/50 rounded-2xl w-full max-w-2xl shadow-[0_0_50px_rgba(217,119,6,0.2)] overflow-hidden">
+                <!-- Header -->
+                <div class="bg-gradient-to-r from-amber-900/30 to-orange-900/30 border-b border-amber-500/30 p-6">
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-3">
+                        <i class="fas fa-exclamation-triangle text-amber-400"></i>
+                        Factura sin Pedido Vinculado
+                    </h2>
+                    <p class="text-sm text-amber-200/60 mt-2">
+                        Esta factura requiere un pedido asociado para generar el remito. Elija una opción:
+                    </p>
+                </div>
+
+                <!-- Options -->
+                <div class="p-6 space-y-3">
+                    <!-- Opción 1: Asignar pedido existente -->
+                    <button
+                        v-if="pendingPedidos.length > 0"
+                        @click="selectedPedidoId && retryWithPedido(selectedPedidoId)"
+                        :disabled="!selectedPedidoId"
+                        class="w-full p-4 bg-blue-900/30 border border-blue-500/50 hover:border-blue-400 hover:bg-blue-900/50 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all text-left"
+                    >
+                        <div class="flex items-start gap-3">
+                            <i class="fas fa-link text-blue-400 mt-1"></i>
+                            <div class="flex-1">
+                                <p class="font-bold text-white">Asignar Pedido Existente</p>
+                                <select
+                                    v-model="selectedPedidoId"
+                                    @click.stop
+                                    class="mt-2 w-full bg-slate-950 border border-blue-500/30 rounded px-3 py-2 text-sm text-white focus:border-blue-400 outline-none"
+                                >
+                                    <option :value="null">-- Seleccione un pedido --</option>
+                                    <option v-for="p in pendingPedidos" :key="p.id" :value="p.id">
+                                        #{{ p.id }} — {{ p.cliente.razon_social }} ({{ p.fecha }})
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+                    </button>
+
+                    <!-- Opción 2: Dar de alta pedido nuevo -->
+                    <button
+                        @click="goToNewPedido"
+                        class="w-full p-4 bg-emerald-900/30 border border-emerald-500/50 hover:border-emerald-400 hover:bg-emerald-900/50 rounded-lg transition-all text-left flex items-start gap-3"
+                    >
+                        <i class="fas fa-plus-circle text-emerald-400 mt-1"></i>
+                        <div>
+                            <p class="font-bold text-white">Dar de Alta Pedido Nuevo</p>
+                            <p class="text-xs text-emerald-200/60 mt-1">Abre el formulario de nuevo pedido</p>
+                        </div>
+                    </button>
+
+                    <!-- Opción 3: Continuar sin pedido (Cuarentena) -->
+                    <button
+                        @click="retryInCuarentena"
+                        class="w-full p-4 bg-orange-900/30 border border-orange-500/50 hover:border-orange-400 hover:bg-orange-900/50 rounded-lg transition-all text-left flex items-start gap-3"
+                    >
+                        <i class="fas fa-pause-circle text-orange-400 mt-1"></i>
+                        <div>
+                            <p class="font-bold text-white">Continuar en Cuarentena</p>
+                            <p class="text-xs text-orange-200/60 mt-1">Genera remito requiere revisión supervisor</p>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- Footer -->
+                <div class="bg-slate-950 border-t border-slate-700 p-4 flex justify-end">
+                    <button
+                        @click="close409Modal"
+                        class="px-4 py-2 text-slate-400 hover:text-white transition font-bold"
+                    >
+                        Salir
+                    </button>
                 </div>
             </div>
         </div>
@@ -327,6 +407,7 @@ import remitosService from '@/services/remitos';
 import { useNotificationStore } from '@/stores/notification';
 import { useMaestrosStore } from '@/stores/maestros';
 import { useClientesStore } from '@/stores/clientes';
+import { usePedidosStore } from '@/stores/pedidos';
 import ClientCanvas from '../Hawe/ClientCanvas.vue';
 import SmartSelect from '@/components/ui/SmartSelect.vue';
 import api from '@/services/api';
@@ -351,6 +432,11 @@ const bultos = ref(1);
 const valor_declarado = ref(0.0);
 const addressAmbiguity = ref(false);
 const manualAddressChange = ref(false);
+
+// 409 Modal State
+const show409Modal = ref(false);
+const pendingPedidos = ref([]);
+const selectedPedidoId = ref(null);
 const isSuggestedSelected = computed(() => {
     const selected = clientAddresses.value.find(d => d.id === selectedAddressId.value);
     return selected?.is_suggested || false;
@@ -606,11 +692,148 @@ const confirmIngesta = async () => {
 
     } catch (e) {
         console.error(e);
+
+        // Handle 409 Conflict: Factura sin pedido vinculado
+        if (e.response?.status === 409) {
+            loading.value = false;
+            await handle409NoPedido();
+            return;
+        }
+
         notification.add('Error al generar remito: ' + (e.response?.data?.detail || e.message), 'error');
     } finally {
         loading.value = false;
     }
 };
+const handle409NoPedido = async () => {
+    // Check for pending pedidos with this CUIT
+    const cuit = parsedData.value?.cliente?.cuit;
+    if (cuit) {
+        try {
+            const res = await api.get('/pedidos/', { params: { cliente_cuit: cuit, estado: 'PENDIENTE' } });
+            pendingPedidos.value = res.data || [];
+        } catch (e) {
+            console.error("[V5] No se pudieron cargar pedidos pendientes", e);
+            pendingPedidos.value = [];
+        }
+    }
+    show409Modal.value = true;
+};
+
+const retryWithPedido = async (pedidoId) => {
+    if (!parsedData.value) return;
+
+    try {
+        loading.value = true;
+        show409Modal.value = false;
+
+        const payload = {
+            cliente: {
+                id: parsedData.value.cliente.id || null,
+                cuit: parsedData.value.cliente.cuit,
+                razon_social: parsedData.value.cliente.razon_social
+            },
+            factura: {
+                numero: parsedData.value.factura.numero,
+                cae: parsedData.value.factura.cae,
+                vto_cae: parsedData.value.factura.vto_cae
+            },
+            items: parsedData.value.items.map(item => ({
+                descripcion: item.descripcion,
+                cantidad: parseFloat(item.cantidad),
+                precio_unitario: parseFloat(item.precio_unitario || 0.0),
+                codigo: item.codigo || null
+            })),
+            transporte_id: selectedTransportId.value,
+            bultos: bultos.value,
+            valor_declarado: valor_declarado.value,
+            nuevo_domicilio: selectedAddressId.value === 'ADD_NEW' ? newAddress.value : null,
+            modo_ingesta: 'VINCULAR_EXISTENTE',
+            pedido_id_vinculado: pedidoId
+        };
+
+        if (selectedAddressId.value && selectedAddressId.value !== 'ADD_NEW') {
+            payload.domicilio_id = selectedAddressId.value;
+        }
+
+        const res = await remitosService.confirmIngesta(payload);
+
+        if (res.data && res.data.id) {
+            notification.add('Remito generado con éxito', 'success');
+            const pdfUrl = `/remitos/${res.data.id}/pdf`;
+            window.open(pdfUrl, '_blank');
+            reset();
+        }
+    } catch (e) {
+        console.error(e);
+        notification.add('Error al generar remito: ' + (e.response?.data?.detail || e.message), 'error');
+    } finally {
+        loading.value = false;
+    }
+};
+
+const goToNewPedido = () => {
+    show409Modal.value = false;
+    const pedidosStore = usePedidosStore();
+    pedidosStore.setIngestaData(parsedData.value);
+    router.push({ name: 'PedidoCanvas' });
+};
+
+const retryInCuarentena = async () => {
+    if (!parsedData.value) return;
+
+    try {
+        loading.value = true;
+        show409Modal.value = false;
+
+        const payload = {
+            cliente: {
+                id: parsedData.value.cliente.id || null,
+                cuit: parsedData.value.cliente.cuit,
+                razon_social: parsedData.value.cliente.razon_social
+            },
+            factura: {
+                numero: parsedData.value.factura.numero,
+                cae: parsedData.value.factura.cae,
+                vto_cae: parsedData.value.factura.vto_cae
+            },
+            items: parsedData.value.items.map(item => ({
+                descripcion: item.descripcion,
+                cantidad: parseFloat(item.cantidad),
+                precio_unitario: parseFloat(item.precio_unitario || 0.0),
+                codigo: item.codigo || null
+            })),
+            transporte_id: selectedTransportId.value,
+            bultos: bultos.value,
+            valor_declarado: valor_declarado.value,
+            nuevo_domicilio: selectedAddressId.value === 'ADD_NEW' ? newAddress.value : null,
+            modo_cuarentena: true
+        };
+
+        if (selectedAddressId.value && selectedAddressId.value !== 'ADD_NEW') {
+            payload.domicilio_id = selectedAddressId.value;
+        }
+
+        const res = await remitosService.confirmIngesta(payload);
+
+        if (res.data && res.data.id) {
+            notification.add('Remito en cuarentena generado. Requiere revisión supervisor.', 'warning');
+            const pdfUrl = `/remitos/${res.data.id}/pdf`;
+            window.open(pdfUrl, '_blank');
+            reset();
+        }
+    } catch (e) {
+        console.error(e);
+        notification.add('Error: ' + (e.response?.data?.detail || e.message), 'error');
+    } finally {
+        loading.value = false;
+    }
+};
+
+const close409Modal = () => {
+    show409Modal.value = false;
+};
+
 import { onMounted } from 'vue';
 onMounted(() => {
     if (maestrosStore.transportes.length === 0) {
