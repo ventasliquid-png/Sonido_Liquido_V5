@@ -632,12 +632,17 @@
 
         <!-- INGESTA ITEM RESOLUTION MODAL -->
         <Teleport to="body" v-if="showItemResolutionModal">
-            <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div class="bg-white rounded-lg shadow-2xl w-full max-w-2xl mx-4">
+            <div
+                class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[9998]"
+                @keydown.esc.stop="cancelItemResolution"
+                tabindex="-1"
+                ref="itemResolutionOverlayRef"
+            >
+                <div class="bg-[#0f172a]/95 border border-emerald-900/50 rounded-xl shadow-2xl w-full max-w-2xl mx-4 backdrop-blur-md">
                     <!-- Header -->
-                    <div class="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-6 py-4 rounded-t-lg flex justify-between items-center">
-                        <h3 class="text-lg font-bold">Resolver Ítems de Factura</h3>
-                        <span class="text-sm font-medium">
+                    <div class="bg-gradient-to-r from-emerald-900/80 to-cyan-900/80 text-white px-6 py-4 rounded-t-xl flex justify-between items-center border-b border-emerald-700/40">
+                        <h3 class="text-lg font-bold font-mono tracking-wide text-emerald-300">RESOLVER ÍTEMS DE FACTURA</h3>
+                        <span class="text-sm font-mono text-emerald-400/70">
                             Ítem {{ currentItemIndex + 1 }} de {{ ingestaItemsPending.length }}
                         </span>
                     </div>
@@ -645,83 +650,87 @@
                     <!-- Content -->
                     <div class="p-6" v-if="currentIngestaItem">
                         <!-- ZONA SUPERIOR: READ-ONLY REFERENCE -->
-                        <div class="bg-gray-50 border border-gray-200 rounded p-4 mb-6">
-                            <h4 class="font-bold text-gray-700 mb-3">Datos de Factura (Referencia)</h4>
-                            <div class="grid grid-cols-2 gap-4 text-sm">
-                                <div>
-                                    <span class="text-gray-600">Descripción:</span>
-                                    <p class="font-semibold">{{ currentIngestaItem.descripcion }}</p>
+                        <div class="bg-emerald-950/40 border border-emerald-800/30 rounded-lg p-4 mb-5">
+                            <h4 class="font-bold text-emerald-400 mb-3 text-xs font-mono uppercase tracking-widest">Factura dice (referencia)</h4>
+                            <div class="grid grid-cols-2 gap-3 text-sm">
+                                <div class="col-span-2">
+                                    <span class="text-emerald-600 text-xs">Descripción:</span>
+                                    <p class="font-semibold text-white">{{ currentIngestaItem.descripcion }}</p>
                                 </div>
                                 <div>
-                                    <span class="text-gray-600">Cantidad:</span>
-                                    <p class="font-semibold">{{ currentIngestaItem.cantidad }}</p>
+                                    <span class="text-emerald-600 text-xs">Cantidad:</span>
+                                    <p class="font-semibold text-white">{{ currentIngestaItem.cantidad }}</p>
                                 </div>
                                 <div>
-                                    <span class="text-gray-600">Precio Unitario:</span>
-                                    <p class="font-semibold">${{ currentIngestaItem.precio.toFixed(2) }}</p>
+                                    <span class="text-emerald-600 text-xs">Precio Unitario:</span>
+                                    <p class="font-semibold text-white">${{ Number(currentIngestaItem.precio || 0).toFixed(2) }}</p>
                                 </div>
-                                <div>
-                                    <span class="text-gray-600">Subtotal:</span>
-                                    <p class="font-semibold">${{ currentIngestaItem.total.toFixed(2) }}</p>
+                                <div class="col-span-2">
+                                    <span class="text-emerald-600 text-xs">Subtotal:</span>
+                                    <p class="font-semibold text-cyan-300">${{ Number(currentIngestaItem.total || 0).toFixed(2) }}</p>
                                 </div>
                             </div>
                         </div>
 
                         <!-- ZONA INFERIOR: BUSCADOR DE PRODUCTOS -->
-                        <div class="mb-6">
-                            <h4 class="font-bold text-gray-700 mb-3">Buscar en Catálogo</h4>
+                        <div class="mb-4">
+                            <h4 class="font-bold text-emerald-400 mb-3 text-xs font-mono uppercase tracking-widest">Buscar en catálogo</h4>
                             <div class="relative">
                                 <input
                                     ref="ingestaItemInputRef"
                                     v-model="ingestaItemSearchTerm"
                                     type="text"
-                                    placeholder="Tipea SKU o descripción del producto..."
-                                    class="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="SKU o descripción..."
+                                    class="w-full px-4 py-2 bg-[#0b1120] border border-emerald-800/50 rounded-lg text-white placeholder-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono text-sm"
+                                    @keydown.esc.stop="cancelItemResolution"
                                 />
                             </div>
 
                             <!-- Lista de Candidatos -->
-                            <div v-if="ingestaFilteredProductos.length > 0" class="mt-3 border border-gray-200 rounded max-h-64 overflow-y-auto bg-white">
+                            <div v-if="ingestaFilteredProductos.length > 0" class="mt-2 border border-emerald-900/40 rounded-lg max-h-56 overflow-y-auto bg-[#0b1120]">
                                 <div
                                     v-for="prod in ingestaFilteredProductos"
                                     :key="prod.id"
                                     @click="resolveIngestaItemProduct(prod)"
-                                    class="px-4 py-3 border-b border-gray-100 hover:bg-blue-50 cursor-pointer transition"
+                                    class="px-4 py-3 border-b border-emerald-900/20 hover:bg-emerald-900/30 cursor-pointer transition"
                                 >
-                                    <div class="flex justify-between items-start">
-                                        <div>
-                                            <p class="font-semibold text-sm">{{ prod.sku }}</p>
-                                            <p class="text-sm text-gray-600">{{ prod.nombre || prod.descripcion }}</p>
-                                        </div>
-                                    </div>
+                                    <p class="font-mono text-xs text-emerald-400">{{ prod.sku }}</p>
+                                    <p class="text-sm text-white">{{ prod.nombre || prod.descripcion }}</p>
                                 </div>
                             </div>
 
                             <!-- Sin resultados -->
-                            <div v-else-if="ingestaItemSearchTerm.length > 0" class="mt-3 p-4 bg-yellow-50 border border-yellow-200 rounded text-sm text-gray-700">
+                            <div v-else-if="ingestaItemSearchTerm.length > 0" class="mt-2 p-4 bg-yellow-900/20 border border-yellow-700/30 rounded-lg text-sm text-yellow-300">
                                 <p class="mb-2">No se encontraron productos en el catálogo.</p>
                                 <button
                                     @click="notificationStore.add('F4 — Dar de alta nuevo producto (próxima funcionalidad)', 'info')"
-                                    class="inline-block px-3 py-1 bg-yellow-500 text-white text-xs rounded hover:bg-yellow-600"
+                                    class="px-3 py-1 bg-yellow-600/60 text-white text-xs rounded hover:bg-yellow-600 transition"
                                 >
                                     F4 — Dar de alta producto nuevo
                                 </button>
                             </div>
 
                             <!-- Instrucción inicial -->
-                            <div v-else class="mt-3 p-4 bg-blue-50 border border-blue-200 rounded text-sm text-gray-700">
-                                Empieza a tipear para buscar productos
+                            <div v-else class="mt-2 p-3 bg-cyan-950/30 border border-cyan-900/30 rounded-lg text-xs text-cyan-500 font-mono">
+                                Empieza a tipear para buscar productos en catálogo
                             </div>
                         </div>
                     </div>
 
                     <!-- Footer -->
-                    <div class="bg-gray-100 px-6 py-4 rounded-b-lg flex justify-end gap-3">
+                    <div class="px-6 py-4 rounded-b-xl flex justify-end gap-3 border-t border-emerald-900/30">
                         <button
                             @click="cancelItemResolution"
-                            class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition text-sm font-medium"
+                            class="px-4 py-2 text-emerald-400 bg-transparent border border-emerald-800/50 rounded-lg hover:bg-emerald-900/30 transition text-sm font-mono"
                         >
-                            Cancelar
+                            ← Cancelar
+                        </button>
+                        <button
+                            v-if="currentIngestaItem?.producto_id"
+                            @click="nextIngestaItem"
+                            class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 transition text-sm font-mono"
+                        >
+                            Confirmar →
                         </button>
                     </div>
                 </div>
@@ -731,7 +740,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, onUnmounted } from 'vue';
+import { ref, computed, onMounted, watch, onUnmounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { useClientesStore } from '../../stores/clientes';
 import { useProductosStore } from '../../stores/productos';
@@ -1263,6 +1272,7 @@ const selectedProductIndex = ref(0);
 
 // --- INGESTA ITEM RESOLUTION MODAL STATE ---
 const showItemResolutionModal = ref(false);
+const itemResolutionOverlayRef = ref(null);
 const ingestaItemsPending = ref([]);
 const currentItemIndex = ref(0);
 const ingestaItemSearchTerm = ref('');
@@ -1564,7 +1574,14 @@ const openItemResolutionModal = (itemsFromIngesta) => {
         producto_obj: null
     }));
     currentItemIndex.value = 0;
-    ingestaItemSearchTerm.value = currentIngestaItem.value?.descripcion || '';
+    // FIX: setear DESPUÉS de popular el array, nextTick garantiza que currentIngestaItem compute
+    nextTick(() => {
+        ingestaItemSearchTerm.value = currentIngestaItem.value?.descripcion || '';
+        setTimeout(() => {
+            itemResolutionOverlayRef.value?.focus();
+            ingestaItemInputRef.value?.focus();
+        }, 80);
+    });
     showItemResolutionModal.value = true;
 
     console.log('[openItemResolutionModal] Modal abierto con estado:', {
@@ -1574,11 +1591,6 @@ const openItemResolutionModal = (itemsFromIngesta) => {
         searchTerm: ingestaItemSearchTerm.value,
         showModal: showItemResolutionModal.value
     });
-
-    // Auto-focus search field cuando el modal se monta
-    setTimeout(() => {
-        ingestaItemInputRef.value?.focus();
-    }, 100);
 };
 
 const resolveIngestaItemProduct = async (prod) => {
@@ -1622,16 +1634,13 @@ const finishItemResolution = () => {
 };
 
 const cancelItemResolution = () => {
-    // Volver al modal 409 (sin borrar pedido en blanco)
     ingestaItemsPending.value = [];
     currentItemIndex.value = 0;
     ingestaItemSearchTerm.value = '';
     showItemResolutionModal.value = false;
     items.value = [];
-
-    // Mostrar modal 409 nuevamente (sería del componente padre o store)
-    // Por ahora, solo cerramos el modal
-    notificationStore.add('Resolución cancelada.', 'info');
+    // Volver a IngestaFacturaView donde está el modal 409
+    router.push({ name: 'IngestaFactura' });
 };
 
 // --- INLINE ROW DISCOUNT HANDLERS ---
