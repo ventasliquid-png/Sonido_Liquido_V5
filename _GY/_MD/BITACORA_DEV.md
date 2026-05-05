@@ -1,3 +1,10 @@
+## SESIÓN 794: ARLEQUÍN V2 MERGE QUIRÚRGICO CA + DOCTRINA BIT 1 RESUELTA
+**Fecha:** 2026-05-04
+**Objetivo:** Merge de feature/arleq-v2-productos en D. Resolución definitiva Bit 1 Clientes/Productos. OMEGA V2.2 desplegado en D y P.
+**Estado:** NOMINAL GOLD — ver informe completo: `INFORMES_HISTORICOS/2026-05-04_ARLEQ_V2_MERGE_QUIRURGICO_CA.md`
+
+---
+
 ## SESIÓN 793: SIEMBRA DE CONTACTOS + SOBERANÍA LOCAL (PURGA POSTGRESQL)
 **Fecha:** 2026-04-19
 **Objetivo:** Importación masiva de contactos (Person-Centric) y eliminación total de dependencias a base de datos externa.

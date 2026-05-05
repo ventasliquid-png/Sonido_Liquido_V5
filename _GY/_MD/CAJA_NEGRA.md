@@ -1,3 +1,11 @@
+# CAJA NEGRA: Arlequín V2 Merge CA — Doctrina Bit 1 Resuelta (2026-05-04)
+
+Sesión CA 2026-05-04. Merge quirúrgico feature/arleq-v2-productos en D (5 archivos). 3 bugs post-merge corregidos (VIRGINITY→HAS_ACTIVITY, default=2, lógica hard_delete). Doctrina Bit 1 canonizada: 1=virgen/borrable, 0=tocado/bloqueado. OMEGA V2.2 en D y P. Informe: `INFORMES_HISTORICOS/2026-05-04_ARLEQ_V2_MERGE_QUIRURGICO_CA.md`
+
+**Agente:** Sonnet (arquitecto) + Claude Code Haiku (ejecutor) — Hash D: f9ae409a — Hash P: 8ad0ad58
+
+---
+
 # CAJA NEGRA: Modernización IVA V1 & Espejado Soberano D↔P (2026-04-24)
 
 ## 1. Modernización IVA V1 (Satelite)
