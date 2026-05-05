@@ -12,7 +12,7 @@ class Rubro(Base):
     nombre = Column(String(50), unique=True, index=True, nullable=False)
     padre_id = Column(Integer, ForeignKey('rubros.id'), nullable=True)
     activo = Column(Boolean, default=True)
-    flags_estado = Column(BigInteger, default=0, nullable=False)
+    flags_estado = Column(BigInteger, default=2, nullable=False)  # Nace virgen (Bit 1 HAS_ACTIVITY=1)
     
     # Motor de Precios V6
     margen_default = Column(Numeric(6, 2), default=0.0) # Margen propuesto para el rubro
@@ -38,6 +38,7 @@ class Producto(Base):
     sku = Column(Integer, unique=True, index=True)
     codigo_visual = Column(String(30), unique=True, nullable=True, index=True)
     nombre = Column(String(150), index=True, nullable=False)
+    nombre_canon = Column(String(300), nullable=True, index=True)  # [ARLEQUÍN V2] BOW dedup
     descripcion = Column(Text, nullable=True)
     rubro_id = Column(Integer, ForeignKey('rubros.id'), nullable=False)
     
@@ -70,7 +71,7 @@ class Producto(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # [GENOMA 64-bit] Hybrid Flags (64-bit)
-    flags_estado = Column(BigInteger, default=0, nullable=False)
+    flags_estado = Column(BigInteger, default=2, nullable=False)  # Nace virgen (Bit 1 HAS_ACTIVITY=1)
 
     # Relaciones
     rubro = relationship("Rubro", back_populates="productos")

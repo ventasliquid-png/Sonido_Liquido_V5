@@ -226,7 +226,13 @@ def create_remito_from_ingestion(payload: schemas.IngestionPayload, db: Session 
 
         return remito
     except ValueError as ve:
-        raise HTTPException(status_code=400, detail=str(ve))
+        msg = str(ve)
+        if msg.startswith("PEDIDO_REQUERIDO"):
+            raise HTTPException(status_code=409, detail={
+                "codigo": "PEDIDO_REQUERIDO",
+                "mensaje": msg
+            })
+        raise HTTPException(status_code=400, detail=msg)
     except Exception as e:
         print(f"Error creating Remito from Ingestion: {e}")
         import traceback

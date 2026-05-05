@@ -27,19 +27,29 @@ class RemitosService:
         """
         Creates a Pedido and Remito from PDF Ingestion Data.
         """
-        # [V5] Anti-Zombi: Verify if Remito already exists for this Invoice
+        # [V5.2 OMEGA] Anti-Zombi: Verify if Remito OR Pedido already exists
         original_invoice = payload.factura.numero or ""
         numero_legal = ""
         if "-" in original_invoice:
-            # [V5.4 Robustness] Use full invoice number instead of just suffix to avoid collisions
-            # Example: 0001-12345678 -> 0016-0001-12345678
-            inv_body = original_invoice.replace("-", "-") # Keep all parts
-            numero_legal = f"0016-{inv_body}"
+            numero_legal = f"0016-{original_invoice}"
         
+        # Guard 1: Existing Remito (Committed)
         if numero_legal:
             existing_remito = db.query(models.Remito).filter(models.Remito.numero_legal == numero_legal).first()
             if existing_remito:
-                raise ValueError(f"Ya existe el Remito {numero_legal} asociado a esta Factura.")
+                print(f"[INGESTA] Bloqueo: Remito {numero_legal} ya existe.")
+                return existing_remito
+        
+        # Guard 2: Existing Pedido (Prevent Ghosting during slow transactions)
+        if original_invoice:
+            note_search = f"Ingesta Automática Factura: {original_invoice}"
+            existing_pedido = db.query(Pedido).filter(Pedido.nota == note_search).first()
+            if existing_pedido:
+                print(f"[INGESTA] Bloqueo OMEGA: Pedido {existing_pedido.id} detectado para factura {original_invoice}.")
+                # If we have the Pedido but not the Remito yet, we must raise 409 to stop the race condition
+                from fastapi import HTTPException
+                raise HTTPException(status_code=409, detail=f"La factura {original_invoice} ya está siendo procesada.")
+
             
         # 1. FIND CLIENT (Anti-Duplication Strategy)
         payload_cuit = (payload.cliente.cuit or "").replace("-", "").strip()
@@ -187,85 +197,44 @@ class RemitosService:
             transporte = db.query(EmpresaTransporte).first()
             transporte_id = transporte.id if transporte else None
 
-        # 3. CREATE PEDIDO
-        nuevo_pedido = Pedido(
-            cliente_id=cliente.id,
-            fecha=datetime.now(),
-            nota=f"Ingesta Automática Factura: {payload.factura.numero or 'S/N'}",
-            estado="PENDIENTE",
-            origen="INGESTA_PDF",
-            domicilio_entrega_id=domicilio.id if domicilio else None,
-            transporte_id=transporte_id
-        )
-        db.add(nuevo_pedido)
-        db.flush()
+        # [V5-FLUJO-C] Modo ingesta inteligente
+        goto_remito = False
+        pedido_items = [] # [GY-FIX] Garantizar inicialización limpia
+        
+        if payload.modo_ingesta == "VINCULAR_EXISTENTE" and payload.pedido_id_vinculado:
+            from backend.pedidos.models import Pedido as PedidoModel
+            pedido_existente = db.query(PedidoModel).filter(
+                PedidoModel.id == payload.pedido_id_vinculado
+            ).first()
+            if not pedido_existente:
+                raise ValueError(f"Pedido {payload.pedido_id_vinculado} no encontrado")
+            nuevo_pedido = pedido_existente
+            nuevo_pedido.estado = "FACTURADO"
+            db.add(nuevo_pedido)
+            db.flush()
+            pedido_items = db.query(PedidoItem).filter(
+                PedidoItem.pedido_id == nuevo_pedido.id
+            ).all()
+            goto_remito = True
+        elif payload.modo_ingesta == "VINCULAR_CUMPLIDO" and payload.pedido_id_vinculado:
+            from backend.pedidos.models import Pedido as PedidoModel
+            pedido_existente = db.query(PedidoModel).filter(
+                PedidoModel.id == payload.pedido_id_vinculado
+            ).first()
+            if not pedido_existente:
+                raise ValueError(f"Pedido {payload.pedido_id_vinculado} no encontrado")
+            db.commit()
+            return None
 
-        # 4. RESOLVE ITEMS
-        from backend.productos.models import Producto, Rubro
-        prod_generico = db.query(Producto).filter(Producto.nombre.ilike("%VARIOS%")).first()
-        if not prod_generico:
-             prod_generico = db.query(Producto).filter(Producto.activo == True).first()
-             
-        # [GY-FIX] Prevenir Error 500 por base de datos vacía (0 SKUs)
-        if not prod_generico:
-             rubro = db.query(Rubro).first()
-             if not rubro:
-                 rubro = Rubro(codigo="GEN", nombre="Genérico Automático")
-                 db.add(rubro)
-                 db.flush()
-             prod_generico = Producto(nombre="ÍTEM VARIOS (Auto-Ingesta)", sku=999999, codigo_visual="VAR-001", rubro_id=rubro.id, activo=True)
-             db.add(prod_generico)
-             db.flush()
-
-        pedido_items = []
-        for item in payload.items:
-            producto = db.query(Producto).filter(Producto.nombre.ilike(f"%{item.descripcion}%")).first()
-            
-            if not producto:
-                # [GY-FIX] Generación secuencial de SKUs VS0001-VS9999 para Ingesta
-                last_vs = db.query(Producto).filter(Producto.codigo_visual.like('VS%')).order_by(Producto.id.desc()).first()
-                next_code = 1
-                if last_vs and last_vs.codigo_visual:
-                    try:
-                        next_code = int(last_vs.codigo_visual.replace("VS", "")) + 1
-                    except:
-                        next_code = 1
-                
-                codigo_vs = f"VS{str(next_code).zfill(4)}"
-                nuevo_sku = 80000 + next_code # Para evitar colisiones con el constraint entero único
-                
-                rubro = db.query(Rubro).first()
-                if not rubro:
-                    rubro = Rubro(codigo="GEN", nombre="Genérico Automático")
-                    db.add(rubro)
-                    db.flush()
-                
-                producto = Producto(
-                    nombre=item.descripcion.upper(),
-                    codigo_visual=codigo_vs,
-                    sku=nuevo_sku,
-                    rubro_id=rubro.id,
-                    activo=True,
-                    tipo_producto='INSUMO'
-                )
-                db.add(producto)
-                db.flush()
-                print(f"[INGESTA] Producto auto-creado: {codigo_vs} - {producto.nombre}")
-                
-            new_p_item = PedidoItem(
-                pedido_id=nuevo_pedido.id,
-                producto_id=producto.id,
-                cantidad=item.cantidad,
-                precio_unitario=item.precio_unitario if item.precio_unitario is not None else 0.0,
-                subtotal=(item.cantidad * (item.precio_unitario or 0.0)),
-                nota=""
+        if not goto_remito:
+            # [ARLEQUÍN V2 — DOCTRINA SOLO LECTURA]
+            # Una factura sin pedido vinculado no puede procesarse.
+            # El operador debe crear o identificar el pedido antes de reintentar.
+            # Features pendientes: F1 (conciliación), F2 (parciales), F3 (huérfanas)
+            raise ValueError(
+                "PEDIDO_REQUERIDO: Esta factura no tiene un pedido vinculado. "
+                "Identifique o cree el pedido correspondiente antes de procesar la ingesta."
             )
-            db.add(new_p_item)
-            db.flush() 
-            pedido_items.append(new_p_item)
-
-        # Update Pedido Total
-        nuevo_pedido.total = sum(i.subtotal for i in pedido_items)
 
         # 5. CREATE REMITO
         vto_cae_date = None
@@ -298,14 +267,21 @@ class RemitosService:
         db.add(remito)
         db.flush()
 
-        # 6. CREATE REMITO ITEMS
+        # 6. CREATE REMITO ITEMS (GY-TRACE)
+        print(f"[REMITO-TRACE] Procesando {len(pedido_items)} items para Remito {remito.id} (Pedido {nuevo_pedido.id})")
         for p_item in pedido_items:
+            # [GY-FIX] Verificación estricta de pertenencia: 1 Remito = 1 Pedido
+            if p_item.pedido_id != nuevo_pedido.id:
+                print(f"[REMITO-CRITICAL] ERROR DE INTEGRIDAD: PedidoItem {p_item.id} (Pedido {p_item.pedido_id}) no coincide con el Pedido del Remito ({nuevo_pedido.id}). Omitiendo asociación.")
+                continue
+
             r_item = models.RemitoItem(
                 remito_id=remito.id,
                 pedido_item_id=p_item.id,
                 cantidad=p_item.cantidad
             )
             db.add(r_item)
+            print(f"[REMITO-TRACE] Item vinculado: Remito {remito.id} -> PedidoItem {p_item.id}")
             
         # 7. [VANGUARD CANON] Genoma 64-bit Evolution - PIN 1974
         from backend.clientes.constants import ClientFlags
@@ -313,10 +289,10 @@ class RemitosService:
         current_flags = getattr(cliente, 'flags_estado', 0) or 0
         
         # Base: Activo (1) | Arca (4) | V14 (8) -> Nivel 13
-        # Cliente con remito/factura → tocado. Apagar Bit 1 (HAS_ACTIVITY = 0).
+        # Si ya operó, pierde HAS_ACTIVITY (Bit 1 apagado = LEVEL_HISTORY 13) (~2)
         target_base = ClientFlags.EXISTENCE | ClientFlags.GOLD_ARCA | ClientFlags.V14_STRUCT
-
-        # Mutación Doctrinal: Forzar Nivel 13 (Apagar Bit 1 = Desactivar HAS_ACTIVITY)
+        
+        # Mutación Doctrinal: Forzar Nivel 13 (Apagar Bit 1)
         mutation_flags = (current_flags | target_base) & ~ClientFlags.HAS_ACTIVITY
         
         # Sello de Revisión: Si falta Segmento o Lista de Precios, marcar PENDIENTE_REVISION (Bit 20)
@@ -349,8 +325,6 @@ class RemitosService:
         Creates a Manual Remito (Rosa/Blanco) from Frontend data.
         Serie 0015-00003001
         """
-        from backend.clientes.constants import ClientFlags
-
         # 1. RESOLVE CLIENT
         cliente = None
         if payload.cliente_id:
@@ -359,7 +333,8 @@ class RemitosService:
         if not cliente and payload.cliente_nuevo:
              # Create new client using similar logic to ingestion but allowing for "Rosa" status
              # In manual mode, the operator decides.
-
+             from backend.clientes.constants import ClientFlags
+             
              # Default Rosa Flags (Level 9/11): Existence (1) | V14 (8)
              # If user provides CUIT, we might treat as Blanco (Bit 4)
              has_cuit = payload.cliente_nuevo.cuit and payload.cliente_nuevo.cuit != "00000000000"
@@ -396,7 +371,7 @@ class RemitosService:
              db.flush()
 
         if not cliente:
-             raise ValueError("Debe seleccionar o crear un cliente funcional para el remito.")
+             raise ValueError(f"No se encontró/creó cliente. CUIT: {payload_cuit}, Nombre: {payload_name}, ID: {payload_id}")
 
         # 2. CALCULATE NEXT 0015- NUMBER
         last_remito = db.query(models.Remito).filter(models.Remito.numero_legal.like("0015-%")).order_by(models.Remito.numero_legal.desc()).first()
@@ -502,7 +477,8 @@ class RemitosService:
         db.add(remito)
         db.flush()
 
-        # 6. CREATE REMITO ITEMS
+        # 6. CREATE REMITO ITEMS (GY-TRACE)
+        print(f"[REMITO-TRACE] Procesando {len(pedido_items)} items para Remito {remito.id} (Pedido {nuevo_pedido.id})")
         for p_item in pedido_items:
             r_item = models.RemitoItem(
                 remito_id=remito.id,
@@ -510,12 +486,6 @@ class RemitosService:
                 cantidad=p_item.cantidad
             )
             db.add(r_item)
-
-        # 7. [ARLEQUÍN V2] Cliente con remito manual → tocado. Apagar Bit 1.
-        current_flags = cliente.flags_estado or 0
-        if current_flags & ClientFlags.HAS_ACTIVITY:
-            cliente.flags_estado = current_flags & ~ClientFlags.HAS_ACTIVITY
-            db.add(cliente)
 
         db.commit()
         db.refresh(remito)
