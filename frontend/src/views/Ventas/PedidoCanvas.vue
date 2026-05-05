@@ -623,9 +623,107 @@
                         :initialData="newClientData" 
                         id="new"
                         :isModal="true"
-                        @close="handleClientModalClose" 
+                        @close="handleClientModalClose"
                         @save="handleClientSaved"
                     />
+                </div>
+            </div>
+        </Teleport>
+
+        <!-- INGESTA ITEM RESOLUTION MODAL -->
+        <Teleport to="body" v-if="showItemResolutionModal">
+            <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div class="bg-white rounded-lg shadow-2xl w-full max-w-2xl mx-4">
+                    <!-- Header -->
+                    <div class="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-6 py-4 rounded-t-lg flex justify-between items-center">
+                        <h3 class="text-lg font-bold">Resolver Ítems de Factura</h3>
+                        <span class="text-sm font-medium">
+                            Ítem {{ currentItemIndex + 1 }} de {{ ingestaItemsPending.length }}
+                        </span>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="p-6" v-if="currentIngestaItem">
+                        <!-- ZONA SUPERIOR: READ-ONLY REFERENCE -->
+                        <div class="bg-gray-50 border border-gray-200 rounded p-4 mb-6">
+                            <h4 class="font-bold text-gray-700 mb-3">Datos de Factura (Referencia)</h4>
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <span class="text-gray-600">Descripción:</span>
+                                    <p class="font-semibold">{{ currentIngestaItem.descripcion }}</p>
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">Cantidad:</span>
+                                    <p class="font-semibold">{{ currentIngestaItem.cantidad }}</p>
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">Precio Unitario:</span>
+                                    <p class="font-semibold">${{ currentIngestaItem.precio.toFixed(2) }}</p>
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">Subtotal:</span>
+                                    <p class="font-semibold">${{ currentIngestaItem.total.toFixed(2) }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ZONA INFERIOR: BUSCADOR DE PRODUCTOS -->
+                        <div class="mb-6">
+                            <h4 class="font-bold text-gray-700 mb-3">Buscar en Catálogo</h4>
+                            <div class="relative">
+                                <input
+                                    ref="ingestaItemInputRef"
+                                    v-model="ingestaItemSearchTerm"
+                                    type="text"
+                                    placeholder="Tipea SKU o descripción del producto..."
+                                    class="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+
+                            <!-- Lista de Candidatos -->
+                            <div v-if="ingestaFilteredProductos.length > 0" class="mt-3 border border-gray-200 rounded max-h-64 overflow-y-auto bg-white">
+                                <div
+                                    v-for="prod in ingestaFilteredProductos"
+                                    :key="prod.id"
+                                    @click="resolveIngestaItemProduct(prod)"
+                                    class="px-4 py-3 border-b border-gray-100 hover:bg-blue-50 cursor-pointer transition"
+                                >
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <p class="font-semibold text-sm">{{ prod.sku }}</p>
+                                            <p class="text-sm text-gray-600">{{ prod.nombre || prod.descripcion }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Sin resultados -->
+                            <div v-else-if="ingestaItemSearchTerm.length > 0" class="mt-3 p-4 bg-yellow-50 border border-yellow-200 rounded text-sm text-gray-700">
+                                <p class="mb-2">No se encontraron productos en el catálogo.</p>
+                                <button
+                                    @click="notificationStore.add('F4 — Dar de alta nuevo producto (próxima funcionalidad)', 'info')"
+                                    class="inline-block px-3 py-1 bg-yellow-500 text-white text-xs rounded hover:bg-yellow-600"
+                                >
+                                    F4 — Dar de alta producto nuevo
+                                </button>
+                            </div>
+
+                            <!-- Instrucción inicial -->
+                            <div v-else class="mt-3 p-4 bg-blue-50 border border-blue-200 rounded text-sm text-gray-700">
+                                Empieza a tipear para buscar productos
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="bg-gray-100 px-6 py-4 rounded-b-lg flex justify-end gap-3">
+                        <button
+                            @click="cancelItemResolution"
+                            class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition text-sm font-medium"
+                        >
+                            Cancelar
+                        </button>
+                    </div>
                 </div>
             </div>
         </Teleport>
@@ -702,6 +800,11 @@ onMounted(async () => {
         // 1.5 Check for Ingesta Data (from factura ingestion flow)
         if (pedidosStore.ingestaData) {
             const ingesta = pedidosStore.ingestaData;
+            console.log('[PedidoCanvas] Ingesta data recibida:', {
+                cliente: ingesta.cliente,
+                itemsCount: ingesta.items?.length,
+                items: ingesta.items
+            });
 
             // Pre-fill cliente: fetch full record from padrón by CUIT
             if (ingesta.cliente?.cuit) {
@@ -716,20 +819,16 @@ onMounted(async () => {
                 }
             }
 
-            // Pre-fill items from ingesta
+            // Process items from ingesta through modal resolution
             if (ingesta.items && Array.isArray(ingesta.items)) {
-                items.value = ingesta.items.map((item, idx) => ({
-                    id: `line_${Math.random().toString(36).substr(2, 9)}`,
-                    producto_id: null,
-                    sku: item.codigo || '',
-                    descripcion: item.descripcion || '',
-                    cantidad: Number(item.cantidad) || 1,
-                    precio: Number(item.precio_unitario) || 0,
-                    descuento_porcentaje: 0,
-                    descuento_valor: 0,
-                    total: (Number(item.cantidad) || 1) * (Number(item.precio_unitario) || 0),
-                    producto_obj: null
-                }));
+                console.log('[PedidoCanvas] Opening modal con', ingesta.items.length, 'items');
+                // Wait for productos store to load before opening modal
+                setTimeout(() => {
+                    console.log('[PedidoCanvas] setTimeout triggered, items:', ingesta.items);
+                    openItemResolutionModal(ingesta.items);
+                }, 100);
+            } else {
+                console.warn('[PedidoCanvas] ingesta.items no es un array o está vacío:', ingesta.items);
             }
 
             // Clear ingesta data from store after use
@@ -1162,6 +1261,13 @@ const inputDescRef = ref(null);
 const activeSearchField = ref('description'); 
 const selectedProductIndex = ref(0);
 
+// --- INGESTA ITEM RESOLUTION MODAL STATE ---
+const showItemResolutionModal = ref(false);
+const ingestaItemsPending = ref([]);
+const currentItemIndex = ref(0);
+const ingestaItemSearchTerm = ref('');
+const ingestaItemInputRef = ref(null);
+
 // --- CANTERA STATE ---
 const productCanteraResults = ref([]);
 const isSearchingCanteraProduct = ref(false);
@@ -1268,6 +1374,27 @@ const filteredProductos = computed(() => {
 
         // Unified Logic: Search in BOTH SKU and Name regardless of which input is used
         // This fulfills: "en cualquiera de los dos lugares que se empiece a tipear aparezca el valor a elegir"
+        return pSku.includes(termNorm) || pNombre.includes(termNorm);
+    }).slice(0, 50);
+});
+
+// --- INGESTA ITEM RESOLUTION MODAL COMPUTEDS ---
+const currentIngestaItem = computed(() => {
+    if (ingestaItemsPending.value.length === 0) return null;
+    return ingestaItemsPending.value[currentItemIndex.value];
+});
+
+const ingestaFilteredProductos = computed(() => {
+    const term = String(ingestaItemSearchTerm.value || '').toLowerCase().trim();
+    if (productosStore.productos.length === 0) return [];
+    if (term.length < 1) return [];
+
+    const normalize = (str) => str ? str.toString().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "") : '';
+    const termNorm = normalize(term);
+
+    return productosStore.productos.filter(p => {
+        const pSku = normalize(p.sku);
+        const pNombre = normalize(p.nombre || p.descripcion);
         return pSku.includes(termNorm) || pNombre.includes(termNorm);
     }).slice(0, 50);
 });
@@ -1412,6 +1539,99 @@ const selectProduct = async (prod) => {
         inputQtyRef.value?.focus();
         inputQtyRef.value?.select();
     }, 50);
+};
+
+// --- INGESTA ITEM RESOLUTION MODAL FUNCTIONS ---
+const openItemResolutionModal = (itemsFromIngesta) => {
+    console.log('[openItemResolutionModal] Recibido:', itemsFromIngesta);
+    if (!itemsFromIngesta || itemsFromIngesta.length === 0) {
+        console.error('[openItemResolutionModal] ¡Sin items! No se puede abrir modal.');
+        notificationStore.add('Error: No hay items para procesar', 'error');
+        return;
+    }
+
+    ingestaItemsPending.value = itemsFromIngesta.map((item, idx) => ({
+        id: `line_${Math.random().toString(36).substr(2, 9)}`,
+        originalIndex: idx,
+        producto_id: null,
+        sku: item.codigo || '',
+        descripcion: item.descripcion || '',
+        cantidad: Number(item.cantidad) || 1,
+        precio: Number(item.precio_unitario) || 0,
+        descuento_porcentaje: 0,
+        descuento_valor: 0,
+        total: (Number(item.cantidad) || 1) * (Number(item.precio_unitario) || 0),
+        producto_obj: null
+    }));
+    currentItemIndex.value = 0;
+    ingestaItemSearchTerm.value = currentIngestaItem.value?.descripcion || '';
+    showItemResolutionModal.value = true;
+
+    console.log('[openItemResolutionModal] Modal abierto con estado:', {
+        totalItems: ingestaItemsPending.value.length,
+        currentIndex: currentItemIndex.value,
+        firstItem: ingestaItemsPending.value[0],
+        searchTerm: ingestaItemSearchTerm.value,
+        showModal: showItemResolutionModal.value
+    });
+
+    // Auto-focus search field cuando el modal se monta
+    setTimeout(() => {
+        ingestaItemInputRef.value?.focus();
+    }, 100);
+};
+
+const resolveIngestaItemProduct = async (prod) => {
+    if (!currentIngestaItem.value) return;
+
+    // Asignar producto al item actual
+    currentIngestaItem.value.producto_id = prod.id;
+    currentIngestaItem.value.producto_obj = prod;
+    currentIngestaItem.value.sku = prod.sku;
+    currentIngestaItem.value.descripcion = prod.nombre;
+
+    // Pasar al siguiente item
+    nextIngestaItem();
+};
+
+const nextIngestaItem = () => {
+    if (currentItemIndex.value < ingestaItemsPending.value.length - 1) {
+        // Siguiente item
+        currentItemIndex.value++;
+        ingestaItemSearchTerm.value = currentIngestaItem.value?.descripcion || '';
+        setTimeout(() => {
+            ingestaItemInputRef.value?.focus();
+        }, 50);
+    } else {
+        // Se completaron todos los items
+        finishItemResolution();
+    }
+};
+
+const finishItemResolution = () => {
+    // Agregar todos los items resueltos a items.value
+    items.value = ingestaItemsPending.value;
+
+    // Limpiar estado del modal
+    ingestaItemsPending.value = [];
+    currentItemIndex.value = 0;
+    ingestaItemSearchTerm.value = '';
+    showItemResolutionModal.value = false;
+
+    notificationStore.add('Ítems cargados correctamente. Revisa antes de guardar.', 'success');
+};
+
+const cancelItemResolution = () => {
+    // Volver al modal 409 (sin borrar pedido en blanco)
+    ingestaItemsPending.value = [];
+    currentItemIndex.value = 0;
+    ingestaItemSearchTerm.value = '';
+    showItemResolutionModal.value = false;
+    items.value = [];
+
+    // Mostrar modal 409 nuevamente (sería del componente padre o store)
+    // Por ahora, solo cerramos el modal
+    notificationStore.add('Resolución cancelada.', 'info');
 };
 
 // --- INLINE ROW DISCOUNT HANDLERS ---
@@ -1736,6 +1956,7 @@ const savePedido = async () => {
         if (route.params.id) {
             await api.patch(`/pedidos/${route.params.id}`, payload);
         } else {
+            console.log('[DEBUG] Payload pedido:', JSON.stringify(payload, null, 2));
             await api.post('/pedidos/tactico', payload);
         }
 
