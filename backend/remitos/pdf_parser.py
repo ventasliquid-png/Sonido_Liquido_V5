@@ -186,35 +186,46 @@ def parse_invoice_data(text: str) -> dict:
 
     data["cliente"]["domicilio"] = f"[EXTRACTED] {final_domicilio}" if final_domicilio else "S/D"
 
-    # 3. ITEMS (Anchor Strategy V2)
-    # Pattern looks for: Description, Price/Tax (ignored here but used as anchor), Quantity, Unit
-    # AFIP structure: [Qty] [Unit] [Description] ... or [Description] [Qty] [Unit]
+    # 3. ITEMS (Anchor Strategy V2 - Enhanced with Price Extraction)
+    # Pattern looks for: Description, Qty, Unit, Price
+    # AFIP structure: [Desc] [Qty] [Unit] [Price] [Tax] ...
     # Block-based extraction usually keeps item lines together.
-    
+
     lines = text.split('|')
     item_pattern = re.compile(r"(\d+[\.,]\d{2,3})\s+(unidades|un|u\.|litros|kg|mts|bultos|oz)", re.IGNORECASE)
-    
+
     items_found = []
     for line in lines:
         match = item_pattern.search(line)
         if match:
-            # We found a quantity and unit. The description is usually before or after.
-            # In AFIP, it's often: [Desc] [Qty] [Unit] [Price] ...
-            # We'll take the whole block as description candidate and clean it.
+            # We found a quantity and unit. Extract price from the same line.
             qty_str = match.group(1).replace('.', '').replace(',', '.')
             unit = match.group(2)
-            
-            # Clean description: remove the qty/unit and trailing noise
+
+            # Clean description: remove the qty/unit
             desc = line.replace(match.group(0), '').strip()
-            # Remove financial columns (approximate)
-            desc = re.sub(r'\s+\d+[\.,]\d{2}.*', '', desc) 
-            
+
+            # Extract price: Look for number after unit, before percentage/aliquot
+            # Pattern: (digit+[\.,]digit+) followed by (%, %Bonif, or digit%)
+            price_match = re.search(r'(\d+[\.,]\d{2,3})\s*(?:%|%\s*bonif|\d+%)', desc, re.IGNORECASE)
+            precio_unitario = 0.0
+            if price_match:
+                price_str = price_match.group(1).replace('.', '').replace(',', '.')
+                precio_unitario = float(price_str)
+                # Remove price from description
+                desc = desc[:price_match.start()] + desc[price_match.end():]
+
+            desc = desc.strip()
+            # Remove financial noise at the end
+            desc = re.sub(r'\s+\d+[\.,]\d{2}.*', '', desc)
+
             if len(desc) > 3 and not any(noise in desc.upper() for noise in ["SUBTOTAL", "IMPORTES", "ALICUOTA", "IVA"]):
                 items_found.append({
                     "descripcion": desc,
-                    "cantidad": float(qty_str)
+                    "cantidad": float(qty_str),
+                    "precio_unitario": precio_unitario
                 })
-            
+
     data["items"] = items_found
 
     # [NUEVO] Detección de Canal (Marketing DNA)
