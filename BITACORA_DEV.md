@@ -1,3 +1,17 @@
+# 2026-05-05 (Modal Resolución Ítems — Parche Visual + UX)
+- **Estado**: **NOMINAL**.
+- **Hash D**: 296a120e
+- **Entorno**: D únicamente. P no modificado.
+- **Archivo**: `frontend/src/views/Ventas/PedidoCanvas.vue`
+- **Problemas resueltos**:
+  1. Modal opaco → flotante dark con `backdrop-blur`, `z-[9998]`
+  2. Pre-carga búsqueda vacía → fix con `nextTick()` 
+  3. ESC se escapaba → `@keydown.esc.stop` en overlay e input
+  4. `cancelItemResolution` no volvía al 409 → `router.push({ name: 'IngestaFactura' })`
+  5. `precio.toFixed()` rompía con 0 → `Number(... || 0).toFixed(2)`
+- **Informe**: `INFORMES_HISTORICOS/2026-05-05_MODAL_INGESTA_ITEMS_UX_OF.md`
+- **Cierre**: Protocolo OMEGA ejecutado. PIN 1974.
+
 # 2026-04-26 (Auditoría Espejo Soberano & Habilitación Tom)
 - **Estado**: **ALERTA** — Tom operativo, deuda técnica de sync completo D→P pendiente para mañana.
 - **Auditoría de Informe Gy**: Diagnóstico del NameError Vinculo corregido (bug en script de diagnóstico, no en modelos). Fix espejado a Tom.
