@@ -1576,7 +1576,7 @@ const openItemResolutionModal = (itemsFromIngesta) => {
     currentItemIndex.value = 0;
     // FIX: setear DESPUÉS de popular el array, nextTick garantiza que currentIngestaItem compute
     nextTick(() => {
-        ingestaItemSearchTerm.value = currentIngestaItem.value?.descripcion || '';
+        ingestaItemSearchTerm.value = '';
         setTimeout(() => {
             itemResolutionOverlayRef.value?.focus();
             ingestaItemInputRef.value?.focus();
@@ -1610,7 +1610,7 @@ const nextIngestaItem = () => {
     if (currentItemIndex.value < ingestaItemsPending.value.length - 1) {
         // Siguiente item
         currentItemIndex.value++;
-        ingestaItemSearchTerm.value = currentIngestaItem.value?.descripcion || '';
+        ingestaItemSearchTerm.value = '';
         setTimeout(() => {
             ingestaItemInputRef.value?.focus();
         }, 50);
