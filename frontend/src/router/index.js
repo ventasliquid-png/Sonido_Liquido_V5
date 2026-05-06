@@ -145,6 +145,11 @@ const routes = [
                 path: 'facturacion',
                 name: 'FacturacionDashboard',
                 component: () => import('../views/Facturacion/FacturacionDashboard.vue')
+            },
+            {
+                path: 'utilidades/bugs',
+                name: 'BugTracker',
+                component: () => import('../views/Utilidades/BugTracker.vue')
             }
         ]
     },

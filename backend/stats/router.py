@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from backend.core.database import get_db
+from backend.core.models import SistemaConfig
 from backend.clientes.models import Cliente
 from backend.pedidos.models import Pedido
 from backend.productos.models import Producto
@@ -28,6 +29,10 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
     total_pedidos = db.query(Pedido).count()
     pending_pedidos = db.query(Pedido).filter(Pedido.estado == 'PENDIENTE').count()
     
+    # 4. Sistema
+    config = db.query(SistemaConfig).filter(SistemaConfig.id == 1).first()
+    has_bugs_pending = bool(config and (config.flags_estado & 32))
+
     return {
         "clientes": {
             "total": total_clientes,
@@ -39,5 +44,8 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
         "pedidos": {
             "total": total_pedidos,
             "pending": pending_pedidos
+        },
+        "sistema": {
+            "has_bugs_pending": has_bugs_pending
         }
     }

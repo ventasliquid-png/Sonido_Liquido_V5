@@ -64,3 +64,6 @@ DOM_SOBERANIA_GOLD = 1 << 12     # 0x1000 - Registro auditado y normalizado (Bit
 DOM_INFRA_RAMPA = 1 << 0         # 0x01
 DOM_INFRA_DOCK = 1 << 1          # 0x02
 DOM_INFRA_ASCENSOR = 1 << 2      # 0x04
+
+# --- SISTEMA (0x08) ---
+SYS_HAS_BUGS_PENDING = 1 << 5    # 0x20 = 32 (Indicador de bugs activos)

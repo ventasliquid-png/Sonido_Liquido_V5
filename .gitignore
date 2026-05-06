@@ -85,3 +85,7 @@ Thumbs.db
 scripts/imports/
 scripts/imports/*.json
 .claude/processed_imports/
+
+# Debug and Counter
+pdf_debug.txt
+session_counter.json

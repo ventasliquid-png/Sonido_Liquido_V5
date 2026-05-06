@@ -61,6 +61,29 @@
                 </div>
              </div>
         </div>
+
+        <div class="h-8 w-px bg-white/5"></div>
+
+        <!-- Sistema (Bugs) -->
+        <div 
+            class="flex items-center gap-3 group cursor-pointer transition-colors select-none"
+            :class="stats.sistema?.has_bugs_pending ? 'hover:text-red-400 text-red-500' : 'hover:text-green-400 text-emerald-500'"
+            @click="router.push({ name: 'BugTracker' })"
+             title="Ver Estado del Sistema"
+        >
+             <div class="h-8 w-8 rounded-lg border flex items-center justify-center group-hover:scale-110 transition-transform"
+                  :class="stats.sistema?.has_bugs_pending ? 'bg-red-500/10 border-red-500/20' : 'bg-green-500/10 border-green-500/20'">
+                <i class="fas" :class="stats.sistema?.has_bugs_pending ? 'fa-bug' : 'fa-shield-check'"></i>
+            </div>
+             <div>
+                <p class="text-[9px] mb-0.5 text-white/50">Sistema</p>
+                <div class="flex items-baseline gap-1">
+                     <span class="text-sm font-bold" :class="stats.sistema?.has_bugs_pending ? 'text-red-400' : 'text-emerald-400'">
+                        {{ stats.sistema?.has_bugs_pending ? 'ALERTA' : 'NORMAL' }}
+                     </span>
+                </div>
+             </div>
+        </div>
     </div>
 
     <!-- Center: Portal Target -->
