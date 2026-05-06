@@ -1,3 +1,17 @@
+# 2026-05-06 (SESIÓN 797-OF: Bug A Resuelto + Bug Tracker V1 + DESPERTAR Fix)
+- **Estado**: **NOMINAL GOLD**.
+- **Hash D**: 78c35cf6
+- **Protocolo ALFA**: Canario V2.0 ✅ (LAVIMAR flags_estado = 13)
+- **Bugs resueltos**:
+  1. **Bug A**: Modal búsqueda pisa referencia PDF → Fix: `ingestaItemSearchTerm` sin pre-carga (líneas 1579, 1613)
+  2. **INBOX 793**: Vínculos invisibles desde cliente → [RESUELTO 2026-05-06] (fix en commit 6dd2ce10 del 2026-04-20)
+- **Archivos modificados**:
+  - `frontend/src/views/Ventas/PedidoCanvas.vue` (modal buscador independiente)
+  - `DESPERTAR.ps1` (UTF-8 sin acentos, session 797 automática)
+  - `pilot_v5x.db` (Bug A marcado resuelto, bits_estado recalculados)
+- **Operador**: Carlos (OF), Claude Code (Haiku), Atenea (consultoría)
+- **Cierre**: Protocolo OMEGA ejecutado. PIN 1974.
+
 # 2026-05-05 (Modal Resolución Ítems — Parche Visual + UX)
 - **Estado**: **NOMINAL**.
 - **Hash D**: 296a120e
