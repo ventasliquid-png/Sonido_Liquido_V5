@@ -134,7 +134,7 @@ def parse_invoice_data(text: str, words_data: list = None) -> dict:
         lines = {}
         for w in words_data:
             x0, y0, x1, y1, val, *_ = w
-            y_key = round(y0 / 4) * 4
+            y_key = round(y0 / 6) * 6
             if y_key not in lines: lines[y_key] = []
             lines[y_key].append({"x0": x0, "text": val})
         
