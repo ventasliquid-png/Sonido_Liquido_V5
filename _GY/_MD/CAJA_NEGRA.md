@@ -1,3 +1,11 @@
+# CAJA NEGRA: Parser Y-Axis Fix + Modal Sync CA — Ingesta PDF Items (2026-05-05)
+
+Sesión CA 2026-05-05 (796). Causa raíz items[] vacío: tolerancia Y-axis `/4` (±2pts) insuficiente para PDFs AFIP — qty y u_medida en misma línea visual pero con delta real 5pts. Fix: `/4`→`/6`. Caso validado: L EPI S.R.L., Alcohol 70% qty=4,00 precio=$13.500,00. Typo DB corregido (Acohol→Alcohol ID 150). Canario v2.py actualizado TARGET_FLAGS 8205→13 post-saneamiento 2026-05-02. Bugs backlog: A (search/ref modal), B (ESC 409), C (ciclo logístico), Clientes azules, Build P pendiente. Informe: `INFORMES_HISTORICOS/2026-05-05_INGESTA_PARSER_FIX_MODAL_SYNC_CA.md`
+
+**Agente:** Claude Code Sonnet — Hashes: pendiente commit OMEGA
+
+---
+
 # CAJA NEGRA: Arlequín V2 Merge CA — Doctrina Bit 1 Resuelta (2026-05-04)
 
 Sesión CA 2026-05-04. Merge quirúrgico feature/arleq-v2-productos en D (5 archivos). 3 bugs post-merge corregidos (VIRGINITY→HAS_ACTIVITY, default=2, lógica hard_delete). Doctrina Bit 1 canonizada: 1=virgen/borrable, 0=tocado/bloqueado. OMEGA V2.2 en D y P. Informe: `INFORMES_HISTORICOS/2026-05-04_ARLEQ_V2_MERGE_QUIRURGICO_CA.md`

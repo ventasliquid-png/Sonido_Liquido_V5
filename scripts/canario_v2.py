@@ -17,8 +17,8 @@ if sys.platform == "win32":
 # CONFIGURACIÓN GEOMETRÍA LÓGICA
 DB_PATH = r'C:\dev\Sonido_Liquido_V5\pilot_v5x.db'
 UUID_LAVIMAR = 'e1be0585cd3443efa33204d00e199c4e'
-TARGET_FLAGS = 8205
-TRINCHERA_FLAGS = 8207
+TARGET_FLAGS = 13      # Post-saneamiento 2026-05-02: bit 8192 (fantasma) eliminado
+TRINCHERA_FLAGS = 8207  # Legacy — pendiente revisión post-saneamiento
 
 def radar_electrico():
     """Detecta procesos que podrían estar bloqueando la DB."""
@@ -98,7 +98,7 @@ def calibracion_constitucional():
             print(" [?] ESTADO: TRINCHERA (Detectado 8207)")
             # Aquí la lógica de flexibilidad: preguntar si es fase de purga
             # En modo automático, calibramos si no hay instrucción contraria
-            print(" [*] Calibrando a NOMINAL GOLD (8205)...")
+            print(" [*] Calibrando a NOMINAL GOLD (13)...")
             conn.execute("UPDATE clientes SET flags_estado = ? WHERE id = ?", (TARGET_FLAGS, UUID_LAVIMAR))
             conn.commit()
             print(" [x] Calibración exitosa.")

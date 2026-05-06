@@ -1,3 +1,34 @@
+## SESIÓN 796: PARSER Y-AXIS FIX + MODAL SYNC CA — INGESTA PDF ITEMS RESUELTO
+**Fecha:** 2026-05-05
+**Locación:** CA
+**Objetivo:** Resolver causa raíz de items[] vacío en flujo PDF→modal PedidoCanvas. Fix Y-axis tolerance `/4`→`/6` en pdf_parser.py. Sync D↔P. Canario actualizado TARGET_FLAGS 8205→13.
+**Estado:** NOMINAL GOLD — ver informe: `INFORMES_HISTORICOS/2026-05-05_INGESTA_PARSER_FIX_MODAL_SYNC_CA.md`
+
+### Hito 1: Fix Y-Axis Tolerance (CRÍTICO)
+*   `pdf_parser.py` línea 137: `round(y0/4)*4` → `round(y0/6)*6`. Tolerancia ±2pts insuficiente para PDFs AFIP (delta real: 5pts entre qty y u_medida). Items array no-vacío confirmado. Caso: L EPI S.R.L. — Alcohol 70% — qty=4,00 precio=$13.500,00.
+
+### Hito 2: Fix Typo Producto
+*   `pilot_v5x.db` ID 150 SKU 10211: "Acohol" → "Alcohol". Search modal OK.
+
+### Hito 3: Canario v2.py — Actualización Post-Saneamiento
+*   `TARGET_FLAGS = 8205` → `TARGET_FLAGS = 13` en D y Tom. Canario reportaba DESVÍO CRÍTICO con flags=13 por no haber sido actualizado tras saneamiento 2026-05-02 (bit 8192 eliminado). INTEGRITY NOMINAL GOLD confirmado en ambos.
+
+### Hito 4: Null-checks + Sync + Addendum OF
+*   Commit 7b5794d: null-checks router.py Tom. Commit 534178b: PedidoCanvas sync. Commit 8c658f63: bitácora addendum OF.
+
+**Bugs backlog:** Bug A (search pisa ref), Bug B (ESC modal 409), Bug C (ciclo pedido→factura→remito), Clientes azules. Build P pendiente OF.
+
+---
+
+## SESIÓN 795: MODAL RESOLUCIÓN ÍTEMS — UX + VISUAL (OF)
+**Fecha:** 2026-05-05
+**Locación:** OF
+**Objetivo:** Fix visual y UX del modal de resolución de ítems en PedidoCanvas. Diagnóstico inicial de items[] vacío.
+**Estado:** NOMINAL — ver informe completo: `INFORMES_HISTORICOS/2026-05-05_MODAL_INGESTA_ITEMS_UX_OF.md`
+**Hash:** 296a120e
+
+---
+
 ## SESIÓN 794: ARLEQUÍN V2 MERGE QUIRÚRGICO CA + DOCTRINA BIT 1 RESUELTA
 **Fecha:** 2026-05-04
 **Objetivo:** Merge de feature/arleq-v2-productos en D. Resolución definitiva Bit 1 Clientes/Productos. OMEGA V2.2 desplegado en D y P.
