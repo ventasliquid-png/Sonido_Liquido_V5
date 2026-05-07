@@ -1,3 +1,22 @@
+## SESIÓN 798: BUGS D/E/F/H + EXTRACCIÓN INGESTAITEMMODAL (OF)
+**Fecha:** 2026-05-07
+**Locación:** OF
+**Objetivo:** Cerrar Bugs D/E/F (F4 satélite en PedidoCanvas), extraer IngestaItemModal a componente propio, implementar Fix H (F4 funcional dentro del modal) y botón copy descripción.
+**Estado:** NOMINAL GOLD — hashes: db72e856, afd5cd74
+
+### Hito 1: Bugs D/E/F — F4 satélite PedidoCanvas
+*   `PedidoCanvas.vue`: nombre único `AltaProducto_${Date.now()}` — fuerza ventana nueva, no reutiliza tab bloqueado.
+*   `ProductosView.vue`: `v-if="route.query.mode !== 'satellite' || showInspector"` en `<main>` — bloquea F4 handler hasta que inspector esté listo.
+*   `ProductoInspector.vue`: `fetchRubros()` defensivo en `onMounted` cuando store vacío (modo satellite omite App.vue boot). Hash: db72e856.
+
+### Hito 2: Extracción IngestaItemModal.vue + Fix H + botón copy
+*   `Ventas/components/IngestaItemModal.vue` (nuevo, 110 líneas): modal de resolución de ítems extraído de PedidoCanvas. Props: `items`. Emits: `resolved(items)`, `cancel`.
+*   Fix H: `handleOverlayKeydown` captura F4 internamente, abre satélite de alta producto — burbujeo detenido antes de llegar a PedidoCanvas.
+*   Botón copy `fa-copy` junto a descripción de factura → llena `searchTerm` con un click.
+*   `PedidoCanvas.vue` −137 líneas neto: 6 refs → 2, 5 funciones → 3, guard `showIngestaModal` en F4. Hash: afd5cd74.
+
+---
+
 ## SESIÓN 797: BUG C BACKEND + SISTEMA DE MIGRACIONES (CA)
 **Fecha:** 2026-05-06
 **Locación:** CA

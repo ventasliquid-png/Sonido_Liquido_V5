@@ -584,3 +584,27 @@ Flujo obligatorio:
 3. Si un producto del PDF no existe en catálogo → darlo de alta
    desde Módulo Productos → volver a ingestar
 El sistema nunca crea productos automáticamente desde una factura.
+
+## 18. MODAL RESOLVER ÍTEMS DE FACTURA (Sesión 798-OF, 2026-05-07)
+
+Al ingresar una factura PDF que contiene ítems, el sistema abre el modal **RESOLVER ÍTEMS DE FACTURA** para vincular cada ítem al catálogo interno.
+
+### Operación del modal
+
+1. El modal muestra un ítem por vez con su descripción, cantidad, precio y subtotal como referencia (read-only).
+2. El campo buscador inicia vacío. El operador puede:
+   - Tipear libremente SKU o descripción para filtrar el catálogo.
+   - Hacer click en el ícono copy junto a la descripción para copiarla al buscador automáticamente.
+3. Al seleccionar un producto de la lista, el ítem queda vinculado y el modal avanza al siguiente.
+4. Al completar todos los ítems, se cargan en el pedido para revisión antes de guardar.
+
+### Atajos de teclado en el modal
+
+| Tecla | Acción |
+|-------|--------|
+| **F4** | Abre ventana satélite de Alta de Producto con el término de búsqueda actual |
+| **ESC** | Cancela la resolución y vuelve a la vista de ingesta |
+
+### Nota operativa
+
+Si un producto de la factura no existe en el catálogo, usar F4 para darlo de alta desde la ventana satélite. Al guardar el producto nuevo, volver al modal y buscarlo por SKU o descripción.

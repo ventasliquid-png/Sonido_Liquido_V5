@@ -430,3 +430,29 @@ Auto-creation deshabilitado permanentemente.
 - F2: Entregas parciales — bit ENTREGA_PARCIAL
 - F3: Facturas huérfanas — cola de revisión supervisor
 - Linaje de Productos: bifurcación SKUs con padre_id y bit RENOMBRADO
+
+## 19. COMPONENTE IngestaItemModal — Extracción y Fix H (Sesión 798-OF, 2026-05-07)
+
+### 19.1 Extracción del componente
+
+El modal de resolución de ítems de factura fue extraído de `PedidoCanvas.vue` a su propio componente:
+`frontend/src/views/Ventas/components/IngestaItemModal.vue`
+
+**Props:** `items: Array` — ítems crudos con formato `{codigo, descripcion, cantidad, precio_unitario}`
+**Emits:** `resolved(resolvedItems)` — ítems con `producto_id` asignado / `cancel` — operador canceló
+
+PedidoCanvas.vue actúa como orquestador: maneja `showIngestaModal` y `ingestaItemsForModal`, delega toda la UI y lógica de resolución al componente.
+
+### 19.2 Fix H — F4 dentro del modal
+
+F4 en el buscador del modal abre la ventana satélite de alta de producto (`ProductosView` en `mode=satellite`) con el término de búsqueda actual. Implementado en `handleOverlayKeydown` del componente — el evento se detiene (`stopPropagation`) antes de llegar al handler global de PedidoCanvas. Guard adicional `if (showIngestaModal.value) return` en `handleGlobalKeys`.
+
+### 19.3 Botón copy descripción
+
+El campo de descripción de referencia (zona read-only) tiene un botón `fa-copy` que al clickear copia la descripción de la factura al campo buscador. El buscador inicia vacío — el operador tipea libremente o usa el botón copy.
+
+### 19.4 Bugs D/E/F — F4 satélite PedidoCanvas
+
+- **Fix D:** Nombre de ventana único `AltaProducto_${Date.now()}` — evita reutilizar tab bloqueado por browser.
+- **Fix E:** `v-if="route.query.mode !== 'satellite' || showInspector"` en `<main>` de `ProductosView.vue` — suprime F4 handler hasta que inspector esté listo.
+- **Fix F:** `fetchRubros()` defensivo en `ProductoInspector.vue` `onMounted` — en modo satellite el store de rubros no se precarga por App.vue.

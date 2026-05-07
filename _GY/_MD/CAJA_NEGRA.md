@@ -1,3 +1,11 @@
+# CAJA NEGRA: Bugs D/E/F/H + IngestaItemModal Extracción OF (2026-05-07)
+
+Sesión OF 2026-05-07 (798). Bug C ítem 13 ya resuelto en CA-797. Esta sesión: Bugs D/E/F (F4 satélite PedidoCanvas) — Fix F: `ProductoInspector.vue` fetchRubros defensivo en modo satellite; Fix D+E: ProductosView v-if en `<main>` + nombre único `AltaProducto_${Date.now()}` en PedidoCanvas. Hash: db72e856. Extracción IngestaItemModal.vue: modal de resolución de ítems extraído de PedidoCanvas (-137 líneas) a componente propio con props `items`, emits `resolved/cancel`. Fix H integrado: F4 en modal abre satélite de alta producto via `handleOverlayKeydown`. Botón copy descripción→buscador. Bugs registrados: IngestaItemModal navegación teclado pendiente. Migraciones ejecutadas en D: 026, 027, 028, 029 (facturas schema drift, EmpresaTransporte.activo). Tablas nuevas en pilot_v5x.db: `deuda_tecnica`, `roadmap`. Hash final: afd5cd74.
+
+**Agente:** Claude Code Sonnet 4.6 — Hashes: db72e856, afd5cd74
+
+---
+
 # CAJA NEGRA: Bug C Backend + Migraciones CA (2026-05-06)
 
 Sesión CA 2026-05-06 (797). Bug B resuelto: `pending409Context` en store pedidos + restore en `onMounted` de IngestaFacturaView — canal separado que PedidoCanvas nunca toca (usa `clearIngestaData`). Bug C: 7 bugs forenses en endpoint `/remitos/puente/desde_factura/{id}` — `factura_id: int→str` (endpoint inoperativo), `fecha_vto_cae→cae_vencimiento` (AttributeError), doctrina numeración `0016-XXXX-YYYYYYYY`/`0015-XXXXXXXX`, `total_bruto→factura.total` (silencioso 0.0), `cuit_comprador` post-flush. Arquitectura N:M: clase `FacturaRemito` con GUID + fecha_vinculo + flags_estado reemplaza `Table` simple, guard idempotencia en `_vincular_factura_remito()`. Sistema migraciones: `_migraciones_aplicadas` + patrón SKIP/REGISTER en migrate_000 y migrate_026. Pendiente: D-7 savePedido→cadena factura→remito. Informe: `INFORMES_HISTORICOS/2026-05-06_BUG_C_BACKEND_MIGRACIONES_CA.md`
