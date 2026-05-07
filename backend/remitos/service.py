@@ -635,7 +635,7 @@ class RemitosService:
         # 2. Si no existe, crearlo fresco (Flujo RAR Asíncrono)
         transporte_id = pedido.transporte_id
         if not transporte_id:
-            transporte = db.query(EmpresaTransporte).filter(EmpresaTransporte.activo == True).first()
+            transporte = db.query(EmpresaTransporte).filter(EmpresaTransporte.flags_estado.op('&')(2) != 0).first()
             transporte_id = transporte.id if transporte else None
 
         domicilio_id = pedido.domicilio_entrega_id
