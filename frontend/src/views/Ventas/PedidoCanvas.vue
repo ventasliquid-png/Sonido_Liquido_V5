@@ -1878,7 +1878,7 @@ const handleGlobalKeys = (e) => {
                 name: 'Productos',
                 query: { action: 'new', search: searchTerm, mode: 'satellite' }
             });
-            window.open(href, 'AltaProductoSalto', features);
+            window.open(href, `AltaProducto_${Date.now()}`, features);
             return;
         }
 

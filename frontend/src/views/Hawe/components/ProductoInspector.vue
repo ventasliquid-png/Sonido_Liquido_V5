@@ -1033,6 +1033,7 @@ onMounted(() => {
     productosStore.fetchUnidades()
     productosStore.fetchTasasIva()
     productosStore.fetchProveedores()
+    if (productosStore.rubros.length === 0) productosStore.fetchRubros()
 })
 onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
 </script>

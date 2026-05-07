@@ -7,7 +7,7 @@
     <!-- Sidebar is handled by Layout -->
 
     <!-- Main Content -->
-    <main class="flex flex-1 flex-col min-w-0 relative">
+    <main v-if="route.query.mode !== 'satellite' || showInspector" class="flex flex-1 flex-col min-w-0 relative">
       
       <!-- Top Bar -->
       <div class="flex items-center justify-between border-b border-white/10 bg-black/10 backdrop-blur-md px-6 py-4 z-30 shrink-0">
