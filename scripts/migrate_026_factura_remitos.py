@@ -1,19 +1,33 @@
 """
 migrate_026_factura_remitos.py
+====================================
+PATRÓN ESTÁNDAR DE MIGRACIONES — Sonido Líquido V5
+Ver migrate_000_control_migraciones.py para documentación del patrón.
+====================================
 Reemplaza la tabla simple facturas_remitos (PK compuesta, sin id propio)
 por la versión completa con id GUID, fecha_vinculo y flags_estado.
 """
-import sqlite3
-import os
+import sqlite3, os
 
-DB_PATH = os.environ.get("DATABASE_URL", "").replace("sqlite:///", "") or "C:/dev/Sonido_Liquido_V5/pilot_v5x.db"
+MIGRATION_ID = "026_factura_remitos"
+NRO_SESION = 797
+
+DB_PATH = os.environ.get("DATABASE_URL", "").replace("sqlite:///", "") \
+          or "C:/dev/Sonido_Liquido_V5/pilot_v5x.db"
 
 conn = sqlite3.connect(DB_PATH)
-cur = conn.cursor()
 
-print(f"[migrate_026] Conectado a: {DB_PATH}")
+# Verificar si ya se aplicó
+existe = conn.execute(
+    "SELECT 1 FROM _migraciones_aplicadas WHERE id = ?", (MIGRATION_ID,)
+).fetchone()
+if existe:
+    print(f"[migrate_026] SKIP — {MIGRATION_ID} ya aplicada.")
+    conn.close()
+    exit(0)
 
-cur.executescript("""
+# Ejecutar migración
+conn.executescript("""
     DROP TABLE IF EXISTS facturas_remitos;
 
     CREATE TABLE facturas_remitos (
@@ -29,6 +43,11 @@ cur.executescript("""
     CREATE INDEX IF NOT EXISTS ix_facturas_remitos_remito_id  ON facturas_remitos(remito_id);
 """)
 
+# Registrar
+conn.execute(
+    "INSERT INTO _migraciones_aplicadas (id, nro_sesion) VALUES (?, ?)",
+    (MIGRATION_ID, NRO_SESION)
+)
 conn.commit()
 conn.close()
-print("[migrate_026] OK — tabla facturas_remitos recreada con id/fecha_vinculo/flags_estado.")
+print(f"[migrate_026] OK — facturas_remitos recreada y migración registrada.")
