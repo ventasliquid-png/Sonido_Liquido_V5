@@ -40,6 +40,14 @@ class FacturacionService:
         )
         db.add(factura)
         db.flush()
+
+        # Sello histórico: CUIT del comprador al momento de facturar (inmutable ante cambios futuros del cliente)
+        if pedido.cliente and pedido.cliente.cuit:
+            factura.cuit_comprador = pedido.cliente.cuit
+
+        # ARQUITECTURA N:M: El vínculo en facturas_remitos NO se crea aquí.
+        # La factura en BORRADOR no tiene remito aún.
+        # El vínculo se materializa en RemitosService.create_puente_factura().
         
         # Lógica de distribución de descuentos:
         # AFIP requiere que cada línea tenga su neto unitario, % de bonificación, y neto total.

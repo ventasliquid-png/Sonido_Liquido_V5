@@ -583,37 +583,56 @@ class RemitosService:
         return remito
 
     @staticmethod
-    def create_puente_factura(db: Session, factura_id: int):
+    def create_puente_factura(db: Session, factura_id: str):
         """
         Crea o vincula un remito logístico a partir de una Factura sellada.
         Diseñado para el flujo: Sellar Factura AFIP -> Asistir Logística.
         """
-        from backend.facturacion.models import Factura
+        import uuid as _uuid
+        from backend.facturacion.models import Factura, FacturaRemito
         from backend.logistica.models import EmpresaTransporte
-        
-        factura = db.query(Factura).filter(Factura.id == factura_id).first()
+
+        factura = db.query(Factura).filter(Factura.id == _uuid.UUID(factura_id)).first()
         if not factura:
             raise ValueError("Factura no encontrada para el puente logístico.")
-            
+
         pedido = factura.pedido
         if not pedido:
             raise ValueError("Factura sin pedido táctico origen.")
-            
-        # 1. Si ya existe un remito en el pedido, le inyectamos los datos del fisco (CAE)
+
+        def _numero_legal_arca(factura, fallback_id):
+            if factura.punto_venta and factura.numero_comprobante:
+                pv = str(factura.punto_venta).zfill(4)
+                nc = str(factura.numero_comprobante).zfill(8)
+                return f"0016-{pv}-{nc}"
+            return f"0015-{str(fallback_id).zfill(8)}"
+
+        def _vincular_factura_remito(db, factura, remito):
+            vinculo = db.query(FacturaRemito).filter(
+                FacturaRemito.factura_id == factura.id,
+                FacturaRemito.remito_id == remito.id
+            ).first()
+            if not vinculo:
+                db.add(FacturaRemito(
+                    factura_id=factura.id,
+                    remito_id=remito.id,
+                    flags_estado=1
+                ))
+
+        # 1. Si ya existe un remito en el pedido, inyectar CAE y vincular N:M
         remito_existente = db.query(models.Remito).filter(models.Remito.pedido_id == pedido.id).first()
         if remito_existente:
             remito_existente.cae = factura.cae
-            remito_existente.vto_cae = factura.fecha_vto_cae
+            remito_existente.vto_cae = factura.cae_vencimiento
             if not remito_existente.numero_legal or "0015" in remito_existente.numero_legal:
-                 # Actualizar la familia de Prefijo hacia "16" (RAR Blanco) 
-                 # o conservamos si tiene su propia línea
-                 remito_existente.numero_legal = f"0016-{str(remito_existente.id).zfill(8)}"
+                remito_existente.numero_legal = _numero_legal_arca(factura, remito_existente.id)
             db.add(remito_existente)
+            _vincular_factura_remito(db, factura, remito_existente)
             db.commit()
             db.refresh(remito_existente)
             return remito_existente
-            
-        # 2. Si no existe, lo creamos fresco (Flujo RAR Asíncrono)
+
+        # 2. Si no existe, crearlo fresco (Flujo RAR Asíncrono)
         transporte_id = pedido.transporte_id
         if not transporte_id:
             transporte = db.query(EmpresaTransporte).filter(EmpresaTransporte.activo == True).first()
@@ -631,24 +650,25 @@ class RemitosService:
             estado="BORRADOR",
             aprobado_para_despacho=True,
             cae=factura.cae,
-            vto_cae=factura.fecha_vto_cae,
-            numero_legal=f"0016-{str(pedido.id).zfill(8)}", # Mirror ID
+            vto_cae=factura.cae_vencimiento,
+            numero_legal=_numero_legal_arca(factura, pedido.id),
             bultos=int(pedido.bultos) if hasattr(pedido, 'bultos') and pedido.bultos else 1,
-            valor_declarado=factura.total_bruto if hasattr(factura, 'total_bruto') else 0.0
+            valor_declarado=factura.total or 0.0
         )
         db.add(remito)
         db.flush()
 
         for p_item in pedido.items:
-            r_item = models.RemitoItem(
+            db.add(models.RemitoItem(
                 remito_id=remito.id,
                 pedido_item_id=p_item.id,
                 cantidad=p_item.cantidad
-            )
-            db.add(r_item)
-            
+            ))
+
+        _vincular_factura_remito(db, factura, remito)
+
         db.commit()
         db.refresh(remito)
-        print(f"Logística Asíncrona: Remito {remito.numero_legal} generado para Factura #{factura.id}")
+        print(f"Logística Asíncrona: Remito {remito.numero_legal} generado y vinculado a Factura #{factura.id}")
         return remito
 

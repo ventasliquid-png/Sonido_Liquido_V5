@@ -258,7 +258,7 @@ def create_manual_remito(payload: schemas.ManualRemitoPayload, db: Session = Dep
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
 
 @router.post("/puente/desde_factura/{factura_id}", response_model=schemas.RemitoResponse)
-def originar_remito_desde_factura(factura_id: int, db: Session = Depends(get_db)):
+def originar_remito_desde_factura(factura_id: str, db: Session = Depends(get_db)):
     """
     Crea o vincula un remito logístico a partir de una Factura sellada.
     Diseñado para el flujo: Sellar Factura AFIP -> Asistir Logística.

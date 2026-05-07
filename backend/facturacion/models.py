@@ -5,13 +5,30 @@ from sqlalchemy import Column, String, Float, Boolean, ForeignKey, Integer, Date
 from sqlalchemy.orm import relationship
 from backend.core.database import Base, GUID
 
-# N:M relationship between Facturas and Remitos to handle complex splits and consolidations
-facturas_remitos = Table(
-    'facturas_remitos',
-    Base.metadata,
-    Column('factura_id', GUID(), ForeignKey('facturas.id'), primary_key=True),
-    Column('remito_id', GUID(), ForeignKey('remitos.id'), primary_key=True)
-)
+class FacturaRemito(Base):
+    """
+    Tabla puente N:M entre Facturas y Remitos.
+    Soporta relaciones complejas: split de pedidos, consolidaciones, re-facturación.
+    Cada vínculo tiene identidad propia (GUID), fecha de creación y flags de estado.
+    """
+    __tablename__ = "facturas_remitos"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
+    factura_id = Column(GUID(), ForeignKey("facturas.id"), nullable=False, index=True)
+    remito_id = Column(GUID(), ForeignKey("remitos.id"), nullable=False, index=True)
+    fecha_vinculo = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    flags_estado = Column(BigInteger, nullable=False, default=1)
+
+    # Strings para evitar deadlock circular (Regla CLAUDE.md anti-deadlock)
+    factura = relationship("Factura", back_populates="vinculos_remitos")
+    remito = relationship("Remito", back_populates="vinculos_facturas")
+
+    __table_args__ = (
+        UniqueConstraint('factura_id', 'remito_id', name='uq_factura_remito'),
+    )
+
+    def __repr__(self):
+        return f"<FacturaRemito(factura={self.factura_id}, remito={self.remito_id})>"
 
 class Factura(Base):
     """
@@ -70,7 +87,7 @@ class Factura(Base):
     cliente = relationship("Cliente")
     pedido = relationship("Pedido")
     items = relationship("FacturaItem", back_populates="factura", cascade="all, delete-orphan")
-    remitos = relationship("Remito", secondary=facturas_remitos, backref="facturas")
+    vinculos_remitos = relationship("FacturaRemito", back_populates="factura", cascade="all, delete-orphan")
 
     __table_args__ = (
         UniqueConstraint(
