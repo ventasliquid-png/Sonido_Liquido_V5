@@ -1,3 +1,42 @@
+## SESIÓN 797: BUG C BACKEND + SISTEMA DE MIGRACIONES (CA)
+**Fecha:** 2026-05-06
+**Locación:** CA
+**Objetivo:** Resolver Bug C — flujo pedido→factura→remito incompleto. Auditoría forense del backend: 7 bugs críticos identificados (B-1 a B-7). Implementación modelo N:M `FacturaRemito` + sistema de control de migraciones idempotente. Bug B (modal 409) también resuelto.
+**Estado:** NOMINAL GOLD — ver informe: `INFORMES_HISTORICOS/2026-05-06_BUG_C_BACKEND_MIGRACIONES_CA.md`
+**Hash:** 529aa2be
+
+### Hito 1: Bug B — ESC no restaura modal 409
+*   `frontend/src/stores/pedidos.js`: `pending409Context` + `set409Context`/`clear409Context` — canal separado que PedidoCanvas nunca toca.
+*   `IngestaFacturaView.vue`: `goToNewPedido()` persiste contexto antes de navegar; `onMounted()` lo restaura y reactiva `show409Modal`. Hash: `9df14bdf`.
+
+### Hito 2: Fix B-1 — `factura_id: int` → `str`
+*   `backend/remitos/router.py:261` y `service.py:586`: parámetro `int` → `str` + `_uuid.UUID(factura_id)` en query. Endpoint era completamente inoperativo — FastAPI rechazaba el UUID antes de llegar al service.
+
+### Hito 3: Fix B-2 — `fecha_vto_cae` → `cae_vencimiento`
+*   `backend/remitos/service.py:606,634`: campo inexistente corregido al campo real. Crash `AttributeError` en ambas ramas.
+
+### Hito 4: Fix B-3 — `numero_legal` con doctrina ARCA real
+*   Helper `_numero_legal_arca()`: con CAE → `0016-XXXX-YYYYYYYY`; sin CAE (borrador) → `0015-XXXXXXXX` (serie manual, doctrina Nike). Antes usaba `pedido.id` o UUID del remito — violación directa de doctrina.
+
+### Hito 5: Fix B-7 + B-6 — campos silenciosos
+*   `total_bruto` → `factura.total` (valor_declarado siempre era 0.0).
+*   `cuit_comprador` ahora se asigna post-flush en `create_draft_from_pedido` — sello histórico faltante corregido.
+
+### Hito 6: Arquitectura N:M `FacturaRemito`
+*   `backend/facturacion/models.py`: `Table` simple → clase `FacturaRemito` completa con GUID, `fecha_vinculo`, `flags_estado`, relaciones bidireccionales (string anti-deadlock).
+*   `Factura.remitos` → `Factura.vinculos_remitos` (cascade `all, delete-orphan`).
+*   `backend/remitos/models.py`: `Remito.vinculos_facturas` agregado.
+*   Integración en `create_puente_factura`: guard de idempotencia + helper `_vincular_factura_remito()`.
+*   Migración 026: `DROP/CREATE TABLE facturas_remitos` con id GUID + fecha_vinculo + flags_estado + UNIQUE(factura_id, remito_id).
+
+### Hito 7: Sistema de control de migraciones
+*   `scripts/migrate_000_control_migraciones.py`: crea tabla `_migraciones_aplicadas` (id, nro_sesion, aplicada_en). Patrón idempotente documentado.
+*   `migrate_026_factura_remitos.py` refactorizado: verifica antes de ejecutar → SKIP si ya aplicada. Hash: `529aa2be`.
+
+**Pendiente:** Bug C ítem 13 — `savePedido()` en PedidoCanvas no invoca cadena factura→remito (D-7, sesión futura). Build P pendiente OF.
+
+---
+
 ## SESIÓN 796: PARSER Y-AXIS FIX + MODAL SYNC CA — INGESTA PDF ITEMS RESUELTO
 **Fecha:** 2026-05-05
 **Locación:** CA

@@ -37,6 +37,62 @@ Clientes Rosa identificados por: `(flags_estado & 15) in [9, 11]`
 - No requieren condición IVA para operar.
 - En `PedidoTacticoView`, el computed `clienteEsVerde` retorna `true` directamente para Rosa → sin badge rojo ni confirm dialog.
 
+## 18. ARQUITECTURA N:M FACTURAS↔REMITOS + SISTEMA DE MIGRACIONES (Sesión 797-CA, 2026-05-06)
+
+### 18.1 Tabla `facturas_remitos` — Relación N:M soberana
+
+Una Factura puede estar asociada a múltiples Remitos y viceversa. La tabla de unión es soberana: tiene identidad propia y estado propio.
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `id` | `CHAR(32) PK` | GUID propio — no PK compuesta |
+| `factura_id` | `CHAR(32) FK` | Referencia a `facturas.id` |
+| `remito_id` | `CHAR(32) FK` | Referencia a `remitos.id` |
+| `fecha_vinculo` | `DATETIME` | Timestamp de creación del vínculo |
+| `flags_estado` | `BIGINT` | Estado del vínculo (1 = activo) |
+
+**UNIQUE constraint:** `(factura_id, remito_id)` — un vínculo no se duplica.
+
+### 18.2 Modelo ORM `FacturaRemito`
+
+Ubicación: `backend/facturacion/models.py`. Clase completa con relaciones bidireccionales usando strings (regla anti-deadlock de CLAUDE.md):
+
+- `Factura.vinculos_remitos` → `relationship("FacturaRemito", cascade="all, delete-orphan")`
+- `Remito.vinculos_facturas` → `relationship("FacturaRemito")`
+- `FacturaRemito.factura` / `FacturaRemito.remito` → back_populates respectivos
+
+**Invariante de creación:** El vínculo se materializa ÚNICAMENTE en `RemitosService.create_puente_factura()`. El borrador de factura (`create_draft_from_pedido`) NO crea el vínculo — la factura en BORRADOR aún no tiene remito.
+
+### 18.3 Doctrina de numeración ARCA (helper `_numero_legal_arca`)
+
+```
+Con CAE (ARCA):    0016-{punto_venta:04d}-{numero_comprobante:08d}
+Sin CAE (manual):  0015-{fallback_id:08d}
+```
+
+- Prefijo `0016` = origen ARCA / oficial.
+- Prefijo `0015` = serie manual / Rosa (doctrina Nike). Nunca `0001`.
+
+### 18.4 Sistema de control de migraciones (`_migraciones_aplicadas`)
+
+Tabla creada por `scripts/migrate_000_control_migraciones.py`. Evita doble ejecución de scripts.
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `id` | `VARCHAR PK` | Identificador único del script (ej: `"026_factura_remitos"`) |
+| `nro_sesion` | `INTEGER` | Número de sesión que lo aplicó |
+| `aplicada_en` | `DATETIME` | Timestamp de aplicación |
+
+**Patrón estándar para todo script de migración:**
+1. Verificar existencia en `_migraciones_aplicadas` → SKIP si ya existe.
+2. Ejecutar DDL.
+3. Registrar en `_migraciones_aplicadas` con MIGRATION_ID + NRO_SESION.
+4. Commit + close.
+
+Referencia canónica: `scripts/migrate_000_control_migraciones.py`.
+
+---
+
 ## 1. DOCTRINA DE PRECIOS: "LA ROCA Y LA MÁSCARA"
 El sistema V5 implementa una estrategia psicológica de precios:
 * **La Roca (Precio Objetivo):** Es el valor real de rentabilidad que la empresa necesita cobrar (Backend). Es inamovible.

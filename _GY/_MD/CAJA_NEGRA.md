@@ -1,3 +1,11 @@
+# CAJA NEGRA: Bug C Backend + Migraciones CA (2026-05-06)
+
+Sesión CA 2026-05-06 (797). Bug B resuelto: `pending409Context` en store pedidos + restore en `onMounted` de IngestaFacturaView — canal separado que PedidoCanvas nunca toca (usa `clearIngestaData`). Bug C: 7 bugs forenses en endpoint `/remitos/puente/desde_factura/{id}` — `factura_id: int→str` (endpoint inoperativo), `fecha_vto_cae→cae_vencimiento` (AttributeError), doctrina numeración `0016-XXXX-YYYYYYYY`/`0015-XXXXXXXX`, `total_bruto→factura.total` (silencioso 0.0), `cuit_comprador` post-flush. Arquitectura N:M: clase `FacturaRemito` con GUID + fecha_vinculo + flags_estado reemplaza `Table` simple, guard idempotencia en `_vincular_factura_remito()`. Sistema migraciones: `_migraciones_aplicadas` + patrón SKIP/REGISTER en migrate_000 y migrate_026. Pendiente: D-7 savePedido→cadena factura→remito. Informe: `INFORMES_HISTORICOS/2026-05-06_BUG_C_BACKEND_MIGRACIONES_CA.md`
+
+**Agente:** Sonnet (arquitecto) + Claude Code Sonnet 4.6 (ejecutor) — Hashes: 9df14bdf, 0cf51130, 529aa2be
+
+---
+
 # CAJA NEGRA: Parser Y-Axis Fix + Modal Sync CA — Ingesta PDF Items (2026-05-05)
 
 Sesión CA 2026-05-05 (796). Causa raíz items[] vacío: tolerancia Y-axis `/4` (±2pts) insuficiente para PDFs AFIP — qty y u_medida en misma línea visual pero con delta real 5pts. Fix: `/4`→`/6`. Caso validado: L EPI S.R.L., Alcohol 70% qty=4,00 precio=$13.500,00. Typo DB corregido (Acohol→Alcohol ID 150). Canario v2.py actualizado TARGET_FLAGS 8205→13 post-saneamiento 2026-05-02. Bugs backlog: A (search/ref modal), B (ESC 409), C (ciclo logístico), Clientes azules, Build P pendiente. Informe: `INFORMES_HISTORICOS/2026-05-05_INGESTA_PARSER_FIX_MODAL_SYNC_CA.md`
