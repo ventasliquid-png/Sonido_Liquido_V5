@@ -631,111 +631,12 @@
         </Teleport>
 
         <!-- INGESTA ITEM RESOLUTION MODAL -->
-        <Teleport to="body" v-if="showItemResolutionModal">
-            <div
-                class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[9998]"
-                @keydown.esc.stop="cancelItemResolution"
-                tabindex="-1"
-                ref="itemResolutionOverlayRef"
-            >
-                <div class="bg-[#0f172a]/95 border border-emerald-900/50 rounded-xl shadow-2xl w-full max-w-2xl mx-4 backdrop-blur-md">
-                    <!-- Header -->
-                    <div class="bg-gradient-to-r from-emerald-900/80 to-cyan-900/80 text-white px-6 py-4 rounded-t-xl flex justify-between items-center border-b border-emerald-700/40">
-                        <h3 class="text-lg font-bold font-mono tracking-wide text-emerald-300">RESOLVER ÍTEMS DE FACTURA</h3>
-                        <span class="text-sm font-mono text-emerald-400/70">
-                            Ítem {{ currentItemIndex + 1 }} de {{ ingestaItemsPending.length }}
-                        </span>
-                    </div>
-
-                    <!-- Content -->
-                    <div class="p-6" v-if="currentIngestaItem">
-                        <!-- ZONA SUPERIOR: READ-ONLY REFERENCE -->
-                        <div class="bg-emerald-950/40 border border-emerald-800/30 rounded-lg p-4 mb-5">
-                            <h4 class="font-bold text-emerald-400 mb-3 text-xs font-mono uppercase tracking-widest">Factura dice (referencia)</h4>
-                            <div class="grid grid-cols-2 gap-3 text-sm">
-                                <div class="col-span-2">
-                                    <span class="text-emerald-600 text-xs">Descripción:</span>
-                                    <p class="font-semibold text-white">{{ currentIngestaItem.descripcion }}</p>
-                                </div>
-                                <div>
-                                    <span class="text-emerald-600 text-xs">Cantidad:</span>
-                                    <p class="font-semibold text-white">{{ currentIngestaItem.cantidad }}</p>
-                                </div>
-                                <div>
-                                    <span class="text-emerald-600 text-xs">Precio Unitario:</span>
-                                    <p class="font-semibold text-white">${{ Number(currentIngestaItem.precio || 0).toFixed(2) }}</p>
-                                </div>
-                                <div class="col-span-2">
-                                    <span class="text-emerald-600 text-xs">Subtotal:</span>
-                                    <p class="font-semibold text-cyan-300">${{ Number(currentIngestaItem.total || 0).toFixed(2) }}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- ZONA INFERIOR: BUSCADOR DE PRODUCTOS -->
-                        <div class="mb-4">
-                            <h4 class="font-bold text-emerald-400 mb-3 text-xs font-mono uppercase tracking-widest">Buscar en catálogo</h4>
-                            <div class="relative">
-                                <input
-                                    ref="ingestaItemInputRef"
-                                    v-model="ingestaItemSearchTerm"
-                                    type="text"
-                                    placeholder="SKU o descripción..."
-                                    class="w-full px-4 py-2 bg-[#0b1120] border border-emerald-800/50 rounded-lg text-white placeholder-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono text-sm"
-                                    @keydown.esc.stop="cancelItemResolution"
-                                />
-                            </div>
-
-                            <!-- Lista de Candidatos -->
-                            <div v-if="ingestaFilteredProductos.length > 0" class="mt-2 border border-emerald-900/40 rounded-lg max-h-56 overflow-y-auto bg-[#0b1120]">
-                                <div
-                                    v-for="prod in ingestaFilteredProductos"
-                                    :key="prod.id"
-                                    @click="resolveIngestaItemProduct(prod)"
-                                    class="px-4 py-3 border-b border-emerald-900/20 hover:bg-emerald-900/30 cursor-pointer transition"
-                                >
-                                    <p class="font-mono text-xs text-emerald-400">{{ prod.sku }}</p>
-                                    <p class="text-sm text-white">{{ prod.nombre || prod.descripcion }}</p>
-                                </div>
-                            </div>
-
-                            <!-- Sin resultados -->
-                            <div v-else-if="ingestaItemSearchTerm.length > 0" class="mt-2 p-4 bg-yellow-900/20 border border-yellow-700/30 rounded-lg text-sm text-yellow-300">
-                                <p class="mb-2">No se encontraron productos en el catálogo.</p>
-                                <button
-                                    @click="notificationStore.add('F4 — Dar de alta nuevo producto (próxima funcionalidad)', 'info')"
-                                    class="px-3 py-1 bg-yellow-600/60 text-white text-xs rounded hover:bg-yellow-600 transition"
-                                >
-                                    F4 — Dar de alta producto nuevo
-                                </button>
-                            </div>
-
-                            <!-- Instrucción inicial -->
-                            <div v-else class="mt-2 p-3 bg-cyan-950/30 border border-cyan-900/30 rounded-lg text-xs text-cyan-500 font-mono">
-                                Empieza a tipear para buscar productos en catálogo
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Footer -->
-                    <div class="px-6 py-4 rounded-b-xl flex justify-end gap-3 border-t border-emerald-900/30">
-                        <button
-                            @click="cancelItemResolution"
-                            class="px-4 py-2 text-emerald-400 bg-transparent border border-emerald-800/50 rounded-lg hover:bg-emerald-900/30 transition text-sm font-mono"
-                        >
-                            ← Cancelar
-                        </button>
-                        <button
-                            v-if="currentIngestaItem?.producto_id"
-                            @click="nextIngestaItem"
-                            class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 transition text-sm font-mono"
-                        >
-                            Confirmar →
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </Teleport>
+        <IngestaItemModal
+            v-if="showIngestaModal"
+            :items="ingestaItemsForModal"
+            @resolved="onIngestaResolved"
+            @cancel="onIngestaCancel"
+        />
     </div>
 </template>
 
@@ -747,6 +648,7 @@ import { useProductosStore } from '../../stores/productos';
 import { useMaestrosStore } from '../../stores/maestros';
 import { usePedidosStore } from '../../stores/pedidos';
 import RentabilidadPanel from './components/RentabilidadPanel.vue';
+import IngestaItemModal from './components/IngestaItemModal.vue';
 import api from '../../services/api'; // Import API service
 import _ from 'lodash';
 import canteraService from '@/services/canteraService';
@@ -1270,13 +1172,9 @@ const inputDescRef = ref(null);
 const activeSearchField = ref('description'); 
 const selectedProductIndex = ref(0);
 
-// --- INGESTA ITEM RESOLUTION MODAL STATE ---
-const showItemResolutionModal = ref(false);
-const itemResolutionOverlayRef = ref(null);
-const ingestaItemsPending = ref([]);
-const currentItemIndex = ref(0);
-const ingestaItemSearchTerm = ref('');
-const ingestaItemInputRef = ref(null);
+// --- INGESTA ITEM RESOLUTION MODAL ---
+const showIngestaModal = ref(false);
+const ingestaItemsForModal = ref([]);
 
 // --- CANTERA STATE ---
 const productCanteraResults = ref([]);
@@ -1384,27 +1282,6 @@ const filteredProductos = computed(() => {
 
         // Unified Logic: Search in BOTH SKU and Name regardless of which input is used
         // This fulfills: "en cualquiera de los dos lugares que se empiece a tipear aparezca el valor a elegir"
-        return pSku.includes(termNorm) || pNombre.includes(termNorm);
-    }).slice(0, 50);
-});
-
-// --- INGESTA ITEM RESOLUTION MODAL COMPUTEDS ---
-const currentIngestaItem = computed(() => {
-    if (ingestaItemsPending.value.length === 0) return null;
-    return ingestaItemsPending.value[currentItemIndex.value];
-});
-
-const ingestaFilteredProductos = computed(() => {
-    const term = String(ingestaItemSearchTerm.value || '').toLowerCase().trim();
-    if (productosStore.productos.length === 0) return [];
-    if (term.length < 1) return [];
-
-    const normalize = (str) => str ? str.toString().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "") : '';
-    const termNorm = normalize(term);
-
-    return productosStore.productos.filter(p => {
-        const pSku = normalize(p.sku);
-        const pNombre = normalize(p.nombre || p.descripcion);
         return pSku.includes(termNorm) || pNombre.includes(termNorm);
     }).slice(0, 50);
 });
@@ -1551,95 +1428,27 @@ const selectProduct = async (prod) => {
     }, 50);
 };
 
-// --- INGESTA ITEM RESOLUTION MODAL FUNCTIONS ---
+// --- INGESTA ITEM RESOLUTION MODAL ---
 const openItemResolutionModal = (itemsFromIngesta) => {
-    console.log('[openItemResolutionModal] Recibido:', itemsFromIngesta);
     if (!itemsFromIngesta || itemsFromIngesta.length === 0) {
-        console.error('[openItemResolutionModal] ¡Sin items! No se puede abrir modal.');
         notificationStore.add('Error: No hay items para procesar', 'error');
         return;
     }
-
-    ingestaItemsPending.value = itemsFromIngesta.map((item, idx) => ({
-        id: `line_${Math.random().toString(36).substr(2, 9)}`,
-        originalIndex: idx,
-        producto_id: null,
-        sku: item.codigo || '',
-        descripcion: item.descripcion || '',
-        cantidad: Number(item.cantidad) || 1,
-        precio: Number(item.precio_unitario) || 0,
-        descuento_porcentaje: 0,
-        descuento_valor: 0,
-        total: (Number(item.cantidad) || 1) * (Number(item.precio_unitario) || 0),
-        producto_obj: null
-    }));
-    currentItemIndex.value = 0;
-    // FIX: setear DESPUÉS de popular el array, nextTick garantiza que currentIngestaItem compute
-    nextTick(() => {
-        ingestaItemSearchTerm.value = '';
-        setTimeout(() => {
-            itemResolutionOverlayRef.value?.focus();
-            ingestaItemInputRef.value?.focus();
-        }, 80);
-    });
-    showItemResolutionModal.value = true;
-
-    console.log('[openItemResolutionModal] Modal abierto con estado:', {
-        totalItems: ingestaItemsPending.value.length,
-        currentIndex: currentItemIndex.value,
-        firstItem: ingestaItemsPending.value[0],
-        searchTerm: ingestaItemSearchTerm.value,
-        showModal: showItemResolutionModal.value
-    });
+    ingestaItemsForModal.value = itemsFromIngesta;
+    showIngestaModal.value = true;
 };
 
-const resolveIngestaItemProduct = async (prod) => {
-    if (!currentIngestaItem.value) return;
-
-    // Asignar producto al item actual
-    currentIngestaItem.value.producto_id = prod.id;
-    currentIngestaItem.value.producto_obj = prod;
-    currentIngestaItem.value.sku = prod.sku;
-    currentIngestaItem.value.descripcion = prod.nombre;
-
-    // Pasar al siguiente item
-    nextIngestaItem();
+const onIngestaResolved = (resolvedItems) => {
+    items.value = resolvedItems;
+    showIngestaModal.value = false;
+    ingestaItemsForModal.value = [];
+    notificationStore.add('Items cargados correctamente. Revisa antes de guardar.', 'success');
 };
 
-const nextIngestaItem = () => {
-    if (currentItemIndex.value < ingestaItemsPending.value.length - 1) {
-        // Siguiente item
-        currentItemIndex.value++;
-        ingestaItemSearchTerm.value = '';
-        setTimeout(() => {
-            ingestaItemInputRef.value?.focus();
-        }, 50);
-    } else {
-        // Se completaron todos los items
-        finishItemResolution();
-    }
-};
-
-const finishItemResolution = () => {
-    // Agregar todos los items resueltos a items.value
-    items.value = ingestaItemsPending.value;
-
-    // Limpiar estado del modal
-    ingestaItemsPending.value = [];
-    currentItemIndex.value = 0;
-    ingestaItemSearchTerm.value = '';
-    showItemResolutionModal.value = false;
-
-    notificationStore.add('Ítems cargados correctamente. Revisa antes de guardar.', 'success');
-};
-
-const cancelItemResolution = () => {
-    ingestaItemsPending.value = [];
-    currentItemIndex.value = 0;
-    ingestaItemSearchTerm.value = '';
-    showItemResolutionModal.value = false;
+const onIngestaCancel = () => {
+    showIngestaModal.value = false;
+    ingestaItemsForModal.value = [];
     items.value = [];
-    // Volver a IngestaFacturaView donde está el modal 409
     router.push({ name: 'IngestaFactura' });
 };
 
@@ -1859,7 +1668,10 @@ const handleGlobalKeys = (e) => {
     if (e.key === 'F4') {
         e.preventDefault();
         const active = document.activeElement;
-        
+
+        // Guard: modal gestiona su propio F4 internamente
+        if (showIngestaModal.value) return;
+
         // 2. Product Focus — chequear primero si hay búsqueda de producto activa
         const activeSku = active === inputSkuRef.value;
         const activeDesc = active === inputDescRef.value;
