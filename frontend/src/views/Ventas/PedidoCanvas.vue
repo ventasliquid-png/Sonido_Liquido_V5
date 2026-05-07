@@ -1964,12 +1964,29 @@ const savePedido = async () => {
         // [FIX] Edit mode → PATCH existing pedido. Create mode → POST new pedido.
         if (route.params.id) {
             await api.patch(`/pedidos/${route.params.id}`, payload);
+            notificationStore.add('Pedido guardado exitosamente.', 'success');
         } else {
-            console.log('[DEBUG] Payload pedido:', JSON.stringify(payload, null, 2));
-            await api.post('/pedidos/tactico', payload);
-        }
+            const pedidoCreado = await api.post('/pedidos/tactico', payload);
+            const pedidoId = pedidoCreado.data.id;
 
-        notificationStore.add('Pedido guardado exitosamente.', 'success');
+            const facturaRes = await api.post(`/facturacion/borrador/pedido/${pedidoId}`);
+            const facturaId = facturaRes.data.id;
+
+            if (pedidosStore.ingestaData?.factura?.numero) {
+                const partes = pedidosStore.ingestaData.factura.numero.split('-');
+                if (partes.length === 2) {
+                    await api.patch(`/facturacion/${facturaId}/sellar`, {
+                        punto_venta: parseInt(partes[0]),
+                        numero_comprobante: parseInt(partes[1]),
+                        cae: pedidosStore.ingestaData.factura.cae || null,
+                        cae_vencimiento: pedidosStore.ingestaData.factura.vto_cae || null
+                    });
+                }
+            }
+
+            await api.post(`/remitos/puente/desde_factura/${facturaId}`);
+            notificationStore.add('Pedido guardado. Factura y remito generados.', 'success');
+        }
         
         // Reset or Redirect
         setTimeout(() => {
