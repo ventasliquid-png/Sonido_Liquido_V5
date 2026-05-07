@@ -9,7 +9,8 @@ export const usePedidosStore = defineStore('pedidos', {
     state: () => ({
         isLoading: false,
         pedidos: [], // List for Dashboard
-        ingestaData: null // Temporary data from factura ingesta
+        ingestaData: null, // Temporary data from factura ingesta
+        pending409Context: null // Preserved 409 modal state for back-navigation from PedidoCanvas
     }),
 
     actions: {
@@ -180,6 +181,14 @@ export const usePedidosStore = defineStore('pedidos', {
 
         clearIngestaData() {
             this.ingestaData = null;
+        },
+
+        set409Context(context) {
+            this.pending409Context = context;
+        },
+
+        clear409Context() {
+            this.pending409Context = null;
         }
     }
 });

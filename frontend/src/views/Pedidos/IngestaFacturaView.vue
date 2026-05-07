@@ -776,6 +776,10 @@ const goToNewPedido = () => {
     show409Modal.value = false;
     const pedidosStore = usePedidosStore();
     pedidosStore.setIngestaData(parsedData.value);
+    pedidosStore.set409Context({
+        parsedData: parsedData.value,
+        pendingPedidos: pendingPedidos.value
+    });
     router.push({ name: 'PedidoCanvas' });
 };
 
@@ -835,9 +839,22 @@ const close409Modal = () => {
 };
 
 import { onMounted } from 'vue';
-onMounted(() => {
+onMounted(async () => {
     if (maestrosStore.transportes.length === 0) {
         maestrosStore.fetchTransportes();
+    }
+
+    const pedidosStore = usePedidosStore();
+    if (pedidosStore.pending409Context) {
+        const ctx = pedidosStore.pending409Context;
+        parsedData.value = ctx.parsedData;
+        pendingPedidos.value = ctx.pendingPedidos || [];
+        show409Modal.value = true;
+        pedidosStore.clear409Context();
+
+        if (ctx.parsedData?.cliente?.id) {
+            await loadClientDetails(ctx.parsedData.cliente.id);
+        }
     }
 });
 </script>
