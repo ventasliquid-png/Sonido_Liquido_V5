@@ -31,7 +31,9 @@ class RemitosService:
         original_invoice = payload.factura.numero or ""
         numero_legal = ""
         if "-" in original_invoice:
-            numero_legal = f"0016-{original_invoice}"
+            # [BUG 1 FIX] Usar solo el secuencial para el remito 0016-
+            nc_f = original_invoice.split("-")[1].strip().zfill(8)
+            numero_legal = f"0016-{nc_f}"
         
         # Guard 1: Existing Remito (Committed)
         if numero_legal:
@@ -245,9 +247,17 @@ class RemitosService:
                 pass
         
         # [V5] Mirror Numbering: Invoice XXXX-YYYYYYYY -> Remito 0016-YYYYYYYY
-        # (Already calculated at the start of the function for anti-duplication)
         if not numero_legal:
-            numero_legal = f"0016-{str(nuevo_pedido.id).zfill(8)}"
+            try:
+                parts = payload.factura.numero.split("-")
+                if len(parts) == 2:
+                    nc_f = str(parts[1]).strip().zfill(8)
+                    numero_legal = f"0016-{nc_f}"
+                else:
+                    # Fallback if no dash
+                    numero_legal = f"0016-{str(nuevo_pedido.id).zfill(8)}"
+            except:
+                numero_legal = f"0016-{str(nuevo_pedido.id).zfill(8)}"
 
         if not domicilio:
             domicilio = db.query(Domicilio).first()

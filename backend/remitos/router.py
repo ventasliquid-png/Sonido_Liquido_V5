@@ -95,12 +95,27 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
         cae_val = getattr(remito, 'cae', None) if not is_manual else None
         vto_cae_val = getattr(remito, 'vto_cae', None) if not is_manual else None
 
+        # [BUG 2 FIX] Prioritize DB Link over Pedido.Nota
+        factura_vinculada_str = ""
+        if remito.vinculos_facturas:
+            # Usar la primera factura vinculada
+            factura_vinculada_str = remito.vinculos_facturas[0].factura.numero_completo
+        elif remito.pedido.nota:
+            import re
+            # Buscar patrón XXXX-YYYYYYYY en la nota
+            match = re.search(r'(\d{4,5}-\d{8})', remito.pedido.nota)
+            if match:
+                factura_vinculada_str = match.group(1)
+            else:
+                # Limpieza agresiva de prefijos conocidos
+                factura_vinculada_str = remito.pedido.nota.replace("Ingesta Automática Factura: ", "")[:20]
+
         cliente_data = {
             "razon_social": cliente.razon_social,
             "cuit": cliente.cuit,
             "domicilio_fiscal": remito.domicilio_entrega.resumen if remito.domicilio_entrega else cliente.domicilio_fiscal_resumen or "SIN DOMICILIO FISCAL",
             "condicion_iva": "RESPONSABLE INSCRIPTO", # Default for now
-            "factura_vinculada": remito.pedido.nota.replace("Ingesta Automática Factura: ", "") if remito.pedido.nota else "",
+            "factura_vinculada": factura_vinculada_str,
             "cae": cae_val,
             "vto_cae": vto_cae_val.strftime("%d/%m/%Y") if vto_cae_val else None,
             "bultos": getattr(remito, 'bultos', 1),
@@ -145,6 +160,9 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
 
 @router.post("/ingesta-pdf")
 async def ingest_invoice_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    """
+    [DEPRECATED V5.6] Use /ingesta/raw instead.
+    """
     if not file.filename.lower().endswith('.pdf'):
         raise HTTPException(status_code=400, detail="File must be a PDF")
     
@@ -237,6 +255,7 @@ async def ingest_invoice_pdf(file: UploadFile = File(...), db: Session = Depends
 @router.post("/ingesta-process", response_model=schemas.RemitoResponse)
 def create_remito_from_ingestion(payload: schemas.IngestionPayload, db: Session = Depends(get_db)):
     """
+    [DEPRECATED V5.6] Use /ingesta/raw/{id}/approve instead.
     Toma la salida de la Ingesta PDF y genera un Remito (y Pedido) en la Base de Datos.
     """
     try:

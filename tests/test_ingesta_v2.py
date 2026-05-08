@@ -1,5 +1,5 @@
 # [IDENTIDAD] - tests/test_ingesta_v2.py
-# Versión: V5.6 GOLD | Sincronización: 20260508191700
+# Versión: V5.6 GOLD | Sincronización: 20260508194400
 # ------------------------------------------
 import sys
 import os
@@ -38,17 +38,17 @@ def test_flow():
     db = SessionLocal()
     try:
         print("========================================================")
-        print("   TEST INGESTA V2 - MODO ESPEJO (SESION 800)")
+        print("   TEST INGESTA V2 - VERIFICACIÓN DE BUGS (SESION 800)")
         print("========================================================")
         
         # 1. Mock PDF Bytes (Básico para no romper el parser)
         dummy_pdf = b"%PDF-1.4\n1 0 obj\n<< /Title (Test) >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF"
-        filename = "test_invoice_800.pdf"
+        filename = "test_bug_fix.pdf"
         
         # 2. Store Raw
         print("[*] Paso 1: Almacenando Raw...")
         try:
-            # Forzamos un mock de lo que devolvería el parser si falla por el binario basura
+            # Factura con punto de venta 00001 y secuencial 00002536
             raw = FacturasRaw(
                 id=uuid.uuid4(),
                 filename=filename, 
@@ -56,7 +56,7 @@ def test_flow():
                 audit_status="RECIBIDO",
                 parsed_data_raw={
                     "cliente": {"cuit": "20300000001", "razon_social": "TEST CLIENT V2"},
-                    "factura": {"numero": "0001-00000002", "cae": "12345678901234", "vto_cae": "01/01/2027"},
+                    "factura": {"numero": "00001-00002536", "cae": "12345678901234", "vto_cae": "01/01/2027"},
                     "items": [{"descripcion": "ITEM TEST V2", "cantidad": 1, "precio_unitario": 100.0, "subtotal": 100.0}]
                 }
             )
@@ -87,9 +87,9 @@ def test_flow():
 
         edited_data = {
             "cliente": {"id": str(pedido.cliente_id), "cuit": "20300000001", "razon_social": "TEST CLIENT V2"},
-            "factura": {"numero": "0001-00000002", "cae": "12345678901234", "vto_cae": "01/01/2027"},
+            "factura": {"numero": "00001-00002536", "cae": "12345678901234", "vto_cae": "01/01/2027"},
             "items": [
-                {"descripcion": "ITEM TEST", "cantidad": 1, "precio_unitario": 100.0, "subtotal": 100.0}
+                {"descripcion": "ITEM TEST V2", "cantidad": 1, "precio_unitario": 100.0, "subtotal": 100.0}
             ],
             "pedido_id_vinculado": pedido.id,
             "modo_ingesta": "VINCULAR_EXISTENTE",
@@ -101,17 +101,28 @@ def test_flow():
         print(f" [OK] Procesada ID: {res['id']}")
         print(f" [OK] Remito ID: {res['remito_id']}")
         
-        # 5. Verificación de Soberanía (Factura Espejo)
-        factura = db.query(Factura).filter(Factura.pedido_id == pedido.id).order_by(Factura.id.desc()).first()
-        if factura:
-            print(f" [OK] Factura Espejo creada. Flags: {factura.flags_estado}")
-            BIT_22 = 4194304
-            if factura.flags_estado & BIT_22:
-                print(" [GOLD] BIT 22 (PRE_MODULO_FACTURACION) VALIDADO.")
+        # 5. Verificación de BUGS
+        # BUG 1: Numero Legal del Remito
+        from backend.remitos.models import Remito
+        remito = db.query(Remito).filter(Remito.id == res['remito_id']).first()
+        if remito:
+            print(f" [BUG 1] Remito Numero Legal: {remito.numero_legal}")
+            if remito.numero_legal == "0016-00002536":
+                print(" [GOLD] BUG 1 VALIDADO: El remito hereda el secuencial tal cual.")
             else:
-                print(" [X] BIT 22 NO DETECTADO.")
-        else:
-            print(" [X] FACTURA ESPEJO NO ENCONTRADA EN DB.")
+                print(f" [X] BUG 1 FALLIDO: Obtenido {remito.numero_legal}, esperaba 0016-00002536")
+
+        # BUG 2: Factura Vinculada (Propiedad numero_completo)
+        # Buscamos la factura recién creada (vínculo real)
+        from backend.facturacion.models import FacturaRemito
+        vinculo = db.query(FacturaRemito).filter(FacturaRemito.remito_id == res['remito_id']).first()
+        if vinculo:
+            factura = vinculo.factura
+            print(f" [BUG 2] Factura Numero Completo: {factura.numero_completo}")
+            if factura.numero_completo == "0001-00002536":
+                print(" [GOLD] BUG 2 VALIDADO: Propiedad numero_completo correcta.")
+            else:
+                print(f" [X] BUG 2 FALLIDO: Obtenido {factura.numero_completo}, esperaba 0001-00002536")
 
     except Exception as e:
         print(f" [CRITICAL ERROR]: {e}")

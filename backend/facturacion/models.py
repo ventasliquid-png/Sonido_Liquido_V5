@@ -97,6 +97,11 @@ class Factura(Base):
         ),
     )
 
+    @property
+    def numero_completo(self):
+        """Devuelve el número legal formateado (XXXX-YYYYYYYY)"""
+        return f"{str(self.punto_venta).zfill(4)}-{str(self.numero_comprobante).zfill(8)}"
+
     def __repr__(self):
         return f"<Factura(id={self.id}, tipo='{self.tipo_comprobante}', estado='{self.estado}')>"
 
