@@ -15,11 +15,11 @@ Verificar integridad del sistema antes de comenzar cualquier sesión de trabajo.
 
 Antes de cualquier verificación, leer:
 ```
-O:\Mi unidad\V5_Silo_Claude\INBOX.md
+Q:\Mi unidad\V5_Silo_Claude\INBOX.md
 ```
-Este archivo contiene mensajes de sesiones anteriores: bugs pendientes, contexto crítico, tareas pre-arranque. Si hay entradas no procesadas, reportarlas a Carlos antes de continuar. Después de procesar una entrada, moverla a `O:\Mi unidad\V5_Silo_Claude\LEIDOS\YYYY-MM-DD_titulo.md`.
+Este archivo contiene mensajes de sesiones anteriores: bugs pendientes, contexto crítico, tareas pre-arranque. Si hay entradas no procesadas, reportarlas a Carlos antes de continuar. Después de procesar una entrada, moverla a `Q:\Mi unidad\V5_Silo_Claude\LEIDOS\YYYY-MM-DD_titulo.md`.
 
-Si `O:` no está disponible (Drive no montado): avisar a Carlos y continuar sin bloquear.
+Si `Q:` no está disponible (Drive no montado): avisar a Carlos y continuar sin bloquear.
 
 ---
 

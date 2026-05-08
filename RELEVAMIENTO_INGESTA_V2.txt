@@ -1,0 +1,383 @@
+================================================================================
+        RELEVAMIENTO EXHAUSTIVO - MODULO INGESTA V2 READ-ONLY
+================================================================================
+
+═══════════════════════════════════════════════════════════════════════════════
+SECCION 1: BACKEND/REMITOS/ROUTER.PY - LOGICA INGESTA ACTUAL
+═══════════════════════════════════════════════════════════════════════════════
+
+ENDPOINT A: POST /remitos/ingesta-pdf
+- Funcion: ingest_invoice_pdf(file: UploadFile)
+- Acceso DB: READ-ONLY (no modifica nada)
+
+FLUJO INTERNO:
+1. Valida que sea PDF
+2. Extrae texto con fitz (PyMuPDF)
+3. Parse con regex heuristica Sabueso V5.5
+4. Busca DUPLICADO: Factura(punto_venta, numero_comprobante)
+5. Busca CLIENTE por CUIT:
+   - Si existe: enriquece datos, calcula scores de domicilios
+   - Si no existe: sugiere crear
+6. Retorna {success, data: {cliente, factura, items, domicilios_disponibles}}
+
+TABLAS CONSULTADAS (READ):
+- Factura (punto_venta, numero_comprobante)
+- Cliente (cuit, domicilios)
+- Domicilio (calle, numero, localidad, es_fiscal, es_entrega)
+
+ENDPOINT B: POST /remitos/ingesta-process
+- Funcion: create_remito_from_ingestion(payload: IngestionPayload)
+- Acceso DB: WRITE (crea registros)
+
+FLUJO INTERNO:
+1. Anti-Zombi (V5.2 OMEGA): valida numero_legal unico
+2. Busca Cliente (por CUIT, fallback por nombre)
+3. CREA Pedido (origen='INGESTA_PDF')
+4. CREA Remito (numero_legal='0016-{pv}-{nc}')
+5. CREA RemitoItems
+
+TABLAS MODIFICADAS:
+- Pedido (INSERT)
+- PedidoItem (INSERT)
+- Remito (INSERT)
+- RemitoItem (INSERT)
+- Cliente (posible INSERT/UPDATE si no existe)
+
+CONSERJE INTELIGENTE (lineas 192-228):
+Heuristica: calculate_score(domicilio, extracted_text)
+
+Logica de scoring:
+- Calle coincide: +50 puntos
+- Numero coincide: +30 puntos
+- Es entrega: +10 puntos
+- Es fiscal: +5 puntos
+- Umbral: score >= 50 marca como suggested
+
+PROBLEMA: Conserje esta inline en router, no es reutilizable ni auditable.
+
+═══════════════════════════════════════════════════════════════════════════════
+SECCION 2: TABLA FACTURAS (pilot_v5x.db) - ESTRUCTURA COMPLETA
+═══════════════════════════════════════════════════════════════════════════════
+
+COLUMNAS (21 total):
+id                CHAR(32)    PK, NOT NULL
+cliente_id        CHAR(32)    NOT NULL, FK->Cliente
+pedido_id         INTEGER     NULL, FK->Pedido
+tipo_comprobante  VARCHAR     NULL (A/B/C/FC)
+estado            VARCHAR     NULL (BORRADOR/SELLADA/ANULADA)
+punto_venta       INTEGER     NULL
+numero_comprobante INTEGER    NULL
+fecha_emision     DATE        NULL
+neto_gravado      FLOAT       NULL
+iva_21            FLOAT       NULL
+iva_105           FLOAT       NULL
+exento            FLOAT       NULL
+percepciones      FLOAT       NULL
+total             FLOAT       NULL
+cae               VARCHAR     NULL (CAE AFIP 14 digitos)
+cae_vencimiento   DATE        NULL
+created_at        DATETIME    NULL
+cuit_comprador    VARCHAR     NULL
+pdf_path          VARCHAR     NULL
+flags_estado      BIGINT      NOT NULL (Bitmask V14: Bit20 directo)
+notas_auditoria   TEXT        NULL (ANADIDA en migracion 029)
+
+DATOS ACTUALES:
+- Total de registros: 7
+- Estado: Fase piloto, datos de prueba
+- Existe tabla RAW hoy?: NO
+
+RELACIONAMIENTOS:
+Cliente <-- Factura (cliente_id)
+Pedido <-- Factura (pedido_id, nullable)
+Remito <-- Pedido <-- Factura (cadena de relacion)
+
+═══════════════════════════════════════════════════════════════════════════════
+SECCION 3: TABLA _MIGRACIONES_APLICADAS
+═══════════════════════════════════════════════════════════════════════════════
+
+ULTIMAS MIGRACIONES APLICADAS (DESC):
+#1: 029_facturas_notas_auditoria      | 2026-05-08 13:31:16 | Sesion 799 <- ULTIMA
+#2: 029_sesion_resolucion_cols        | 2026-05-07 19:26:35 | Sesion 798
+#3: 028_deuda_tecnica_roadmap         | 2026-05-07 19:19:34 | Sesion 798
+#4: 027_facturas_schema_fix           | 2026-05-07 14:49:39 | Sesion 798
+#5: 026_factura_remitos               | 2026-05-07 13:45:23 | Sesion 797
+#6: 000_control_migraciones           | 2026-05-07 13:45:22 | Sesion 797
+
+Proxima migracion debe ser: 030_ingesta_raw_procesadas
+
+═══════════════════════════════════════════════════════════════════════════════
+SECCION 4: EXISTE backend/ingesta/?
+═══════════════════════════════════════════════════════════════════════════════
+
+RESPUESTA: NO EXISTE
+
+Debe ser creado desde cero con estructura:
+backend/ingesta/
+  __init__.py
+  models.py           (FacturasRaw, FacturasProcesadas)
+  schemas.py          (Pydantic models)
+  router.py           (Conserje endpoints)
+  service.py          (Logica de procesamiento)
+  conserje.py         (Maquina de heuristicas)
+
+═══════════════════════════════════════════════════════════════════════════════
+SECCION 5: FRONTEND - COMPONENTE INGESTA
+═══════════════════════════════════════════════════════════════════════════════
+
+PRINCIPAL:
+frontend/src/views/Pedidos/IngestaFacturaView.vue
+
+ESTRUCTURA UX:
+- LEFT (5 cols): Drop Zone + PDF Upload + Instructions
+- RIGHT (7 cols): Preview + Editable Fields + Items Grid
+
+ENDPOINTS CONSUMIDOS:
+1. POST /remitos/ingesta-pdf (upload + parse)
+   Service: remitosService.uploadInvoice(formData)
+   Retorna: {success, data: {cliente, factura, items}}
+
+2. POST /remitos/ingesta-process (crear remito)
+   Parametro: IngestionPayload (editado por usuario)
+   Retorna: RemitoResponse
+
+3. GET /clientes/{clientId} (si no venia en enriquecimiento)
+   Carga detalles completos
+
+4. GET /pedidos/?cliente_cuit=X&estado=PENDIENTE
+   Busca pedidos para validacion
+
+FLUJO ACTUAL:
+Drop PDF -> POST /remitos/ingesta-pdf -> Parse + Enrich
+    -> Cliente NO existe: Sugiere crear
+    -> Cliente existe: Calcula scores domicilios
+    -> Muestra Preview -> Usuario edita -> POST /remitos/ingesta-process
+    -> Remito CREADO en BD
+
+SECUNDARIO:
+frontend/src/views/Ventas/components/IngestaItemModal.vue
+  Modal para agregar items manualmente
+
+═══════════════════════════════════════════════════════════════════════════════
+RIESGOS Y CONFLICTOS DETECTADOS
+═══════════════════════════════════════════════════════════════════════════════
+
+RIESGO 1: RACE CONDITION (409 CONFLICT) - CRITICO
+- Problema: Dos uploads simultaneos del mismo PDF pueden generar duplicados
+- Ubicacion: service.py lineas 30-51 (Anti-Zombi checks)
+- Limitacion: Checks no son atomicos (lectura -> creacion puede fallar)
+- Solucion: Transaccion con LOCK o UUID generado por cliente
+
+RIESGO 2: FLAGS_ESTADO V14 vs V15 - ALTO
+- Problema: Semantica de Bit20 cambio entre V14 y V15
+- Ubicacion: flags_estado es BIGINT en facturas
+- Impacto: Ingesta no valida el esquema version
+- Mitiga: Conserje READ-ONLY no debe modificar flags
+
+RIESGO 3: DOMICILIOS LEGACY vs NUEVO - ALTO
+- Problema: Coexisten Domicilio (legacy) y VinculoGeografico (nuevo)
+- Ubicacion: remitos/service.py linea 13 (ambas importadas)
+- Impacto: Conserje debe soportar ambos modelos
+
+RIESGO 4: OCR FALLA - MEDIO
+- Problema: parse_invoice_data() puede fallar o extraer incompleto
+- Ubicacion: pdf_parser.py linea 239 (validacion basica)
+- Mitiga: Usuario edita manualmente en frontend
+
+RIESGO 5: PDF MALFORMADO - MEDIO
+- Problema: fitz lanza Exception generica sin detalles
+- Ubicacion: pdf_parser.py linea 43
+- Impacto: Usuario ve error opaco
+
+RIESGO 6: AUDITORIA INCOMPLETA - MEDIO
+- Problema: No se registra quien, cuando, que heuristicas
+- Ubicacion: Sin tabla ni campo audit en facturas
+- Mitiga: notas_auditoria (nuevo en 029) pero no usado
+
+RIESGO 7: FALTA ATOMICIDAD INGESTA-PROCESS - MEDIO
+- Problema: Si falla INSERT Remito despues de crear Pedido, queda zombi
+- Ubicacion: service.py, create_from_ingestion (sin savepoint)
+- Mitiga: Usar transacciones explicitas en ingesta v2
+
+═══════════════════════════════════════════════════════════════════════════════
+LO QUE SE PUEDE REUTILIZAR
+═══════════════════════════════════════════════════════════════════════════════
+
+REUTILIZABLE:
+✓ pdf_parser.py (stateless, puro, reutilizable tal cual)
+✓ process_pdf_ingestion(file: UploadFile) (async sin side-effects)
+✓ parse_invoice_data(text, words_data) (logica de extraccion heuristica)
+✓ calculate_score(d_obj, extracted_text) (logica de domicilios)
+✓ Anti-Zombi pattern (numero_legal + nota unicos)
+✓ Frontend IngestaFacturaView.vue (se puede reutilizar con cambio endpoints)
+✓ Patron de enriquecimiento de cliente (buscar por CUIT, fallback por nombre)
+
+═══════════════════════════════════════════════════════════════════════════════
+LO QUE HAY QUE CONSTRUIR DESDE CERO
+═══════════════════════════════════════════════════════════════════════════════
+
+NUEVO:
+1. backend/ingesta/models.py
+   - class FacturasRaw (estado='RAW', timestamps, user_who_uploaded)
+   - class FacturasProcesadas (estado='PROCESADA', parsed_data JSON, audit_log)
+   - Indices en (pv, nc) para velocidad
+
+2. backend/ingesta/schemas.py
+   - FacturasRawCreate, FacturasRawResponse
+   - FacturasProcesadasResponse
+   - ParsedDataSchema (reusable estructura)
+
+3. backend/ingesta/conserje.py
+   - class ConserjeV2 (READ-ONLY)
+   - def parse_pdf_content() [from pdf_parser]
+   - def score_address() [from calculate_score]
+   - def resolve_client() [fuzzy + CUIT]
+   - def validate_parsed_data() [schema check]
+   - def audit_log(raw_id, decision, confidence, timestamp)
+
+4. backend/ingesta/service.py
+   - def store_raw(file_bytes, metadata)
+   - def preview(raw_id) [READ-ONLY parse + enrich]
+   - def process(raw_id, user_edits) [validate, INSERT procesadas]
+   - def get_by_numero_legal(pv, nc) [busqueda]
+
+5. backend/ingesta/router.py
+   - POST /raw [accept PDF -> INSERT facturas_raw]
+   - GET /raw/{raw_id}/preview [parse sin guardar]
+   - POST /raw/{raw_id}/process [validate + INSERT procesadas]
+   - GET /procesadas/{proc_id} [audit trail READ-ONLY]
+   - DELETE /raw/{raw_id} [limpiar fallidas]
+
+6. Migracion scripts/migrate_030_ingesta_raw_procesadas.py
+   - CREATE TABLE facturas_raw
+   - CREATE TABLE facturas_procesadas
+   - Indices
+   - INSERT _migraciones_aplicadas
+
+7. Frontend adapter
+   - Cambiar endpoints en IngestaFacturaView.vue
+   - /remitos/ingesta-pdf -> /ingesta/raw (POST)
+   - /remitos/ingesta-process -> /ingesta/process (POST)
+   - Agregar feedback visual de estado (RAW -> PROCESADA -> REMITO)
+
+═══════════════════════════════════════════════════════════════════════════════
+PLAN DE IMPLEMENTACION (20 PASOS)
+═══════════════════════════════════════════════════════════════════════════════
+
+FASE 1: SCAFFOLD + MODELOS (sin cambios en remitos/)
+1. Crear directorio backend/ingesta/
+2. Crear backend/ingesta/__init__.py (vacio)
+3. Crear backend/ingesta/models.py (FacturasRaw, FacturasProcesadas)
+4. Crear backend/ingesta/schemas.py (Pydantic models)
+5. Crear migracion 030_ingesta_raw_procesadas.py
+6. Ejecutar migracion y verificar tablas
+
+FASE 2: CONSERJE (READ-ONLY machinery)
+7. Crear backend/ingesta/conserje.py (refactor de logica actual)
+8. Crear backend/ingesta/service.py (store, preview, process, get)
+
+FASE 3: ROUTER CONSERJE (READ-ONLY endpoints)
+9. Crear backend/ingesta/router.py (endpoints /raw, /procesadas)
+10. Registrar router en backend/main.py
+
+FASE 4: PUENTE PROCESADA -> REMITO
+11. Agregar endpoint: POST /remitos/desde_procesada/{proc_id}
+
+FASE 5: FRONTEND ADAPTER (cambiar endpoints)
+12. Actualizar IngestaFacturaView.vue (nuevos endpoints)
+13. Crear servicio ingesta.js (paralelo a remitosService)
+
+FASE 6: TESTING + VALIDATION
+14. Test con PDFs variados (AFIP A, B, malformados)
+15. Test flujo completo: PDF -> RAW -> PREVIEW -> PROCESADA -> REMITO
+16. Performance test (PDFs grandes)
+17. UAT con Carlos (validar decisiones Conserje)
+
+FASE 7: SUNSET REMITOS (desactivar endpoints viejos)
+18. Deprecate POST /remitos/ingesta-pdf
+19. Deprecate POST /remitos/ingesta-process
+20. Documentar: migrate users a /ingesta/...
+
+═══════════════════════════════════════════════════════════════════════════════
+COMPARATIVA: FLUJO ACTUAL vs PROPUESTO
+═══════════════════════════════════════════════════════════════════════════════
+
+ACTUAL (TODO EN REMITOS):
+PDF -> POST /remitos/ingesta-pdf -> Parse + Validate + Enrich
+   -> Si duplicado: error 409
+   -> Si cliente no existe: sugiere crear
+   -> Retorna: parsed_data
+-> USUARIO EDITA EN FRONTEND
+-> POST /remitos/ingesta-process -> Create remito + pedido
+   -> Anti-Zombi check
+   -> INSERT Remito, Pedido, Items
+   -> Retorna: Remito
+
+PROBLEMAS:
+- No hay historial de RAW
+- No hay auditoria de decisiones Conserje
+- Race condition sin lock
+- Logica Conserje inline, no reutilizable
+
+
+PROPUESTO (CON CONSERJE MODULAR):
+PDF -> POST /ingesta/raw (store PDF como BLOB)
+   -> INSERT facturas_raw
+   -> Retorna: {raw_id, status:'RAW'}
+-> GET /ingesta/raw/{raw_id}/preview (parse in-memory, READ-ONLY)
+   -> Extraer texto con fitz
+   -> Parse con heuristica Conserje
+   -> Resolve cliente (CUIT + nombre fallback)
+   -> Score domicilios
+   -> Valida schema
+   -> LOG: decision + confidence
+   -> Retorna: {parsed_data, domicilios, audit}
+   -> NO INSERT TODAVIA
+-> USUARIO EDITA EN FRONTEND
+-> POST /ingesta/raw/{raw_id}/process (validate + store parsed)
+   -> Revisa cambios del usuario
+   -> Re-valida schema
+   -> INSERT facturas_procesadas (estado='PROCESADA')
+   -> Retorna: {proc_id, status:'PROCESADA'}
+-> GET /ingesta/procesadas/{proc_id} (audit trail READ-ONLY)
+   -> Ver decisiones Conserje, confidence, timestamps
+-> POST /remitos/desde_procesada/{proc_id} (create remito)
+   -> Lee FacturaProcesada.parsed_data
+   -> Convierte a IngestionPayload
+   -> Llama RemitosService.create_from_ingestion()
+   -> INSERT Remito, Pedido, Items
+   -> UPDATE facturas_procesadas.estado='REMITO_CREADO'
+   -> Retorna: {remito_id, status:'REMITO_CREADO'}
+
+VENTAJAS:
+- Historial completo: RAW -> PROCESADA -> REMITO
+- Auditoria: cada decision logged con confidence
+- Separacion de concerns: ingesta != remitos
+- Conserje modular, reutilizable
+- Preview sin comprometer datos
+- Rollback seguro: DELETE raw (cascada limpia)
+- Race condition resuelta con PK (raw_id)
+- Transparencia: usuario ve por que se sugierio domicilio X
+
+═══════════════════════════════════════════════════════════════════════════════
+PROXIMIXOS PASOS RECOMENDADOS
+═══════════════════════════════════════════════════════════════════════════════
+
+OPCION A: Proceder con Fase 1 (scaffold + modelos)
+  Time: ~2h, Zero risk, deliverable db schema
+
+OPCION B: Proceder con Fase 1 + 2 (agrega conserje READ-ONLY)
+  Time: ~4h, Medium complexity, showcaseable
+
+OPCION C: Full pipeline (todas fases 1-7)
+  Time: ~8h, Medium complexity, production-ready
+
+RECOMENDACION: Proceder con Fase 1 + 2, puis get approval del PIN 1974 para
+cutover (Fases 3-7).
+
+═══════════════════════════════════════════════════════════════════════════════
+FIN DEL RELEVAMIENTO
+═══════════════════════════════════════════════════════════════════════════════
+Generado: 2026-05-08
+Analista: Claude Code
+Estado: EXHAUSTIVO - SOLO LECTURA - SIN MODIFICACIONES

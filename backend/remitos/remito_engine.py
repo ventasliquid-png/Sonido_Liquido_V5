@@ -70,8 +70,8 @@ class PDFRemito(FPDF):
                 self.set_font('Arial', '', 6) 
                 self.cell(20, 6, "Corresponde a:", 0, 0, 'R') 
                 
-                self.set_font('Arial', 'B', 10) 
-                self.cell(40, 6, str(self.factura_vinculada), 0, 0, 'L')
+                self.set_font('Arial', 'B', 10)
+                self.cell(40, 6, str(self.factura_vinculada).replace("—", "-"), 0, 0, 'L')
 
         # 5. Leyenda Vertical Izquierda (Sobre-escribir imagen)
         # Tapamos lo viejo (Extendemos desde el borde superior hasta abajo para asegurar limpieza)
@@ -164,7 +164,7 @@ class PDFRemito(FPDF):
             if self.factura_vinculada:
                 self.set_xy(X_POS_RIGHT, Y_START + 2)
                 self.set_font('Arial', 'B', 10)
-                self.cell(CELL_W, 5, f"VINCULADO A FACTURA: {self.factura_vinculada}", border=0, align='R')
+                self.cell(CELL_W, 5, f"VINCULADO A FACTURA: {self.factura_vinculada}".replace("—", "-"), border=0, align='R')
 
             # 2. CAE N°
             self.set_font('Arial', 'B', 9)
@@ -209,9 +209,9 @@ class PDFRemito(FPDF):
         self.cell(30, 6, fecha_str, 0)
         
         # Nombre (L18, C10)
-        raw_nombre = str(cliente_data.get('razon_social', '')).upper()
-        nombre_lines = textwrap.wrap(raw_nombre, 33)[:2] 
-        
+        raw_nombre = str(cliente_data.get('razon_social', '')).upper().replace("—", "-")
+        nombre_lines = textwrap.wrap(raw_nombre, 33)[:2]
+
         for i, line_text in enumerate(nombre_lines):
             set_bas_xy(18 + i, 10)
             self.cell(80, 6, line_text, 0)
@@ -228,10 +228,10 @@ class PDFRemito(FPDF):
         self.cell(40, 6, cond_iva, 0)
 
         # Domicilio (L20, C10)
-        self.set_font('Arial', '', 8) 
-        
-        raw_dom = str(cliente_data.get('domicilio_fiscal', '')).upper().replace('SIN DOMICILIO FISCAL', '')
-        if not raw_dom: raw_dom = str(cliente_data.get('domicilio', '')).upper()
+        self.set_font('Arial', '', 8)
+
+        raw_dom = str(cliente_data.get('domicilio_fiscal', '')).upper().replace('SIN DOMICILIO FISCAL', '').replace("—", "-")
+        if not raw_dom: raw_dom = str(cliente_data.get('domicilio', '')).upper().replace("—", "-")
         
         dom_lines = textwrap.wrap(raw_dom, 45)[:4] 
         
@@ -242,10 +242,10 @@ class PDFRemito(FPDF):
             last_dom_line_idx = 20 + i
             
         # Ref (A facturar, Obs, Valor)
-        ref = cliente_data.get('referencia', '')
+        ref = str(cliente_data.get('referencia', '')).replace("—", "-")
         if ref:
              set_bas_xy(last_dom_line_idx + 4, 10)
-             self.set_font('Arial', '', 6) 
+             self.set_font('Arial', '', 6)
              self.cell(100, 4, f"REF: {ref}", 0)
              
         self.set_font('Arial', 'B', 10) 
@@ -278,7 +278,7 @@ class PDFRemito(FPDF):
             
             # Descripcion (C28)
             set_bas_xy(current_line, 28)
-            self.cell(100, 5, str(item.get('descripcion', '')), 0)
+            self.cell(100, 5, str(item.get('descripcion', '')).replace("—", "-"), 0)
             
             current_line += 1.5
 
@@ -293,7 +293,7 @@ class PDFRemito(FPDF):
         
         set_bas_xy(60, 10)
         self.set_font('Arial', '', 8)
-        obs_text = str(cliente_data.get('observaciones', ''))
+        obs_text = str(cliente_data.get('observaciones', '')).replace("—", "-")
         self.multi_cell(140, 4, obs_text, 0)
         
         # Valor Declarado y Bultos (C64 -> Y=226mm)
