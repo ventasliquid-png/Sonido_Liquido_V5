@@ -1,3 +1,24 @@
+## SESIÓN 799: GENOMA FACTURAS + CONSERJE DUPLICADOS + MANUALES (CA)
+**Fecha:** 2026-05-08
+**Locación:** CA
+**Objetivo:** Implementar Genoma `FacturaFlags` (mapa bits 0-21 sellado Nike Arq 5.5), campo `notas_auditoria` en modelo Factura, migración 029, conserje HTTP 409 `FACTURA_DUPLICADA` en ingesta-pdf, y Bug G (pedidos duplicados con modal advertencia).
+**Estado:** NOMINAL GOLD — hashes: 93a9a3d4, 58404b1b
+
+### Hito 1: `FacturaFlags` — Genoma constants.py
+*   `backend/facturacion/constants.py` (nuevo): clase de constantes con mapa completo bits 0-21 de `flags_estado` en tabla `facturas`. Sellado Nike Arq 5.5. Bits: EXISTENCE(1), HAS_ACTIVITY(2), HAS_REMITO(4), ACTIVE(8), V15_STRUCT(1024), PASADO_A_PEDIDO(32768), EN_CUARENTENA(65536), TIENE_NC(131072), TIENE_ND(262144), ES_NC(524288), ES_ND(1048576), AUDITADA(2097152). Bits 22-29 reservados contabilidad. Bits 30+ ultra-reservados.
+
+### Hito 2: Campo `notas_auditoria` + Migración 029
+*   `backend/facturacion/models.py`: `notas_auditoria = Column(String, nullable=True)` agregado a clase `Factura`. Campo de texto libre para observaciones de auditoría manual — complementa bit `AUDITADA` (bit 21).
+*   `scripts/migrate_029_facturas_notas_auditoria.py` (nuevo): `ALTER TABLE facturas ADD COLUMN notas_auditoria VARCHAR`. Idempotente, registra en `_migraciones_aplicadas`. Ejecutada en pilot_v5x.db.
+
+### Hito 3: Conserje FACTURA_DUPLICADA en ingesta-pdf
+*   `backend/remitos/router.py` — `POST /remitos/ingesta-pdf`: guard pre-proceso. Consulta `facturas` por `punto_venta + numero_comprobante`. Si existe → HTTP 409 `{"codigo": "FACTURA_DUPLICADA", "factura_id": "<uuid>"}`. El frontend puede redirigir al registro existente. Hash: 93a9a3d4.
+
+### Hito 4: Bug G — Pedidos duplicados
+*   Modal de advertencia al detectar posible pedido duplicado (mismo cliente + fecha + ítems similares). Operador puede continuar o cancelar. Hash: 58404b1b.
+
+---
+
 ## SESIÓN 798: BUGS D/E/F/H + EXTRACCIÓN INGESTAITEMMODAL (OF)
 **Fecha:** 2026-05-07
 **Locación:** OF

@@ -608,3 +608,32 @@ Al ingresar una factura PDF que contiene ítems, el sistema abre el modal **RESO
 ### Nota operativa
 
 Si un producto de la factura no existe en el catálogo, usar F4 para darlo de alta desde la ventana satélite. Al guardar el producto nuevo, volver al modal y buscarlo por SKU o descripción.
+
+---
+
+## 19. DETECCIÓN DE FACTURA DUPLICADA EN INGESTA (Sesión 799-CA, 2026-05-08)
+
+Cuando el operador sube un PDF de factura a través de la pantalla de ingesta, el sistema verifica **antes de procesar** si esa factura ya existe en la base de datos, identificándola por el par único `punto de venta + número de comprobante`.
+
+### ¿Qué ve el operador?
+
+Si la factura ya está registrada, el sistema **no la procesa de nuevo**. En cambio, muestra un mensaje de advertencia indicando:
+
+- Que la factura ya existe en el sistema.
+- El identificador del registro existente (para poder localizarlo).
+
+El operador puede entonces navegar al comprobante ya registrado para revisarlo o continuar con otra operación. **No se genera un duplicado.**
+
+### ¿Por qué ocurre esto?
+
+El caso típico es cuando una factura fue procesada en una sesión anterior y el operador vuelve a subir el mismo PDF por error (archivo repetido, copia del PDF, etc.). El sistema protege la integridad del registro evitando duplicados silenciosos.
+
+### ¿Qué hacer si aparece este mensaje?
+
+1. **Verificar** que el PDF que se intenta subir no es el mismo que ya fue ingresado.
+2. Si es un comprobante diferente pero con igual número (ej: un proveedor reusó un número), **contactar al proveedor** — es una irregularidad fiscal.
+3. Si se trató de un error propio: cerrar el diálogo y seleccionar el PDF correcto.
+
+### Código técnico del evento
+
+El sistema devuelve código `FACTURA_DUPLICADA` (HTTP 409). Este código es diferente a otros errores de conflicto (como pedidos duplicados) — cada uno tiene su mensaje y navegación específicos.

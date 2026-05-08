@@ -91,6 +91,74 @@ Tabla creada por `scripts/migrate_000_control_migraciones.py`. Evita doble ejecu
 
 Referencia canónica: `scripts/migrate_000_control_migraciones.py`.
 
+## 19. GENOMA `facturas.flags_estado` — `FacturaFlags` (Sesión 799-CA, 2026-05-08)
+
+### 19.1 Clase de constantes `FacturaFlags`
+
+**Archivo:** `backend/facturacion/constants.py`  
+**Sellado:** Nike Arq 5.5
+
+Define el mapa completo de bits del campo `flags_estado` en la tabla `facturas`. No mezclar con el `flags_estado` de otras tablas — cada tabla tiene su propio Genoma.
+
+| Bit | Valor | Nombre | Semántica |
+|-----|-------|--------|-----------|
+| 0 | 1 | `EXISTENCE` | El registro existe y es válido |
+| 1 | 2 | `HAS_ACTIVITY` | 1=virgen (nunca tocado), 0=tocado |
+| 2 | 4 | `HAS_REMITO` | Tiene al menos un remito vinculado |
+| 3 | 8 | `ACTIVE` | No anulada |
+| 4–9 | — | Reservado | Libre para extensión en módulo facturación |
+| 10 | 1024 | `V15_STRUCT` | Reservado global (marca de estructura V15) |
+| 11–14 | — | Reservado | Libre |
+| 15 | 32768 | `PASADO_A_PEDIDO` | Esta factura ya fue usada para crear/vincular un pedido |
+| 16 | 65536 | `EN_CUARENTENA` | Bajo revisión manual — no operar |
+| 17 | 131072 | `TIENE_NC` | Tiene nota de crédito asociada |
+| 18 | 262144 | `TIENE_ND` | Tiene nota de débito asociada |
+| 19 | 524288 | `ES_NC` | Este comprobante ES una nota de crédito |
+| 20 | 1048576 | `ES_ND` | Este comprobante ES una nota de débito |
+| 21 | 2097152 | `AUDITADA` | Revisada y certificada por operador |
+| 22–29 | — | Reservado Contabilidad | Retenciones, percepciones (módulo futuro) |
+| 30+ | — | Ultra-reservado | Extensiones de largo plazo |
+
+**Estado inicial estándar de factura nueva:** `EXISTENCE | HAS_ACTIVITY | ACTIVE` = `1 | 2 | 8` = **11**
+
+**Regla de lectura `HAS_ACTIVITY`:** La semántica es inversa a la intuitiva. Bit encendido (valor 2) significa **virgen** — el comprobante ingresó al sistema pero ningún operador lo procesó todavía. Bit apagado (valor 0) significa **tocado** — ya fue vinculado, auditado o procesado. Esta inversión es intencional (hereda doctrina Bit 1 del Arleq V2).
+
+### 19.2 Campo `notas_auditoria`
+
+**Modelo:** `backend/facturacion/models.py` → clase `Factura`  
+**DDL:** `notas_auditoria VARCHAR` (nullable)
+
+Campo de texto libre. Destinado a registrar observaciones del operador al certificar la factura. Trabaja en conjunto con el bit `AUDITADA` (bit 21):
+
+- El bit señala **que** fue auditada (boolean).
+- El campo preserva **qué** se observó (texto libre, auditaría detallada).
+
+No tiene longitud máxima impuesta — el contenido es operativo, no estructural.
+
+**Migración:** `scripts/migrate_029_facturas_notas_auditoria.py` — ejecutada en `pilot_v5x.db` sesión 799-CA.
+
+### 19.3 Conserje `FACTURA_DUPLICADA` — endpoint `POST /remitos/ingesta-pdf`
+
+**Archivo:** `backend/remitos/router.py`
+
+Guard insertado **antes** del procesamiento del PDF. Lógica:
+
+1. El payload parseado contiene `punto_venta` y `numero_comprobante`.
+2. Se consulta `SELECT id FROM facturas WHERE punto_venta = :pv AND numero_comprobante = :nc LIMIT 1`.
+3. Si existe registro → **HTTP 409** con body:
+   ```json
+   {
+     "codigo": "FACTURA_DUPLICADA",
+     "mensaje": "La factura ya existe en el sistema.",
+     "factura_id": "<uuid-del-registro-existente>"
+   }
+   ```
+4. Si no existe → flujo continúa normalmente.
+
+**Contrato con el frontend:** El código `FACTURA_DUPLICADA` es discriminador — el frontend (`IngestaFacturaView`) puede distinguirlo de otros 409 (ej: `PEDIDO_DUPLICADO`) y ofrecer al operador navegación directa al comprobante existente.
+
+**Invariante de integridad:** El par `(punto_venta, numero_comprobante)` identifica unívocamente una factura AFIP. No puede existir dos registros con la misma combinación.
+
 ---
 
 ## 1. DOCTRINA DE PRECIOS: "LA ROCA Y LA MÁSCARA"

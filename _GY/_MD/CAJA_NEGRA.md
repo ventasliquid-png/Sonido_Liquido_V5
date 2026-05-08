@@ -1,3 +1,11 @@
+# CAJA NEGRA: Genoma Facturas + Conserje Duplicados CA (2026-05-08)
+
+Sesión CA 2026-05-08 (799). `backend/facturacion/constants.py` (nuevo): clase `FacturaFlags` con mapa completo bits 0-21 de `flags_estado` en tabla facturas, sellado Nike Arq 5.5. Bits: EXISTENCE(1), HAS_ACTIVITY(2), HAS_REMITO(4), ACTIVE(8), V15_STRUCT(1024), PASADO_A_PEDIDO(32768), EN_CUARENTENA(65536), TIENE_NC(131072), TIENE_ND(262144), ES_NC(524288), ES_ND(1048576), AUDITADA(2097152). `models.py`: `notas_auditoria = Column(String, nullable=True)` en Factura — texto libre para observaciones de auditoría, complementa bit 21. Migración 029 ejecutada (`ALTER TABLE facturas ADD COLUMN notas_auditoria VARCHAR`, idempotente, registrada en `_migraciones_aplicadas`). Conserje en `POST /remitos/ingesta-pdf`: guard pre-proceso consulta `facturas` por `punto_venta + numero_comprobante` → HTTP 409 `FACTURA_DUPLICADA` con `factura_id` si existe. Bug G: modal advertencia pedidos duplicados (mismo cliente + fecha + ítems similares) — operador decide continuar o cancelar. Canario D: NOMINAL GOLD — flags=13.
+
+**Agente:** Claude Code Sonnet 4.6 — Hashes: 93a9a3d4 (técnico), 58404b1b (Bug G)
+
+---
+
 # CAJA NEGRA: Bugs D/E/F/H + IngestaItemModal Extracción OF (2026-05-07)
 
 Sesión OF 2026-05-07 (798). Bug C ítem 13 ya resuelto en CA-797. Esta sesión: Bugs D/E/F (F4 satélite PedidoCanvas) — Fix F: `ProductoInspector.vue` fetchRubros defensivo en modo satellite; Fix D+E: ProductosView v-if en `<main>` + nombre único `AltaProducto_${Date.now()}` en PedidoCanvas. Hash: db72e856. Extracción IngestaItemModal.vue: modal de resolución de ítems extraído de PedidoCanvas (-137 líneas) a componente propio con props `items`, emits `resolved/cancel`. Fix H integrado: F4 en modal abre satélite de alta producto via `handleOverlayKeydown`. Botón copy descripción→buscador. Bugs registrados: IngestaItemModal navegación teclado pendiente. Migraciones ejecutadas en D: 026, 027, 028, 029 (facturas schema drift, EmpresaTransporte.activo). Tablas nuevas en pilot_v5x.db: `deuda_tecnica`, `roadmap`. Hash final: afd5cd74.
