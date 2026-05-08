@@ -43,6 +43,7 @@ class PedidoCreate(BaseModel):
     estado_logistico: Optional[str] = "PENDIENTE"
     
     items: List[PedidoItemCreate]
+    duplicate_confirmed: Optional[bool] = False
 
 class PedidoUpdate(BaseModel):
     cliente_id: Optional[UUID] = None

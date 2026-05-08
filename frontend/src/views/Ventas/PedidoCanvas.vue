@@ -1778,6 +1778,39 @@ const savePedido = async () => {
             await api.patch(`/pedidos/${route.params.id}`, payload);
             notificationStore.add('Pedido guardado exitosamente.', 'success');
         } else {
+            // Verificar duplicados antes de guardar
+            const totalEstimado = items.value.reduce((sum, i) => sum + (i.total || 0), 0);
+            const dupCheck = await api.get('/pedidos/check-duplicate', {
+                params: {
+                    cliente_id: clienteSeleccionado.value.id || clienteSeleccionado.value._id,
+                    fecha: new Date(fechaPedido.value).toISOString(),
+                    total: totalEstimado,
+                    oc: nroOC.value.trim() || ''
+                }
+            });
+
+            if (dupCheck.data.nivel !== 'NINGUNO') {
+                const pedidosCercanos = dupCheck.data.pedidos_cercanos;
+                const nivel = dupCheck.data.nivel;
+                const lista = pedidosCercanos.map(p =>
+                    `#${p.id} — ${new Date(p.fecha).toLocaleDateString('es-AR')} — $${p.total?.toLocaleString('es-AR')}`
+                ).join('\n');
+
+                const msg = nivel === 'ALTO'
+                    ? `⚠️ POSIBLE DUPLICADO\n\nHay un pedido similar del mismo cliente hoy:\n${lista}\n\n¿Confirmar de todas formas?`
+                    : `⚠️ Atención: hay pedidos recientes de este cliente:\n${lista}\n\n¿Continuar?`;
+
+                const confirmar = window.confirm(msg);
+                if (!confirmar) {
+                    isSaving.value = false;
+                    return;
+                }
+
+                payload.duplicate_confirmed = true;
+                const notaAuto = `[SISTEMA] Pedido creado con advertencia duplicado nivel ${nivel}. Similar: ${lista}`;
+                payload.nota = payload.nota ? `${payload.nota}\n${notaAuto}` : notaAuto;
+            }
+
             const pedidoCreado = await api.post('/pedidos/tactico', payload);
             const pedidoId = pedidoCreado.data.id;
 

@@ -114,6 +114,9 @@ def create_pedido_tactico(
             transporte_id=pedido_data.transporte_id,
             total=0.0 # Se calcula abajo
         )
+        if pedido_data.duplicate_confirmed:
+            from backend.pedidos.constants import PedidoFlags
+            nuevo_pedido.flags_estado = (nuevo_pedido.flags_estado or 0) | PedidoFlags.PEDIDO_DUPLICATE_CONFIRMED.value
         db.add(nuevo_pedido)
         db.flush() # Para tener ID
 
@@ -400,6 +403,53 @@ def get_ultimo_transporte(cliente_id: str, db: Session = Depends(get_db)):
     return {"transporte_id": None}
 
 
+
+
+@router.get("/check-duplicate")
+def check_duplicate_pedido(
+    cliente_id: str,
+    fecha: str,
+    total: float,
+    oc: str = "",
+    db: Session = Depends(get_db)
+):
+    from datetime import timedelta
+    fecha_dt = datetime.fromisoformat(fecha).date()
+    fecha_desde = datetime.combine(fecha_dt, datetime.min.time())
+    fecha_hasta = fecha_desde + timedelta(days=1)
+
+    pedidos_hoy = db.query(models.Pedido).filter(
+        models.Pedido.cliente_id == cliente_id,
+        models.Pedido.fecha >= fecha_desde,
+        models.Pedido.fecha < fecha_hasta,
+        models.Pedido.estado != "ANULADO"
+    ).all()
+
+    if not pedidos_hoy:
+        hace_24h = datetime.now() - timedelta(hours=24)
+        pedidos_24h = db.query(models.Pedido).filter(
+            models.Pedido.cliente_id == cliente_id,
+            models.Pedido.fecha >= hace_24h,
+            models.Pedido.estado != "ANULADO"
+        ).all()
+        if pedidos_24h:
+            return {
+                "nivel": "MEDIO",
+                "pedidos_cercanos": [{"id": p.id, "fecha": str(p.fecha), "total": p.total, "oc": p.oc} for p in pedidos_24h]
+            }
+        return {"nivel": "NINGUNO", "pedidos_cercanos": []}
+
+    nivel = "MEDIO"
+    for p in pedidos_hoy:
+        if p.total and abs(p.total - total) / max(total, 1) < 0.01:
+            if not oc or not p.oc or oc == p.oc:
+                nivel = "ALTO"
+                break
+
+    return {
+        "nivel": nivel,
+        "pedidos_cercanos": [{"id": p.id, "fecha": str(p.fecha), "total": p.total, "oc": p.oc} for p in pedidos_hoy]
+    }
 
 
 @router.get("/{pedido_id}", response_model=schemas.PedidoResponse)
