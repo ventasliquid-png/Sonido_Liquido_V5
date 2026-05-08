@@ -91,6 +91,8 @@ class ConserjeV2:
         return {
             "cliente": cliente,
             "db_status": status if cliente else "NO_EXISTE",
+            "razon_social": cliente.razon_social if cliente else None,
+            "flags_estado": cliente.flags_estado if cliente else 0,
             "warnings": warnings
         }
 
@@ -149,7 +151,9 @@ class ConserjeV2:
         )
         log["client_resolution"] = {
             "db_status": res["db_status"],
-            "id": str(res["cliente"].id) if res["cliente"] else None
+            "id": str(res["cliente"].id) if res["cliente"] else None,
+            "razon_social": res["razon_social"],
+            "flags_estado": res["flags_estado"]
         }
         log["warnings"].extend(res["warnings"])
         

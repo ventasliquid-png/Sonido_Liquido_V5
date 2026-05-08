@@ -36,12 +36,20 @@ class IngestaService:
         if not raw:
             raise ValueError("Factura Raw no encontrada")
             
-        audit_log = ConserjeV2.audit_ingestion(raw.parsed_data_raw, db)
+        import json
+        p_data = raw.parsed_data_raw
+        if isinstance(p_data, str):
+            try:
+                p_data = json.loads(p_data)
+            except: pass
+
+        audit_log = ConserjeV2.audit_ingestion(p_data, db)
         
         return {
-            "raw": raw,
+            "raw_id": str(raw.id),
+            "filename": raw.filename,
             "audit_log": audit_log,
-            "parsed_data": raw.parsed_data_raw
+            "parsed_data": p_data
         }
 
     @staticmethod

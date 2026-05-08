@@ -69,12 +69,20 @@ def parse_invoice_data(text: str, words_data: list = None) -> dict:
     }
 
     # 1. FACTURA & CAE (Protocolo Sabueso Oro - RAR Port)
+    # [V5.7 Robustness] Handle both: "PV: XXXX Comp: YYYY" AND "PV: Comp: XXXX YYYY"
     match_comp = re.search(r'Punto.*?Comp.*?Nro[.\s:|]*\s*(\d{4,5})\s+(\d{8})', text, re.IGNORECASE)
     if not match_comp:
         match_comp = re.search(r'Punto\s*de\s*Ventas?[^\d]*(\d{4,5}).*?Comp.*?(?:Nro)?[^\d]*(\d{8})', text, re.IGNORECASE)
     
     if match_comp:
-         data["factura"]["numero"] = f"{match_comp.group(1).zfill(5)}-{match_comp.group(2).zfill(8)}"
+         pv = match_comp.group(1).zfill(5)
+         nc = match_comp.group(2).zfill(8)
+         data["factura"]["numero"] = f"{pv}-{nc}"
+    else:
+        # Last ditch: Look for two long sequences of numbers near "Comp"
+        match_lazy = re.search(r'Comp[^\d]*(\d{4,5})[^\d]+(\d{8})', text, re.IGNORECASE)
+        if match_lazy:
+             data["factura"]["numero"] = f"{match_lazy.group(1).zfill(5)}-{match_lazy.group(2).zfill(8)}"
     
     match_cae = re.search(r'C\.?A\.?E\.?.*?(?:\:)?.*?(\d{14})', text, re.IGNORECASE)
     if match_cae: data["factura"]["cae"] = match_cae.group(1)

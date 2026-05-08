@@ -46,18 +46,51 @@
         <!-- List View -->
         <div class="flex flex-col gap-2">
             <!-- Header Row -->
-             <div class="flex items-center justify-between px-4 py-2 text-xs font-bold text-blue-900/50 uppercase tracking-wider select-none">
-                <div class="w-32">Número</div>
-                <div class="w-28 text-center">Fecha</div>
-                <div class="flex-1 px-4">Cliente</div>
-                <div class="w-32 text-center">CAE</div>
-                <div class="w-32 text-center">Estado</div>
-                <div class="w-20 text-right">Items</div>
+             <div class="flex items-center justify-between px-4 py-3 text-[11px] font-black uppercase tracking-widest select-none text-white border-b border-blue-500/10 mb-2">
+                <!-- Columna Numero -->
+                <div class="w-32 cursor-pointer hover:text-blue-300 transition-colors flex items-center gap-2 group/h" @click="toggleSort('numero')">
+                    Número
+                    <div class="flex flex-col text-[7px] -space-y-0.5">
+                        <i class="fas fa-chevron-up" :class="sortKey === 'numero' && sortOrder === 'asc' ? 'text-blue-400' : 'text-blue-900/40'"></i>
+                        <i class="fas fa-chevron-down" :class="sortKey === 'numero' && sortOrder === 'desc' ? 'text-blue-400' : 'text-blue-900/40'"></i>
+                    </div>
+                </div>
+
+                <!-- Columna Fecha -->
+                <div class="w-28 text-center cursor-pointer hover:text-blue-300 transition-colors flex items-center justify-center gap-2 group/h" @click="toggleSort('fecha')">
+                    Fecha
+                    <div class="flex flex-col text-[7px] -space-y-0.5">
+                        <i class="fas fa-chevron-up" :class="sortKey === 'fecha' && sortOrder === 'asc' ? 'text-blue-400' : 'text-blue-900/40'"></i>
+                        <i class="fas fa-chevron-down" :class="sortKey === 'fecha' && sortOrder === 'desc' ? 'text-blue-400' : 'text-blue-900/40'"></i>
+                    </div>
+                </div>
+
+                <!-- Columna Cliente -->
+                <div class="flex-1 px-4 cursor-pointer hover:text-blue-300 transition-colors flex items-center gap-2 group/h" @click="toggleSort('cliente')">
+                    Cliente
+                    <div class="flex flex-col text-[7px] -space-y-0.5">
+                        <i class="fas fa-chevron-up" :class="sortKey === 'cliente' && sortOrder === 'asc' ? 'text-blue-400' : 'text-blue-900/40'"></i>
+                        <i class="fas fa-chevron-down" :class="sortKey === 'cliente' && sortOrder === 'desc' ? 'text-blue-400' : 'text-blue-900/40'"></i>
+                    </div>
+                </div>
+
+                <div class="w-32 text-center text-blue-200/40">CAE</div>
+
+                <!-- Columna Estado -->
+                <div class="w-32 text-center cursor-pointer hover:text-blue-300 transition-colors flex items-center justify-center gap-2 group/h" @click="toggleSort('estado')">
+                    Estado
+                    <div class="flex flex-col text-[7px] -space-y-0.5">
+                        <i class="fas fa-chevron-up" :class="sortKey === 'estado' && sortOrder === 'asc' ? 'text-blue-400' : 'text-blue-900/40'"></i>
+                        <i class="fas fa-chevron-down" :class="sortKey === 'estado' && sortOrder === 'desc' ? 'text-blue-400' : 'text-blue-900/40'"></i>
+                    </div>
+                </div>
+
+                <div class="w-20 text-right text-blue-200/40">Items</div>
                 <div class="w-16"></div>
             </div>
 
             <div 
-                v-for="remito in filteredRemitos" 
+                v-for="remito in sortedRemitos" 
                 :key="remito.id"
                 @dblclick="openEditModal(remito)"
                 class="group flex items-center justify-between p-4 mb-2 rounded-xl border transition-all relative overflow-hidden bg-[#070d24] border-blue-900/20 hover:bg-[#0a1435] hover:border-blue-500/30 shadow-md cursor-pointer"
@@ -113,7 +146,7 @@
             </div>
 
             <!-- Empty State -->
-            <div v-if="filteredRemitos.length === 0 && !store.loading" class="flex flex-col items-center justify-center py-20 text-blue-900/40">
+            <div v-if="sortedRemitos.length === 0 && !store.loading" class="flex flex-col items-center justify-center py-20 text-blue-900/40">
                 <i class="fas fa-truck-loading text-4xl mb-4"></i>
                 <p>No se encontraron remitos</p>
             </div>
@@ -312,6 +345,8 @@ const notification = useNotificationStore()
 
 const searchQuery = ref('')
 const isForcingAddress = ref(false)
+const sortKey = ref('fecha')
+const sortOrder = ref('desc')
 
 // Editing State
 const showEditModal = ref(false)
@@ -457,13 +492,54 @@ const deleteRemito = async (remito) => {
     }
 }
 
-const filteredRemitos = computed(() => {
-    if (!searchQuery.value) return store.remitos
-    const query = searchQuery.value.toLowerCase()
-    return store.remitos.filter(r => {
-        const numMatch = (r.numero_legal || '').toLowerCase().includes(query)
-        const clientMatch = (r.pedido?.cliente?.razon_social || '').toLowerCase().includes(query)
-        return numMatch || clientMatch
+const toggleSort = (key) => {
+    if (sortKey.value === key) {
+        sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+    } else {
+        sortKey.value = key
+        sortOrder.value = 'asc'
+    }
+}
+
+const sortedRemitos = computed(() => {
+    let items = [...store.remitos]
+    
+    if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase()
+        items = items.filter(r => {
+            const numMatch = (r.numero_legal || '').toLowerCase().includes(query)
+            const clientMatch = (r.razon_social || '').toLowerCase().includes(query)
+            return numMatch || clientMatch
+        })
+    }
+
+    return items.sort((a, b) => {
+        let valA, valB
+        
+        switch (sortKey.value) {
+            case 'numero': 
+                valA = a.numero_legal || ''
+                valB = b.numero_legal || ''
+                break
+            case 'fecha':
+                valA = new Date(a.fecha_creacion).getTime()
+                valB = new Date(b.fecha_creacion).getTime()
+                break
+            case 'cliente':
+                valA = a.razon_social || ''
+                valB = b.razon_social || ''
+                break
+            case 'estado':
+                valA = a.estado || ''
+                valB = b.estado || ''
+                break
+            default:
+                return 0
+        }
+        
+        if (valA < valB) return sortOrder.value === 'asc' ? -1 : 1
+        if (valA > valB) return sortOrder.value === 'asc' ? 1 : -1
+        return 0
     })
 })
 

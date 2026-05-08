@@ -16,6 +16,8 @@ async def upload_raw(file: UploadFile = File(...), db: Session = Depends(get_db)
         content = await file.read()
         raw = IngestaService.store_raw(db, content, file.filename)
         return {"id": raw.id, "filename": raw.filename, "status": raw.audit_status}
+    except HTTPException as e:
+        raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -23,6 +25,8 @@ async def upload_raw(file: UploadFile = File(...), db: Session = Depends(get_db)
 def get_preview(raw_id: uuid.UUID, db: Session = Depends(get_db)):
     try:
         return IngestaService.preview(db, raw_id)
+    except HTTPException as e:
+        raise e
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
@@ -33,6 +37,8 @@ def approve_ingesta(raw_id: uuid.UUID, edited_data: Dict[str, Any], db: Session 
     try:
         procesada = IngestaService.approve(db, raw_id, edited_data)
         return {"id": procesada.id, "estado": procesada.estado}
+    except HTTPException as e:
+        raise e
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:

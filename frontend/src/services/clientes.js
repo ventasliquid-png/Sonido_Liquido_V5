@@ -58,4 +58,7 @@ export default {
     hubOrphaned: () => api.get('/clientes/hub/orphaned'),
     hubIntegrityCheck: (id) => api.get(`/clientes/hub/${id}/integrity_check`),
     hubHardDelete: (id) => api.delete(`/clientes/hub/${id}/hard`),
+    
+    // Similarity & Duplicates
+    checkSimilarity: (name, threshold = 0.85) => api.get('/clientes/check-similarity', { params: { name, threshold } }),
 };

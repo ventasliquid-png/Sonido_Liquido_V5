@@ -88,6 +88,10 @@
                                     placeholder="0000-00000000"
                                  />
                                  <p class="text-[10px] text-blue-500/50 font-mono italic mt-1">Soberanía Total: Edite si el OCR falló.</p>
+                                 <div class="mt-3 p-2 bg-blue-500/5 border border-blue-500/20 rounded-lg animate-pulse" v-if="parsedData.factura.numero">
+                                     <span class="text-[9px] uppercase font-bold text-blue-400/50 block mb-1">Remito Resultante (Serie 0016)</span>
+                                     <span class="text-lg font-mono font-black text-emerald-400">0016-{{ (parsedData.factura.numero.split('-')[1] || parsedData.factura.numero.split(' ')[1] || parsedData.factura.numero).trim().padStart(8, '0') }}</span>
+                                 </div>
                             </div>
                             <div class="text-right flex flex-col items-end gap-2">
                                 <div class="inline-flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/20 text-xs font-bold uppercase">
@@ -97,8 +101,26 @@
                                 <div v-if="auditLog" class="text-[10px] font-mono flex items-center gap-2">
                                     <span class="text-slate-500 uppercase">Confianza Conserje:</span>
                                     <span :class="auditLog.confidence >= 80 ? 'text-emerald-400' : 'text-amber-400'">{{ auditLog.confidence }}%</span>
-                                    <div class="w-16 h-1 bg-slate-800 rounded-full overflow-hidden">
-                                        <div class="h-full transition-all duration-1000" :class="auditLog.confidence >= 80 ? 'bg-emerald-500' : 'bg-amber-500'" :style="{width: auditLog.confidence + '%'}"></div>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <div class="flex flex-col items-end">
+                                        <span class="text-[9px] uppercase font-bold text-slate-500">Confianza Sabueso</span>
+                                        <div class="w-16 h-1 bg-slate-800 rounded-full overflow-hidden">
+                                            <div class="h-full transition-all duration-1000" :class="auditLog.confidence >= 80 ? 'bg-emerald-500' : 'bg-amber-500'" :style="{width: auditLog.confidence + '%'}"></div>
+                                        </div>
+                                    </div>
+                                    <div class="h-8 w-px bg-slate-800 mx-2"></div>
+                                    <!-- [NUEVO] VINCULACION STATUS -->
+                                    <div class="flex flex-col">
+                                        <span class="text-[9px] uppercase font-bold text-slate-500">Estado de Vínculo</span>
+                                        <div class="flex items-center gap-2 mt-0.5">
+                                            <span v-if="!selectedPedidoId" class="px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 text-[10px] font-bold border border-red-500/20 flex items-center gap-1">
+                                                <i class="fas fa-unlink"></i> SIN PEDIDO
+                                            </span>
+                                            <span v-else class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-bold border border-emerald-500/20 flex items-center gap-1">
+                                                <i class="fas fa-link"></i> VINCULADO #{{ selectedPedidoId }}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -505,6 +527,17 @@ const processFile = async (file) => {
         
         parsedData.value = previewData.parsed_data;
         auditLog.value = previewData.audit_log;
+
+        // [V5.6 FIX] Sincronizar resolución del Conserje con el modelo de vista
+        if (auditLog.value?.client_resolution) {
+            parsedData.value.cliente.db_status = auditLog.value.client_resolution.db_status;
+            parsedData.value.cliente.flags_estado = auditLog.value.client_resolution.flags_estado;
+            parsedData.value.cliente.id = auditLog.value.client_resolution.id;
+            
+            if (auditLog.value.client_resolution.razon_social) {
+                parsedData.value.cliente.razon_social = auditLog.value.client_resolution.razon_social;
+            }
+        }
         
         notification.add('Factura analizada por Conserje V2', 'success');
         
@@ -687,7 +720,8 @@ const confirmIngesta = async () => {
             transporte_id: selectedTransportId.value,
             bultos: bultos.value,
             valor_declarado: valor_declarado.value,
-            nuevo_domicilio: selectedAddressId.value === 'ADD_NEW' ? newAddress.value : null
+            nuevo_domicilio: selectedAddressId.value === 'ADD_NEW' ? newAddress.value : null,
+            audit_log: auditLog.value
         };
 
         if (selectedAddressId.value && selectedAddressId.value !== 'ADD_NEW') {
@@ -715,9 +749,19 @@ const confirmIngesta = async () => {
     } catch (e) {
         console.error(e);
 
-        // Handle 409 Conflict: Factura sin pedido vinculado
+        // Handle 409 Conflict: Factura sin pedido vinculado OR Duplicada
         if (e.response?.status === 409) {
             loading.value = false;
+            const detail = e.response.data.detail || '';
+            
+            if (detail.includes('FACTURA_DUPLICADA')) {
+                notification.add(detail.replace('FACTURA_DUPLICADA: ', ''), 'error');
+                // Alerta Visual Persistente
+                error.value = detail.replace('FACTURA_DUPLICADA: ', '');
+                return;
+            }
+
+            notification.add('Se requiere vinculación de pedido para continuar', 'warning');
             await handle409NoPedido();
             return;
         }

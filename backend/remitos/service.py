@@ -2,6 +2,8 @@ from datetime import datetime
 from typing import Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
+from sqlalchemy.exc import IntegrityError
+from fastapi import HTTPException
 
 from backend.remitos import schemas, models
 from backend.clientes.models import Cliente, Domicilio
@@ -28,19 +30,37 @@ class RemitosService:
         Creates a Pedido and Remito from PDF Ingestion Data.
         """
         # [V5.2 OMEGA] Anti-Zombi: Verify if Remito OR Pedido already exists
-        original_invoice = payload.factura.numero or ""
+        original_invoice = (payload.factura.numero or "").strip()
+        print(f"[DEBUG INGESTA] Original Invoice from Payload: '{original_invoice}'")
+        
         numero_legal = ""
+        # [V5.7 Robustness] Handle both "XXXX-YYYYYYYY" and "XXXX YYYYYYYY" or just "YYYYYYYY"
         if "-" in original_invoice:
-            # [BUG 1 FIX] Usar solo el secuencial para el remito 0016-
-            nc_f = original_invoice.split("-")[1].strip().zfill(8)
-            numero_legal = f"0016-{nc_f}"
+            parts = original_invoice.split("-")
+            if len(parts) >= 2:
+                nc_f = str(parts[1]).strip().zfill(8)
+                numero_legal = f"0016-{nc_f}"
+                print(f"[DEBUG INGESTA] Resolved Numero Legal (Dash Path): {numero_legal}")
+        elif " " in original_invoice:
+            parts = original_invoice.split()
+            if len(parts) >= 2:
+                nc_f = str(parts[-1]).strip().zfill(8)
+                numero_legal = f"0016-{nc_f}"
+                print(f"[DEBUG INGESTA] Resolved Numero Legal (Space Path): {numero_legal}")
+        elif original_invoice and original_invoice.isdigit():
+             # Pure number - likely just the sequential part
+             numero_legal = f"0016-{original_invoice.strip().zfill(8)}"
+             print(f"[DEBUG INGESTA] Resolved Numero Legal (Digit Path): {numero_legal}")
+        
+        if not numero_legal:
+            print(f"[DEBUG INGESTA] No valid pattern found in invoice '{original_invoice}'")
         
         # Guard 1: Existing Remito (Committed)
         if numero_legal:
             existing_remito = db.query(models.Remito).filter(models.Remito.numero_legal == numero_legal).first()
             if existing_remito:
                 print(f"[INGESTA] Bloqueo: Remito {numero_legal} ya existe.")
-                return existing_remito
+                raise HTTPException(status_code=409, detail=f"FACTURA_DUPLICADA: El remito {numero_legal} ya existe.")
         
         # Guard 2: Existing Pedido (Prevent Ghosting during slow transactions)
         if original_invoice:
@@ -48,9 +68,21 @@ class RemitosService:
             existing_pedido = db.query(Pedido).filter(Pedido.nota == note_search).first()
             if existing_pedido:
                 print(f"[INGESTA] Bloqueo OMEGA: Pedido {existing_pedido.id} detectado para factura {original_invoice}.")
-                # If we have the Pedido but not the Remito yet, we must raise 409 to stop the race condition
-                from fastapi import HTTPException
-                raise HTTPException(status_code=409, detail=f"La factura {original_invoice} ya está siendo procesada.")
+                raise HTTPException(status_code=409, detail=f"FACTURA_DUPLICADA: La factura {original_invoice} ya está vinculada al pedido #{existing_pedido.id}.")
+
+        # Guard 3: Existing Factura (Fiscal Mirror)
+        if original_invoice and "-" in original_invoice:
+            try:
+                parts = original_invoice.split("-")
+                pv, nc = int(parts[0]), int(parts[1])
+                from backend.facturacion.models import Factura
+                existing_factura = db.query(Factura).filter(
+                    Factura.punto_venta == pv,
+                    Factura.numero_comprobante == nc
+                ).first()
+                if existing_factura:
+                    raise HTTPException(status_code=409, detail=f"FACTURA_DUPLICADA: La factura fiscal {original_invoice} ya existe en el sistema.")
+            except: pass
 
             
         # 1. FIND CLIENT (Anti-Duplication Strategy)
@@ -225,17 +257,23 @@ class RemitosService:
             ).first()
             if not pedido_existente:
                 raise ValueError(f"Pedido {payload.pedido_id_vinculado} no encontrado")
-            db.commit()
-            return None
+            
+            # [V5.9 GOLD] In VINCULAR_CUMPLIDO we just acknowledge the invoice linkage
+            # and potentially create a remito if requested, but for now we follow legacy closure.
+            # However, we MUST NOT return None if the user expects a remito.
+            # Assuming VINCULAR_CUMPLIDO also wants a remito record:
+            nuevo_pedido = pedido_existente
+            pedido_items = db.query(PedidoItem).filter(PedidoItem.pedido_id == nuevo_pedido.id).all()
+            goto_remito = True
+
 
         if not goto_remito:
             # [ARLEQUÍN V2 — DOCTRINA SOLO LECTURA]
             # Una factura sin pedido vinculado no puede procesarse.
             # El operador debe crear o identificar el pedido antes de reintentar.
-            # Features pendientes: F1 (conciliación), F2 (parciales), F3 (huérfanas)
-            raise ValueError(
-                "PEDIDO_REQUERIDO: Esta factura no tiene un pedido vinculado. "
-                "Identifique o cree el pedido correspondiente antes de procesar la ingesta."
+            raise HTTPException(
+                status_code=409, 
+                detail="PEDIDO_REQUERIDO: Esta factura no tiene un pedido vinculado. Identifique o cree el pedido correspondiente."
             )
 
         # 5. CREATE REMITO
@@ -246,18 +284,31 @@ class RemitosService:
             except:
                 pass
         
-        # [V5] Mirror Numbering: Invoice XXXX-YYYYYYYY -> Remito 0016-YYYYYYYY
+        # [V5] Mirror Numbering: Final Verification
         if not numero_legal:
+            # Si llegamos aquí sin numero_legal, el OCR falló y el usuario no lo corrigió.
+            # Intentamos parsear de nuevo el payload por las dudas o usamos el Pedido ID.
+            print(f"[DEBUG INGESTA] Numero Legal was empty at line 275. Attempting re-resolution from '{payload.factura.numero}'")
             try:
-                parts = payload.factura.numero.split("-")
-                if len(parts) == 2:
-                    nc_f = str(parts[1]).strip().zfill(8)
-                    numero_legal = f"0016-{nc_f}"
+                # Reuse logic from top
+                temp_invoice = (payload.factura.numero or "").strip()
+                if "-" in temp_invoice:
+                    parts = temp_invoice.split("-")
+                    numero_legal = f"0016-{str(parts[1]).strip().zfill(8)}"
+                elif " " in temp_invoice:
+                    parts = temp_invoice.split()
+                    numero_legal = f"0016-{str(parts[-1]).strip().zfill(8)}"
+                elif temp_invoice and temp_invoice.isdigit():
+                    numero_legal = f"0016-{temp_invoice.zfill(8)}"
                 else:
-                    # Fallback if no dash
+                    # FALLBACK ABSOLUTO (Avoid this if possible)
                     numero_legal = f"0016-{str(nuevo_pedido.id).zfill(8)}"
+                    print(f"[DEBUG INGESTA] Re-resolution Fallback to Pedido ID: {numero_legal}")
             except:
                 numero_legal = f"0016-{str(nuevo_pedido.id).zfill(8)}"
+                print(f"[DEBUG INGESTA] Re-resolution Fallback (Exception): {numero_legal}")
+        else:
+            print(f"[DEBUG INGESTA] Final Numero Legal kept from start: {numero_legal}")
 
         if not domicilio:
             domicilio = db.query(Domicilio).first()
@@ -387,16 +438,35 @@ class RemitosService:
             
             print(f"[MODO ESPEJO] Factura {payload.factura.numero} creada y vinculada con flag {mirror_flags}.")
 
-        db.commit()
-        db.refresh(remito)
-        return remito
+        try:
+            db.commit()
+            db.refresh(remito)
+            return remito
+        except IntegrityError as ie:
+            db.rollback()
+            print(f"[INGESTA ERROR] IntegrityError detectado: {str(ie)}")
+            # [V5.2] Traducir error técnico a 409 para el Frontend
+            raise HTTPException(
+                status_code=409, 
+                detail="FACTURA_DUPLICADA: El registro fiscal ya existe o hay un conflicto de integridad en la base de datos."
+            )
+        except Exception as ex:
+            db.rollback()
+            print(f"[INGESTA ERROR] Error inesperado: {str(ex)}")
+            raise HTTPException(status_code=500, detail=f"Error interno en el procesamiento: {str(ex)}")
 
     @staticmethod
     def create_manual(db: Session, payload: schemas.ManualRemitoPayload):
         """
         Creates a Manual Remito (Rosa/Blanco) from Frontend data.
-        Serie 0015-00003001
+        Standardized to Serie 0016- (GOLD OMEGA Compliance)
         """
+        # 0. DUPLICATE GUARD (V5.9)
+        if payload.pedido_id:
+             existing = db.query(models.Remito).filter(models.Remito.pedido_id == payload.pedido_id).first()
+             if existing:
+                  raise ValueError(f"EL pedido #{payload.pedido_id} ya tiene el remito {existing.numero_legal} asociado.")
+
         # 1. RESOLVE CLIENT
         cliente = None
         if payload.cliente_id:
@@ -445,20 +515,21 @@ class RemitosService:
         if not cliente:
              raise ValueError(f"No se encontró/creó cliente. CUIT: {payload_cuit}, Nombre: {payload_name}, ID: {payload_id}")
 
-        # 2. CALCULATE NEXT 0015- NUMBER
-        last_remito = db.query(models.Remito).filter(models.Remito.numero_legal.like("0015-%")).order_by(models.Remito.numero_legal.desc()).first()
+        # 2. CALCULATE NEXT 0016- NUMBER (Shared Sequence for Manuals)
+        last_remito = db.query(models.Remito).filter(models.Remito.numero_legal.like("0016-%")).order_by(models.Remito.numero_legal.desc()).first()
         
         next_val = 3010
         if last_remito and last_remito.numero_legal:
              try:
-                  # Expected format: 0015-00003010
+                  # Expected format: 0016-00003010
                   current_str = last_remito.numero_legal.split("-")[-1]
                   next_val = int(current_str) + 1
              except:
                   next_val = 3010
         
         if next_val < 3010: next_val = 3010
-        numero_legal = f"0015-{str(next_val).zfill(8)}"
+        numero_legal = f"0016-{str(next_val).zfill(8)}"
+
 
         # 3. CREATE GHOST PEDIDO
         nuevo_pedido = Pedido(
@@ -673,11 +744,12 @@ class RemitosService:
             raise ValueError("Factura sin pedido táctico origen.")
 
         def _numero_legal_arca(factura, fallback_id):
-            if factura.punto_venta and factura.numero_comprobante:
-                pv = str(factura.punto_venta).zfill(4)
+            if factura.numero_comprobante is not None:
+                # [V5.2 OMEGA] Estandarización a 2 partes (Prefix 0016- para automático)
                 nc = str(factura.numero_comprobante).zfill(8)
-                return f"0016-{pv}-{nc}"
-            return f"0015-{str(fallback_id).zfill(8)}"
+                return f"0016-{nc}"
+            return f"0016-{str(fallback_id).zfill(8)}"
+
 
         def _vincular_factura_remito(db, factura, remito):
             vinculo = db.query(FacturaRemito).filter(

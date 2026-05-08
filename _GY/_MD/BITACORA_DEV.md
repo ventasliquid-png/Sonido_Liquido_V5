@@ -1,3 +1,28 @@
+
+## SESIÓN 800: ESTANDARIZACIÓN NUMERACIÓN 0016 + INGESTA V2 (OF)
+**Fecha:** 2026-05-08
+**Locación:** OF
+**Objetivo:** Estandarizar numeración de remitos (0016-XXXXXXXX), finalizar Módulo Ingesta V2, implementar Conserje V2 auditoría READ ONLY, fix em dash en remito_engine, y habilitar live preview de numeración.
+**Estado:** NOMINAL GOLD — Hash: 9e593e67
+
+### Hito 1: Estandarización Sabueso V5.7
+*   Consolidación del protocolo de numeración **0016-XXXXXXXX** en todos los flujos. Eliminación de regresiones a la serie 0015-.
+*   `backend/remitos/pdf_parser.py`: Mejora en extracción de Punto de Venta y Número de Comprobante (insensible a espacios/guiones).
+*   `backend/remitos/service.py`: Lógica de resolución jerárquica de `numero_legal` priorizando factura real sobre Pedido ID.
+
+### Hito 2: Módulo Ingesta V2 + Conserje READ ONLY
+*   Finalización de flujo `FacturasRaw` -> `FacturasProcesadas`.
+*   Implementación de Conserje V2: motor de auditoría `READ ONLY` con scoring de domicilios y validación de identidades sellado por Nike Arq 5.5.
+*   Protocolo Bit 22: Establecimiento de `PRE_MODULO_FACTURACION` (Flag 4227083) para vinculación fiscal espejo.
+
+### Hito 3: Fixes UI/UX y Motor de PDF
+*   `frontend/src/views/Pedidos/IngestaFacturaView.vue`: Habilitación de Live Preview del número de remito resultante para evitar errores de carga.
+*   `remito_engine.py`: Fix em dash en header/footer (líneas 74 y 167) para asegurar estética doctrinal.
+
+### Hito 4: Saneamiento y Cierre OMEGA 2.2
+*   Purgado intencional de registros de prueba (LABME, Pedido 32) en base D.
+*   Ejecución de Protocolo OMEGA completo con PIN 1974.
+
 ## SESIÓN 799: GENOMA FACTURAS + CONSERJE DUPLICADOS + MANUALES (CA)
 **Fecha:** 2026-05-08
 **Locación:** CA

@@ -1,3 +1,12 @@
+
+# CAJA NEGRA: Estandarización Numeración 0016 + Ingesta V2 (2026-05-08)
+
+Sesión OF 2026-05-08 (800). Módulo Ingesta V2 completo (FacturasRaw/Procesadas). Conserje v2 READ ONLY sellado por Nike. Factura Espejo Bit 22 (PRE_MODULO_FACTURACION = 4227083). Sabueso V5.7: estandarización 0016-XXXXXXXX en remitos (pdf_parser.py robustecido). Live preview numeración en UI Ingesta. Fix em dash en remito_engine.py (L74, L167). Purgado de LABME y Pedido 32. OMEGA V2.2 ejecutado (PIN 1974). Genoma actualizado: 851.
+
+**Agente:** Antigravity (Gy V5) — Hash: 9e593e67
+
+---
+
 # CAJA NEGRA: Genoma Facturas + Conserje Duplicados CA (2026-05-08)
 
 Sesión CA 2026-05-08 (799). `backend/facturacion/constants.py` (nuevo): clase `FacturaFlags` con mapa completo bits 0-21 de `flags_estado` en tabla facturas, sellado Nike Arq 5.5. Bits: EXISTENCE(1), HAS_ACTIVITY(2), HAS_REMITO(4), ACTIVE(8), V15_STRUCT(1024), PASADO_A_PEDIDO(32768), EN_CUARENTENA(65536), TIENE_NC(131072), TIENE_ND(262144), ES_NC(524288), ES_ND(1048576), AUDITADA(2097152). `models.py`: `notas_auditoria = Column(String, nullable=True)` en Factura — texto libre para observaciones de auditoría, complementa bit 21. Migración 029 ejecutada (`ALTER TABLE facturas ADD COLUMN notas_auditoria VARCHAR`, idempotente, registrada en `_migraciones_aplicadas`). Conserje en `POST /remitos/ingesta-pdf`: guard pre-proceso consulta `facturas` por `punto_venta + numero_comprobante` → HTTP 409 `FACTURA_DUPLICADA` con `factura_id` si existe. Bug G: modal advertencia pedidos duplicados (mismo cliente + fecha + ítems similares) — operador decide continuar o cancelar. Canario D: NOMINAL GOLD — flags=13.
