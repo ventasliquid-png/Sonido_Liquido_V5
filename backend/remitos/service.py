@@ -314,6 +314,68 @@ class RemitosService:
             db.add(cliente)
             print(f"Vanguard Canon: Cliente {cliente.razon_social} evolucionó a Flag {mutation_flags} (Nivel 13)")
 
+        # --- [MODO ESPEJO V5.5] ---
+        # Si hay remito y datos de factura, cerramos el loop fiscal (Bit 22 transitorio)
+        if remito and payload.factura.numero:
+            from backend.facturacion.models import Factura, FacturaItem, FacturaRemito
+            
+            # Flags: 4227083 (EXISTENCE + HAS_ACTIVITY + ACTIVE + PASADO_A_PEDIDO + PRE_MODULO_FACTURACION)
+            # Semántica sellada en Sesión 800-OF
+            mirror_flags = 4227083
+            
+            # Extraer punto venta y numero (Formato XXXX-YYYYYYYY)
+            pv = 0
+            nc = 0
+            try:
+                parts = payload.factura.numero.split("-")
+                if len(parts) == 2:
+                    pv = int(parts[0])
+                    nc = int(parts[1])
+            except: pass
+
+            # Determinar tipo comprobante preliminar
+            cond_iva = (payload.cliente.condicion_iva or "").upper()
+            tipo = "FACTURA_B"
+            if "INSCRIPTO" in cond_iva: tipo = "FACTURA_A"
+            elif "MONOTRIBUTO" in cond_iva: tipo = "FACTURA_C"
+
+            # Crear Factura Espejo
+            factura_mirror = Factura(
+                cliente_id=cliente.id,
+                pedido_id=nuevo_pedido.id,
+                tipo_comprobante=tipo,
+                estado="BORRADOR", 
+                punto_venta=pv,
+                numero_comprobante=nc,
+                fecha_emision=datetime.now().date(),
+                total=payload.valor_declarado or 0.0,
+                cae=payload.factura.cae,
+                cae_vencimiento=vto_cae_date,
+                flags_estado=mirror_flags,
+                notas_auditoria="GENERADA POR MODO ESPEJO - INGESTA V2"
+            )
+            db.add(factura_mirror)
+            db.flush()
+            
+            # Vincular N:M (Factura <-> Remito)
+            db.add(FacturaRemito(
+                factura_id=factura_mirror.id,
+                remito_id=remito.id,
+                flags_estado=1 # EXISTENCE
+            ))
+            
+            # Ítems (Copia Fiel del PDF/Conserje)
+            for it in payload.items:
+                db.add(FacturaItem(
+                    factura_id=factura_mirror.id,
+                    descripcion=it.descripcion,
+                    cantidad=it.cantidad,
+                    precio_unitario_neto=it.precio_unitario,
+                    alicuota_iva=getattr(it, 'alicuota_iva', 21.0),
+                    subtotal_neto=getattr(it, 'subtotal', 0.0)
+                ))
+            
+            print(f"[MODO ESPEJO] Factura {payload.factura.numero} creada y vinculada con flag {mirror_flags}.")
 
         db.commit()
         db.refresh(remito)

@@ -89,9 +89,17 @@
                                  />
                                  <p class="text-[10px] text-blue-500/50 font-mono italic mt-1">Soberanía Total: Edite si el OCR falló.</p>
                             </div>
-                            <div class="text-right">
+                            <div class="text-right flex flex-col items-end gap-2">
                                 <div class="inline-flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/20 text-xs font-bold uppercase">
-                                    <i class="fas fa-check-circle"></i> Validado
+                                    <i class="fas" :class="auditLog?.confidence >= 80 ? 'fa-check-circle' : 'fa-info-circle'"></i> 
+                                    {{ auditLog?.confidence >= 80 ? 'Validado' : 'Revisión Sugerida' }}
+                                </div>
+                                <div v-if="auditLog" class="text-[10px] font-mono flex items-center gap-2">
+                                    <span class="text-slate-500 uppercase">Confianza Conserje:</span>
+                                    <span :class="auditLog.confidence >= 80 ? 'text-emerald-400' : 'text-amber-400'">{{ auditLog.confidence }}%</span>
+                                    <div class="w-16 h-1 bg-slate-800 rounded-full overflow-hidden">
+                                        <div class="h-full transition-all duration-1000" :class="auditLog.confidence >= 80 ? 'bg-emerald-500' : 'bg-amber-500'" :style="{width: auditLog.confidence + '%'}"></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -404,6 +412,7 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import remitosService from '@/services/remitos';
+import ingestaService from '@/services/ingesta';
 import { useNotificationStore } from '@/stores/notification';
 import { useMaestrosStore } from '@/stores/maestros';
 import { useClientesStore } from '@/stores/clientes';
@@ -430,6 +439,8 @@ const selectedTransportId = ref(null);
 const selectedAddressId = ref(null);
 const bultos = ref(1);
 const valor_declarado = ref(0.0);
+const auditLog = ref(null);
+const currentRawId = ref(null);
 const addressAmbiguity = ref(false);
 const manualAddressChange = ref(false);
 
@@ -483,31 +494,37 @@ const processFile = async (file) => {
         const formData = new FormData();
         formData.append('file', file);
         
-        const res = await remitosService.uploadInvoice(formData);
+        // [V2] Upload Raw
+        const uploadRes = await ingestaService.uploadRaw(formData);
+        const rawId = uploadRes.data.id;
+        currentRawId.value = rawId;
+
+        // [V2] Get Preview & Audit
+        const previewRes = await ingestaService.getPreview(rawId);
+        const previewData = previewRes.data;
         
-        if (res.data && res.data.success) {
-            parsedData.value = res.data.data;
-            notification.add('Factura analizada con éxito', 'success');
-            
-            // Auto-load client details if matched in DB
-            if (parsedData.value.cliente?.id) {
-                // [V5.8] Use addresses returned by the API during ingestion to avoid Round-trip delay
-                if (parsedData.value.cliente.domicilios_disponibles?.length > 0) {
-                    clientAddresses.value = parsedData.value.cliente.domicilios_disponibles;
-                    autoSelectAddress();
-                } else {
-                    await loadClientDetails(parsedData.value.cliente.id);
-                }
+        parsedData.value = previewData.parsed_data;
+        auditLog.value = previewData.audit_log;
+        
+        notification.add('Factura analizada por Conserje V2', 'success');
+        
+        // Auto-load client details and scoring
+        if (auditLog.value?.client_resolution?.id) {
+            await loadClientDetails(auditLog.value.client_resolution.id);
+            // Overwrite suggested addresses with Conserje scoring
+            if (auditLog.value.domicilios_scoring?.length > 0) {
+                clientAddresses.value = clientAddresses.value.map(d => {
+                    const audit = auditLog.value.domicilios_scoring.find(as => as.id === d.id);
+                    return audit ? { ...d, is_suggested: audit.is_suggested, score: audit.score } : d;
+                });
+                autoSelectAddress();
             }
-        } else {
-            const errorMsg = res.data?.error || 'El servidor no pudo interpretar el archivo.';
-            throw new Error(errorMsg);
         }
 
     } catch (e) {
         console.error(e);
         error.value = e.message;
-        notification.add('Error al procesar factura', 'error');
+        notification.add('Error en Ingesta V2: ' + e.message, 'error');
     } finally {
         loading.value = false;
     }
@@ -673,19 +690,24 @@ const confirmIngesta = async () => {
             nuevo_domicilio: selectedAddressId.value === 'ADD_NEW' ? newAddress.value : null
         };
 
-        // Si hay domicilio seleccionado de la lista
         if (selectedAddressId.value && selectedAddressId.value !== 'ADD_NEW') {
             payload.domicilio_id = selectedAddressId.value;
         }
 
-        const res = await remitosService.confirmIngesta(payload);
+        // [V2] Approve via IngestaService
+        const res = await ingestaService.approve(currentRawId.value, payload);
         
         if (res.data && res.data.id) {
-            notification.add('Remito generado con éxito en Base de Datos', 'success');
-            // [GY-FIX] Ya no mostramos la Vista Previa de Vue, sino que abrimos
-            // el PDF Oficial generado por el Motor Python FPDF (Estilo RAR)
-            const pdfUrl = `/remitos/${res.data.id}/pdf`;
-            window.open(pdfUrl, '_blank');
+            notification.add('Ingesta Procesada y Sellada (Bit 22)', 'success');
+            
+            // In V2, we might need to get the Remito ID from the procesada response
+            // For now, let's assume approve returns {id: proc_id, remito_id: rem_id}
+            // I'll update the backend service to return remito_id.
+            const remitoId = res.data.remito_id;
+            if (remitoId) {
+                const pdfUrl = `/remitos/${remitoId}/pdf`;
+                window.open(pdfUrl, '_blank');
+            }
             
             reset();
         }

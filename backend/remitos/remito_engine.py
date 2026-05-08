@@ -55,7 +55,7 @@ class PDFRemito(FPDF):
             self.set_xy(145, 25) 
             self.set_font('Arial', 'B', 16)
             self.set_text_color(COLOR_R, COLOR_G, COLOR_B)
-            self.cell(50, 10, self.remito_numero, 0, 0, 'C')
+            self.cell(50, 10, str(self.remito_numero).replace("—", "-"), 0, 0, 'C')
 
             # [V5] Pseudo-Remito Logic (Factura Vinculada)
             if self.factura_vinculada:
