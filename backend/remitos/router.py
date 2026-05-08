@@ -149,7 +149,34 @@ async def ingest_invoice_pdf(file: UploadFile = File(...), db: Session = Depends
         raise HTTPException(status_code=400, detail="File must be a PDF")
     
     result = await process_pdf_ingestion(file)
-    
+
+    # [CONSERJE] Factura duplicada — verificar antes de devolver al frontend
+    if result.get("success") and result.get("data"):
+        factura_numero = result["data"].get("factura", {}).get("numero")
+        if factura_numero and "-" in factura_numero:
+            from backend.facturacion.models import Factura
+            partes = factura_numero.split("-")
+            if len(partes) == 2:
+                try:
+                    pv, nc = int(partes[0]), int(partes[1])
+                    factura_existente = db.query(Factura).filter(
+                        Factura.punto_venta == pv,
+                        Factura.numero_comprobante == nc
+                    ).first()
+                    if factura_existente:
+                        raise HTTPException(
+                            status_code=409,
+                            detail={
+                                "codigo": "FACTURA_DUPLICADA",
+                                "mensaje": f"La factura {factura_numero} ya existe en el sistema.",
+                                "factura_id": str(factura_existente.id),
+                                "pedido_id": factura_existente.pedido_id,
+                                "estado": factura_existente.estado
+                            }
+                        )
+                except ValueError:
+                    pass  # número no parseable, ignorar
+
     # [V5] ABM Workflow: Verify Client Status in DB
     if result.get("success") and result.get("data"):
         cuit = result["data"].get("cliente", {}).get("cuit")

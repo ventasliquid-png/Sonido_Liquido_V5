@@ -79,6 +79,7 @@ class Factura(Base):
 
     # Archivo original PDF
     pdf_path = Column(String, nullable=True)
+    notas_auditoria = Column(String, nullable=True)
 
     # Genoma 64 bits (Nike Arq 5.5 - Nivel GOLD)
     flags_estado = Column(BigInteger, nullable=False, default=3)
