@@ -7,8 +7,12 @@ class FacturaFlags:
     HAS_ACTIVITY    = 1 << 1   # 2 — virgen(1)/tocado(0)
     HAS_REMITO      = 1 << 2   # 4
     ACTIVE          = 1 << 3   # 8 — no anulada
-    # Bit 10 = V15_STRUCT (reservado global)
-
+    
+    # [V5.9 GOLD] Nuevos Bits Sellados
+    CORRECCION_OCR      = 1 << 9   # 512
+    V15_STRUCT          = 1 << 10  # 1024 (Reservado)
+    DISCREPANCIA_FISCAL = 1 << 11  # 2048
+    
     # Bits 15-21: Lógica de negocio V6
     PASADO_A_PEDIDO = 1 << 15  # 32768
     EN_CUARENTENA   = 1 << 16  # 65536

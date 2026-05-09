@@ -44,6 +44,16 @@ def approve_ingesta(raw_id: uuid.UUID, edited_data: Dict[str, Any], db: Session 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/raw/{raw_id}/quarantine")
+def quarantine_ingesta(raw_id: uuid.UUID, db: Session = Depends(get_db)):
+    try:
+        raw = IngestaService.quarantine(db, raw_id)
+        return {"id": raw.id, "status": raw.audit_status, "flags": raw.flags_estado}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/procesadas/{proc_id}")
 def get_procesada(proc_id: uuid.UUID, db: Session = Depends(get_db)):
     procesada = IngestaService.get_procesada(db, proc_id)

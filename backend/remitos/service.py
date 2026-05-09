@@ -266,7 +266,6 @@ class RemitosService:
             pedido_items = db.query(PedidoItem).filter(PedidoItem.pedido_id == nuevo_pedido.id).all()
             goto_remito = True
 
-
         if not goto_remito:
             # [ARLEQUÍN V2 — DOCTRINA SOLO LECTURA]
             # Una factura sin pedido vinculado no puede procesarse.
@@ -368,7 +367,7 @@ class RemitosService:
             # Flags: 4227083 (EXISTENCE + HAS_ACTIVITY + ACTIVE + PASADO_A_PEDIDO + PRE_MODULO_FACTURACION)
             # Semántica sellada en Sesión 800-OF
             mirror_flags = 4227083
-            
+
             # Extraer punto venta y numero (Formato XXXX-YYYYYYYY)
             pv = 0
             nc = 0
@@ -411,17 +410,27 @@ class RemitosService:
             ))
             
             # Ítems (Copia Fiel del PDF/Conserje)
+            total_items_mirror = 0.0
             for it in payload.items:
+                sub = it.subtotal or (it.cantidad * (it.precio_unitario or 0.0))
                 db.add(FacturaItem(
                     factura_id=factura_mirror.id,
                     descripcion=it.descripcion,
                     cantidad=it.cantidad,
                     precio_unitario_neto=it.precio_unitario,
                     alicuota_iva=getattr(it, 'alicuota_iva', 21.0),
-                    subtotal_neto=getattr(it, 'subtotal', 0.0)
+                    subtotal_neto=sub
                 ))
+                total_items_mirror += sub
             
-            print(f"[MODO ESPEJO] Factura {payload.factura.numero} creada y vinculada con flag {mirror_flags}.")
+            # Sanación de Totales: Si el total es 0, usamos el acumulado de ítems
+            if not factura_mirror.total or factura_mirror.total == 0:
+                factura_mirror.total = total_items_mirror
+                # Heurística simple para neto gravado si no hay desglose
+                factura_mirror.neto_gravado = total_items_mirror / 1.21 
+                factura_mirror.iva_21 = total_items_mirror - factura_mirror.neto_gravado
+            
+            print(f"[MODO ESPEJO] Factura {payload.factura.numero} creada y vinculada con flag {mirror_flags}. Total: {factura_mirror.total}")
 
         try:
             db.commit()

@@ -12,5 +12,8 @@ class PedidoFlags(IntFlag):
     # Bit 6: Operador confirmó creación a pesar de advertencia de duplicado
     PEDIDO_DUPLICATE_CONFIRMED = 64  # 2^6
 
+    # Bit 9: Al menos una factura vinculada tuvo corrección post-ingesta
+    INGESTA_CON_CORRECCION = 512 # 2^9
+
     # Bit 10: Obligar a salir del flujo fiscal (No informar a ARCA)
     NO_FISCAL_FORCE = 1024 # 2^10

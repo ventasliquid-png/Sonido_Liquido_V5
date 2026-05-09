@@ -112,3 +112,22 @@ class IngestaService:
     @staticmethod
     def get_procesada(db: Session, proc_id: uuid.UUID) -> FacturasProcesadas:
         return db.query(FacturasProcesadas).filter(FacturasProcesadas.id == proc_id).first()
+
+    @staticmethod
+    def quarantine(db: Session, raw_id: uuid.UUID) -> FacturasRaw:
+        """
+        Pone una factura RAW en cuarentena (STOP Doctrinal).
+        Enciende Bit 2 (4) en flags_estado.
+        """
+        raw = db.query(FacturasRaw).filter(FacturasRaw.id == raw_id).first()
+        if not raw:
+            raise ValueError("Factura Raw no encontrada")
+            
+        from backend.ingesta.constants import IngestaFlags
+        raw.audit_status = "CUARENTENA"
+        raw.flags_estado |= IngestaFlags.RAW_EN_CUARENTENA
+        
+        db.add(raw)
+        db.commit()
+        db.refresh(raw)
+        return raw
