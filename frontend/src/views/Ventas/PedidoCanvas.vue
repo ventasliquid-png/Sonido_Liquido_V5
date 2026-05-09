@@ -587,15 +587,25 @@
                          <div class="flex items-baseline gap-2 justify-end mb-2">
                               <span class="text-sm text-gray-500 font-bold">ARS</span>
                               <span class="font-outfit text-3xl font-bold text-white tracking-tight">$ {{ totalFinal.toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</span>
-                         </div>
-                         <button @click="savePedido" 
-                                 :disabled="isSaving || items.length === 0 || !clienteSeleccionado || !isOCValid"
-                                 class="bg-emerald-500 hover:bg-emerald-400 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 uppercase tracking-wider text-sm">
-                            <i v-if="isSaving" class="fas fa-spinner fa-spin"></i>
-                            <i v-else class="fas fa-save"></i>
-                            {{ isSaving ? 'Guardando...' : 'Guardar Pedido' }}
-                         </button>
-                    </div>
+                                                 <div class="flex gap-2">
+                             <button @click="savePedido(false)" 
+                                     :disabled="isSaving || items.length === 0 || !clienteSeleccionado || !isOCValid"
+                                     class="bg-emerald-500 hover:bg-emerald-400 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 uppercase tracking-wider text-sm">
+                                <i v-if="isSaving" class="fas fa-spinner fa-spin"></i>
+                                <i v-else class="fas fa-save"></i>
+                                {{ isSaving ? 'Guardando...' : 'Guardar Pedido' }}
+                             </button>
+
+                             <button @click="savePedido(true)" 
+                                     :disabled="isSaving || items.length === 0 || !clienteSeleccionado || !isOCValid"
+                                     class="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:shadow-blue-500/20 transition-all flex items-center justify-center gap-2 uppercase tracking-wider text-xs"
+                                     title="Guarda el pedido y abre el remito para imprimir">
+                                <i v-if="isSaving" class="fas fa-spinner fa-spin"></i>
+                                <i v-else class="fas fa-print"></i>
+                                {{ isSaving ? 'Procesando...' : 'Guardar e Imprimir' }}
+                             </button>
+                          </div>
+                     </div>          </div>
                 </div>
 
             </footer>
@@ -742,8 +752,8 @@ onMounted(async () => {
                 console.warn('[PedidoCanvas] ingesta.items no es un array o está vacío:', ingesta.items);
             }
 
-            // Clear ingesta data from store after use
-            pedidosStore.clearIngestaData();
+            // [V5.7] Se posterga la limpieza hasta el guardado para permitir el sellado de factura
+            // pedidosStore.clearIngestaData();
         }
     }
 
@@ -797,7 +807,7 @@ const loadPedido = async (id) => {
 
         // Hydrate Header
         nroPedido.value = p.id;
-        fechaPedido.value = p.fecha ? p.fecha.split('T')[0] : new Date().toISOString().split('T')[0];
+        fechaPedido.value = p.fecha ? p.fecha.split('T')[0] : getLocalDate();
         notas.value = p.nota || '';
         nroOC.value = p.oc || '';
         omitirOC.value = !!p.flags_estado && (p.flags_estado & 64) ? false : false; // Placeholder if we had oc_override in DB, but for now just load OC
@@ -860,8 +870,16 @@ const showNotes = ref(false); // Toggle for Notes Widget
 // --- STATE: PEDIDO ---
 // --- STATE: PEDIDO ---
 // --- STATE: PEDIDO ---
+const getLocalDate = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 const nroPedido = ref('---');
-const fechaPedido = ref(new Date().toISOString().split('T')[0]);
+const fechaPedido = ref(getLocalDate());
 const fechaEntrega = ref('');
 const notas = ref('');
 const expandedRows = ref(new Set());
@@ -1720,7 +1738,7 @@ const resetPedido = async () => {
     
     // Reset State
     nroPedido.value = '---';
-    fechaPedido.value = new Date().toISOString().split('T')[0];
+    fechaPedido.value = getLocalDate();
     clienteSeleccionado.value = null;
     busquedaCliente.value = '';
     items.value = [];
@@ -1745,15 +1763,16 @@ const resetPedido = async () => {
 
 const isSaving = ref(false);
 
-const savePedido = async () => {
+const savePedido = async (andPrint = false) => {
     if (!clienteSeleccionado.value) return notificationStore.add('Seleccione un cliente.', 'error');
     if (items.value.length === 0) return notificationStore.add('Agregue al menos un producto.', 'error');
 
+    const shouldPrint = andPrint || pedidosStore.autoPrintNext;
     isSaving.value = true;
     try {
         const payload = {
             cliente_id: clienteSeleccionado.value.id || clienteSeleccionado.value._id,
-            fecha: new Date(fechaPedido.value).toISOString(),
+            fecha: fechaPedido.value, // Envío directo en formato YYYY-MM-DD (Local)
             items: items.value.map(i => ({
                 producto_id: i.producto_id || i.producto_obj?.id,
                 cantidad: Number(i.cantidad),
@@ -1783,7 +1802,7 @@ const savePedido = async () => {
             const dupCheck = await api.get('/pedidos/check-duplicate', {
                 params: {
                     cliente_id: clienteSeleccionado.value.id || clienteSeleccionado.value._id,
-                    fecha: new Date(fechaPedido.value).toISOString(),
+                    fecha: fechaPedido.value,
                     total: totalEstimado,
                     oc: nroOC.value.trim() || ''
                 }
@@ -1816,27 +1835,53 @@ const savePedido = async () => {
 
             const facturaRes = await api.post(`/facturacion/borrador/pedido/${pedidoId}`);
             const facturaId = facturaRes.data.id;
+            console.log('[PedidoCanvas] Factura borrador creada:', facturaId);
 
-            if (pedidosStore.ingestaData?.factura?.numero) {
-                const partes = pedidosStore.ingestaData.factura.numero.split('-');
-                if (partes.length === 2) {
-                    await api.patch(`/facturacion/${facturaId}/sellar`, {
-                        punto_venta: parseInt(partes[0]),
-                        numero_comprobante: parseInt(partes[1]),
-                        cae: pedidosStore.ingestaData.factura.cae || null,
-                        cae_vencimiento: pedidosStore.ingestaData.factura.vto_cae || null
-                    });
+            if (pedidosStore.ingestaData) {
+                console.log('[PedidoCanvas] Detectada ingestaData en store:', pedidosStore.ingestaData);
+                const numeroFactura = pedidosStore.ingestaData.factura?.numero;
+                
+                if (numeroFactura) {
+                    console.log('[PedidoCanvas] Intentando sellar factura con número:', numeroFactura);
+                    // Soportar "00001-00002529" o "00001 - 00002529"
+                    const partes = numeroFactura.split(/[\s\-]+/);
+                    if (partes.length >= 2) {
+                        const payloadSellar = {
+                            punto_venta: parseInt(partes[0]),
+                            numero_comprobante: parseInt(partes[1]),
+                            cae: pedidosStore.ingestaData.factura.cae || null,
+                            cae_vencimiento: pedidosStore.ingestaData.factura.vto_cae || null
+                        };
+                        console.log('[PedidoCanvas] Enviando PATCH sellar:', payloadSellar);
+                        await api.patch(`/facturacion/${facturaId}/sellar`, payloadSellar);
+                        console.log('[PedidoCanvas] Factura sellada con éxito.');
+                    } else {
+                        console.warn('[PedidoCanvas] Formato de número de factura no reconocido para sellar:', numeroFactura);
+                    }
+                } else {
+                    console.warn('[PedidoCanvas] ingestaData existe pero no tiene factura.numero');
                 }
+            } else {
+                console.log('[PedidoCanvas] No hay ingestaData en el store. Se omite sellado automático.');
             }
 
-            await api.post(`/remitos/puente/desde_factura/${facturaId}`);
-            notificationStore.add('Pedido guardado. Factura y remito generados.', 'success');
+            console.log('[PedidoCanvas] Iniciando creación de remito puente para factura:', facturaId);
+            const remitoRes = await api.post(`/remitos/puente/desde_factura/${facturaId}`);
+            const remitoId = remitoRes.data.id;
+            console.log('[PedidoCanvas] Remito puente creado con éxito:', remitoId);
+            
+            if (shouldPrint && remitoId) {
+                const pdfUrl = `${api.defaults.baseURL}/remitos/${remitoId}/pdf`;
+                window.open(pdfUrl, '_blank');
+            }
+            
+            // Limpiar flag de impresión automática e ingestaData
+            pedidosStore.setAutoPrint(false);
+            pedidosStore.clearIngestaData();
         }
         
         // Reset or Redirect
         setTimeout(() => {
-             // resetPedido(); 
-             // Or redirect to list
              router.push({ name: 'PedidoList' });
         }, 1000);
 

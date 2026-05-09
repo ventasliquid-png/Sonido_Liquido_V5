@@ -284,31 +284,16 @@ class RemitosService:
             except:
                 pass
         
-        # [V5] Mirror Numbering: Final Verification
+        # [V5] Mirror Numbering: Strict AFIP Compliance (Doctrina)
         if not numero_legal:
-            # Si llegamos aquí sin numero_legal, el OCR falló y el usuario no lo corrigió.
-            # Intentamos parsear de nuevo el payload por las dudas o usamos el Pedido ID.
-            print(f"[DEBUG INGESTA] Numero Legal was empty at line 275. Attempting re-resolution from '{payload.factura.numero}'")
-            try:
-                # Reuse logic from top
-                temp_invoice = (payload.factura.numero or "").strip()
-                if "-" in temp_invoice:
-                    parts = temp_invoice.split("-")
-                    numero_legal = f"0016-{str(parts[1]).strip().zfill(8)}"
-                elif " " in temp_invoice:
-                    parts = temp_invoice.split()
-                    numero_legal = f"0016-{str(parts[-1]).strip().zfill(8)}"
-                elif temp_invoice and temp_invoice.isdigit():
-                    numero_legal = f"0016-{temp_invoice.zfill(8)}"
-                else:
-                    # FALLBACK ABSOLUTO (Avoid this if possible)
-                    numero_legal = f"0016-{str(nuevo_pedido.id).zfill(8)}"
-                    print(f"[DEBUG INGESTA] Re-resolution Fallback to Pedido ID: {numero_legal}")
-            except:
-                numero_legal = f"0016-{str(nuevo_pedido.id).zfill(8)}"
-                print(f"[DEBUG INGESTA] Re-resolution Fallback (Exception): {numero_legal}")
-        else:
-            print(f"[DEBUG INGESTA] Final Numero Legal kept from start: {numero_legal}")
+            # Si llegamos aquí sin numero_legal, el OCR falló y es un error crítico.
+            print(f"[DEBUG INGESTA] Numero Legal was empty. Raising explicit error.")
+            raise HTTPException(
+                status_code=400, 
+                detail="NUMERO_COMPROBANTE_REQUERIDO: No se pudo extraer el número de factura del PDF. Verifique el archivo."
+            )
+        
+        print(f"[DEBUG INGESTA] Final Numero Legal from Parser: {numero_legal}")
 
         if not domicilio:
             domicilio = db.query(Domicilio).first()
@@ -743,12 +728,13 @@ class RemitosService:
         if not pedido:
             raise ValueError("Factura sin pedido táctico origen.")
 
-        def _numero_legal_arca(factura, fallback_id):
+        def _numero_legal_arca(factura):
             if factura.numero_comprobante is not None:
                 # [V5.2 OMEGA] Estandarización a 2 partes (Prefix 0016- para automático)
                 nc = str(factura.numero_comprobante).zfill(8)
                 return f"0016-{nc}"
-            return f"0016-{str(fallback_id).zfill(8)}"
+            
+            raise ValueError("NUMERO_COMPROBANTE_REQUERIDO: La factura fiscal no tiene número asignado.")
 
 
         def _vincular_factura_remito(db, factura, remito):
@@ -769,7 +755,7 @@ class RemitosService:
             remito_existente.cae = factura.cae
             remito_existente.vto_cae = factura.cae_vencimiento
             if not remito_existente.numero_legal or "0015" in remito_existente.numero_legal:
-                remito_existente.numero_legal = _numero_legal_arca(factura, remito_existente.id)
+                remito_existente.numero_legal = _numero_legal_arca(factura)
             db.add(remito_existente)
             _vincular_factura_remito(db, factura, remito_existente)
             db.commit()
@@ -795,7 +781,7 @@ class RemitosService:
             aprobado_para_despacho=True,
             cae=factura.cae,
             vto_cae=factura.cae_vencimiento,
-            numero_legal=_numero_legal_arca(factura, pedido.id),
+            numero_legal=_numero_legal_arca(factura),
             bultos=int(pedido.bultos) if hasattr(pedido, 'bultos') and pedido.bultos else 1,
             valor_declarado=factura.total or 0.0
         )

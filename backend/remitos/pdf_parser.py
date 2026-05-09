@@ -50,6 +50,17 @@ def _parse_ar_float(s: str) -> float:
         return float(s.replace('.', '').replace(',', '.'))
     return float(s)
 
+def _iso_date(val: str) -> Optional[str]:
+    """Convierte DD/MM/YYYY a YYYY-MM-DD para Pydantic"""
+    if not val or "/" not in val: return val
+    try:
+        parts = val.split('/')
+        if len(parts) == 3:
+            return f"{parts[2]}-{parts[1]}-{parts[0]}"
+    except:
+        pass
+    return val
+
 def parse_invoice_data(text: str, words_data: list = None) -> dict:
     """
     Parses raw text and word data using Sabueso Zonal Heuristics (V5.5).
@@ -70,7 +81,7 @@ def parse_invoice_data(text: str, words_data: list = None) -> dict:
 
     # 1. FACTURA & CAE (Protocolo Sabueso Oro - RAR Port)
     # [V5.7 Robustness] Handle both: "PV: XXXX Comp: YYYY" AND "PV: Comp: XXXX YYYY"
-    match_comp = re.search(r'Punto.*?Comp.*?Nro[.\s:|]*\s*(\d{4,5})\s+(\d{8})', text, re.IGNORECASE)
+    match_comp = re.search(r'Punto.*?Comp.*?Nro[.\s:|]*\s*(\d{4,5})[\s\-]+(\d{8})', text, re.IGNORECASE)
     if not match_comp:
         match_comp = re.search(r'Punto\s*de\s*Ventas?[^\d]*(\d{4,5}).*?Comp.*?(?:Nro)?[^\d]*(\d{8})', text, re.IGNORECASE)
     
@@ -88,7 +99,8 @@ def parse_invoice_data(text: str, words_data: list = None) -> dict:
     if match_cae: data["factura"]["cae"] = match_cae.group(1)
 
     match_vto = re.search(r'(?:Vto|Vencimiento).*?(\d{2}/\d{2}/\d{4})', text, re.IGNORECASE)
-    if match_vto: data["factura"]["vto_cae"] = match_vto.group(1)
+    if match_vto: 
+        data["factura"]["vto_cae"] = _iso_date(match_vto.group(1))
 
     match_neto = re.search(r'Importe Neto Gravado:\s*\$?\s*([\d\.,]+)', text, re.IGNORECASE)
     if match_neto: data["factura"]["total_neto"] = _parse_ar_float(match_neto.group(1))

@@ -1,42 +1,35 @@
-# Informe de Caja Negra: Sesin 2026-04-21 (Reparacin Sistema P)
+# Informe de Caja Negra: Sesión 2026-05-08 (Estabilización Ingesta V5.7.1)
 
 ## Resumen Ejecutivo
-Intervencin de emergencia en el entorno de Produccin (V5-LS) para restaurar la soberana del sistema de Rubros. Se ha identificado y resuelto un descalce de ADN (Cdigo viejo vs DB Nueva) que bloqueaba el crecimiento del catlogo.
+Finalización del puente operativo entre Ingesta de Facturas y Generación de Remitos. Se ha blindado el sistema contra desvíos legales en la numeración y se han resuelto los cuellos de botella de formato (fechas) y persistencia (store).
 
 ## Cronología de Acciones Técnicas
 
-### 1. Diagnóstico de Bloqueo
-- Identificacin de **Error 500** en el endpoint `POST /productos/rubros`.
-- Auditora forense de logs: Se detecta `TypeError: 'flags_estado' is an invalid keyword argument for Rubro`.
-- Confirmacin de paridad de DB: La base `V5_LS_MASTER.db` ya posea la columna, pero el modelo ORM en `current/backend` no.
+### 1. Aplicación de la Doctrina Numero Legal
+- Eliminación de numeración provisional en Serie 0016.
+- Vinculación estricta al número fiscal AFIP detectado por OCR.
+- Refactor de `backend/remitos/service.py` para normalizar la inyección de `numero_legal`.
 
-### 2. Sincronización de ADN (Hotfix P)
-- **Patch**: Modificacin de `backend/productos/models.py`. Inyeccin de `flags_estado = Column(BigInteger, default=0, nullable=False)`.
-- **Procedimiento**: Aplicado sobre la carpeta `current` para evitar downtime y asegurar persistencia inmediata.
+### 2. Resolución de Incompatibilidad Pydantic (Error 422)
+- Detección de colisión de tipos en el campo `cae_vencimiento`.
+- Parche en `pdf_parser.py`: Inyección de normalizador ISO para fechas DD/MM/YYYY.
 
-### 3. Auditoría de Precios ($0)
-- Verificacin de recuento de registros en `productos_costos`.
-- **Estatus**: Solo un 23% de los productos tienen costo de reposicin cargado.
-- **Validacin**: Se confirma que el Motor V5 opera correctamente devolviendo 0 (Strict Mode) ante la ausencia de cimientos de costo.
+### 3. Estabilización de la Capa de Persistencia (Vue/Pinia)
+- Corrección de la carrera de limpieza en `PedidoCanvas.vue`.
+- Aseguramiento de la disponibilidad de `ingestaData` durante todo el ciclo de vida del Alta de Pedido.
 
-### 4. Sincronización de Protocolos
-- Actualizacin de `execute_omega.py` en Produccin para elevar el umbral de peso permitido a **200 MiB**.
-- Sincronizacin de la Bit́cora de Desarrollo (`BITACORA_DEV.md`) y el briefing de Claude.
-
-### 5. Validación de Cierre
-- **Estatus de Bitmask**: Actualizado a **851**.
-- **Cierre**: Protocolo OMEGA ejecutado en ambos servicios bajo PIN 1974.
+### 4. Calibración de Reloj Local
+- Abandono de UTC en el sellado de fechas de pedidos para evitar saltos de día.
 
 ## Archivos Impactados
-- `c:/dev/V5-LS/current/backend/productos/models.py`
-- `c:/dev/V5-LS/scripts/execute_omega.py`
-- `BITACORA_DEV.md`
-- `CLAUDE.md`
-- `INFORMES_HISTORICOS/2026-04-21_REPARACION_SISTEMA_P_ADN.md`
+- `backend/remitos/pdf_parser.py` (Regex + ISO Dates)
+- `backend/remitos/service.py` (Doctrina Legal)
+- `frontend/src/stores/pedidos.js` (AutoPrint flags)
+- `frontend/src/views/Ventas/PedidoCanvas.vue` (Persistence + Local Date + Sellar logic)
+- `frontend/src/views/Pedidos/IngestaFacturaView.vue` (UI Integration)
 
 ## Firmas Digitales
 - **Protocolo**: OMEGA Certified.
 - **PIN**: 1974 Validated.
 - **Status**: NOMINAL GOLD.
-- **Push D**: `3221617b6554005f2324689b4693a5744abaee03`
-- **Push P**: `3caa3e21b9ce16b62b02968822ea18bcc002a7c1`
+- **Informe**: `INFORMES_HISTORICOS/2026-05-08_ESTABILIZACION_INGESTA_V5_7_1_OMEGA.md`

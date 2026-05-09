@@ -402,6 +402,17 @@
                         </div>
                     </button>
 
+                    <button
+                        @click="goToNewPedidoAndPrint"
+                        class="w-full p-4 bg-indigo-900/30 border border-indigo-500/50 hover:border-indigo-400 hover:bg-indigo-900/50 rounded-lg transition-all text-left flex items-start gap-3 mt-2"
+                    >
+                        <i class="fas fa-print text-indigo-400 mt-1"></i>
+                        <div>
+                            <p class="font-bold text-white">Alta Pedido Nuevo + Imprimir</p>
+                            <p class="text-xs text-indigo-200/60 mt-1">Crea el pedido y dispara impresión de remito al guardar</p>
+                        </div>
+                    </button>
+
                     <!-- Opción 3: Continuar sin pedido (Cuarentena) -->
                     <button
                         @click="retryInCuarentena"
@@ -847,6 +858,12 @@ const goToNewPedido = () => {
         pendingPedidos: pendingPedidos.value
     });
     router.push({ name: 'PedidoCanvas' });
+};
+
+const goToNewPedidoAndPrint = () => {
+    const pedidosStore = usePedidosStore();
+    pedidosStore.setAutoPrint(true);
+    goToNewPedido();
 };
 
 const retryInCuarentena = async () => {

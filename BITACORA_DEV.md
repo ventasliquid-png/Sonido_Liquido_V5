@@ -1,3 +1,15 @@
+# 2026-05-08 (Estabilización Ingesta V5.7.1 — Doctrina Numero Legal & AutoPrint)
+- **Estado**: **NOMINAL GOLD**.
+- **Hito Ingesta**: Implementación de la **Doctrina Numero Legal** estricta (Serie 0016 vinculada a factura fiscal).
+- **Bugs resueltos**:
+  1. **Regex Fail**: Soporte para facturas guionadas `00001-00002531` en `pdf_parser.py`.
+  2. **422 Unprocessable Entity**: Conversión automática de fechas de CAE (DD/MM/YYYY) a ISO (YYYY-MM-DD).
+  3. **Error de Persistencia**: Postergación de limpieza de `ingestaData` para asegurar el sellado de factura.
+  4. **Timezone ART vs ISO**: Implementación de `getLocalDate()` para evitar desfase de 3hs.
+- **UX**: Flujo "Alta Pedido + Imprimir" 100% funcional y sincronizado.
+- **Informe**: `INFORMES_HISTORICOS/2026-05-08_ESTABILIZACION_INGESTA_V5_7_1_OMEGA.md`
+- **Cierre**: Protocolo OMEGA ejecutado bajo PIN 1974.
+
 # 2026-05-06 (SESIÓN 797-OF: Bug A Resuelto + Bug Tracker V1 + DESPERTAR Fix)
 - **Estado**: **NOMINAL GOLD**.
 - **Hash D**: 78c35cf6

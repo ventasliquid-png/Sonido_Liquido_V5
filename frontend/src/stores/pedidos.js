@@ -10,7 +10,8 @@ export const usePedidosStore = defineStore('pedidos', {
         isLoading: false,
         pedidos: [], // List for Dashboard
         ingestaData: null, // Temporary data from factura ingesta
-        pending409Context: null // Preserved 409 modal state for back-navigation from PedidoCanvas
+        pending409Context: null, // Preserved 409 modal state for back-navigation from PedidoCanvas
+        autoPrintNext: false // Flag to trigger automatic printing in PedidoCanvas
     }),
 
     actions: {
@@ -189,6 +190,10 @@ export const usePedidosStore = defineStore('pedidos', {
 
         clear409Context() {
             this.pending409Context = null;
+        },
+
+        setAutoPrint(val) {
+            this.autoPrintNext = val;
         }
     }
 });
