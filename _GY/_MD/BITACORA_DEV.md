@@ -1,5 +1,30 @@
 
-## SESIÓN 800: ESTANDARIZACIÓN NUMERACIÓN 0016 + INGESTA V2 (OF)
+## SESIÓN 801: DESPLIEGUE TOMY + DIAGNÓSTICO D VS P (CA)
+**Fecha:** 2026-05-10
+**Locación:** CA
+**Objetivo:** Diagnóstico de paridad entre repositorios P y D, registro de deuda técnica en pilot_v5x.db, y creación de automatización ACTUALIZAR_V5.bat para instancia de Tomy.
+**Estado:** NOMINAL GOLD — PIN 1974
+
+### Hito 1: Diagnóstico de Repositorios (D vs P)
+*   Confirmación de bicefalía de repositorios: P (`v5-ls-Tom`) y D (`Sonido_Liquido_V5`) operan sobre remotos distintos.
+*   Hash P: `a7759c6` (OMEGA 796).
+*   Hash D: `8027b685` (OMEGA 800).
+*   Identificación de 10 commits pendientes de integración en P desde la rama principal de D.
+
+### Hito 2: Automatización de Despliegue
+*   Creación de `ACTUALIZAR_V5.bat` en la raíz para permitir updates autónomos via `git pull`.
+*   Validación de entorno Git y manejo de errores de red/conflictos.
+
+### Hito 3: Registro de Deuda Técnica
+*   Actualización de tabla `deuda_tecnica` en `pilot_v5x.db`.
+*   Inserción de 4 ítems: Deploy Tomy (Alta), Stock/Depósitos (Media), Precios PDF (Media), ABM Rubros (Baja).
+
+### Hito 4: Burocracia OMEGA
+*   Actualización de Caja Negra, Manuales e Informes Históricos.
+*   Sincronización de `SESION_ACTUAL.md` a Mayo 2026.
+
+---
+
 **Fecha:** 2026-05-08
 **Locación:** OF
 **Objetivo:** Estandarizar numeración de remitos (0016-XXXXXXXX), finalizar Módulo Ingesta V2, implementar Conserje V2 auditoría READ ONLY, fix em dash en remito_engine, y habilitar live preview de numeración.

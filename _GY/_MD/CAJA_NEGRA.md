@@ -1,4 +1,12 @@
 
+# CAJA NEGRA: Despliegue Tomy + Diagnóstico D vs P (2026-05-10)
+
+Sesión CA 2026-05-10 (801). Diagnóstico de bicefalía de repositorios confirmado: P (`v5-ls-Tom` @ `a7759c6`) y D (`Sonido_Liquido_V5` @ `8027b685`). Creación de `ACTUALIZAR_V5.bat` en raíz para automatización de updates Tomy. Registro de 4 ítems en `deuda_tecnica` de `pilot_v5x.db` (Deploy Tomy, Stock, Precios PDF, ABM Rubros). Protocolo OMEGA ejecutado con PIN 1974. Estado: NOMINAL GOLD.
+
+**Agente:** Antigravity (Gy V5) — PIN 1974
+
+---
+
 # CAJA NEGRA: Estandarización Numeración 0016 + Ingesta V2 (2026-05-08)
 
 Sesión OF 2026-05-08 (800). Módulo Ingesta V2 completo (FacturasRaw/Procesadas). Conserje v2 READ ONLY sellado por Nike. Factura Espejo Bit 22 (PRE_MODULO_FACTURACION = 4227083). Sabueso V5.7: estandarización 0016-XXXXXXXX en remitos (pdf_parser.py robustecido). Live preview numeración en UI Ingesta. Fix em dash en remito_engine.py (L74, L167). Purgado de LABME y Pedido 32. OMEGA V2.2 ejecutado (PIN 1974). Genoma actualizado: 851.

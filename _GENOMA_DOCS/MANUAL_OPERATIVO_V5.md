@@ -637,3 +637,27 @@ El caso típico es cuando una factura fue procesada en una sesión anterior y el
 ### Código técnico del evento
 
 El sistema devuelve código `FACTURA_DUPLICADA` (HTTP 409). Este código es diferente a otros errores de conflicto (como pedidos duplicados) — cada uno tiene su mensaje y navegación específicos.
+
+---
+
+## CAPÍTULO 20: MANTENIMIENTO E INDEPENDENCIA OPERATIVA (Sesión 801, 2026-05-10)
+
+Para garantizar que cada terminal operativa (como la máquina de Tomy) cuente con la última versión del sistema sin requerir intervenciones técnicas complejas de nivel administrador, se ha implementado el workflow de **Actualización Autónoma**.
+
+### 20.1 Actualización con un click (ACTUALIZAR_V5.bat)
+
+En la carpeta raíz del sistema (`C:\dev\Sonido_Liquido_V5` o equivalente), se encuentra el archivo **ACTUALIZAR_V5.bat**.
+
+**Procedimiento:**
+1. Cerrar todas las ventanas del sistema (Backend, Frontend y Navegador).
+2. Ejecutar (doble click) el archivo **ACTUALIZAR_V5.bat**.
+3. El sistema realizará automáticamente un `git fetch` y `git pull` desde la rama principal de Desarrollo (`main`).
+4. Si la actualización es exitosa, aparecerá el mensaje `[OK] Sistema actualizado correctamente`.
+5. Si ocurre un error (usualmente por cambios locales sin guardar que generan conflicto), el script mostrará una `[ALERTA]` — en este caso, contactar a soporte técnico.
+
+**Frecuencia recomendada:** Ejecutar al inicio de cada jornada laboral para asegurar la paridad con los últimos bugfixes de Desarrollo.
+
+### 20.2 Diagnóstico de Repositorios
+Se ha detectado que existen instancias que operan sobre repositorios de GitHub independientes (ej: `v5-ls-Tom` para producción y `Sonido_Liquido_V5` para desarrollo). 
+- El script de actualización está configurado para el repositorio local actual. 
+- Para verificar en qué repositorio se encuentra la terminal, consulte el rastro en la **Caja Negra** de la sesión.

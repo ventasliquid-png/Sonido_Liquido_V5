@@ -1,25 +1,24 @@
-# Sesión Actual - Sonido Líquido V5 [ESTADO: GOLD]
+# Sesión Actual - Sonido Líquido V5 [ESTADO: NOMINAL GOLD]
 
-**Fecha:** 2026-03-10
-**Estado:** 🟢 OPERATIVO (STABLE) - GENOMA V14 ACTIVO
+**Fecha:** 2026-05-10
+**Estado:** 🟢 OPERATIVO (STABLE) - SESIÓN 801 ACTIVA
 
 ## CONTEXTO DE CIERRE (LEER AL REINICIAR)
-1.  **Refactor Genoma 14.7**: Se migró toda la base a 64 bits (BigInteger). Los bitmasks de estado son ahora completamente seguros.
-2.  **Consolidación Maestro**: Padrón de clientes saneado (21 CUITs únicos). Duplicados eliminados y datos fusionados.
-3.  **Core Domicilios**: Problema de sincronización "Centro Pet" resuelto de raíz (Backend schemas + Frontend mapping).
-4.  **Backend stability**: Reordenamiento de imports en `main.py` soluciona los errores 500 de arranque.
+1.  **Diagnóstico P/D**: Se identificó que las terminales operan sobre repositorios GitHub independientes. P (@a7759c6) vs D (@8027b685).
+2.  **Independencia Operativa**: Se desplegó `ACTUALIZAR_V5.bat` para que los operadores (Tomy) puedan actualizar su instancia local de forma autónoma.
+3.  **Deuda Técnica**: Registrados 4 ítems críticos en `pilot_v5x.db` (Deploy, Stock, Precios PDF, Rubros Contextuales).
+4.  **Estabilidad**: El sistema se reporta en estado NOMINAL GOLD tras la estabilización de la ingesta de la sesión 800.
 
 ## Tareas Pendientes Próximo Arranque
-*   [ ] Optimización LAN: Refinar Vite HMR para acceso multijugador estable.
-*   [ ] Ingesta Facturas: Resolver referencias nulas menores en el Inspector post-ingesta.
-*   [ ] Bitácora de Auditoría: Expandir el histórico de cambios de 64 bits.
+*   [ ] Integración de commits de D en el repositorio de P (v5-ls-Tom).
+*   [ ] Desarrollo del módulo de Stock y Depósitos (Prioridad Media).
+*   [ ] Implementación de extracción de precios desde PDF de proveedores.
 
-## Log de Sesión (10/03)
-*   [x] Fix 500 Errors (Circular Mapper).
-*   [x] 64-bit GENOMA Refactor (SQLite compatibility confirmed).
-*   [x] Database Consolidation (1 CUIT = 1 Cliente).
-*   [x] Mapeo de Domicilios Híbridos (Fix).
-*   [x] **PROTOCOL OMEGA READY.**
+## Log de Sesión (10/05 - Sesión 801)
+*   [x] Diagnóstico de Hashes y Repositorios.
+*   [x] Creación de `ACTUALIZAR_V5.bat`.
+*   [x] Registro de Deuda Técnica en DB.
+*   [x] **PROTOCOL OMEGA READY (PIN 1974).**
 
 ---
-**CÓDIGO DE SINCRONIZACIÓN:** V14.7-GOLD-20260310
+**CÓDIGO DE SINCRONIZACIÓN:** V15.7.1-GOLD-20260510
