@@ -28,9 +28,13 @@ def main():
     backend_restarts = 0
     last_restart_time = time.time()
     
+    # Explicit Venv Detection (Protocolo Nike Arq 5.5)
+    venv_python = os.path.join(root_dir, "backend", "venv", "Scripts", "python.exe")
+    python_to_use = venv_python if os.path.exists(venv_python) else sys.executable
+    
     # Define command correctly in scope
     backend_cmd = [
-        sys.executable, "-m", "uvicorn", "backend.main:app",
+        python_to_use, "-m", "uvicorn", "backend.main:app",
         "--host", "0.0.0.0", "--port", "8080", "--reload",
         "--reload-dir", os.path.join(root_dir, "backend"),
     ]

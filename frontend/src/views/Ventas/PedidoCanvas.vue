@@ -1871,7 +1871,7 @@ const savePedido = async (andPrint = false) => {
             console.log('[PedidoCanvas] Remito puente creado con éxito:', remitoId);
             
             if (shouldPrint && remitoId) {
-                const pdfUrl = `${api.defaults.baseURL}/remitos/${remitoId}/pdf`;
+                const pdfUrl = `/remitos/${remitoId}/pdf`;
                 window.open(pdfUrl, '_blank');
             }
             

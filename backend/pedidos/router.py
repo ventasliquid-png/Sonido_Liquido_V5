@@ -593,6 +593,47 @@ def update_pedido(
             pedido.total = round(raw_neto, 2)
         
     db.commit()
+    
+    # [V5.9 GOLD] Auto-Sincronización con Facturas en Cuarentena/Borrador
+    # Si el usuario corrige el pedido, la factura espejo (mientras sea borrador) debe reflejar el cambio.
+    from backend.facturacion.models import Factura, FacturaItem
+    facturas_borrador = db.query(Factura).filter(
+        Factura.pedido_id == pedido_id,
+        Factura.estado == "BORRADOR"
+    ).all()
+    
+    for f_borrador in facturas_borrador:
+        # Purgar ítems viejos del espejo
+        db.query(FacturaItem).filter(FacturaItem.factura_id == f_borrador.id).delete()
+        
+        # Clonar nuevos ítems del pedido (ya flushados y commitados arriba)
+        total_f_neto = 0.0
+        for p_item in pedido.items:
+            f_item = FacturaItem(
+                factura_id=f_borrador.id,
+                pedido_item_id=p_item.id,
+                descripcion=p_item.producto.nombre if p_item.producto else (p_item.nota or "Item"),
+                cantidad=p_item.cantidad,
+                precio_unitario_neto=p_item.precio_unitario,
+                alicuota_iva=21.0 if f_borrador.tipo_comprobante != "PRESUPUESTO_X" else 0.0,
+                subtotal_neto=p_item.subtotal
+            )
+            db.add(f_item)
+            total_f_neto += p_item.subtotal
+        
+        # Recalcular totales de la factura espejo
+        f_borrador.neto_gravado = round(total_f_neto, 2)
+        if f_borrador.tipo_comprobante != "PRESUPUESTO_X":
+            f_borrador.iva_21 = round(total_f_neto * 0.21, 2)
+            f_borrador.total = round(total_f_neto * 1.21, 2)
+        else:
+            f_borrador.total = round(total_f_neto, 2)
+        
+        print(f"[SYNC] Factura {f_borrador.id} (Borrador) sincronizada con cambios en Pedido {pedido_id}")
+    
+    if facturas_borrador:
+        db.commit()
+
     db.refresh(pedido)
     return pedido
 
