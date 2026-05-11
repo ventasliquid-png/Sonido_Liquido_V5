@@ -1,4 +1,32 @@
 
+## SESIÓN 802: ESTABILIZACIÓN INFRAESTRUCTURA Y SOBERANÍA TOMY (OF)
+**Fecha:** 2026-05-11
+**Locación:** OF
+**Objetivo:** Saneamiento integral de Producción (Tomy), normalización de rutas legacy, unificación de repositorio Git (P), eliminación de mock data en UI y formalización de protocolo OMEGA manual.
+**Estado:** NOMINAL GOLD — PIN 1974
+
+### Hito 1: Normalización de Infraestructura (P)
+*   Renombramiento de raíz a `v5-ls-Tom` y saneamiento de rutas `C:/dev/V5-LS` en 28 archivos.
+*   Actualización de archivos `.env` (raíz, current, staging) para apuntar a las bases de datos correctas.
+*   Sincronización de paridad en Staging (P) con puertos y bases asignadas.
+
+### Hito 2: Unificación Git Tomy
+*   Merge exitoso de ramas divergentes en `v5-ls-Tom`.
+*   Resolución de conflicto en `PedidoCanvas.vue` preservando lógica V5.7 GOLD (`checkout --ours`).
+*   Limpieza de binarios (`.db`, `.pyc`) del índice de Git para asegurar un repositorio liviano.
+*   Push exitoso a GitHub unificando entornos OF y CA.
+
+### Hito 3: Saneamiento de Código y Deuda Técnica
+*   Eliminación de mock data (historial/habituales) en `ClientCanvas.vue` en D y P.
+*   Registro de deuda técnica en `pilot_v5x.db` para integración de API real.
+*   Formalización de OMEGA manual en `ALFA.md`.
+
+### Hito 4: Auditoría OMEGA V2.2
+*   Canario D validado (LAVIMAR flags=13).
+*   Generación de Informe Histórico y actualización de Genoma Documental.
+
+---
+
 ## SESIÓN 801: DESPLIEGUE TOMY + DIAGNÓSTICO D VS P (CA)
 **Fecha:** 2026-05-10
 **Locación:** CA

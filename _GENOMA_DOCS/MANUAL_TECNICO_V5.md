@@ -1,6 +1,23 @@
 # 📘 MANUAL TÉCNICO V5: "INDEPENDENCIA"
-**Versión:** 1.6 Release (Updated V5.9 Producción Soberana)
-**Fecha:** 2026-04-15
+**Versión:** 1.7 Release (Updated V5.9.1 Estabilización Tomy)
+**Fecha:** 2026-05-11
+
+## 28. NORMALIZACIÓN DE INFRAESTRUCTURA — SOBERANÍA TOMY (2026-05-11)
+
+A partir de mayo de 2026, el entorno de Producción (Tomy) ha sido normalizado para eliminar ambigüedades con instalaciones legacy.
+
+### 28.1 Ruta Canónica
+- **Raíz de Producción**: `C:\dev\v5-ls-Tom`
+- **ADN**: Se han purgado todas las referencias internas a `C:\dev\V5-LS` en scripts `.bat`, logs y archivos de configuración.
+
+### 28.2 Gestión de Entornos en Producción
+La estructura `v5-ls-Tom` mantiene la jerarquía de soberanía:
+- `current/`: Instancia activa (Puerto 8090).
+- `staging/`: Instancia de pruebas y pre-despliegue (Puerto 8091).
+- `data/`: Bases de datos maestras (`V5_LS_MASTER.db`).
+
+### 28.3 Protocolo de Actualización
+Se utiliza el script `ACTUALIZAR_V5.bat` en la raíz. El proceso realiza un `git pull` desde el repositorio unificado de GitHub. El repositorio de Tomy (`v5-ls-Tom`) está saneado de archivos binarios (`.db`, `.pyc`), garantizando actualizaciones rápidas y ligeras.
 
 ## 15. ORÍGENES DE PEDIDO — DOCTRINA DE TRAZABILIDAD (Diseño v5.9, implementación pendiente)
 

@@ -1,9 +1,9 @@
 
-Sesión actual: 801
+Sesión actual: 802
 
-# CAJA NEGRA: Despliegue Tomy + Diagnóstico D vs P (2026-05-10)
+# CAJA NEGRA: Estabilización Infraestructura y Soberanía Tomy (2026-05-11)
 
-Sesión CA 2026-05-10 (801). Diagnóstico de bicefalía de repositorios confirmado: P (`v5-ls-Tom` @ `a7759c6`) y D (`Sonido_Liquido_V5` @ `8027b685`). Creación de `ACTUALIZAR_V5.bat` en raíz para automatización de updates Tomy. Registro de 4 ítems en `deuda_tecnica` de `pilot_v5x.db` (Deploy Tomy, Stock, Precios PDF, ABM Rubros). Protocolo OMEGA ejecutado con PIN 1974. Estado: NOMINAL GOLD.
+Sesión OF 2026-05-11 (802). Saneamiento integral de Producción (Tomy): Carpeta renombrada a `v5-ls-Tom` para consistencia. Exorcismo de rutas legacy (`C:/dev/V5-LS`) en 28 archivos físicos (scripts, logs, bitácoras). Saneamiento de archivos `.env` en `current` y `staging` de P. Unificación de repositorio Git Tomy: merge de divergencias OF/CA, limpieza de binarios (.db, .pyc) del índice y push a GitHub (`2abc8d6`). Eliminación de mock data en `ClientCanvas.vue` (D y P) y registro de deuda técnica para API real de inteligencia comercial. Formalización de protocolo OMEGA estrictamente manual en `ALFA.md`. Canario D: NOMINAL GOLD — flags=13.
 
 **Agente:** Antigravity (Gy V5) — PIN 1974
 
