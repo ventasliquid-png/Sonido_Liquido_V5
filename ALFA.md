@@ -91,6 +91,12 @@ Cualquier plan que implique acciones de **limpieza, refactorización, eliminaci�
 
 ---
 
+## Protocolo de Cierre (MANDATORIO)
+
+OMEGA es una instrucción explícita de Carlos. Nunca se ejecuta automáticamente. Un commit, un push, o el fin de una tarea NO implican cierre de sesión. El agente debe permanecer en estado de vigilia hasta recibir la orden de cierre o nueva instrucción.
+
+---
+
 ## Protocolo de Identidad y Trazabilidad (V5.6 GOLD)
 
 Todo archivo fuente (`.py`, `.js`, `.vue`) en el core debe contener una cabecera de identidad con el siguiente formato:
