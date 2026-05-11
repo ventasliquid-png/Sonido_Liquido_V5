@@ -1457,17 +1457,9 @@ const loadCliente = async (id, mode = 'full') => {
 }
 
 const loadCommercialIntel = () => {
-    // Mock Commercial Intelligence
-    historial.value = [
-        { id: 'ORD-9821', fecha: '2023-11-15', total: 45200.50, estado: 'Entregado' },
-        { id: 'ORD-9815', fecha: '2023-11-10', total: 12500.00, estado: 'En Viaje' },
-        { id: 'ORD-9788', fecha: '2023-10-28', total: 8900.20, estado: 'Entregado' }
-    ]
-    productosHabituales.value = [
-        { id: 1, sku: 'AGUA-01', nombre: 'Agua Mineral 500ml Sin Gas' },
-        { id: 2, sku: 'SODA-05', nombre: 'Sifón de Soda 1.5L x 6' },
-        { id: 3, sku: 'PACK-MIX', nombre: 'Pack Degustación Varietal' }
-    ]
+    // API Real pendiente (V14.5)
+    historial.value = []
+    productosHabituales.value = []
 }
 
 // Validation State
