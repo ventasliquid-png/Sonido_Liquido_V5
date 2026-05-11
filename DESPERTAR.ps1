@@ -4,8 +4,18 @@ param(
     [string]$Mode      = ""    # L=AlfaLite, C=Canario (vacio = preguntar)
 )
 
-# IDENTIDAD SESION 797 OF 2026-05-06
-$SESION_NUM = 797
+# Extracción dinámica de Sesión desde CAJA_NEGRA.md
+$cajaNegraPath = "$PSScriptRoot\_GY\_MD\CAJA_NEGRA.md"
+$SESION_NUM = "000" # Fallback
+if (Test-Path $cajaNegraPath) {
+    $firstLines = Get-Content $cajaNegraPath -TotalCount 10
+    foreach ($line in $firstLines) {
+        if ($line -match "Sesión actual:\s*(\d+)") {
+            $SESION_NUM = $matches[1]
+            break
+        }
+    }
+}
 $LOCACION = switch ($env:COMPUTERNAME) {
     "MEDIO"   { "OF" }
     default   { "DESCONOCIDO" }
@@ -174,11 +184,11 @@ if ($Mode -ne "") {
 }
 
 if ($opc -match "^[lL]") {
-    Set-Clipboard -Value "Gy, arrancamos bajo ALFA-LITE (Via rapida). El entorno esta despejado. Sesion 797. Tarea: "
-    Write-Host "Instruccion ALFA-LITE copiada (sesion 797)." -ForegroundColor Green
+    Set-Clipboard -Value "Gy, arrancamos bajo ALFA-LITE (Via rapida). El entorno esta despejado. Sesion $SESION_NUM. Tarea: "
+    Write-Host "Instruccion ALFA-LITE copiada (sesion $SESION_NUM)." -ForegroundColor Green
 } elseif ($opc -match "^[cC]") {
-    Set-Clipboard -Value "Gy, inicia ALFA COMPLETO (sesion 797). Ejecuta el Canario y valida integridad."
-    Write-Host "Instruccion CANARIO copiada (sesion 797)." -ForegroundColor Green
+    Set-Clipboard -Value "Gy, inicia ALFA COMPLETO (sesion $SESION_NUM). Ejecuta el Canario y valida integridad."
+    Write-Host "Instruccion CANARIO copiada (sesion $SESION_NUM)." -ForegroundColor Green
 }
 
 Read-Host "Enter para cerrar"

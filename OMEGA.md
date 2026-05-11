@@ -71,6 +71,15 @@ Regla de Oro: No decir "voy a actualizar". Presentar texto exacto.
 
 ## FASE 5: EJECUCIÓN GIT (solo tras PIN 1974)
 
+### PASO 5A — Control de Sesión
+1. Preguntar: "¿Lo que sigue es una NUEVA sesión? (S/N)"
+   - **S** → Incrementar número en `_GY/_MD/CAJA_NEGRA.md`
+   - **N** → Mantener número actual
+2. Regla: Nueva sesión solo si hubo un cierre OMEGA formal previo.
+
+### PASO 5B — Autorización y Push
+1. Solicitar **PIN 1974** para autorizar el push.
+2. Ejecutar comandos:
 ```cmd
 # NUNCA git add . — siempre explícito
 git add [archivo1] [archivo2] ...
