@@ -79,9 +79,14 @@
                                         : 'border-white/10 text-white focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50'
                                 ]"
                             >
-                            <!-- Validation Warning [GY-V5.9.1] -->
-                            <div v-if="clienteSeleccionado && !clientValidation.valid" class="absolute -top-3 right-0 bg-amber-900/90 border border-amber-500 text-amber-500 text-[9px] px-2 py-0.5 rounded uppercase font-bold tracking-wider animate-pulse flex items-center gap-2 shadow-lg z-10" :title="'Faltan: ' + clientValidation.missing.join(', ')">
-                                <i class="fas fa-exclamation-triangle"></i> FALTAN: {{ clientValidation.missing.join(', ') }}
+                            <!-- Validation Warning [ARLEQUÍN V2] -->
+                            <div v-if="clienteSeleccionado && !clientValidation.valid" class="absolute -top-3 right-0 flex items-center gap-1 z-10">
+                                <div class="bg-amber-900/90 border border-amber-500 text-amber-500 text-[9px] px-2 py-0.5 rounded uppercase font-bold tracking-wider animate-pulse flex items-center gap-1 shadow-lg" :title="'Faltan: ' + clientValidation.missing.join(', ')">
+                                    <i class="fas fa-exclamation-triangle"></i> FALTAN: {{ clientValidation.missing.join(', ') }}
+                                </div>
+                                <button @click.stop="completarFichaCliente" class="bg-amber-500 hover:bg-amber-400 text-black text-[9px] px-2 py-0.5 rounded uppercase font-bold tracking-wider shadow-lg transition-colors pointer-events-auto" title="Completar ficha del cliente">
+                                    <i class="fas fa-pencil-alt"></i> Completar
+                                </button>
                             </div>
                             
                             <!-- Context Menu Teleport -->
@@ -629,9 +634,9 @@
             <div v-if="showClientModal" class="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-8 animate-in fade-in duration-200">
                 <div class="w-full max-w-4xl h-full max-h-[90vh] bg-[#0f172a] rounded-2xl shadow-2xl border border-cyan-500/30 flex flex-col overflow-hidden relative">
                     <!-- Inspector Component -->
-                    <ClientCanvas 
-                        :initialData="newClientData" 
-                        id="new"
+                    <ClientCanvas
+                        :initialData="newClientData"
+                        :id="editClientId || 'new'"
                         :isModal="true"
                         @close="handleClientModalClose"
                         @save="handleClientSaved"
@@ -682,23 +687,27 @@ import { shallowRef } from 'vue'; // Optimization
 // --- MODAL STATE ---
 const showClientModal = ref(false);
 const newClientData = ref(null);
+const editClientId = ref(null); // null → nuevo cliente, uuid → editar existente
 
-const handleClientSaved = (client) => {
-    // 1. Close Modal
+const handleClientSaved = async (client) => {
     showClientModal.value = false;
-    
-    // 2. Refresh List (Store usually handles it, but let's be safe)
-    // 3. Select New Client
+    editClientId.value = null;
     if (client) {
-         selectCliente(client);
-         notificationStore.add(`Cliente ${client.razon_social} seleccionado.`, 'success');
+        // Si era edición de cliente existente, refrescar datos en el pedido actual
+        if (clienteSeleccionado.value && clienteSeleccionado.value.id === client.id) {
+            await selectCliente(client, false);
+            notificationStore.add(`Ficha actualizada: ${client.razon_social}`, 'success');
+        } else {
+            selectCliente(client);
+            notificationStore.add(`Cliente ${client.razon_social} seleccionado.`, 'success');
+        }
     }
 };
 
 const handleClientModalClose = () => {
     showClientModal.value = false;
-    newClientData.value = null; // Reset
-    // Focus back to search?
+    newClientData.value = null;
+    editClientId.value = null;
     setTimeout(() => clientInputRef.value?.focus(), 100);
 };
 
@@ -1057,7 +1066,6 @@ const irAFicha = () => {
 };
 
 const altaClienteContext = () => {
-    // [GY-UX] Integrated Modal instead of Window.open
     newClientData.value = {
         razon_social: busquedaCliente.value,
         cuit: '',
@@ -1065,6 +1073,14 @@ const altaClienteContext = () => {
     };
     showClientModal.value = true;
     showContextMenu.value = false;
+};
+
+// [ARLEQUÍN V2] Abre ClientCanvas en modo edición para el cliente del pedido actual
+const completarFichaCliente = () => {
+    if (!clienteSeleccionado.value) return;
+    editClientId.value = clienteSeleccionado.value.id;
+    newClientData.value = null;
+    showClientModal.value = true;
 };
 
 // ... (existing product context handlers) ...
@@ -1151,21 +1167,32 @@ const descuentoGlobalValor = ref('');
 
 
 
+// [ARLEQUÍN V2] Bits de cliente
+const GOLD_ARCA   = 4;   // Bit 2 — formal, validado AFIP
+const OPERATOR_OK = 16;  // Bit 4 — sello Rosa, informal operativo
+
 const clientValidation = computed(() => {
     if (!clienteSeleccionado.value) return { valid: true, missing: [] };
     const c = clienteSeleccionado.value;
+    const flags = c.flags_estado || 0;
     const missing = [];
-    
-    if (!c.condicion_iva_id || c.condicion_iva_id === 'null') missing.push('Condición IVA');
-    if (!c.segmento_id) missing.push('Segmento');
-    if (!c.domicilios || c.domicilios.length === 0) missing.push('Domicilio');
-    // Basic CUIT check
-    if (!c.cuit || c.cuit.length < 5) missing.push('CUIT');
 
-    return {
-        valid: missing.length === 0,
-        missing
-    };
+    if (flags & GOLD_ARCA) {
+        // Gold/Blanco: siempre válido para operar
+        return { valid: true, missing: [] };
+    }
+    if (flags & OPERATOR_OK) {
+        // Rosa: solo segmento obligatorio
+        if (!c.segmento_id) missing.push('Segmento');
+    } else {
+        // Amarillo/sin clasificar: exigir todo
+        if (!c.condicion_iva_id || c.condicion_iva_id === 'null') missing.push('Condición IVA');
+        if (!c.segmento_id) missing.push('Segmento');
+        if (!c.domicilios || c.domicilios.length === 0) missing.push('Domicilio');
+        if (!c.cuit || c.cuit.length < 5) missing.push('CUIT');
+    }
+
+    return { valid: missing.length === 0, missing };
 });
 const busquedaCliente = ref('');
 const showClienteResults = ref(false);

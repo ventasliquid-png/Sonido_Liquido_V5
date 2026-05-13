@@ -24,7 +24,16 @@ class ClienteService:
             # [V5.6 GOLD - BLINDAJE] Strict Duplicate Prevention
             # GENERIC CUITs are excluded from the block
             GENERIC_CUITS = ['00000000000', '11111111119', '11111111111', '99999999999']
-            
+
+            # [REGLA 2 — Nike 806] CUIT 00000000000 exclusivo MOSTRADOR/GENÉRICO
+            if cliente_in.cuit == '00000000000':
+                existente_mostrador = db.query(Cliente).filter(Cliente.cuit == '00000000000').first()
+                if existente_mostrador:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="CUIT reservado: 00000000000 es exclusivo del MOSTRADOR/GENÉRICO."
+                    )
+
             # 1. CUIT Block
             if cliente_in.cuit and cliente_in.cuit not in GENERIC_CUITS:
                  existing_cuit = db.query(Cliente).filter(Cliente.cuit == cliente_in.cuit).first()
@@ -181,6 +190,17 @@ class ClienteService:
         
         # [V5-X] Handle CUIT Update validity
         if 'cuit' in update_data and update_data['cuit']:
+             # [REGLA 2 — Nike 806] CUIT 00000000000 exclusivo MOSTRADOR/GENÉRICO
+             if update_data['cuit'] == '00000000000':
+                 existente_mostrador = db.query(Cliente).filter(
+                     Cliente.cuit == '00000000000',
+                     Cliente.id != cliente_id
+                 ).first()
+                 if existente_mostrador:
+                     raise HTTPException(
+                         status_code=status.HTTP_400_BAD_REQUEST,
+                         detail="CUIT reservado: 00000000000 es exclusivo del MOSTRADOR/GENÉRICO."
+                     )
              # GENERIC CUITs are always allowed to duplicate
              GENERIC_CUITS = ['00000000000', '11111111119', '11111111111', '99999999999']
              if update_data['cuit'] not in GENERIC_CUITS:
@@ -281,6 +301,22 @@ class ClienteService:
         if db_cliente.condicion_iva and db_cliente.condicion_iva.nombre:
             if "CONSUMIDOR FINAL" in db_cliente.condicion_iva.nombre.upper():
                 is_cf = True
+
+        # --- [REGLA 1 — Nike 806] CONSUMIDOR FINAL FORZADO GOLD ---
+        # CUIT 00000000000 nace Blanco Virgen (15) — nunca infiere Rosa
+        if db_cliente.cuit == '00000000000' and not (db_cliente.flags_estado & ClientFlags.GOLD_ARCA):
+            db_cliente.flags_estado |= ClientFlags.GOLD_ARCA
+
+        # --- [ARLEQUÍN V2] INFERENCIA AUTOMÁTICA DE CLIENTE ROSA ---
+        # Si no es Gold (Bit 2 apagado) + tiene segmento + sin CUIT real → sello Rosa (Bit 4)
+        # Transición Amarillo→Rosa irreversible mientras no tenga CUIT.
+        # Si tiene Bit 2 (Gold/Blanco) nunca se toca Bit 4.
+        if not (db_cliente.flags_estado & ClientFlags.GOLD_ARCA):
+            has_real_cuit = bool(db_cliente.cuit and len(db_cliente.cuit.strip()) >= 10)
+            if has_segmento and not has_real_cuit:
+                db_cliente.flags_estado |= ClientFlags.OPERATOR_OK
+            # Si consigue CUIT real pero aún sin Gold, no quitamos el sello Rosa
+            # (la transición Rosa→Blanco requiere acción explícita del operador)
 
         # --- REGLA 1: POWER_PINK (Bit 19) ---
         # Requisito: Nivel 9/11 + (Lista, Segmento) O CF/Genérico

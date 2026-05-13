@@ -17,41 +17,43 @@ export function useAuditSemaphore() {
         KILL: { code: 'KILL', color: 'text-gray-500', bg: 'bg-gray-500/10', icon: 'fa-trash', label: 'Basura' }
     };
 
+    // [ARLEQUÍN V2] Bits de cliente
+    const GOLD_ARCA   = 4;   // Bit 2 — formal, validado AFIP
+    const OPERATOR_OK = 16;  // Bit 4 — sello Rosa, informal operativo
+
     /**
      * Evalúa la calidad de un Cliente para determinar su color.
-     * @param {Object} cliente 
+     * Doctrina Arlequín V2: Gold → verde, Rosa → verde si tiene segmento,
+     * Amarillo → rojo si faltan campos para Blanco.
+     * @param {Object} cliente
      * @returns {Object} Estado (VERDE/ROJO/KILL)
      */
     const evaluateCliente = (cliente) => {
         if (!cliente) return { ...STATUS.KILL, reasons: ['Cliente vacío'] };
-
-        // 1. Soft Deleted
         if (cliente.deleted_at) return { ...STATUS.KILL, reasons: ['Eliminado (Soft Delete)'] };
 
-        // 2. Datos Críticos Faltantes
+        const flags = cliente.flags_estado || 0;
         const reasons = [];
 
-        // CUIT
-        if (!cliente.cuit || cliente.cuit.length < 11) reasons.push('Falta CUIT válido');
-
-        // IVA
-        if (!cliente.condicion_iva_id && !cliente.condicion_iva) reasons.push('Falta Condición IVA');
-
-        // SEGMENTO
-        if (!cliente.segmento_id && !cliente.segmento) reasons.push('Falta Segmento');
-
-        // DIRECCION (Fiscal)
-        // Check prop calculada O array de domicilios si está disponible
-        const hasFiscalArr = cliente.domicilios && cliente.domicilios.some(d => d.es_fiscal && d.activo);
-        const hasFiscalResumen = cliente.domicilio_fiscal_resumen && cliente.domicilio_fiscal_resumen.length > 5;
-
-        if (!hasFiscalResumen && !hasFiscalArr) reasons.push('Falta Domicilio Fiscal');
-
-        if (reasons.length > 0) {
-            return { ...STATUS.ROJO, reasons };
+        if (flags & GOLD_ARCA) {
+            // Gold/Blanco: siempre verde
+            return { ...STATUS.VERDE, reasons: [] };
         }
 
-        // Default -> VERDE
+        if (flags & OPERATOR_OK) {
+            // Rosa: solo segmento obligatorio
+            if (!cliente.segmento_id && !cliente.segmento) reasons.push('Falta Segmento');
+        } else {
+            // Amarillo/sin clasificar: exigir todo (camino a Blanco)
+            if (!cliente.cuit || cliente.cuit.length < 11) reasons.push('Falta CUIT válido');
+            if (!cliente.condicion_iva_id && !cliente.condicion_iva) reasons.push('Falta Condición IVA');
+            if (!cliente.segmento_id && !cliente.segmento) reasons.push('Falta Segmento');
+            const hasFiscalArr = cliente.domicilios && cliente.domicilios.some(d => d.es_fiscal && d.activo);
+            const hasFiscalResumen = cliente.domicilio_fiscal_resumen && cliente.domicilio_fiscal_resumen.length > 5;
+            if (!hasFiscalResumen && !hasFiscalArr) reasons.push('Falta Domicilio Fiscal');
+        }
+
+        if (reasons.length > 0) return { ...STATUS.ROJO, reasons };
         return { ...STATUS.VERDE, reasons: [] };
     };
 

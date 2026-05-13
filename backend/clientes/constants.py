@@ -23,8 +23,10 @@ class ClientFlags:
     # Bit 3 (8): ESTRUCTURA V14 (Protocolo Apolo)
     V14_STRUCT = 8
     
-    # Bit 4 (16): DOC_A_PERMITTED (Paz Binaria / Fiscal V14)
-    DOC_A_PERMITTED = 16
+    # Bit 4 (16): OPERATOR_OK / DOC_A_PERMITTED — Sello Rosa (Arlequín V2)
+    # Cliente informal operativamente válido sin CUIT. Se infiere automáticamente.
+    OPERATOR_OK = 16
+    DOC_A_PERMITTED = 16  # alias legacy
     
     # Bit 5 (32): IS_GHOST (Operaciones Ocultas / Sin Rastro)
     IS_GHOST = 32
