@@ -15,5 +15,5 @@ class PedidoFlags(IntFlag):
     # Bit 9: Al menos una factura vinculada tuvo corrección post-ingesta
     INGESTA_CON_CORRECCION = 512 # 2^9
 
-    # Bit 10: Obligar a salir del flujo fiscal (No informar a ARCA)
-    NO_FISCAL_FORCE = 1024 # 2^10
+    # Bit 12 — canon sesión 798, reubicado desde Bit 10
+    NO_FISCAL_FORCE = 4096 # 2^12
