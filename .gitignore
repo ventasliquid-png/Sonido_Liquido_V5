@@ -89,3 +89,7 @@ scripts/imports/*.json
 # Debug and Counter
 pdf_debug.txt
 session_counter.json
+
+# Scratch scripts (temporal audit/debug)
+scratch/*.py
+exclude_list.txt
