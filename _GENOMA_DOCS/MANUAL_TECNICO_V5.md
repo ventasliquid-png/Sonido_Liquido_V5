@@ -1,6 +1,6 @@
 # 📘 MANUAL TÉCNICO V5: "INDEPENDENCIA"
-**Versión:** 1.7 Release (Updated V5.9.1 Estabilización Tomy)
-**Fecha:** 2026-05-11
+**Versión:** 1.8 Release (Updated Arlequín V2 + GENOMA_UNIVERSAL — Nike 806)
+**Fecha:** 2026-05-13
 
 ## 28. NORMALIZACIÓN DE INFRAESTRUCTURA — SOBERANÍA TOMY (2026-05-11)
 
@@ -45,14 +45,40 @@ El sistema tiene dos rutas de relación Cliente↔Domicilio:
 
 **Invariante crítico:** Todo domicilio creado para un cliente DEBE insertarse en `domicilios_clientes` además de en `domicilios`. Si solo se inserta en `domicilios`, el domicilio es invisible para todos los endpoints de lectura.
 
-## 17. CLIENTES ROSA — FLAGS Y COMPORTAMIENTO EN PEDIDOS
+## 17. CLIENTES ROSA — DOCTRINA ARLEQUÍN V2 (Sesión 806, 2026-05-13)
 
-Clientes Rosa identificados por: `(flags_estado & 15) in [9, 11]`
+### 17.1 Jerarquía de estados (flags_estado)
 
-- No requieren CUIT válido (≥11 dígitos).
-- No requieren domicilio fiscal activo.
-- No requieren condición IVA para operar.
-- En `PedidoTacticoView`, el computed `clienteEsVerde` retorna `true` directamente para Rosa → sin badge rojo ni confirm dialog.
+| Estado | Identificación por bits | Descripción |
+|---|---|---|
+| **Amarillo** | `!(flags & 4)` y `!(flags & 16)` | Sin Gold, sin sello Rosa. Camino a Blanco. |
+| **Rosa** | `flags & 16` (`OPERATOR_OK` — Bit 4) | Sello informal. Validación manual del operador. |
+| **Blanco/Gold** | `flags & 4` (`GOLD_ARCA` — Bit 2) | Datos homologados ARCA. Máxima jerarquía. |
+| **Azul** | `flags & 32` (`MULTI_CUIT` — Bit 5) | CUIT compartido / Sucursales. |
+| **Rosa Fucsia** | `flags & 64` (`TRUSTED_MANUAL` — Bit 6) | Corporativo informal (ej: Luvianka). |
+
+**Referencia canónica completa:** `docs/GENOMA_UNIVERSAL.md` — sellado Nike Arq 5.5 sesión 806.
+
+### 17.2 Inferencia automática de Rosa (`_audit_sovereignty`)
+
+El método `_audit_sovereignty()` en `backend/clientes/service.py` infiere el sello Rosa automáticamente:
+- Si el cliente **no tiene GOLD_ARCA** (Bit 2 apagado)
+- Y **tiene segmento asignado**
+- Y **no tiene CUIT real** (menos de 10 dígitos)
+
+→ Enciende `OPERATOR_OK` (Bit 4). La transición Amarillo→Rosa es irreversible mientras no tenga CUIT. La transición Rosa→Blanco requiere acción explícita del operador.
+
+### 17.3 Comportamiento en Pedidos
+
+- **Rosa**: No requiere CUIT, domicilio fiscal ni condición IVA. El motor enciende `NO_FISCAL_FORCE` (Bit 12 = 4096) automáticamente al crear el pedido.
+- **Gold/Blanco**: Pasa directo a verde en `clientValidation` sin evaluar otros campos.
+- La validación en `PedidoCanvas.vue` usa bits directamente — no depende de `(flags & 15) in [...]`.
+
+### 17.4 Consumidor Final / MOSTRADOR (CUIT 00000000000)
+
+- `_audit_sovereignty()` fuerza `GOLD_ARCA` (Bit 2) si detecta CUIT = `00000000000`.
+- El CUIT `00000000000` es **exclusivo del MOSTRADOR/GENÉRICO**: el sistema bloquea HTTP 400 si un segundo cliente intenta usarlo.
+- Consumidor Final nace **Blanco Virgen** (flags = 15) — nunca infiere Rosa.
 
 ## 18. ARQUITECTURA N:M FACTURAS↔REMITOS + SISTEMA DE MIGRACIONES (Sesión 797-CA, 2026-05-06)
 
@@ -541,3 +567,40 @@ El campo de descripción de referencia (zona read-only) tiene un botón `fa-copy
 - **Fix D:** Nombre de ventana único `AltaProducto_${Date.now()}` — evita reutilizar tab bloqueado por browser.
 - **Fix E:** `v-if="route.query.mode !== 'satellite' || showInspector"` en `<main>` de `ProductosView.vue` — suprime F4 handler hasta que inspector esté listo.
 - **Fix F:** `fetchRubros()` defensivo en `ProductoInspector.vue` `onMounted` — en modo satellite el store de rubros no se precarga por App.vue.
+
+## 29. GENOMA_UNIVERSAL — DOCUMENTO CANÓNICO DE BITS (Sesión 806, 2026-05-13)
+
+### 29.1 Referencia
+**Archivo:** `docs/GENOMA_UNIVERSAL.md`
+**Sellado:** Nike Arq 5.5 — NOMINAL GOLD — PIN 1974
+
+El GENOMA_UNIVERSAL es la fuente de verdad única para todos los mapas de bits del ecosistema V5.
+Ningún `constants.py` puede divergir de sus tablas. Ante cualquier duda sobre un bit, consultar ahí primero.
+
+### 29.2 Bits globales inmutables (todas las entidades)
+
+| Bit | Valor | Nombre | Estado |
+|---|---|---|---|
+| 0 | 1 | `EXISTENCE` | ACTIVO |
+| 1 | 2 | `HAS_ACTIVITY` | ACTIVO — 1=Virgen, 0=Operado |
+| 10 | 1024 | `V15_STRUCT` | INTOCABLE |
+| 13 | 8192 | `PROHIBIDO` | PROHIBIDO — Colisión LAVIMAR |
+
+### 29.3 NO_FISCAL_FORCE — corrección canónica
+
+`NO_FISCAL_FORCE` reside en **Bit 12 (valor 4096)**. El valor anterior 1024 era herejía: colisionaba con `V15_STRUCT` (Bit 10), marca de agua arquitectónica intocable.
+
+- `backend/pedidos/constants.py`: `NO_FISCAL_FORCE = 4096`
+- `frontend/src/views/Pedidos/PedidoList.vue`: todas las referencias usan `4096`
+
+### 29.4 Protocolo de Emergencia MT
+
+**Archivo:** `docs/protocolos/PROTOCOLO_EMERGENCIA_MT.md`
+
+Ante un bug en producción (MT), el flujo obligatorio es:
+1. Reproducir en D con copia de `V5_LS_MASTER.db`
+2. Solucionar en D — commit
+3. Cherry-pick D→P en MC — verificar
+4. `git pull` en MT — aplicar migraciones si las hay
+
+**Prohibido:** editar código directamente en P ni en MT. Excepciones de datos quirúrgicos requieren PIN 1974.

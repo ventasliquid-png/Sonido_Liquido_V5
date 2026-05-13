@@ -1,5 +1,5 @@
 # MANUAL OPERATIVO V5 - SONIDO LÍQUIDO
-**Versión del Documento:** 1.2 (Updated OMEGA 5.8)
+**Versión del Documento:** 1.3 (Updated Arlequín V2 — Nike 806, 2026-05-13)
 **Estado:** VIGENTE
 **Código de Doctrina:** DEOU-2025
 
@@ -45,8 +45,12 @@ El módulo de carga rápida (`/ventas/loader`) permite la creación ágil de ped
 ### Edición de Pedidos Existentes (v5.9)
 Para modificar un pedido ya creado, abrirlo desde la lista y hacer clic en Editar. El sistema carga todos los datos y al guardar **actualiza el pedido original** — no crea uno nuevo. Para agregar una nota de anulación, buscar el ícono ✏ en el panel derecho del inspector (siempre visible).
 
-### Clientes Rosa / Sin CUIT (v5.9)
-Clientes informales aparecen como **AUDITADO** (verde) en el selector de pedidos aunque no tengan CUIT ni domicilio cargado. El sistema los reconoce automáticamente por su categoría interna y no bloquea la operación.
+### Clientes Rosa / Sin CUIT — Doctrina Arlequín V2 (v5.9 → 806)
+Clientes informales (**sello Rosa**, Bit 4 encendido) aparecen como **AUDITADO** (verde) en el selector de pedidos aunque no tengan CUIT ni domicilio fiscal. El sistema los reconoce automáticamente por su Bit 4 (`OPERATOR_OK`) y no bloquea la operación.
+
+El sello Rosa se infiere automáticamente si el cliente tiene segmento asignado pero carece de CUIT real. Al crear un pedido para un cliente Rosa, el sistema activa automáticamente el circuito **INTERNO** (sin IVA).
+
+**Consumidor Final / MOSTRADOR:** El CUIT `00000000000` está reservado exclusivamente para el cliente MOSTRADOR/GENÉRICO. El sistema bloquea cualquier intento de asignarlo a otro cliente.
 
 ## CAPÍTULO 1: LA DOCTRINA DE INTERFAZ (DEOU)
 
@@ -661,3 +665,43 @@ En la carpeta raíz del sistema (`C:\dev\Sonido_Liquido_V5` o equivalente), se e
 Se ha detectado que existen instancias que operan sobre repositorios de GitHub independientes (ej: `v5-ls-Tom` para producción y `Sonido_Liquido_V5` para desarrollo). 
 - El script de actualización está configurado para el repositorio local actual. 
 - Para verificar en qué repositorio se encuentra la terminal, consulte el rastro en la **Caja Negra** de la sesión.
+
+---
+
+## CAPÍTULO 21: DOCTRINA ARLEQUÍN V2 — JERARQUÍA DE CLIENTES (Nike 806, 2026-05-13)
+
+### 21.1 El semáforo de colores de clientes
+
+El sistema clasifica cada cliente según su genoma (`flags_estado`) en tiempo real:
+
+| Color | Condición | Qué puede hacer |
+|---|---|---|
+| **Blanco/Esmeralda** | Bit 2 encendido (`GOLD_ARCA`) | Operar con IVA, ARCA, factura electrónica completa |
+| **Rosa** | Bit 4 encendido (`OPERATOR_OK`) | Operar sin CUIT ni domicilio fiscal. Circuito INTERNO automático |
+| **Amarillo** | Sin Bit 2 ni Bit 4 | Incompleto. El sistema exige completar datos para operar |
+| **Azul** | Bit 5 (`MULTI_CUIT`) | CUIT compartido / multi-sucursal |
+
+### 21.2 ¿Cuándo se infiere Rosa automáticamente?
+
+El sistema asigna el sello Rosa sin intervención del operador cuando:
+- El cliente **no es Gold** (Bit 2 apagado)
+- Tiene un **segmento asignado**
+- **No tiene CUIT válido** (menos de 10 dígitos)
+
+Esto ocurre al guardar la ficha del cliente. Una vez asignado, el sello Rosa no se quita aunque después se cargue un CUIT — la transición Rosa→Blanco requiere validación ARCA explícita.
+
+### 21.3 MOSTRADOR / Consumidor Final
+
+El cliente **MOSTRADOR/GENÉRICO** usa el CUIT especial `00000000000` y es el único autorizado a tenerlo. Si un operador intenta crear o modificar otro cliente con ese CUIT, el sistema lo bloquea con un error explicativo.
+
+El Consumidor Final nace directamente como **Blanco** (Gold) — nunca pasa por el estado Rosa.
+
+### 21.4 Cómo completar un cliente Amarillo
+
+Si un cliente aparece en amarillo (badge incompleto), abrir su ficha y completar:
+1. **CUIT** válido (11 dígitos)
+2. **Condición IVA**
+3. **Segmento** comercial
+4. **Domicilio Fiscal** activo
+
+Al guardar con los 4 campos completos, el sistema lo promueve automáticamente y habilita el circuito fiscal.

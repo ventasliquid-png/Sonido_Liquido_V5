@@ -1,5 +1,21 @@
 
-Sesión actual: 802
+Sesión actual: 806
+
+# CAJA NEGRA: Arlequín V2 — Inferencia Rosa + GENOMA_UNIVERSAL + fix NO_FISCAL_FORCE (2026-05-13)
+
+Sesión OF 2026-05-13 (806). Hash D: abd34332. Hash P: 2d7c5c2. Estado: NOMINAL GOLD.
+GENOMA_UNIVERSAL.md sellado por Nike Arq 5.5 — mapa canónico de bits para todas las entidades del ecosistema.
+Herejía NO_FISCAL_FORCE purgada: Bit10 (1024) → Bit12 (4096) en constants.py, PedidoList.vue (6 refs) y router.py.
+Doctrina Arlequín V2 implementada: inferencia automática de cliente Rosa (OPERATOR_OK Bit4) en _audit_sovereignty().
+Consumidor Final blindado: CUIT 00000000000 forzado GOLD_ARCA, nunca infiere Rosa.
+CUIT 00000000000 declarado exclusivo del MOSTRADOR/GENÉRICO (bloqueo en create y update).
+PROTOCOLO_EMERGENCIA_MT.md creado. 7 ítems registrados en deuda_tecnica.
+DevBadge oculto en producción (import.meta.env.DEV). Cherry-pick D→P limpio (4 commits).
+Canario D: NOMINAL GOLD — flags=13.
+
+**Agente:** Claude Code Sonnet 4.6 — Hashes D: abd34332 / P: 2d7c5c2
+
+---
 
 # CAJA NEGRA: Estabilización Infraestructura y Soberanía Tomy (2026-05-11)
 

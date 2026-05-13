@@ -1,4 +1,37 @@
 
+## SESIÓN 806: ARLEQUÍN V2 — INFERENCIA ROSA + GENOMA_UNIVERSAL + FIX NO_FISCAL_FORCE (OF)
+**Fecha:** 2026-05-13
+**Locación:** OF
+**Objetivo:** Sellado del GENOMA_UNIVERSAL, purga de herejía NO_FISCAL_FORCE, implementación completa Doctrina Arlequín V2, blindaje Consumidor Final y MOSTRADOR, sincronización D→P.
+**Estado:** NOMINAL GOLD — PIN 1974 | Hash D: abd34332 | Hash P: 2d7c5c2
+
+### Hito 1: Infraestructura MT (sesión 805/806 bridge)
+*   Migración 033 schema sync P←D (facturas_remitos + bugs + tablas faltantes).
+*   Python 3.11.9 restaurado en MT — venv reparado.
+*   Flujo ingesta→pedido→remito operativo en MT.
+*   DevBadge oculto en producción (import.meta.env.DEV).
+*   Task Scheduler recreado en MT.
+
+### Hito 2: GENOMA_UNIVERSAL sellado
+*   `docs/GENOMA_UNIVERSAL.md` creado — mapa canónico 64-bit para Clientes, Productos, Pedidos, Facturas (RAW/PRC/Madre) y Remitos.
+*   Auditoría forense Nike Arq 5.5: resolución de contradicciones entre sesiones 798, 800-OF, 800-CA y 806.
+*   NO_FISCAL_FORCE corregido Bit10→Bit12 (herejía purgada): `constants.py`, `PedidoList.vue` (6 referencias), `router.py`.
+
+### Hito 3: Doctrina Arlequín V2
+*   Inferencia automática Rosa: `_audit_sovereignty()` enciende OPERATOR_OK (Bit4) si tiene segmento y sin CUIT real.
+*   `clientValidation` en PedidoCanvas y `evaluateCliente` en useAuditSemaphore reescritos con lógica por bits.
+*   Consumidor Final blindado: CUIT 00000000000 forzado GOLD_ARCA en `_audit_sovereignty()`.
+*   CUIT 00000000000 declarado exclusivo MOSTRADOR/GENÉRICO — bloqueo HTTP 400 en create y update.
+
+### Hito 4: Documentación y Cierre
+*   `PROTOCOLO_EMERGENCIA_MT.md` creado — flujo canónico D→P→MT sellado.
+*   7 ítems registrados en `deuda_tecnica` (sesión 806).
+*   Cherry-pick 4 commits D→P: limpio, sin conflictos.
+*   Push D y P a GitHub confirmado.
+*   Canario OMEGA: LAVIMAR flags=13 — NOMINAL GOLD.
+
+---
+
 ## SESIÓN 802: ESTABILIZACIÓN INFRAESTRUCTURA Y SOBERANÍA TOMY (OF)
 **Fecha:** 2026-05-11
 **Locación:** OF
