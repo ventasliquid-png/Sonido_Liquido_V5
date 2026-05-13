@@ -97,6 +97,13 @@ def create_pedido_tactico(
         # o podríamos forzar el ID si la BD lo permitiera (pero es serial).
         # Asumimos que la "sugerencia" del frontend es visual para que coincida con el ID que se va a generar.
         
+        # [ARLEQUÍN V2] Auto-encender NO_FISCAL_FORCE si cliente es Rosa (Bit 4 = OPERATOR_OK)
+        from backend.clientes.constants import ClientFlags
+        from backend.pedidos.constants import PedidoFlags as PF
+        pedido_flags_inicial = 0
+        if cliente.flags_estado & ClientFlags.OPERATOR_OK:
+            pedido_flags_inicial |= PF.NO_FISCAL_FORCE
+
         print(f"[DEBUG] Creando Pedido - OC: '{pedido_data.oc}' - Override: {pedido_data.oc_override}")
         nuevo_pedido = models.Pedido(
             cliente_id=pedido_data.cliente_id,
@@ -112,6 +119,7 @@ def create_pedido_tactico(
             descuento_global_importe=pedido_data.descuento_global_importe or 0.0,
             domicilio_entrega_id=pedido_data.domicilio_entrega_id,
             transporte_id=pedido_data.transporte_id,
+            flags_estado=pedido_flags_inicial,
             total=0.0 # Se calcula abajo
         )
         if pedido_data.duplicate_confirmed:
@@ -919,7 +927,7 @@ class BipolarRequest(BaseModel):
 @router.patch("/{pedido_id}/circuito-bipolar", response_model=schemas.PedidoResponse)
 def toggle_circuito_bipolar(pedido_id: int, req: BipolarRequest, db: Session = Depends(get_db)):
     """
-    Alterna el bit NO_FISCAL_FORCE (1024) para transitar entre circuito Blanco y Negro.
+    Alterna el bit NO_FISCAL_FORCE (4096) para transitar entre circuito Blanco y Negro.
     """
     pedido = db.query(models.Pedido).filter(models.Pedido.id == pedido_id).first()
     if not pedido:

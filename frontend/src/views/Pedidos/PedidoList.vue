@@ -133,7 +133,7 @@
                     statusMenuOpen === pedido.id ? 'z-50 shadow-2xl' : 'z-auto overflow-hidden',
                     selectedPedido?.id === pedido.id 
                     ? (circuitMode === 'OFICIAL' ? 'border-emerald-500 bg-emerald-500/10 ring-1 ring-emerald-500/30 shadow-lg shadow-emerald-500/10 scale-[1.01]' : 'border-indigo-500 bg-indigo-500/10 ring-1 ring-indigo-500/30 shadow-lg shadow-black/50 scale-[1.01]')
-                    : ( (pedido.flags_estado & 1024) 
+                    : ( (pedido.flags_estado & 4096)
                         ? 'border-indigo-900/40 bg-[#120a1f] hover:bg-[#1a0e2c] hover:border-indigo-500/30 shadow-inner shadow-black/20' 
                         : (circuitMode === 'OFICIAL' ? 'border-emerald-900/20 bg-[#07241d] hover:bg-[#0a2e26] hover:border-emerald-500/30' : 'border-gray-800/40 bg-[#12161f] hover:bg-[#1a202c] hover:border-gray-500/30')
                       ),
@@ -316,7 +316,7 @@
                   Clonar Pedido
               </button>
                <button 
-                  v-if="circuitMode === 'OFICIAL' && !(contextMenu.pedido?.flags_estado & 1024)"
+                  v-if="circuitMode === 'OFICIAL' && !(contextMenu.pedido?.flags_estado & 4096)"
                   @click="executeContextMenuAction('liquidar')"
                   class="w-full px-4 py-2 text-left text-xs font-bold text-indigo-300 hover:bg-indigo-900/40 flex items-center gap-2 transition-colors border-t border-emerald-900/10 mt-1 pt-2"
               >
@@ -328,7 +328,7 @@
                   class="w-full px-4 py-2 text-left text-xs font-bold text-gray-300 hover:bg-gray-800 flex items-center gap-2 transition-colors border-t border-emerald-900/10 mt-1 pt-2"
               >
                   <i class="fas fa-random text-gray-400"></i>
-                  {{ (contextMenu.pedido?.flags_estado & 1024) ? 'Mover a Blanco (Oficial)' : 'Mover a Negro (Interno)' }}
+                  {{ (contextMenu.pedido?.flags_estado & 4096) ? 'Mover a Blanco (Oficial)' : 'Mover a Negro (Interno)' }}
               </button>
           </div>
       </Teleport>
@@ -436,11 +436,11 @@ const setFilter = (key) => {
 const sortedAndFilteredPedidos = computed(() => {
     let result = store.pedidos
     
-    // Bifurcacion Maestro (Genoma Bipolar: Bit 1024)
+    // Bifurcacion Maestro (Genoma Bipolar: Bit 4096 — NO_FISCAL_FORCE)
     if (circuitMode.value === 'OFICIAL') {
-        result = result.filter(p => !(p.flags_estado & 1024))
+        result = result.filter(p => !(p.flags_estado & 4096))
     } else {
-        result = result.filter(p => (p.flags_estado & 1024))
+        result = result.filter(p => (p.flags_estado & 4096))
     }
     
     if (activeFilter.value !== 'all') {
@@ -575,7 +575,7 @@ const handleLiquidacion = async () => {
 }
 
 const handleToggleBipolar = async (pedido) => {
-    const isInterno = !(pedido.flags_estado & 1024)
+    const isInterno = !(pedido.flags_estado & 4096)
     try {
         notificationStore.add(`Cambiando circuito a ${isInterno ? 'INTERNO' : 'OFICIAL'}...`, 'info')
         const { data } = await api.patch(`/pedidos/${pedido.id}/circuito-bipolar`, { is_interno: isInterno })
