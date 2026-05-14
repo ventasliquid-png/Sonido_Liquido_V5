@@ -112,17 +112,22 @@ def get_virtual_price(producto_costos, cliente) -> dict:
     Input: Objeto ProductoCosto (ORM), Objeto Cliente (ORM)
     Output: { "precio": Decimal, "iva_discriminado": Bool, "lista_origen": Int }
     """
-    if not producto_costos or not cliente:
+    if not cliente:
         return {
-            "precio": Decimal(0), 
-            "iva_discriminado": False, 
+            "precio": Decimal(0),
+            "iva_discriminado": False,
             "lista_origen": 0,
             "needs_cost": True,
-            "error": "PRODUCTO_SIN_COSTO"
+            "error": "STRICT_MODE_VIOLATION: Cliente no encontrado"
         }
 
-    # 1. Calcular Escalera Completa
-    listas = calculate_lists(producto_costos.costo_reposicion, producto_costos.rentabilidad_target)
+    # 1. Calcular Escalera Completa (precio 0 si no hay costos — no bloqueante)
+    sin_costo = not producto_costos or not producto_costos.costo_reposicion
+    if sin_costo:
+        listas = {f"lista_{i}": Decimal(0) for i in range(1, 8)}
+        listas["_needs_cost"] = True
+    else:
+        listas = calculate_lists(producto_costos.costo_reposicion, producto_costos.rentabilidad_target)
     
     # 2. Determinar Nivel de Lista (Hard Logic: Mapeo por Nombre)
     nivel_lista = 3 # Default: Distribuidor (Seguro)
@@ -180,7 +185,7 @@ def get_virtual_price(producto_costos, cliente) -> dict:
     precio_final = listas.get(target_key, Decimal(0))
     needs_cost = listas.get("_needs_cost", False)
     
-    return {
+    resultado = {
         "precio": precio_final,
         "lista_origen": nivel_lista,
         "debug_listas": listas,
@@ -188,3 +193,6 @@ def get_virtual_price(producto_costos, cliente) -> dict:
         "rentabilidad_base": (producto_costos.rentabilidad_target if producto_costos else 0) or 0,
         "needs_cost": needs_cost
     }
+    if sin_costo:
+        resultado["sin_costo"] = True
+    return resultado

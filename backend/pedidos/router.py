@@ -900,21 +900,21 @@ def cotizar_precio(req: CotizacionRequest, db: Session = Depends(get_db)):
     
     resultado = get_virtual_price(costos, cliente)
     
-    if resultado.get("error"):
-        # Strict Mode Violation
+    if "STRICT_MODE_VIOLATION" in resultado.get("error", ""):
         raise HTTPException(
-            status_code=409, 
+            status_code=409,
             detail=f"CONFLICTO FISCAL: {resultado['error']}. Por favor asigne lista manual o verifique segmento."
         )
-    
+
     # Adapter to match frontend expected response format if needed?
-    # Frontend likely expects 'precio_final_sugerido'. 
+    # Frontend likely expects 'precio_final_sugerido'.
     # Current engine returns { "precio": Decimal, "lista_origen": Int }
-    
+
     return {
         "precio_final_sugerido": resultado["precio"],
         "origen": f"LISTA_{resultado['lista_origen']}",
         "estrategia": "HARD_LOGIC_V5",
+        "sin_costo": resultado.get("sin_costo", False),
         "debug": resultado
     }
 

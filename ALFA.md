@@ -11,15 +11,17 @@ Verificar integridad del sistema antes de comenzar cualquier sesión de trabajo.
 
 ---
 
-## PASO 0: LEER INBOX DE DRIVE (SIEMPRE, ANTES QUE TODO)
+## PASO 0: LEER DRIVE (SIEMPRE, ANTES QUE TODO)
 
-Antes de cualquier verificación, leer:
-```
-Q:\Mi unidad\V5_Silo_Claude\INBOX.md
-```
-Este archivo contiene mensajes de sesiones anteriores: bugs pendientes, contexto crítico, tareas pre-arranque. Si hay entradas no procesadas, reportarlas a Carlos antes de continuar. Después de procesar una entrada, moverla a `Q:\Mi unidad\V5_Silo_Claude\LEIDOS\YYYY-MM-DD_titulo.md`.
+1. Leer `Q:\Mi unidad\V5_Silo_Claude\INBOX.md`
+   Si hay entradas no procesadas → reportar a Carlos antes de continuar.
+   Después de procesar → mover a `Q:\Mi unidad\V5_Silo_Claude\LEIDOS\YYYY-MM-DD_titulo.md`
 
-Si `Q:` no está disponible (Drive no montado): avisar a Carlos y continuar sin bloquear.
+2. Leer `Q:\Mi unidad\V5_Silo_Claude\ESTADO_ECOSISTEMA.md`
+   Reportar tabla completa de estado y alertas activas.
+   Si hay alertas URGENTES → destacarlas antes de continuar.
+
+Si `Q:` no está disponible → avisar a Carlos y continuar sin bloquear.
 
 ---
 

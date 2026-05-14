@@ -41,10 +41,36 @@ Si no es NOMINAL:
 
 ---
 
+## FASE 1B: WAL CHECKPOINT (antes de exportar DB al Drive)
+
+Ejecutar SIEMPRE antes de copiar `pilot_v5x.db` al Drive.
+Garantiza que el WAL esté fusionado en el archivo principal — sin esto,
+la copia puede quedar en estado inconsistente si el servidor está activo.
+
+```python
+python -c "
+import sqlite3
+conn = sqlite3.connect('pilot_v5x.db')
+conn.execute('PRAGMA wal_checkpoint(FULL)')
+conn.close()
+print('WAL checkpoint OK')
+"
+```
+
+→ Si no devuelve `WAL checkpoint OK` → STOP. No exportar.
+
+---
+
 ## FASE 2: BUROCRACIA (OBLIGATORIA)
 
 Regla de Oro: No decir "voy a actualizar". Presentar texto exacto.
 
+- [ ] **ESTADO_ECOSISTEMA** (`Q:\Mi unidad\V5_Silo_Claude\ESTADO_ECOSISTEMA.md`):
+  Actualizar fila del ámbito/sistema donde se está cerrando:
+  - Hash git actual
+  - Estado (🟢 OK / 🟡 ATENCIÓN / 🔴 CRÍTICO)
+  - Alertas activas
+  - Totales de pendientes (Bugs / Deuda Técnica / Roadmap)
 - [ ] **Caja Negra** (`_GY/_MD/CAJA_NEGRA.md`): header + incrementar sesiones
 - [ ] **Manuales** (`_GENOMA_DOCS/MANUAL_TECNICO_V5.md` y `MANUAL_OPERATIVO_V5.md`)
 - [ ] **Bitácora** (`_GY/_MD/BITACORA_DEV.md`): fecha, título, bullets
