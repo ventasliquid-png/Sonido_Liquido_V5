@@ -1,4 +1,33 @@
 
+## SESIÓN 807: SILO DRIVE + PRICING ENGINE SOBERANO + PROTOCOLOS ALFA/OMEGA (OF)
+**Fecha:** 2026-05-14
+**Locación:** OF
+**Objetivo:** Crear Silo Drive como centro de comando entre sesiones. Fix pricing engine 409. Actualizar protocolos ALFA y OMEGA en D y P. Sync DB 807d de MT a D.
+**Estado:** NOMINAL GOLD — PIN 1974 | Hash D: 0b34f1f9 | Hash P: d3173b2
+
+### Hito 1: Silo Drive
+* `Q:\Mi unidad\V5_Silo_Claude\` creado — README.md, INBOX.md, ESTADO_ECOSISTEMA.md, estructura OF/CA/GLOBAL/LEIDOS.
+* Bug #1 OF/P resuelto y marcado RESUELTO en `OF/P/BUGS.md` del Drive.
+
+### Hito 2: Protocolos ALFA y OMEGA
+* `ALFA.md` D y P: PASO 0 — lectura INBOX + ESTADO_ECOSISTEMA antes de operar.
+* `OMEGA.md` D: FASE 1B WAL checkpoint (`pilot_v5x.db`) + ESTADO_ECOSISTEMA en FASE 2.
+* `OMEGA.md` P: ídem, con ruta `data\V5_LS_MASTER.db`.
+
+### Hito 3: Fix Pricing Engine
+* Causa raíz bug #1: `get_virtual_price()` abortaba con `PRODUCTO_SIN_COSTO` cuando `costos=None`.
+* `pricing_engine.py`: sin_costo=True (no bloqueante) vs STRICT_MODE_VIOLATION (bloqueante real).
+* `router.py`: 409 solo para STRICT_MODE_VIOLATION. Flag `sin_costo` expuesto en respuesta.
+* Verificado en vivo: SKU 80018/80019 → HTTP 200, precio=0, sin_costo=True.
+* Cherry-pick a P: hash `922da85`.
+
+### Hito 4: DB y Deuda Técnica
+* DB 807d instalada en D desde MT (1.974.272 bytes).
+* Pedido 38 eliminado (Pao Tandil — ingresado incompleto, a recrear).
+* 3 deudas técnicas registradas en DB: Badge FALTAN, Guardar e Imprimir, etiqueta botón por contexto.
+
+---
+
 ## SESIÓN 806: ARLEQUÍN V2 — INFERENCIA ROSA + GENOMA_UNIVERSAL + FIX NO_FISCAL_FORCE (OF)
 **Fecha:** 2026-05-13
 **Locación:** OF

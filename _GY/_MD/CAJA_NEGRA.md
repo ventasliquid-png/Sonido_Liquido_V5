@@ -1,5 +1,20 @@
 
-Sesión actual: 806
+Sesión actual: 807
+
+# CAJA NEGRA: Silo Drive + Pricing Engine Soberano + Protocolos ALFA/OMEGA (2026-05-14)
+
+Sesión OF 2026-05-14 (807). Hash D: 0b34f1f9. Hash P: d3173b2. Estado: NOMINAL GOLD.
+Silo Drive creado: Q:\Mi unidad\V5_Silo_Claude — README, INBOX, ESTADO_ECOSISTEMA, estructura OF/CA/GLOBAL/LEIDOS.
+ALFA.md D y P: PASO 0 con lectura de INBOX + ESTADO_ECOSISTEMA en cada despertar.
+OMEGA.md D y P: FASE 1B WAL checkpoint obligatorio antes de exportar DB. ESTADO_ECOSISTEMA como primer ítem de burocracia.
+Fix pricing engine: costos=None ya no bloquea con 409 — precio soberano del operador. STRICT_MODE_VIOLATION reservado para cliente inválido.
+3 deudas técnicas registradas (sesión 807): Badge FALTAN, Guardar e Imprimir, etiqueta botón por contexto.
+DB 807d instalada en D desde MT (5 pedidos nuevos: 34-38). Pedido 38 eliminado (Pao Tandil — incompleto, a recrear).
+Canario D: NOMINAL GOLD — flags=13.
+
+**Agente:** Claude Code Haiku 4.5 — Hashes D: 0b34f1f9 / P: d3173b2
+
+---
 
 # CAJA NEGRA: Arlequín V2 — Inferencia Rosa + GENOMA_UNIVERSAL + fix NO_FISCAL_FORCE (2026-05-13)
 
