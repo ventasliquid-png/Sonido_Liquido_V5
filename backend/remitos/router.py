@@ -261,12 +261,13 @@ def create_remito_from_ingestion(payload: schemas.IngestionPayload, db: Session 
     try:
         from backend.remitos.service import RemitosService
         remito = RemitosService.create_from_ingestion(db, payload)
-        
+        db.commit()
+
         if remito is None:
              # Case: solo_actualizar_cliente=True
              from fastapi.responses import JSONResponse
              return JSONResponse(
-                 status_code=200, 
+                 status_code=200,
                  content={"status": "success", "message": "Cliente actualizado correctamente. No se generó remito."}
              )
 

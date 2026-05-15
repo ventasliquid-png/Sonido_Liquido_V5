@@ -60,53 +60,60 @@ class IngestaService:
         raw = db.query(FacturasRaw).filter(FacturasRaw.id == raw_id).first()
         if not raw:
             raise ValueError("Factura Raw no encontrada")
-            
-        # 1. Impactar Sistema V5 (Remito + Factura Mirror)
-        from backend.remitos.service import RemitosService
-        from backend.remitos.schemas import IngestionPayload
-        
-        remito_id = None
-        try:
-            # El payload del frontend ya está estructurado como IngestionPayload
-            payload = IngestionPayload(**edited_data)
-            remito = RemitosService.create_from_ingestion(db, payload)
-            if remito:
-                remito_id = str(remito.id)
-        except Exception as e:
-            import logging
-            logging.error(f"Error impactando sistema desde IngestaService.approve: {e}")
-            raise e
-            
-        # 2. Crear FacturaProcesada (Persistencia de Auditoría)
-        # Extraemos IDs si existen en el payload editado
-        p_cliente_id = edited_data.get("cliente", {}).get("id")
-        p_pedido_id = edited_data.get("pedido_id_vinculado")
-        
-        procesada = FacturasProcesadas(
-            raw_id=raw.id,
-            cliente_id=p_cliente_id,
-            pedido_id=p_pedido_id,
-            numero_factura=edited_data.get("factura", {}).get("numero"),
-            cae=edited_data.get("factura", {}).get("cae"),
-            vto_cae=edited_data.get("factura", {}).get("vto_cae"),
-            parsed_data_final=edited_data,
-            audit_log=edited_data.get("audit_log", {}),
-            estado="APROBADA",
-            processed_at=datetime.now(timezone.utc)
-        )
-        db.add(procesada)
-        
-        raw.audit_status = "PROCESADO"
-        raw.processed_at = datetime.now(timezone.utc)
-        
+
+        # Checkpoint visible: el raw entra en vuelo
+        raw.audit_status = "PROCESANDO"
         db.add(raw)
         db.commit()
-        
-        return {
-            "id": str(procesada.id),
-            "remito_id": remito_id,
-            "estado": "APROBADA"
-        }
+
+        try:
+            # 1. Impactar Sistema V5 (Remito + Factura Mirror)
+            from backend.remitos.service import RemitosService
+            from backend.remitos.schemas import IngestionPayload
+
+            payload = IngestionPayload(**edited_data)
+            remito = RemitosService.create_from_ingestion(db, payload)
+            remito_id = str(remito.id) if remito else None
+
+            # 2. Crear FacturaProcesada (Persistencia de Auditoría)
+            p_cliente_id = edited_data.get("cliente", {}).get("id")
+            p_pedido_id = edited_data.get("pedido_id_vinculado")
+
+            procesada = FacturasProcesadas(
+                raw_id=raw.id,
+                cliente_id=p_cliente_id,
+                pedido_id=p_pedido_id,
+                numero_factura=edited_data.get("factura", {}).get("numero"),
+                cae=edited_data.get("factura", {}).get("cae"),
+                vto_cae=edited_data.get("factura", {}).get("vto_cae"),
+                parsed_data_final=edited_data,
+                audit_log=edited_data.get("audit_log", {}),
+                estado="APROBADA",
+                processed_at=datetime.now(timezone.utc)
+            )
+            db.add(procesada)
+
+            raw.audit_status = "PROCESADO"
+            raw.processed_at = datetime.now(timezone.utc)
+            db.add(raw)
+            db.commit()
+
+            return {
+                "id": str(procesada.id),
+                "remito_id": remito_id,
+                "estado": "APROBADA"
+            }
+
+        except Exception as e:
+            import logging
+            logging.error(f"[IngestaService.approve] Error: {e}")
+            try:
+                raw.audit_status = "ERROR"
+                db.add(raw)
+                db.commit()
+            except Exception:
+                db.rollback()
+            raise
 
 
     @staticmethod

@@ -171,7 +171,7 @@ class RemitosService:
 
         # --- [NUEVO] OPCIÓN SOLO ACTUALIZAR CLIENTE ---
         if payload.solo_actualizar_cliente:
-             db.commit()
+             db.flush()
              print(f"Ingestion: Se decidió solo actualizar el cliente {cliente.razon_social}. Finalizando.")
              return None # Retornamos None (el router debe manejar esto)
 
@@ -432,7 +432,7 @@ class RemitosService:
             print(f"[MODO ESPEJO] Factura {payload.factura.numero} creada y vinculada con flag {mirror_flags}. Total: {factura_mirror.total}")
 
         try:
-            db.commit()
+            db.flush()
             db.refresh(remito)
             return remito
         except IntegrityError as ie:
@@ -440,7 +440,7 @@ class RemitosService:
             print(f"[INGESTA ERROR] IntegrityError detectado: {str(ie)}")
             # [V5.2] Traducir error técnico a 409 para el Frontend
             raise HTTPException(
-                status_code=409, 
+                status_code=409,
                 detail="FACTURA_DUPLICADA: El registro fiscal ya existe o hay un conflicto de integridad en la base de datos."
             )
         except Exception as ex:
