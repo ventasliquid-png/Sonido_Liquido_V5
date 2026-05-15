@@ -705,3 +705,17 @@ Si un cliente aparece en amarillo (badge incompleto), abrir su ficha y completar
 4. **Domicilio Fiscal** activo
 
 Al guardar con los 4 campos completos, el sistema lo promueve automáticamente y habilita el circuito fiscal.
+
+---
+
+## Clientes Rosa / OPERATOR_OK (Bit 4)
+*Sellado: Sesión 808 — 2026-05-15*
+
+Los clientes marcados con Bit 4 (`OPERATOR_OK`) son clientes informales sin CUIT ni circuito AFIP (ej: Rosa). Al guardar un pedido para estos clientes:
+
+- **No se genera borrador de factura** — no tienen CUIT, no pueden tener comprobante AFIP.
+- **No se crea remito puente automático** — el operador emite remito manual si corresponde.
+- El sistema muestra una notificación de advertencia recordando la situación.
+- El botón "Guardar e Imprimir" no aparece en su flujo (no hay factura que imprimir).
+
+Para identificar un cliente OPERATOR_OK: `flags_estado & 16 == 16`.

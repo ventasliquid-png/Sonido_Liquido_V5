@@ -1,5 +1,19 @@
 
-Sesión actual: 807
+Sesión actual: 808
+
+# CAJA NEGRA: Doctrina Virginidad + Atomicidad Ingesta + Sync D↔P (2026-05-15)
+
+Sesión OF 2026-05-15 (808). Hash D: 513796bf. Hash P: 5865616. Estado: NOMINAL GOLD.
+FIX UX PedidoCanvas: botón "Guardar e Imprimir" oculto con v-if en flujo manual. wasIngesta capturado pre-clearIngestaData. Reset canvas post-guardado manual en vez de redirigir a PedidoList.
+FIX Rosa/OPERATOR_OK: esOperatorOk bypasea todo el bloque fiscal en savePedido(). Sin borrador factura, sin remito puente.
+Doctrina de Virginidad implementada: removidos 2 triggers incorrectos (4 pilares, Vanguard Canon). Agregados 2 triggers canónicos: CUMPLIDO en pedidos/router.py, CAE en facturacion/service.py. Ghost pedido remito manual nace PENDIENTE.
+Diagnóstico 409 ingesta: raw 80af6b8b stuck en RECIBIDO con downstream ya existente (remito 0016-00002535 + factura AUTORIZADA_AFIP). Reconciliado manualmente (PIN 1974).
+Atomicidad IngestaService.approve(): flush-only en create_from_ingestion, checkpoint PROCESANDO, estado ERROR en fallo. Único db.commit() al final del flujo exitoso.
+Cherry-pick D→P: 4 commits sesión 807-808. Conflicto clientes/service.py resuelto con versión D (doctrina virginidad). Push P: d3173b2..5865616.
+
+**Agente:** Claude Code Sonnet 4.6 — Hashes D: 513796bf / P: 5865616
+
+---
 
 # CAJA NEGRA: Silo Drive + Pricing Engine Soberano + Protocolos ALFA/OMEGA (2026-05-14)
 

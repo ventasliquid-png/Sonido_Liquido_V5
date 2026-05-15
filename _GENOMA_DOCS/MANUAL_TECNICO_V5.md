@@ -604,3 +604,53 @@ Ante un bug en producción (MT), el flujo obligatorio es:
 4. `git pull` en MT — aplicar migraciones si las hay
 
 **Prohibido:** editar código directamente en P ni en MT. Excepciones de datos quirúrgicos requieren PIN 1974.
+
+---
+
+## Sección 30 — Doctrina de Virginidad (Bit 1 / HAS_ACTIVITY)
+*Sellado: Sesión 808 — 2026-05-15*
+
+### Semántica
+`HAS_ACTIVITY` (Bit 1 = 2) en `clientes.flags_estado` indica que el cliente **nunca tuvo una operación comercial real registrada**. Cuando es 1 (activo), el cliente es "virgen" — no hay pedido cumplido ni factura AFIP a su nombre.
+
+### Triggers canónicos para apagar Bit 1 (irreversible)
+Solo dos eventos legítimos apagan Bit 1:
+
+1. **Pedido llega a estado CUMPLIDO** — `PATCH /pedidos/{id}` con `estado: CUMPLIDO`. Hook en `pedidos/router.py`.
+2. **Factura sellada con CAE real de AFIP** — `sellar_factura()` con `update_data.cae`. Hook en `facturacion/service.py`.
+
+### Triggers que NO apagan Bit 1
+- Promoción a cliente Gold (4 pilares): solo limpia Bit 20, no implica operación real.
+- Creación de remito de ingesta (Vanguard Canon): es un documento de entrada, no originado en el sistema.
+- Creación de remito manual: el pedido fantasma nace PENDIENTE — el operador lo marca CUMPLIDO conscientemente.
+
+### Pedido fantasma de remito manual
+El flujo de remito manual (`create_manual()`) crea un pedido fantasma con `estado="PENDIENTE"`. El operador lo marca CUMPLIDO desde la UI, activando el hook de virginidad en ese momento.
+
+---
+
+## Sección 31 — Atomicidad del flujo de Ingesta
+*Sellado: Sesión 808 — 2026-05-15*
+
+### Problema original
+`IngestaService.approve()` tenía dos commits separados:
+1. `RemitosService.create_from_ingestion()` → `db.commit()` interno
+2. `IngestaService.approve()` → segundo `db.commit()` para raw + FacturasProcesada
+
+Si el servidor crasheaba entre ambos commits, el raw quedaba en `RECIBIDO` con los registros downstream ya persistidos. Al reintentar: 409 por duplicado (Guard 1 detecta remito existente).
+
+### Solución implementada (808)
+- `create_from_ingestion()` ahora usa `db.flush()` — no commit. El caller es dueño del commit.
+- `IngestaService.approve()` es el único punto de commit del flujo completo.
+- Checkpoint: raw pasa a `PROCESANDO` antes de llamar a `create_from_ingestion()`.
+- En caso de excepción: raw pasa a `ERROR` (estado visible, no silencioso).
+- Endpoint deprecated `POST /ingesta-process` (usado por `IngestaFacturaView.vue`) recibió su propio `db.commit()` explícito.
+
+### Estados de audit_status
+| Estado | Significado |
+|---|---|
+| `RECIBIDO` | PDF subido, sin procesar |
+| `PROCESANDO` | En vuelo — si persiste, indica crash del servidor |
+| `PROCESADO` | Flujo exitoso completo |
+| `ERROR` | Falló después del checkpoint — revisar downstream |
+| `CUARENTENA` | Bloqueado manualmente por operador |

@@ -1,4 +1,51 @@
 
+## SESIÓN 808: DOCTRINA VIRGINIDAD + ATOMICIDAD INGESTA + UX FIXES (OF)
+**Fecha:** 2026-05-15
+**Locación:** OF
+**Objetivo:** Implementar Doctrina de Virginidad canónica. Fix UX PedidoCanvas. Fix Rosa AFIP bypass. Diagnosticar y corregir 409 ingesta. Atomicidad IngestaService.approve(). Sync D↔P.
+**Estado:** NOMINAL GOLD — PIN 1974 | Hash D: 513796bf | Hash P: 5865616
+
+### Hito 1: FIX UX PedidoCanvas
+* Botón "Guardar e Imprimir": `v-if="pedidosStore.ingestaData"` — oculto en flujo manual.
+* `wasIngesta` capturado antes de `clearIngestaData()` para evitar bug de evaluación tardía.
+* Post-guardado manual: reset de canvas (items, cliente, nroPedido, fechas, notas) + notificación "listo".
+* Post-guardado ingesta: redirección a PedidoList (comportamiento anterior conservado).
+
+### Hito 2: FIX Rosa / OPERATOR_OK bypass AFIP
+* `esOperatorOk = !!(flags_estado & 16)` evaluado en `savePedido()`.
+* Si activo: salta todo el bloque fiscal (sin borrador factura, sin remito puente).
+* Muestra warning al operador: "Cliente sin circuito AFIP — emitir remito manual si corresponde."
+
+### Hito 3: Doctrina de Virginidad — implementación canónica
+* **Removidos triggers incorrectos:**
+  - `clientes/service.py`: eliminada línea `~HAS_ACTIVITY` del bloque 4 pilares.
+  - `remitos/service.py` (Vanguard Canon): `mutation_flags = current_flags | target_base` (preserva Bit 1).
+* **Agregados triggers canónicos:**
+  - `pedidos/router.py`: hook en PATCH — si `estado == "CUMPLIDO"` y Bit 1 activo → apagarlo.
+  - `facturacion/service.py`: hook en `sellar_factura` — si `update_data.cae` → apagar Bit 1 del cliente.
+* **Ghost pedido:** `remitos/service.py` línea ~532: `estado="PENDIENTE"` (era "CUMPLIDO").
+* Commits: D `8e703914` / P `3690673` (cherry-pick con conflicto resuelto).
+
+### Hito 4: Diagnóstico 409 ingesta
+* Raw `80af6b8b` (Labme, 0001-00002535): `audit_status='RECIBIDO'` pero downstream ya existía.
+* Causa raíz: commit parcial previo — `create_from_ingestion` comiteó, segundo commit de `approve()` nunca corrió.
+* Reconciliación manual: `UPDATE ingesta_facturas_raw SET audit_status='PROCESADO'...` (PIN 1974).
+
+### Hito 5: Atomicidad IngestaService.approve()
+* Auditoría: 2 commits no atómicos con ventana de inconsistencia entre ellos.
+* `remitos/service.py`: `db.commit()` → `db.flush()` en cierre principal y path `solo_actualizar_cliente`.
+* `ingesta/service.py`: checkpoint `PROCESANDO` pre-vuelo, try/except con `ERROR` en fallo, único commit al final.
+* `remitos/router.py`: `db.commit()` explícito en endpoint deprecated `POST /ingesta-process`.
+* Commit: D `513796bf` / P `5865616`.
+
+### Hito 6: Sync D↔P
+* 4 cherry-picks a P en orden cronológico (807-808).
+* Conflicto en `_GY/_MD/` (burocracia): destagiado.
+* Conflicto en `clientes/service.py`: resuelto con versión D (IS_VIRGIN eliminado).
+* Push P: `d3173b2..5865616`.
+
+---
+
 ## SESIÓN 807: SILO DRIVE + PRICING ENGINE SOBERANO + PROTOCOLOS ALFA/OMEGA (OF)
 **Fecha:** 2026-05-14
 **Locación:** OF
