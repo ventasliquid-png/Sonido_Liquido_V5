@@ -245,7 +245,6 @@ class ClienteService:
         if has_4_pillars:
             current_flags = db_cliente.flags_estado or 0
             current_flags &= ~ClientFlags.PENDIENTE_REVISION  # Bit 20 OFF
-            current_flags &= ~ClientFlags.HAS_ACTIVITY        # Bit 1 OFF: Cliente SIN actividad tras validación
             current_flags |= ClientFlags.IS_ACTIVE            # Bit 0 ON
             db_cliente.flags_estado = current_flags
 

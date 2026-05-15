@@ -333,12 +333,11 @@ class RemitosService:
         
         current_flags = getattr(cliente, 'flags_estado', 0) or 0
         
-        # Base: Activo (1) | Arca (4) | V14 (8) -> Nivel 13
-        # Si ya operó, pierde HAS_ACTIVITY (Bit 1 apagado = LEVEL_HISTORY 13) (~2)
+        # Base: Activo (1) | Arca (4) | V14 (8) -> Nivel base
         target_base = ClientFlags.EXISTENCE | ClientFlags.GOLD_ARCA | ClientFlags.V14_STRUCT
-        
-        # Mutación Doctrinal: Forzar Nivel 13 (Apagar Bit 1)
-        mutation_flags = (current_flags | target_base) & ~ClientFlags.HAS_ACTIVITY
+
+        # Mutación Doctrinal: Forzar bits base (Bit 1 se preserva — solo se apaga en CUMPLIDO)
+        mutation_flags = current_flags | target_base
         
         # Sello de Revisión: Si falta Segmento o Lista de Precios, marcar PENDIENTE_REVISION (Bit 20)
         if not cliente.segmento_id or not cliente.lista_precios_id:
@@ -530,7 +529,7 @@ class RemitosService:
             cliente_id=cliente.id,
             fecha=datetime.now(),
             nota=payload.observaciones or "Generación Manual de Remito",
-            estado="CUMPLIDO", # Manual remitos are born fulfilled
+            estado="PENDIENTE",
             origen="MANUAL",
             domicilio_entrega_id=payload.domicilio_entrega_id,
             transporte_id=payload.transporte_id

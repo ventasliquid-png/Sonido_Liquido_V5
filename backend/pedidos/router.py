@@ -599,7 +599,15 @@ def update_pedido(
             pedido.total = round(raw_neto * 1.21, 2)
         else:
             pedido.total = round(raw_neto, 2)
-        
+
+    # Doctrina de Virginidad: primer CUMPLIDO → apagar Bit 1 del cliente (irreversible)
+    if status_changed and update_data.get("estado") == "CUMPLIDO":
+        from backend.clientes.constants import ClientFlags
+        cliente = pedido.cliente
+        if cliente and (cliente.flags_estado & ClientFlags.HAS_ACTIVITY):
+            cliente.flags_estado &= ~ClientFlags.HAS_ACTIVITY
+            db.add(cliente)
+
     db.commit()
     
     # [V5.9 GOLD] Auto-Sincronización con Facturas en Cuarentena/Borrador

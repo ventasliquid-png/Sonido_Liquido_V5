@@ -130,6 +130,12 @@ class FacturacionService:
         if update_data.cae:
             factura.cae = update_data.cae
             factura.estado = "AUTORIZADA_AFIP" # Pasa a estado firme
+
+            # Doctrina de Virginidad: CAE real registrado en AFIP → apagar Bit 1 del cliente (irreversible)
+            from backend.clientes.constants import ClientFlags
+            if factura.cliente and (factura.cliente.flags_estado & ClientFlags.HAS_ACTIVITY):
+                factura.cliente.flags_estado &= ~ClientFlags.HAS_ACTIVITY
+                db.add(factura.cliente)
         
         if update_data.cae_vencimiento:
             factura.cae_vencimiento = update_data.cae_vencimiento
