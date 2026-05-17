@@ -130,39 +130,32 @@ def get_virtual_price(producto_costos, cliente) -> dict:
         listas = calculate_lists(producto_costos.costo_reposicion, producto_costos.rentabilidad_target)
     
     # 2. Determinar Nivel de Lista (Hard Logic: Mapeo por Nombre)
-    nivel_lista = 3 # Default: Distribuidor (Seguro)
-    
+    nivel_lista = None  # None = no determinado — dispara STRICT si queda así
+
     # Priority 1: Direct Link via lista_precios_id (Manual Override)
     if cliente.lista_precios_id:
-        # Check if relation is loaded, if not, we trust the ID implies a specific override
-        # But for 'orden_calculo' we need the object. 
-        # If loaded:
         if cliente.lista_precios and hasattr(cliente.lista_precios, 'orden_calculo') and cliente.lista_precios.orden_calculo:
             nivel_lista = cliente.lista_precios.orden_calculo
-    
+
     # Priority 2: Segmento (Name-Based Mapping per User Order)
     elif cliente.segmento and hasattr(cliente.segmento, 'nombre'):
         seg_nombre = cliente.segmento.nombre.upper().strip()
-        
+
         # Mapeo Explícito V5 (Diccionario de Verdad)
         if "MAYORISTA" in seg_nombre:
             nivel_lista = 1
         elif "DISTRIBUIDOR" in seg_nombre:
-            nivel_lista = 3 
+            nivel_lista = 3
         elif "MINORISTA" in seg_nombre or "CONSUMIDOR" in seg_nombre:
             nivel_lista = 5
         elif "TIENDA" in seg_nombre:
             nivel_lista = 7
         else:
-             # Fallback: Distribuidor (Lista 3) o la más cercana segura
-             nivel_lista = 3
-    else:
-        # Fallback si no tiene segmento asignado
-        nivel_lista = 3
-    
+            nivel_lista = 3  # segmento presente pero sin match conocido — distribuidor
+
     # --- STRICT MODE ENFORCEMENT ---
-    # Si no se pudo determinar una lista (ni manual ni por segmento), DETENERSE.
-    if not nivel_lista:
+    # Sin lista_precios_id válida NI segmento válido → BLOQUEAR
+    if nivel_lista is None:
         # Retornamos estructura de error controlado o lanzamos excepción
         # Para evitar romper el flujo del frontend con 500, devolvemos 0 y una bandera.
         # O mejor, lanzamos excepción HTTP si este método se usa directo en endpoint.

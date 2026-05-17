@@ -601,7 +601,8 @@
                                 {{ isSaving ? 'Guardando...' : 'Guardar Pedido' }}
                              </button>
 
-                             <button @click="savePedido(true)" 
+                             <button v-if="pedidosStore.ingestaData"
+                                     @click="savePedido(true)"
                                      :disabled="isSaving || items.length === 0 || !clienteSeleccionado || !isOCValid"
                                      class="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:shadow-blue-500/20 transition-all flex items-center justify-center gap-2 uppercase tracking-wider text-xs"
                                      title="Guarda el pedido y abre el remito para imprimir">
@@ -819,6 +820,7 @@ const loadPedido = async (id) => {
         fechaPedido.value = p.fecha ? p.fecha.split('T')[0] : getLocalDate();
         notas.value = p.nota || '';
         nroOC.value = p.oc || '';
+        flagsEstadoPedido.value = p.flags_estado || 0;
         omitirOC.value = !!p.flags_estado && (p.flags_estado & 64) ? false : false; // Placeholder if we had oc_override in DB, but for now just load OC
         // TODO: Handle Order Status specifically if needed (locked state?)
 
@@ -888,6 +890,7 @@ const getLocalDate = () => {
 };
 
 const nroPedido = ref('---');
+const flagsEstadoPedido = ref(0);
 const fechaPedido = ref(getLocalDate());
 const fechaEntrega = ref('');
 const notas = ref('');
@@ -1170,6 +1173,7 @@ const descuentoGlobalValor = ref('');
 // [ARLEQUÍN V2] Bits de cliente
 const GOLD_ARCA   = 4;   // Bit 2 — formal, validado AFIP
 const OPERATOR_OK = 16;  // Bit 4 — sello Rosa, informal operativo
+const NO_FISCAL_FORCE = 4096;  // Bit 12 — pedido sin factura AFIP
 
 const clientValidation = computed(() => {
     if (!clienteSeleccionado.value) return { valid: true, missing: [] };
@@ -1337,12 +1341,29 @@ const saldoDeudor = computed(() => clienteSeleccionado.value?.saldo_actual || 0)
 // Sum of line totals (which already have line discounts deducted)
 const subtotal = computed(() => items.value.reduce((sum, item) => sum + item.total, 0));
 
+// Check if client is Rosa (informal, no fiscal)
+const isClientRosa = computed(() => {
+    if (!clienteSeleccionado.value) return false;
+    return (clienteSeleccionado.value.flags_estado & OPERATOR_OK) !== 0;
+});
+
+const isSinIVA = computed(() => {
+    // Si estamos editando un pedido existente, el Bit 12 (NO_FISCAL_FORCE) es el soberano absoluto
+    if (route.params.id) {
+        return (flagsEstadoPedido.value & NO_FISCAL_FORCE) !== 0;
+    }
+    // Si es un pedido nuevo, el backend asignará NO_FISCAL_FORCE automáticamente si el cliente es Rosa
+    return isClientRosa.value;
+});
+
 // Global Discount Calculation
 const totalFinal = computed(() => {
     const base = subtotal.value;
     const globalDesc = Number(descuentoGlobalValor.value) || 0;
     const taxable = Math.max(0, base - globalDesc);
-    return taxable * 1.21; // Assuming IVA is applied ON TOP of the net after global discount? Or is global discount gross? Usually Net.
+    // Pedidos sin IVA (Circuito Interno o Cliente Rosa nuevo)
+    const ivaMultiplier = isSinIVA.value ? 1 : 1.21;
+    return taxable * ivaMultiplier;
 });
 
 const hasNotes = computed(() => notas.value.trim().length > 0);
@@ -1447,11 +1468,16 @@ const selectProduct = async (prod) => {
         } catch (e) {
             console.error("[V5 Engine] Error cotizando:", e);
             const msg = e.response?.data?.detail || 'Error al cotizar precio';
-            notificationStore.add(msg, 'warning');
-            
-            // Fallback to basic price if it fails but we want to allow continue?
-            // User requested strict mode, so we keep 0 if it fails or use a generic one?
-            // For now, let's keep 0 to force user attention.
+            notificationStore.add(msg, 'error');
+
+            // STRICT_MODE_VIOLATION (409): Client missing segmento/lista_precios
+            // Block item addition completely — force operator to complete client first
+            if (e.response?.status === 409) {
+                notificationStore.add('⚠️ Cliente incompleto: Debe tener Segmento o Lista de Precios asignado', 'error');
+                return; // Abort item addition
+            }
+
+            // Other errors: show 0 to force user attention
             newItem.value.precio = 0;
         }
     } else {
@@ -1860,57 +1886,86 @@ const savePedido = async (andPrint = false) => {
             const pedidoCreado = await api.post('/pedidos/tactico', payload);
             const pedidoId = pedidoCreado.data.id;
 
-            const facturaRes = await api.post(`/facturacion/borrador/pedido/${pedidoId}`);
-            const facturaId = facturaRes.data.id;
-            console.log('[PedidoCanvas] Factura borrador creada:', facturaId);
+            // Capture wasIngesta BEFORE any document creation or clearing
+            const wasIngesta = !!pedidosStore.ingestaData;
 
-            if (pedidosStore.ingestaData) {
-                console.log('[PedidoCanvas] Detectada ingestaData en store:', pedidosStore.ingestaData);
-                const numeroFactura = pedidosStore.ingestaData.factura?.numero;
-                
-                if (numeroFactura) {
-                    console.log('[PedidoCanvas] Intentando sellar factura con número:', numeroFactura);
-                    // Soportar "00001-00002529" o "00001 - 00002529"
-                    const partes = numeroFactura.split(/[\s\-]+/);
-                    if (partes.length >= 2) {
-                        const payloadSellar = {
-                            punto_venta: parseInt(partes[0]),
-                            numero_comprobante: parseInt(partes[1]),
-                            cae: pedidosStore.ingestaData.factura.cae || null,
-                            cae_vencimiento: pedidosStore.ingestaData.factura.vto_cae || null
-                        };
-                        console.log('[PedidoCanvas] Enviando PATCH sellar:', payloadSellar);
-                        await api.patch(`/facturacion/${facturaId}/sellar`, payloadSellar);
-                        console.log('[PedidoCanvas] Factura sellada con éxito.');
+            // DOCTRINA: Rosa clients (OPERATOR_OK) do NOT generate factura/remito
+            const clienteRosa = isClientRosa.value;
+            let facturaId = null;
+            let remitoId = null;
+
+            if (!clienteRosa) {
+                // Only create fiscal documents for non-Rosa clients
+                const facturaRes = await api.post(`/facturacion/borrador/pedido/${pedidoId}`);
+                facturaId = facturaRes.data.id;
+                console.log('[PedidoCanvas] Factura borrador creada:', facturaId);
+
+                if (pedidosStore.ingestaData) {
+                    console.log('[PedidoCanvas] Detectada ingestaData en store:', pedidosStore.ingestaData);
+                    const numeroFactura = pedidosStore.ingestaData.factura?.numero;
+
+                    if (numeroFactura) {
+                        console.log('[PedidoCanvas] Intentando sellar factura con número:', numeroFactura);
+                        // Soportar "00001-00002529" o "00001 - 00002529"
+                        const partes = numeroFactura.split(/[\s\-]+/);
+                        if (partes.length >= 2) {
+                            const payloadSellar = {
+                                punto_venta: parseInt(partes[0]),
+                                numero_comprobante: parseInt(partes[1]),
+                                cae: pedidosStore.ingestaData.factura.cae || null,
+                                cae_vencimiento: pedidosStore.ingestaData.factura.vto_cae || null
+                            };
+                            console.log('[PedidoCanvas] Enviando PATCH sellar:', payloadSellar);
+                            await api.patch(`/facturacion/${facturaId}/sellar`, payloadSellar);
+                            console.log('[PedidoCanvas] Factura sellada con éxito.');
+                        } else {
+                            console.warn('[PedidoCanvas] Formato de número de factura no reconocido para sellar:', numeroFactura);
+                        }
                     } else {
-                        console.warn('[PedidoCanvas] Formato de número de factura no reconocido para sellar:', numeroFactura);
+                        console.warn('[PedidoCanvas] ingestaData existe pero no tiene factura.numero');
                     }
                 } else {
-                    console.warn('[PedidoCanvas] ingestaData existe pero no tiene factura.numero');
+                    console.log('[PedidoCanvas] No hay ingestaData en el store. Se omite sellado automático.');
+                }
+
+                console.log('[PedidoCanvas] Iniciando creación de remito puente para factura:', facturaId);
+                const remitoRes = await api.post(`/remitos/puente/desde_factura/${facturaId}`);
+                remitoId = remitoRes.data.id;
+                console.log('[PedidoCanvas] Remito puente creado con éxito:', remitoId);
+
+                if (shouldPrint && remitoId) {
+                    const pdfUrl = `/remitos/${remitoId}/pdf`;
+                    window.open(pdfUrl, '_blank');
                 }
             } else {
-                console.log('[PedidoCanvas] No hay ingestaData en el store. Se omite sellado automático.');
+                console.log('[PedidoCanvas] Cliente Rosa (informal): Sin factura/remito fiscal.');
+                if (shouldPrint) {
+                    notificationStore.add('Cliente informal: No genera documentos fiscales', 'info');
+                }
             }
 
-            console.log('[PedidoCanvas] Iniciando creación de remito puente para factura:', facturaId);
-            const remitoRes = await api.post(`/remitos/puente/desde_factura/${facturaId}`);
-            const remitoId = remitoRes.data.id;
-            console.log('[PedidoCanvas] Remito puente creado con éxito:', remitoId);
-            
-            if (shouldPrint && remitoId) {
-                const pdfUrl = `/remitos/${remitoId}/pdf`;
-                window.open(pdfUrl, '_blank');
-            }
-            
             // Limpiar flag de impresión automática e ingestaData
             pedidosStore.setAutoPrint(false);
             pedidosStore.clearIngestaData();
+
+            // DOCTRINA:
+            // - Si wasIngesta=true: pedido creado desde ingesta → redirect a PedidoList
+            // - Si wasIngesta=false: pedido creado manualmente → reset canvas
+            if (wasIngesta) {
+                // Redirect to list
+                setTimeout(() => {
+                    router.push({ name: 'PedidoList' });
+                }, 1000);
+            } else {
+                // Reset canvas para entrada manual siguiente
+                notificationStore.add('Pedido guardado. Canvas resetado.', 'success');
+                resetPedido();
+            }
+        } else {
+            // No ingesta flow (manual entry only)
+            notificationStore.add('Pedido guardado. Canvas resetado.', 'success');
+            resetPedido();
         }
-        
-        // Reset or Redirect
-        setTimeout(() => {
-             router.push({ name: 'PedidoList' });
-        }, 1000);
 
     } catch (e) {
         console.error(e);

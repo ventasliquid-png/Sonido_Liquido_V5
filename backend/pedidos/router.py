@@ -182,7 +182,11 @@ def create_pedido_tactico(
         # Sincronización con Doctrina Táctica v5.6:
         # PENDIENTE/PRESUPUESTO FISCAL (A o B) -> +21% IVA
         # Si es INTERNO o modo 'X', no aplica IVA.
-        apply_iva = nuevo_pedido.estado in ["PENDIENTE", "PRESUPUESTO"] and nuevo_pedido.tipo_facturacion in ["A", "B", "FISCAL"]
+        apply_iva = (
+            nuevo_pedido.estado in ["PENDIENTE", "PRESUPUESTO"]
+            and nuevo_pedido.tipo_facturacion in ["A", "B", "FISCAL"]
+            and not (nuevo_pedido.flags_estado & PF.NO_FISCAL_FORCE)
+        )
         
         if apply_iva:
             nuevo_pedido.total = round(raw_neto * 1.21, 2)
@@ -589,7 +593,10 @@ def update_pedido(
     
     if status_changed or type_changed or discounts_changed or items_changed:
         # Recalcular Total según Doctrina Táctica v5.6
-        apply_iva = pedido.tipo_facturacion in ["A", "B", "FISCAL", "M"]
+        apply_iva = (
+            pedido.tipo_facturacion in ["A", "B", "FISCAL", "M"]
+            and not (pedido.flags_estado & PedidoFlags.NO_FISCAL_FORCE)
+        )
         
         # [GY-FIX] Recalcular Total sumando directamente de la DB para evitar stale reads de la relación
         items_neto = db.query(func.sum(models.PedidoItem.subtotal)).filter(models.PedidoItem.pedido_id == pedido_id).scalar() or 0.0
@@ -695,7 +702,7 @@ def add_pedido_item(
     
     # Update Total (Recalculate with IVA logic)
     raw_neto = sum(i.subtotal for i in pedido.items) - (pedido.descuento_global_importe or 0.0)
-    if pedido.tipo_facturacion in ["A", "B", "FISCAL", "M"]:
+    if pedido.tipo_facturacion in ["A", "B", "FISCAL", "M"] and not (pedido.flags_estado & PedidoFlags.NO_FISCAL_FORCE):
         pedido.total = round(raw_neto * 1.21, 2)
     else:
         pedido.total = round(raw_neto, 2)
@@ -750,13 +757,13 @@ def update_pedido_item(
     db.flush() # Save item change first
     
     raw_neto = sum(i.subtotal for i in pedido.items) - (pedido.descuento_global_importe or 0)
-    if pedido.tipo_facturacion in ["A", "B", "FISCAL", "M"]:
+    if pedido.tipo_facturacion in ["A", "B", "FISCAL", "M"] and not (pedido.flags_estado & PedidoFlags.NO_FISCAL_FORCE):
         pedido.total = round(raw_neto * 1.21, 2)
     else:
         pedido.total = round(raw_neto, 2)
-    
+
     db.commit()
-    
+
     # Refresh to return full PedidoResponse
     return (
         db.query(models.Pedido)
@@ -792,7 +799,7 @@ def delete_pedido_item(item_id: int, db: Session = Depends(get_db)):
     
     # Recalculate total with IVA logic
     raw_neto = sum(i.subtotal for i in pedido.items) - (pedido.descuento_global_importe or 0.0)
-    if pedido.tipo_facturacion in ["A", "B", "FISCAL", "M"]:
+    if pedido.tipo_facturacion in ["A", "B", "FISCAL", "M"] and not (pedido.flags_estado & PedidoFlags.NO_FISCAL_FORCE):
         pedido.total = round(raw_neto * 1.21, 2)
     else:
         pedido.total = round(raw_neto, 2)
@@ -865,6 +872,12 @@ def delete_pedido(pedido_id: int, db: Session = Depends(get_db)):
     Eliminación física de un pedido (Sólo Admin/Corrección).
     Elimina también los items en cascada.
     """
+    pedido = (
+        db.query(models.Pedido)
+        .options(joinedload(models.Pedido.items).joinedload(models.PedidoItem.producto))
+        .filter(models.Pedido.id == pedido_id)
+        .first()
+    )
     if not pedido:
         raise HTTPException(status_code=404, detail="Pedido no encontrado")
     
