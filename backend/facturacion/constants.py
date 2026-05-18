@@ -4,7 +4,7 @@
 class FacturaFlags:
     # Bits 0-14: Canon base
     EXISTENCE       = 1 << 0   # 1
-    HAS_ACTIVITY    = 1 << 1   # 2 — virgen(1)/tocado(0)
+    IS_VIRGIN       = 1 << 1   # 2 — virgen(1)/tocado(0)
     HAS_REMITO      = 1 << 2   # 4
     ACTIVE          = 1 << 3   # 8 — no anulada
     
