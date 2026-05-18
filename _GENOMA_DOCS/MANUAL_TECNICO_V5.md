@@ -1,6 +1,26 @@
 # 📘 MANUAL TÉCNICO V5: "INDEPENDENCIA"
-**Versión:** 1.8 Release (Updated Arlequín V2 + GENOMA_UNIVERSAL — Nike 806)
-**Fecha:** 2026-05-13
+**Versión:** 1.9 Release (Updated Motor Bipolar + IS_VIRGIN + Roseti 1482 — Nike 809)
+**Fecha:** 2026-05-18
+
+## 29. MOTOR BIPOLAR + IS_VIRGIN + ROSETI 1482 — DOCTRINA 809 (2026-05-18)
+
+### 29.1 Motor Bipolar — Bit 12 Soberano para IVA
+Canonizado sesión 809. El circuito IVA es controlado exclusivamente por el **Bit 12 (NO_FISCAL_FORCE = 4096) del PEDIDO**.
+- `isSinIVA = !!(pedido.flags_estado & 4096)` → soberano para cálculo de totalFinal y documentos fiscales.
+- `isClientRosa` (Bit 4 del cliente) → exclusivo para restricciones operativas (sin factura borrador, sin remito puente).
+- Rosa SIEMPRE tiene Bit 12=1, pero el motor mira el pedido, no el cliente.
+
+### 29.2 IS_VIRGIN — Bit 1 (Semántica Corregida)
+- `IS_VIRGIN = 2` (Bit 1): **1 = Virgen** (borrado físico permitido) / **0 = Tocado** (bloqueado).
+- Guard en `hard_delete_cliente`: `if not (current_flags & ClientFlags.IS_VIRGIN)` → bloquea tocados.
+- Se apaga (→0) solo en: CUMPLIDO en `pedidos/router.py` o CAE en `facturacion/service.py`.
+- Constante renombrada de `HAS_ACTIVITY → IS_VIRGIN` en 15 archivos (sesión 809).
+
+### 29.3 Roseti 1482 — Domicilio Plantilla Rosa
+- ID canónico: `59b01b5a-e81a-4e2a-b496-9d65fef9262b`
+- Constante: `DOMICILIO_ROSETI_ID` en `backend/clientes/constants.py`.
+- Lógica: `ClienteService._ensure_domicilio_rosa()` — si cliente Rosa sin domicilios → vincula automáticamente vía `domicilios_clientes`.
+- Arquitectura: domicilios usa N:M (`domicilios_clientes`). Campo `cliente_id` en `Domicilio` es DEPRECATED.
 
 ## 28. NORMALIZACIÓN DE INFRAESTRUCTURA — SOBERANÍA TOMY (2026-05-11)
 

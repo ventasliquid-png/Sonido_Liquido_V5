@@ -1,7 +1,19 @@
 # MANUAL OPERATIVO V5 - SONIDO LÍQUIDO
-**Versión del Documento:** 1.3 (Updated Arlequín V2 — Nike 806, 2026-05-13)
+**Versión del Documento:** 1.4 (Updated Motor Bipolar — Nike 809, 2026-05-18)
 **Estado:** VIGENTE
 **Código de Doctrina:** DEOU-2025
+
+---
+
+### ⚠️ MOTOR BIPOLAR — IVA Y CIRCUITO FISCAL (Doctrina 809)
+El cálculo de IVA en pedidos responde al **Bit 12 (NO_FISCAL_FORCE)** del pedido, no al tipo de cliente.
+
+| Bit 12 pedido | Circuito | Comportamiento |
+|---|---|---|
+| 0 (apagado) | OFICIAL / con AFIP | Aplica 21% IVA, genera factura borrador, genera remito puente |
+| 1 (encendido) | INTERNO / sin AFIP | Sin IVA, sin documentos fiscales, emitir remito manual |
+
+**Cliente Rosa** (OPERATOR_OK, Bit 4): siempre opera en circuito interno. El sistema vincula automáticamente el domicilio de entrega Roseti 1482 si no tiene domicilio propio.
 
 ---
 

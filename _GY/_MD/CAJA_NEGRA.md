@@ -1,5 +1,21 @@
 
-Sesión actual: 808
+Sesión actual: 809
+
+# CAJA NEGRA: Auditoría Cruzada IS_VIRGIN + Motor Bipolar + Roseti 1482 (2026-05-18)
+
+Sesión CA 2026-05-18 (809). Hash D: 4010b655. Estado: NOMINAL GOLD (OMEGA pendiente 810).
+Auditoría cruzada Opus 4.7 + Antigravity Pro en serie — hallazgos convergentes confirman bugs reales.
+IS_VIRGIN rename global: HAS_ACTIVITY → IS_VIRGIN en 15 archivos (clientes, pedidos, facturacion, ingesta, productos, remitos). Guard hard_delete invertido: if not (current_flags & IS_VIRGIN) — bloquea tocados, permite vírgenes.
+Motor Bipolar canonizado: Bit 12 (NO_FISCAL_FORCE) del PEDIDO soberano para IVA. isClientRosa (Bit 4) solo para restricciones operativas. Fixes PedidoCanvas: isSinIVA Bit 12, wasIngesta pre-clear, Guardar e Imprimir condicional, 409 early return.
+nivel_id huérfano eliminado ClientCanvas.vue:1557 — reemplazado por lógica CUIT genérico.
+Roseti 1482 creado como domicilio plantilla (ID: 59b01b5a). DOMICILIO_ROSETI_ID en constants.py. _ensure_domicilio_rosa() en create/update cliente Rosa.
+Deprecación documentada: campo cliente_id legacy en models.py Domicilio.
+Fixes backend pedidos: C1 delete_pedido NameError, C3 NO_FISCAL_FORCE IVA 5 puntos, C5 STRICT_MODE_VIOLATION nivel_lista=None.
+3 commits D: c2372d5a, bb5576c9, 4010b655. Push origin/main confirmado.
+
+**Agente:** Claude Code Sonnet 4.6 + Opus 4.7 (auditor) + Antigravity Pro (auditor) + Nike Arq 5.5 — Hash D: 4010b655
+
+---
 
 # CAJA NEGRA: Doctrina Virginidad + Atomicidad Ingesta + Sync D↔P (2026-05-15)
 

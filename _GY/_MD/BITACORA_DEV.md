@@ -1,4 +1,46 @@
 
+## SESIÓN 809: AUDITORÍA CRUZADA + IS_VIRGIN GLOBAL + MOTOR BIPOLAR + ROSETI 1482 (CA)
+**Fecha:** 2026-05-18
+**Locación:** CA
+**Objetivo:** Auditoría cruzada Opus/Antigravity pedidos y clientes. IS_VIRGIN rename global. Canonizar Motor Bipolar Bit 12. Implementar Roseti 1482 para clientes Rosa.
+**Estado:** NOMINAL GOLD (OMEGA pendiente 810) — PIN 1974 | Hash D: 4010b655
+
+### Hito 1: Fixes Backend Pedidos (Opus — C1/C3/C5)
+* C1: `delete_pedido` — variable `pedido` no definida → NameError/500. Fix: query con eager load.
+* C3: `NO_FISCAL_FORCE` ignorado en cálculo IVA — 5 puntos en router.py corregidos con bitwise.
+* C5: `STRICT_MODE_VIOLATION` inalcanzable — `nivel_lista=3` era default antes del check. Fix: `nivel_lista=None`.
+
+### Hito 2: Fixes Frontend PedidoCanvas (C1-C5)
+* C1: `totalFinal` — `isSinIVA` basado en Bit 12 del pedido (soberano), no en `isClientRosa`.
+* C2: Factura borrador + remito puente solo si `!clienteRosa`.
+* C3: `wasIngesta` capturado antes de `clearIngestaData()` — bifurcación ingesta/manual.
+* C4: "Guardar e Imprimir" con `v-if="pedidosStore.ingestaData"`.
+* C5: 409 STRICT_MODE_VIOLATION → early return en catch, bloquea adición de item.
+
+### Hito 3: Motor Bipolar — canonización doctrinaria
+* Bit 12 (NO_FISCAL_FORCE=4096) del PEDIDO soberano para IVA.
+* `isClientRosa` (Bit 4) exclusivo para restricciones operativas (documentos fiscales).
+* Rosa SIEMPRE tiene Bit 12=1, pero el cálculo mira el pedido, no el cliente.
+
+### Hito 4: IS_VIRGIN rename global
+* `HAS_ACTIVITY → IS_VIRGIN` en 15 archivos. Cero ocurrencias residuales.
+* Guard `hard_delete_cliente` invertido: `if not (current_flags & IS_VIRGIN)`.
+* Semántica corregida: Bit 1=1 virgen/borrable, Bit 1=0 tocado/bloqueado.
+* `nivel_id` huérfano eliminado en ClientCanvas.vue:1557.
+
+### Hito 5: Roseti 1482 — domicilio plantilla Rosa
+* Domicilio `ROSETI 1482 CABA` creado en pilot_v5x.db (ID: `59b01b5a...`).
+* Constante `DOMICILIO_ROSETI_ID` en `backend/clientes/constants.py`.
+* `ClienteService._ensure_domicilio_rosa()` vincula automáticamente via `domicilios_clientes` al crear/actualizar cliente Rosa sin domicilios.
+* Deprecación documentada: `cliente_id` legacy en `Domicilio` model.
+
+### Commits
+* `c2372d5a`: fixes pedidos C1/C3/C5 backend + C1-C5 frontend + isSinIVA Motor Bipolar.
+* `bb5576c9`: IS_VIRGIN rename global + guard invertido + Roseti 1482 + isGeneric fix.
+* `4010b655`: IS_VIRGIN rename `facturacion/constants.py` — cobertura global.
+
+---
+
 ## SESIÓN 808: DOCTRINA VIRGINIDAD + ATOMICIDAD INGESTA + UX FIXES (OF)
 **Fecha:** 2026-05-15
 **Locación:** OF
