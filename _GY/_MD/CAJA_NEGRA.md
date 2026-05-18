@@ -1,5 +1,20 @@
 
-Sesión actual: 809
+Sesión actual: 810
+
+# CAJA NEGRA: FIX C4 ClientCanvas + IVA Rosa + Navegación + Bit 4 Migración (2026-05-18)
+
+Sesión OF 2026-05-18 (810). Hash D: ff77a309. Hash P: 3e060bb. Estado: NOMINAL GOLD.
+FIX C4 ClientCanvas.vue: has4Pillars bifurcado — Rosa valida es_entrega, Gold valida es_fiscal. Eliminado currentFlags &= ~2 (violación doctrina IS_VIRGIN desde frontend).
+Syntax error Vite PedidoCanvas: bloque else espurio en savePedido (línea ~1306) eliminado. Vite arranca sin errores.
+IVA Rosa: selectProduct divide precio /1.21 cuando isSinIVA && origen === 'LISTA_5'. Template v-if="!isSinIVA" oculta sección IVA para informales.
+Reset post-save: resetPedido(skipConfirm=true) — sin confirm() espurio tras guardar.
+Navegación corregida: PedidoList.vue (2x) y PedidoInspector.vue (2x) — ruta muerta /hawe/tactico reemplazada por named routes PedidoCanvas / PedidoEditar.
+Migración Bit 4 (PIN 1974): _audit_sovereignty() gap documentado (requiere segmento_id). UPDATE manual V5_LS_MASTER.db: 4 clientes Rosa confirmados. Sync pilot_v5x.db: 2 nuevas + Ana Robles ya tenía.
+2 commits D: bf406415, ff77a309. 2 cherry-picks P: 5adf6f4, 3e060bb. Push confirmado en ambos.
+
+**Agente:** Claude Code Sonnet 4.6 — Hash D: ff77a309 / Hash P: 3e060bb
+
+---
 
 # CAJA NEGRA: Auditoría Cruzada IS_VIRGIN + Motor Bipolar + Roseti 1482 (2026-05-18)
 

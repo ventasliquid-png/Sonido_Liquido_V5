@@ -1,4 +1,34 @@
 
+## SESIÓN 810: FIX C4 ClientCanvas + IVA Rosa + Navegación PedidoCanvas (OF)
+**Fecha:** 2026-05-18
+**Locación:** OF
+**Objetivo:** FIX C4 has4Pillars virginidad + bifurcación domicilio Gold/Rosa. Fix IVA Rosa PedidoCanvas. Fix syntax error Vite. Fix navegación Nuevo/Edit. Migración Bit 4 clientes Rosa en D y P.
+**Estado:** NOMINAL GOLD — PIN 1974 | Hash D: ff77a309 | Hash P: 3e060bb
+
+### Hito 1: FIX C4 — ClientCanvas + Doctrina Virginidad
+* `has4Pillars` bifurcado: domicilio `es_entrega` para Rosa, `es_fiscal` para Gold.
+* Eliminada línea `currentFlags &= ~2` — violación doctrina virginidad. IS_VIRGIN solo lo apaga el backend en CUMPLIDO o CAE real.
+* Commit: `bf406415` (D) / `5adf6f4` (P)
+
+### Hito 2: FIX PedidoCanvas — IVA Rosa + Syntax + Navegación
+* Syntax error Vite (`Unexpected token 1306:10`): eliminado bloque `else {}` espurio en `savePedido` que intentaba colgar como tercer else de un if/else ya cerrado.
+* IVA Rosa: `selectProduct` divide `/1.21` cuando `isSinIVA && origen === 'LISTA_5'`. Template `v-if="!isSinIVA"` oculta bloque IVA pie de pantalla para clientes informales.
+* Reset post-save: `resetPedido(skipConfirm=true)` — elimina `confirm()` espurio que disparaba porque items aún estaban en memoria al momento del reset.
+* Navegación "Nuevo": 2 ocurrencias ruta muerta `/hawe/tactico` en `PedidoList.vue` → `{ name: 'PedidoCanvas' }`.
+* Navegación edición: 2 ocurrencias `/hawe/tactico?edit=` en `PedidoInspector.vue` → `{ name: 'PedidoEditar', params: { id } }`.
+* Commit: `ff77a309` (D) / `3e060bb` (P)
+
+### Hito 3: Migración Bit 4 — Clientes Rosa D y P
+* Diagnóstico: `_audit_sovereignty()` línea 346 solo infiere Bit 4 si `has_segmento AND not has_real_cuit`. Clientes creados sin `segmento_id` no reciben sello automático.
+* UPDATE con PIN 1974 en `V5_LS_MASTER.db`: ANA ROBLES, Cecilia Pascual, LUISA PISCITELLI, Pao Tandil → `flags_estado |= 16`. 4/4 confirmadas.
+* Sincronizado en `pilot_v5x.db` (D): Cecilia Pascual y LUISA PISCITELLI (nuevas); Ana Robles ya tenía Bit 4 desde el inicio de sesión.
+
+### Commits
+* `bf406415` (D) / `5adf6f4` (P): FIX C4 ClientCanvas + virginidad + domicilio bifurcado Gold/Rosa
+* `ff77a309` (D) / `3e060bb` (P): FIX PedidoCanvas syntax + IVA Rosa + reset + navegación
+
+---
+
 ## SESIÓN 809: AUDITORÍA CRUZADA + IS_VIRGIN GLOBAL + MOTOR BIPOLAR + ROSETI 1482 (CA)
 **Fecha:** 2026-05-18
 **Locación:** CA

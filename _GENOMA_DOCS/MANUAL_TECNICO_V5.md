@@ -1,6 +1,37 @@
 # 📘 MANUAL TÉCNICO V5: "INDEPENDENCIA"
-**Versión:** 1.9 Release (Updated Motor Bipolar + IS_VIRGIN + Roseti 1482 — Nike 809)
+**Versión:** 2.0 Release (Updated Fixes IVA Rosa + Virginidad Frontend + Navegación — 810)
 **Fecha:** 2026-05-18
+
+## 30. FIXES IVA ROSA + VIRGINIDAD FRONTEND + NAVEGACIÓN — SESIÓN 810 (2026-05-18)
+
+### 30.1 ClientCanvas — `has4Pillars` bifurcado (FIX C4)
+La validación de domicilio para alcanzar SOBERANÍA usa lógica diferenciada por color:
+- **Rosa** (`flags & 16`): valida `es_entrega && calle.length > 2`. No requiere fiscal.
+- **Gold/Blanco**: valida `es_fiscal && calle.length > 2`.
+
+La línea `currentFlags &= ~2` fue **eliminada** de `ClientCanvas.vue`. IS_VIRGIN (Bit 1) es INTOCABLE desde el frontend — solo el backend lo apaga en CUMPLIDO o CAE real.
+
+### 30.2 `_audit_sovereignty()` — Gap documentado
+La inferencia automática de Bit 4 (Rosa) **requiere `segmento_id IS NOT NULL`** (línea 346, `backend/clientes/service.py`). Clientes creados sin segmento asignado no reciben el sello automático. Corrección: UPDATE manual con PIN 1974 + `flags_estado |= 16`. Deuda técnica pendiente: agregar rama alternativa.
+
+### 30.3 PedidoCanvas — Stripping IVA Lista 5 para Rosa
+La cascada de precios devuelve `Lista 5 = Lista_4 × 1.21` para clientes MINORISTA. El frontend corrige en `selectProduct`:
+```javascript
+if (isSinIVA.value && res.origen === 'LISTA_5') {
+    precioFinal = precioFinal / 1.21;
+}
+```
+El bloque IVA en el template usa `v-if="!isSinIVA"` — invisible para clientes informales.
+
+### 30.4 Navegación — Named Routes obligatorias
+Las vistas de pedidos usan **named routes** para navegación interna. Rutas literales como `/hawe/tactico` están **deprecadas y rotas** (sin entrada en el router).
+
+| Destino | Named route |
+|---|---|
+| Canvas nuevo pedido | `{ name: 'PedidoCanvas' }` |
+| Editar pedido existente | `{ name: 'PedidoEditar', params: { id } }` |
+
+---
 
 ## 29. MOTOR BIPOLAR + IS_VIRGIN + ROSETI 1482 — DOCTRINA 809 (2026-05-18)
 

@@ -1,5 +1,5 @@
 # MANUAL OPERATIVO V5 - SONIDO LÍQUIDO
-**Versión del Documento:** 1.4 (Updated Motor Bipolar — Nike 809, 2026-05-18)
+**Versión del Documento:** 1.5 (Updated IVA Rosa + _audit_sovereignty gap — 810, 2026-05-18)
 **Estado:** VIGENTE
 **Código de Doctrina:** DEOU-2025
 
@@ -60,7 +60,7 @@ Para modificar un pedido ya creado, abrirlo desde la lista y hacer clic en Edita
 ### Clientes Rosa / Sin CUIT — Doctrina Arlequín V2 (v5.9 → 806)
 Clientes informales (**sello Rosa**, Bit 4 encendido) aparecen como **AUDITADO** (verde) en el selector de pedidos aunque no tengan CUIT ni domicilio fiscal. El sistema los reconoce automáticamente por su Bit 4 (`OPERATOR_OK`) y no bloquea la operación.
 
-El sello Rosa se infiere automáticamente si el cliente tiene segmento asignado pero carece de CUIT real. Al crear un pedido para un cliente Rosa, el sistema activa automáticamente el circuito **INTERNO** (sin IVA).
+El sello Rosa se infiere automáticamente si el cliente tiene segmento asignado pero carece de CUIT real. **Excepción:** si el cliente fue creado sin segmento, la inferencia no dispara — el operador debe notificarlo para asignación manual del sello (requiere acceso técnico con PIN 1974). Al crear un pedido para un cliente Rosa, el sistema activa automáticamente el circuito **INTERNO** (sin IVA) y muestra precios netos.
 
 **Consumidor Final / MOSTRADOR:** El CUIT `00000000000` está reservado exclusivamente para el cliente MOSTRADOR/GENÉRICO. El sistema bloquea cualquier intento de asignarlo a otro cliente.
 
