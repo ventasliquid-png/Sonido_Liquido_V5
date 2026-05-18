@@ -1575,11 +1575,14 @@ const saveCliente = async () => {
         // 4 Pilares de Integridad de Carga: Nombre + Domicilio + Lista + Segmento
         // Si el operador los cargo, el cliente es Veterano de Facto.
         // Accion: Bit 20 OFF (Quitar Amarillo) + Bit 1 OFF (Promotion 15->13: Quitar Virginidad)
-        const hasDomicilioFiscal = domicilios.value.some(d => d.es_fiscal && (d.calle || '').trim().length > 2);
-        const has4Pillars = payload.razon_social && payload.lista_precios_id && payload.segmento_id && hasDomicilioFiscal;
+        const isRosa = (currentFlags & 16) !== 0;
+        const hasDomicilioValido = isRosa
+            ? domicilios.value.some(d => d.es_entrega && (d.calle || '').trim().length > 2)
+            : domicilios.value.some(d => d.es_fiscal && (d.calle || '').trim().length > 2);
+        const has4Pillars = payload.razon_social && payload.lista_precios_id &&
+                            payload.segmento_id && hasDomicilioValido;
         if (has4Pillars) {
             currentFlags |= 1048576;  // Bit 20 ON: SOBERANÍA (Éxito)
-            currentFlags &= ~2;       // Bit 1 OFF: Quitar IS_VIRGIN (Promotion 15->13)
             currentFlags |= 1;        // Bit 0 ON: Asegurar IS_ACTIVE
         } else if (payload.lista_precios_id && payload.segmento_id) {
             // [GY-UX] Promoción Parcial: Si tiene lo básico, intentamos soberanía
