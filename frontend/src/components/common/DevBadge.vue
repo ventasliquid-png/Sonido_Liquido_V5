@@ -1,18 +1,14 @@
 <template>
-  <div v-if="isDev" class="dev-badge-container">
-    <div class="dev-badge">
-      MODO DESARROLLO [D]
+  <div v-if="appEnv" class="dev-badge-container">
+    <div class="dev-badge" :class="appEnv">
+      MODO {{ appEnv === 'desarrollo' ? 'DESARROLLO [D]' : 'PRODUCCION [P]' }}
     </div>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue';
-
-const isDev = computed(() => {
-  // Se muestra si el host es localhost o si la versión indica desarrollo
-  return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-});
+const appEnv = computed(() => import.meta.env.VITE_APP_ENV || null);
 </script>
 
 <style scoped>
@@ -23,9 +19,7 @@ const isDev = computed(() => {
   z-index: 10000;
   pointer-events: none;
 }
-
 .dev-badge {
-  background: #ff8c00; /* Naranja fuerte */
   color: white;
   text-align: center;
   font-weight: bold;
@@ -38,4 +32,6 @@ const isDev = computed(() => {
   border: 1px solid rgba(255,255,255,0.3);
   pointer-events: auto;
 }
+.dev-badge.desarrollo { background: #ff8c00; }
+.dev-badge.produccion { background: #7c3aed; }
 </style>

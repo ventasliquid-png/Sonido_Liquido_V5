@@ -76,7 +76,7 @@
 
               <!-- New Order Button -->
               <button 
-                  @click="router.push('/hawe/tactico')"
+                  @click="router.push({ name: 'PedidoCanvas' })"
                   class="ml-2 flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-1.5 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 transition-all hover:bg-emerald-500 hover:shadow-emerald-500/40"
                   title="Nuevo Pedido (F4)"
               >
@@ -653,7 +653,7 @@ onUnmounted(() => {
 const handleGlobalKeydown = (e) => {
     if (e.key === 'F4') {
         e.preventDefault()
-        router.push('/hawe/tactico')
+        router.push({ name: 'PedidoCanvas' })
     }
 }
 

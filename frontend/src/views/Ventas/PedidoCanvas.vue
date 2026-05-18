@@ -579,7 +579,7 @@
                         </div>
                     </div>
 
-                    <div class="text-right">
+                    <div v-if="!isSinIVA" class="text-right">
                         <div class="text-[10px] font-bold uppercase tracking-widest text-gray-500">IVA (21%)</div>
                         <div class="font-mono text-gray-300">$ {{ ((subtotal - descuentoGlobalValor) * 0.21).toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</div>
                     </div>
@@ -1462,9 +1462,15 @@ const selectProduct = async (prod) => {
                 producto_id: prod.id,
                 cantidad: newItem.value.cantidad || 1
             });
-            newItem.value.precio = res.precio_final_sugerido;
+            // Para clientes Rosa (sin IVA): si el motor devolvió Lista 5 (= Lista4 × 1.21),
+            // revertir al precio neto. El motor no diferencia Rosa/Gold en la cascada.
+            let precioFinal = res.precio_final_sugerido;
+            if (isSinIVA.value && res.origen === 'LISTA_5') {
+                precioFinal = precioFinal / 1.21;
+            }
+            newItem.value.precio = precioFinal;
             newItem.value._debug_cotizacion = res.debug;
-            console.log(`[V5 Engine] Cotización: ${res.origen} -> $${res.precio_final_sugerido}`);
+            console.log(`[V5 Engine] Cotización: ${res.origen} -> $${res.precio_final_sugerido} (neto: $${precioFinal})`);
         } catch (e) {
             console.error("[V5 Engine] Error cotizando:", e);
             const msg = e.response?.data?.detail || 'Error al cotizar precio';
@@ -1784,8 +1790,8 @@ const handleGlobalKeys = (e) => {
     }
 };
 
-const resetPedido = async () => {
-    if (items.value.length > 0) {
+const resetPedido = async (skipConfirm = false) => {
+    if (!skipConfirm && items.value.length > 0) {
         if (!confirm('¿Descartar pedido actual y comenzar uno nuevo?')) return;
     }
     
@@ -1959,12 +1965,8 @@ const savePedido = async (andPrint = false) => {
             } else {
                 // Reset canvas para entrada manual siguiente
                 notificationStore.add('Pedido guardado. Canvas resetado.', 'success');
-                resetPedido();
+                resetPedido(true);
             }
-        } else {
-            // No ingesta flow (manual entry only)
-            notificationStore.add('Pedido guardado. Canvas resetado.', 'success');
-            resetPedido();
         }
 
     } catch (e) {

@@ -765,14 +765,14 @@ const deleteItem = async (itemId) => {
 
 const editInGrid = () => {
     router.push({
-        path: '/hawe/tactico',
-        query: { edit: props.modelValue.id }
+        name: 'PedidoEditar',
+        params: { id: props.modelValue.id }
     })
 }
 
 const handleClientRightClick = () => {
     if (props.modelValue.cliente_id) {
-        const returnUrl = `/hawe/tactico?edit=${props.modelValue.id}`
+        const returnUrl = `/hawe/pedidos/editar/${props.modelValue.id}`
         router.push({ 
             name: 'HaweClientCanvas', 
             params: { id: props.modelValue.cliente_id },
