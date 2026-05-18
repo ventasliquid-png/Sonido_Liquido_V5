@@ -64,7 +64,7 @@ class FacturasProcesadas(Base):
     estado = Column(String, default="PREVIEW")
     
     # Genoma 64 bits (Nike Arq 5.5)
-    # Bit 0 = EXISTENCE, Bit 1 = HAS_ACTIVITY, Bit 2 = TIENE_NC, Bit 6 = RAW_CON_PROBLEMAS...
+    # Bit 0 = EXISTENCE, Bit 1 = IS_VIRGIN, Bit 2 = TIENE_NC, Bit 6 = RAW_CON_PROBLEMAS...
     flags_estado = Column(BigInteger, nullable=False, default=1)
     
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

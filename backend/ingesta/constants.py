@@ -8,7 +8,7 @@ class IngestaFlags:
 
     # --- GENOMA PRC (ingesta_facturas_procesadas.flags_estado) ---
     EXISTENCE           = 1 << 0   # 1
-    HAS_ACTIVITY        = 1 << 1   # 2
+    IS_VIRGIN           = 1 << 1   # 2 — virgen(1)/tocado(0)
     TIENE_NC            = 1 << 2   # 4
     TIENE_ND            = 1 << 3   # 8
     AUDITADA            = 1 << 4   # 16

@@ -119,6 +119,10 @@ class ClienteService:
                  db_vinculo = VinculoComercial(**vinc_data)
                  db.add(db_vinculo)
 
+            # [DOCTRINA ROSA] Si es Rosa (Bit 4 = OPERATOR_OK), asegurar vinculación con Roseti 1482
+            if (db_cliente.flags_estado or 0) & ClientFlags.OPERATOR_OK:
+                ClienteService._ensure_domicilio_rosa(db_cliente.id, db)
+
             db.commit()
             db.refresh(db_cliente)
             return db_cliente
@@ -272,10 +276,37 @@ class ClienteService:
         # [GY-DOCTRINA-V14] ESCUDO DOBLE (Audit Optimized)
         ClienteService._audit_sovereignty(db_cliente)
 
+        # [DOCTRINA ROSA] Si es Rosa (Bit 4 = OPERATOR_OK), asegurar vinculación con Roseti 1482
+        if (db_cliente.flags_estado or 0) & ClientFlags.OPERATOR_OK:
+            ClienteService._ensure_domicilio_rosa(db_cliente.id, db)
+
         db.add(db_cliente)
         db.commit()
         db.refresh(db_cliente)
         return db_cliente
+
+    @staticmethod
+    def _ensure_domicilio_rosa(cliente_id: UUID, db: Session) -> None:
+        """
+        Si el cliente Rosa no tiene ningún domicilio vinculado
+        en domicilios_clientes, vincular automáticamente con Roseti 1482.
+        """
+        from backend.clientes.constants import DOMICILIO_ROSETI_ID
+
+        existing = db.execute(
+            domicilios_clientes.select().where(
+                domicilios_clientes.c.cliente_id == str(cliente_id)
+            )
+        ).first()
+
+        if not existing:
+            db.execute(domicilios_clientes.insert().values(
+                cliente_id=str(cliente_id),
+                domicilio_id=DOMICILIO_ROSETI_ID,
+                es_predeterminado=True,
+                flags=0,
+            ))
+            db.flush()
 
     @staticmethod
     def _audit_sovereignty(db_cliente: "Cliente"):
@@ -370,7 +401,7 @@ class ClienteService:
         """
         Hard delete with GENOMA V14.8 Protection:
         1. Backs up to PapeleraRegistro.
-        2. Blocks deletion of clients with activity (Bit 1 HAS_ACTIVITY = 1).
+        2. Blocks deletion of clients no longer virgin (Bit 1 IS_VIRGIN = 0 → tocado).
         """
         from backend.core.models import PapeleraRegistro
         import json
@@ -379,10 +410,10 @@ class ClienteService:
         if not db_cliente:
             return None
 
-        # [SECURITY] Bloquea borrado de clientes con historial operativo (Bit 1 = HAS_ACTIVITY)
-        # Robust check: handle NULL flags_estado by defaulting to 0 (sin actividad → permite borrado)
+        # [SECURITY] Bloquea borrado de clientes tocados (Bit 1 IS_VIRGIN = 0 → protegido)
+        # Robust check: handle NULL flags_estado by defaulting to 0 (sin virginidad → bloqueado)
         current_flags = db_cliente.flags_estado or 0
-        if current_flags & ClientFlags.HAS_ACTIVITY:
+        if not (current_flags & ClientFlags.IS_VIRGIN):
              raise HTTPException(
                  status_code=403,
                  detail="PROHIBIDO: Cliente con historial operativo. Inactívelo en su lugar."

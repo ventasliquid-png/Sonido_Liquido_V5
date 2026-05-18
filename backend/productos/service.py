@@ -246,8 +246,8 @@ class ProductoService:
     def hard_delete_producto(db: Session, producto_id: int):
         """[LEY DE VIRGINIDAD UNIVERSAL - PIN 1974]
         Doble guarda:
-        1. Bit HAS_ACTIVITY (flags_estado & 2) — 0=virgen/borrable, 1=tocado/bloqueado.
-           Marca soberana seteada en nacimiento (apagada), encendida en primera operación.
+        1. Bit IS_VIRGIN (flags_estado & 2) — 1=virgen/borrable, 0=tocado/bloqueado.
+           Marca soberana seteada en nacimiento (encendida), apagada en primera operación.
            Ausencia de PedidoItem no equivale a virginidad (un pedido hard-deleted borra sus items en cascade).
         2. PedidoItem — dependencias físicas actuales.
         3. [V5.8 GOLD] Respaldo en PapeleraRegistro antes de eliminación.
@@ -263,13 +263,13 @@ class ProductoService:
         db_producto = db.query(models.Producto).filter(models.Producto.id == producto_id).first()
         if not db_producto: raise HTTPException(status_code=404, detail="Producto no encontrado")
 
-        # 1. Check Bit 1 (HAS_ACTIVITY) — marca soberana
-        has_activity = (db_producto.flags_estado or 0) & ProductoFlags.HAS_ACTIVITY
+        # 1. Check Bit 1 (IS_VIRGIN) — marca soberana
+        is_virgin = (db_producto.flags_estado or 0) & ProductoFlags.IS_VIRGIN
 
         # 2. Check dependencias físicas actuales
         has_history = db.query(PedidoItem).filter(PedidoItem.producto_id == producto_id).first()
 
-        if not has_activity or has_history:  # HAS_ACTIVITY=1 virgen, =0 bloqueado
+        if not is_virgin or has_history:  # IS_VIRGIN=1 virgen, =0 bloqueado
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="VIOLACIÓN DE LEY DE VIRGINIDAD: No se puede eliminar físicamente un producto con historial o que no sea virgen [PIN 1974]."

@@ -12,8 +12,8 @@ class ProductoFlags:
     EXISTENCE = 1
     IS_ACTIVE = 1
 
-    # Bit 1 (2): 0=virgen/borrable, 1=tocado/bloqueado
-    HAS_ACTIVITY = 2
+    # Bit 1 (2): IS_VIRGIN — 1=virgen/borrable, 0=tocado/bloqueado
+    IS_VIRGIN = 2
 
     # Bit 2 (4): GOLD_CATALOGADO (Producto auditado y normalizado)
     GOLD_CATALOGED = 4

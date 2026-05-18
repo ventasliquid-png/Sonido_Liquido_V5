@@ -1554,7 +1554,7 @@ const saveCliente = async () => {
         if (payload.cuit === '') payload.cuit = null;
 
         // [GY-FIX] Define isGeneric for validation logic (V15.1)
-        const isGeneric = [9, 11].includes(form.value.nivel_id) || !form.value.cuit;
+        const isGeneric = ['00000000000', '11111111119', '11111111111', '99999999999'].includes(form.value.cuit) || !form.value.cuit;
         
         // [GY-DOCTRINA-V14] GENOMA 4-BIT (PIN 1974)
         // Lógica de Niveles 13/15:

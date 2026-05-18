@@ -611,8 +611,8 @@ def update_pedido(
     if status_changed and update_data.get("estado") == "CUMPLIDO":
         from backend.clientes.constants import ClientFlags
         cliente = pedido.cliente
-        if cliente and (cliente.flags_estado & ClientFlags.HAS_ACTIVITY):
-            cliente.flags_estado &= ~ClientFlags.HAS_ACTIVITY
+        if cliente and (cliente.flags_estado & ClientFlags.IS_VIRGIN):
+            cliente.flags_estado &= ~ClientFlags.IS_VIRGIN
             db.add(cliente)
 
     db.commit()

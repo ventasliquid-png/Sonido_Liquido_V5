@@ -363,7 +363,7 @@ class RemitosService:
         if remito and payload.factura.numero:
             from backend.facturacion.models import Factura, FacturaItem, FacturaRemito
             
-            # Flags: 4227083 (EXISTENCE + HAS_ACTIVITY + ACTIVE + PASADO_A_PEDIDO + PRE_MODULO_FACTURACION)
+            # Flags: 4227083 (EXISTENCE + IS_VIRGIN + ACTIVE + PASADO_A_PEDIDO + PRE_MODULO_FACTURACION)
             # Semántica sellada en Sesión 800-OF
             mirror_flags = 4227083
 

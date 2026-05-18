@@ -12,7 +12,7 @@ class Rubro(Base):
     nombre = Column(String(50), unique=True, index=True, nullable=False)
     padre_id = Column(Integer, ForeignKey('rubros.id'), nullable=True)
     activo = Column(Boolean, default=True)
-    flags_estado = Column(BigInteger, default=2, nullable=False)  # Nace virgen (Bit 1 HAS_ACTIVITY=1)
+    flags_estado = Column(BigInteger, default=2, nullable=False)  # Nace virgen (Bit 1 IS_VIRGIN=1)
     
     # Motor de Precios V6
     margen_default = Column(Numeric(6, 2), default=0.0) # Margen propuesto para el rubro
@@ -71,7 +71,7 @@ class Producto(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # [GENOMA 64-bit] Hybrid Flags (64-bit)
-    flags_estado = Column(BigInteger, default=2, nullable=False)  # Nace virgen (Bit 1 HAS_ACTIVITY=1)
+    flags_estado = Column(BigInteger, default=2, nullable=False)  # Nace virgen (Bit 1 IS_VIRGIN=1)
 
     # Relaciones
     rubro = relationship("Rubro", back_populates="productos")

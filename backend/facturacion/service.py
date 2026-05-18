@@ -133,8 +133,8 @@ class FacturacionService:
 
             # Doctrina de Virginidad: CAE real registrado en AFIP → apagar Bit 1 del cliente (irreversible)
             from backend.clientes.constants import ClientFlags
-            if factura.cliente and (factura.cliente.flags_estado & ClientFlags.HAS_ACTIVITY):
-                factura.cliente.flags_estado &= ~ClientFlags.HAS_ACTIVITY
+            if factura.cliente and (factura.cliente.flags_estado & ClientFlags.IS_VIRGIN):
+                factura.cliente.flags_estado &= ~ClientFlags.IS_VIRGIN
                 db.add(factura.cliente)
         
         if update_data.cae_vencimiento:

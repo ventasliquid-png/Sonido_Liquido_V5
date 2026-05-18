@@ -196,7 +196,9 @@ class Domicilio(Base):
 
     id = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
     
-    # [DEPRECATED V5.2] We move to N:M, but keep nullable FK for legacy cleanup phase
+    # DEPRECATED: campo legacy del schema 1:N. NO USAR.
+    # La vinculación cliente-domicilio vive en domicilios_clientes (N:M)
+    # Ver: ClienteService._ensure_domicilio_rosa() para el patrón correcto
     cliente_id = Column(GUID(), ForeignKey("clientes.id"), nullable=True)
     
     alias = Column(String, nullable=True, index=True) # "Depósito Norte"

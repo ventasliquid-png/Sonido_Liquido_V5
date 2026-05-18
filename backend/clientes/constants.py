@@ -13,8 +13,8 @@ class ClientFlags:
     EXISTENCE = 1
     IS_ACTIVE = 1 
     
-    # Bit 1 (2): HAS_ACTIVITY (0 = sin actividad → borrado habilitado / 1 = con historial → bloqueado)
-    HAS_ACTIVITY = 2  # Bit 1: cliente tocado → hard_delete bloqueado
+    # Bit 1 (2): IS_VIRGIN — 1=Virgen (sin historial, borrado físico permitido) / 0=Tocado (bloqueado)
+    IS_VIRGIN = 2  # Bit 1: 1=Virgen (borrado físico permitido), 0=Tocado (bloqueado)
     
     # Bit 2 (4): GOLD_ARCA (Validado por Satélite)
     GOLD_ARCA = 4
@@ -103,3 +103,6 @@ class SystemFlags:
     ADVERTENCIA = 2 # Discrepancia (Amarillo)
     AISLAMIENTO = 4 # Sin conexión ARCA (Naranja)
 
+# Domicilio plantilla Sonido Líquido (Roseti 1482, CABA)
+# Para clientes Rosa sin domicilio de entrega propio
+DOMICILIO_ROSETI_ID = '59b01b5a-e81a-4e2a-b496-9d65fef9262b'
