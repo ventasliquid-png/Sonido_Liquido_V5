@@ -1,4 +1,28 @@
 
+## SESIÓN 811: HONNEY + DEOU F4 + CF CUIT FALLBACK (OF)
+**Fecha:** 2026-05-19
+**Locación:** OF
+**Objetivo:** Fix hard delete fósiles flags=0. Fix alta rápida DEOU F4. CF CUIT fallback backend.
+**Estado:** NOMINAL GOLD — PIN 1974 | Hash D: 208d6a46 | Hash P: 937d5be
+
+### Hito 1: HONNEY — hard delete fósiles flags=0
+* Guard IS_VIRGIN: `if current_flags != 0 and not (current_flags & IS_VIRGIN)`.
+* HardDeleteManager.vue: fila amber, label "⚠️ CLIENTE IMPOSIBLE", botón habilitado, integrity safe.
+* Commit: `1e5d4327` (D) / `85a48b8` (P)
+
+### Hito 2: DEOU F4 — alta rápida cliente correcto
+* Bug A: `currentFlags |= 3` cuando nibble=0 — EXISTENCE+IS_VIRGIN mínimo vital.
+* Bug B: `cuit: ''` → `cuit: null` en `altaClienteContext()` y F4 handler de PedidoCanvas.
+* Bug C: `_audit_sovereignty()` + activo sync + `_ensure_domicilio_rosa()` en `create_cliente()`.
+* Commit: `0286f0df` (D) / `0b31fe2` (P)
+
+### Hito 3: CF CUIT fallback — backend soberano
+* `_apply_cf_cuit_fallback()`: condicion_iva CONSUMIDOR FINAL + cuit null → '00000000000'.
+* Llamado antes de `_audit_sovereignty` en create y update.
+* Commit: `208d6a46` (D) / `937d5be` (P)
+
+---
+
 ## SESIÓN 810: FIX C4 ClientCanvas + IVA Rosa + Navegación PedidoCanvas (OF)
 **Fecha:** 2026-05-18
 **Locación:** OF

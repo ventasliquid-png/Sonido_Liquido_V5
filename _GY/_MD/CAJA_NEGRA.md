@@ -1,5 +1,19 @@
 
-Sesión actual: 810
+Sesión actual: 811
+
+# CAJA NEGRA: HONNEY fix + DEOU F4 + CF CUIT fallback (2026-05-19)
+
+Sesión OF 2026-05-19 (811). Hash D: 208d6a46. Hash P: 937d5be. Estado: NOMINAL GOLD.
+HONNEY fix: hard_delete_cliente() — guard IS_VIRGIN relajado para flags_estado=0 (fósiles pre-genoma). Frontend HardDeleteManager: amber border, label "CLIENTE IMPOSIBLE", botón habilitado, integrity safe.
+DEOU F4: 3 bugs en alta rápida — cliente nacía inactivo (flags|=3 mínimo vital), CUIT era '' en lugar de null, _audit_sovereignty ausente en create_cliente. Fix: currentFlags|=3 en ClientCanvas, cuit:null en PedidoCanvas, _apply_cf_cuit_fallback+_audit_sovereignty+activo sync en create_cliente.
+CF CUIT fallback: nuevo método _apply_cf_cuit_fallback() en ClienteService — si condicion_iva='Consumidor Final' y cuit=null → asigna '00000000000'. Llamado antes de _audit_sovereignty en create y update.
+Borrado Dai (pilot_v5x.db) — fósil de test, PIN 1974.
+Deuda técnica Rosa unification documentada en INBOX.md: 3 estrategias divergentes (Bit4/nibble/Bit19).
+Commits D: 1e5d4327 (HONNEY), 0286f0df (DEOU), 208d6a46 (CF CUIT). Cherry-picks P: 85a48b8, 0b31fe2, 937d5be.
+
+**Agente:** Claude Code Sonnet 4.6 — Hash D: 208d6a46 / Hash P: 937d5be
+
+---
 
 # CAJA NEGRA: FIX C4 ClientCanvas + IVA Rosa + Navegación + Bit 4 Migración (2026-05-18)
 

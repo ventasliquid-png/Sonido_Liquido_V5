@@ -731,3 +731,25 @@ Los clientes marcados con Bit 4 (`OPERATOR_OK`) son clientes informales sin CUIT
 - El botón "Guardar e Imprimir" no aparece en su flujo (no hay factura que imprimir).
 
 Para identificar un cliente OPERATOR_OK: `flags_estado & 16 == 16`.
+
+---
+
+## CAPÍTULO 22: ALTA RÁPIDA F4 DESDE PEDIDOS (Sesión 811, 2026-05-19)
+
+Al presionar F4 con el campo Cliente en foco desde PedidoCanvas, se abre el formulario de alta
+de cliente en modo modal. El cliente creado queda correctamente:
+- **Activo** (Bit 0 encendido, `activo=True`).
+- **Con CUIT null** (no vacío) si no tiene CUIT real — el campo llega limpio al backend.
+- **Con sello Rosa** si corresponde (el backend infiere `OPERATOR_OK` automáticamente).
+
+El cliente se selecciona automáticamente en el pedido al cerrar el modal.
+
+---
+
+## CAPÍTULO 23: CUIT AUTOMÁTICO PARA CONSUMIDOR FINAL (Sesión 811, 2026-05-19)
+
+Al crear o actualizar un cliente con condición IVA "Consumidor Final" sin CUIT, el backend
+asigna automáticamente el CUIT genérico `00000000000`.
+
+No es necesario que el operador lo ingrese manualmente. El sistema lo aplica en silencio
+antes de calcular los flags de identidad.

@@ -4,6 +4,7 @@ import sys
 import subprocess
 import time
 import io
+from datetime import datetime
 
 # [GY-FIX-WINDOWS] Configuración de Encoding para evitar UnicodeEncodeError en emojis
 if sys.platform == "win32":
@@ -129,7 +130,7 @@ def main():
             success = calibracion_constitucional()
         else:
             # Tormenta / Canario Muerto
-            print("\n[!] 🔴 TORMENTA: El cielo está horrible y el canario ha muerto.")
+            print("\n[!] [CRITICO] TORMENTA: El cielo está horrible y el canario ha muerto.")
             print("[!] Motivo: No se detectaron procesos bloqueantes. El error es estructural.")
             return
 
@@ -142,17 +143,20 @@ def main():
         conn.close()
 
         if flags == TARGET_FLAGS:
-            print("\n[+] 🟢 CIELO DESPEJADO: Hola soy Gy. El cielo está despejado y el canario canta sin esfuerzo. Sistema Nominal.")
+            print("\n[+] [OK] CIELO DESPEJADO: El cielo está despejado y el canario canta sin esfuerzo. Sistema Nominal.")
         elif flags == TRINCHERA_FLAGS:
-            print("\n[+] 🟡 CIELO NUBLADO: El cielo presenta nubes: Modo Trinchera/Virginidad detectado. El canario sigue cantando.")
+            print("\n[+] [WARN] CIELO NUBLADO: El cielo presenta nubes: Modo Trinchera/Virginidad detectado. El canario sigue cantando.")
         else:
-            print(f"\n[!] 🔴 TORMENTA: El cielo está horrible y el canario ha muerto. Flags desconocidos: {flags}")
+            print(f"\n[!] [CRITICO] TORMENTA: El cielo está horrible y el canario ha muerto. Flags desconocidos: {flags}")
     except Exception as e:
-        # Fallback safe print if encoding still fails
+        print(f"\n[!] [CRITICO] TORMENTA: Falla en reporte final. {e}")
         try:
-            print(f"\n[!] ERROR FINAL: {e}")
+            with open(r"Q:\Mi unidad\V5_Silo_Claude\INBOX.md", "a", encoding="utf-8") as f:
+                f.write(f"\n## [ALERTA CANARIO] {datetime.now().strftime('%Y-%m-%d %H:%M')}\n")
+                f.write(f"Falla en reporte final del canario. Error: {e}\n")
+                f.write("Verificar integridad antes de operar.\n")
         except:
-             pass
+            print("[!] [CRITICO] No se pudo escribir alerta en el Silo.")
     
     elapsed = time.time() - start_time
     print(f"========================================================")

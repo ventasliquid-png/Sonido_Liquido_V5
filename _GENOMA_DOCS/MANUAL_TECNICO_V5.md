@@ -705,3 +705,73 @@ Si el servidor crasheaba entre ambos commits, el raw quedaba en `RECIBIDO` con l
 | `PROCESADO` | Flujo exitoso completo |
 | `ERROR` | Falló después del checkpoint — revisar downstream |
 | `CUARENTENA` | Bloqueado manualmente por operador |
+
+---
+
+## Sección 32 — Hard Delete de Fósiles Pre-Genoma (Sesión 811, 2026-05-19)
+
+### Problema
+Clientes con `flags_estado=0` eran bloqueados por el guard IS_VIRGIN.
+`not (flags & IS_VIRGIN)` interpreta `flags=0` como "tocado" — borrado imposible desde la UI.
+
+### Fix backend (service.py)
+```python
+# Antes
+if not (current_flags & ClientFlags.IS_VIRGIN):
+    raise HTTPException(403, ...)
+# Después
+if current_flags != 0 and not (current_flags & ClientFlags.IS_VIRGIN):
+    raise HTTPException(403, ...)
+```
+`flags=0` es fósil pre-genoma. El guard solo aplica a registros con `flags_estado > 0`.
+
+### Fix frontend (HardDeleteManager.vue)
+- Borde amber (`border-amber-500/30`) en lugar de gris
+- Label `⚠️ CLIENTE IMPOSIBLE` + mensaje `flags=0 — fósil pre-genoma`
+- Botón habilitado; integrity check devuelve `safe: true`
+
+---
+
+## Sección 33 — Flujo DEOU / Alta Rápida F4 (Sesión 811, 2026-05-19)
+
+### Contexto
+F4 desde PedidoCanvas → `altaClienteContext()` → `ClientCanvas` (modal) → `create_cliente`.
+
+### Bugs corregidos
+1. **Cliente nacía inactivo**: nibble=0 → `activo=bool(0&1)=False`. Fix: `currentFlags |= 3`
+   (EXISTENCE + IS_VIRGIN) cuando no hay CUIT real y nibble=0 en `ClientCanvas.saveCliente()`.
+2. **CUIT vacío en DB**: `cuit: ''` → `cuit: null` en `altaClienteContext()` y handler F4.
+3. **Sin Rosa inference**: `_audit_sovereignty()` no se llamaba en `create_cliente()`.
+
+### Orden correcto en create_cliente (post-fix)
+```
+_apply_cf_cuit_fallback → _audit_sovereignty → activo sync → _ensure_domicilio_rosa → db.commit()
+```
+
+---
+
+## Sección 34 — CF CUIT Fallback Backend (Sesión 811, 2026-05-19)
+
+### Doctrina
+Cliente con condición IVA "Consumidor Final" sin CUIT recibe `'00000000000'` automáticamente.
+Se llama ANTES de `_audit_sovereignty` para que el audit active `GOLD_ARCA` correctamente.
+
+### Método
+```python
+@staticmethod
+def _apply_cf_cuit_fallback(db_cliente):
+    if db_cliente.cuit and db_cliente.cuit.strip():
+        return
+    is_cf = (
+        db_cliente.condicion_iva is not None
+        and db_cliente.condicion_iva.nombre is not None
+        and "CONSUMIDOR FINAL" in db_cliente.condicion_iva.nombre.upper()
+    )
+    if is_cf:
+        db_cliente.cuit = '00000000000'
+```
+
+### Invariantes
+- Solo actúa si `cuit` es null o vacío (nunca sobreescribe un CUIT real).
+- El guard de exclusividad `00000000000` no se dispara (opera sobre ORM, no el payload de entrada).
+- Comportamiento AFIP estándar: múltiples CF pueden compartir `00000000000`.
