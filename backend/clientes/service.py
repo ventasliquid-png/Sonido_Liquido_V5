@@ -119,7 +119,13 @@ class ClienteService:
                  db_vinculo = VinculoComercial(**vinc_data)
                  db.add(db_vinculo)
 
-            # [DOCTRINA ROSA] Si es Rosa (Bit 4 = OPERATOR_OK), asegurar vinculación con Roseti 1482
+            # [GENOMA V14.8+] Auditoría de soberanía al momento de creación.
+            # Infiere OPERATOR_OK (Rosa) y POWER_PINK antes del commit final.
+            # Orden correcto: primero audit → luego sync activo → luego Roseti.
+            ClienteService._audit_sovereignty(db_cliente)
+            db_cliente.activo = bool(db_cliente.flags_estado & ClientFlags.IS_ACTIVE)
+
+            # [DOCTRINA ROSA] Post-audit: si _audit_sovereignty encendió OPERATOR_OK, vincular Roseti 1482
             if (db_cliente.flags_estado or 0) & ClientFlags.OPERATOR_OK:
                 ClienteService._ensure_domicilio_rosa(db_cliente.id, db)
 

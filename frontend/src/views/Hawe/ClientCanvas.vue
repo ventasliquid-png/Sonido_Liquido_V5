@@ -1565,10 +1565,17 @@ const saveCliente = async () => {
         
         let currentFlags = payload.flags_estado || 0;
         
-        // Si no tiene identidad (nace de cero con CUIT), asignamos Nivel Inicial
-        if ((currentFlags & 0xF) === 0 && payload.cuit && !isGeneric) {
-             // 15: Virgen (1+2+4+8) | 13: Ya operado (1+4+8)
-             currentFlags |= props.isModal ? 13 : 15;
+        // Si no tiene identidad (nace de cero), asignamos Nivel Inicial según tipo
+        if ((currentFlags & 0xF) === 0) {
+            if (payload.cuit && !isGeneric) {
+                // Cliente formal con CUIT propio → Nivel 15 virgen (standalone) o 13 operativo (modal)
+                currentFlags |= props.isModal ? 13 : 15;
+            } else {
+                // [DEOU / GENOMA V14.8+] Cliente informal sin CUIT real → mínimo vital
+                // EXISTENCE (1) + IS_VIRGIN (2) = 3
+                // _audit_sovereignty en backend inferirá OPERATOR_OK y POWER_PINK
+                currentFlags |= 3;
+            }
         }
 
         // [V14.8.4 SOBERANIA OPERATIVA - PIN 1974]

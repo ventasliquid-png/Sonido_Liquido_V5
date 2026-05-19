@@ -1071,7 +1071,7 @@ const irAFicha = () => {
 const altaClienteContext = () => {
     newClientData.value = {
         razon_social: busquedaCliente.value,
-        cuit: '',
+        cuit: null, // [DEOU FIX] null explícito — evita ambigüedad '' vs null en saveCliente
         activo: true
     };
     showClientModal.value = true;
@@ -1775,7 +1775,7 @@ const handleGlobalKeys = (e) => {
         if (active === clientInputRef.value) {
             newClientData.value = {
                 razon_social: busquedaCliente.value,
-                cuit: '',
+                cuit: null, // [DEOU FIX] null explícito — evita ambigüedad '' vs null en saveCliente
                 activo: true
             };
             showClientModal.value = true;
