@@ -110,7 +110,11 @@
           <div v-else class="grid gap-2">              <div v-for="item in items" :key="item.id" 
                    class="bg-[#1e293b]/50 border border-white/5 rounded-lg p-4 flex items-center justify-between transition-all group hover:bg-[#1e293b] cursor-pointer"
                    :class="[
-                       (currentType === 'clientes' && !((item.flags_estado || 0) & 2)) ? 'opacity-60 grayscale' : ''
+                       (currentType === 'clientes' && (item.flags_estado || 0) === 0)
+                           ? 'border-amber-500/30 bg-amber-900/10'
+                           : (currentType === 'clientes' && !((item.flags_estado || 0) & 2))
+                               ? 'opacity-60 grayscale'
+                               : ''
                    ]"
                    @click="toggleSelection(item.id)">
                   
@@ -143,10 +147,18 @@
                       <div class="text-right">
                           <span class="block text-[10px] uppercase font-bold tracking-wider" 
                                 :class="item.integrity?.safe ? 'text-emerald-500' : 'text-red-400'">
-                              {{ (currentType === 'clientes' && !((item.flags_estado || 0) & 2)) ? 'PROTEGIDO (HISTORIAL)' : (item.integrity?.safe ? 'SEGURO PARA ELIMINAR' : 'BLOQUEADO') }}
+                              {{ (currentType === 'clientes' && (item.flags_estado || 0) === 0)
+                                  ? '⚠️ CLIENTE IMPOSIBLE'
+                                  : (currentType === 'clientes' && !((item.flags_estado || 0) & 2))
+                                      ? 'PROTEGIDO (HISTORIAL)'
+                                      : (item.integrity?.safe ? 'SEGURO PARA ELIMINAR' : 'BLOQUEADO') }}
                           </span>
                           <span class="text-xs text-gray-400">
-                              {{ (currentType === 'clientes' && !((item.flags_estado || 0) & 2)) ? 'Prohibido eliminar físicamente' : (item.integrity?.message || 'Verificando...') }}
+                              {{ (currentType === 'clientes' && (item.flags_estado || 0) === 0)
+                                  ? 'flags=0 — fósil pre-genoma'
+                                  : (currentType === 'clientes' && !((item.flags_estado || 0) & 2))
+                                      ? 'Prohibido eliminar físicamente'
+                                      : (item.integrity?.message || 'Verificando...') }}
                           </span>
                       </div>
 
@@ -161,11 +173,11 @@
 
                       <button 
                          @click.stop="confirmHardDelete(item)"
-                         :disabled="!item.integrity?.safe || (currentType === 'clientes' && !((item.flags_estado || 0) & 2))"
+                         :disabled="!item.integrity?.safe || (currentType === 'clientes' && !((item.flags_estado || 0) & 2) && (item.flags_estado || 0) !== 0)"
                          class="w-10 h-10 rounded-lg flex items-center justify-center transition-all border"
                          :class="[
-                             (item.integrity?.safe && !(currentType === 'clientes' && !((item.flags_estado || 0) & 2)))
-                                 ? 'bg-red-500/10 border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white cursor-pointer' 
+                             (item.integrity?.safe && !(currentType === 'clientes' && !((item.flags_estado || 0) & 2) && (item.flags_estado || 0) !== 0))
+                                 ? 'bg-red-500/10 border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white cursor-pointer'
                                  : 'bg-gray-800 border-gray-700 text-gray-600 cursor-not-allowed opacity-50'
                          ]"
                          :title="item.integrity?.safe ? 'ELIMINAR DEFINITIVAMENTE' : 'Bloqueado por dependencias'"
@@ -281,14 +293,23 @@ const loadData = async (type) => {
                 const integrity = checkRes.data;
 
                 // [GENOMA V14.8] Shield Protection for History Records (Bit 1 = 2)
-                const isVirgin = (item.flags_estado & 2); 
+                const flagsEstado = item.flags_estado || 0;
+                // [GENOMA V14.8+] Excepción: flags=0 → registro imposible/fósil pre-genoma.
+                // Sin bits encendidos → sin historial verificable → borrado físico autorizado.
+                if (flagsEstado === 0 && type === 'clientes') {
+                    return {
+                        ...item,
+                        integrity: { safe: true, message: 'Fósil pre-genoma — borrado autorizado.' }
+                    };
+                }
+                const isVirgin = (flagsEstado & 2);
                 if (!isVirgin && type === 'clientes') {
-                    return { 
-                        ...item, 
-                        integrity: { 
-                            safe: false, 
-                            message: 'BLOQUEO: Registro de Historial (No Virgen). Prohibido eliminar físicamente.' 
-                        } 
+                    return {
+                        ...item,
+                        integrity: {
+                            safe: false,
+                            message: 'BLOQUEO: Registro de Historial (No Virgen). Prohibido eliminar físicamente.'
+                        }
                     };
                 }
 

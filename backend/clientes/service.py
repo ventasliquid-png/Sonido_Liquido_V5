@@ -413,7 +413,9 @@ class ClienteService:
         # [SECURITY] Bloquea borrado de clientes tocados (Bit 1 IS_VIRGIN = 0 → protegido)
         # Robust check: handle NULL flags_estado by defaulting to 0 (sin virginidad → bloqueado)
         current_flags = db_cliente.flags_estado or 0
-        if not (current_flags & ClientFlags.IS_VIRGIN):
+        # [GENOMA V14.8+] Excepción: flags=0 → registro imposible/fósil pre-genoma.
+        # Sin bits encendidos → sin historial verificable → borrado físico autorizado.
+        if current_flags != 0 and not (current_flags & ClientFlags.IS_VIRGIN):
              raise HTTPException(
                  status_code=403,
                  detail="PROHIBIDO: Cliente con historial operativo. Inactívelo en su lugar."
