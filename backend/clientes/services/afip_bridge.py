@@ -59,6 +59,13 @@ class AfipBridgeService:
         if "error" in rar_data:
             return rar_data
             
+        from backend.clientes.constants import ClientFlags
+        cond_iva = (rar_data.get("condicion_iva") or "").upper()
+        if cond_iva in ["RESPONSABLE INSCRIPTO", "RESPONSABLE INSCRIPTO (INFERIDO)"]:
+            flags_estado = ClientFlags.DISCRIMINA_IVA
+        else:
+            flags_estado = 0
+
         # Mapeo de Campos RAR -> V5
         return {
             "cuit": rar_data.get("cuit", ""),
@@ -66,6 +73,7 @@ class AfipBridgeService:
             "condicion_iva": rar_data.get("condicion_iva", ""),
             "domicilio_fiscal": rar_data.get("domicilio_fiscal", ""),
             "parsed_address": rar_data.get("parsed_address", {}),
+            "flags_estado": flags_estado,
             # Datos crudos para debug
             "_raw_rar": rar_data
         }

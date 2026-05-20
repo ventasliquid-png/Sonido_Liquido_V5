@@ -49,6 +49,12 @@ class ClientFlags:
     CH_TIENDANUBE = 1 << 30
     CH_MLIBRE = 1 << 31
 
+    # --- [DISCRIMINACIÓN DE IVA] (Bit 40) ---
+    # Bit 40: DISCRIMINA_IVA (1 << 40 = 1099511627776)
+    # 1 = Responsable Inscripto (discrimina IVA, Factura A, precio final / 1.21)
+    # 0 = CF / Monotributo / Exento / Rosa (no discrimina, Factura B, precio de lista)
+    DISCRIMINA_IVA = 1 << 40
+
 class DomicilioFlags:
     """
     [DOCTRINA V14] GENOMA MASTER - INDEPENDENCIA GEOGRÁFICA

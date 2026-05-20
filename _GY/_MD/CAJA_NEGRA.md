@@ -1,5 +1,19 @@
 
-Sesión actual: 811
+Sesión actual: 812
+
+# CAJA NEGRA: DISCRIMINA_IVA Bit 40 + Purga Herejía del 15 (2026-05-20)
+
+Sesión OF 2026-05-20 (812). Hash D: pendiente (pre-commit PIN 1974). Estado: NOMINAL GOLD.
+DISCRIMINA_IVA Bit 40: `ClientFlags.DISCRIMINA_IVA = 1 << 40` (1099511627776). Responsable Inscripto = discrimina IVA, emite Factura A, precio de lista / 1.21. Implementado en 3 nodos: constants.py (definición canónica), afip_bridge.py (auto-encendido desde condicion_iva devuelta por RAR), service.py _audit_sovereignty REGLA 3 (toggle permanente en create/update según condicion_iva.nombre).
+Purga Herejía del 15: 5 clientes en pilot_v5x.db tenían Bit 15 (32768 = FacturaFlags.PASADO_A_PEDIDO) encendido por error de IA anterior que confundió "Nivel 15" del Códice Arlequín (valor decimal = suma EXISTENCE+IS_VIRGIN+GOLD_ARCA+V14_STRUCT = 15) con "Bit 15" (posición = 1<<15). Purga: flags_estado & ~32768. 5 registros saneados. Canario NOMINAL GOLD.
+BIBLIOTECA_NIKE.md: Módulo 2 actualizado con doctrina canónica "La Herejía del 15" — prohíbe asignar 1<<15 en clientes.flags_estado.
+INBOX.md: pendiente sesión 813 registrado — diff 4 PedidoCanvas lógica selectProduct por Bit 12 (negro) + Bit 40 (RI) + CF (precio final con IVA incluido). isClienteRI computed ya diseñado.
+Frontend diff 4 NO ejecutado — postergado sesión 813. No commitear.
+Canario D: NOMINAL GOLD — flags=13. WAL checkpoint ejecutado.
+
+**Agente:** Claude Code Sonnet 4.6 — Hash D: pendiente (pre-commit)
+
+---
 
 # CAJA NEGRA: HONNEY fix + DEOU F4 + CF CUIT fallback (2026-05-19)
 

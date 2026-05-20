@@ -27,6 +27,7 @@ Las siguientes banderas son inmutables y atraviesan horizontalmente a **todas** 
 | 6 | 64 | `TRUSTED_MANUAL` | Rosa Fucsia (Corporativo informal, ej. Luvianka). | ACTIVO | Arlequín V2 |
 | 10 | 1024 | `V15_STRUCT` | Reserva estructural global. | INTOCABLE | Global |
 | 13 | 8192 | `PROHIBIDO` | Colisión LAVIMAR. | PROHIBIDO | Global |
+| 40 | 1099511627776 | `DISCRIMINA_IVA` | 1=Responsable Inscripto (Factura A, precio/1.21). 0=CF/Mono/Exento/Rosa. | ACTIVO | 812 OF |
 
 ---
 

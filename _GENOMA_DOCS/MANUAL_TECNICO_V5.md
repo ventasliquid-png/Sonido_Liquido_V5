@@ -775,3 +775,38 @@ def _apply_cf_cuit_fallback(db_cliente):
 - Solo actúa si `cuit` es null o vacío (nunca sobreescribe un CUIT real).
 - El guard de exclusividad `00000000000` no se dispara (opera sobre ORM, no el payload de entrada).
 - Comportamiento AFIP estándar: múltiples CF pueden compartir `00000000000`.
+
+## 31. BIT 40 — DISCRIMINA_IVA (Sesión 812 OF, 2026-05-20)
+
+**Versión:** 2.1 (Bit 40 DISCRIMINA_IVA — sesión 812)
+
+### 31.1 Definición
+`ClientFlags.DISCRIMINA_IVA = 1 << 40` en `backend/clientes/constants.py`.
+- **1 (encendido):** cliente Responsable Inscripto — discrimina IVA, recibe Factura A, el precio de campo es neto (precio de lista / 1.21).
+- **0 (apagado):** CF / Monotributo / Exento / Rosa — no discrimina IVA, recibe Factura B, el precio de campo es final (IVA ya incluido).
+
+### 31.2 Puntos de escritura del bit
+
+| Nodo | Archivo | Trigger |
+|---|---|---|
+| Definición canónica | `backend/clientes/constants.py` | — |
+| Auto-detección AFIP | `backend/clientes/services/afip_bridge.py` | RAR devuelve condicion_iva RI |
+| Toggle permanente | `backend/clientes/service.py` → `_audit_sovereignty` REGLA 3 | Cada create/update cliente |
+
+### 31.3 Regla 3 en `_audit_sovereignty`
+```python
+if db_cliente.condicion_iva and "RESPONSABLE INSCRIPTO" in db_cliente.condicion_iva.nombre.upper():
+    db_cliente.flags_estado |= ClientFlags.DISCRIMINA_IVA
+else:
+    db_cliente.flags_estado &= ~ClientFlags.DISCRIMINA_IVA
+```
+
+### 31.4 Interacción con Motor Bipolar (Bit 12)
+El Motor Bipolar (Bit 12 del pedido) sigue siendo soberano para el circuito fiscal. El Bit 40 del cliente complementa la presentación de precios:
+- Bit 12 = 1 (negra) → precio neto siempre, sin importar Bit 40.
+- Bit 12 = 0 + Bit 40 = 1 (blanca + RI) → precio neto en campo, IVA discriminado al pie.
+- Bit 12 = 0 + Bit 40 = 0 (blanca + CF/otros) → precio final con IVA incluido.
+
+### 31.5 Frontend (Sesión 813)
+`isClienteRI = !!(BigInt(cliente.flags_estado) & (BigInt(1) << BigInt(40)))` — requiere BigInt por overflow JavaScript en bits > 31.
+Implementación del `selectProduct` condicional pendiente en sesión 813.

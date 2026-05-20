@@ -378,6 +378,14 @@ class ClienteService:
             else:
                 db_cliente.flags_estado &= ~1048576 # Pierde medalla si retrocede
 
+        # --- REGLA 3: DISCRIMINA_IVA (Bit 40) ---
+        # Si la condicion_iva.nombre contiene 'RESPONSABLE INSCRIPTO' -> encender Bit 40
+        # Si es CF, Mono, Exento o None -> apagar Bit 40
+        if db_cliente.condicion_iva and db_cliente.condicion_iva.nombre and "RESPONSABLE INSCRIPTO" in db_cliente.condicion_iva.nombre.upper():
+            db_cliente.flags_estado |= ClientFlags.DISCRIMINA_IVA
+        else:
+            db_cliente.flags_estado &= ~ClientFlags.DISCRIMINA_IVA
+
     @staticmethod
     def _apply_cf_cuit_fallback(db_cliente: "Cliente") -> None:
         """

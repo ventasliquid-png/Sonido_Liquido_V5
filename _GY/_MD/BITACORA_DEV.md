@@ -1,4 +1,33 @@
 
+## SESIÓN 812: DISCRIMINA_IVA BIT 40 + PURGA HEREJÍA DEL 15 (OF)
+**Fecha:** 2026-05-20
+**Locación:** OF
+**Objetivo:** Implementar Bit 40 DISCRIMINA_IVA. Purgar Bit 15 de pilot_v5x.db (5 clientes). Sellar doctrina Herejía del 15 en BIBLIOTECA_NIKE.
+**Estado:** NOMINAL GOLD — pendiente commit PIN 1974 | Hash D: pre-commit
+
+### Hito 1: Bit 40 DISCRIMINA_IVA — constants.py
+* `ClientFlags.DISCRIMINA_IVA = 1 << 40` — nuevo bit en `backend/clientes/constants.py`.
+* Semántica: 1 = Responsable Inscripto (discrimina IVA, Factura A, precio neto / 1.21). 0 = CF / Mono / Exento / Rosa.
+
+### Hito 2: Auto-detección en afip_bridge.py
+* `AfipBridgeService._fetch_from_rar()`: si condicion_iva contiene "RESPONSABLE INSCRIPTO" (o "(INFERIDO)"), enciende DISCRIMINA_IVA en el dict de retorno al frontend.
+
+### Hito 3: Regla 3 en _audit_sovereignty (service.py)
+* Toggle permanente en create/update: `condicion_iva.nombre` con "RESPONSABLE INSCRIPTO" → `flags_estado |= DISCRIMINA_IVA`. CF / Mono / Exento / None → `flags_estado &= ~DISCRIMINA_IVA`.
+
+### Hito 4: Purga Herejía del 15
+* 5 clientes en `pilot_v5x.db` con Bit 15 (32768 = FacturaFlags.PASADO_A_PEDIDO) encendido por error de IA.
+* Purga SQL: `UPDATE clientes SET flags_estado = flags_estado & ~32768 WHERE flags_estado & 32768`.
+* DB saneada. Canario: NOMINAL GOLD.
+
+### Hito 5: BIBLIOTECA_NIKE.md — doctrina Herejía del 15
+* Módulo 2 sellado con ítem "La Herejía del 15": prohíbe `1<<15` en `clientes.flags_estado`. Bit 15 es exclusivo del genoma de facturas (PASADO_A_PEDIDO).
+
+### Pendiente → Sesión 813
+* Diff 4 PedidoCanvas.vue: `selectProduct` + presentación precio por Bit 12 (negro) + Bit 40 (RI) + CF. `isClienteRI` computed ya diseñado (BigInt Bit 40).
+
+---
+
 ## SESIÓN 811-CA: SINCRONIZACIÓN Y AUDITORÍA DE ANOMALÍAS (CA)
 **Fecha:** 2026-05-19
 **Locación:** CA
