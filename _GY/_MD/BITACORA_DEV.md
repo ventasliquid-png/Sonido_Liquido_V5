@@ -1,4 +1,22 @@
 
+## SESIÓN 811-CA: SINCRONIZACIÓN Y AUDITORÍA DE ANOMALÍAS (CA)
+**Fecha:** 2026-05-19
+**Locación:** CA
+**Objetivo:** Sincronizar con OF (git pull) y auditar anomalías del Bit 19 vs Bit 4.
+**Estado:** NOMINAL GOLD — Hash D: 3f608adb
+
+### Hito 1: Sincronización
+* Git pull integrado de 7 commits (sesiones OF 810 y 811).
+* Canario certificado localmente: `flags_estado = 13`.
+* WAL checkpoint (PRAGMA wal_checkpoint(FULL)) ejecutado correctamente.
+
+### Hito 2: Auditoría de anomalías de color (Bit 19 ON / Bit 4 OFF)
+* **MYM ODONTOLÓGICOS LA PLATA:** Válido por diseño. Al ser Consumidor Final/Genérico (CUIT 00000000000), se fuerza a Gold (nibble 15) por lo que no infiere Rosa (no tiene Bit 4), pero recibe la medalla Rosa (Bit 19) por soberanía base de facturación.
+* **SERGIO JOFRE:** Anómalo. CUIT real pero Condición IVA ausente (`None`). Bit 19 forzado por aserciones/excepciones manuales heredadas en scripts de verificación.
+* **Pao Tandil:** Anómalo. CUIT null y segmento null. Al no tener segmento, no recibe Bit 4, y sus flags no han sido recalculados por la auditoría transaccional.
+
+---
+
 ## SESIÓN 811: HONNEY + DEOU F4 + CF CUIT FALLBACK (OF)
 **Fecha:** 2026-05-19
 **Locación:** OF
