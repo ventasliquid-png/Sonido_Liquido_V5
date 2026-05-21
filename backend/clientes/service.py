@@ -16,6 +16,7 @@ from backend.clientes.constants import ClientFlags
 from backend.agenda import models as agenda_models
 from backend.contactos.models import Vinculo # [V6 Multiplex Sync]
 from backend.pedidos.models import Pedido # [V5.2-FIX] Load Pedido to avoid Mapper Registry KeyError
+from backend.core.utils.text import normalize_name
 
 class ClienteService:
     @staticmethod
@@ -44,7 +45,7 @@ class ClienteService:
                      )
             
             # 2. Razón Social Block (Protocolo Nike - Nuclear Normalization)
-            canon_name = ClienteService.normalize_name(cliente_in.razon_social)
+            canon_name = normalize_name(cliente_in.razon_social)
             
             # Bloqueo por Clave Canónica (Exacta Limpia)
             if canon_name not in ['CONSUMIDORFINAL', 'CLIENTEEVENTUAL']:
@@ -917,36 +918,8 @@ class ClienteService:
 
         return f"{clean(calle)}|{clean(numero)}|{clean(piso)}|{clean(depto)}"
 
-    @staticmethod
-    def normalize_name(name: str) -> str:
-        """
-        [GY-FIX-V16.2] Protocolo de Tokenización Alfabética (Bag of Words - Blindaje Nike).
-        Remueve acentos, unifica siglas (quita puntos), tokeniza por palabras,
-        elimina ruido (<2 chars), ordena alfabéticamente y sella la cadena única.
-        """
-        if not name: return ""
-        import unicodedata
-        import re
-        
-        # 1. Normalización Unicode (Mata acentos)
-        text = unicodedata.normalize('NFKD', str(name))
-        text = text.encode('ASCII', 'ignore').decode('ASCII').upper()
-        
-        # 2. Unificación de Siglas: "S.R.L." -> "SRL" antes de tokenizar
-        text = text.replace('.', '')
-        
-        # 3. Tokenización: Reemplazar todo lo no-alfanumérico por ESPACIO
-        text = re.sub(r'[^A-Z0-9]', ' ', text)
-        tokens = text.split()
-        
-        # 4. Limpieza de Ruido (Filtramos palabras de 1 solo caracter)
-        tokens = [t for t in tokens if len(t) >= 2]
-        
-        # 5. Ordenamiento Alfabético [EL TALLER SRL] -> [EL, SRL, TALLER]
-        tokens.sort()
-        
-        # 6. Sellado: Unir sin espacios
-        return "".join(tokens)
+    # normalize_name is imported from backend.core.utils.text (shared with Productos)
+    # See deuda técnica 2026-05-21: consolidated duplicate code
 
     @staticmethod
     def check_similarity(db: Session, name: str, threshold: float = 0.85) -> List[dict]:
@@ -954,8 +927,8 @@ class ClienteService:
         [V5.7] Fuzzy Matching para detección de similitud (Protocolo Nike).
         """
         from difflib import SequenceMatcher
-        
-        target_canon = ClienteService.normalize_name(name)
+
+        target_canon = normalize_name(name)
         if not target_canon or target_canon in ['CONSUMIDORFINAL', 'CLIENTEEVENTUAL']:
             return []
 

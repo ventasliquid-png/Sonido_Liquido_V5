@@ -1,5 +1,3 @@
-import unicodedata
-import re
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, cast, String, func
 from typing import List, Optional
@@ -9,29 +7,17 @@ from decimal import Decimal
 from backend.productos import models, schemas
 from backend.pricing_engine import calculate_lists
 from backend.productos.constants import ProductoFlags
+from backend.core.utils.text import normalize_name
 
 class ProductoService:
 
-    @staticmethod
-    def normalize_name(name: str) -> str:
-        """
-        [GY-V16.2 → UTI-64bit] Protocolo de Tokenización Alfabética (Bag of Words).
-        Remueve acentos, unifica siglas, tokeniza, elimina ruido y ordena alfabéticamente.
-        """
-        if not name: return ""
-        text = unicodedata.normalize('NFKD', str(name))
-        text = text.encode('ASCII', 'ignore').decode('ASCII').upper()
-        text = text.replace('.', '')
-        text = re.sub(r'[^A-Z0-9]', ' ', text)
-        tokens = text.split()
-        tokens = [t for t in tokens if len(t) >= 2]
-        tokens.sort()
-        return "".join(tokens)
+    # normalize_name is imported from backend.core.utils.text (shared with Clientes)
+    # See deuda técnica 2026-05-21: consolidated duplicate code
 
     @staticmethod
     def check_duplicate_name(db: Session, name: str, exclude_id: int = None) -> bool:
         """Verifica si existe un producto con el mismo nombre canónico (BOW)."""
-        canon_name = ProductoService.normalize_name(name)
+        canon_name = normalize_name(name)
         if not canon_name:
             return False
         query = db.query(models.Producto).filter(models.Producto.nombre_canon == canon_name)
@@ -170,7 +156,7 @@ class ProductoService:
         # 2. Crear Producto
         producto_data = prod_in.dict(exclude={'costos'})
         db_producto = models.Producto(**producto_data)
-        db_producto.nombre_canon = ProductoService.normalize_name(prod_in.nombre)  # [ARLEQUÍN V2]
+        db_producto.nombre_canon = normalize_name(prod_in.nombre)  # [ARLEQUÍN V2]
 
         # [AUTO-SKU V5.8]
         if not db_producto.sku:
