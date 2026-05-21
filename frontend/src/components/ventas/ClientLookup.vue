@@ -103,6 +103,7 @@ onUnmounted(() => {
 // Focus management
 import { watch } from 'vue';
 import canteraService from '@/services/canteraService';
+import clientesService from '@/services/clientes';
 import { useNotificationStore } from '@/stores/notification';
 // [GY-FIX] Import main store to trigger server-side search
 import { useClientesStore } from '@/stores/clientes';
@@ -138,8 +139,36 @@ const handleCanteraSearch = async () => {
     if (!searchQuery.value) return;
     canteraLoading.value = true;
     canteraResults.value = [];
-    
+
     try {
+        // [BUG FIX 2026-05-21] Primero intentar check_similarity en DB local
+        // Evita colisiones de nombres normalizados (ej: "SERGIO JOFRE" vs "JOFRE SERGIO OMAR")
+        const similarityMatches = await clientesService.checkSimilarity(searchQuery.value, 0.85);
+
+        if (similarityMatches.length > 0) {
+            // Encontramos similares en la DB local - mostrarlos en lugar de buscar en Cantera
+            const localIds = new Set(clientesStore.clientes.map(c => c.id));
+            const dbMatches = similarityMatches.filter(match => {
+                // Los matches ya tienen .id y .nombre de la respuesta del backend
+                return !localIds.has(match.id);
+            });
+
+            if (dbMatches.length > 0) {
+                // Mostrar matches de la DB con etiqueta diferenciada
+                // Usamos el mismo formato que Cantera results pero con .razon_social = .nombre
+                canteraResults.value = dbMatches.map(m => ({
+                    id: m.id,
+                    razon_social: m.nombre,
+                    cuit: '---', // No viene en similarity response
+                    _similarity: true,
+                    _score: m.score
+                }));
+                notificationStore.add(`Encontrados ${dbMatches.length} cliente(s) similar(es) en la Base Local.`, 'info');
+                return;
+            }
+        }
+
+        // [BUG FIX] Si no encontramos similares, ENTONCES buscar en Cantera
         const res = await canteraService.searchClientes(searchQuery.value);
         // [GY-FIX] Deduplicación por ID para no mostrar los que ya están importados
         const localIds = new Set(clientesStore.clientes.map(c => c.id));
@@ -158,13 +187,31 @@ const handleCanteraSearch = async () => {
 
 const selectCanteraItem = async (item) => {
     try {
+        // [BUG FIX 2026-05-21] Diferenciar entre matches locales (similitud DB) y Cantera imports
+        if (item._similarity) {
+            // Es un cliente del que ya existe similitud en la DB local
+            // Buscarlo en los clientes cargados y seleccionarlo directamente
+            const localCliente = clientesStore.clientes.find(c => c.id === item.id);
+            if (localCliente) {
+                emit('select', localCliente);
+                emit('close');
+                notificationStore.add(`Cliente seleccionado: ${localCliente.razon_social} (coincidencia ${(item._score * 100).toFixed(0)}%)`, 'success');
+                return;
+            } else {
+                // Fallback: si no lo encontramos en el store, mostrar error
+                notificationStore.add('Cliente no encontrado en la lista local.', 'error');
+                return;
+            }
+        }
+
+        // Es un cliente de Cantera - proceder con importación
         notificationStore.add('Importando cliente...', 'info');
         await canteraService.importCliente(item.id);
         notificationStore.add('Cliente importado con éxito', 'success');
-        
+
         // We need to tell parent to refresh list and select this new client
         // Emitting 'import' event or just 'select' with a flag?
-        // Parent (PedidoTactico) listens to 'select'. 
+        // Parent (PedidoTactico) listens to 'select'.
         // But ClientLookup takes `clientes` as prop. We need to trigger a refresh in parent.
         emit('refresh-and-select', item.id);
         emit('close');
@@ -251,27 +298,35 @@ const selectCanteraItem = async (item) => {
                         </tr>
                         <!-- Cantera Search Row Removed - Moved to Footer Area -->
 
-                        <!-- Cantera Results -->
+                        <!-- Search Results (Local Similarity or Cantera) -->
                         <template v-if="canteraResults.length > 0">
                             <tr class="bg-emerald-900/20 border-b border-emerald-900/30">
                                 <td colspan="5" class="p-2 text-xs font-bold text-emerald-400 uppercase tracking-widest text-center">
-                                    Resultados en Cantera
+                                    {{ canteraResults[0]?._similarity ? 'Coincidencias en Base Local (Fuzzy Match)' : 'Resultados en Cantera' }}
                                 </td>
                             </tr>
-                            <tr 
-                                v-for="(item, cIdx) in canteraResults" 
+                            <tr
+                                v-for="(item, cIdx) in canteraResults"
                                 :key="'cant-'+item.id"
                                 @click="selectCanteraItem(item)"
                                 class="cursor-pointer hover:bg-emerald-900/30 transition-colors border-b border-slate-800/50"
                             >
                                 <td class="p-2 text-center">
-                                    <i class="fas fa-cloud-download-alt text-emerald-500"></i>
+                                    <i
+                                        :class="[
+                                            'fas text-emerald-500',
+                                            item._similarity ? 'fa-check-circle' : 'fa-cloud-download-alt'
+                                        ]"
+                                    ></i>
                                 </td>
                                 <td class="p-2 text-slate-300">
                                     <div class="font-bold text-sm text-emerald-100">{{ item.razon_social }}</div>
+                                    <div v-if="item._score" class="text-xs text-emerald-400/70">Coincidencia: {{ (item._score * 100).toFixed(0) }}%</div>
                                 </td>
                                 <td class="p-2 text-slate-400 font-mono text-sm">{{ item.cuit }}</td>
-                                <td colspan="2" class="p-2 text-right text-xs text-emerald-500/70 italic">Click para importar</td>
+                                <td colspan="2" class="p-2 text-right text-xs text-emerald-500/70 italic">
+                                    {{ item._similarity ? 'Click para seleccionar' : 'Click para importar' }}
+                                </td>
                             </tr>
                         </template>
                     </tbody>
@@ -280,13 +335,13 @@ const selectCanteraItem = async (item) => {
 
             <!-- Cantera Action Bar (Always Visible if Searching) -->
             <div v-if="searchQuery && canteraResults.length === 0" class="p-2 bg-emerald-900/10 border-t border-emerald-900/30 text-center">
-                 <button 
+                 <button
                     @click="handleCanteraSearch"
                     :disabled="canteraLoading"
                     class="w-full py-2 px-4 rounded border border-emerald-500/20 bg-emerald-900/20 text-emerald-400 hover:bg-emerald-900/40 hover:text-emerald-300 transition-all text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2"
                 >
                     <i class="fas" :class="canteraLoading ? 'fa-spinner fa-spin' : 'fa-database'"></i>
-                    {{ canteraLoading ? 'Buscando en Base Histórica...' : '¿No encuentra el cliente? Buscar en Cantera' }}
+                    {{ canteraLoading ? 'Buscando con Similitud + Cantera...' : '¿No encuentra el cliente? Buscar en DB + Cantera' }}
                 </button>
             </div>
 
