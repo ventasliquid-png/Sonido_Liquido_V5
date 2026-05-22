@@ -2,10 +2,10 @@
 # Versión: V5.6 GOLD | Sincronización: 20260407130827
 # ---------------------------------------------------------
 
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Boolean, Text, BigInteger
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Boolean, Text, BigInteger, Date
 from sqlalchemy.dialects.postgresql import UUID as pgUUID
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timedelta, date
 from backend.core.database import Base, GUID
 from backend.productos.models import Producto # [AUDIT FIX] Resolve InvalidRequestError in Mapper initialization
 
@@ -21,6 +21,7 @@ class Pedido(Base):
     tipo_facturacion = Column(String, default="X") # A, B, X
     origen = Column(String, default="DIRECTO") # MELI, TIENDA, DIRECTO
     fecha_compromiso = Column(DateTime, nullable=True) # Para pedidos con entrega futura
+    fecha_vencimiento = Column(Date, nullable=True) # V6 MUDANZA — Vigencia presupuesto (default: fecha+10 días si ES_PRESUPUESTO)
     liberado_despacho = Column(Boolean, default=False)
     oc = Column(String, nullable=True) # Orden de Compra
     
