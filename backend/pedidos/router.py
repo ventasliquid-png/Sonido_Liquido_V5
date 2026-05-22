@@ -16,6 +16,7 @@ from backend.core.database import get_db
 from backend.pedidos import models, schemas
 from backend.clientes.models import Cliente
 from backend.productos.models import Producto
+from backend.pedidos.constants import PedidoFlags as PF, STATE_MASK
 
 router = APIRouter(
     prefix="/pedidos",
@@ -99,10 +100,17 @@ def create_pedido_tactico(
         
         # [ARLEQUÍN V2] Auto-encender NO_FISCAL_FORCE si cliente es Rosa (Bit 4 = OPERATOR_OK)
         from backend.clientes.constants import ClientFlags
-        from backend.pedidos.constants import PedidoFlags as PF
-        pedido_flags_inicial = 0
+        pedido_flags_inicial = PF.EXISTENCE.value
         if cliente.flags_estado & ClientFlags.OPERATOR_OK:
-            pedido_flags_inicial |= PF.NO_FISCAL_FORCE
+            pedido_flags_inicial |= PF.NO_FISCAL_FORCE.value
+            
+        estado_inicial_str = (pedido_data.estado or "PENDIENTE").upper()
+        if estado_inicial_str == "PRESUPUESTO":
+            state_bit = PF.ES_PRESUPUESTO.value
+        else:
+            state_bit = PF.ES_FIRME.value
+            
+        pedido_flags_inicial = (pedido_flags_inicial & ~STATE_MASK.value) | state_bit
 
         print(f"[DEBUG] Creando Pedido - OC: '{pedido_data.oc}' - Override: {pedido_data.oc_override}")
         nuevo_pedido = models.Pedido(
@@ -123,8 +131,7 @@ def create_pedido_tactico(
             total=0.0 # Se calcula abajo
         )
         if pedido_data.duplicate_confirmed:
-            from backend.pedidos.constants import PedidoFlags
-            nuevo_pedido.flags_estado = (nuevo_pedido.flags_estado or 0) | PedidoFlags.PEDIDO_DUPLICATE_CONFIRMED.value
+            nuevo_pedido.flags_estado = (nuevo_pedido.flags_estado or 0) | PF.PEDIDO_DUPLICATE_CONFIRMED.value
         db.add(nuevo_pedido)
         db.flush() # Para tener ID
 
@@ -590,6 +597,24 @@ def update_pedido(
         if key == "tipo_facturacion" and value == "FISCAL":
             value = "B" 
         setattr(pedido, key, value)
+        
+        if key == "estado" and value:
+            val_upper = value.upper()
+            new_state_flag = 0
+            if val_upper == "PRESUPUESTO":
+                new_state_flag = PF.ES_PRESUPUESTO.value
+            elif val_upper == "PENDIENTE":
+                new_state_flag = PF.ES_FIRME.value
+            elif val_upper == "CUMPLIDO":
+                new_state_flag = PF.ES_CUMPLIDO.value
+            elif val_upper == "ANULADO":
+                new_state_flag = PF.ES_ANULADO.value
+            elif val_upper == "RESERVADO":
+                new_state_flag = PF.ES_FIRME.value | PF.RESERVA_STOCK.value
+            else:
+                new_state_flag = PF.ES_FIRME.value
+                
+            pedido.flags_estado = (pedido.flags_estado & ~STATE_MASK.value) | new_state_flag
     
     if status_changed or type_changed or discounts_changed or items_changed:
         # Recalcular Total según Doctrina Táctica v5.6
@@ -608,7 +633,10 @@ def update_pedido(
             pedido.total = round(raw_neto, 2)
 
     # Doctrina de Virginidad: primer CUMPLIDO → apagar Bit 1 del cliente (irreversible)
-    if status_changed and update_data.get("estado") == "CUMPLIDO":
+    if status_changed and (
+        update_data.get("estado") == "CUMPLIDO" or
+        (pedido.flags_estado & PF.ES_CUMPLIDO.value)
+    ):
         from backend.clientes.constants import ClientFlags
         cliente = pedido.cliente
         if cliente and (cliente.flags_estado & ClientFlags.IS_VIRGIN):
@@ -827,9 +855,10 @@ def clone_pedido(pedido_id: int, db: Session = Depends(get_db)):
         fecha=datetime.now(),
         nota=f"Clonado de Pedido #{original.id}. {original.nota or ''}",
         oc=original.oc,
-        estado="BORRADOR",
+        estado="PRESUPUESTO",
         tipo_facturacion=original.tipo_facturacion or "X",
         origen=original.origen or "DIRECTO",
+        flags_estado=PF.EXISTENCE.value | PF.ES_PRESUPUESTO.value,
         total=original.total, # Initial total
     )
     db.add(new_pedido)
