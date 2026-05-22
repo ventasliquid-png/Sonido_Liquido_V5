@@ -579,13 +579,37 @@
                         </div>
                     </div>
 
-                    <div v-if="!isSinIVA" class="text-right">
-                        <div class="text-[10px] font-bold uppercase tracking-widest text-gray-500">IVA (21%)</div>
-                        <div class="font-mono text-gray-300">$ {{ ((subtotal - descuentoGlobalValor) * 0.21).toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</div>
+                    <div class="text-right">
+                        <!-- Si es Responsable Inscripto en Blanco (discrimina) -->
+                        <template v-if="isClienteRI && !isCircuitoNegro">
+                            <div class="text-[10px] font-bold uppercase tracking-widest text-gray-500">IVA (21%)</div>
+                            <div class="font-mono text-gray-300">$ {{ ((subtotal - descuentoGlobalValor) * 0.21).toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</div>
+                        </template>
+                        
+                        <!-- Si es CF/Monotributista en circuito blanco (IVA contenido, Ley 27.743) -->
+                        <template v-else-if="!isCircuitoNegro">
+                            <div class="text-[10px] font-bold uppercase tracking-widest text-gray-500">IVA contenido (Ley 27.743)</div>
+                            <div class="font-mono text-gray-300">$ {{ ((subtotal - descuentoGlobalValor) * 0.21 / 1.21).toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</div>
+                        </template>
+                        
+                        <!-- Si es Exento o Circuito Negro -->
+                        <template v-else>
+                            <div class="text-[10px] font-bold uppercase tracking-widest text-gray-500">IVA contenido</div>
+                            <div class="font-mono text-gray-300">$ 0,00</div>
+                        </template>
                     </div>
 
+                    <!-- Toggle de Circuito Bipolar (NO_FISCAL_FORCE) -->
+                    <div v-if="isClienteRI" class="flex items-center gap-2 border-l border-white/10 pl-6 h-full justify-center self-end pb-1">
+                        <span class="text-[9px] font-bold uppercase tracking-wider" :class="isCircuitoNegro ? 'text-purple-400' : 'text-emerald-500'">
+                            {{ isCircuitoNegro ? 'CIRCUITO NEGRO' : 'CIRCUITO BLANCO' }}
+                        </span>
+                        <label class="relative inline-flex items-center cursor-pointer scale-75">
+                            <input type="checkbox" v-model="isCircuitoNegro" class="sr-only peer">
+                            <div class="w-9 h-5 bg-gray-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
+                        </label>
+                    </div>
 
-                    
                     <!-- SAVE BUTTON BLOCK -->
                     <div class="text-right pl-6 border-l border-white/10 flex flex-col justify-end gap-2">
                          <div class="text-xs font-bold uppercase tracking-widest text-emerald-500 mb-1">Total Final</div>
@@ -821,6 +845,7 @@ const loadPedido = async (id) => {
         notas.value = p.nota || '';
         nroOC.value = p.oc || '';
         flagsEstadoPedido.value = p.flags_estado || 0;
+        isCircuitoNegro.value = (BigInt(p.flags_estado || 0) & (1n << 12n)) !== 0n;
         omitirOC.value = !!p.flags_estado && (p.flags_estado & 64) ? false : false; // Placeholder if we had oc_override in DB, but for now just load OC
         // TODO: Handle Order Status specifically if needed (locked state?)
 
@@ -891,6 +916,7 @@ const getLocalDate = () => {
 
 const nroPedido = ref('---');
 const flagsEstadoPedido = ref(0);
+const isCircuitoNegro = ref(false);
 const fechaPedido = ref(getLocalDate());
 const fechaEntrega = ref('');
 const notas = ref('');
@@ -977,6 +1003,10 @@ const availableTransportes = computed(() => {
 // Watch for client change to set defaults
 watch(clienteSeleccionado, (newVal) => {
    if (newVal) {
+       // Si es un pedido nuevo, inicializar el circuito negro según si el cliente es Rosa (OPERATOR_OK)
+       if (!route.params.id) {
+           isCircuitoNegro.value = (BigInt(newVal.flags_estado || 0) & (1n << 4n)) !== 0n;
+       }
        const doms = newVal.domicilios || [];
        const fiscal = doms.find(d => d.es_fiscal);
        const target = fiscal || doms[0];
@@ -995,6 +1025,18 @@ watch(clienteSeleccionado, (newVal) => {
        selectedDomicilioId.value = null;
        selectedTransporteId.value = null;
    }
+});
+
+// Watch to sync isCircuitoNegro with flagsEstadoPedido (BigInt safe)
+watch(isCircuitoNegro, (val) => {
+    let flags = BigInt(flagsEstadoPedido.value || 0);
+    const bit12 = 1n << 12n;
+    if (val) {
+        flags |= bit12;
+    } else {
+        flags &= ~bit12;
+    }
+    flagsEstadoPedido.value = Number(flags);
 });
 
 // Watch for domicile change to update transport
@@ -1341,19 +1383,24 @@ const saldoDeudor = computed(() => clienteSeleccionado.value?.saldo_actual || 0)
 // Sum of line totals (which already have line discounts deducted)
 const subtotal = computed(() => items.value.reduce((sum, item) => sum + item.total, 0));
 
+// Check if client is Responsable Inscripto (Bit 40 = 1)
+const isClienteRI = computed(() => {
+    if (!clienteSeleccionado.value) return false;
+    return (BigInt(clienteSeleccionado.value.flags_estado || 0) & (1n << 40n)) !== 0n;
+});
+
 // Check if client is Rosa (informal, no fiscal)
 const isClientRosa = computed(() => {
     if (!clienteSeleccionado.value) return false;
-    return (clienteSeleccionado.value.flags_estado & OPERATOR_OK) !== 0;
+    return (BigInt(clienteSeleccionado.value.flags_estado || 0) & BigInt(OPERATOR_OK)) !== 0n;
 });
 
 const isSinIVA = computed(() => {
-    // Si estamos editando un pedido existente, el Bit 12 (NO_FISCAL_FORCE) es el soberano absoluto
-    if (route.params.id) {
-        return (flagsEstadoPedido.value & NO_FISCAL_FORCE) !== 0;
-    }
-    // Si es un pedido nuevo, el backend asignará NO_FISCAL_FORCE automáticamente si el cliente es Rosa
-    return isClientRosa.value;
+    // Bit 12 soberano (NO_FISCAL_FORCE)
+    const flags = BigInt(flagsEstadoPedido.value || 0);
+    if ((flags & (1n << 12n)) !== 0n) return true;
+    // Circuito blanco — RI discrimina IVA, resto no
+    return !isClienteRI.value;
 });
 
 // Global Discount Calculation
@@ -1462,10 +1509,8 @@ const selectProduct = async (prod) => {
                 producto_id: prod.id,
                 cantidad: newItem.value.cantidad || 1
             });
-            // Para clientes Rosa (sin IVA): si el motor devolvió Lista 5 (= Lista4 × 1.21),
-            // revertir al precio neto. El motor no diferencia Rosa/Gold en la cascada.
             let precioFinal = res.precio_final_sugerido;
-            if (isSinIVA.value && res.origen === 'LISTA_5') {
+            if (res.origen === 'LISTA_5' && isClienteRI.value) {
                 precioFinal = precioFinal / 1.21;
             }
             newItem.value.precio = precioFinal;
