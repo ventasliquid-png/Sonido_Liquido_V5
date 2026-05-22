@@ -120,7 +120,7 @@ def create_pedido_tactico(
             oc=pedido_data.oc,
             estado=pedido_data.estado or "PENDIENTE",
             # [Hardening v6.7] Si es PENDIENTE/PRESUPUESTO y no especifica tipo, asumir 'B' (Final). Si es otro, 'X'.
-            tipo_facturacion=pedido_data.tipo_facturacion or ("B" if (pedido_data.estado in ["PENDIENTE", "PRESUPUESTO"]) else "X"),
+            tipo_facturacion=pedido_data.tipo_facturacion or ("B" if not (pedido_flags_inicial & (PF.ES_CUMPLIDO.value | PF.ES_ANULADO.value)) else "X"),
             origen=pedido_data.origen or "DIRECTO",
             fecha_compromiso=pedido_data.fecha_compromiso,
             descuento_global_porcentaje=pedido_data.descuento_global_porcentaje or 0.0,
@@ -190,7 +190,7 @@ def create_pedido_tactico(
         # PENDIENTE/PRESUPUESTO FISCAL (A o B) -> +21% IVA
         # Si es INTERNO o modo 'X', no aplica IVA.
         apply_iva = (
-            nuevo_pedido.estado in ["PENDIENTE", "PRESUPUESTO"]
+            not (nuevo_pedido.flags_estado & (PF.ES_CUMPLIDO.value | PF.ES_ANULADO.value))
             and nuevo_pedido.tipo_facturacion in ["A", "B", "FISCAL"]
             and not (nuevo_pedido.flags_estado & PF.NO_FISCAL_FORCE)
         )
@@ -297,7 +297,7 @@ def generate_pedido_excel_buffer(pedido, db: Session):
             neto_gravado = bruto_items - (pedido.descuento_global_importe or 0)
             
             # Lógica de IVA v5.6
-            if pedido.estado in ["PENDIENTE", "PRESUPUESTO"]:
+            if not (pedido.flags_estado & (PF.ES_CUMPLIDO.value | PF.ES_ANULADO.value)):
                 iva_val = neto_gravado * 0.21
                 
                 curr_row += 1
@@ -365,7 +365,23 @@ def get_pedidos(
     """
     q = db.query(models.Pedido)
     if estado:
-        q = q.filter(models.Pedido.estado == estado)
+        val_upper = estado.upper()
+        bit_value = None
+        if val_upper == "PRESUPUESTO":
+            bit_value = PF.ES_PRESUPUESTO.value
+        elif val_upper == "PENDIENTE":
+            bit_value = PF.ES_FIRME.value
+        elif val_upper == "CUMPLIDO":
+            bit_value = PF.ES_CUMPLIDO.value
+        elif val_upper == "ANULADO":
+            bit_value = PF.ES_ANULADO.value
+        elif val_upper == "RESERVADO":
+            bit_value = PF.ES_FIRME.value | PF.RESERVA_STOCK.value
+            
+        if bit_value is not None:
+            q = q.filter(models.Pedido.flags_estado.op('&')(bit_value) == bit_value)
+        else:
+            q = q.filter(models.Pedido.estado == estado)
     
     # Ordenar por fecha descendente (más nuevos primero)
     q = q.order_by(models.Pedido.fecha.desc(), models.Pedido.id.desc())
@@ -441,7 +457,7 @@ def check_duplicate_pedido(
         models.Pedido.cliente_id == cliente_id,
         models.Pedido.fecha >= fecha_desde,
         models.Pedido.fecha < fecha_hasta,
-        models.Pedido.estado != "ANULADO"
+        models.Pedido.flags_estado.op('&')(PF.ES_ANULADO.value) == 0
     ).all()
 
     if not pedidos_hoy:
@@ -449,7 +465,7 @@ def check_duplicate_pedido(
         pedidos_24h = db.query(models.Pedido).filter(
             models.Pedido.cliente_id == cliente_id,
             models.Pedido.fecha >= hace_24h,
-            models.Pedido.estado != "ANULADO"
+            models.Pedido.flags_estado.op('&')(PF.ES_ANULADO.value) == 0
         ).all()
         if pedidos_24h:
             return {
@@ -538,7 +554,27 @@ def update_pedido(
     update_data = pedido_update.dict(exclude_unset=True)
     
     # [GY-FIX] Recalculate Total if Status, Type, Discounts or ITEMS change
-    status_changed = ("estado" in update_data and update_data["estado"] != pedido.estado)
+    status_changed = False
+    if "estado" in update_data:
+        val_upper = (update_data["estado"] or "").upper()
+        new_state_flag = 0
+        if val_upper == "PRESUPUESTO":
+            new_state_flag = PF.ES_PRESUPUESTO.value
+        elif val_upper == "PENDIENTE":
+            new_state_flag = PF.ES_FIRME.value
+        elif val_upper == "CUMPLIDO":
+            new_state_flag = PF.ES_CUMPLIDO.value
+        elif val_upper == "ANULADO":
+            new_state_flag = PF.ES_ANULADO.value
+        elif val_upper == "RESERVADO":
+            new_state_flag = PF.ES_FIRME.value | PF.RESERVA_STOCK.value
+        else:
+            new_state_flag = PF.ES_FIRME.value
+            
+        current_state_bit = (pedido.flags_estado or 0) & STATE_MASK.value
+        target_state_bit = new_state_flag & STATE_MASK.value
+        status_changed = (current_state_bit != target_state_bit)
+
     type_changed = ("tipo_facturacion" in update_data and update_data["tipo_facturacion"] != pedido.tipo_facturacion)
     discounts_changed = ("descuento_global_importe" in update_data or "descuento_global_porcentaje" in update_data)
     items_changed = "items" in update_data
