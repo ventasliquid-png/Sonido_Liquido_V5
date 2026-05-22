@@ -1,5 +1,18 @@
 
-Sesión actual: 812
+Sesión actual: 814
+
+# CAJA NEGRA: Genoma Pedidos V6 + Operación Mudanza + Diff 4 (2026-05-22)
+
+Sesión OF 2026-05-22 (814). Hash D: 5e1e2445. Estado: NOMINAL GOLD.
+Genoma Pedidos V6: Introducción de `PedidoFlags` en backend/pedidos/constants.py con bits universales en la banda baja y banda alta (bits >= 32). Máscara de estados excluyentes (`STATE_MASK`) que abarca `ES_PRESUPUESTO` (Bit 32), `ES_FIRME` (Bit 33), `ES_CUMPLIDO` (Bit 34) y `ES_ANULADO` (Bit 35).
+Operación Mudanza: Migración del campo string legacy `estado` a la estructura genómica en pilot_v5x.db para 31 pedidos y adición de la columna `fecha_vencimiento`.
+Router Backend: Modificaciones en `backend/pedidos/router.py` para asegurar que las transiciones de estado apliquen `(flags & ~STATE_MASK) | NUEVO_ESTADO` en escrituras (Paso A) y validen estados con operaciones bitwise en lecturas (Paso B).
+PedidoCanvas.vue (Diff 4): Integración de BigInt en frontend para evitar la pérdida de precisión en JS al evaluar flags > 31 (en particular `isClienteRI` con el Bit 40). Refactorización de `isSinIVA` (Motor Bipolar: Bit 12 del pedido y Bit 40 del cliente). selectProduct aplica divisor 1.21 en LISTA_5 únicamente para clientes RI. Desglose fiscal Ley 27.743 en pie del canvas discriminando IVA según el perfil impositivo y circuito (blanco/negro).
+Canario D: NOMINAL GOLD — flags=13.
+
+**Agente:** Antigravity (Gy) — Hash D: 5e1e2445
+
+---
 
 # CAJA NEGRA: DISCRIMINA_IVA Bit 40 + Purga Herejía del 15 (2026-05-20)
 
@@ -11,7 +24,7 @@ INBOX.md: pendiente sesión 813 registrado — diff 4 PedidoCanvas lógica selec
 Frontend diff 4 NO ejecutado — postergado sesión 813. No commitear.
 Canario D: NOMINAL GOLD — flags=13. WAL checkpoint ejecutado.
 
-**Agente:** Claude Code Sonnet 4.6 — Hash D: pendiente (pre-commit)
+**Agente:** Claude Code Sonnet 4.6 — Hash D: b0ac3c47
 
 ---
 

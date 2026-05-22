@@ -1,9 +1,49 @@
 
+## SESIÓN 814: GENOMA PEDIDOS V6 + OPERACIÓN MUDANZA + DIFF 4 (OF)
+**Fecha:** 2026-05-22
+**Locación:** OF
+**Objetivo:** Canonización de PedidoFlags Genoma V6 (banda 32+). Migración y Operación Mudanza de 31 pedidos históricos incorporando fecha_vencimiento. Transiciones de estado seguras en router.py mediante STATE_MASK. Implementación de Diff 4 en PedidoCanvas.vue con BigInt bitwise para cliente y desglose fiscal Ley 27.743.
+**Estado:** NOMINAL GOLD — PIN 1974 | Hash final: 5e1e2445
+
+### Hito 1: Genoma Pedidos V6 & Constantes
+* `PedidoFlags` en `backend/pedidos/constants.py` define la banda baja (bits universales como `NO_FISCAL_FORCE` = Bit 12) y banda alta (bits >= 32) para ciclo de vida y auditoría forense.
+* Estados excluyentes (`STATE_MASK`): `ES_PRESUPUESTO` (Bit 32), `ES_FIRME` (Bit 33), `ES_CUMPLIDO` (Bit 34), `ES_ANULADO` (Bit 35).
+* Flags ortogonales acumulables: `RESERVA_STOCK` (Bit 36), `TUVO_CIRCUITO` (Bit 37), `ORIGEN_FACTURA` (Bit 38), `ORIGEN_RETROACTIVO` (Bit 39), `CAMBIO_A_NEGRO` (Bit 41), `CAMBIO_A_BLANCO` (Bit 42).
+* Commit: `5c231ecb` (Feat PedidoFlags)
+
+### Hito 2: Operación Mudanza (Base de Datos)
+* Migración del campo string `estado` a la estructura de bits en la base de datos `pilot_v5x.db`.
+* 31 pedidos migrados conservando integridad de negocio y añadiendo columna `fecha_vencimiento`.
+* Commit: `14abd5a0` (Genoma V6 + Mudanza)
+
+### Hito 3: Router Backend (Soberanía Transaccional)
+* **Paso A (Escrituras):** Integración de `STATE_MASK` en escrituras de `backend/pedidos/router.py` para asegurar que las transiciones de estado borren el bit previo y guarden el nuevo estado de forma excluyente.
+* **Paso B (Lecturas):** Reemplazo de accesos directos de lectura de estado por operaciones bitwise.
+* Commits: `f8e1df84` (Paso A) y `9fdda7ed` (Paso B)
+
+### Hito 4: PedidoCanvas.vue (Diff 4 Frontend)
+* **BigInt Safety:** Uso de `BigInt(cliente.flags_estado || 0)` y operadores de BigInt (ej. `1n << 40n`) en `isClienteRI` para prevenir truncado y pérdida de precisión de JS en números > 31 bits.
+* **Motor Bipolar:** `isSinIVA` alineado con Bit 12 del pedido (`NO_FISCAL_FORCE`) y el Bit 40 del cliente (`DISCRIMINA_IVA`).
+* **Lógica selectProduct:** En precios `LISTA_5`, solo los clientes RI (`isClienteRI`) reciben el neto recalculado (división por 1.21). CF, Monotributo, Exento y Negro preservan el precio original con IVA.
+* **Desglose Fiscal (Ley 27.743):**
+  - Cliente Responsable Inscripto (en circuito blanco): IVA discriminado.
+  - Consumidor Final / Monotributo (en circuito blanco): IVA contenido detallado en leyenda del pie.
+  - Circuito Negro / Exento: IVA $0.00.
+* Commit: `5e1e2445` (Diff 4 PedidoCanvas)
+
+### Pendiente → Sesión 815
+* Integrar `apply_iva` en `router.py` usando el Bit 40 del cliente.
+* Bug de ingesta/remitos en la ventana de pedidos.
+* Bug de UI en ficha remito (barra de Windows).
+* Lista flotante de operador (tooltip 7 listas).
+
+---
+
 ## SESIÓN 812: DISCRIMINA_IVA BIT 40 + PURGA HEREJÍA DEL 15 (OF)
 **Fecha:** 2026-05-20
 **Locación:** OF
 **Objetivo:** Implementar Bit 40 DISCRIMINA_IVA. Purgar Bit 15 de pilot_v5x.db (5 clientes). Sellar doctrina Herejía del 15 en BIBLIOTECA_NIKE.
-**Estado:** NOMINAL GOLD — pendiente commit PIN 1974 | Hash D: pre-commit
+**Estado:** NOMINAL GOLD — PIN 1974 | Hash D: b0ac3c47
 
 ### Hito 1: Bit 40 DISCRIMINA_IVA — constants.py
 * `ClientFlags.DISCRIMINA_IVA = 1 << 40` — nuevo bit en `backend/clientes/constants.py`.
