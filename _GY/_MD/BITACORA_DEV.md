@@ -1,3 +1,60 @@
+## SESIÓN 815: AUDITORÍA GENÓMICA + APPLY_IVA BIT 40 (CA OMEGA)
+**Fecha:** 2026-05-22
+**Locación:** CA
+**Objetivo:** Auditoría forense completa del genoma flags. Diagnóstico causal Bit 40 (DISCRIMINA_IVA) — 28/29 RI clientes desincronizados. Reparación masiva de anomalías (37 total). Implementación helper `_aplica_iva()` centralizando fiscal logic. PROTOCOLO OMEGA V2.2 Fase 2 (Burocracia).
+**Estado:** NOMINAL GOLD — PIN 1974 | Hash final: 1faac75e
+
+### Hito 1: Auditoría Forense — Diagnóstico Causal Bit 40
+* **Problema:** 28/29 Responsable Inscripto clientes con `Bit 40 (DISCRIMINA_IVA) = 0` cuando deberían ser 1.
+* **Causa:** Clientes creados/actualizados PRE-Sesión 812 (cuando REGLA 3 implementada) nunca pasaron por `_audit_sovereignty()` post-implementación.
+* **Evidencia:** JOFRE SERGIO OMAR (updated 2026-05-21, POST-812) tenía Bit 40=1; ALFAJORES JORGITO (updated 2026-04-08, PRE-812) tenía Bit 40=0.
+* **Conclusión:** `_audit_sovereignty` solo se llama en create/update cliente, no retroactivamente. Patrón sistémico detectado: cada nueva regla deja históricos desactualizados.
+
+### Hito 2: Anomalías Identificadas (37 total)
+* **Bit 40 (DISCRIMINA_IVA):** 28/29 RI clientes con bit=0 en lugar de 1.
+* **Bit 20 (PENDIENTE_REVISION):** 6 clientes con bit=1 pero 4+ pilares completos (fantasma).
+* **Bit 19 (MEDALLA_ROSA):** 3 clientes Rosa (Bit 4) sin Bit 19 — inconsistencia color.
+* **CF CUIT fallback, IS_VIRGIN, Bit 2 (GOLD_ARCA):** Verificados consistentes — 0 anomalías.
+
+### Hito 3: Script Re-auditoría Bit 40 — PIN 1974
+* `backend/scripts/re_audit_bit40.py`: ejecutado contra `pilot_v5x.db`.
+* Lógica: Para cada cliente RI (`condicion_iva.nombre LIKE "%RESPONSABLE INSCRIPTO%"`), toggle Bit 40 ON.
+* Resultado: 28 clientes reparados. Verificación post: `SELECT * WHERE Bit40=0 AND Condicion_IVA~RI` → 0 restantes.
+* Commit: d84641b8.
+
+### Hito 4: Script Reparación Masiva Bits 20 + 19 — PIN 1974
+* **Reparación 1 (Bit 20):** 6 clientes con Bit 20=1 + lista_precios + segmento + 4+ domicilios. Apagado Bit 20.
+* **Reparación 2 (Bit 19):** 3 clientes Rosa (Bit 4=1) sin Bit 19. Encendido Bit 19 (MEDALLA_ROSA).
+* Verificación post: 0 anomalías restantes en ambos casos (100% cobertura).
+* Commit: 1faac75e.
+
+### Hito 5: Centralización apply_iva() en router.py
+* **Problema:** Fiscal logic duplicada en 5 locaciones (create + update + add_item + update_item + delete_item) con inconsistencia: algunas verificaban estado, otras no.
+* **Solución:** Helper `_aplica_iva(pedido, cliente) -> bool` implementando Doctrina V6:
+  - Circuito Negro (Bit 12 NO_FISCAL_FORCE=1) → siempre False (nunca IVA).
+  - Sin cliente → False.
+  - Circuito Blanco → solo RI (Bit 40) aplica IVA.
+* **Integración:** Reemplazadas 5 instancias de `tipo_facturacion in ["A", "B", "FISCAL"]` con llamadas a `_aplica_iva()`.
+* **Bonus:** PedidoFlags → PF alias corregido en `toggle_circuito_bipolar`.
+
+### Hito 6: PROTOCOLO OMEGA V2.2 — Fase 2 (Burocracia)
+* **Fase 1B:** WAL checkpoint (`PRAGMA wal_checkpoint(FULL)`) ejecutado en `pilot_v5x.db`.
+* **Fase 2:** Actualización de 3 archivos de documentación:
+  - ESTADO_ECOSISTEMA.md: CA/D row con hash 1faac75e, estado OK, alert resolved.
+  - CAJA_NEGRA.md: Nueva entrada sesión 815, incremento "Sesión actual: 815", documentación auditoría.
+  - BITÁCORA_DEV.md: Esta entrada (en curso).
+  - INFORME_HISTÓRICO: Creación de 2026-05-22_AUDITORIA_GENOMICA_815CA.md.
+
+### Commits
+* `d84641b8` (815 CA): apply_iva helper + Bit 40 re-auditoría script + centralización fiscal logic.
+* `1faac75e` (815 CA OMEGA): Reparación masiva Bits 20+19 + ESTADO_ECOSISTEMA.md + CAJA_NEGRA.md update.
+
+### Pendiente → Sesión 816 CA
+* Fase 4-7 OMEGA V2.2 (Auditoría de peso, Verificación órbita, Higiene Antigravity).
+* Mapa de flags para UX (Utilidad Maestra).
+* 6 bugs pedidos (c) CRÍTICO, d) ALTA, a-b) MEDIA, e-f) BAJA).
+
+---
 
 ## SESIÓN 814: GENOMA PEDIDOS V6 + OPERACIÓN MUDANZA + DIFF 4 (OF)
 **Fecha:** 2026-05-22

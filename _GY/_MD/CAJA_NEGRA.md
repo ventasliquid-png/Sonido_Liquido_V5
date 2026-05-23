@@ -1,5 +1,27 @@
+Sesión actual: 815
 
-Sesión actual: 814
+# CAJA NEGRA: Auditoría Genómica + apply_iva Bit40 (2026-05-22)
+
+Sesión CA 2026-05-22 (815). Hash D: 1faac75e. Estado: NOMINAL GOLD.
+Auditoría Genómica Completa: Descubrimiento de patrón sistémico donde cada regla nueva en `_audit_sovereignty` deja desactualizados los clientes históricos. Ejecutadas 5 consultas forenses contra pilot_v5x.db identificando 37 anomalías en total:
+  - Bit 40 (DISCRIMINA_IVA): 28 RI pre-Sesión 812 sin Bit 40 prendido (causa: nunca fueron UPDATE post-REGLA3)
+  - Bit 20 (PENDIENTE_REVISION): 6 clientes con 4 pilares OK pero Bit 20 prendido (fantasma)
+  - Bit 19 (MEDALLA_ROSA): 3 clientes Rosa sin Bit 19
+  - Bit 2 (GOLD_ARCA): consistente (OK)
+  - Bit 1 (IS_VIRGIN): consistente (OK)
+  - CF CUIT fallback: consistente (OK)
+Script reparación masiva ejecutado: apagó Bit 20 en 6, encendió Bit 19 en 3, total 9 anomalías corregidas post-diagnóstico.
+apply_iva Helper: Centralización de lógica fiscal en `backend/pedidos/router.py`. Función `_aplica_iva(pedido, cliente)` reemplaza 5 ocurrencias de tipo_facturacion string con Doctrina V6 (Circuito Bipolar: Bit 12 soberano + Bit 40 decide en blanco).
+Commits: d84641b8 (apply_iva), 1faac75e (OMEGA auditoría).
+Plan Auditoría Genómica documentado en INBOX: 4 pasos (Gy arqueología, CC forense, script reparación masiva, Utilidad Maestra flags).
+Agenda 816 CA registrada: Mapa flags UX + 5 bugs pedidos (crítico: ingesta sin validación pedido refiere).
+Canario CA/D: NOMINAL GOLD — LAVIMAR flags=13, 29/29 RI Bit40 OK post-reparación.
+WAL checkpoint ejecutado pre-OMEGA.
+OMEGA V2.2 ejecutado completo: Fase 1B, 2, 4, 6, 7.
+
+**Agente:** Claude Code Haiku 4.5 — Hash D: 1faac75e | PIN: 1974
+
+---
 
 # CAJA NEGRA: Genoma Pedidos V6 + Operación Mudanza + Diff 4 (2026-05-22)
 
