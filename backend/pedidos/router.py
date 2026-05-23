@@ -24,6 +24,23 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
+def _aplica_iva(pedido, cliente) -> bool:
+    """
+    Doctrina V6 — La verdad fiscal emana del Genoma.
+    Bit 12 (NO_FISCAL_FORCE) soberano. 
+    Bit 40 (DISCRIMINA_IVA) decide en circuito blanco.
+    """
+    from backend.pedidos.constants import PF
+    from backend.clientes.constants import ClientFlags
+    # Circuito negro — soberano, nunca aplica IVA
+    if pedido.flags_estado & PF.NO_FISCAL_FORCE.value:
+        return False
+    # Sin cliente — no aplica IVA
+    if not cliente:
+        return False
+    # Circuito blanco — solo RI discrimina IVA
+    return bool(cliente.flags_estado & ClientFlags.DISCRIMINA_IVA)
+
 @router.get("/sugerir_id", response_model=int)
 def suggest_next_pedido_id(db: Session = Depends(get_db)):
     """
@@ -189,11 +206,7 @@ def create_pedido_tactico(
         # Sincronización con Doctrina Táctica v5.6:
         # PENDIENTE/PRESUPUESTO FISCAL (A o B) -> +21% IVA
         # Si es INTERNO o modo 'X', no aplica IVA.
-        apply_iva = (
-            not (nuevo_pedido.flags_estado & (PF.ES_CUMPLIDO.value | PF.ES_ANULADO.value))
-            and nuevo_pedido.tipo_facturacion in ["A", "B", "FISCAL"]
-            and not (nuevo_pedido.flags_estado & PF.NO_FISCAL_FORCE)
-        )
+        apply_iva = _aplica_iva(nuevo_pedido, cliente)
         
         if apply_iva:
             nuevo_pedido.total = round(raw_neto * 1.21, 2)
@@ -654,10 +667,7 @@ def update_pedido(
     
     if status_changed or type_changed or discounts_changed or items_changed:
         # Recalcular Total según Doctrina Táctica v5.6
-        apply_iva = (
-            pedido.tipo_facturacion in ["A", "B", "FISCAL", "M"]
-            and not (pedido.flags_estado & PedidoFlags.NO_FISCAL_FORCE)
-        )
+        apply_iva = _aplica_iva(pedido, pedido.cliente)
         
         # [GY-FIX] Recalcular Total sumando directamente de la DB para evitar stale reads de la relación
         items_neto = db.query(func.sum(models.PedidoItem.subtotal)).filter(models.PedidoItem.pedido_id == pedido_id).scalar() or 0.0
@@ -766,7 +776,8 @@ def add_pedido_item(
     
     # Update Total (Recalculate with IVA logic)
     raw_neto = sum(i.subtotal for i in pedido.items) - (pedido.descuento_global_importe or 0.0)
-    if pedido.tipo_facturacion in ["A", "B", "FISCAL", "M"] and not (pedido.flags_estado & PedidoFlags.NO_FISCAL_FORCE):
+    cliente = db.query(Cliente).get(pedido.cliente_id)
+    if _aplica_iva(pedido, cliente):
         pedido.total = round(raw_neto * 1.21, 2)
     else:
         pedido.total = round(raw_neto, 2)
@@ -821,7 +832,8 @@ def update_pedido_item(
     db.flush() # Save item change first
     
     raw_neto = sum(i.subtotal for i in pedido.items) - (pedido.descuento_global_importe or 0)
-    if pedido.tipo_facturacion in ["A", "B", "FISCAL", "M"] and not (pedido.flags_estado & PedidoFlags.NO_FISCAL_FORCE):
+    cliente = db.query(Cliente).get(pedido.cliente_id)
+    if _aplica_iva(pedido, cliente):
         pedido.total = round(raw_neto * 1.21, 2)
     else:
         pedido.total = round(raw_neto, 2)
@@ -863,7 +875,8 @@ def delete_pedido_item(item_id: int, db: Session = Depends(get_db)):
     
     # Recalculate total with IVA logic
     raw_neto = sum(i.subtotal for i in pedido.items) - (pedido.descuento_global_importe or 0.0)
-    if pedido.tipo_facturacion in ["A", "B", "FISCAL", "M"] and not (pedido.flags_estado & PedidoFlags.NO_FISCAL_FORCE):
+    cliente = db.query(Cliente).get(pedido.cliente_id)
+    if _aplica_iva(pedido, cliente):
         pedido.total = round(raw_neto * 1.21, 2)
     else:
         pedido.total = round(raw_neto, 2)
@@ -1005,7 +1018,6 @@ def cotizar_precio(req: CotizacionRequest, db: Session = Depends(get_db)):
     }
 
 # --- GENOMA BIPOLAR ---
-from backend.pedidos.constants import PedidoFlags
 
 class BipolarRequest(BaseModel):
     is_interno: bool
@@ -1021,9 +1033,9 @@ def toggle_circuito_bipolar(pedido_id: int, req: BipolarRequest, db: Session = D
         
     current_flags = pedido.flags_estado or 0
     if req.is_interno:
-        current_flags |= PedidoFlags.NO_FISCAL_FORCE.value
+        current_flags |= PF.NO_FISCAL_FORCE.value
     else:
-        current_flags &= ~PedidoFlags.NO_FISCAL_FORCE.value
+        current_flags &= ~PF.NO_FISCAL_FORCE.value
         
     pedido.flags_estado = current_flags
     db.commit()
