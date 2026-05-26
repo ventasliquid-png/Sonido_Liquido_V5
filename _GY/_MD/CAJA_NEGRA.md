@@ -1,4 +1,21 @@
-Sesión actual: 815
+Sesión actual: 816
+
+# CAJA NEGRA: Fix Ingesta/Pedido + Salvaguardas (2026-05-26)
+
+Sesión OF 2026-05-26 (816). Hash D: 39309805. Estado: NOMINAL GOLD.
+Fix Ingesta/Pedido: Reparación de 3 bugs encadenados en el módulo de ingesta:
+  - BUG 1: IngestaService.approve() retornaba un dict pero el router accedía como objeto. Corregido a sintaxis dict (`procesada["id"]`, `procesada["estado"]`).
+  - BUG 2: service.py aceptaba vinculación de pedido_id como None sin validación. Se hizo obligatoria la existencia del pedido vinculante para aprobar una ingesta.
+  - BUG 3: Frontend IngestaFacturaView.vue no permitía seleccionar pedido en el modal de aprobación. Modificado modal para requerir selector de pedido y enviar payload correcto.
+  - Remitos: Eliminado endpoint obsoleto `/remitos/ingesta-process` del frontend y backend en favor de `/ingesta/raw/{raw_id}/approve`.
+ImportError en Pedidos Router: Eliminación de imports internos redundantes de PF y ClientFlags en la función `_aplica_iva` que causaban fallas al buscar PF dentro de constants.py.
+Salvaguardas Remitos: Importación de validaciones defensivas desde P en `backend/remitos/router.py` para prevenir accesos inseguros a `remito.pedido.cliente` en el endpoint de generación de PDF.
+Análisis Comparativo P vs D: Verificación estructural. P (raíz) posee estructura de 9 archivos, mientras que P (current) está al día con D con la única excepción de `backend/core/utils/text.py` que es exclusivo de D.
+Canario D: NOMINAL GOLD — flags=13. WAL checkpoint ejecutado.
+
+**Agente:** Antigravity (Gy) — Hash D: 39309805 | PIN: 1974
+
+---
 
 # CAJA NEGRA: Auditoría Genómica + apply_iva Bit40 (2026-05-22)
 

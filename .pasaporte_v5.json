@@ -1,5 +1,6 @@
 ﻿{
     "origen":  "MEDIO",
-    "estado":  "NOMINAL GOLD",
-    "fecha":  "2026-04-24 19:16:28"
+    "fecha_cierre_real":  "2026-05-26 16:49:56",
+    "estado_salud":  "GOLD",
+    "db_fuente":  "pilot_v5x.db"
 }

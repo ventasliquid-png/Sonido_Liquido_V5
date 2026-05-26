@@ -1,3 +1,33 @@
+## SESIÓN 816: FIX INGESTA/PEDIDO + SALVAGUARDAS REMITOS (OF OMEGA)
+**Fecha:** 2026-05-26
+**Locación:** OF
+**Objetivo:** Corrección de bugs encadenados en el módulo de ingesta y vinculación de pedidos, reparación de AttributeError en endpoint approve, y remoción de endpoint obsoleto. Corrección de ImportError en router de pedidos (_aplica_iva). Incorporación de salvaguardas defensivas para remitos en get_remito_pdf importadas desde P. Análisis comparativo de archivos .py entre P y D.
+**Estado:** NOMINAL GOLD — PIN 1974 | Hash final: 39309805
+
+### Hito 1: Bug Ingesta/Pedido (Bugs 1, 2 y 3)
+* **Bug 1 (AttributeError):** Corregido en `backend/ingesta/router.py`. La llamada a `IngestaService.approve` retorna un diccionario en lugar de un objeto. Se corrigieron los accesos a `procesada["id"]` y `procesada["estado"]`.
+* **Bug 2 (Validación Pedido):** Implementada validación estricta de `pedido_id` en `backend/ingesta/service.py` para evitar vinculaciones nulas desde el backend.
+* **Bug 3 (Selector de Pedido):** Se modificó el modal de aprobación en `frontend/src/views/Pedidos/IngestaFacturaView.vue` para forzar la selección de un pedido vinculante y enviar el payload con `pedido_id_vinculado`. El botón de la ficha de remito pasó de "Generar Remito" a "Proceder".
+* **Endpoint deprecado:** Se eliminó la ruta `/remitos/ingesta-process` de backend/remitos y del frontend, unificando todo bajo el router de ingesta.
+
+### Hito 2: ImportError en Pedidos Router
+* Se eliminaron las declaraciones de importación interna redundantes de `PF` y `ClientFlags` dentro del helper `_aplica_iva` en `backend/pedidos/router.py`. Ahora se usan los del scope global para evitar fallos por alias inexistentes en constants.py.
+
+### Hito 3: Sincronización de Salvaguardas de Remitos
+* Se importaron las validaciones defensivas de P a D en `backend/remitos/router.py` (`get_remito_pdf`) para verificar la existencia de `remito.pedido` y de `remito.pedido.cliente` antes de generar el archivo PDF, previniendo caídas con excepciones HTTP 400.
+
+### Hito 4: Análisis Comparativo P vs D
+* Se ejecutó un análisis de archivos `.py` entre D (`Sonido_Liquido_V5`) y P (`v5-ls-Tom`).
+* Se identificó que la raíz literal de P sólo contiene 9 archivos. La versión activa y desplegada se encuentra en `C:\dev\v5-ls-Tom\current\backend`.
+* Existe paridad casi exacta entre D y P (Current), exceptuando el archivo `backend/core/utils/text.py` que sólo se encuentra en D (contiene `normalize_name`).
+
+### Hito 5: Burocracia y Respaldo
+* Se ejecutó el WAL checkpoint completo sobre `pilot_v5x.db`.
+* Se copió la base de datos `pilot_v5x.db` al silo oficial `Q:\Mi unidad\V5_Silo_Claude\`.
+* Se actualizaron `ESTADO_ECOSISTEMA.md`, `INBOX.md`, `CAJA_NEGRA.md`, y se generó el informe histórico `2026-05-26_FIX_INGESTA_PEDIDO_816.md`.
+
+---
+
 ## SESIÓN 815: AUDITORÍA GENÓMICA + APPLY_IVA BIT 40 (CA OMEGA)
 **Fecha:** 2026-05-22
 **Locación:** CA
