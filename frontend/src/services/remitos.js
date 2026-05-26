@@ -70,8 +70,8 @@ export default {
         });
     },
 
-    confirmIngesta(payload) {
-        return api.post('/remitos/ingesta-process', payload);
+    confirmIngesta(rawId, payload) {
+        return api.post(`/ingesta/raw/${rawId}/approve`, payload);
     },
 
     updateRemito(remitoId, data) {

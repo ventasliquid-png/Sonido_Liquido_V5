@@ -36,7 +36,7 @@ def get_preview(raw_id: uuid.UUID, db: Session = Depends(get_db)):
 def approve_ingesta(raw_id: uuid.UUID, edited_data: Dict[str, Any], db: Session = Depends(get_db)):
     try:
         procesada = IngestaService.approve(db, raw_id, edited_data)
-        return {"id": procesada.id, "estado": procesada.estado}
+        return {"id": procesada["id"], "estado": procesada["estado"]}
     except HTTPException as e:
         raise e
     except ValueError as e:

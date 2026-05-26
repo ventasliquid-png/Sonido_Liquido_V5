@@ -3,17 +3,17 @@
 // ------------------------------------------
 
 <template>
-  <div class="flex h-full w-full bg-[#0f172a] text-gray-200 overflow-hidden font-sans tokyo-bg neon-blue rounded-2xl border-2 border-blue-500/50 shadow-[0_0_30px_rgba(59,130,246,0.3)] p-6">
+  <div class="flex h-full w-full bg-[#0f172a] text-gray-200 overflow-hidden font-sans tokyo-bg neon-blue rounded-2xl border-2 border-blue-500/50 shadow-[0_0_30px_rgba(59,130,246,0.3)] p-4">
     
     <div class="flex-1 flex flex-col min-w-0">
         <!-- Header -->
-        <header class="flex justify-between items-center mb-6 border-b border-blue-900/30 pb-4">
+        <header class="flex justify-between items-center mb-3 border-b border-blue-900/30 pb-2">
             <div>
-                <h1 class="font-outfit text-2xl font-bold text-white flex items-center gap-3">
+                <h1 class="font-outfit text-xl font-bold text-white flex items-center gap-2">
                     <i class="fas fa-robot text-blue-400"></i>
                     Ingesta Automática de Facturas
                 </h1>
-                <p class="text-xs text-blue-400/50 font-medium uppercase tracking-wider mt-1">
+                <p class="text-[10px] text-blue-400/50 font-medium uppercase tracking-wider mt-0.5">
                     Conversión Inteligente: PDF AFIP <i class="fas fa-arrow-right mx-1"></i> Remito V5
                 </p>
             </div>
@@ -307,6 +307,31 @@
                         </table>
                     </div>
 
+                    <!-- Vinculación de Pedido -->
+                    <div class="p-4 bg-slate-950 border-t border-slate-800/80">
+                        <div v-if="pendingPedidos.length > 0" class="flex flex-col gap-2">
+                            <label class="text-[10px] uppercase text-blue-400 font-black block tracking-widest">
+                                Vincular Pedido Existente
+                            </label>
+                            <select 
+                                v-model="selectedPedidoId"
+                                class="w-full bg-slate-900 border border-blue-900/30 rounded-lg px-3 py-2 text-xs text-white focus:border-blue-500 outline-none transition-all"
+                            >
+                                <option :value="null">-- Seleccione un pedido --</option>
+                                <option value="NEW">🆕 Crear pedido nuevo (Redirigir a Canvas)</option>
+                                <option v-for="p in pendingPedidos" :key="p.id" :value="p.id">
+                                    #{{ p.id }} — {{ p.cliente.razon_social }} ({{ p.fecha ? p.fecha.split('T')[0] : '' }}) - Total: ${{ p.total }}
+                                </option>
+                            </select>
+                        </div>
+                        <div v-else class="bg-blue-500/5 border border-blue-500/10 rounded-xl p-3 flex items-center justify-between">
+                            <span class="text-xs text-blue-300 font-medium flex items-center gap-2">
+                                <i class="fas fa-info-circle text-blue-400"></i>
+                                Sin pedidos pendientes para este cliente — se creará uno nuevo
+                            </span>
+                        </div>
+                    </div>
+
                     <!-- Actions -->
                     <div class="p-4 bg-slate-800 border-t border-slate-700 flex justify-end gap-3 transition-all">
                         <button @click="reset" class="px-4 py-2 text-slate-400 hover:text-white transition">
@@ -314,12 +339,12 @@
                         </button>
                         <!-- PREVIEW NATIVO REMOVIDO -->
                         <button 
-                            @click="confirmIngesta"
-                            :disabled="loading"
+                            @click="handleProceder"
+                            :disabled="loading || !selectedPedidoId"
                             class="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-lg shadow-lg shadow-blue-900/30 flex items-center gap-2"
                         >
                             <i v-if="loading" class="fas fa-circle-notch fa-spin"></i>
-                            <span>{{ loading ? 'Procesando...' : 'Generar Remito' }}</span>
+                            <span>{{ loading ? 'Procesando...' : 'Proceder' }}</span>
                             <i v-if="!loading" class="fas fa-file-import"></i>
                         </button>
                     </div>
@@ -579,6 +604,8 @@ const reset = () => {
     bultos.value = 1;
     valor_declarado.value = 0.0;
     if (fileInput.value) fileInput.value.value = '';
+    selectedPedidoId.value = null;
+    pendingPedidos.value = [];
 };
 
 const addItem = () => {
@@ -643,8 +670,27 @@ const loadClientDetails = async (clientId) => {
         const res = await api.get(`/clientes/${clientId}`);
         clientAddresses.value = res.data.domicilios || [];
         autoSelectAddress();
+
+        // Cargar y filtrar pedidos pendientes del cliente por CUIT
+        const cuit = res.data.cuit;
+        if (cuit) {
+            const pedRes = await api.get('/pedidos/', { params: { estado: 'PENDIENTE' } });
+            const targetCuit = cuit.replace(/-/g, '').trim();
+            pendingPedidos.value = (pedRes.data || []).filter(p => {
+                const pCuit = (p.cliente?.cuit || '').replace(/-/g, '').trim();
+                return pCuit === targetCuit;
+            });
+            if (pendingPedidos.value.length === 0) {
+                selectedPedidoId.value = 'NEW';
+            } else {
+                selectedPedidoId.value = null; // Dejar que el operador seleccione
+            }
+        } else {
+            pendingPedidos.value = [];
+            selectedPedidoId.value = 'NEW';
+        }
     } catch (e) {
-        console.error("[V5] No se pudieron cargar domicilios del cliente", e);
+        console.error("[V5] No se pudieron cargar domicilios o pedidos del cliente", e);
     }
 }
 
@@ -696,6 +742,14 @@ const autoSelectAddress = () => {
     }
 }
 
+const handleProceder = () => {
+    if (selectedPedidoId.value === 'NEW') {
+        goToNewPedido();
+    } else if (selectedPedidoId.value) {
+        confirmIngesta();
+    }
+};
+
 const confirmIngesta = async () => {
     if (!parsedData.value) return;
 
@@ -732,7 +786,10 @@ const confirmIngesta = async () => {
             bultos: bultos.value,
             valor_declarado: valor_declarado.value,
             nuevo_domicilio: selectedAddressId.value === 'ADD_NEW' ? newAddress.value : null,
-            audit_log: auditLog.value
+            audit_log: auditLog.value,
+            modo_ingesta: selectedPedidoId.value && typeof selectedPedidoId.value === 'number' ? 'VINCULAR_EXISTENTE' : null,
+            pedido_id_vinculado: selectedPedidoId.value && typeof selectedPedidoId.value === 'number' ? selectedPedidoId.value : null,
+            modo_cuarentena: false
         };
 
         if (selectedAddressId.value && selectedAddressId.value !== 'ADD_NEW') {
@@ -787,8 +844,12 @@ const handle409NoPedido = async () => {
     const cuit = parsedData.value?.cliente?.cuit;
     if (cuit) {
         try {
-            const res = await api.get('/pedidos/', { params: { cliente_cuit: cuit, estado: 'PENDIENTE' } });
-            pendingPedidos.value = res.data || [];
+            const res = await api.get('/pedidos/', { params: { estado: 'PENDIENTE' } });
+            const targetCuit = cuit.replace(/-/g, '').trim();
+            pendingPedidos.value = (res.data || []).filter(p => {
+                const pCuit = (p.cliente?.cuit || '').replace(/-/g, '').trim();
+                return pCuit === targetCuit;
+            });
         } catch (e) {
             console.error("[V5] No se pudieron cargar pedidos pendientes", e);
             pendingPedidos.value = [];
@@ -826,19 +887,23 @@ const retryWithPedido = async (pedidoId) => {
             valor_declarado: valor_declarado.value,
             nuevo_domicilio: selectedAddressId.value === 'ADD_NEW' ? newAddress.value : null,
             modo_ingesta: 'VINCULAR_EXISTENTE',
-            pedido_id_vinculado: pedidoId
+            pedido_id_vinculado: pedidoId,
+            modo_cuarentena: false
         };
 
         if (selectedAddressId.value && selectedAddressId.value !== 'ADD_NEW') {
             payload.domicilio_id = selectedAddressId.value;
         }
 
-        const res = await remitosService.confirmIngesta(payload);
+        const res = await remitosService.confirmIngesta(currentRawId.value, payload);
 
         if (res.data && res.data.id) {
             notification.add('Remito generado con éxito', 'success');
-            const pdfUrl = `/remitos/${res.data.id}/pdf`;
-            window.open(pdfUrl, '_blank');
+            const remitoId = res.data.remito_id;
+            if (remitoId) {
+                const pdfUrl = `/remitos/${remitoId}/pdf`;
+                window.open(pdfUrl, '_blank');
+            }
             reset();
         }
     } catch (e) {
@@ -901,12 +966,15 @@ const retryInCuarentena = async () => {
             payload.domicilio_id = selectedAddressId.value;
         }
 
-        const res = await remitosService.confirmIngesta(payload);
+        const res = await remitosService.confirmIngesta(currentRawId.value, payload);
 
         if (res.data && res.data.id) {
             notification.add('Remito en cuarentena generado. Requiere revisión supervisor.', 'warning');
-            const pdfUrl = `/remitos/${res.data.id}/pdf`;
-            window.open(pdfUrl, '_blank');
+            const remitoId = res.data.remito_id;
+            if (remitoId) {
+                const pdfUrl = `/remitos/${remitoId}/pdf`;
+                window.open(pdfUrl, '_blank');
+            }
             reset();
         }
     } catch (e) {

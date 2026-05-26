@@ -79,6 +79,7 @@ class IngestaService:
             p_cliente_id = edited_data.get("cliente", {}).get("id")
             p_pedido_id = edited_data.get("pedido_id_vinculado")
 
+            is_cuarentena = edited_data.get("modo_cuarentena", False)
             procesada = FacturasProcesadas(
                 raw_id=raw.id,
                 cliente_id=p_cliente_id,
@@ -88,12 +89,17 @@ class IngestaService:
                 vto_cae=edited_data.get("factura", {}).get("vto_cae"),
                 parsed_data_final=edited_data,
                 audit_log=edited_data.get("audit_log", {}),
-                estado="APROBADA",
+                estado="CUARENTENA" if is_cuarentena else "APROBADA",
                 processed_at=datetime.now(timezone.utc)
             )
             db.add(procesada)
 
-            raw.audit_status = "PROCESADO"
+            if is_cuarentena:
+                from backend.ingesta.constants import IngestaFlags
+                raw.audit_status = "CUARENTENA"
+                raw.flags_estado |= IngestaFlags.RAW_EN_CUARENTENA
+            else:
+                raw.audit_status = "PROCESADO"
             raw.processed_at = datetime.now(timezone.utc)
             db.add(raw)
             db.commit()
@@ -101,7 +107,7 @@ class IngestaService:
             return {
                 "id": str(procesada.id),
                 "remito_id": remito_id,
-                "estado": "APROBADA"
+                "estado": "CUARENTENA" if is_cuarentena else "APROBADA"
             }
 
         except Exception as e:

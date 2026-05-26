@@ -17,6 +17,7 @@ from backend.pedidos import models, schemas
 from backend.clientes.models import Cliente
 from backend.productos.models import Producto
 from backend.pedidos.constants import PedidoFlags as PF, STATE_MASK
+from backend.clientes.constants import ClientFlags
 
 router = APIRouter(
     prefix="/pedidos",
@@ -30,8 +31,6 @@ def _aplica_iva(pedido, cliente) -> bool:
     Bit 12 (NO_FISCAL_FORCE) soberano. 
     Bit 40 (DISCRIMINA_IVA) decide en circuito blanco.
     """
-    from backend.pedidos.constants import PF
-    from backend.clientes.constants import ClientFlags
     # Circuito negro — soberano, nunca aplica IVA
     if pedido.flags_estado & PF.NO_FISCAL_FORCE.value:
         return False

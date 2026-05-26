@@ -267,13 +267,63 @@ class RemitosService:
             goto_remito = True
 
         if not goto_remito:
-            # [ARLEQUÍN V2 — DOCTRINA SOLO LECTURA]
-            # Una factura sin pedido vinculado no puede procesarse.
-            # El operador debe crear o identificar el pedido antes de reintentar.
-            raise HTTPException(
-                status_code=409, 
-                detail="PEDIDO_REQUERIDO: Esta factura no tiene un pedido vinculado. Identifique o cree el pedido correspondiente."
-            )
+            if getattr(payload, 'modo_cuarentena', False):
+                # Crear pedido "fantasma" en cuarentena (para cumplir fk del remito)
+                from backend.pedidos.models import Pedido as PedidoModel
+                nuevo_pedido = PedidoModel(
+                    cliente_id=cliente.id,
+                    fecha=datetime.now(),
+                    nota=f"Ingesta en Cuarentena Factura: {original_invoice}" if original_invoice else "Ingesta en Cuarentena",
+                    estado="PENDIENTE",
+                    origen="INGESTA_PDF",
+                    domicilio_entrega_id=domicilio.id if domicilio else None,
+                    transporte_id=transporte_id
+                )
+                db.add(nuevo_pedido)
+                db.flush()
+                
+                # Crear los items del pedido en base a los items de la ingesta
+                for it in payload.items:
+                    # Buscar producto por código o descripción
+                    producto = None
+                    if it.codigo:
+                        producto = db.query(Producto).filter(Producto.codigo_visual == it.codigo).first()
+                    if not producto:
+                        producto = db.query(Producto).filter(Producto.nombre == it.descripcion).first()
+                    if not producto:
+                        producto = db.query(Producto).filter(Producto.nombre.ilike("%VARIOS%")).first()
+                    if not producto:
+                        # Fallback a VS9999 / Rubro 1
+                        producto = Producto(
+                            nombre=it.descripcion.upper(),
+                            codigo_visual="VS9999",
+                            sku=99999,
+                            rubro_id=1,
+                            activo=True
+                        )
+                        db.add(producto)
+                        db.flush()
+                    
+                    new_p_item = PedidoItem(
+                        pedido_id=nuevo_pedido.id,
+                        producto_id=producto.id,
+                        cantidad=it.cantidad,
+                        precio_unitario=it.precio_unitario or 0.0,
+                        nota="Ítem de Ingesta en Cuarentena"
+                    )
+                    db.add(new_p_item)
+                    db.flush()
+                    pedido_items.append(new_p_item)
+                
+                goto_remito = True
+            else:
+                # [ARLEQUÍN V2 — DOCTRINA SOLO LECTURA]
+                # Una factura sin pedido vinculado no puede procesarse.
+                # El operador debe crear o identificar el pedido antes de reintentar.
+                raise HTTPException(
+                    status_code=409, 
+                    detail="PEDIDO_REQUERIDO: Esta factura no tiene un pedido vinculado. Identifique o cree el pedido correspondiente."
+                )
 
         # 5. CREATE REMITO
         vto_cae_date = None
@@ -297,12 +347,13 @@ class RemitosService:
         if not domicilio:
             domicilio = db.query(Domicilio).first()
 
+        is_cuarentena = getattr(payload, 'modo_cuarentena', False)
         remito = models.Remito(
             pedido_id=nuevo_pedido.id,
             domicilio_entrega_id=domicilio.id if domicilio else None,
             transporte_id=transporte_id,
             estado="BORRADOR",
-            aprobado_para_despacho=True,
+            aprobado_para_despacho=False if is_cuarentena else True,
             cae=payload.factura.cae,
             vto_cae=vto_cae_date,
             numero_legal=numero_legal,
