@@ -76,7 +76,19 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
             raise HTTPException(status_code=404, detail="Remito no encontrado")
         
         # Preparar datos para el motor
+        if not remito.pedido:
+            raise HTTPException(
+                status_code=400, 
+                detail="Remito sin pedido vinculado"
+            )
+
         cliente = remito.pedido.cliente
+
+        if not cliente:
+            raise HTTPException(
+                status_code=400, 
+                detail="Pedido sin cliente vinculado"
+            )
         items = []
         for r_item in remito.items:
             p_item = r_item.pedido_item
