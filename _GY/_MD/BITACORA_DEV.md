@@ -1,3 +1,38 @@
+## SESIÓN 817: SYNC D→P→MT + MIGRACIONES + FIXES UI (OF OMEGA)
+**Fecha:** 2026-05-27
+**Locación:** OF
+**Objetivo:** Sincronizar el entorno de desarrollo (D) con producción (P) y Mesa Táctica (MT). Reconstrucción y build completo en P/MT. Ejecutar scripts de migración de base de datos en MT (Bit 40, Bit 20/19, fecha_vencimiento y Genoma V6). Corregir bug en `PedidoCanvas.vue` de estado de pedido hardcodeado ("PENDIENTE"). Implementar validación y salvaguarda Poka-Yoke para pedidos en estado `CUMPLIDO` o `ANULADO`. Corregir bug visual de altura en `PedidoCanvas.vue` (h-screen -> h-full) para evitar corte por la barra de tareas de Windows.
+**Estado:** NOMINAL GOLD — PIN 1974 | Hash final: ec5cb6de
+
+### Hito 1: Sincronización y Despliegue de Infraestructura
+* Sincronización de backend (183 archivos) y frontend/src (116 archivos) desde D a P/current.
+* Reconstrucción del entorno virtual (venv), instalación de dependencias requeridas (incluyendo PyMuPDF) y compilación del frontend en producción con éxito.
+
+### Hito 2: Ejecución de Migraciones de Base de Datos en MT
+* Script de re-auditoría de Bit 40 (DISCRIMINA_IVA) para 28 clientes Responsable Inscripto (excluyendo LAVIMAR).
+* Script de reparación masiva de consistencia de bits (Bits 20 y 19) en 9 clientes anómalos.
+* Migración física de base de datos (`ALTER TABLE pedidos ADD COLUMN fecha_vencimiento DATE`) y migración de estado de pedidos al Genoma V6 en banda 32+ (excluyentes: `ES_PRESUPUESTO`, `ES_FIRME`, `ES_CUMPLIDO`, `ES_ANULADO`).
+
+### Hito 3: Fix PedidoCanvas Estado Hardcodeado & Poka-Yoke
+* **Causa raíz:** `savePedido()` enviaba siempre `estado: "PENDIENTE"`, pisando el estado real del pedido al guardar en edición.
+* **Resolución:**
+  * Se agregó la variable reactiva `estadoPedido = ref('PENDIENTE')`.
+  * `loadPedido()` ahora captura el estado del pedido: `estadoPedido.value = p.estado || 'PENDIENTE'`.
+  * `savePedido()` utiliza `estado: estadoPedido.value` en su payload.
+  * Se implementó un badge visible en el encabezado de solo lectura que indica el estado del pedido.
+  * Se agregaron salvaguardas Poka-Yoke: si el pedido es `CUMPLIDO` o `ANULADO`, se muestra un banner de advertencia ("Este pedido está [ESTADO] y no puede editarse"), se deshabilitan los botones de Guardar y Guardar/Imprimir en la UI, se bloquea el guardado mediante atajo de teclado F10 y se interrumpe preventivamente al inicio de `savePedido()`.
+
+### Hito 4: Fix de Altura (Bug Barra de Windows)
+* **Causa raíz:** La raíz de `PedidoCanvas.vue` definía `min-h-screen` y la tarjeta interna `h-screen` (que se traducen a `100vh`). Sin embargo, en el layout `HaweLayout.vue`, el componente se dibuja dentro de un contenedor flexible con padding `p-4` y `overflow-hidden`. Esto hacía que la tarjeta desbordara el contenedor por exactamente el padding, cortando el pie del canvas (TOTAL FINAL y botones de guardar) bajo la barra de tareas de Windows.
+* **Resolución:** Se reemplazó `min-h-screen` por `min-h-full` en el div raíz y `h-screen` por `h-full` en la tarjeta interna de `PedidoCanvas.vue`. Con esto, el canvas se adapta perfectamente a la altura fluida calculada por su contenedor padre.
+
+### Hito 5: Burocracia y Sello OMEGA
+* Ejecución de checkpoint WAL sobre `pilot_v5x.db` (`PRAGMA wal_checkpoint(FULL)`).
+* Copiado y respaldo de base de datos a `Q:\Mi unidad\V5_Silo_Claude\`.
+* Actualización de `ESTADO_ECOSISTEMA.md`, `INBOX.md` y generación del reporte histórico de sesión 817.
+
+---
+
 ## SESIÓN 816: FIX INGESTA/PEDIDO + SALVAGUARDAS REMITOS (OF OMEGA)
 **Fecha:** 2026-05-26
 **Locación:** OF

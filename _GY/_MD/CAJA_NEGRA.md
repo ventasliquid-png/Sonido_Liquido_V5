@@ -1,4 +1,25 @@
-Sesión actual: 816
+Sesión actual: 817
+
+# CAJA NEGRA: Sync D→P→MT + Migraciones + Fixes UI (2026-05-27)
+
+Sesión OF 2026-05-27 (817). Hash D: ec5cb6de. Estado: NOMINAL GOLD.
+Sincronización y Despliegue de Infraestructura: xcopy completo de backend y frontend de D a P. Entorno virtual reconstruido y dependencias instaladas. npm run build ejecutado con éxito en P/MT.
+Migraciones de BD:
+  - Bit 40 (DISCRIMINA_IVA) re-auditoría ejecutada en pilot_v5x.db para 28 Responsables Inscriptos.
+  - Reparación de consistencia Bit 20/19 ejecutada para 9 clientes anómalos.
+  - ALTER TABLE pedidos ADD COLUMN fecha_vencimiento DATE ejecutada con éxito.
+  - Migración a Genoma V6 (banda 32+) para todos los pedidos históricos según su estado.
+Fix PedidoCanvas Estado Hardcodeado:
+  - Variable reactiva `estadoPedido` introducida para registrar y enviar el estado impositivo/operativo real del pedido (`estado: estadoPedido.value`), evitando sobreescritura con "PENDIENTE".
+  - Badge visible de solo lectura agregado en encabezado de la ficha del pedido.
+  - Poka-Yoke: advertencia visual en pantalla si el pedido es CUMPLIDO o ANULADO, bloqueo de controles en UI, atajo F10 y deshabilitación estricta de botón Guardar.
+Fix Altura Contenedores (Bug Barra Windows):
+  - Cambio de `min-h-screen` y `h-screen` a `min-h-full` y `h-full` en PedidoCanvas.vue para adaptarse a la altura dinámica de la zona de contenidos y no desbordar por el padding de HaweLayout, eliminando el corte del pie en Windows.
+Canario D: NOMINAL GOLD. WAL checkpoint ejecutado.
+
+**Agente:** Antigravity (Gy) — Hash D: ec5cb6de | PIN: 1974
+
+---
 
 # CAJA NEGRA: Fix Ingesta/Pedido + Salvaguardas (2026-05-26)
 
