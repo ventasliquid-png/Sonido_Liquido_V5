@@ -152,4 +152,30 @@ El repo se sincroniza entre locaciones via Git. Las bases de datos se respaldan 
 
 ---
 
-*Última actualización: 2026-04-24 — OF (Misión Modernización IVA & Espejado D↔P)*
+## 10. REGLA DE SOBERANÍA DE DESARROLLO
+
+**Todo desarrollo ocurre EXCLUSIVAMENTE en D.**
+
+| Principio | Descripción |
+|---|---|
+| **Directorio Soberano** | `C:\dev\Sonido_Liquido_V5` — única fuente de verdad para código |
+| **P (Lectura)** | `C:\dev\v5-ls-Tom` — SOLO lectura para auditoría/análisis |
+| **MT (Lectura)** | Entorno de producción — SOLO lectura para verificación |
+| **Distribución** | P y MT reciben código SOLO desde D vía copy/git-push |
+| **Análisis** | Si se requiere mirar P o MT → lectura forense, sin ediciones |
+| **Regla de Hierro** | Cualquier edición directa en P o MT es un error de proceso |
+
+**Por qué:**
+- Evita divergencias de código entre entornos
+- Garantiza que todas las migraciones/tests ocurren en D primero
+- Mantiene trazabilidad clara: D → P → MT
+- Simplifica auditoría de quién cambió qué y cuándo
+
+**Qué hacer si alguien toca P o MT:**
+1. Revertir cambios inmediatamente: `git checkout -- [archivos]`
+2. Reportar a Carlos
+3. Re-sincronizar desde D
+
+---
+
+*Última actualización: 2026-05-27 — OF (Sesión 817: Salvaguarda Soberanía D)*
