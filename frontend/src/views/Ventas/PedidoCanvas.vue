@@ -3,8 +3,8 @@
 // ------------------------------------------
 
 <template>
-    <div class="min-h-screen w-full bg-[#0f172a] p-2 flex justify-center items-start">
-        <div class="w-full max-w-[98%] bg-[#0f172a] rounded-2xl border-2 border-emerald-500 shadow-[0_0_40px_-10px_rgba(16,185,129,0.5)] overflow-hidden relative flex flex-col h-screen">
+    <div class="min-h-full w-full bg-[#0f172a] p-2 flex justify-center items-start">
+        <div class="w-full max-w-[98%] bg-[#0f172a] rounded-2xl border-2 border-emerald-500 shadow-[0_0_40px_-10px_rgba(16,185,129,0.5)] overflow-hidden relative flex flex-col h-full">
             <!-- HEADER (User Provided Style) -->
             <!-- HEADER (Compact Mode) -->
             <div class="w-full bg-emerald-950/30 border-b border-emerald-500/20 py-2 px-4 flex justify-between items-center backdrop-blur-sm shrink-0">
