@@ -14,6 +14,9 @@
                     </button>
                     <h1 class="text-lg font-bold text-emerald-400 tracking-wider flex items-center gap-3">
                         <i class="fas fa-file-invoice"></i> {{ route.params.id ? `FICHA DEL PEDIDO #${route.params.id}` : 'NUEVO PEDIDO' }}
+                        <span v-if="route.params.id" :class="['px-2.5 py-0.5 text-xs font-extrabold tracking-widest rounded-full uppercase border', statusBadgeClasses]">
+                            {{ estadoPedido }}
+                        </span>
                     </h1>
                 </div>
                 <div class="flex gap-3">
@@ -24,6 +27,22 @@
                         <i class="fas fa-plus-circle"></i> Resetear
                     </button>
                 </div>
+            </div>
+
+            <!-- Warning Banner for Closed Orders (CUMPLIDO/ANULADO) [POKA-YOKE V5.9] -->
+            <div v-if="isClosedOrder" 
+                 :class="[
+                     'border-b px-4 py-2.5 flex items-center justify-between font-bold uppercase tracking-wider text-xs z-20 shrink-0 shadow-lg',
+                     estadoPedido === 'ANULADO' 
+                         ? 'bg-red-950/80 border-red-500/30 text-red-400' 
+                         : 'bg-amber-950/80 border-amber-500/30 text-amber-400'
+                 ]">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-exclamation-triangle text-sm animate-pulse" 
+                       :class="estadoPedido === 'ANULADO' ? 'text-red-500' : 'text-amber-500'"></i>
+                    <span>Este pedido está {{ estadoPedido }} y no puede editarse</span>
+                </div>
+                <span class="text-[10px] opacity-70 font-mono tracking-normal normal-case">MODO LECTURA</span>
             </div>
 
             <!-- BODY (Existing Content) -->
@@ -617,23 +636,23 @@
                               <span class="text-sm text-gray-500 font-bold">ARS</span>
                               <span class="font-outfit text-3xl font-bold text-white tracking-tight">$ {{ totalFinal.toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</span>
                                                  <div class="flex gap-2">
-                             <button @click="savePedido(false)" 
-                                     :disabled="isSaving || items.length === 0 || !clienteSeleccionado || !isOCValid"
-                                     class="bg-emerald-500 hover:bg-emerald-400 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 uppercase tracking-wider text-sm">
+                              <button @click="savePedido(false)" 
+                                      :disabled="isSaving || items.length === 0 || !clienteSeleccionado || !isOCValid || isClosedOrder"
+                                      class="bg-emerald-500 hover:bg-emerald-400 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 uppercase tracking-wider text-sm">
                                 <i v-if="isSaving" class="fas fa-spinner fa-spin"></i>
                                 <i v-else class="fas fa-save"></i>
                                 {{ isSaving ? 'Guardando...' : 'Guardar Pedido' }}
-                             </button>
+                              </button>
 
-                             <button v-if="pedidosStore.ingestaData"
-                                     @click="savePedido(true)"
-                                     :disabled="isSaving || items.length === 0 || !clienteSeleccionado || !isOCValid"
-                                     class="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:shadow-blue-500/20 transition-all flex items-center justify-center gap-2 uppercase tracking-wider text-xs"
-                                     title="Guarda el pedido y abre el remito para imprimir">
+                              <button v-if="pedidosStore.ingestaData"
+                                      @click="savePedido(true)"
+                                      :disabled="isSaving || items.length === 0 || !clienteSeleccionado || !isOCValid || isClosedOrder"
+                                      class="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:shadow-blue-500/20 transition-all flex items-center justify-center gap-2 uppercase tracking-wider text-xs"
+                                      title="Guarda el pedido y abre el remito para imprimir">
                                 <i v-if="isSaving" class="fas fa-spinner fa-spin"></i>
                                 <i v-else class="fas fa-print"></i>
                                 {{ isSaving ? 'Procesando...' : 'Guardar e Imprimir' }}
-                             </button>
+                              </button>
                           </div>
                      </div>          </div>
                 </div>
@@ -841,6 +860,7 @@ const loadPedido = async (id) => {
 
         // Hydrate Header
         nroPedido.value = p.id;
+        estadoPedido.value = p.estado || 'PENDIENTE';
         fechaPedido.value = p.fecha ? p.fecha.split('T')[0] : getLocalDate();
         notas.value = p.nota || '';
         nroOC.value = p.oc || '';
@@ -915,7 +935,22 @@ const getLocalDate = () => {
 };
 
 const nroPedido = ref('---');
+const estadoPedido = ref('PENDIENTE');
 const flagsEstadoPedido = ref(0);
+
+const isClosedOrder = computed(() => ['CUMPLIDO', 'ANULADO'].includes(estadoPedido.value));
+
+const statusBadgeClasses = computed(() => {
+    const status = estadoPedido.value;
+    if (status === 'PENDIENTE') {
+        return 'bg-emerald-950/50 text-emerald-400 border-emerald-500/30';
+    } else if (status === 'CUMPLIDO') {
+        return 'bg-yellow-950/50 text-yellow-400 border-yellow-500/30';
+    } else if (status === 'ANULADO') {
+        return 'bg-red-950/50 text-red-400 border-red-500/30';
+    }
+    return 'bg-gray-800 text-gray-400 border-gray-700';
+});
 const isCircuitoNegro = ref(false);
 const fechaPedido = ref(getLocalDate());
 const fechaEntrega = ref('');
@@ -1781,8 +1816,8 @@ const handleGlobalKeys = (e) => {
         // Si el modal de cliente está abierto, dejar que ClientCanvas lo maneje
         if (showClientModal.value) return;
         e.preventDefault();
-        // Prevent double trigger if already saving or conditions not met
-        if (!isSaving.value && items.value.length > 0 && clienteSeleccionado.value) {
+        // Prevent double trigger if already saving or conditions not met (and not closed)
+        if (!isSaving.value && items.value.length > 0 && clienteSeleccionado.value && !isClosedOrder.value) {
             savePedido();
         }
     }
@@ -1842,6 +1877,7 @@ const resetPedido = async (skipConfirm = false) => {
     
     // Reset State
     nroPedido.value = '---';
+    estadoPedido.value = 'PENDIENTE';
     fechaPedido.value = getLocalDate();
     clienteSeleccionado.value = null;
     busquedaCliente.value = '';
@@ -1868,6 +1904,9 @@ const resetPedido = async (skipConfirm = false) => {
 const isSaving = ref(false);
 
 const savePedido = async (andPrint = false) => {
+    if (isClosedOrder.value) {
+        return notificationStore.add('No se puede guardar un pedido CUMPLIDO o ANULADO.', 'error');
+    }
     if (!clienteSeleccionado.value) return notificationStore.add('Seleccione un cliente.', 'error');
     if (items.value.length === 0) return notificationStore.add('Agregue al menos un producto.', 'error');
 
@@ -1888,7 +1927,7 @@ const savePedido = async (andPrint = false) => {
             nota: notas.value,
             oc: nroOC.value.trim(),
             oc_override: omitirOC.value,
-            estado: "PENDIENTE",
+            estado: estadoPedido.value,
             fecha_compromiso: fechaEntrega.value ? new Date(fechaEntrega.value).toISOString() : null,
             descuento_global_porcentaje: Number(descuentoGlobalPorcentaje.value) || 0,
             descuento_global_importe: Number(descuentoGlobalValor.value) || 0,
