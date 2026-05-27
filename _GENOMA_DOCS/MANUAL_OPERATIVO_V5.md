@@ -753,3 +753,22 @@ asigna automáticamente el CUIT genérico `00000000000`.
 
 No es necesario que el operador lo ingrese manualmente. El sistema lo aplica en silencio
 antes de calcular los flags de identidad.
+
+---
+
+## CAPÍTULO 24: CONTROL DE PEDIDOS CERRADOS Y FIX DE ALTURA (Sesión 817 OF, 2026-05-27)
+
+### 24.1 Badge de Estado en Ficha del Pedido
+En el Cargador Táctico (`PedidoCanvas.vue`), al cargar un pedido existente, la cabecera muestra ahora un badge de estado reactivo al lado del título principal (ej: "PENDIENTE", "CUMPLIDO" o "ANULADO").
+- El badge se colorea según el estado para una fácil auditoría visual rápida (Verde para PENDIENTE, Amarillo para CUMPLIDO, Rojo para ANULADO).
+
+### 24.2 Poka-Yoke para Pedidos Cerrados (CUMPLIDO / ANULADO)
+Para resguardar la consistencia histórica de las operaciones, el sistema bloquea cualquier intento de edición en pedidos que ya han alcanzado el estado de ciclo cerrado:
+1. **Banner de Advertencia de Solo Lectura:** Se muestra un banner destacado en la parte superior del canvas ("Este pedido está CUMPLIDO/ANULADO y no puede editarse. MODO LECTURA").
+2. **Bloqueo de Controles en la Interfaz (UI):** Los botones "Guardar Pedido" y "Guardar e Imprimir" se deshabilitan automáticamente si el pedido está en un estado cerrado.
+3. **Bloqueo del Atajo de Teclado:** El atajo global de teclado **F10** (Guardar) queda desactivado e ignorado cuando el pedido está cerrado.
+4. **Salvaguarda Preventiva en Código (Early-Abort):** Si por alguna anomalía se intenta disparar la persistencia, el backend/frontend interrumpe la función `savePedido()` inmediatamente y emite una notificación de error en pantalla.
+
+### 24.3 Adaptación de Altura de Contenedor (Fix Taskbar Windows)
+Se reemplazaron las directivas rígidas de altura basadas en el viewport (`min-h-screen` / `h-screen`) por directivas fluidas (`min-h-full` / `h-full`) en la estructura del canvas. Esto previene que el panel del TOTAL FINAL y los botones operativos queden recortados o cubiertos por la barra de tareas de Windows, adaptando la interfaz perfectamente al tamaño real del contenedor.
+

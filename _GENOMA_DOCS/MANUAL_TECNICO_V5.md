@@ -810,3 +810,38 @@ El Motor Bipolar (Bit 12 del pedido) sigue siendo soberano para el circuito fisc
 ### 31.5 Frontend (Sesión 813)
 `isClienteRI = !!(BigInt(cliente.flags_estado) & (BigInt(1) << BigInt(40)))` — requiere BigInt por overflow JavaScript en bits > 31.
 Implementación del `selectProduct` condicional pendiente en sesión 813.
+
+---
+
+## Sección 35 — Refactorización de PedidoCanvas y Poka-Yoke de Cierre (Sesión 817 OF, 2026-05-27)
+
+### 35.1 Captura Reactiva de Estado en Frontend
+Para corregir el bug donde `savePedido()` sobreescribía el estado a `"PENDIENTE"`, se introdujo la variable reactiva `estadoPedido = ref('PENDIENTE')`.
+- En `loadPedido(id)`: se extrae del objeto deserializado el estado persistido `estadoPedido.value = p.estado || 'PENDIENTE'`.
+- En `resetPedido()`: se restablece a su valor inicial `'PENDIENTE'`.
+- En el payload de envío de `savePedido()`: se reemplaza el literal `"PENDIENTE"` por `estadoPedido.value`.
+
+### 35.2 Lógica de Bloqueo de Pedidos Cerrados (Poka-Yoke)
+- **Computed Property:** Se definió `isClosedOrder` para determinar si el pedido no es editable:
+  ```javascript
+  const isClosedOrder = computed(() => ['CUMPLIDO', 'ANULADO'].includes(estadoPedido.value));
+  ```
+- **Intercepción de Teclado:** En `handleGlobalKeys`, la pulsación de la tecla `F10` queda protegida para evitar la activación accidental del guardado:
+  ```javascript
+  if (!isSaving.value && items.value.length > 0 && clienteSeleccionado.value && !isClosedOrder.value) {
+      savePedido();
+  }
+  ```
+- **Guard en Guardado:** La función `savePedido()` aborta inmediatamente en caso de un pedido bloqueado, arrojando una notificación visual de error:
+  ```javascript
+  if (isClosedOrder.value) {
+      return notificationStore.add('No se puede guardar un pedido CUMPLIDO o ANULADO.', 'error');
+  }
+  ```
+
+### 35.3 Redefinición CSS de Viewport a Fluid Height
+El desborde en el pie de página de `PedidoCanvas.vue` en sistemas Windows se debía al uso de clases CSS de Tailwind que definen altura absoluta del viewport (`h-screen`, `min-h-screen`). Dado que el componente padre define paddings y márgenes flexibles, el canvas excedía la zona visible.
+- El div contenedor principal ahora declara `min-h-full w-full`.
+- La tarjeta interna de edición declara `h-full flex-col`.
+- Con esta configuración, el flexbox padre contiene al canvas de forma reactiva y el pie (TOTAL FINAL) permanece siempre visible por encima de la barra de tareas de Windows.
+
