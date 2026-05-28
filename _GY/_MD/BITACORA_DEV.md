@@ -1,3 +1,38 @@
+## SESIÓN 818: DETECCIÓN TEMPRANA DE DUPLICADOS + FIXES UI (OF OMEGA)
+**Fecha:** 2026-05-28
+**Locación:** OF
+**Objetivo:** Implementar la detección temprana de facturas duplicadas en la ingesta de PDFs raw, permitiendo la anulación y reingesta con PIN 1974 de comprobantes en estado BORRADOR y la redirección/visualización para remitos ya despachados. Resolver cascada de borrado en Remito para evitar huérfanos en `FacturaRemito` y salvaguardar la trazabilidad marcando el procesado viejo como "ANULADA" en vez de borrar el registro. Resolver bug de includes() sobre CUIT nulo en filtrado de clientes (HaweView.vue) y bucle de redirección en creación de nuevo pedido táctico limpiando `ingestaData` al desmontar (PedidoCanvas.vue).
+**Estado:** NOMINAL GOLD — PIN 1974 | Hash final: f7a48c08
+
+### Hito 1: Detección Temprana de Duplicados & Ciclo de Anulación y Reingesta
+* **Detección temprana:** Al subir un PDF a `POST /ingesta/raw`, se realiza una búsqueda en `facturas` por clave única (`tipo_comprobante`, `punto_venta`, `numero_comprobante`). Si existe match, se devuelve metadatos de duplicado al frontend.
+* **UI de Comparación:** El frontend detecta la respuesta de duplicado y muestra un panel especial de comparación bloqueando el flujo estándar.
+* **Bifurcación de Acciones:**
+  * Si el remito asociado está en **BORRADOR**, se permite la acción "Anular procesado y re-ingestar con este PDF" previa verificación del PIN Maestro "1974".
+  * Si el remito ya no es BORRADOR, se muestra un botón para visualizar el remito actual y se bloquea la re-ingesta.
+* **Endpoint de Anulación y Reingesta (`POST /ingesta/raw/{raw_id}/anular-y-reingestar`):**
+  * Valida el PIN de autorización ("1974").
+  * Si el remito está en BORRADOR, marca el RAW viejo con el Bit 11 (`DUPLICATE` = 2048).
+  * Marca el procesado viejo (`procesada_vieja.estado = "ANULADA"`) preservando trazabilidad de auditoría.
+  * Si el pedido asociado provino de la factura, se anula (`estado = "ANULADO"`, flag `ES_ANULADO`).
+  * Elimina el remito viejo en BORRADOR (con cascada de borrado para evitar huérfanos).
+  * Elimina la factura vieja espejo.
+  * Habilita el nuevo RAW (`audit_status = "RECIBIDO"`, limpia Bit 11) para procesamiento normal.
+
+### Hito 2: Cascada de Borrado en Remito & Integridad
+* Se confirmó que el modelo `Remito` posee `cascade="all, delete-orphan"` configurado en su relación `items` (hacia `RemitoItem`).
+* Se agregó `cascade="all, delete-orphan"` en la relación `vinculos_facturas` (hacia `FacturaRemito`) en `backend/remitos/models.py` para erradicar registros huérfanos en la tabla intermedia al eliminar un remito.
+
+### Hito 3: Fix A — HaweView null.includes()
+* **Causa raíz:** `HaweView.vue:771` filtraba clientes evaluando `cliente.cuit.includes(query)`. Dado que CUIT puede ser null en la base de datos para clientes informales, esto provocaba un error de tipo `Cannot read properties of null (reading 'includes')`.
+* **Resolución:** Se agregó un guard para fallback de string vacío: `(cliente.cuit || '').includes(query)`.
+
+### Hito 4: Fix B — Redirección Nuevo Pedido Táctico
+* **Causa raíz:** Al navegar al canvas de creación manual de nuevo pedido táctico, el store Pinia quedaba con datos de ingesta previos (`ingestaData`) si el operador cancelaba una ingesta previa sin limpiarla. Esto gatillaba una redirección no deseada al módulo de Ingesta en lugar de mantener al usuario en el canvas.
+* **Resolución:** Se agregó la llamada a `pedidosStore.clearIngestaData()` en el hook `onUnmounted` de `PedidoCanvas.vue`, garantizando que la navegación limpie el estado al abandonar el canvas.
+
+---
+
 ## SESIÓN 817: SYNC D→P→MT + MIGRACIONES + FIXES UI (OF OMEGA)
 **Fecha:** 2026-05-27
 **Locación:** OF

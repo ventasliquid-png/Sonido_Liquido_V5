@@ -1,30 +1,29 @@
-
 # purgar_gy.ps1
-# Limpieza profiláctica de archivos transitorios de Antigravity
-# Mantiene configuración, historial de conversaciones y el log del día actual
-# Llamar desde CIERRE.ps1 o manualmente cuando Antigravity está cerrado
+# Limpieza profilactica de archivos transitorios de Antigravity
+# Mantiene configuracion, historial de conversaciones y el log del dia actual
+# Llamar desde CIERRE.ps1 o manualmente cuando Antigravity esta cerrado
 
 $gyData = "$env:APPDATA\Antigravity"
 
 if (-not (Test-Path $gyData)) {
-    Write-Host "[!] No se encontró directorio de Antigravity. Nada que purgar." -ForegroundColor Yellow
+    Write-Host "[!] No se encontro directorio de Antigravity. Nada que purgar." -ForegroundColor Yellow
     return
 }
 
-# Avisar si Antigravity está corriendo
+# Avisar si Antigravity esta corriendo
 $gyProcess = Get-Process | Where-Object { $_.Name -match "antigravity" }
 if ($gyProcess) {
-    Write-Host "[!] Antigravity está corriendo. Algunos archivos pueden estar bloqueados." -ForegroundColor Yellow
-    Write-Host "    Se purgarán solo las carpetas no bloqueadas." -ForegroundColor DarkGray
+    Write-Host "[!] Antigravity esta corriendo. Algunos archivos pueden estar bloqueados." -ForegroundColor Yellow
+    Write-Host "    Se purgaran solo las carpetas no bloqueadas." -ForegroundColor DarkGray
 }
 
 Write-Host ""
 Write-Host "========================================================" -ForegroundColor Magenta
-Write-Host "       PURGA PROFILÁCTICA DE ANTIGRAVITY (Gy)          " -ForegroundColor Magenta
+Write-Host "       PURGA PROFILACTICA DE ANTIGRAVITY (Gy)          " -ForegroundColor Magenta
 Write-Host "========================================================" -ForegroundColor Magenta
 Write-Host ""
 
-# Carpetas transitorias a purgar (seguro — sin perder config ni historial)
+# Carpetas transitorias a purgar (seguro - sin perder config ni historial)
 $targets = @(
     "Cache",
     "GPUCache",
@@ -58,12 +57,12 @@ foreach ($target in $targets) {
             Write-Host "  [OK] $target ($sizeMB MB liberados)" -ForegroundColor Green
             $totalLiberado += $size
         } else {
-            Write-Host "  [!]  $target (bloqueado — Antigravity activo)" -ForegroundColor Yellow
+            Write-Host "  [!]  $target (bloqueado - Antigravity activo)" -ForegroundColor Yellow
         }
     }
 }
 
-# Purgar logs viejos (mantener solo los del día de hoy)
+# Purgar logs viejos (mantener solo los del dia de hoy)
 $logsPath = Join-Path $gyData "logs"
 if (Test-Path $logsPath) {
     $hoy = (Get-Date).Date
@@ -72,13 +71,13 @@ if (Test-Path $logsPath) {
     $logsViejos | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
     $restantes = (Get-ChildItem $logsPath -Directory).Count
     $sizeMBLogs = [math]::Round($sizeLogsViejos / 1MB, 2)
-    Write-Host "  [OK] logs\ — $($logsViejos.Count) sesiones anteriores eliminadas, $restantes de hoy conservadas ($sizeMBLogs MB)" -ForegroundColor Green
+    Write-Host "  [OK] logs - $($logsViejos.Count) sesiones anteriores eliminadas, $restantes de hoy conservadas ($sizeMBLogs MB)" -ForegroundColor Green
     $totalLiberado += $sizeLogsViejos
 }
 
 $totalMB = [math]::Round($totalLiberado / 1MB, 2)
 Write-Host ""
-Write-Host "  >>> Espacio total liberado: $totalMB MB" -ForegroundColor Cyan
+Write-Host "  [=] Espacio total liberado: $totalMB MB" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "  [=] Configuración, historial y sesión activa: INTACTOS" -ForegroundColor DarkGray
+Write-Host "  [=] Configuracion, historial y sesion activa: INTACTOS" -ForegroundColor DarkGray
 Write-Host ""

@@ -19,10 +19,18 @@
             </div>
         </header>
 
-        <div class="grid grid-cols-12 gap-6 h-full overflow-hidden">
+        <div v-if="!showComparePanel" class="grid grid-cols-12 gap-6 h-full overflow-hidden">
             
             <!-- LEFT: DROP ZONE -->
             <div class="col-span-5 flex flex-col gap-4">
+                <div v-if="error" class="bg-red-950/40 border border-red-500/30 rounded-xl p-4 mb-4 text-red-200 text-xs flex items-center gap-3">
+                  <i class="fas fa-times-circle text-red-500 text-lg"></i>
+                  <div>
+                    <p class="font-bold uppercase tracking-wider">Error de Procesamiento</p>
+                    <p class="mt-1 font-mono text-[11px]">{{ error }}</p>
+                  </div>
+                </div>
+
                 <div 
                     class="flex-1 border-2 border-dashed border-blue-500/30 bg-blue-900/10 rounded-2xl flex flex-col items-center justify-center p-8 transition-all duration-300 relative overflow-hidden group"
                     :class="{'border-blue-400 bg-blue-900/20 scale-[1.01]': isDragging, 'border-red-500/50': error}"
@@ -351,6 +359,106 @@
                 </div>
             </div>
         </div>
+        <div v-else class="flex-grow flex flex-col overflow-hidden gap-4 mt-2">
+            <!-- Warning Banner -->
+            <div v-if="duplicadoData" class="bg-amber-950/40 border-2 border-amber-500/50 rounded-2xl p-4 text-amber-200 flex items-center justify-between shadow-[0_0_20px_rgba(245,158,11,0.15)]">
+                <div class="flex items-center gap-4">
+                    <i class="fas fa-exclamation-triangle text-amber-400 text-3xl animate-pulse"></i>
+                    <div>
+                        <p class="text-lg font-black uppercase tracking-wider text-white">⚠️ DOCUMENTO YA PROCESADO</p>
+                        <p class="text-sm font-medium mt-1">
+                            Factura <span class="font-bold text-amber-300">{{ duplicadoData.tipo_comprobante }}</span> 
+                            <span class="font-mono text-amber-300 font-bold ml-1">{{ String(duplicadoData.punto_venta).padStart(4, '0') }}-{{ String(duplicadoData.numero_comprobante).padStart(8, '0') }}</span>
+                            <span class="mx-2 text-slate-500">·</span>
+                            Pedido <span class="font-bold text-amber-300">#{{ duplicadoData.pedido_id }}</span>
+                            <span class="mx-2 text-slate-500">·</span>
+                            Procesado el <span class="font-mono font-bold text-amber-300">{{ new Date(duplicadoData.fecha_procesamiento).toLocaleString('es-AR') }}</span>
+                        </p>
+                    </div>
+                </div>
+                <div v-if="duplicadoData" class="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl text-xs font-black uppercase text-amber-400">
+                    Estado del Remito: {{ duplicadoData.remito_estado }}
+                </div>
+            </div>
+
+            <!-- Two Column Comparison -->
+            <div v-if="duplicadoData" class="flex-grow grid grid-cols-2 gap-6 min-h-0" style="min-height: 0; flex: 1;">
+                <!-- Column 1: Existing PDF (Left) -->
+                <div class="flex flex-col bg-slate-900/80 rounded-2xl border border-slate-700/50 overflow-hidden relative">
+                    <div class="p-3 bg-slate-800 border-b border-slate-700 flex justify-between items-center">
+                        <span class="text-xs uppercase font-black text-slate-400 tracking-wider">DOCUMENTO ANTERIOR (Ya Procesado)</span>
+                    </div>
+                    <div class="flex-grow relative bg-slate-950 p-2" style="height: 55vh;">
+                        <iframe 
+                            :src="`/api/ingesta/raw/${duplicadoData.raw_id_anterior}/pdf`"
+                            class="w-full h-full border-none rounded-xl"
+                            style="width: 100%; height: 100%; border: none;"
+                        ></iframe>
+                    </div>
+                </div>
+
+                <!-- Column 2: New PDF (Right) -->
+                <div class="flex flex-col bg-slate-900/80 rounded-2xl border border-slate-700/50 overflow-hidden relative">
+                    <div class="p-3 bg-slate-800 border-b border-slate-700 flex justify-between items-center">
+                        <span class="text-xs uppercase font-black text-blue-400 tracking-wider">DOCUMENTO ACTUAL (Este Intento)</span>
+                    </div>
+                    <div class="flex-grow relative bg-slate-950 p-2" style="height: 55vh;">
+                        <iframe 
+                            :src="`/api/ingesta/raw/${currentRawId}/pdf`"
+                            class="w-full h-full border-none rounded-xl"
+                            style="width: 100%; height: 100%; border: none;"
+                        ></iframe>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons bar -->
+            <div v-if="duplicadoData" class="p-4 bg-slate-800 border border-slate-700 rounded-2xl flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <button 
+                        @click="reset"
+                        class="px-5 py-2 text-slate-400 hover:text-white transition font-bold"
+                    >
+                        Cancelar — mantener procesado actual
+                    </button>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                    <!-- Case 1: Remito is BORRADOR -->
+                    <template v-if="duplicadoData.remito_estado === 'BORRADOR'">
+                        <div class="flex items-center gap-2 bg-slate-900 px-3 py-1.5 border border-slate-700 rounded-xl">
+                            <label class="text-[10px] uppercase font-bold text-slate-500">PIN de Autorización:</label>
+                            <input 
+                                v-model="pinVerification"
+                                type="password"
+                                class="w-16 bg-slate-950 border border-red-500/30 rounded px-2 py-1 text-xs font-mono font-bold text-center text-white focus:outline-none focus:border-red-500"
+                                placeholder="****"
+                                maxlength="4"
+                            />
+                        </div>
+                        <button 
+                            @click="handleAnularYReingestar"
+                            class="px-6 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg shadow-lg shadow-red-900/50 transition-all flex items-center gap-2"
+                        >
+                            <i class="fas fa-trash-alt"></i>
+                            Anular procesado y re-ingestar con este PDF
+                        </button>
+                    </template>
+                    
+                    <!-- Case 2: Remito is NOT BORRADOR -->
+                    <template v-else>
+                        <a 
+                            :href="`/api/remitos/${duplicadoData.remito_id}/pdf`"
+                            target="_blank"
+                            class="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-lg shadow-blue-900/50 transition-all flex items-center gap-2"
+                        >
+                            <i class="fas fa-file-pdf"></i>
+                            Ver procesado existente (Remito)
+                        </a>
+                    </template>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- SE ELIMINÓ EL MODAL PREVIEW DE VUE -->
@@ -511,6 +619,11 @@ const isSuggestedSelected = computed(() => {
     return selected?.is_suggested || false;
 });
 
+// Duplicate panel state
+const showComparePanel = ref(false);
+const duplicadoData = ref(null);
+const pinVerification = ref('');
+
 const newAddress = ref({
     calle: '',
     numero: '',
@@ -557,6 +670,15 @@ const processFile = async (file) => {
         const rawId = uploadRes.data.id;
         currentRawId.value = rawId;
 
+        // Check early duplicate detection response
+        const dup = uploadRes.data.duplicado;
+        if (dup && dup.encontrado) {
+            duplicadoData.value = dup;
+            showComparePanel.value = true;
+            loading.value = false;
+            return;
+        }
+
         // [V2] Get Preview & Audit
         const previewRes = await ingestaService.getPreview(rawId);
         const previewData = previewRes.data;
@@ -593,6 +715,7 @@ const processFile = async (file) => {
     } catch (e) {
         console.error(e);
         error.value = e.message;
+        setTimeout(() => { error.value = ''; }, 9000);
         notification.add('Error en Ingesta V2: ' + e.message, 'error');
     } finally {
         loading.value = false;
@@ -606,6 +729,68 @@ const reset = () => {
     if (fileInput.value) fileInput.value.value = '';
     selectedPedidoId.value = null;
     pendingPedidos.value = [];
+    showComparePanel.value = false;
+    duplicadoData.value = null;
+    pinVerification.value = '';
+};
+
+const handleAnularYReingestar = async () => {
+    if (!pinVerification.value) {
+        notification.add('Por favor, ingrese el PIN de autorización.', 'warning');
+        return;
+    }
+    
+    try {
+        loading.value = true;
+        const res = await api.post(`/ingesta/raw/${currentRawId.value}/anular-y-reingestar`, {
+            factura_id: duplicadoData.value.factura_id,
+            pin: pinVerification.value
+        });
+        
+        if (res.data && res.data.status === 'ok') {
+            notification.add('Factura y remito anterior anulados con éxito.', 'success');
+            
+            const newRawId = res.data.raw_id_nuevo;
+            currentRawId.value = newRawId;
+            showComparePanel.value = false;
+            duplicadoData.value = null;
+            pinVerification.value = '';
+            
+            // Cargar preview del nuevo RAW
+            const previewRes = await ingestaService.getPreview(newRawId);
+            const previewData = previewRes.data;
+            
+            parsedData.value = previewData.parsed_data;
+            auditLog.value = previewData.audit_log;
+            
+            if (auditLog.value?.client_resolution) {
+                parsedData.value.cliente.db_status = auditLog.value.client_resolution.db_status;
+                parsedData.value.cliente.flags_estado = auditLog.value.client_resolution.flags_estado;
+                parsedData.value.cliente.id = auditLog.value.client_resolution.id;
+                if (auditLog.value.client_resolution.razon_social) {
+                    parsedData.value.cliente.razon_social = auditLog.value.client_resolution.razon_social;
+                }
+            }
+            
+            notification.add('Factura analizada por Conserje V2', 'success');
+            
+            if (auditLog.value?.client_resolution?.id) {
+                await loadClientDetails(auditLog.value.client_resolution.id);
+                if (auditLog.value.domicilios_scoring?.length > 0) {
+                    clientAddresses.value = clientAddresses.value.map(d => {
+                        const audit = auditLog.value.domicilios_scoring.find(as => as.id === d.id);
+                        return audit ? { ...d, is_suggested: audit.is_suggested, score: audit.score } : d;
+                    });
+                    autoSelectAddress();
+                }
+            }
+        }
+    } catch (e) {
+        console.error(e);
+        notification.add('Error al anular y re-ingestar: ' + (e.response?.data?.detail || e.message), 'error');
+    } finally {
+        loading.value = false;
+    }
 };
 
 const addItem = () => {
@@ -787,8 +972,8 @@ const confirmIngesta = async () => {
             valor_declarado: valor_declarado.value,
             nuevo_domicilio: selectedAddressId.value === 'ADD_NEW' ? newAddress.value : null,
             audit_log: auditLog.value,
-            modo_ingesta: selectedPedidoId.value && typeof selectedPedidoId.value === 'number' ? 'VINCULAR_EXISTENTE' : null,
-            pedido_id_vinculado: selectedPedidoId.value && typeof selectedPedidoId.value === 'number' ? selectedPedidoId.value : null,
+            modo_ingesta: selectedPedidoId.value && selectedPedidoId.value !== 'NEW' ? 'VINCULAR_EXISTENTE' : null,
+            pedido_id_vinculado: selectedPedidoId.value && selectedPedidoId.value !== 'NEW' ? Number(selectedPedidoId.value) : null,
             modo_cuarentena: false
         };
 
@@ -826,6 +1011,7 @@ const confirmIngesta = async () => {
                 notification.add(detail.replace('FACTURA_DUPLICADA: ', ''), 'error');
                 // Alerta Visual Persistente
                 error.value = detail.replace('FACTURA_DUPLICADA: ', '');
+                setTimeout(() => { error.value = ''; }, 9000);
                 return;
             }
 

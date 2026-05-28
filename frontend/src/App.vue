@@ -105,6 +105,7 @@ const logout = () => {
 <template>
   <div v-if="ready">
     <DevBadge />
+    <ToastNotification />
     <!-- GLOBAL SPLASH / BOOT SCREEN -->
     <transition name="fade">
         <div v-if="booting" class="fixed inset-0 z-[100] bg-[#020617] flex flex-col items-center justify-center overflow-hidden">
@@ -149,7 +150,6 @@ const logout = () => {
 
     <!-- STANDARD LAYOUT -->
     <div v-else class="flex h-screen w-screen overflow-hidden bg-[#0f172a]">
-        <ToastNotification />
         <!-- SIDEBAR -->
         <aside v-if="!isLoginPage" class="w-16 md:w-64 bg-slate-900 text-white flex flex-col transition-all duration-300">
             <div class="h-16 flex items-center justify-center md:justify-start md:px-6 border-b border-slate-800">

@@ -1,4 +1,23 @@
-Sesión actual: 817
+Sesión actual: 818
+
+# CAJA NEGRA: Detección Temprana Duplicados + Fixes UI (2026-05-28)
+
+Sesión OF 2026-05-28 (818). Hash D: f7a48c08. Estado: NOMINAL GOLD.
+Detección Temprana de Duplicados en Ingesta:
+  - Búsqueda preventiva en tabla `facturas` por clave única al cargar el PDF en `POST /ingesta/raw`.
+  - Frontend `IngestaFacturaView.vue` intercepta duplicado y renderiza un panel de comparación de datos.
+  - Endpoint `POST /ingesta/raw/{raw_id}/anular-y-reingestar` permite al operador (previa validación de PIN Maestro 1974) anular el procesado viejo (estado "ANULADA"), marcar RAW viejo con Bit 11 (DUPLICATE=2048), anular el pedido originado en la factura, eliminar el remito viejo en BORRADOR y la factura espejo, y dejar el nuevo RAW listo para ser procesado.
+Integridad y Cascada en Remito:
+  - Adición de `cascade="all, delete-orphan"` en relación `vinculos_facturas` de `Remito` (hacia `FacturaRemito`) en `backend/remitos/models.py` para erradicar huérfanos al borrar remitos en borrador.
+Fix A — HaweView null.includes():
+  - Incorporación de guard contra CUIT nulo en la función de filtrado: `(cliente.cuit || '').includes(query)` en `HaweView.vue:771`.
+Fix B — Bucle de Redirección Nuevo Pedido Táctico:
+  - Limpieza de `ingestaData` del store Pinia en `onUnmounted` de `PedidoCanvas.vue` para prevenir redirecciones indeseadas al módulo de Ingesta tras cancelar o salir de una ingesta.
+Canario D: NOMINAL GOLD. WAL checkpoint ejecutado.
+
+**Agente:** Antigravity (Gy) — Hash D: f7a48c08 | PIN: 1974
+
+---
 
 # CAJA NEGRA: Sync D→P→MT + Migraciones + Fixes UI (2026-05-27)
 

@@ -768,7 +768,7 @@ const filteredClientes = computed(() => {
         if (selectedSegmento.value && cliente.segmento_id !== selectedSegmento.value) return false
         if (searchQuery.value) {
             const query = normalizeText(searchQuery.value)
-            return normalizeText(cliente.razon_social).includes(query) || cliente.cuit.includes(query)
+            return normalizeText(cliente.razon_social).includes(query) || (cliente.cuit || '').includes(query)
         }
         return true
     })

@@ -264,40 +264,6 @@ async def ingest_invoice_pdf(file: UploadFile = File(...), db: Session = Depends
                 
     return result
 
-@router.post("/ingesta-process", response_model=schemas.RemitoResponse)
-def create_remito_from_ingestion(payload: schemas.IngestionPayload, db: Session = Depends(get_db)):
-    """
-    [DEPRECATED V5.6] Use /ingesta/raw/{id}/approve instead.
-    Toma la salida de la Ingesta PDF y genera un Remito (y Pedido) en la Base de Datos.
-    """
-    try:
-        from backend.remitos.service import RemitosService
-        remito = RemitosService.create_from_ingestion(db, payload)
-        db.commit()
-
-        if remito is None:
-             # Case: solo_actualizar_cliente=True
-             from fastapi.responses import JSONResponse
-             return JSONResponse(
-                 status_code=200,
-                 content={"status": "success", "message": "Cliente actualizado correctamente. No se generó remito."}
-             )
-
-        return remito
-    except ValueError as ve:
-        msg = str(ve)
-        if msg.startswith("PEDIDO_REQUERIDO"):
-            raise HTTPException(status_code=409, detail={
-                "codigo": "PEDIDO_REQUERIDO",
-                "mensaje": msg
-            })
-        raise HTTPException(status_code=400, detail=msg)
-    except Exception as e:
-        print(f"Error creating Remito from Ingestion: {e}")
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
-
 @router.post("/manual", response_model=schemas.RemitoResponse)
 def create_manual_remito(payload: schemas.ManualRemitoPayload, db: Session = Depends(get_db)):
     """

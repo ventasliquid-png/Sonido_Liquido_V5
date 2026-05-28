@@ -917,6 +917,7 @@ const loadPedido = async (id) => {
 onUnmounted(() => {
     window.removeEventListener('keydown', handleGlobalKeys);
     window.removeEventListener('focus', checkClientSync);
+    pedidosStore.clearIngestaData();
 });
 
 // --- STATE: UI ---

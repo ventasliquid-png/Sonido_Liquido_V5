@@ -55,7 +55,7 @@ class Remito(Base):
     transporte = relationship("EmpresaTransporte")
     
     items = relationship("RemitoItem", back_populates="remito", cascade="all, delete-orphan")
-    vinculos_facturas = relationship("FacturaRemito", back_populates="remito")
+    vinculos_facturas = relationship("FacturaRemito", back_populates="remito", cascade="all, delete-orphan")
 
     @property
     def cliente_id(self):
