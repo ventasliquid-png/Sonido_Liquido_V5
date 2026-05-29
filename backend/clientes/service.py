@@ -103,6 +103,7 @@ class ClienteService:
                 else:
                     # Create new
                     db_domicilio = Domicilio(**dom_data)
+                    db_domicilio.cliente_id = db_cliente.id
                     db_domicilio.is_active = True
                     db.add(db_domicilio)
                     db.flush() # Get ID
@@ -720,7 +721,18 @@ class ClienteService:
         db_domicilio = db.query(Domicilio).filter(Domicilio.id == domicilio_id).first()
         if not db_domicilio:
             return None
-        
+
+        # [MT-FIX] Verificar ownership por doble vía
+        link_check = db.execute(
+            domicilios_clientes.select().where(
+                domicilios_clientes.c.cliente_id == cliente_id,
+                domicilios_clientes.c.domicilio_id == domicilio_id
+            )
+        ).fetchone()
+
+        if not link_check and db_domicilio.cliente_id != cliente_id:
+            return None  # router devolverá 404
+
         update_data = domicilio_in.model_dump(exclude_unset=True)
         
         # [GY-PROTOCOL-PIPE DEPRECATED]
