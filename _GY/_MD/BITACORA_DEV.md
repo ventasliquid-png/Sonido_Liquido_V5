@@ -1,3 +1,23 @@
+## SESIÓN 818 (sub-CA): HARDENING INGESTA — 3 FIXES QUIRÚRGICOS
+**Fecha:** 2026-05-28
+**Locación:** CA
+**Objetivo:** Aplicar 3 fixes validados por auditoría cruzada (CC Opus 4.8 + Gy High) sobre el módulo de ingesta: URLs con prefijo /api inexistente (404 en iframes de duplicado), AttributeError por PedidoFlags.STATE_MASK, y TypeError por flags_estado None en anular-y-reingestar.
+**Estado:** NOMINAL GOLD — PIN 1974 | Hash final: 2938c77a
+
+### FIX 1 — URLs /api inexistente
+* IngestaFacturaView.vue (393, 407, 451): /api/ingesta y /api/remitos → /ingesta y /remitos. Validado: vite.config.js no proxea /api; main.py monta routers sin prefijo.
+
+### FIX 2 — PedidoFlags.STATE_MASK AttributeError
+* router.py (226, 231): STATE_MASK es constante de módulo, no miembro de clase. Import ampliado + referencia directa `~STATE_MASK`. Hubiera dado 500 al anular pedido ORIGEN_FACTURA.
+
+### FIX 3 — guard flags None
+* router.py:243: `(raw_nuevo.flags_estado or 0) & ~2048`. Paridad con el guard ya presente en la línea 218.
+
+### Anexo — OMEGA.md FASE 1
+* Snippet inline de canario migrado a máscara de bits (flags & 13)==13, alineado con canario_v2.py.
+
+---
+
 ## SESIÓN 818: DETECCIÓN TEMPRANA DE DUPLICADOS + FIXES UI (OF OMEGA)
 **Fecha:** 2026-05-28
 **Locación:** OF

@@ -2,6 +2,19 @@
 **Versión:** 2.0 Release (Updated Fixes IVA Rosa + Virginidad Frontend + Navegación — 810)
 **Fecha:** 2026-05-18
 
+## 31. HARDENING INGESTA — 3 FIXES QUIRÚRGICOS — SESIÓN 818 CA (2026-05-28)
+
+### 31.1 Ruteo frontend ingesta/remitos — SIN prefijo `/api`
+Las URLs de iframe y PDF del módulo de ingesta deben usar rutas relativas SIN prefijo `/api` (`/ingesta/...`, `/remitos/...`). `vite.config.js` proxea cada módulo por nombre (`/ingesta`, `/remitos`, etc.); **no existe proxy `/api`** y los routers en `main.py` se montan sin prefijo. Usar `/api/...` produce 404 (el panel comparativo de duplicados quedaba con iframes rotos).
+
+### 31.2 `STATE_MASK` — constante de módulo, no miembro de clase
+`STATE_MASK` está definido a nivel módulo en `backend/pedidos/constants.py`, NO como miembro de `PedidoFlags`. Acceder vía `PedidoFlags.STATE_MASK` lanza `AttributeError` → 500. Importar explícitamente: `from backend.pedidos.constants import PedidoFlags, STATE_MASK`. Afectaba la anulación en cascada de pedidos con `ORIGEN_FACTURA`.
+
+### 31.3 Guard de `flags_estado` None
+Toda mutación bitwise sobre `flags_estado` debe usar guard: `(flags_estado or 0) & ~BIT`. Si la columna es None, `&=` lanza `TypeError`. Aplicado en `anular-y-reingestar` (router.py:243) por paridad con el guard ya presente en la línea 218.
+
+---
+
 ## 30. FIXES IVA ROSA + VIRGINIDAD FRONTEND + NAVEGACIÓN — SESIÓN 810 (2026-05-18)
 
 ### 30.1 ClientCanvas — `has4Pillars` bifurcado (FIX C4)

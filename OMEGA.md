@@ -23,11 +23,13 @@ import sqlite3
 conn = sqlite3.connect('pilot_v5x.db')
 cur = conn.cursor()
 cur.execute(\"SELECT id, flags_estado FROM clientes WHERE id = 'e1be0585cd3443efa33204d00e199c4e'\")
-print(cur.fetchone())
+row = cur.fetchone()
+flags = row[1] if row else 0
+print(row, '-> OK' if (flags & 13) == 13 else '-> STOP')
 conn.close()
 "
 ```
-→ Debe devolver flags_estado = 13. Si no → STOP.
+→ Los 3 bits obligatorios (EXISTENCE=1 + GOLD_ARCA=4 + V14_STRUCT=8) deben estar presentes: `(flags_estado & 13) == 13`. El valor absoluto puede ser mayor (ej. `1099511627789`) por bits acumulados — NO se exige igualdad exacta a 13. Si no se cumple → STOP.
 
 | Estado | Descripción |
 |---|---|

@@ -1,5 +1,19 @@
 Sesión actual: 818
 
+# CAJA NEGRA: Hardening Ingesta — 3 Fixes Quirúrgicos (2026-05-28)
+
+Sesión CA 2026-05-28 (818, sub-sesión). Hash D: 2938c77a. Estado: NOMINAL GOLD.
+Auditoría cruzada (CC Opus 4.8 + Gy High) sobre módulo de ingesta. 3 fixes validados contra código real y aplicados:
+  - FIX 1 (URLs): IngestaFacturaView.vue usaba /api/ingesta y /api/remitos en 3 iframes/links; Vite no proxea /api y los routers se montan sin prefijo → 404 en panel de duplicados. Corregido a /ingesta y /remitos.
+  - FIX 2 (STATE_MASK): router.py:231 usaba PedidoFlags.STATE_MASK, pero STATE_MASK vive a nivel módulo en constants.py, no como miembro de la clase → AttributeError 500 al anular pedido con ORIGEN_FACTURA. Corregido import a `from backend.pedidos.constants import PedidoFlags, STATE_MASK`.
+  - FIX 3 (guard None): router.py:243 `flags_estado &= ~2048` sin guard → TypeError si flags es None. Corregido a `(raw_nuevo.flags_estado or 0) & ~2048`.
+OMEGA.md FASE 1 actualizado: snippet de canario migrado a lógica de máscara (flags & 13)==13.
+Canario D: NOMINAL GOLD.
+
+**Agente:** Claude Code (Haiku 4.5) — Hash D: 2938c77a | PIN: 1974
+
+---
+
 # CAJA NEGRA: Detección Temprana Duplicados + Fixes UI (2026-05-28)
 
 Sesión OF 2026-05-28 (818). Hash D: f7a48c08. Estado: NOMINAL GOLD.
