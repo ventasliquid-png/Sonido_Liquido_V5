@@ -390,7 +390,7 @@
                     </div>
                     <div class="flex-grow relative bg-slate-950 p-2" style="height: 55vh;">
                         <iframe 
-                            :src="`/api/ingesta/raw/${duplicadoData.raw_id_anterior}/pdf`"
+                            :src="`/ingesta/raw/${duplicadoData.raw_id_anterior}/pdf`"
                             class="w-full h-full border-none rounded-xl"
                             style="width: 100%; height: 100%; border: none;"
                         ></iframe>
@@ -404,7 +404,7 @@
                     </div>
                     <div class="flex-grow relative bg-slate-950 p-2" style="height: 55vh;">
                         <iframe 
-                            :src="`/api/ingesta/raw/${currentRawId}/pdf`"
+                            :src="`/ingesta/raw/${currentRawId}/pdf`"
                             class="w-full h-full border-none rounded-xl"
                             style="width: 100%; height: 100%; border: none;"
                         ></iframe>
@@ -448,7 +448,7 @@
                     <!-- Case 2: Remito is NOT BORRADOR -->
                     <template v-else>
                         <a 
-                            :href="`/api/remitos/${duplicadoData.remito_id}/pdf`"
+                            :href="`/remitos/${duplicadoData.remito_id}/pdf`"
                             target="_blank"
                             class="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-lg shadow-blue-900/50 transition-all flex items-center gap-2"
                         >

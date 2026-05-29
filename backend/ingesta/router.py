@@ -223,12 +223,12 @@ def anular_y_reingestar(raw_id: uuid.UUID, payload: AnularPayload, db: Session =
     # 3. Verificar pedido asociado
     if factura_vieja.pedido_id:
         from backend.pedidos.models import Pedido
-        from backend.pedidos.constants import PedidoFlags
+        from backend.pedidos.constants import PedidoFlags, STATE_MASK
         pedido_asoc = db.query(Pedido).filter(Pedido.id == factura_vieja.pedido_id).first()
         if pedido_asoc:
             if pedido_asoc.flags_estado & PedidoFlags.ORIGEN_FACTURA:
                 pedido_asoc.estado = "ANULADO"
-                pedido_asoc.flags_estado = (pedido_asoc.flags_estado & ~PedidoFlags.STATE_MASK) | PedidoFlags.ES_ANULADO
+                pedido_asoc.flags_estado = (pedido_asoc.flags_estado & ~STATE_MASK) | PedidoFlags.ES_ANULADO
                 db.add(pedido_asoc)
                 
     # 4. Eliminar remito en BORRADOR
@@ -240,7 +240,7 @@ def anular_y_reingestar(raw_id: uuid.UUID, payload: AnularPayload, db: Session =
     
     # 6. Dejar el nuevo RAW listo para procesar normalmente
     raw_nuevo.audit_status = "RECIBIDO"
-    raw_nuevo.flags_estado &= ~2048
+    raw_nuevo.flags_estado = (raw_nuevo.flags_estado or 0) & ~2048
     db.add(raw_nuevo)
     
     db.commit()
