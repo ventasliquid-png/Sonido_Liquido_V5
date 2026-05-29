@@ -18,7 +18,6 @@ if sys.platform == "win32":
 # CONFIGURACIÓN GEOMETRÍA LÓGICA
 DB_PATH = r'C:\dev\Sonido_Liquido_V5\pilot_v5x.db'
 UUID_LAVIMAR = 'e1be0585cd3443efa33204d00e199c4e'
-TARGET_FLAGS = 13      # Post-saneamiento 2026-05-02: bit 8192 (fantasma) eliminado
 TRINCHERA_FLAGS = 8207  # Legacy — pendiente revisión post-saneamiento
 
 def radar_electrico():
@@ -93,14 +92,14 @@ def calibracion_constitucional():
         print(f" [+] CLIENT: {name}")
         print(f" [+] FLAGS: {flags}")
 
-        if flags == TARGET_FLAGS:
+        if (flags & 13) == 13:
             print(" [OK] ESTADO: NOMINAL GOLD")
         elif flags == TRINCHERA_FLAGS:
             print(" [?] ESTADO: TRINCHERA (Detectado 8207)")
             # Aquí la lógica de flexibilidad: preguntar si es fase de purga
             # En modo automático, calibramos si no hay instrucción contraria
             print(" [*] Calibrando a NOMINAL GOLD (13)...")
-            conn.execute("UPDATE clientes SET flags_estado = ? WHERE id = ?", (TARGET_FLAGS, UUID_LAVIMAR))
+            conn.execute("UPDATE clientes SET flags_estado = ? WHERE id = ?", (13, UUID_LAVIMAR))
             conn.commit()
             print(" [x] Calibración exitosa.")
         else:
@@ -142,7 +141,7 @@ def main():
         flags = row[0] if row else 0
         conn.close()
 
-        if flags == TARGET_FLAGS:
+        if (flags & 13) == 13:
             print("\n[+] [OK] CIELO DESPEJADO: El cielo está despejado y el canario canta sin esfuerzo. Sistema Nominal.")
         elif flags == TRINCHERA_FLAGS:
             print("\n[+] [WARN] CIELO NUBLADO: El cielo presenta nubes: Modo Trinchera/Virginidad detectado. El canario sigue cantando.")
