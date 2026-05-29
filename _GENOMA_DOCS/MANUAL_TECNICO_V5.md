@@ -1,6 +1,43 @@
 # 📘 MANUAL TÉCNICO V5: "INDEPENDENCIA"
-**Versión:** 2.0 Release (Updated Fixes IVA Rosa + Virginidad Frontend + Navegación — 810)
-**Fecha:** 2026-05-18
+**Versión:** 2.1 Release (Updated Identidad Visual P + Genoma Pedidos V6 — 819)
+**Fecha:** 2026-05-29
+
+## 32. IDENTIDAD VISUAL ENTORNO P + GENOMA PEDIDOS V6 — SESIÓN 819 OF (2026-05-29)
+
+### 32.1 Frontend Entorno P — Título y Favicon
+**Archivos:** `static/index.html`, `static/favicon.svg`, `public/favicon.svg`
+
+Cambios de identidad visual para distinguir entorno Mando (P) de desarrollo:
+- **Título HTML** (línea 8 index.html): Cambio de "Sonido Líquido V5 [DESARROLLO] - D" a "Sonido Líquido V5 - Mando" para identificación clara en pestaña del navegador.
+- **Favicon:** Reemplazo del diseño 4 cuadrantes neón (verde/amarillo/cyan/magenta) por fondo sólido púrpura (#6B21A8) + "SL" blanco. Proporciona identidad corporativa consistente y diferenciación instantánea de entorno.
+
+Técnica: Uso de `<clipPath>` con `rx="20"` para esquinas redondeadas. SVG recortado y centrado con `text-anchor="middle"`.
+
+**Impacto:** Operarios identifican visualmente si están en entorno de mando (producción) o desarrollo. Reducción de errores operacionales.
+
+### 32.2 Genoma Pedidos V6.0 — Modelado Estados Logísticos vs Contables
+**Diseño en BACKLOG** — Cards 29-30 del BOARD_V5.xlsx.
+
+Problema resuelto: Confusión entre "entregado" (logístico) y "cobrado" (contable). Estos son eventos independientes:
+- **ES_ENTREGADO** (Card 29): Nuevo estado que marca cuando la mercadería fue despachada/entregada, INDEPENDIENTEMENTE del cobro.
+- **Bit COBRADO** (Card 30): Disparador contable que marca cuando el pago fue efectivamente cobrado. Dispara ciclo contable (facturación, actualización de cuenta corriente del cliente).
+
+Doctrina: `Cobrado ⊂ Cumplido` (cobrado es un subconjunto de cumplido, no equivalente). Requiere definición de posición y transición de estados a cargo de Nike.
+
+**Impacto:** Claridad contable. Permite reportes separados de "pedidos entregados sin cobro" (cuentas por cobrar) vs "pedidos cobrados pero no entregados" (casos especiales).
+
+### 32.3 Excel Snapshot de Pedidos — Feature V5.9
+**Card 31 en BACKLOG.**
+
+Especificación técnica:
+- Script Python que genera Excel solo lectura en Q:\Mi unidad\ sin necesidad de abrir el ERP.
+- Formato: Un bloque por pedido con detalle de items (producto, cantidad, precio venta unitario, subtotal, costo unitario, costo total).
+- Pie del bloque: subtotal, IVA (21%), total.
+- Referencia histórica: Excel reports de V4 Legacy.
+
+Caso de uso: Exportación rápida de pedidos para operaciones logísticas sin requerimiento de conexión a FastAPI.
+
+---
 
 ## 31. HARDENING INGESTA — 3 FIXES QUIRÚRGICOS — SESIÓN 818 CA (2026-05-28)
 

@@ -1,4 +1,28 @@
-Sesión actual: 818
+Sesión actual: 819
+
+# CAJA NEGRA: Identidad Visual P + Board Actualizado (2026-05-29)
+
+Sesión OF 2026-05-29 (819). Hash D: 5c15bae2 | Hash P: 92497c6. Estado: NOMINAL GOLD.
+Identidad Entorno P — Frontend:
+  - static/index.html: Título cambiado de "Sonido Líquido V5 [DESARROLLO] - D" a "Sonido Líquido V5 - Mando"
+  - static/favicon.svg: Reemplazado diseño 4 cuadrantes neón por fondo púrpura sólido (#6B21A8) + "SL" blanco
+  - public/favicon.svg: Sincronizado con static/
+  - Commit P: 92497c6 (Fix: identidad entorno P - título y favicon)
+Board Sonido Líquido V5:
+  - Agregadas 3 nuevas cards (IDs 29-31):
+    * ID 29: ES_ENTREGADO — nuevo estado genoma pedidos (DISEÑO, ALTA, Pedidos, V6.0, BACKLOG)
+    * ID 30: Bit COBRADO — disparador contable (DISEÑO, ALTA, Pedidos, V6.0, BACKLOG, #29)
+    * ID 31: Excel snapshot de pedidos — implementación (FEATURE, MEDIA, Pedidos, V5.9, BACKLOG)
+  - Board guardado en Q:\Mi unidad\V5_Silo_Claude\BOARD_V5.xlsx (32 filas totales)
+Auditoría:
+  - Canario D: NOMINAL GOLD (flags_estado=13)
+  - WAL checkpoint: OK
+  - Git D: 5c15bae2 (main, up-to-date origin/main)
+  - Git P: 92497c6 (main, up-to-date prod/main)
+
+**Agente:** Claude Code (Haiku 4.5) — PIN: 1974
+
+---
 
 # CAJA NEGRA: Hardening Ingesta — 3 Fixes Quirúrgicos (2026-05-28)
 

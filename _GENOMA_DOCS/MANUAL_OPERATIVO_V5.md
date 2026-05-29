@@ -1,7 +1,12 @@
 # MANUAL OPERATIVO V5 - SONIDO LÍQUIDO
-**Versión del Documento:** 1.5 (Updated IVA Rosa + _audit_sovereignty gap — 810, 2026-05-18)
+**Versión del Documento:** 1.6 (Identidad Visual P + Genoma Pedidos V6 — 819, 2026-05-29)
 **Estado:** VIGENTE
 **Código de Doctrina:** DEOU-2025
+
+### 📢 Actualización Sesión 819 (2026-05-29)
+- **Identidad Entorno P:** Título de pestaña ahora dice "Sonido Líquido V5 - Mando" (anteriormente "DESARROLLO - D"). Favicon actualizado a diseño púrpura corporativo.
+- **Genoma Pedidos V6.0:** En desarrollo. Nuevos estados ES_ENTREGADO (logístico) y Bit COBRADO (contable) para modelar claramente la diferencia entre "mercadería entregada" y "pago cobrado". Ver BOARD_V5.xlsx cards 29-30.
+- **Excel Snapshot:** Feature V5.9 en BACKLOG — generador de reportes Excel de pedidos solo lectura (card 31).
 
 ---
 
