@@ -90,6 +90,13 @@ class ClienteService:
 
             # [V5.2 GOLD] N:M Transition Bridge
             for dom_in in cliente_in.domicilios:
+                # [ACCIÓN 2] Permitir domicilio vacío para clientes Rosa (OPERATOR_OK activo o inferido)
+                is_rosa = bool((db_cliente.flags_estado or 0) & ClientFlags.OPERATOR_OK) or \
+                          (not ((db_cliente.flags_estado or 0) & ClientFlags.GOLD_ARCA) and db_cliente.segmento_id is not None and not (db_cliente.cuit and len(db_cliente.cuit.strip()) >= 10))
+                if is_rosa and not (dom_in.calle or "").strip():
+                    print(f"[SOBERANIA ROSA] Omitiendo domicilio con calle vacía para cliente Rosa: {db_cliente.razon_social}")
+                    continue
+
                 dom_data = dom_in.model_dump(exclude={'zona_id'})
                 
                 # 1. Normalization & Collision Interceptor

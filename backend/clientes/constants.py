@@ -28,12 +28,15 @@ class ClientFlags:
     OPERATOR_OK = 16
     DOC_A_PERMITTED = 16  # alias legacy
     
-    # Bit 5 (32): IS_GHOST (Operaciones Ocultas / Sin Rastro)
-    IS_GHOST = 32
+    # Bit 5 (32): MULTI_CUIT (Excepción CUIT compartido)
+    MULTI_CUIT = 32
     
     # Bit 6 (64): OC_REQUIRED (Poka-Yoke V5.9)
     # Note: Grep showed this bit used in router.py for OC check.
     OC_REQUIRED = 64
+    
+    # Bit 7 (128): IS_PROSPECT (Aspirante sin movimientos)
+    IS_PROSPECT = 128
 
     
     # --- [NIVELES COMBINADOS] ---

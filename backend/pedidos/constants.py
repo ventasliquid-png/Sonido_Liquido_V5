@@ -32,6 +32,7 @@ class PedidoFlags(IntFlag):
     # Bit 40 PROHIBIDO
     CAMBIO_A_NEGRO     = 1 << 41  # Cicatriz: nació blanco, operó negro
     CAMBIO_A_BLANCO    = 1 << 42  # Cicatriz: nació negro, operó blanco
+    PEDIDO_GHOST       = 1 << 43  # Bit 43 — operado sin rastro (auditoría)
 
 # Máscara de estados excluyentes
 STATE_MASK = (

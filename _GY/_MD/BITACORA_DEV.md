@@ -1,3 +1,36 @@
+## SESIÓN 820 (CA): AUDITORÍA INGESTA + BANDERAS ROJAS + BITS FANTASMA
+**Fecha:** 2026-05-30
+**Locación:** CA
+**Objetivo:** Auditar el sistema de ingesta y facturación contra el diseño arquitectónico. Investigar clientes con flags_estado=65581. Restaurar pilot_v5x.db desde Silo. Actualizar BOARD_V5.xlsx con cards cerrados, nuevos y banderas rojas.
+**Estado:** NOMINAL GOLD — Hash D: e41038a0 | Sin commits nuevos (sesión de auditoría y burocracia)
+
+### AUDITORÍA SISTEMA INGESTA (Solo lectura)
+* Análisis del documento de diseño vs código real en C:\dev\Sonido_Liquido_V5
+* Resultado: 60% implementado (flujo OCR, anti-duplicación, remito 0016 OK)
+* GAP crítico 1: AfipComparisonOverlay.vue no tiene acciones — es visual-only. Falta POST /remitos/resolver-discrepancia y botones ARCA GANA / PEDIDO GANA (Card #43)
+* GAP crítico 2: Split-Brain TIENE_NC/TIENE_ND — Bits 2/3 en ingesta vs Bits 17/18 en facturacion (Bandera Roja #1)
+* GAP identificado: Bit PENDIENTE_AJUSTE_DOCUMENTAL no existe en pedidos/constants.py — dictaminado como Bit 46 por Nike (Card #42)
+
+### RESTAURACIÓN DB (PIN 1974)
+* Copy Q:\Mi unidad\V5_Silo_Claude\pilot_v5x.db → C:\dev\Sonido_Liquido_V5\pilot_v5x.db
+* Canario post-restauración: NOMINAL GOLD (flags=13, 0.014s certificado)
+* WAL checkpoint: OK
+
+### INVESTIGACIÓN FORENSE flags_estado=65581
+* 2 clientes afectados: Lácteos de Poblet SA y CENTRO PET ARGENTINA S.R.L.
+* Bit 16 (65536) activo pero NO documentado en ClientFlags → sospecha de fantasma
+* Bits documentados: EXISTENCE(0) + GOLD_ARCA(2) + V14_STRUCT(3) + MULTI_CUIT(5)
+* CUITs únicos. CENTRO PET tiene domicilio Vieytes duplicado
+* Bandera Roja #3 levantada: pendiente script rescate lunes OF sobre V5_LS_MASTER.db (Card #44)
+
+### BOARD_V5.xlsx
+* 7 cards CERRADOS con fecha_cierre: #6,7,8 (2026-05-31) | #9,10 (2026-05-28) | #27,28 (2026-05-29)
+* 6 cards NUEVOS #40-#45 en BACKLOG/CERRADO según estado
+* Hoja BANDERAS_ROJAS nueva: 3 banderas (Split-Brain bits, duplicados pilot, Bits fantasma V5_LS)
+* CSV_DUMP regenerado
+
+---
+
 ## SESIÓN 819 (OF): IDENTIDAD VISUAL P + BOARD V5
 **Fecha:** 2026-05-29
 **Locación:** OF

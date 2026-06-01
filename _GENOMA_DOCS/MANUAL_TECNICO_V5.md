@@ -1,6 +1,75 @@
 # 📘 MANUAL TÉCNICO V5: "INDEPENDENCIA"
-**Versión:** 2.1 Release (Updated Identidad Visual P + Genoma Pedidos V6 — 819)
-**Fecha:** 2026-05-29
+**Versión:** 2.2 Release (Auditoría Ingesta + Bits Fantasma — 820)
+**Fecha:** 2026-05-30
+
+## 33. SISTEMA DE INGESTA Y FACTURACIÓN — ESTADO ACTUAL — SESIÓN 820 CA (2026-05-30)
+
+### 33.1 Arquitectura de Documentos (Implementada)
+
+| Documento | Estado | Ubicación código |
+|---|---|---|
+| Factura BORRADOR | ✅ Implementada | `facturacion/service.py:create_draft_from_pedido()` |
+| Ingesta PDF ARCA | ✅ Implementada | `IngestaFacturaView.vue` + `ingesta/conserje.py` |
+| Remito 0016 Fiscal | ✅ Implementado | `remitos/service.py:create_puente_factura()` |
+| Anti-duplicación | ✅ Implementada (3 guardas) | `remitos/service.py:28-85` |
+| Visor ARCA vs BORRADOR | ✅ Existe (visual-only) | `AfipComparisonOverlay.vue` |
+
+### 33.2 GAPs Críticos (Pendientes)
+
+**GAP 1: Resolución de discrepancia (Card #43)**
+- `AfipComparisonOverlay.vue` muestra el diff pero no tiene acciones
+- Faltan: botón "ARCA GANA", botón "PEDIDO GANA"
+- Falta: endpoint `POST /remitos/resolver-discrepancia`
+- Falta: Bit `PENDIENTE_AJUSTE_DOCUMENTAL` en `pedidos/constants.py` (dictaminado Bit 46)
+
+**GAP 2: Split-Brain TIENE_NC/TIENE_ND (Bandera Roja #1, Card #44)**
+```python
+# ingesta/constants.py (IngestaFlags)
+TIENE_NC = 1 << 2   # Bit 2 = valor 4
+TIENE_ND = 1 << 3   # Bit 3 = valor 8
+
+# facturacion/constants.py (FacturaFlags)
+TIENE_NC = 1 << 17  # Bit 17 = valor 131072
+TIENE_ND = 1 << 18  # Bit 18 = valor 262144
+```
+Mismo significado semántico, valores diferentes. Riesgo de bugs en comparaciones cruzadas.
+Resolución pendiente script rescate lunes OF — afecta V5_LS_MASTER.db.
+
+**GAP 3: Flujo NC/ND (Sin implementar)**
+- No existe detección de NC/ND en OCR (ConserjeV2 no diferencia tipo de comprobante)
+- No existe lógica de acumulación (Factura + NC + ND → comparar vs BORRADOR)
+- No existe timeout para `PENDIENTE_AJUSTE_DOCUMENTAL`
+
+### 33.3 Bits Fantasma Detectados — Clientes con flags_estado=65581
+
+**Clientes afectados (pilot_v5x.db y V5_LS_MASTER.db):**
+- Lácteos de Poblet SA (CUIT 33660726859)
+- CENTRO PET ARGENTINA S.R.L. (CUIT 30715138707)
+
+**Decodificación de 65581:**
+- Bit 0 (1): EXISTENCE ✅
+- Bit 2 (4): GOLD_ARCA ✅
+- Bit 3 (8): V14_STRUCT ✅
+- Bit 5 (32): MULTI_CUIT ✅
+- **Bit 16 (65536): NO DOCUMENTADO ❓** — posible fantasma heredado
+
+**Acción requerida (lunes OF, PIN 1974):**
+Script de rescate en V5_LS_MASTER.db para limpiar Bit 16 (si es fantasma) y revisar Bit 5.
+Investigar si Bit 16 tiene significado semántico en algún módulo legacy.
+
+### 33.4 Preguntas Abiertas Respondidas (Auditoría 820-CA)
+
+| # | Pregunta | Respuesta |
+|---|---|---|
+| 1 | ¿Múltiples BORRADOR por pedido? | DB soporta N:M, UI no lo gestiona |
+| 2 | ¿0015→0016 automático? | Código OK (línea 812-822), UX falta |
+| 3 | ¿facturas_remitos N:M? | ✅ SÍ implementado |
+| 4 | ¿Ingesta acepta NC/ND? | ❌ NO, solo facturas |
+| 5 | ¿PENDIENTE_AJUSTE bloquea? | ❌ Bit no existe aún (Bit 46 dictaminado) |
+| 6 | ¿Timeout? | ❌ Sin mecanismo |
+| 7 | ¿Visor reutilizable? | ✅ SÍ, AfipComparisonOverlay |
+
+---
 
 ## 32. IDENTIDAD VISUAL ENTORNO P + GENOMA PEDIDOS V6 — SESIÓN 819 OF (2026-05-29)
 

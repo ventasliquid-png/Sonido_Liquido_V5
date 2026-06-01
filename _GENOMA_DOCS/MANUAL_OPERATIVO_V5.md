@@ -1,7 +1,14 @@
 # MANUAL OPERATIVO V5 - SONIDO LÍQUIDO
-**Versión del Documento:** 1.6 (Identidad Visual P + Genoma Pedidos V6 — 819, 2026-05-29)
+**Versión del Documento:** 1.7 (Auditoría Ingesta + Banderas Rojas — 820, 2026-05-30)
 **Estado:** VIGENTE
 **Código de Doctrina:** DEOU-2025
+
+### 📢 Actualización Sesión 820 (2026-05-30)
+- **Sistema de Ingesta:** Operativo para caso "feliz" (factura ARCA = BORRADOR). El visor de discrepancias existe pero NO tiene acciones. Si hay diferencia entre lo facturado y el pedido, el operador debe resolverlo manualmente hasta que se implemente Card #43.
+- **Clientes Rosa:** Domicilio con calle vacía ahora permitido (Opción B implementada, Card #41 CERRADO). Talonario Rosa = Picking Ticket interno, pendiente de implementar (Card #40, Nike dictamen).
+- **Bit PENDIENTE_AJUSTE_DOCUMENTAL:** Dictaminado en Bit 46 por Nike. No bloquea logística. Pendiente de implementar (Card #42).
+- **Banderas Rojas activas:** Ver BOARD_V5.xlsx hoja BANDERAS_ROJAS. Script rescate V5_LS_MASTER.db pendiente para lunes OF (Bit5+Bit16 en Lácteos y Centro Pet, PIN 1974 autorizado).
+- **ALFA/OMEGA + Board:** Cards #45 documenta la deuda de integrar el Board en los protocolos ALFA y OMEGA. Pendiente modificar ALFA.md y OMEGA.md.
 
 ### 📢 Actualización Sesión 819 (2026-05-29)
 - **Identidad Entorno P:** Título de pestaña ahora dice "Sonido Líquido V5 - Mando" (anteriormente "DESARROLLO - D"). Favicon actualizado a diseño púrpura corporativo.

@@ -2019,14 +2019,16 @@ const savePedido = async (andPrint = false) => {
                     console.log('[PedidoCanvas] No hay ingestaData en el store. Se omite sellado automático.');
                 }
 
-                console.log('[PedidoCanvas] Iniciando creación de remito puente para factura:', facturaId);
-                const remitoRes = await api.post(`/remitos/puente/desde_factura/${facturaId}`);
-                remitoId = remitoRes.data.id;
-                console.log('[PedidoCanvas] Remito puente creado con éxito:', remitoId);
+                if (wasIngesta) {
+                    console.log('[PedidoCanvas] Iniciando creación de remito puente para factura:', facturaId);
+                    const remitoRes = await api.post(`/remitos/puente/desde_factura/${facturaId}`);
+                    remitoId = remitoRes.data.id;
+                    console.log('[PedidoCanvas] Remito puente creado con éxito:', remitoId);
 
-                if (shouldPrint && remitoId) {
-                    const pdfUrl = `/remitos/${remitoId}/pdf`;
-                    window.open(pdfUrl, '_blank');
+                    if (shouldPrint && remitoId) {
+                        const pdfUrl = `/remitos/${remitoId}/pdf`;
+                        window.open(pdfUrl, '_blank');
+                    }
                 }
             } else {
                 console.log('[PedidoCanvas] Cliente Rosa (informal): Sin factura/remito fiscal.');

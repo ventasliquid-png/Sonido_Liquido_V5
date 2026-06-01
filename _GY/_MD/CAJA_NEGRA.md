@@ -1,4 +1,35 @@
-Sesión actual: 819
+Sesión actual: 820
+
+# CAJA NEGRA: Auditoría Ingesta + Board Banderas Rojas + Investigación Bits Fantasma (2026-05-30)
+
+Sesión CA 2026-05-30 (820). Hash D: e41038a0. Estado: NOMINAL GOLD.
+Auditoría del Sistema de Ingesta y Facturación (código vs diseño arquitectónico):
+  - Sistema al 60% implementado, 25% parcial, 15% pendiente
+  - Flujo básico (OCR + anti-duplicación + remito 0016) operativo
+  - CRÍTICO: AfipComparisonOverlay.vue visual-only sin acciones (faltan botones ARCA GANA / PEDIDO GANA)
+  - CRÍTICO: Split-Brain TIENE_NC/TIENE_ND — Bits 2/3 en ingesta/constants.py vs Bits 17/18 en facturacion/constants.py
+  - Bits pendientes de crear: PENDIENTE_AJUSTE_DOCUMENTAL (dictaminado Bit 46), PEDIDO_GHOST (1<<43), IS_PROSPECT (128) — este último sí existe en ClientFlags
+Restauración DB (PIN 1974):
+  - pilot_v5x.db reemplazado desde Q:\Mi unidad\V5_Silo_Claude\pilot_v5x.db
+  - Canario post-restauración: NOMINAL GOLD (flags_estado=13, 0.014s)
+  - WAL checkpoint: OK
+Investigación forense clientes flags_estado=65581:
+  - Lácteos de Poblet SA (CUIT 33660726859) y CENTRO PET ARGENTINA S.R.L. (CUIT 30715138707)
+  - Bits activos: Bit0 EXISTENCE + Bit2 GOLD_ARCA + Bit3 V14_STRUCT + Bit5 MULTI_CUIT + Bit16 INDOCUMENTADO
+  - Bit 16 (65536) no documentado en ClientFlags — bandera roja #3 levantada
+  - CUITs únicos (no hay colisión con otros registros)
+  - CENTRO PET: domicilio "Vieytes CABA" duplicado detectado
+Board BOARD_V5.xlsx actualizado (Q:\Mi unidad\V5_Silo_Claude\):
+  - 7 cards CERRADOS: #6,#7,#8,#9,#10,#27,#28 con fechas_cierre
+  - 6 cards NUEVOS: #40 Talonario Rosa, #41 Domicilio Rosa, #42 PENDIENTE_AJUSTE Bit46,
+    #43 AfipComparison acciones, #44 Script rescate lunes, #45 Board en ALFA/OMEGA
+  - Hoja BANDERAS_ROJAS: 3 banderas ROJA (Split-Brain bits, duplicados pilot, Bit5+Bit16 V5_LS_MASTER)
+  - CSV_DUMP regenerado (54 filas, 3 hojas)
+Informe archivado en AUDITORIA_INGESTA_FACTURACION_2026-05-30.md (C:\dev\)
+
+**Agente:** Claude Code (Sonnet 4.6) — Hash D: e41038a0 | PIN: 1974
+
+---
 
 # CAJA NEGRA: Identidad Visual P + Board Actualizado (2026-05-29)
 
