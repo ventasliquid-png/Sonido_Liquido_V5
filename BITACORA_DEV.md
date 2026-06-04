@@ -1,3 +1,26 @@
+# 2026-06-04 (Sesión 822 OF — Excel Espejo de Pedidos + GlobalStatsBar UI)
+- **Estado**: **NOMINAL GOLD**.
+- **Hash D**: 135a16f8 (sin push — pendiente PIN 1974)
+- **Protocolo ALFA**: Canario V2.0 OK | FLAGS: 13
+- **Entregable principal**: Script `exportar_pedidos_excel.py` completo.
+  Formato bloque por pedido. Colores STATE_MASK (bits 32-35). IVA Motor Bipolar
+  (bit 12 NO_FISCAL_FORCE + condicion_iva_id RI como proxy bit 40). Fila NOTAS mergeada.
+  Costos opcionales desde productos_costos. Fallback PermissionError.
+- **Backend**: `GET /pedidos/exportar-espejo` (router.py). Movido antes de /{pedido_id}
+  para evitar 422 por route ordering (FastAPI captura parametrica).
+- **Frontend**: Botones "Nuevo" y "Exportar Excel" via `<Teleport to="#global-header-center">`.
+  Safety Net Export (pandas flat) eliminado.
+- **Board V5**: #26 EN PROGRESO, #40 "Seleccion motor prompts", #46 NUEVA Bugs Tomy ALTA.
+- **Bugs Tomy detectados (P/MT)**: 4 bugs en produccion → Card #46 creada.
+- **Archivos modificados**:
+  - `scripts/exportar_pedidos_excel.py` (NUEVO)
+  - `backend/pedidos/router.py`
+  - `frontend/src/views/Pedidos/PedidoList.vue`
+  - `_GY/_MD/CAJA_NEGRA.md`, `BITACORA_DEV.md`
+  - `Q:\...\SESION_NEXT.md`, `ESTADO_ECOSISTEMA.md`, `BOARD_V5.xlsx`
+- **Operador**: Carlos (OF), Claude Code (Sonnet 4.6)
+- **Cierre**: Protocolo OMEGA ejecutado. PIN 1974 pendiente para commit/push.
+
 # 2026-05-08 (Estabilización Ingesta V5.7.1 — Doctrina Numero Legal & AutoPrint)
 - **Estado**: **NOMINAL GOLD**.
 - **Hito Ingesta**: Implementación de la **Doctrina Numero Legal** estricta (Serie 0016 vinculada a factura fiscal).

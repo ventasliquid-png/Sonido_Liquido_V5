@@ -499,6 +499,45 @@ def check_duplicate_pedido(
     }
 
 
+# --- ESPEJO EXCEL (SILO DRIVE) ---
+# IMPORTANTE: debe estar ANTES de /{pedido_id} para evitar captura paramétrica
+
+@router.get("/exportar-espejo")
+def exportar_espejo_excel():
+    """
+    Ejecuta scripts/exportar_pedidos_excel.py y guarda
+    PEDIDOS_ESPEJO.xlsx en Q:\\Mi unidad\\V5_Silo_Claude\\.
+    No requiere DB session — el script abre su propia conexión.
+    """
+    import subprocess, sys, os
+
+    project_root = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), '..', '..')
+    )
+    script = os.path.join(project_root, 'scripts', 'exportar_pedidos_excel.py')
+
+    result = subprocess.run(
+        [sys.executable, script],
+        capture_output=True,
+        text=True,
+        cwd=project_root,
+        timeout=60,
+    )
+
+    if result.returncode != 0:
+        detalle = (result.stderr or result.stdout or 'Error desconocido').strip()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al generar Excel: {detalle}"
+        )
+
+    return {
+        "ok": True,
+        "mensaje": "PEDIDOS_ESPEJO.xlsx generado en Silo Drive.",
+        "output": result.stdout.strip(),
+    }
+
+
 @router.get("/{pedido_id}", response_model=schemas.PedidoResponse)
 def get_pedido_by_id(pedido_id: int, db: Session = Depends(get_db)):
     """
@@ -1040,4 +1079,6 @@ def toggle_circuito_bipolar(pedido_id: int, req: BipolarRequest, db: Session = D
     db.commit()
     db.refresh(pedido)
     return pedido
+
+
 

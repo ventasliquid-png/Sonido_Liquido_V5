@@ -3,6 +3,35 @@
 // ------------------------------------------
 
 <template>
+  <!-- Acciones principales → teletransportadas al centro del GlobalStatsBar -->
+  <Teleport to="#global-header-center">
+    <div class="flex items-center gap-3">
+      <!-- Nuevo Pedido (F4) -->
+      <button
+        @click="router.push({ name: 'PedidoCanvas' })"
+        class="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 transition-all hover:bg-emerald-500 hover:shadow-emerald-500/40"
+        title="Nuevo Pedido (F4)"
+      >
+        <i class="fas fa-plus"></i>
+        <span>Nuevo</span>
+      </button>
+
+      <!-- Espejo Excel → Silo Drive -->
+      <button
+        @click="exportarEspejo"
+        :disabled="exportandoEspejo"
+        class="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-white shadow-lg transition-all"
+        :class="exportandoEspejo
+          ? 'bg-orange-800 cursor-wait opacity-70'
+          : 'bg-orange-600 hover:bg-orange-500 shadow-orange-500/30 hover:shadow-orange-500/50'"
+        title="Exportar Espejo Excel → Silo Drive"
+      >
+        <i :class="exportandoEspejo ? 'fas fa-spinner animate-spin' : 'fas fa-table'"></i>
+        <span>{{ exportandoEspejo ? 'Exportando...' : '📊 Exportar Excel' }}</span>
+      </button>
+    </div>
+  </Teleport>
+
   <div class="flex h-full w-full bg-[#0f172a] text-gray-200 overflow-hidden font-sans tokyo-bg neon-green rounded-2xl border-2 border-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.4)] p-6">
     
     <!-- Main Content Area -->
@@ -74,24 +103,7 @@
               <i class="fas fa-sync-alt" :class="{ 'animate-spin': store.isLoading }"></i>
             </button>
 
-              <!-- New Order Button -->
-              <button 
-                  @click="router.push({ name: 'PedidoCanvas' })"
-                  class="ml-2 flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-1.5 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 transition-all hover:bg-emerald-500 hover:shadow-emerald-500/40"
-                  title="Nuevo Pedido (F4)"
-              >
-                  <i class="fas fa-plus"></i>
-                  <span class="hidden sm:inline">Nuevo</span>
-              </button>
 
-              <!-- Safety Net Export -->
-              <button 
-                  @click="exportExcel"
-                  class="ml-2 flex items-center gap-2 rounded-lg bg-[#0e3a2f] border border-emerald-500/30 px-3 py-1.5 text-sm font-bold text-emerald-300 shadow-md transition-all hover:bg-emerald-500/20 hover:text-emerald-100 hover:border-emerald-500/60"
-                  title="Exportar Seguridad (Excel)"
-              >
-                  <i class="fas fa-file-excel"></i>
-              </button>
           </div>
         </header>
 
@@ -684,6 +696,24 @@ const toggleSort = (key) => {
         sortKey.value = key
         sortOrder.value = 'asc'
         if (key === 'fecha' || key === 'id') sortOrder.value = 'desc'
+    }
+}
+
+// ── ESPEJO SILO DRIVE ────────────────────────────────────────────────────────
+const exportandoEspejo = ref(false)
+
+const exportarEspejo = async () => {
+    if (exportandoEspejo.value) return
+    exportandoEspejo.value = true
+    notificationStore.add('Generando PEDIDOS_ESPEJO.xlsx en Silo Drive...', 'info')
+    try {
+        const { data } = await api.get('/pedidos/exportar-espejo')
+        notificationStore.add('✅ ' + (data.mensaje || 'Excel generado correctamente'), 'success')
+    } catch (e) {
+        const detalle = e.response?.data?.detail || e.message || 'Error desconocido'
+        notificationStore.add('❌ Error al exportar: ' + detalle, 'error')
+    } finally {
+        exportandoEspejo.value = false
     }
 }
 

@@ -1,6 +1,90 @@
 # 📘 MANUAL TÉCNICO V5: "INDEPENDENCIA"
-**Versión:** 2.2 Release (Auditoría Ingesta + Bits Fantasma — 820)
-**Fecha:** 2026-05-30
+**Versión:** 2.3 Release (Excel Espejo + GlobalStatsBar Teleport — 822)
+**Fecha:** 2026-06-04
+
+## 34. EXCEL ESPEJO DE PEDIDOS — SESIÓN 822 OF (2026-06-04)
+
+### 34.1 Script `scripts/exportar_pedidos_excel.py`
+
+Genera `Q:\Mi unidad\V5_Silo_Claude\PEDIDOS_ESPEJO.xlsx` — un bloque por pedido, apilados verticalmente. No requiere FastAPI ni Vue — abre su propia conexión SQLite.
+
+**Estructura de cada bloque:**
+```
+[Pedido Nº | nro RED | Cliente PURPURA]  [OC si existe]
+[Fecha     | CUIT    | valor           ]
+[PRODUCTO  | CANTIDAD | PV | SUBTOTAL | | COSTO UNIT | COSTO TOTAL]
+ item 1...
+[NOTAS | texto mergeado B→H (italic si tiene contenido)]
+[      |  | Sub Total | $xxx | | $costo_sub]
+[      |  | IVA       | $xxx | | $costo_iva]  ← solo si discrimina IVA
+[      |  | TOTAL     | $xxx | | $costo_tot]
+(separador)
+```
+
+**Colores STATE_MASK (bits 32-35 de `pedidos.flags_estado`):**
+| Estado | Bit | bg_header | bg_item_impar |
+|---|---|---|---|
+| Firme/Pendiente | 33 | `#C4D79B` verde | `#EBF1DD` |
+| Cumplido | 34 | `#FFD966` amarillo | `#FFF2CC` |
+| Anulado | 35 | `#FF9999` rojo | `#FFD5D5` |
+| Presupuesto | 32 | `#C9B1E8` lila | `#EDE0FF` |
+| Entregado | 44 | `#D9D9D9` gris | `#F2F2F2` |
+
+**Costos:** solo si el producto está en `productos_costos`. 16/65 ítems cubiertos en pilot_v5x.db.
+
+**Fallback PermissionError:** si `PEDIDOS_ESPEJO.xlsx` está abierto (Drive o Excel), genera `PEDIDOS_ESPEJO_HHMMSS.xlsx` sin fallar.
+
+### 34.2 Lógica IVA — Motor Bipolar en script
+
+Replica exactamente `_aplica_iva()` de `backend/pedidos/router.py`:
+
+```python
+NO_FISCAL_FORCE = 4096               # Bit 12 pedido
+DISCRIMINA_IVA  = 1 << 40            # Bit 40 cliente
+RI_UUID         = '966fdb33d6a64e499c81197790567dcb'
+
+def _calcula_discrimina_iva(pedido_flags, cliente_flags, condicion_iva_id):
+    if (pedido_flags or 0) & NO_FISCAL_FORCE:
+        return False                 # Circuito Negro soberano
+    if ((cliente_flags or 0) & DISCRIMINA_IVA) or (condicion_iva_id == RI_UUID):
+        return True                  # Circuito Blanco — RI
+    return False                     # CF / Mono / Exento / informal
+```
+
+**Nota:** bit 40 no está migrado en todos los clientes RI (solo BULACIO y JOFRE en pilot). Se usa `condicion_iva_id = RI_UUID` como proxy confiable hasta migración completa.
+
+### 34.3 Endpoint `GET /pedidos/exportar-espejo`
+
+**Archivo:** `backend/pedidos/router.py`
+
+```python
+@router.get("/exportar-espejo")
+def exportar_espejo_excel():
+    ...
+    result = subprocess.run([sys.executable, script],
+                            capture_output=True, text=True,
+                            cwd=project_root, timeout=60)
+    ...
+```
+
+**REGLA CRÍTICA DE ROUTE ORDERING:** Este endpoint DEBE declararse **ANTES** de `@router.get("/{pedido_id}", ...)`. Si va después, FastAPI captura el segmento "exportar-espejo" como un pedido_id de tipo int → 422 Unprocessable Entity. Comentario en código: "IMPORTANTE: debe estar ANTES de /{pedido_id}".
+
+### 34.4 Frontend — Teleport al GlobalStatsBar
+
+**Patrón:** `<Teleport to="#global-header-center">` desde `PedidoList.vue`.
+
+`GlobalStatsBar.vue` ya tiene `<div id="global-header-center" class="flex-1 flex items-center justify-center ..."></div>` — portal previsto exactamente para este uso.
+
+Los botones se montan/desmontan con el componente → visibles SOLO en el Tablero de Pedidos. El mismo patrón ya se usaba en el componente para tooltips y context menu (`<Teleport to="body">`).
+
+```html
+<Teleport to="#global-header-center">
+  <div class="flex items-center gap-3">
+    <button @click="router.push({ name: 'PedidoCanvas' })">+ Nuevo</button>
+    <button @click="exportarEspejo" :disabled="exportandoEspejo">📊 Exportar Excel</button>
+  </div>
+</Teleport>
+```
 
 ## 33. SISTEMA DE INGESTA Y FACTURACIÓN — ESTADO ACTUAL — SESIÓN 820 CA (2026-05-30)
 

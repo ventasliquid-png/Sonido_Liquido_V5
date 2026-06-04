@@ -1,7 +1,13 @@
 # MANUAL OPERATIVO V5 - SONIDO LÍQUIDO
-**Versión del Documento:** 1.7 (Auditoría Ingesta + Banderas Rojas — 820, 2026-05-30)
+**Versión del Documento:** 1.8 (Excel Espejo de Pedidos — 822, 2026-06-04)
 **Estado:** VIGENTE
 **Código de Doctrina:** DEOU-2025
+
+### 📢 Actualización Sesión 822 (2026-06-04)
+- **Excel Espejo de Pedidos operativo:** El botón naranja **"📊 Exportar Excel"** en la barra superior (junto a "+ Nuevo") genera `PEDIDOS_ESPEJO.xlsx` directamente en el Silo Drive (`Q:\Mi unidad\V5_Silo_Claude\`). No requiere abrir el ERP para consultar pedidos — el archivo es una copia de consulta offline.
+- **Formato:** Un bloque por pedido con colores según estado (🟢 Pendiente / 🟡 Cumplido / 🔴 Anulado / 🟣 Presupuesto). Incluye costos (cuando disponibles) y notas del pedido. IVA discriminado solo para clientes Responsables Inscriptos — clientes CF/informal/Circuito Negro aparecen sin fila IVA o con IVA $0.
+- **Si el archivo está abierto:** el sistema genera automáticamente `PEDIDOS_ESPEJO_HHMMSS.xlsx` sin interrumpir. Cerrar el original y volver a exportar para mantener el nombre canónico.
+- **Bugs Tomy detectados en producción:** 4 issues en P/MT (Card #46 ALTA). Ver BOARD_V5.xlsx.
 
 ### 📢 Actualización Sesión 820 (2026-05-30)
 - **Sistema de Ingesta:** Operativo para caso "feliz" (factura ARCA = BORRADOR). El visor de discrepancias existe pero NO tiene acciones. Si hay diferencia entre lo facturado y el pedido, el operador debe resolverlo manualmente hasta que se implemente Card #43.

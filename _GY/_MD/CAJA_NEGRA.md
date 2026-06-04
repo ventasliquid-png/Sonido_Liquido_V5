@@ -1,4 +1,19 @@
-Sesión actual: 820
+Sesión actual: 822
+
+# CAJA NEGRA: Excel Espejo de Pedidos + UI GlobalStatsBar (2026-06-04)
+
+Sesión 822 OF. Hash D: 135a16f8 (sin push — pendiente PIN 1974). Estado: NOMINAL GOLD.
+Entregable principal: Excel Espejo de Pedidos operativo end-to-end.
+- Script `exportar_pedidos_excel.py`: formato bloque por pedido, colores STATE_MASK (bits 32-35),
+  lógica IVA Motor Bipolar (bit 12 + condicion_iva_id RI), fila NOTAS mergeada, costos opcionales.
+- Endpoint `GET /pedidos/exportar-espejo` en FastAPI (movido antes de /{pedido_id}).
+- Frontend: botones "Nuevo" y "Exportar Excel" teletransportados al GlobalStatsBar via <Teleport to="#global-header-center">.
+- Safety Net Export (tabla plana pandas) eliminado.
+Bug corregido: 422 en /exportar-espejo por route ordering (endpoint especifico antes de parametrico).
+Board V5 actualizado: #26 EN PROGRESO, #40 motor prompts, #46 Bugs Tomy NUEVA ALTA.
+4 bugs Tomy detectados en P/MT: ingesta sin vinculo, NUMERO_COMPROBANTE, guard duplicados, IVA subtotal.
+
+**Agente:** Claude Code (Sonnet 4.6) — Hash D: 135a16f8 | PIN: pendiente
 
 # CAJA NEGRA: Auditoría Ingesta + Board Banderas Rojas + Investigación Bits Fantasma (2026-05-30)
 
