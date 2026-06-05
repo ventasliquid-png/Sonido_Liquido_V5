@@ -1,3 +1,18 @@
+# 2026-06-05 (Hotfix 822.1 OF — Pantalla negra Nuevo Pedido)
+- **Estado**: **NOMINAL GOLD**.
+- **Hash D**: 34a918fc | **Hash P**: 7ee67b3
+- **Bug**: Pantalla negra al navegar a "Nuevo Pedido (Táctico)".
+- **Causa raíz**: `HaweLayout.vue` usaba `v-if` en GlobalStatsBar. Al navegar a
+  PedidoCanvas, `route.name` cambia inmediatamente → GlobalStatsBar se destruye →
+  `#global-header-center` desaparece del DOM. HaweView/PedidoList todavía montados
+  (transition `out-in`) con Teleport activo → target not found → Vue warning silencioso
+  → pantalla negra sin errores en consola.
+- **Fix**: `v-if` → `v-show`. Con `v-show`, el portal queda en DOM (`display:none`)
+  durante la transición. Teleport lo encuentra, no falla, animación completa normalmente.
+- **Doctrina**: Contenedores de portales Teleport NUNCA bajo `v-if`. Siempre `v-show`.
+- **Archivos**: `frontend/src/layouts/HaweLayout.vue` (1 línea)
+- **Aplicado en**: D (34a918fc) + P (7ee67b3) — cherry-pick limpio sin conflictos
+
 # 2026-06-04 (Sesión 822 OF — Excel Espejo de Pedidos + GlobalStatsBar UI)
 - **Estado**: **NOMINAL GOLD**.
 - **Hash D**: 135a16f8 (sin push — pendiente PIN 1974)

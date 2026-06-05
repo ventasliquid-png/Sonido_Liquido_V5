@@ -2,6 +2,44 @@
 **Versión:** 2.3 Release (Excel Espejo + GlobalStatsBar Teleport — 822)
 **Fecha:** 2026-06-04
 
+## 35. DOCTRINA TELEPORT + v-show — HOTFIX 822.1 OF (2026-06-05)
+
+### 35.1 Bug: Pantalla negra al navegar a PedidoCanvas
+
+**Síntoma:** Al clickear "Nuevo Pedido", pantalla negra sin errores en consola (solo warnings).
+
+**Causa raíz:** `HaweLayout.vue` usaba `v-if` en `GlobalStatsBar`:
+```html
+<GlobalStatsBar v-if="route.name !== 'PedidoCanvas'" />
+```
+Cuando Vue Router inicia la navegación a `PedidoCanvas`, `route.name` cambia **inmediatamente** (reactivo), antes de que los componentes se monten/desmonten. Con `mode="out-in"` en la transition, el componente saliente (HaweView, PedidoList) sigue montado durante su animación de salida. Si ese componente tiene un `<Teleport to="#global-header-center">` activo, y el target ya fue destruido por el `v-if`, Vue lanza un warning silencioso y la transición falla → pantalla negra.
+
+### 35.2 Fix aplicado
+
+**Archivo:** `frontend/src/layouts/HaweLayout.vue` — 1 línea
+
+```html
+<!-- ANTES (bug) -->
+<GlobalStatsBar v-if="route.name !== 'PedidoCanvas' && route.query.mode !== 'satellite'" />
+
+<!-- DESPUÉS (fix) -->
+<GlobalStatsBar v-show="route.name !== 'PedidoCanvas' && route.query.mode !== 'satellite'" />
+```
+
+**Por qué funciona:** `v-show` aplica `display: none` — el elemento DOM persiste. El Teleport puede encontrar `#global-header-center` aunque esté oculto. La transición de salida completa normalmente. PedidoCanvas renderiza.
+
+### 35.3 Doctrina Teleport (sellado 822.1)
+
+> **REGLA:** Un elemento que sirve como target de `<Teleport>` NUNCA debe estar bajo `v-if`.
+> Usar `v-show` para preservar el DOM element durante transiciones de ruta.
+
+| Approach | Efecto en DOM | Seguro para Teleport |
+|---|---|---|
+| `v-if=false` | Elemento destruido | ❌ NO — target desaparece |
+| `v-show=false` | `display:none` | ✅ SÍ — target permanece |
+
+**Afecta a:** cualquier componente que use `<Teleport to="#global-header-center">` → HaweView.vue, PedidoList.vue, y cualquier vista futura que use el portal del GlobalStatsBar.
+
 ## 34. EXCEL ESPEJO DE PEDIDOS — SESIÓN 822 OF (2026-06-04)
 
 ### 34.1 Script `scripts/exportar_pedidos_excel.py`
