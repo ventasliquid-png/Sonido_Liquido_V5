@@ -17,6 +17,15 @@ def omega_manual():
     old_bits = read_bits()
     new_bits |= (old_bits & 0xFFFFFFFFFFFFFFFF)
     
+    # [ESPEJO EXCEL V2] Generar Excel antes de cerrar
+    env_flag = "P" if branch in ["main", "master", "universal"] else "D"
+    print(f"[OMEGA] Generando Espejo Excel V2 (Entorno: {env_flag})...")
+    try:
+        subprocess.check_call([sys.executable, "scripts/exportar_pedidos_excel.py", "--entorno", env_flag])
+        print("[OK] Espejo Excel generado correctamente.")
+    except Exception as e:
+        print(f"[WARN] Error generando Espejo Excel: {e}")
+    
     # 2. Persistencia
     if write_bits(new_bits):
         print(f"[OK] Genoma 64-bit Actualizado: {new_bits}")

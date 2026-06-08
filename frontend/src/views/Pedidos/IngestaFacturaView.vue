@@ -3,7 +3,7 @@
 // ------------------------------------------
 
 <template>
-    <div class="h-full w-full bg-[#0f172a] p-2 flex justify-center items-start overflow-hidden relative"
+    <div class="absolute inset-0 bg-[#0f172a] p-2 flex justify-center items-stretch overflow-hidden"
          @dragover.prevent="isDraggingGlobal = true"
          @dragleave.prevent="isDraggingGlobal = false"
          @drop.prevent="handleGlobalDrop">
@@ -17,9 +17,9 @@
             </div>
         </div>
 
-        <div class="w-full max-w-[98%] bg-[#0f172a] rounded-2xl border-2 border-slate-700 shadow-2xl overflow-hidden relative flex flex-col h-full">
+        <div class="w-full max-w-[98%] bg-[#0f172a] rounded-2xl border-2 border-slate-700 shadow-2xl overflow-hidden relative flex flex-col min-h-0">
     
-    <div class="flex-1 flex flex-col min-w-0">
+    <div class="flex-1 flex flex-col min-w-0 min-h-0">
         <!-- Header -->
         <header class="flex justify-between items-center mb-3 border-b border-blue-900/30 pb-2">
             <div>
@@ -35,11 +35,10 @@
                 </p>
             </div>
         </header>
-
-        <div class="grid grid-cols-12 gap-6 h-full overflow-hidden">
+        <div class="grid grid-cols-12 gap-6 flex-1 min-h-0 overflow-hidden">
             
             <!-- LEFT: DROP ZONE -->
-            <div class="col-span-5 flex flex-col gap-4">
+            <div class="col-span-5 flex flex-col gap-4 min-h-0">
                 <div v-if="error" class="bg-red-950/40 border border-red-500/30 rounded-xl p-4 mb-4 text-red-200 text-xs flex items-center gap-3">
                   <i class="fas fa-times-circle text-red-500 text-lg"></i>
                   <div>
@@ -225,9 +224,10 @@
                 </div>
 
                 <!-- CONTENT -->
-                <div v-else class="flex flex-col h-full min-h-0">
-                    <!-- Invoice & Client Header (EDITABLE) -->
-                    <div class="p-6 bg-slate-800/80 border-b border-slate-700 space-y-6">
+                <div v-else class="flex-1 flex flex-col min-h-0">
+                    <div class="flex-1 overflow-y-auto min-h-0 flex flex-col">
+                        <!-- Invoice & Client Header (EDITABLE) -->
+                        <div class="p-6 bg-slate-800/80 border-b border-slate-700 space-y-6 shrink-0">
                         <div class="flex justify-between items-start">
                             <div class="flex-1 mr-4">
                                  <label class="text-[10px] uppercase font-bold text-blue-400 tracking-wider block mb-1">Nro. Factura / Remito</label>
@@ -365,7 +365,7 @@
             </div>
 
                     <!-- Items List -->
-                    <div class="flex-1 overflow-y-auto p-4 bg-slate-900/30">
+                    <div class="flex-1 p-4 bg-slate-900/30 shrink-0">
                         <table class="w-full text-left border-collapse">
                             <thead class="text-xs uppercase text-slate-500 font-bold border-b border-slate-700">
                                 <tr>
@@ -415,9 +415,10 @@
                             </tbody>
                         </table>
                     </div>
+                    </div>
 
                     <!-- Vinculación de Pedido -->
-                    <div class="p-4 bg-slate-950 border-t border-slate-800/80">
+                    <div class="p-4 bg-slate-950 border-t border-slate-800/80 shrink-0 relative z-10">
                         <div v-if="pendingPedidos.length > 0" class="flex flex-col gap-2">
                             <label class="text-[10px] uppercase text-blue-400 font-black block tracking-widest">
                                 Vincular Pedido Existente
@@ -442,7 +443,7 @@
                     </div>
 
                     <!-- Actions & Assistant Panel -->
-                    <div class="p-4 bg-slate-800 border-t border-slate-700 flex flex-col gap-3 transition-all">
+                    <div class="p-4 bg-slate-800 border-t border-slate-700 flex flex-col gap-3 transition-all shrink-0 relative z-10">
                         <div v-if="selectedPedidoId === 'NEW'" class="grid grid-cols-1 xl:grid-cols-3 gap-3 w-full animate-fade-in">
                             <button @click="goToNewPedido" class="p-3 bg-emerald-900/30 border border-emerald-500/50 hover:bg-emerald-900/50 rounded-lg text-left flex items-start gap-3 transition-all">
                                 <i class="fas fa-plus-circle text-emerald-400 mt-1 text-lg"></i>
@@ -1374,6 +1375,14 @@ const retryInCuarentena = async () => {
 };
 
 import { onMounted } from 'vue';
+import { onBeforeRouteLeave } from 'vue-router';
+
+onBeforeRouteLeave((to, from, next) => {
+    const pedidosStore = usePedidosStore();
+    pedidosStore.clearIngestaData();
+    next();
+});
+
 onMounted(async () => {
     if (maestrosStore.transportes.length === 0) {
         maestrosStore.fetchTransportes();

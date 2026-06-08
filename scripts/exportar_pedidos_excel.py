@@ -22,6 +22,7 @@ Uso: python scripts/exportar_pedidos_excel.py
 import sqlite3
 import os
 import sys
+import argparse
 from datetime import datetime
 
 try:
@@ -350,8 +351,13 @@ def _write_notas_row(ws, row, nota, bg_impar):
 
 # ── MAIN ─────────────────────────────────────────────────────────────────────
 def main():
+    parser = argparse.ArgumentParser(description='Exportar Pedidos a Excel Espejo')
+    parser.add_argument('--entorno', choices=['P', 'D'], default='D', help='Entorno: P=MASTER, D=PILOT')
+    args = parser.parse_args()
+    entorno_name = 'MASTER' if args.entorno == 'P' else 'PILOT'
+
     ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    print(f'[ESPEJO PEDIDOS] Iniciando — {ts}')
+    print(f'[ESPEJO PEDIDOS] Iniciando — {ts} — Entorno: {entorno_name}')
     print(f'  DB      : {DB_PATH}')
     print(f'  Destino : {OUTPUT}')
 
@@ -414,7 +420,7 @@ def main():
     # ── Workbook ──────────────────────────────────────────────────────────
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = 'Pedidos'
+    ws.title = f'Pedidos {entorno_name}'
 
     # Anchos de columna
     for col, width in COL_WIDTHS.items():
@@ -489,6 +495,7 @@ def main():
     ws_info = wb.create_sheet('_info')
     info = [
         ('Generado',         datetime.now().strftime('%Y-%m-%d %H:%M:%S')),
+        ('Entorno',          entorno_name),
         ('Fuente DB',        os.path.abspath(DB_PATH)),
         ('Pedidos',          total_pedidos),
         ('Ítems totales',    total_items),

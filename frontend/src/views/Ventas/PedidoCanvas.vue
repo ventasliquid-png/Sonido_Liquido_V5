@@ -608,7 +608,7 @@
                         <!-- Si es CF/Monotributista en circuito blanco (IVA contenido, Ley 27.743) -->
                         <template v-else-if="!isCircuitoNegro">
                             <div class="text-[10px] font-bold uppercase tracking-widest text-gray-500">IVA contenido (Ley 27.743)</div>
-                            <div class="font-mono text-gray-300">$ {{ ((subtotal - descuentoGlobalValor) * 0.21 / 1.21).toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</div>
+                            <div class="font-mono text-gray-300">$ {{ ((subtotal - descuentoGlobalValor) * 0.21).toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</div>
                         </template>
                         
                         <!-- Si es Exento o Circuito Negro -->
@@ -1454,8 +1454,8 @@ const isSinIVA = computed(() => {
     // Bit 12 soberano (NO_FISCAL_FORCE)
     const flags = BigInt(flagsEstadoPedido.value || 0);
     if ((flags & (1n << 12n)) !== 0n) return true;
-    // Circuito blanco — RI discrimina IVA, resto no
-    return !isClienteRI.value;
+    // [FIX] En circuito blanco, el subtotal siempre es Neto. El IVA debe sumarse al Total Final sea RI o CF.
+    return false;
 });
 
 // Global Discount Calculation
@@ -2036,10 +2036,13 @@ const savePedido = async (andPrint = false) => {
                     `#${p.id} — ${new Date(p.fecha).toLocaleDateString('es-AR')} — $${p.total?.toLocaleString('es-AR')}`
                 ).join('\n');
 
-                const msg = nivel === 'ALTO'
-                    ? `⚠️ POSIBLE DUPLICADO\n\nHay un pedido similar del mismo cliente hoy:\n${lista}\n\n¿Confirmar de todas formas?`
-                    : `⚠️ Atención: hay pedidos recientes de este cliente:\n${lista}\n\n¿Continuar?`;
+                if (nivel === 'ALTO') {
+                    alert(`⛔ BLOQUEO POR DUPLICADO\n\nSe detectó un pedido idéntico para este cliente hoy:\n${lista}\n\nNo se puede guardar. Modifique el pedido o contacte a un supervisor.`);
+                    isSaving.value = false;
+                    return;
+                }
 
+                const msg = `⚠️ Atención: hay pedidos recientes de este cliente:\n${lista}\n\n¿Continuar?`;
                 const confirmar = window.confirm(msg);
                 if (!confirmar) {
                     isSaving.value = false;
