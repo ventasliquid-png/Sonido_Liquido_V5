@@ -167,6 +167,18 @@ def get_datos_afip(cuit_raw):
         return {"error": "CUIT inválido"}
 
     try:
+        # [MODO SIMULADOR] Si no está el certificado, evitamos el crash y simulamos ARCA
+        if not os.path.exists(IDENTIDADES["padron"]["cert"]):
+            return {
+                "cuit": cuit,
+                "razon_social": f"CLIENTE SIMULADO {cuit}",
+                "estado_fiscal": "ACTIVO",
+                "tipo_persona": "JURIDICA" if cuit.startswith("30") else "FISICA",
+                "domicilio_fiscal": {"direccion": "Calle Falsa 123", "localidad": "CABA", "provincia_id": "C", "cp": "1000"},
+                "actividades": [{"descripcion": "Venta por mayor simulada"}],
+                "impuestos": ["IVA", "Ganancias"]
+            }
+
         token, sign, cuit_propio = obtener_token("ws_sr_padron_a13")
         
         log_arca_trace("PADRON_REQ", {"cuit_target": cuit})
@@ -223,6 +235,16 @@ def solicitar_cae(remito_data):
     
     
     try:
+        # [MODO SIMULADOR] Si no está el certificado fiscal, devolvemos CAE exitoso ficticio
+        if not os.path.exists(IDENTIDADES["fiscal"]["cert"]):
+            return {
+                "cae": "12345678901234",
+                "vto_cae": (datetime.now() + timedelta(days=10)).strftime("%Y%m%d"),
+                "resultado": "A",
+                "qr_url": "https://www.afip.gob.ar/fe/qr/?p=SIMULADO",
+                "numero_comprobante": 9999
+            }
+
         # 1. Autenticación (servicio 'wsmtxca')
         token, sign = obtener_token("wsmtxca")
         

@@ -120,6 +120,9 @@ def create_pedido_tactico(
         if cliente.flags_estado & ClientFlags.OPERATOR_OK:
             pedido_flags_inicial |= PF.NO_FISCAL_FORCE.value
             
+        if pedido_data.from_ingesta:
+            pedido_flags_inicial |= PF.ORIGEN_FACTURA.value
+            
         estado_inicial_str = (pedido_data.estado or "PENDIENTE").upper()
         if estado_inicial_str == "PRESUPUESTO":
             state_bit = PF.ES_PRESUPUESTO.value
@@ -211,6 +214,57 @@ def create_pedido_tactico(
             nuevo_pedido.total = round(raw_neto * 1.21, 2)
         else:
             nuevo_pedido.total = round(raw_neto, 2)
+
+        # [V5.9 DOCTRINA DE INMUTABILIDAD - REAPUNTAMIENTO QUIRÚRGICO]
+        if getattr(pedido_data, "pedido_origen_migracion_id", None):
+            pedido_viejo = db.query(models.Pedido).get(pedido_data.pedido_origen_migracion_id)
+            if pedido_viejo:
+                # 1. Flush para asegurar que nuevo_pedido y sus items tengan ID en memoria
+                db.flush()
+                
+                # 2. Mapear viejo_pedido_item_id -> nuevo_pedido_item_id por producto_id
+                map_items = {}
+                for old_item in pedido_viejo.items:
+                    for new_item in nuevo_pedido.items:
+                        if new_item.producto_id == old_item.producto_id:
+                            map_items[old_item.id] = new_item.id
+                            break
+                            
+                # 3. Trasplantar Remitos y sus Items
+                from backend.remitos.models import Remito
+                remitos_huerfanos = db.query(Remito).filter(Remito.pedido_id == pedido_viejo.id).all()
+                for remito in remitos_huerfanos:
+                    remito.pedido_id = nuevo_pedido.id
+                    for r_item in remito.items:
+                        if r_item.pedido_item_id in map_items:
+                            r_item.pedido_item_id = map_items[r_item.pedido_item_id]
+                    db.add(remito)
+                    
+                # 4. Trasplantar Facturas
+                from backend.facturacion.models import Factura
+                facturas_huerfanas = db.query(Factura).filter(Factura.pedido_id == pedido_viejo.id).all()
+                for fac in facturas_huerfanas:
+                    fac.pedido_id = nuevo_pedido.id
+                    db.add(fac)
+                    
+                # 5. Trasplantar Logs de Ingesta
+                from backend.ingesta.models import FacturasProcesadas
+                ingestas_huerfanas = db.query(FacturasProcesadas).filter(FacturasProcesadas.pedido_id == pedido_viejo.id).all()
+                for ing in ingestas_huerfanas:
+                    ing.pedido_id = nuevo_pedido.id
+                    db.add(ing)
+
+                # 6. Ejecutar la condena (Anular el viejo)
+                pedido_viejo.estado = "ANULADO"
+                pedido_viejo.flags_estado = (pedido_viejo.flags_estado or 0) | PF.ES_ANULADO.value
+                nota_migracion = f"\n[SISTEMA] Migrado a pedido #{nuevo_pedido.id} por discrepancia en Ingesta. Logística transferida."
+                pedido_viejo.nota = (pedido_viejo.nota or "") + nota_migracion
+                db.add(pedido_viejo)
+                
+                # 7. Sellar el nuevo
+                nota_origen = f"\n[SISTEMA] Nace por migración desde pedido #{pedido_viejo.id}. Hereda su logística."
+                nuevo_pedido.nota = (nuevo_pedido.nota or "") + nota_origen
+                db.add(nuevo_pedido)
 
         db.commit()
         db.refresh(nuevo_pedido)
@@ -702,6 +756,9 @@ def update_pedido(
                 new_state_flag = PF.ES_FIRME.value
                 
             pedido.flags_estado = (pedido.flags_estado & ~STATE_MASK.value) | new_state_flag
+            
+    if pedido_update.from_ingesta:
+        pedido.flags_estado |= PF.ORIGEN_FACTURA.value
     
     if status_changed or type_changed or discounts_changed or items_changed:
         # Recalcular Total según Doctrina Táctica v5.6

@@ -3,7 +3,21 @@
 // ------------------------------------------
 
 <template>
-  <div class="flex h-full w-full bg-[#0f172a] text-gray-200 overflow-hidden font-sans tokyo-bg neon-blue rounded-2xl border-2 border-blue-500/50 shadow-[0_0_30px_rgba(59,130,246,0.3)] p-4">
+    <div class="h-full w-full bg-[#0f172a] p-2 flex justify-center items-start overflow-hidden relative"
+         @dragover.prevent="isDraggingGlobal = true"
+         @dragleave.prevent="isDraggingGlobal = false"
+         @drop.prevent="handleGlobalDrop">
+        
+        <!-- Global Drag Overlay -->
+        <div v-if="isDraggingGlobal" class="absolute inset-0 bg-blue-900/80 backdrop-blur-sm z-[100] border-4 border-dashed border-blue-400 rounded-2xl flex items-center justify-center animate-fade-in pointer-events-none">
+            <div class="text-center">
+                <i class="fas fa-cloud-upload-alt text-7xl text-blue-300 mb-4 animate-bounce"></i>
+                <h2 class="text-3xl font-black text-white tracking-widest">SOLTAR NUEVA FACTURA AQUÍ</h2>
+                <p class="text-blue-200 mt-2">Reemplazará cualquier documento actual</p>
+            </div>
+        </div>
+
+        <div class="w-full max-w-[98%] bg-[#0f172a] rounded-2xl border-2 border-slate-700 shadow-2xl overflow-hidden relative flex flex-col h-full">
     
     <div class="flex-1 flex flex-col min-w-0">
         <!-- Header -->
@@ -12,6 +26,9 @@
                 <h1 class="font-outfit text-xl font-bold text-white flex items-center gap-2">
                     <i class="fas fa-robot text-blue-400"></i>
                     Ingesta Automática de Facturas
+                    <span v-if="parsedData" class="ml-4 px-3 py-1 bg-amber-500/20 border border-amber-500/50 text-amber-300 text-xs font-bold rounded-full animate-pulse">
+                        BORRADOR EN MEMORIA - NO GUARDADO
+                    </span>
                 </h1>
                 <p class="text-[10px] text-blue-400/50 font-medium uppercase tracking-wider mt-0.5">
                     Conversión Inteligente: PDF AFIP <i class="fas fa-arrow-right mx-1"></i> Remito V5
@@ -19,7 +36,7 @@
             </div>
         </header>
 
-        <div v-if="!showComparePanel" class="grid grid-cols-12 gap-6 h-full overflow-hidden">
+        <div class="grid grid-cols-12 gap-6 h-full overflow-hidden">
             
             <!-- LEFT: DROP ZONE -->
             <div class="col-span-5 flex flex-col gap-4">
@@ -31,51 +48,175 @@
                   </div>
                 </div>
 
-                <div 
-                    class="flex-1 border-2 border-dashed border-blue-500/30 bg-blue-900/10 rounded-2xl flex flex-col items-center justify-center p-8 transition-all duration-300 relative overflow-hidden group"
-                    :class="{'border-blue-400 bg-blue-900/20 scale-[1.01]': isDragging, 'border-red-500/50': error}"
-                    @dragover.prevent="isDragging = true"
-                    @dragleave.prevent="isDragging = false"
-                    @drop.prevent="handleDrop"
-                    @click="triggerFileInput"
-                >
-                    <input type="file" ref="fileInput" class="hidden" accept=".pdf" @change="handleFileSelect">
-                    
-                    <div v-if="loading" class="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-20">
-                        <div class="text-center">
-                            <i class="fas fa-circle-notch fa-spin text-4xl text-blue-400 mb-4"></i>
-                            <p class="text-blue-200 font-bold animate-pulse">Analizando Documento...</p>
+                <!-- CARGANDO DETALLE DE PEDIDO -->
+                <div v-if="loadingPedidoDetail" class="flex-1 flex items-center justify-center text-blue-400">
+                    <i class="fas fa-circle-notch fa-spin text-3xl"></i>
+                </div>
+
+                <!-- PANEL DETALLE PEDIDO VINCULADO -->
+                <div v-else-if="selectedPedidoDetail" class="flex-1 flex flex-col bg-slate-900/80 rounded-2xl border border-slate-700/50 overflow-hidden">
+                    <!-- Header -->
+                    <div class="p-4 bg-slate-800 border-b border-slate-700 flex justify-between items-center shrink-0">
+                        <div>
+                            <h3 class="font-bold text-white flex items-center gap-2 text-sm">
+                                <i class="fas fa-clipboard-list text-blue-400"></i>
+                                Pedido #{{ selectedPedidoDetail.id }}
+                            </h3>
+                            <p class="text-[10px] text-slate-400 mt-0.5">
+                                {{ selectedPedidoDetail.fecha ? selectedPedidoDetail.fecha.split('T')[0] : '—' }}
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span v-if="selectedPedidoDetail.oc_compra" class="text-[10px] font-mono text-slate-400 bg-slate-700 px-2 py-0.5 rounded">
+                                OC: {{ selectedPedidoDetail.oc_compra }}
+                            </span>
+                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold border" :class="getStatusClassDetail(selectedPedidoDetail.estado)">
+                                {{ selectedPedidoDetail.estado }}
+                            </span>
                         </div>
                     </div>
 
-                    <div class="text-center relative z-10 pointer-events-none">
-                        <div class="w-20 h-20 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-                            <i class="fas fa-file-pdf text-4xl text-blue-400"></i>
+                    <!-- Cliente -->
+                    <div class="px-4 py-3 border-b border-slate-800 bg-slate-900/50 shrink-0">
+                        <p class="text-[9px] uppercase text-blue-400/60 font-bold tracking-wider mb-1">Cliente</p>
+                        <p class="font-bold text-white text-sm">{{ selectedPedidoDetail.cliente?.razon_social }}</p>
+                        <p class="text-[11px] text-slate-400 font-mono">{{ selectedPedidoDetail.cliente?.cuit }}</p>
+                    </div>
+
+                    <!-- Tabla ítems -->
+                    <div class="flex-1 overflow-y-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="sticky top-0 bg-slate-950">
+                                <tr class="text-[9px] uppercase text-slate-500 font-bold border-b border-slate-800">
+                                    <th class="py-2 pl-3 w-6">#</th>
+                                    <th class="py-2">Descripción</th>
+                                    <th class="py-2 px-2 text-right w-12">Cant.</th>
+                                    <th class="py-2 px-2 text-right w-20">Precio</th>
+                                    <th class="py-2 pr-3 text-right w-24">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800/50">
+                                <tr v-for="(item, idx) in selectedPedidoDetail.items" :key="item.id || idx" class="hover:bg-slate-800/30 text-xs">
+                                    <td class="py-1.5 pl-3 text-slate-500 font-mono">{{ idx + 1 }}</td>
+                                    <td class="py-1.5 text-slate-300 truncate max-w-[140px]">{{ item.producto?.nombre || '—' }}</td>
+                                    <td class="py-1.5 px-2 text-right font-mono text-slate-300">{{ item.cantidad }}</td>
+                                    <td class="py-1.5 px-2 text-right font-mono text-slate-400">{{ formatCurrencyDetail(item.precio_unitario) }}</td>
+                                    <td class="py-1.5 pr-3 text-right font-mono text-emerald-400">{{ formatCurrencyDetail(item.cantidad * item.precio_unitario) }}</td>
+                                </tr>
+                                <tr v-if="!selectedPedidoDetail.items?.length">
+                                    <td colspan="5" class="py-4 text-center text-slate-500 italic text-xs">Sin ítems</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- NOTAS -->
+                    <div v-if="selectedPedidoDetail.nota" class="px-4 py-3 bg-amber-900/10 border-t border-amber-500/20 shrink-0">
+                        <p class="text-[9px] uppercase text-amber-400/60 font-bold tracking-wider mb-1">📝 NOTAS</p>
+                        <p class="text-xs text-amber-200/80 italic">{{ selectedPedidoDetail.nota }}</p>
+                    </div>
+
+                    <!-- Footer totales -->
+                    <div class="px-4 py-3 bg-slate-950 border-t border-slate-800 space-y-1 shrink-0">
+                        <div class="flex justify-between text-xs text-slate-400">
+                            <span>Subtotal neto</span>
+                            <span class="font-mono">{{ formatCurrencyDetail((selectedPedidoDetail.flags_estado & 4096) ? selectedPedidoDetail.total : selectedPedidoDetail.total / 1.21) }}</span>
                         </div>
-                        <h3 class="text-xl font-bold text-white mb-2">Arrastre su Factura Aquí</h3>
-                        <p class="text-sm text-blue-300/60 mb-6 max-w-xs mx-auto">
-                            Soporta Facturas de Crédito Electrónicas MiPyME (FCE) y Facturas B estándar de AFIP.
-                        </p>
-                        <button class="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold shadow-lg shadow-blue-900/50 transition-all pointer-events-auto">
-                            O seleccione archivo
+                        <div v-if="!(selectedPedidoDetail.flags_estado & 4096)" class="flex justify-between text-xs text-slate-400">
+                            <span>IVA 21%</span>
+                            <span class="font-mono">{{ formatCurrencyDetail(selectedPedidoDetail.total - selectedPedidoDetail.total / 1.21) }}</span>
+                        </div>
+                        <div class="flex justify-between items-center pt-1.5 border-t border-slate-700">
+                            <span class="text-xs font-bold text-white">TOTAL</span>
+                            <span class="text-lg font-black font-mono text-emerald-300">{{ formatCurrencyDetail(selectedPedidoDetail.total) }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Botón desvincular -->
+                    <div class="px-4 py-2 bg-slate-900 border-t border-slate-800 flex justify-end shrink-0">
+                        <button
+                            @click="selectedPedidoId = null"
+                            class="text-[10px] text-slate-500 hover:text-red-400 transition-colors font-bold uppercase tracking-wider flex items-center gap-1"
+                        >
+                            <i class="fas fa-times"></i> Desvincular
                         </button>
                     </div>
                 </div>
 
-                <!-- Instructions -->
-                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 text-xs text-slate-400">
-                    <h4 class="font-bold text-slate-300 mb-2 uppercase"><i class="fas fa-info-circle mr-1"></i> Cómo funciona</h4>
-                    <ol class="list-decimal list-inside space-y-1">
-                        <li>Suba el PDF original descargado de AFIP.</li>
-                        <li>El sistema extraerá Cliente, CUIT e Ítems.</li>
-                        <li>Verifique los datos en el panel derecho.</li>
-                        <li>Confirme para generar el Remito automáticamente.</li>
-                    </ol>
-                </div>
+                <!-- DEFAULT: DROPZONE + INSTRUCCIONES -->
+                <template v-else>
+                    <div
+                        class="flex-1 border-2 border-dashed border-blue-500/30 bg-blue-900/10 rounded-2xl flex flex-col items-center justify-center p-8 transition-all duration-300 relative overflow-hidden group"
+                        :class="{'border-blue-400 bg-blue-900/20 scale-[1.01]': isDragging, 'border-red-500/50': error}"
+                        @dragover.prevent="isDragging = true"
+                        @dragleave.prevent="isDragging = false"
+                        @drop.prevent="handleDrop"
+                        @click="triggerFileInput"
+                    >
+                        <input type="file" ref="fileInput" class="hidden" accept=".pdf" @change="handleFileSelect">
+
+                        <div v-if="loading" class="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-20">
+                            <div class="text-center">
+                                <i class="fas fa-circle-notch fa-spin text-4xl text-blue-400 mb-4"></i>
+                                <p class="text-blue-200 font-bold animate-pulse">Analizando Documento...</p>
+                            </div>
+                        </div>
+
+                        <!-- DUPLICATE WARNING OVERLAY -->
+                        <div v-if="duplicadoData" class="absolute inset-0 bg-amber-950/90 backdrop-blur-md flex items-center justify-center z-30 flex-col border-4 border-amber-500 rounded-2xl p-8 text-center animate-fade-in shadow-[0_0_50px_rgba(245,158,11,0.3)]">
+                            <i class="fas fa-exclamation-triangle text-amber-400 text-6xl mb-6 animate-bounce"></i>
+                            <h3 class="text-2xl font-black text-white mb-2 tracking-widest">¡DOCUMENTO YA PROCESADO!</h3>
+                            <p class="text-amber-200 font-medium mb-6">Esta factura ya se encuentra ingresada en el sistema.</p>
+                            
+                            <div class="bg-amber-900/50 border border-amber-500/50 rounded-xl p-4 w-full max-w-sm mb-6 text-left space-y-2">
+                                <div class="flex justify-between border-b border-amber-500/30 pb-2">
+                                    <span class="text-amber-400/80 text-xs uppercase font-bold">Comprobante</span>
+                                    <span class="text-amber-100 font-mono font-bold">{{ duplicadoData.tipo_comprobante }} {{ String(duplicadoData.punto_venta).padStart(4, '0') }}-{{ String(duplicadoData.numero_comprobante).padStart(8, '0') }}</span>
+                                </div>
+                                <div class="flex justify-between border-b border-amber-500/30 pb-2">
+                                    <span class="text-amber-400/80 text-xs uppercase font-bold">Pedido Vinculado</span>
+                                    <span class="text-amber-100 font-bold">#{{ duplicadoData.pedido_id }}</span>
+                                </div>
+                                <div class="flex justify-between pb-1">
+                                    <span class="text-amber-400/80 text-xs uppercase font-bold">Estado Remito</span>
+                                    <span class="text-amber-100 font-bold">{{ duplicadoData.remito_estado }}</span>
+                                </div>
+                            </div>
+
+                            <button @click="reset" class="px-8 py-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white rounded-xl font-bold shadow-lg shadow-amber-900/50 transition-all uppercase tracking-wider">
+                                Entendido — Subir Otra Factura
+                            </button>
+                        </div>
+
+                        <div class="text-center relative z-10 pointer-events-none">
+                            <div class="w-20 h-20 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                                <i class="fas fa-file-pdf text-4xl text-blue-400"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-white mb-2">Arrastre su Factura Aquí</h3>
+                            <p class="text-sm text-blue-300/60 mb-6 max-w-xs mx-auto">
+                                Soporta Facturas de Crédito Electrónicas MiPyME (FCE) y Facturas B estándar de AFIP.
+                            </p>
+                            <button class="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold shadow-lg shadow-blue-900/50 transition-all pointer-events-auto">
+                                O seleccione archivo
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Instructions -->
+                    <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 text-xs text-slate-400">
+                        <h4 class="font-bold text-slate-300 mb-2 uppercase"><i class="fas fa-info-circle mr-1"></i> Cómo funciona</h4>
+                        <ol class="list-decimal list-inside space-y-1">
+                            <li>Suba el PDF original descargado de AFIP.</li>
+                            <li>El sistema extraerá Cliente, CUIT e Ítems.</li>
+                            <li>Verifique los datos en el panel derecho.</li>
+                            <li>Confirme para generar el Remito automáticamente.</li>
+                        </ol>
+                    </div>
+                </template>
             </div>
 
             <!-- RIGHT: PREVIEW & ACTIONS -->
-            <div class="col-span-7 flex flex-col bg-slate-900/50 rounded-2xl border border-slate-700/50 overflow-hidden relative">
+            <div class="col-span-7 flex flex-col bg-slate-900/50 rounded-2xl border border-slate-700/50 overflow-hidden relative min-h-0">
                 
                 <!-- EMPTY STATE -->
                 <div v-if="!parsedData" class="absolute inset-0 flex items-center justify-center text-slate-600 flex-col pointer-events-none">
@@ -84,7 +225,7 @@
                 </div>
 
                 <!-- CONTENT -->
-                <div v-else class="flex flex-col h-full">
+                <div v-else class="flex flex-col h-full min-h-0">
                     <!-- Invoice & Client Header (EDITABLE) -->
                     <div class="p-6 bg-slate-800/80 border-b border-slate-700 space-y-6">
                         <div class="flex justify-between items-start">
@@ -193,63 +334,23 @@
                         <div class="md:col-span-2 space-y-1" v-if="clientAddresses.length > 0">
                             <label class="text-[10px] uppercase text-blue-500 font-black block mb-1 tracking-widest flex items-center justify-between">
                                 <span>Sede de Entrega (Padrón)</span>
-                                <span v-if="addressAmbiguity" class="text-amber-500 animate-pulse flex items-center gap-1">
-                                    <i class="fas fa-exclamation-triangle text-[8px]"></i> AMBIGÜEDAD: CONFIRME SEDE
-                                </span>
                             </label>
                             <div class="relative group">
                                 <select 
                                     v-model="selectedAddressId" 
-                                    @change="onAddressSelectChange"
-                                    class="w-full bg-slate-950 border rounded-lg px-3 py-2 text-xs text-white focus:border-blue-500 outline-none transition-all appearance-none pr-8"
-                                    :class="[
-                                        addressAmbiguity && !manualAddressChange ? 'border-amber-500/50 shadow-[0_0_10px_rgba(245,158,11,0.2)]' : 'border-blue-900/30',
-                                        isSuggestedSelected ? 'border-emerald-500/50 shadow-[0_0_10px_rgba(16,185,129,0.2)]' : ''
-                                    ]"
+                                    class="w-full bg-slate-950 border border-blue-900/30 rounded-lg px-3 py-2 text-xs text-white focus:border-blue-500 outline-none transition-all appearance-none pr-8"
                                 >
                                     <!-- Options from DB -->
                                     <option v-for="d in clientAddresses" :key="d.id" :value="d.id">
-                                        {{ d.is_suggested ? '🪄' : (d.es_entrega ? '🚛' : '🏠') }} 
+                                        {{ d.es_entrega ? '🚛' : '🏠' }} 
                                         {{ d.alias || (d.calle + ' ' + (d.numero || '')) }} 
-                                        {{ d.is_suggested ? '(SUGERIDO)' : (d.es_fiscal ? '(FISCAL)' : '') }}
+                                        {{ d.es_fiscal ? '(FISCAL)' : '' }}
                                     </option>
-                                    
-                                    <!-- Management Options -->
-                                    <option value="ADD_NEW" class="text-blue-400 font-bold">➕ AGREGAR NUEVA DIRECCIÓN...</option>
                                 </select>
                                 <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 group-hover:text-blue-400">
-                                    <i class="fas" :class="isSuggestedSelected ? 'fa-magic text-emerald-400' : 'fa-chevron-down'"></i>
+                                    <i class="fas fa-chevron-down"></i>
                                 </div>
                             </div>
-                        </div>
-                        
-                        <!-- NEW ADDRESS MINI-FORM -->
-                        <div v-if="selectedAddressId === 'ADD_NEW'" class="md:col-span-4 bg-blue-500/5 border border-blue-500/20 rounded-xl p-4 mt-2 animate-in fade-in slide-in-from-top-4 duration-300">
-                            <div class="flex items-center gap-2 mb-3">
-                                <i class="fas fa-plus-circle text-blue-400"></i>
-                                <span class="text-[10px] uppercase font-bold text-blue-200 tracking-wider">Alta de Nueva Sede de Entrega</span>
-                            </div>
-                            <div class="grid grid-cols-12 gap-3">
-                                <div class="col-span-8">
-                                    <label class="text-[8px] uppercase text-blue-400/50 font-bold block mb-1">Calle</label>
-                                    <input v-model="newAddress.calle" type="text" class="w-full bg-slate-950 border border-blue-900/40 rounded px-2 py-1 text-xs text-white focus:border-blue-500 outline-none" placeholder="Calle..." />
-                                </div>
-                                <div class="col-span-4">
-                                    <label class="text-[8px] uppercase text-blue-400/50 font-bold block mb-1">Número</label>
-                                    <input v-model="newAddress.numero" type="text" class="w-full bg-slate-950 border border-blue-900/40 rounded px-2 py-1 text-xs text-white focus:border-blue-500 outline-none" placeholder="Nro..." />
-                                </div>
-                                <div class="col-span-6">
-                                    <label class="text-[8px] uppercase text-blue-400/50 font-bold block mb-1">Localidad</label>
-                                    <input v-model="newAddress.localidad" type="text" class="w-full bg-slate-950 border border-blue-900/40 rounded px-2 py-1 text-xs text-white focus:border-blue-500 outline-none" placeholder="Localidad..." />
-                                </div>
-                                <div class="col-span-6">
-                                    <label class="text-[8px] uppercase text-blue-400/50 font-bold block mb-1">Provincia (ID)</label>
-                                    <input v-model="newAddress.provincia_id" type="text" class="w-full bg-slate-950 border border-blue-900/40 rounded px-2 py-1 text-xs text-white focus:border-blue-500 outline-none uppercase" placeholder="B / X / C..." />
-                                </div>
-                            </div>
-                            <p class="text-[9px] text-blue-400/40 italic mt-3 flex items-center gap-1">
-                                <i class="fas fa-info-circle"></i> Al confirmar, esta sede se guardará permanentemente en la ficha del cliente.
-                            </p>
                         </div>
                         <div class="space-y-1">
                             <label class="text-[10px] uppercase text-blue-500 font-black block mb-1 tracking-widest">Bultos</label>
@@ -340,122 +441,47 @@
                         </div>
                     </div>
 
-                    <!-- Actions -->
-                    <div class="p-4 bg-slate-800 border-t border-slate-700 flex justify-end gap-3 transition-all">
-                        <button @click="reset" class="px-4 py-2 text-slate-400 hover:text-white transition">
-                            Descartar
-                        </button>
-                        <!-- PREVIEW NATIVO REMOVIDO -->
-                        <button 
-                            @click="handleProceder"
-                            :disabled="loading || !selectedPedidoId"
-                            class="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-lg shadow-lg shadow-blue-900/30 flex items-center gap-2"
-                        >
-                            <i v-if="loading" class="fas fa-circle-notch fa-spin"></i>
-                            <span>{{ loading ? 'Procesando...' : 'Proceder' }}</span>
-                            <i v-if="!loading" class="fas fa-file-import"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div v-else class="flex-grow flex flex-col overflow-hidden gap-4 mt-2">
-            <!-- Warning Banner -->
-            <div v-if="duplicadoData" class="bg-amber-950/40 border-2 border-amber-500/50 rounded-2xl p-4 text-amber-200 flex items-center justify-between shadow-[0_0_20px_rgba(245,158,11,0.15)]">
-                <div class="flex items-center gap-4">
-                    <i class="fas fa-exclamation-triangle text-amber-400 text-3xl animate-pulse"></i>
-                    <div>
-                        <p class="text-lg font-black uppercase tracking-wider text-white">⚠️ DOCUMENTO YA PROCESADO</p>
-                        <p class="text-sm font-medium mt-1">
-                            Factura <span class="font-bold text-amber-300">{{ duplicadoData.tipo_comprobante }}</span> 
-                            <span class="font-mono text-amber-300 font-bold ml-1">{{ String(duplicadoData.punto_venta).padStart(4, '0') }}-{{ String(duplicadoData.numero_comprobante).padStart(8, '0') }}</span>
-                            <span class="mx-2 text-slate-500">·</span>
-                            Pedido <span class="font-bold text-amber-300">#{{ duplicadoData.pedido_id }}</span>
-                            <span class="mx-2 text-slate-500">·</span>
-                            Procesado el <span class="font-mono font-bold text-amber-300">{{ new Date(duplicadoData.fecha_procesamiento).toLocaleString('es-AR') }}</span>
-                        </p>
-                    </div>
-                </div>
-                <div v-if="duplicadoData" class="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl text-xs font-black uppercase text-amber-400">
-                    Estado del Remito: {{ duplicadoData.remito_estado }}
-                </div>
-            </div>
-
-            <!-- Two Column Comparison -->
-            <div v-if="duplicadoData" class="flex-grow grid grid-cols-2 gap-6 min-h-0" style="min-height: 0; flex: 1;">
-                <!-- Column 1: Existing PDF (Left) -->
-                <div class="flex flex-col bg-slate-900/80 rounded-2xl border border-slate-700/50 overflow-hidden relative">
-                    <div class="p-3 bg-slate-800 border-b border-slate-700 flex justify-between items-center">
-                        <span class="text-xs uppercase font-black text-slate-400 tracking-wider">DOCUMENTO ANTERIOR (Ya Procesado)</span>
-                    </div>
-                    <div class="flex-grow relative bg-slate-950 p-2" style="height: 55vh;">
-                        <iframe 
-                            :src="`/ingesta/raw/${duplicadoData.raw_id_anterior}/pdf`"
-                            class="w-full h-full border-none rounded-xl"
-                            style="width: 100%; height: 100%; border: none;"
-                        ></iframe>
-                    </div>
-                </div>
-
-                <!-- Column 2: New PDF (Right) -->
-                <div class="flex flex-col bg-slate-900/80 rounded-2xl border border-slate-700/50 overflow-hidden relative">
-                    <div class="p-3 bg-slate-800 border-b border-slate-700 flex justify-between items-center">
-                        <span class="text-xs uppercase font-black text-blue-400 tracking-wider">DOCUMENTO ACTUAL (Este Intento)</span>
-                    </div>
-                    <div class="flex-grow relative bg-slate-950 p-2" style="height: 55vh;">
-                        <iframe 
-                            :src="`/ingesta/raw/${currentRawId}/pdf`"
-                            class="w-full h-full border-none rounded-xl"
-                            style="width: 100%; height: 100%; border: none;"
-                        ></iframe>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Action Buttons bar -->
-            <div v-if="duplicadoData" class="p-4 bg-slate-800 border border-slate-700 rounded-2xl flex justify-between items-center">
-                <div class="flex items-center gap-3">
-                    <button 
-                        @click="reset"
-                        class="px-5 py-2 text-slate-400 hover:text-white transition font-bold"
-                    >
-                        Cancelar — mantener procesado actual
-                    </button>
-                </div>
-                
-                <div class="flex items-center gap-3">
-                    <!-- Case 1: Remito is BORRADOR -->
-                    <template v-if="duplicadoData.remito_estado === 'BORRADOR'">
-                        <div class="flex items-center gap-2 bg-slate-900 px-3 py-1.5 border border-slate-700 rounded-xl">
-                            <label class="text-[10px] uppercase font-bold text-slate-500">PIN de Autorización:</label>
-                            <input 
-                                v-model="pinVerification"
-                                type="password"
-                                class="w-16 bg-slate-950 border border-red-500/30 rounded px-2 py-1 text-xs font-mono font-bold text-center text-white focus:outline-none focus:border-red-500"
-                                placeholder="****"
-                                maxlength="4"
-                            />
+                    <!-- Actions & Assistant Panel -->
+                    <div class="p-4 bg-slate-800 border-t border-slate-700 flex flex-col gap-3 transition-all">
+                        <div v-if="selectedPedidoId === 'NEW'" class="grid grid-cols-1 xl:grid-cols-3 gap-3 w-full animate-fade-in">
+                            <button @click="goToNewPedido" class="p-3 bg-emerald-900/30 border border-emerald-500/50 hover:bg-emerald-900/50 rounded-lg text-left flex items-start gap-3 transition-all">
+                                <i class="fas fa-plus-circle text-emerald-400 mt-1 text-lg"></i>
+                                <div>
+                                    <p class="font-bold text-white text-sm">Crear Pedido Nuevo</p>
+                                    <p class="text-[10px] text-emerald-200/60 mt-0.5 leading-tight">Ir al Canvas para armar el pedido</p>
+                                </div>
+                            </button>
+                            <button @click="goToNewPedidoAndPrint" class="p-3 bg-indigo-900/30 border border-indigo-500/50 hover:bg-indigo-900/50 rounded-lg text-left flex items-start gap-3 transition-all">
+                                <i class="fas fa-print text-indigo-400 mt-1 text-lg"></i>
+                                <div>
+                                    <p class="font-bold text-white text-sm">Crear e Imprimir</p>
+                                    <p class="text-[10px] text-indigo-200/60 mt-0.5 leading-tight">Auto-imprimir remito al finalizar</p>
+                                </div>
+                            </button>
+                            <button @click="retryInCuarentena" class="p-3 bg-orange-900/30 border border-orange-500/50 hover:bg-orange-900/50 rounded-lg text-left flex items-start gap-3 transition-all">
+                                <i class="fas fa-pause-circle text-orange-400 mt-1 text-lg"></i>
+                                <div>
+                                    <p class="font-bold text-white text-sm">Enviar a Cuarentena</p>
+                                    <p class="text-[10px] text-orange-200/60 mt-0.5 leading-tight">Generar remito sin pedido (requiere revisión)</p>
+                                </div>
+                            </button>
                         </div>
-                        <button 
-                            @click="handleAnularYReingestar"
-                            class="px-6 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg shadow-lg shadow-red-900/50 transition-all flex items-center gap-2"
-                        >
-                            <i class="fas fa-trash-alt"></i>
-                            Anular procesado y re-ingestar con este PDF
-                        </button>
-                    </template>
-                    
-                    <!-- Case 2: Remito is NOT BORRADOR -->
-                    <template v-else>
-                        <a 
-                            :href="`/remitos/${duplicadoData.remito_id}/pdf`"
-                            target="_blank"
-                            class="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-lg shadow-blue-900/50 transition-all flex items-center gap-2"
-                        >
-                            <i class="fas fa-file-pdf"></i>
-                            Ver procesado existente (Remito)
-                        </a>
-                    </template>
+                        <div class="flex justify-end gap-3 w-full pt-2" :class="{'border-t border-slate-700 mt-2': selectedPedidoId === 'NEW'}">
+                            <button @click="reset" class="px-4 py-2 text-slate-400 hover:text-white transition">
+                                Descartar
+                            </button>
+                            <button 
+                                v-if="selectedPedidoId !== 'NEW'"
+                                @click="handleProceder"
+                                :disabled="loading || !selectedPedidoId"
+                                class="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-lg shadow-lg shadow-blue-900/30 flex items-center gap-2"
+                            >
+                                <i v-if="loading" class="fas fa-circle-notch fa-spin"></i>
+                                <span>{{ loading ? 'Procesando...' : 'Vincular y Proceder' }}</span>
+                                <i v-if="!loading" class="fas fa-file-import"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -571,11 +597,67 @@
             </div>
         </div>
     </Teleport>
+
+    <!-- IDENTITY DISCREPANCY MODAL -->
+    <Teleport to="body">
+        <div v-if="showIdentityModal" class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-slate-900 border-2 border-yellow-500/50 rounded-2xl w-full max-w-xl shadow-[0_0_50px_rgba(234,179,8,0.2)] overflow-hidden">
+                <div class="bg-gradient-to-r from-yellow-900/30 to-amber-900/30 border-b border-yellow-500/30 p-6">
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-3">
+                        <i class="fas fa-id-card text-yellow-400"></i>
+                        Discrepancia de Identidad Detectada
+                    </h2>
+                    <p class="text-sm text-yellow-200/60 mt-2">
+                        El CUIT de la factura coincide con un cliente existente, pero la razón social es sustancialmente distinta.
+                    </p>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                            <p class="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Documento (AFIP)</p>
+                            <p class="font-bold text-white">{{ parsedData?.cliente?.razon_social || '---' }}</p>
+                        </div>
+                        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                            <p class="text-xs text-yellow-500 uppercase font-bold tracking-wider mb-1">Base de Datos</p>
+                            <p class="font-bold text-yellow-400">{{ selectedPedidoObj?.cliente?.razon_social || '---' }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col gap-3 mt-6">
+                        <button @click="ignorarIdentidad" class="w-full p-4 bg-emerald-900/30 border border-emerald-500/50 hover:bg-emerald-900/50 rounded-lg text-left flex items-start gap-3 transition">
+                            <i class="fas fa-check-circle text-emerald-400 mt-1"></i>
+                            <div>
+                                <p class="font-bold text-white">Ignorar y Continuar</p>
+                                <p class="text-xs text-emerald-200/60 mt-1">Es un error de tipeo o una dependencia vinculada correcta. Proceder a vincular ítems.</p>
+                            </div>
+                        </button>
+                        <button @click="showIdentityModal = false" class="w-full p-4 bg-red-900/30 border border-red-500/50 hover:bg-red-900/50 rounded-lg text-left flex items-start gap-3 transition">
+                            <i class="fas fa-hand-paper text-red-400 mt-1"></i>
+                            <div>
+                                <p class="font-bold text-white">Suspender Carga</p>
+                                <p class="text-xs text-red-200/60 mt-1">Abortar ingesta para revisar manual en padrón.</p>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </Teleport>
+
+    <!-- INGESTA ITEM MODAL -->
+    <IngestaItemModal
+        v-if="showItemModal"
+        :items="parsedData?.items || []"
+        @resolved="onItemsResolved"
+        @cancel="showItemModal = false"
+    />
+
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import remitosService from '@/services/remitos';
 import ingestaService from '@/services/ingesta';
@@ -584,6 +666,7 @@ import { useMaestrosStore } from '@/stores/maestros';
 import { useClientesStore } from '@/stores/clientes';
 import { usePedidosStore } from '@/stores/pedidos';
 import ClientCanvas from '../Hawe/ClientCanvas.vue';
+import IngestaItemModal from '../Ventas/components/IngestaItemModal.vue';
 import SmartSelect from '@/components/ui/SmartSelect.vue';
 import api from '@/services/api';
 
@@ -597,7 +680,10 @@ const loading = ref(false);
 const error = ref(null);
 const parsedData = ref(null);
 const fileInput = ref(null);
+const isDraggingGlobal = ref(false);
 const showPreview = ref(false);
+const selectedPedidoId = ref(null);
+const pendingPedidos = ref([]);
 
 const showClientAbm = ref(false);
 const clientAddresses = ref([]);
@@ -610,18 +696,14 @@ const currentRawId = ref(null);
 const addressAmbiguity = ref(false);
 const manualAddressChange = ref(false);
 
+const duplicadoData = ref(null);
+
 // 409 Modal State
-const show409Modal = ref(false);
-const pendingPedidos = ref([]);
-const selectedPedidoId = ref(null);
 const isSuggestedSelected = computed(() => {
     const selected = clientAddresses.value.find(d => d.id === selectedAddressId.value);
     return selected?.is_suggested || false;
 });
 
-// Duplicate panel state
-const showComparePanel = ref(false);
-const duplicadoData = ref(null);
 const pinVerification = ref('');
 
 const newAddress = ref({
@@ -630,6 +712,24 @@ const newAddress = ref({
     localidad: '',
     provincia_id: 'X'
 });
+
+// Panel detalle pedido vinculado
+const selectedPedidoDetail = ref(null)
+const loadingPedidoDetail = ref(false)
+
+const formatCurrencyDetail = (value) =>
+    new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(value || 0)
+
+const getStatusClassDetail = (status) => {
+    switch (status) {
+        case 'PENDIENTE':   return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50'
+        case 'CUMPLIDO':    return 'bg-yellow-500/20 text-yellow-500 border-yellow-500/50'
+        case 'ANULADO':     return 'bg-red-500/20 text-red-500 border-red-500/50'
+        case 'PRESUPUESTO': return 'bg-purple-600/40 text-purple-300 border-purple-500/50'
+        case 'INTERNO':     return 'bg-cyan-600/40 text-cyan-300 border-cyan-500/50'
+        default:            return 'bg-gray-500/10 text-gray-400 border-gray-500/20'
+    }
+}
 
 // SE ELIMINARON MOCKS DE VISTA PREVIA
 
@@ -644,6 +744,15 @@ const triggerFileInput = () => {
 const handleFileSelect = async (e) => {
     const file = e.target.files[0];
     if (file) await processFile(file);
+};
+
+const handleGlobalDrop = async (e) => {
+    isDraggingGlobal.value = false;
+    const file = e.dataTransfer.files[0];
+    if (file) {
+        reset(); // Clear previous
+        await processFile(file);
+    }
 };
 
 const handleDrop = async (e) => {
@@ -674,7 +783,6 @@ const processFile = async (file) => {
         const dup = uploadRes.data.duplicado;
         if (dup && dup.encontrado) {
             duplicadoData.value = dup;
-            showComparePanel.value = true;
             loading.value = false;
             return;
         }
@@ -710,6 +818,11 @@ const processFile = async (file) => {
                 });
                 autoSelectAddress();
             }
+        } else {
+            // [GY-FIX] Caso Fantasma: El cliente no existe en DB. Forzamos 'NEW' para habilitar el botón "Proceder"
+            // y que el orquestador abra el ABM.
+            selectedPedidoId.value = 'NEW';
+            pendingPedidos.value = [];
         }
 
     } catch (e) {
@@ -726,11 +839,14 @@ const reset = () => {
     parsedData.value = null;
     bultos.value = 1;
     valor_declarado.value = 0.0;
+    clientAddresses.value = [];
+    isDiscrepancyResolved.value = false;
+    error.value = '';
+    duplicadoData.value = null;
+
     if (fileInput.value) fileInput.value.value = '';
     selectedPedidoId.value = null;
     pendingPedidos.value = [];
-    showComparePanel.value = false;
-    duplicadoData.value = null;
     pinVerification.value = '';
 };
 
@@ -846,8 +962,8 @@ const onClientSaved = async (savedClient) => {
         await loadClientDetails(savedClient.id);
     }
     
-    // Auto-resume formulation  
-    confirmIngesta();
+    // Auto-resume formulation with the new Orchestrator
+    handleProceder();
 };
 
 const loadClientDetails = async (clientId) => {
@@ -860,9 +976,9 @@ const loadClientDetails = async (clientId) => {
         const cuit = res.data.cuit;
         if (cuit) {
             const pedRes = await api.get('/pedidos/', { params: { estado: 'PENDIENTE' } });
-            const targetCuit = cuit.replace(/-/g, '').trim();
+            const targetCuit = String(cuit).replace(/-/g, '').trim();
             pendingPedidos.value = (pedRes.data || []).filter(p => {
-                const pCuit = (p.cliente?.cuit || '').replace(/-/g, '').trim();
+                const pCuit = String(p.cliente?.cuit || '').replace(/-/g, '').trim();
                 return pCuit === targetCuit;
             });
             if (pendingPedidos.value.length === 0) {
@@ -881,6 +997,7 @@ const loadClientDetails = async (clientId) => {
 
 const onAddressSelectChange = () => {
     manualAddressChange.value = true;
+    addressAmbiguity.value = false;
     if (selectedAddressId.value === 'ADD_NEW') {
         const extracted = parsedData.value?.cliente?.domicilio || '';
         // Heurística básica de limpieza para el formulario
@@ -918,8 +1035,11 @@ const autoSelectAddress = () => {
     } else if (deliveryAddresses.length > 1) {
         // Ambiguedad: multiple delivery
         selectedAddressId.value = deliveryAddresses[0].id; // Suggest first
-        addressAmbiguity.value = true;
-        notification.add('Atención: El cliente tiene múltiples sedes de entrega. Verifique cuál corresponde.', 'warning');
+        // Card #49 — Solo mostrar advertencia si no hay pedidos disponibles para vincular
+        if (pendingPedidos.value.length === 0) {
+            addressAmbiguity.value = true;
+            notification.add('Atención: El cliente tiene múltiples sedes de entrega. Verifique cuál corresponde.', 'warning');
+        }
     } else {
         // Fallback: Fiscal
         const fiscal = clientAddresses.value.find(d => d.es_fiscal);
@@ -927,11 +1047,124 @@ const autoSelectAddress = () => {
     }
 }
 
+const showIdentityModal = ref(false);
+const showItemModal = ref(false);
+const selectedPedidoObj = ref(null);
+
+const calculateSimilarity = (s1, s2) => {
+    if (!s1 || !s2) return 0;
+    const a = s1.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const b = s2.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (a === b) return 1;
+    if (a.includes(b) || b.includes(a)) return 0.9;
+    
+    // Similitud Jaccard simple
+    const wordsA = new Set(a.split(/\s+/));
+    const wordsB = new Set(b.split(/\s+/));
+    const intersection = new Set([...wordsA].filter(x => wordsB.has(x)));
+    const union = new Set([...wordsA, ...wordsB]);
+    return intersection.size / (union.size || 1);
+};
+
 const handleProceder = () => {
+    // [V5] Interception Check (ABM Workflow)
+    if (!checkClientStatus()) {
+        notification.add('El cliente no existe o requiere consistencia AFIP. Complete la ficha técnica.', 'warning');
+        showClientAbm.value = true;
+        return;
+    }
+
     if (selectedPedidoId.value === 'NEW') {
         goToNewPedido();
     } else if (selectedPedidoId.value) {
-        confirmIngesta();
+        // [SEMÁFORO 1: Identidad Legal]
+        const pedido = pendingPedidos.value.find(p => p.id === selectedPedidoId.value);
+        if (!pedido) {
+            goToVincularPedido();
+            return;
+        }
+        selectedPedidoObj.value = pedido;
+        
+        const namePdf = parsedData.value?.cliente?.razon_social || '';
+        const nameDb = pedido.cliente?.razon_social || '';
+        
+        const sim = calculateSimilarity(namePdf, nameDb);
+        if (sim < 0.6) { // Umbral bajo para alertar si son muy distintos
+            showIdentityModal.value = true;
+        } else {
+            // Identidad OK -> Abrir Modal de Ítems
+            showItemModal.value = true;
+        }
+    }
+};
+
+const ignorarIdentidad = () => {
+    showIdentityModal.value = false;
+    showItemModal.value = true;
+};
+
+const onItemsResolved = async (resolvedItems) => {
+    showItemModal.value = false;
+    
+    // [SEMÁFORO 2 y 3: Logística y Finanzas]
+    const pedido = selectedPedidoObj.value;
+    let isDiscrepancy = false;
+    let motivo = [];
+    
+    // Cargar pendientes del pedido (si API no devuelve cantidad_pendiente lo calculamos simplificado)
+    const pendingMap = {};
+    const priceMap = {};
+    for (const pItem of pedido.items || []) {
+        // Asumimos cantidad como pendiente si no hay campo explícito (luego lo ajustamos en backend)
+        const qty = pItem.cantidad_pendiente !== undefined ? pItem.cantidad_pendiente : pItem.cantidad;
+        pendingMap[pItem.producto_id] = (pendingMap[pItem.producto_id] || 0) + parseFloat(qty);
+        priceMap[pItem.producto_id] = parseFloat(pItem.precio_unitario);
+    }
+    
+    for (const rItem of resolvedItems) {
+        if (!rItem.producto_id) {
+            isDiscrepancy = true;
+            motivo.push('Ítems sin vincular a catálogo');
+            break;
+        }
+        
+        const pid = rItem.producto_id;
+        const reqQty = parseFloat(rItem.cantidad);
+        const reqPrice = parseFloat(rItem.precio);
+        
+        if (!pendingMap[pid] || reqQty > pendingMap[pid]) {
+            isDiscrepancy = true; // Facturado > Pedido (Logística)
+            motivo.push('Cantidades exceden saldo del pedido original');
+            break;
+        }
+        if (Math.abs(reqPrice - priceMap[pid]) > 0.1) {
+            isDiscrepancy = true; // Precio difiere (Finanzas)
+            motivo.push('Discrepancia en precios unitarios');
+            break;
+        }
+        
+        pendingMap[pid] -= reqQty;
+    }
+    
+    if (isDiscrepancy) {
+        // RUTA ROJA (Migración)
+        notification.add(`Ruta Roja: ${motivo[0]}. Migrando a Canvas...`, 'warning');
+        const pedidosStore = usePedidosStore();
+        // Guardamos los ítems resueltos para no perder el mapeo en el Canvas
+        const data = { ...parsedData.value, items: resolvedItems, pedido_id_vinculado: selectedPedidoId.value };
+        pedidosStore.setIngestaData(data);
+        pedidosStore.set409Context({
+            parsedData: data,
+            pendingPedidos: pendingPedidos.value
+        });
+        router.push({ name: 'PedidoCanvas', params: { id: selectedPedidoId.value } });
+    } else {
+        // RUTA VERDE (Parcial / Exacto)
+        notification.add('Ruta Verde Autorizada. Generando remito parcial sin alterar pedido...', 'success');
+        parsedData.value.items = resolvedItems;
+        // Inyectamos un flag para que confirmIngesta sepa qué hacer
+        parsedData.value.modo_ingesta = 'VINCULAR_PARCIAL'; 
+        await confirmIngesta();
     }
 };
 
@@ -964,8 +1197,9 @@ const confirmIngesta = async () => {
             items: parsedData.value.items.map(item => ({
                 descripcion: item.descripcion,
                 cantidad: parseFloat(item.cantidad),
-                precio_unitario: parseFloat(item.precio_unitario || 0.0),
-                codigo: item.codigo || null
+                precio_unitario: parseFloat(item.precio_unitario || item.precio || 0.0),
+                codigo: item.codigo || item.sku || null,
+                producto_id: item.producto_id || null
             })),
             transporte_id: selectedTransportId.value,
             bultos: bultos.value,
@@ -1041,63 +1275,18 @@ const handle409NoPedido = async () => {
             pendingPedidos.value = [];
         }
     }
-    show409Modal.value = true;
+    goToNewPedido();
 };
 
 const retryWithPedido = async (pedidoId) => {
     if (!parsedData.value) return;
 
-    try {
-        loading.value = true;
-        show409Modal.value = false;
+    loading.value = true;
+    show409Modal.value = false;
+    selectedPedidoId.value = pedidoId;
 
-        const payload = {
-            cliente: {
-                id: parsedData.value.cliente.id || null,
-                cuit: parsedData.value.cliente.cuit,
-                razon_social: parsedData.value.cliente.razon_social
-            },
-            factura: {
-                numero: parsedData.value.factura.numero,
-                cae: parsedData.value.factura.cae,
-                vto_cae: parsedData.value.factura.vto_cae
-            },
-            items: parsedData.value.items.map(item => ({
-                descripcion: item.descripcion,
-                cantidad: parseFloat(item.cantidad),
-                precio_unitario: parseFloat(item.precio_unitario || 0.0),
-                codigo: item.codigo || null
-            })),
-            transporte_id: selectedTransportId.value,
-            bultos: bultos.value,
-            valor_declarado: valor_declarado.value,
-            nuevo_domicilio: selectedAddressId.value === 'ADD_NEW' ? newAddress.value : null,
-            modo_ingesta: 'VINCULAR_EXISTENTE',
-            pedido_id_vinculado: pedidoId,
-            modo_cuarentena: false
-        };
-
-        if (selectedAddressId.value && selectedAddressId.value !== 'ADD_NEW') {
-            payload.domicilio_id = selectedAddressId.value;
-        }
-
-        const res = await remitosService.confirmIngesta(currentRawId.value, payload);
-
-        if (res.data && res.data.id) {
-            notification.add('Remito generado con éxito', 'success');
-            const remitoId = res.data.remito_id;
-            if (remitoId) {
-                const pdfUrl = `/remitos/${remitoId}/pdf`;
-                window.open(pdfUrl, '_blank');
-            }
-            reset();
-        }
-    } catch (e) {
-        console.error(e);
-        notification.add('Error al generar remito: ' + (e.response?.data?.detail || e.message), 'error');
-    } finally {
-        loading.value = false;
-    }
+    // [DOCTRINA INMUTABILIDAD] Forzamos la resolución de ítems en el Canvas
+    goToVincularPedido();
 };
 
 const goToNewPedido = () => {
@@ -1109,6 +1298,18 @@ const goToNewPedido = () => {
         pendingPedidos: pendingPedidos.value
     });
     router.push({ name: 'PedidoCanvas' });
+};
+
+const goToVincularPedido = () => {
+    show409Modal.value = false;
+    const pedidosStore = usePedidosStore();
+    const data = { ...parsedData.value, pedido_id_vinculado: selectedPedidoId.value };
+    pedidosStore.setIngestaData(data);
+    pedidosStore.set409Context({
+        parsedData: parsedData.value,
+        pendingPedidos: pendingPedidos.value
+    });
+    router.push({ name: 'PedidoCanvas', params: { id: selectedPedidoId.value } });
 };
 
 const goToNewPedidoAndPrint = () => {
@@ -1138,8 +1339,9 @@ const retryInCuarentena = async () => {
             items: parsedData.value.items.map(item => ({
                 descripcion: item.descripcion,
                 cantidad: parseFloat(item.cantidad),
-                precio_unitario: parseFloat(item.precio_unitario || 0.0),
-                codigo: item.codigo || null
+                precio_unitario: parseFloat(item.precio_unitario || item.precio || 0.0),
+                codigo: item.codigo || item.sku || null,
+                producto_id: item.producto_id || null
             })),
             transporte_id: selectedTransportId.value,
             bultos: bultos.value,
@@ -1171,10 +1373,6 @@ const retryInCuarentena = async () => {
     }
 };
 
-const close409Modal = () => {
-    show409Modal.value = false;
-};
-
 import { onMounted } from 'vue';
 onMounted(async () => {
     if (maestrosStore.transportes.length === 0) {
@@ -1186,7 +1384,6 @@ onMounted(async () => {
         const ctx = pedidosStore.pending409Context;
         parsedData.value = ctx.parsedData;
         pendingPedidos.value = ctx.pendingPedidos || [];
-        show409Modal.value = true;
         pedidosStore.clear409Context();
 
         if (ctx.parsedData?.cliente?.id) {

@@ -3,6 +3,7 @@
 // ------------------------------------------
 
 <template>
+  <div class="h-full w-full flex flex-col">
   <!-- Acciones principales → teletransportadas al centro del GlobalStatsBar -->
   <Teleport to="#global-header-center">
     <div class="flex items-center gap-3">
@@ -346,6 +347,7 @@
       </Teleport>
 
     </main>
+  </div>
   </div>
 </template>
 

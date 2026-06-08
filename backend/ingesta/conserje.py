@@ -96,37 +96,7 @@ class ConserjeV2:
             "warnings": warnings
         }
 
-    @staticmethod
-    def calculate_address_score(dom_db: Domicilio, parsed_address_text: str) -> int:
-        """
-        Calcula qué tan probable es que un domicilio de la DB coincida con el texto del PDF.
-        Escala 0-100.
-        """
-        if not parsed_address_text: return 0
-        score = 0
-        text = parsed_address_text.upper()
-        
-        # 1. Match de calle (40 pts)
-        if dom_db.calle and dom_db.calle.upper() in text:
-            score += 40
-            
-        # 2. Match de número (20 pts)
-        if dom_db.numero and str(dom_db.numero) in text:
-            score += 20
-            
-        # 3. Match de localidad (20 pts)
-        if dom_db.localidad and dom_db.localidad.upper() in text:
-            score += 20
-            
-        # 4. Es fiscal (10 pts)
-        if dom_db.es_fiscal:
-            score += 10
-            
-        # 5. Es activo (10 pts)
-        if dom_db.activo:
-            score += 10
-            
-        return score
+
 
     @staticmethod
     def audit_ingestion(parsed_data: dict, db: Session) -> dict:
@@ -168,17 +138,9 @@ class ConserjeV2:
             log["confidence"] -= 20
             
         # 3. Domicilios
-        if res["cliente"]:
-            doms = []
-            pdf_dom = parsed_data["cliente"].get("domicilio", "")
-            for d in res["cliente"].domicilios:
-                score = ConserjeV2.calculate_address_score(d, pdf_dom)
-                doms.append({
-                    "id": str(d.id),
-                    "calle": d.calle,
-                    "score": score,
-                    "is_suggested": score >= 50
-                })
-            log["domicilios_scoring"] = doms
+        # La Ingesta ya no adivina ni realiza scoring heurístico sobre los domicilios 
+        # para preservar la Soberanía del Pedido.
+        # Si el cliente existe, la sede se hereda de su Pedido o se selecciona manualmente.
+        log["domicilios_scoring"] = []
             
         return log

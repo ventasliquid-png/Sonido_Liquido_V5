@@ -44,6 +44,8 @@ class PedidoCreate(BaseModel):
     
     items: List[PedidoItemCreate]
     duplicate_confirmed: Optional[bool] = False
+    from_ingesta: Optional[bool] = False
+    pedido_origen_migracion_id: Optional[int] = None
 
 class PedidoUpdate(BaseModel):
     cliente_id: Optional[UUID] = None
@@ -67,6 +69,7 @@ class PedidoUpdate(BaseModel):
     estado_logistico: Optional[str] = None
 
     items: Optional[List[PedidoItemCreate]] = None
+    from_ingesta: Optional[bool] = False
 
 class CondicionIvaSummary(BaseModel):
     nombre: str

@@ -250,6 +250,18 @@ class RemitosService:
                 PedidoItem.pedido_id == nuevo_pedido.id
             ).all()
             goto_remito = True
+        elif payload.modo_ingesta == "VINCULAR_PARCIAL" and payload.pedido_id_vinculado:
+            from backend.pedidos.models import Pedido as PedidoModel
+            pedido_existente = db.query(PedidoModel).filter(
+                PedidoModel.id == payload.pedido_id_vinculado
+            ).first()
+            if not pedido_existente:
+                raise ValueError(f"Pedido {payload.pedido_id_vinculado} no encontrado")
+            
+            # [DOCTRINA PARCIAL] No cambiamos el estado del pedido, asume que sigue PENDIENTE.
+            nuevo_pedido = pedido_existente
+            # Se pasará un flag a la seccion de items
+            goto_remito = True
         elif payload.modo_ingesta == "VINCULAR_CUMPLIDO" and payload.pedido_id_vinculado:
             from backend.pedidos.models import Pedido as PedidoModel
             pedido_existente = db.query(PedidoModel).filter(
@@ -364,20 +376,44 @@ class RemitosService:
         db.flush()
 
         # 6. CREATE REMITO ITEMS (GY-TRACE)
-        print(f"[REMITO-TRACE] Procesando {len(pedido_items)} items para Remito {remito.id} (Pedido {nuevo_pedido.id})")
-        for p_item in pedido_items:
-            # [GY-FIX] Verificación estricta de pertenencia: 1 Remito = 1 Pedido
-            if p_item.pedido_id != nuevo_pedido.id:
-                print(f"[REMITO-CRITICAL] ERROR DE INTEGRIDAD: PedidoItem {p_item.id} (Pedido {p_item.pedido_id}) no coincide con el Pedido del Remito ({nuevo_pedido.id}). Omitiendo asociación.")
-                continue
+        print(f"[REMITO-TRACE] Procesando items para Remito {remito.id} (Pedido {nuevo_pedido.id})")
+        if payload.modo_ingesta == "VINCULAR_PARCIAL":
+            # Para despachos parciales, construimos los RemitoItem basados en payload.items
+            pedido_items = db.query(PedidoItem).filter(PedidoItem.pedido_id == nuevo_pedido.id).all()
+            for p_item in payload.items:
+                # Buscar el PedidoItem que corresponde a este producto
+                target_p_item = next((pi for pi in pedido_items if str(pi.producto_id) == str(p_item.producto_id)), None)
+                if not target_p_item:
+                    print(f"[REMITO-CRITICAL] ERROR DE INTEGRIDAD: Producto {p_item.producto_id} no pertenece al Pedido Original. Omitiendo asociación.")
+                    continue
+                
+                r_item = models.RemitoItem(
+                    remito_id=remito.id,
+                    pedido_item_id=target_p_item.id,
+                    cantidad=p_item.cantidad
+                )
+                db.add(r_item)
+                print(f"[REMITO-TRACE] Item parcial vinculado: Remito {remito.id} -> PedidoItem {target_p_item.id} ({p_item.cantidad} uds)")
+                
+            # [DOCTRINA PARCIAL] Encender BIT 11 en el Remito
+            remito.flags_estado = (remito.flags_estado or 0) | 2048
+            db.add(remito)
+            
+        else:
+            # Flujo Total / Existente
+            for p_item in pedido_items:
+                # [GY-FIX] Verificación estricta de pertenencia: 1 Remito = 1 Pedido
+                if p_item.pedido_id != nuevo_pedido.id:
+                    print(f"[REMITO-CRITICAL] ERROR DE INTEGRIDAD: PedidoItem {p_item.id} (Pedido {p_item.pedido_id}) no coincide con el Pedido del Remito ({nuevo_pedido.id}). Omitiendo asociación.")
+                    continue
 
-            r_item = models.RemitoItem(
-                remito_id=remito.id,
-                pedido_item_id=p_item.id,
-                cantidad=p_item.cantidad
-            )
-            db.add(r_item)
-            print(f"[REMITO-TRACE] Item vinculado: Remito {remito.id} -> PedidoItem {p_item.id}")
+                r_item = models.RemitoItem(
+                    remito_id=remito.id,
+                    pedido_item_id=p_item.id,
+                    cantidad=p_item.cantidad
+                )
+                db.add(r_item)
+                print(f"[REMITO-TRACE] Item vinculado: Remito {remito.id} -> PedidoItem {p_item.id}")
             
         # 7. [VANGUARD CANON] Genoma 64-bit Evolution - PIN 1974
         from backend.clientes.constants import ClientFlags

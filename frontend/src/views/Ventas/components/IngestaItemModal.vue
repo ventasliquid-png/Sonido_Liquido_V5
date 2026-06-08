@@ -81,7 +81,7 @@
                                 @click="openSatellite"
                                 class="px-3 py-1 bg-yellow-600/60 text-white text-xs rounded hover:bg-yellow-600 transition"
                             >
-                                F4 — Dar de alta producto nuevo
+                                F4 — Dar de alta producto en el Maestro
                             </button>
                         </div>
 

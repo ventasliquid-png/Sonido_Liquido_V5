@@ -9,7 +9,7 @@
             <!-- HEADER (Compact Mode) -->
             <div class="w-full bg-emerald-950/30 border-b border-emerald-500/20 py-2 px-4 flex justify-between items-center backdrop-blur-sm shrink-0">
                 <div class="flex items-center gap-4">
-                    <button @click="$router.push({ name: 'PedidoList' })" class="text-emerald-500/50 hover:text-emerald-400 transition-colors">
+                    <button @click="goBack" class="text-emerald-500/50 hover:text-emerald-400 transition-colors">
                         <i class="fas fa-arrow-left"></i>
                     </button>
                     <h1 class="text-lg font-bold text-emerald-400 tracking-wider flex items-center gap-3">
@@ -724,6 +724,16 @@ const productosStore = useProductosStore();
 const maestrosStore = useMaestrosStore();
 const pedidosStore = usePedidosStore();
 
+const goBack = () => {
+    if (pedidosStore.ingestaData) {
+        // Vinimos desde Ingesta y el usuario quiere abortar o ver el PDF original
+        // No limpiamos el contexto aquí, dejamos que Ingesta lo recupere al montar
+        router.push({ name: 'IngestaFactura' });
+    } else {
+        router.push({ name: 'PedidoList' });
+    }
+};
+
 // [GY-UX] Modal Imports
 import ClientCanvas from '../Hawe/ClientCanvas.vue';
 import { shallowRef } from 'vue'; // Optimization
@@ -784,9 +794,19 @@ onMounted(async () => {
             if (ingesta.cliente?.cuit) {
                 try {
                     const res = await api.get(`/clientes/check-cuit/${ingesta.cliente.cuit}`);
-                    if (res.data?.existing_clients?.length > 0) {
-                        // Use padrón data (wins over factura data)
+                    if (res.data?.existing_clients?.length === 1) {
+                        // Use padrón data (wins over factura data) - Auto-select if unique
                         await selectCliente(res.data.existing_clients[0], false);
+                    } else if (res.data?.existing_clients?.length > 1) {
+                        // [V5.9 Caso UBA] Multiple dependencies share the same CUIT
+                        notificationStore.add('Múltiples dependencias encontradas para este CUIT. Seleccione la correcta.', 'warning');
+                        busquedaCliente.value = ingesta.cliente.cuit;
+                        // Focus the search input so the dropdown naturally opens
+                        setTimeout(() => {
+                            clientInputRef.value?.focus();
+                            // Dispatch input event to trigger the watch/search logic if needed
+                            clientInputRef.value?.dispatchEvent(new Event('input'));
+                        }, 200);
                     }
                 } catch (e) {
                     console.warn("[V5] No se pudo cargar cliente del padrón por CUIT", e);
@@ -953,14 +973,13 @@ const statusBadgeClasses = computed(() => {
     return 'bg-gray-800 text-gray-400 border-gray-700';
 });
 const isCircuitoNegro = ref(false);
+const omitirOC = ref(false); // [V5.5] Flag for OC bypass
+const nroOC = ref(''); // [V5.5] OC Number
+const pedidoOrigenMigracionId = ref(null); // [V5.9] Doctrina Inmutabilidad
 const fechaPedido = ref(getLocalDate());
 const fechaEntrega = ref('');
 const notas = ref('');
 const expandedRows = ref(new Set());
-
-// [POKA-YOKE V5.9] OC Control State
-const omitirOC = ref(false);
-const nroOC = ref('');
 
 const isOCRequired = computed(() => {
     return !!(clienteSeleccionado.value?.flags_estado & 64);
@@ -1597,10 +1616,41 @@ const openItemResolutionModal = (itemsFromIngesta) => {
 };
 
 const onIngestaResolved = (resolvedItems) => {
+    // [V5.9 Doctrina Inmutabilidad]
+    if (route.params.id && pedidosStore.ingestaData && pedidosStore.ingestaData.pedido_id_vinculado) {
+        let isDiscrepancy = false;
+        if (resolvedItems.length !== items.value.length) {
+            isDiscrepancy = true;
+        } else {
+            const mapOriginal = new Map();
+            items.value.forEach(i => mapOriginal.set(i.producto_id, { q: i.cantidad, p: i.precio }));
+            for (const r of resolvedItems) {
+                const orig = mapOriginal.get(r.producto_id);
+                if (!orig || orig.q !== r.cantidad || orig.p !== r.precio) {
+                    isDiscrepancy = true;
+                    break;
+                }
+            }
+        }
+
+        if (isDiscrepancy) {
+            const confirmar = window.confirm("⚠️ DISCREPANCIA DETECTADA\n\nLos ítems de la factura NO coinciden con los del Pedido #" + route.params.id + ".\n\nPor la Doctrina de Inmutabilidad, el pedido original será ANULADO y se creará uno NUEVO con los datos reales para garantizar la trazabilidad.\n\n¿Desea continuar?");
+            if (!confirmar) return;
+            
+            // Switch to Migration Mode
+            pedidoOrigenMigracionId.value = route.params.id;
+            router.replace({ name: 'PedidoCanvas' }); // Remove param from URL
+            nroPedido.value = "NUEVO (MIGRACIÓN)";
+            estadoPedido.value = 'PENDIENTE';
+            notificationStore.add('Modo Migración activado. Guarde el pedido para finalizar.', 'warning');
+        } else {
+            notificationStore.add('Verificación exitosa: Sin discrepancias.', 'success');
+        }
+    }
+    
     items.value = resolvedItems;
     showIngestaModal.value = false;
     ingestaItemsForModal.value = [];
-    notificationStore.add('Items cargados correctamente. Revisa antes de guardar.', 'success');
 };
 
 const onIngestaCancel = () => {
@@ -1904,6 +1954,50 @@ const resetPedido = async (skipConfirm = false) => {
 
 const isSaving = ref(false);
 
+const buildPayload = () => {
+    let finalFlags = flagsEstadoPedido.value || 0;
+    
+    // [V5.5] Inject Circuito Negro Bit (12)
+    if (isCircuitoNegro.value) {
+        finalFlags |= (1 << 12);
+    } else {
+        finalFlags &= ~(1 << 12);
+    }
+
+    const basePayload = {
+        cliente_id: clienteSeleccionado.value.id || clienteSeleccionado.value._id,
+        fecha: `${fechaPedido.value}T12:00:00Z`,
+        nota: notas.value,
+        estado: estadoPedido.value,
+        oc: nroOC.value, // Include OC unconditionally
+        flags_estado: finalFlags,
+        domicilio_entrega_id: selectedDomicilioId.value || null,
+        transporte_id: selectedTransporteId.value || null,
+        descuento_global_porcentaje: Number(descuentoGlobalPorcentaje.value) || 0,
+        descuento_global_importe: Number(descuentoGlobalValor.value) || 0,
+        items: items.value.map(i => ({
+            producto_id: i.producto_id,
+            cantidad: Number(i.cantidad),
+            precio_unitario: Number(i.precio),
+            descuento_porcentaje: Number(i.descuento_porcentaje) || 0,
+            descuento_importe: Number(i.descuento_valor) || 0,
+            nota: i.descripcion // fallback descriptivo
+        }))
+    };
+
+    // [V5.9 Doctrina Inmutabilidad]
+    if (pedidoOrigenMigracionId.value) {
+        basePayload.pedido_origen_migracion_id = Number(pedidoOrigenMigracionId.value);
+    }
+
+    // [V5.6] Stamp Ingesta Origin Bit 38 if present
+    if (pedidosStore.ingestaData) {
+        basePayload.from_ingesta = true;
+    }
+
+    return basePayload;
+};
+
 const savePedido = async (andPrint = false) => {
     if (isClosedOrder.value) {
         return notificationStore.add('No se puede guardar un pedido CUMPLIDO o ANULADO.', 'error');
@@ -1914,27 +2008,10 @@ const savePedido = async (andPrint = false) => {
     const shouldPrint = andPrint || pedidosStore.autoPrintNext;
     isSaving.value = true;
     try {
-        const payload = {
-            cliente_id: clienteSeleccionado.value.id || clienteSeleccionado.value._id,
-            fecha: fechaPedido.value, // Envío directo en formato YYYY-MM-DD (Local)
-            items: items.value.map(i => ({
-                producto_id: i.producto_id || i.producto_obj?.id,
-                cantidad: Number(i.cantidad),
-                precio_unitario: Number(i.precio),
-                descuento_porcentaje: Number(i.descuento_porcentaje) || 0,
-                descuento_importe: Number(i.descuento_valor) || 0,
-                nota: "" 
-            })),
-            nota: notas.value,
-            oc: nroOC.value.trim(),
-            oc_override: omitirOC.value,
-            estado: estadoPedido.value,
-            fecha_compromiso: fechaEntrega.value ? new Date(fechaEntrega.value).toISOString() : null,
-            descuento_global_porcentaje: Number(descuentoGlobalPorcentaje.value) || 0,
-            descuento_global_importe: Number(descuentoGlobalValor.value) || 0,
-            domicilio_entrega_id: selectedDomicilioId.value,
-            transporte_id: selectedTransporteId.value
-        };
+        const payload = buildPayload();
+        
+        // Add date commitment that is not in base payload
+        payload.fecha_compromiso = fechaEntrega.value ? new Date(fechaEntrega.value).toISOString() : null;
 
         // [FIX] Edit mode → PATCH existing pedido. Create mode → POST new pedido.
         if (route.params.id) {
