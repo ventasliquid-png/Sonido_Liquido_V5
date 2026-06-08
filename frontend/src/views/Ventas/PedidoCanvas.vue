@@ -1651,6 +1651,7 @@ const onIngestaResolved = (resolvedItems) => {
     items.value = resolvedItems;
     showIngestaModal.value = false;
     ingestaItemsForModal.value = [];
+    notificationStore.add('Items cargados correctamente. Revisa antes de guardar.', 'success');
 };
 
 const onIngestaCancel = () => {
@@ -1966,17 +1967,18 @@ const buildPayload = () => {
 
     const basePayload = {
         cliente_id: clienteSeleccionado.value.id || clienteSeleccionado.value._id,
-        fecha: `${fechaPedido.value}T12:00:00Z`,
+        fecha: fechaPedido.value,
         nota: notas.value,
-        estado: estadoPedido.value,
-        oc: nroOC.value, // Include OC unconditionally
+        estado: "PENDIENTE",
+        oc: nroOC.value.trim(),
+        oc_override: omitirOC.value,
         flags_estado: finalFlags,
         domicilio_entrega_id: selectedDomicilioId.value || null,
         transporte_id: selectedTransporteId.value || null,
         descuento_global_porcentaje: Number(descuentoGlobalPorcentaje.value) || 0,
         descuento_global_importe: Number(descuentoGlobalValor.value) || 0,
         items: items.value.map(i => ({
-            producto_id: i.producto_id,
+            producto_id: i.producto_id || i.producto_obj?.id,
             cantidad: Number(i.cantidad),
             precio_unitario: Number(i.precio),
             descuento_porcentaje: Number(i.descuento_porcentaje) || 0,
@@ -2125,9 +2127,9 @@ const savePedido = async (andPrint = false) => {
             // - Si wasIngesta=true: pedido creado desde ingesta → redirect a PedidoList
             // - Si wasIngesta=false: pedido creado manualmente → reset canvas
             if (wasIngesta) {
-                // Redirect to list
+                // Return to Ingesta to finish linking
                 setTimeout(() => {
-                    router.push({ name: 'PedidoList' });
+                    router.push({ name: 'IngestaFactura' });
                 }, 1000);
             } else {
                 // Reset canvas para entrada manual siguiente

@@ -1,5 +1,15 @@
 Sesión actual: 822
 
+# CAJA NEGRA: Hotfix 822.1 — Pantalla negra Nuevo Pedido (2026-06-05)
+
+Hotfix post-822 OF. Hash D: 34a918fc | Hash P: 7ee67b3. Estado: NOMINAL GOLD.
+HaweLayout.vue: v-if → v-show en GlobalStatsBar.
+Teleport portal #global-header-center no puede estar bajo v-if (se destruye en transicion).
+Con v-show queda en DOM (display:none) y el Teleport lo encuentra. Pantalla negra resuelta.
+D y P sincronizados. Cherry-pick limpio.
+
+**Agente:** Claude Code (Sonnet 4.6) — PIN: 1974
+
 # CAJA NEGRA: Excel Espejo de Pedidos + UI GlobalStatsBar (2026-06-04)
 
 Sesión 822 OF. Hash D: 135a16f8 (sin push — pendiente PIN 1974). Estado: NOMINAL GOLD.

@@ -41,10 +41,13 @@
             <div class="col-span-5 flex flex-col gap-4 min-h-0">
                 <div v-if="error" class="bg-red-950/40 border border-red-500/30 rounded-xl p-4 mb-4 text-red-200 text-xs flex items-center gap-3">
                   <i class="fas fa-times-circle text-red-500 text-lg"></i>
-                  <div>
+                  <div class="flex-1">
                     <p class="font-bold uppercase tracking-wider">Error de Procesamiento</p>
-                    <p class="mt-1 font-mono text-[11px]">{{ error }}</p>
+                    <p class="mt-1 font-mono text-[11px] whitespace-pre-line">{{ error }}</p>
                   </div>
+                  <button v-if="error.includes('BLOQUEO DE INGESTA')" @click="irAPedidoParaCorregir" class="shrink-0 px-4 py-2 bg-red-800 hover:bg-red-700 text-white rounded font-bold transition flex items-center gap-2 shadow-lg shadow-red-900/20 border border-red-700/50">
+                      <i class="fas fa-external-link-alt"></i> Ir a Pedidos
+                  </button>
                 </div>
 
                 <!-- CARGANDO DETALLE DE PEDIDO -->
@@ -95,9 +98,14 @@
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-800/50">
-                                <tr v-for="(item, idx) in selectedPedidoDetail.items" :key="item.id || idx" class="hover:bg-slate-800/30 text-xs">
+                                <tr v-for="(item, idx) in selectedPedidoDetail.items" :key="item.id || idx" class="group hover:bg-slate-800/30 text-xs">
                                     <td class="py-1.5 pl-3 text-slate-500 font-mono">{{ idx + 1 }}</td>
-                                    <td class="py-1.5 text-slate-300 truncate max-w-[140px]">{{ item.producto?.nombre || '—' }}</td>
+                                    <td class="py-1.5 pr-2 text-slate-300 flex items-center gap-2 group-hover:text-white transition">
+                                        <button @click="copyToClipboard(item.producto?.nombre)" class="text-slate-500 hover:text-emerald-400 opacity-0 group-hover:opacity-100 transition shrink-0" title="Copiar para usar en Factura">
+                                            <i class="far fa-copy"></i>
+                                        </button>
+                                        <span class="leading-tight" :title="item.producto?.nombre">{{ item.producto?.nombre || '—' }}</span>
+                                    </td>
                                     <td class="py-1.5 px-2 text-right font-mono text-slate-300">{{ item.cantidad }}</td>
                                     <td class="py-1.5 px-2 text-right font-mono text-slate-400">{{ formatCurrencyDetail(item.precio_unitario) }}</td>
                                     <td class="py-1.5 pr-3 text-right font-mono text-emerald-400">{{ formatCurrencyDetail(item.cantidad * item.precio_unitario) }}</td>
@@ -379,6 +387,7 @@
                                     <td class="py-2 pl-2">
                                         <input 
                                             v-model="item.descripcion" 
+                                            @keyup.enter="$event.target.blur()"
                                             type="text" 
                                             class="w-full bg-transparent border-none text-sm text-slate-300 group-hover:text-white focus:outline-none focus:ring-1 focus:ring-blue-500/50 rounded px-1 transition-all"
                                             placeholder="Descripción del ítem..."
@@ -645,13 +654,7 @@
         </div>
     </Teleport>
 
-    <!-- INGESTA ITEM MODAL -->
-    <IngestaItemModal
-        v-if="showItemModal"
-        :items="parsedData?.items || []"
-        @resolved="onItemsResolved"
-        @cancel="showItemModal = false"
-    />
+        <!-- RESOLUCIÓN DE ÍTEMS REMOVIDA PARA AUTO-MATCH -->
 
     </div>
   </div>
@@ -667,7 +670,6 @@ import { useMaestrosStore } from '@/stores/maestros';
 import { useClientesStore } from '@/stores/clientes';
 import { usePedidosStore } from '@/stores/pedidos';
 import ClientCanvas from '../Hawe/ClientCanvas.vue';
-import IngestaItemModal from '../Ventas/components/IngestaItemModal.vue';
 import SmartSelect from '@/components/ui/SmartSelect.vue';
 import api from '@/services/api';
 
@@ -717,6 +719,34 @@ const newAddress = ref({
 // Panel detalle pedido vinculado
 const selectedPedidoDetail = ref(null)
 const loadingPedidoDetail = ref(false)
+
+watch(selectedPedidoId, async (newId) => {
+    if (!newId || newId === 'NEW') {
+        selectedPedidoDetail.value = null;
+        return;
+    }
+    const p = pendingPedidos.value.find(x => x.id === newId);
+    if (p && p.items && p.items.length > 0) {
+        selectedPedidoDetail.value = p;
+    } else {
+        try {
+            loadingPedidoDetail.value = true;
+            const res = await api.get(`/pedidos/${newId}`);
+            selectedPedidoDetail.value = res.data;
+        } catch (e) {
+            console.error("[V5] Error fetching pedido detail", e);
+            selectedPedidoDetail.value = p || null;
+        } finally {
+            loadingPedidoDetail.value = false;
+        }
+    }
+});
+
+const copyToClipboard = (text) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    notification.add('Copiado al portapapeles', 'success');
+};
 
 const formatCurrencyDetail = (value) =>
     new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(value || 0)
@@ -1049,7 +1079,6 @@ const autoSelectAddress = () => {
 }
 
 const showIdentityModal = ref(false);
-const showItemModal = ref(false);
 const selectedPedidoObj = ref(null);
 
 const calculateSimilarity = (s1, s2) => {
@@ -1059,11 +1088,19 @@ const calculateSimilarity = (s1, s2) => {
     if (a === b) return 1;
     if (a.includes(b) || b.includes(a)) return 0.9;
     
-    // Similitud Jaccard simple
     const wordsA = new Set(a.split(/\s+/));
     const wordsB = new Set(b.split(/\s+/));
+    
     const intersection = new Set([...wordsA].filter(x => wordsB.has(x)));
     const union = new Set([...wordsA, ...wordsB]);
+    
+    // Penalización estricta por diferencias en letras sueltas (talles: S, M, L) o números
+    for (const w of union) {
+        if (!intersection.has(w) && (w.length <= 2 || !isNaN(w))) {
+            return 0; // Si difieren en un talle corto o un número, abortar similitud instantáneamente
+        }
+    }
+
     return intersection.size / (union.size || 1);
 };
 
@@ -1093,77 +1130,85 @@ const handleProceder = () => {
         if (sim < 0.6) { // Umbral bajo para alertar si son muy distintos
             showIdentityModal.value = true;
         } else {
-            // Identidad OK -> Abrir Modal de Ítems
-            showItemModal.value = true;
+            validateAndProceed();
         }
     }
 };
 
 const ignorarIdentidad = () => {
     showIdentityModal.value = false;
-    showItemModal.value = true;
+    validateAndProceed();
 };
 
-const onItemsResolved = async (resolvedItems) => {
-    showItemModal.value = false;
-    
-    // [SEMÁFORO 2 y 3: Logística y Finanzas]
+const irAPedidoParaCorregir = () => {
+    const pedidosStore = usePedidosStore();
+    pedidosStore.setIngestaData({ ...parsedData.value, pedido_id_vinculado: selectedPedidoId.value });
+    router.push({ name: 'PedidoEditar', params: { id: selectedPedidoId.value } });
+};
+
+const validateAndProceed = async () => {
     const pedido = selectedPedidoObj.value;
-    let isDiscrepancy = false;
-    let motivo = [];
+    const rawItems = parsedData.value.items || [];
     
-    // Cargar pendientes del pedido (si API no devuelve cantidad_pendiente lo calculamos simplificado)
+    let isDiscrepancy = false;
+    let motivos = [];
+    
+    // Preparar saldos del pedido
     const pendingMap = {};
-    const priceMap = {};
     for (const pItem of pedido.items || []) {
-        // Asumimos cantidad como pendiente si no hay campo explícito (luego lo ajustamos en backend)
         const qty = pItem.cantidad_pendiente !== undefined ? pItem.cantidad_pendiente : pItem.cantidad;
         pendingMap[pItem.producto_id] = (pendingMap[pItem.producto_id] || 0) + parseFloat(qty);
-        priceMap[pItem.producto_id] = parseFloat(pItem.precio_unitario);
     }
     
-    for (const rItem of resolvedItems) {
-        if (!rItem.producto_id) {
-            isDiscrepancy = true;
-            motivo.push('Ítems sin vincular a catálogo');
-            break;
-        }
-        
-        const pid = rItem.producto_id;
+    // Función helper para limpiar strings
+    const normalize = (s) => s ? String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim() : '';
+
+    const resolvedItems = [];
+
+    for (const rItem of rawItems) {
         const reqQty = parseFloat(rItem.cantidad);
-        const reqPrice = parseFloat(rItem.precio);
+        const reqDesc = normalize(rItem.descripcion);
+        const reqCod = normalize(rItem.codigo);
         
+        let match = null;
+        for (const pItem of pedido.items || []) {
+            const pSku = normalize(pItem.producto?.sku || pItem.codigo);
+            const pDesc = normalize(pItem.producto?.nombre || pItem.producto?.descripcion);
+            
+            if ((reqCod && reqCod === pSku) || 
+                (reqDesc && pDesc && (reqDesc.includes(pDesc) || pDesc.includes(reqDesc) || calculateSimilarity(reqDesc, pDesc) > 0.6))) {
+                match = pItem;
+                break;
+            }
+        }
+        
+        if (!match) {
+            isDiscrepancy = true;
+            motivos.push(`Renglón faltante en pedido: ${rItem.descripcion}`);
+            continue;
+        }
+        
+        const pid = match.producto_id;
         if (!pendingMap[pid] || reqQty > pendingMap[pid]) {
-            isDiscrepancy = true; // Facturado > Pedido (Logística)
-            motivo.push('Cantidades exceden saldo del pedido original');
-            break;
+            isDiscrepancy = true;
+            motivos.push(`Exceso de cantidad: ${rItem.descripcion} (Fac: ${reqQty}, Ped: ${pendingMap[pid] || 0})`);
+        } else {
+            pendingMap[pid] -= reqQty;
         }
-        if (Math.abs(reqPrice - priceMap[pid]) > 0.1) {
-            isDiscrepancy = true; // Precio difiere (Finanzas)
-            motivo.push('Discrepancia en precios unitarios');
-            break;
-        }
-        
-        pendingMap[pid] -= reqQty;
+
+        resolvedItems.push({
+            ...rItem,
+            producto_id: pid
+        });
     }
     
     if (isDiscrepancy) {
-        // RUTA ROJA (Migración)
-        notification.add(`Ruta Roja: ${motivo[0]}. Migrando a Canvas...`, 'warning');
-        const pedidosStore = usePedidosStore();
-        // Guardamos los ítems resueltos para no perder el mapeo en el Canvas
-        const data = { ...parsedData.value, items: resolvedItems, pedido_id_vinculado: selectedPedidoId.value };
-        pedidosStore.setIngestaData(data);
-        pedidosStore.set409Context({
-            parsedData: data,
-            pendingPedidos: pendingPedidos.value
-        });
-        router.push({ name: 'PedidoCanvas', params: { id: selectedPedidoId.value } });
+        const errorMsg = "⛔ BLOQUEO DE INGESTA\nLas reglas de negocio indican que la Factura no puede exceder al Pedido ni inventar renglones.\nERRORES ENCONTRADOS:\n- " + motivos.join("\n- ");
+        error.value = errorMsg;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-        // RUTA VERDE (Parcial / Exacto)
-        notification.add('Ruta Verde Autorizada. Generando remito parcial sin alterar pedido...', 'success');
+        notification.add('Validación Exitosa. Generando remito...', 'success');
         parsedData.value.items = resolvedItems;
-        // Inyectamos un flag para que confirmIngesta sepa qué hacer
         parsedData.value.modo_ingesta = 'VINCULAR_PARCIAL'; 
         await confirmIngesta();
     }

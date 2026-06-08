@@ -1,5 +1,5 @@
 # backend/remitos/schemas.py
-from typing import List, Optional
+from typing import List, Optional, Union
 from uuid import UUID
 from datetime import datetime
 from pydantic import BaseModel
@@ -103,13 +103,13 @@ class IngestionFactura(BaseModel):
     vto_cae: Optional[str] = None # String dd/mm/yyyy
 
 class IngestionItem(BaseModel):
-    codigo: Optional[str] = None
+    codigo: Optional[Union[str, int]] = None
     descripcion: str
     cantidad: float
     precio_unitario: Optional[float] = None
     subtotal: Optional[float] = None
     alicuota_iva: Optional[float] = 21.0
-    producto_id: Optional[str] = None
+    producto_id: Optional[Union[str, int]] = None
 
 class IngestionPayload(BaseModel):
     cliente: IngestionCliente

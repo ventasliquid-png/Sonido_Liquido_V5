@@ -1,28 +1,23 @@
-# PROTOCOLO OMEGA V3.0 — CIERRE Y PERSISTENCIA DE ESTADO
-## Sonido Líquido V5 — Entorno D (Sonido_Liquido_V5)
+# PROTOCOLO OMEGA V2.2 — El Cierre (D — Sonido_Liquido_V5)
 
 > Protocolo exclusivo para entorno D (desarrollo).
 > Para P ver: C:\dev\v5-ls-Tom\OMEGA.md
-> **Versión:** 3.0 — 2026-06-01
-> **Dictamen:** Nike Arq 5.5 — Redacción: Carlos + Claude Sonnet 4.6
 
 ---
 
-## 🛑 REGLA CERO — EL FRENO DE MANO
+## 🛑 REGLA CERO: EL FRENO DE MANO
 
-Si Carlos indica "Presentar plan SIN ejecutar", ninguna aprobación
-automática tiene validez.
-- Acción: Pausar y solicitar PIN 1974
-- Cláusula de Hierro: "LGTM", "Proceed" o botones de interfaz
-  NO sustituyen al PIN 1974.
-- [PROHIBIDO] `git add .` — siempre stagear archivos explícitamente.
+Si Carlos indica "Presentar plan SIN ejecutar", ninguna aprobación automática tiene validez.
+- Acción: Pausar y solicitar PIN Maestro: 1974
+- Cláusula de Hierro: "LGTM", "Proceed" o botones de interfaz NO sustituyen al PIN 1974.
+- git add . PROHIBIDO — siempre stagear archivos explícitamente.
 
 ---
 
-## FASE 1 — AUDITORÍA DE SALUD
+## FASE 1: AUDITORÍA DE SALUD
 
 Canario obligatorio antes de cerrar:
-```python
+```
 python -c "
 import sqlite3
 conn = sqlite3.connect('pilot_v5x.db')
@@ -34,9 +29,7 @@ print(row, '-> OK' if (flags & 13) == 13 else '-> STOP')
 conn.close()
 "
 ```
-Los 3 bits obligatorios deben estar presentes: `(flags_estado & 13) == 13`.
-El valor absoluto puede ser mayor por bits acumulados — NO se exige igualdad exacta.
-Si no se cumple → STOP.
+→ Los 3 bits obligatorios (EXISTENCE=1 + GOLD_ARCA=4 + V14_STRUCT=8) deben estar presentes: `(flags_estado & 13) == 13`. El valor absoluto puede ser mayor (ej. `1099511627789`) por bits acumulados — NO se exige igualdad exacta a 13. Si no se cumple → STOP.
 
 | Estado | Descripción |
 |---|---|
@@ -45,14 +38,17 @@ Si no se cumple → STOP.
 | **CRÍTICO** | DB corrupta, canario falla, desincronía total de Git |
 
 Si no es NOMINAL:
-1. `python scripts/manager_status.py set 3`
+1. Ejecutar `python scripts/manager_status.py set 3`
 2. Crear bloque `[!CAUTION]` en `INFORME_CIERRE_SESION.md`
 
 ---
 
-## FASE 1B — WAL CHECKPOINT (antes de exportar DB al Drive)
+## FASE 1B: WAL CHECKPOINT (antes de exportar DB al Drive)
 
-Ejecutar SIEMPRE antes de copiar `pilot_v5x.db` al Drive:
+Ejecutar SIEMPRE antes de copiar `pilot_v5x.db` al Drive.
+Garantiza que el WAL esté fusionado en el archivo principal — sin esto,
+la copia puede quedar en estado inconsistente si el servidor está activo.
+
 ```python
 python -c "
 import sqlite3
@@ -62,37 +58,29 @@ conn.close()
 print('WAL checkpoint OK')
 "
 ```
-Si no devuelve `WAL checkpoint OK` → STOP. No exportar.
+
+→ Si no devuelve `WAL checkpoint OK` → STOP. No exportar.
 
 ---
 
-## FASE 2 — BUROCRACIA Y MESA DE TRABAJO
+## FASE 2: BUROCRACIA (OBLIGATORIA)
 
 Regla de Oro: No decir "voy a actualizar". Presentar texto exacto.
 
-- [ ] **SESION_NEXT.md** (`Q:\Mi unidad\V5_Silo_Claude\SESION_NEXT.md`):
-  **CHECKBOX OBLIGATORIO** — Sobrescribir con el estado actual de la mesa:
-  - Vaciar tareas resueltas
-  - Documentar próxima tarea concreta
-  - Anotar pendientes Nike
-  - Registrar callejones explorados si los hubo
-
 - [ ] **ESTADO_ECOSISTEMA** (`Q:\Mi unidad\V5_Silo_Claude\ESTADO_ECOSISTEMA.md`):
+  Actualizar fila del ámbito/sistema donde se está cerrando:
   - Hash git actual
   - Estado (🟢 OK / 🟡 ATENCIÓN / 🔴 CRÍTICO)
   - Alertas activas
-
+  - Totales de pendientes (Bugs / Deuda Técnica / Roadmap)
 - [ ] **Caja Negra** (`_GY/_MD/CAJA_NEGRA.md`): header + incrementar sesiones
-
 - [ ] **Manuales** (`_GENOMA_DOCS/MANUAL_TECNICO_V5.md` y `MANUAL_OPERATIVO_V5.md`)
-
 - [ ] **Bitácora** (`_GY/_MD/BITACORA_DEV.md`): fecha, título, bullets
-
 - [ ] **Informe Histórico** (`INFORMES_HISTORICOS/YYYY-MM-DD_TITULO.md`)
 
 ---
 
-## FASE 3 — PLANIFICACIÓN Y STOP
+## FASE 3: PLANIFICACIÓN Y STOP
 
 1. Verificar que NO se operó sobre `pilot_v5x.db` directamente sin PIN
 2. Confirmar rama activa: `git branch --show-current`
@@ -100,31 +88,28 @@ Regla de Oro: No decir "voy a actualizar". Presentar texto exacto.
 
 ---
 
-## FASE 4 — AUDITORÍA DE PESO (ADUANA TÉCNICA)
+## FASE 4: AUDITORÍA DE PESO (ADUANA TÉCNICA)
 
 - Listar archivos > 5MB (excepto `.db` si es intencional)
 - PROHIBIDO commit con más de 100 archivos sin autorización explícita
+- Ejecutar `python audit_v5.py`
 - Límite: repo > 50MB → Push bloqueado
 
 ---
 
-## FASE 5 — EJECUCIÓN GIT (solo tras PIN 1974)
+## FASE 5: EJECUCIÓN GIT (solo tras PIN 1974)
 
 ### PASO 5A — Control de Sesión
 1. Preguntar: "¿Lo que sigue es una NUEVA sesión? (S/N)"
    - **S** → Incrementar número en `_GY/_MD/CAJA_NEGRA.md`
    - **N** → Mantener número actual
+2. Regla: Nueva sesión solo si hubo un cierre OMEGA formal previo.
 
-### PASO 5B — Rama de Respaldo
-Antes del push final:
+### PASO 5B — Autorización y Push
+1. Solicitar **PIN 1974** para autorizar el push.
+2. Ejecutar comandos:
 ```cmd
-git branch backup/YYYYMMDD_HHMM_cierre
-```
-Crea una "caja negra" inmutable del estado local exacto.
-
-### PASO 5C — Autorización y Push
-```cmd
-# [PROHIBIDO] git add . — siempre explícito
+# NUNCA git add . — siempre explícito
 git add [archivo1] [archivo2] ...
 git status  # verificar staged antes de commitear
 git commit -m "Omega: [Resumen] (PIN 1974)"
@@ -138,28 +123,25 @@ git show --name-only HEAD
 
 ---
 
-## FASE 6 — VERIFICACIÓN DE ÓRBITA (TRUST BUT VERIFY)
+## FASE 6: VERIFICACIÓN DE ÓRBITA (TRUST BUT VERIFY)
 
 PROHIBIDO reportar éxito sin verificar:
 ```cmd
 git log origin/[RAMA_ACTIVA] -n 1 --format="%h - %s"
 git rev-parse HEAD
 ```
-Los hashes DEBEN coincidir.
-- Coinciden → reportar **"SESIÓN CLAUSURADA CON ÉXITO"**
-- No coinciden → reportar **"FALLO DE SINCRONIZACIÓN"** de inmediato.
+Los hashes DEBEN coincidir. Si no → reportar "FALLO DE SINCRONIZACIÓN".
 
 ---
 
-## FASE 7 — HIGIENE PROFILÁCTICA ANTIGRAVITY (OBLIGATORIA)
+## FASE 7: HIGIENE PROFILÁCTICA ANTIGRAVITY (OBLIGATORIA)
 
 Requiere PIN 1974. CIERRE.bat lo solicita automáticamente.
 
 Qué purga: Cache, GPUCache, Code Cache, blob_storage, WebStorage,
-           CachedData, shared_proto_db, Network, Service Worker, logs anteriores.
+           CachedData, shared_proto_db, Network, Service Worker, logs\ anteriores.
 Qué NO toca: User\, Workspaces\, Preferences.
 
 ---
 
-*Última actualización: 2026-06-01 — OF*
-*Reemplaza: OMEGA.md (V2.2)*
+*Última actualización: 2026-05-04 — Sonnet + Claude Code (CA)*
