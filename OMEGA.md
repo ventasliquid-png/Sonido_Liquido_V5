@@ -66,6 +66,14 @@ Si no devuelve `WAL checkpoint OK` → STOP. No exportar.
 
 ---
 
+## FASE 1C — ESPEJO EXCEL V2 (Snapshot de Pedidos)
+
+Durante el cierre, el script OMEGA generará automáticamente un Excel Espejo de solo lectura ejecutando:
+`python scripts/exportar_pedidos_excel.py --entorno D` (o P según corresponda).
+Esto crea un snapshot histórico de los pedidos que sirve como red de seguridad visual antes del cierre de sesión. Si ocurre un error generando el Excel, OMEGA arrojará un `[WARN] Error generando Espejo Excel`, el cual debe ser reportado.
+
+---
+
 ## FASE 2 — BUROCRACIA Y MESA DE TRABAJO
 
 Regla de Oro: No decir "voy a actualizar". Presentar texto exacto.
