@@ -702,6 +702,9 @@ const manualAddressChange = ref(false);
 const duplicadoData = ref(null);
 
 // 409 Modal State
+const show409Modal = ref(false);
+const close409Modal = () => { show409Modal.value = false; };
+
 const isSuggestedSelected = computed(() => {
     const selected = clientAddresses.value.find(d => d.id === selectedAddressId.value);
     return selected?.is_suggested || false;
@@ -871,7 +874,6 @@ const reset = () => {
     bultos.value = 1;
     valor_declarado.value = 0.0;
     clientAddresses.value = [];
-    isDiscrepancyResolved.value = false;
     error.value = '';
     duplicadoData.value = null;
 
@@ -1423,8 +1425,10 @@ import { onMounted } from 'vue';
 import { onBeforeRouteLeave } from 'vue-router';
 
 onBeforeRouteLeave((to, from, next) => {
-    const pedidosStore = usePedidosStore();
-    pedidosStore.clearIngestaData();
+    if (to.name !== 'PedidoCanvas' && to.name !== 'PedidoEditar') {
+        const pedidosStore = usePedidosStore();
+        pedidosStore.clearIngestaData();
+    }
     next();
 });
 
