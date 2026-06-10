@@ -619,7 +619,7 @@
                     </div>
 
                     <!-- Toggle de Circuito Bipolar (NO_FISCAL_FORCE) -->
-                    <div v-if="isClienteRI" class="flex items-center gap-2 border-l border-white/10 pl-6 h-full justify-center self-end pb-1">
+                    <div class="flex items-center gap-2 border-l border-white/10 pl-6 h-full justify-center self-end pb-1">
                         <span class="text-[9px] font-bold uppercase tracking-wider" :class="isCircuitoNegro ? 'text-purple-400' : 'text-emerald-500'">
                             {{ isCircuitoNegro ? 'CIRCUITO NEGRO' : 'CIRCUITO BLANCO' }}
                         </span>
@@ -2006,6 +2006,13 @@ const savePedido = async (andPrint = false) => {
     }
     if (!clienteSeleccionado.value) return notificationStore.add('Seleccione un cliente.', 'error');
     if (items.value.length === 0) return notificationStore.add('Agregue al menos un producto.', 'error');
+    
+    // [DOCTRINA BLANCO ESTRICTO] & Data Consistency
+    if (!clientValidation.value.valid) {
+        notificationStore.add('El cliente no cumple los requisitos para este circuito. Complete la ficha.', 'warning');
+        completarFichaCliente();
+        return;
+    }
 
     const shouldPrint = andPrint || pedidosStore.autoPrintNext;
     isSaving.value = true;

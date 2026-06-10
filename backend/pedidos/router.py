@@ -29,16 +29,17 @@ def _aplica_iva(pedido, cliente) -> bool:
     """
     Doctrina V6 — La verdad fiscal emana del Genoma.
     Bit 12 (NO_FISCAL_FORCE) soberano. 
-    Bit 40 (DISCRIMINA_IVA) decide en circuito blanco.
+    Circuito blanco → IVA siempre aplica (discriminado=Factura A, contenido=Factura B).
     """
     # Circuito negro — soberano, nunca aplica IVA
     if pedido.flags_estado & PF.NO_FISCAL_FORCE.value:
         return False
-    # Sin cliente — no aplica IVA
+        
     if not cliente:
         return False
-    # Circuito blanco — solo RI discrimina IVA
-    return bool(cliente.flags_estado & ClientFlags.DISCRIMINA_IVA)
+        
+    # En circuito blanco (oficial), SIEMPRE se aplica IVA (ya sea discriminado Factura A o contenido Factura B)
+    return True
 
 @router.get("/sugerir_id", response_model=int)
 def suggest_next_pedido_id(db: Session = Depends(get_db)):
@@ -116,8 +117,10 @@ def create_pedido_tactico(
         
         # [ARLEQUÍN V2] Auto-encender NO_FISCAL_FORCE si cliente es Rosa (Bit 4 = OPERATOR_OK)
         from backend.clientes.constants import ClientFlags
-        pedido_flags_inicial = PF.EXISTENCE.value
-        if cliente.flags_estado & ClientFlags.OPERATOR_OK:
+        pedido_flags_inicial = pedido_data.flags_estado or PF.EXISTENCE.value
+        
+        # Siempre aplicar la regla si es nuevo y no viene forzado
+        if not pedido_data.flags_estado and (cliente.flags_estado & ClientFlags.OPERATOR_OK):
             pedido_flags_inicial |= PF.NO_FISCAL_FORCE.value
             
         if pedido_data.from_ingesta:

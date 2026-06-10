@@ -46,6 +46,7 @@ class PedidoCreate(BaseModel):
     duplicate_confirmed: Optional[bool] = False
     from_ingesta: Optional[bool] = False
     pedido_origen_migracion_id: Optional[int] = None
+    flags_estado: Optional[int] = 0
 
 class PedidoUpdate(BaseModel):
     cliente_id: Optional[UUID] = None
@@ -70,6 +71,7 @@ class PedidoUpdate(BaseModel):
 
     items: Optional[List[PedidoItemCreate]] = None
     from_ingesta: Optional[bool] = False
+    flags_estado: Optional[int] = None
 
 class CondicionIvaSummary(BaseModel):
     nombre: str
@@ -130,6 +132,7 @@ class PedidoResponse(BaseModel):
     costo_envio_cliente: Optional[float] = 0.0
     costo_flete_interno: Optional[float] = 0.0
     estado_logistico: str = "PENDIENTE"
+    flags_estado: int = 0
 
     items: List[PedidoItemResponse] = []
 
