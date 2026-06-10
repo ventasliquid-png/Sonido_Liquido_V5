@@ -92,9 +92,21 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
         items = []
         for r_item in remito.items:
             p_item = r_item.pedido_item
+            
+            # [FIX] Defensivo por si el p_item fue borrado (FK suelta) o no tiene producto
+            codigo = ""
+            desc = "ÍTEM DESCONOCIDO"
+            
+            if p_item:
+                if p_item.producto:
+                    codigo = p_item.producto.codigo_visual or ""
+                    desc = p_item.producto.nombre or p_item.nota or "ÍTEM"
+                else:
+                    desc = p_item.nota or "ÍTEM MANUAL"
+                    
             items.append({
-                "codigo": p_item.producto.codigo_visual if p_item.producto else "",
-                "descripcion": p_item.producto.nombre if p_item.producto else p_item.nota,
+                "codigo": codigo,
+                "descripcion": desc,
                 "cantidad": r_item.cantidad,
                 "unidad": "UN" # Default
             })

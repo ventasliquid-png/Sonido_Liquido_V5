@@ -263,8 +263,8 @@
             </header>
 
             <!-- SECTION 2: BODY (Grid Productos) -->
-            <main class="flex-1 overflow-hidden p-2 flex flex-col">
-                <div class="bg-black/30 rounded-xl border border-white/5 overflow-hidden flex-1 flex flex-col relative">
+            <main class="flex-1 overflow-visible p-2 flex flex-col relative z-50">
+                <div class="bg-black/30 rounded-xl border border-white/5 overflow-visible flex-1 flex flex-col relative">
                     
                     <!-- Table Header -->
                     <div class="shrink-0 grid grid-cols-12 bg-white/5 px-4 py-3 gap-2 border-b border-white/5 text-[10px] font-bold uppercase tracking-widest text-gray-400">
@@ -278,11 +278,9 @@
                         <div class="col-span-2 text-right">Subtotal</div>
                     </div>
 
-                    <!-- Table Rows -->
-                    <div ref="itemsContainerRef" class="overflow-y-auto flex-1 p-2 space-y-1">
-                        
-                        <!-- INLINE ENTRY ROW (Always Visible at Top) -->
-                        <div class="grid grid-cols-12 px-4 py-4 gap-2 bg-emerald-500/5 rounded-lg items-center border border-emerald-500/20 shadow-lg relative z-30 min-h-[70px]">
+                    <!-- INLINE ENTRY ROW (Always Visible at Top - Fixed outside scroll) -->
+                    <div class="shrink-0 p-2 relative z-[60]">
+                        <div class="grid grid-cols-12 px-4 py-4 gap-2 bg-emerald-500/5 rounded-lg items-center border border-emerald-500/20 shadow-lg relative min-h-[70px]">
                             
                             <!-- Index Placeholder -->
                             <div class="col-span-1 text-center font-bold text-emerald-500/50 text-xs">
@@ -349,7 +347,7 @@
                                 </Teleport>
                                 <!-- DROPDOWN RESULTS (Keep existing dropdown) -->
                                 <div v-if="(showProductResults && (filteredProductos.length > 0 || productCanteraResults.length > 0 || isSearchingCanteraProduct))" 
-                                     class="absolute top-full left-0 w-[400px] mt-2 bg-[#151515] border border-white/10 rounded-xl shadow-2xl max-h-80 overflow-y-auto z-50">
+                                     class="absolute top-full left-0 w-[400px] mt-2 bg-[#151515] border border-white/10 rounded-xl shadow-2xl max-h-80 overflow-y-auto z-[9999]">
                                     <div v-for="(prod, index) in filteredProductos" :key="prod.id"
                                          @click="selectProduct(prod)"
                                          :class="{'bg-emerald-500/20 text-emerald-400': index === selectedProductIndex, 'hover:bg-emerald-500/10 hover:text-emerald-400': index !== selectedProductIndex}"
@@ -410,8 +408,8 @@
                                     @keydown.enter.prevent="focusDescPct"
                                     class="w-full bg-transparent border-b border-emerald-500/30 text-gray-300 font-mono text-right focus:outline-none focus:border-emerald-500"
                                 >
-                                <!-- Ventana Flotante de Lectura (Sugerido por Arquitectura) -->
-                                <div v-if="newItem._debug_cotizacion" class="absolute -bottom-8 right-0 bg-emerald-950/90 border border-emerald-500/30 px-2 py-0.5 rounded text-[8px] whitespace-nowrap text-emerald-300 shadow-xl opacity-80 pointer-events-none flex gap-3">
+                                <!-- Ventana Flotante de Lectura -->
+                                <div v-if="newItem._debug_cotizacion" class="absolute -bottom-8 right-0 bg-emerald-950/90 border border-emerald-500/30 px-2 py-0.5 rounded text-[8px] whitespace-nowrap text-emerald-300 shadow-xl opacity-80 pointer-events-none flex gap-3 z-[100]">
                                      <span>Roca: <b class="text-white">${{ (newItem._debug_cotizacion.precio_roca || 0).toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</b></span>
                                      <span>Costo: <b class="text-white">${{ (newItem._debug_cotizacion.costo_reposicion || 0).toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</b></span>
                                      <span>MG: <b class="text-yellow-400">{{ newItem._debug_cotizacion.rentabilidad_base }}%</b></span>
@@ -429,7 +427,7 @@
                                     class="w-full bg-transparent border-b border-emerald-500/30 text-yellow-500 font-mono text-right focus:outline-none focus:border-emerald-500"
                                 >
                             </div>
-                            <!-- Descuento $ (Restored) -->
+                            <!-- Descuento $ -->
                             <div class="col-span-1 text-right">
                                 <input v-excel type="number" 
                                     v-model.number="newItem.descuento_valor" 
@@ -440,13 +438,17 @@
                                 >
                             </div>
                             
-                            <!-- Subtotal (Replaces Desc $ + Total) -->
+                            <!-- Subtotal -->
                             <div class="col-span-2 text-right">
                                 <span class="font-mono font-bold text-white text-lg">$ {{ newItem.total.toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</span>
                             </div>
 
                         </div>
+                    </div>
 
+                    <!-- Table Rows (Scrollable container for saved rows) -->
+                    <div ref="itemsContainerRef" class="overflow-y-auto flex-1 p-2 space-y-1 relative z-[40]">
+                        
                         <!-- SAVED ROWS -->
                         <div v-for="(item, index) in items" :key="item.sku || index" :class="{'bg-white/10': expandedRows.has(index)}">
                             <div class="grid grid-cols-12 px-4 py-3 gap-2 bg-white/[0.02] hover:bg-white/5 rounded-lg items-center group transition-colors border border-transparent hover:border-white/5 relative"
@@ -545,7 +547,6 @@
                     </div>
                 </div>
             </main>
-            </div> <!-- End of overflow-hidden relative wrapper -->
 
             <!-- SECTION 3: FOOTER -->
             <footer class="shrink-0 bg-[#0e0e0e] border-t border-white/10 p-4 relative z-40">
@@ -619,14 +620,17 @@
                     </div>
 
                     <!-- Toggle de Circuito Bipolar (NO_FISCAL_FORCE) -->
-                    <div class="flex items-center gap-2 border-l border-white/10 pl-6 h-full justify-center self-end pb-1">
-                        <span class="text-[9px] font-bold uppercase tracking-wider" :class="isCircuitoNegro ? 'text-purple-400' : 'text-emerald-500'">
+                    <div class="flex flex-col items-center justify-center border-l border-white/10 pl-6 h-full self-end pb-1 gap-1">
+                        <div class="text-[9px] font-bold uppercase tracking-wider text-gray-500">Modalidad Operativa</div>
+                        <button @click="isCircuitoNegro = !isCircuitoNegro" 
+                                type="button"
+                                :disabled="isFromIngesta"
+                                :title="isFromIngesta ? 'Bloqueado: Pedido originado desde Ingesta AFIP' : 'Alternar Circuito (Blanco/Negro)'"
+                                class="flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-[10px] tracking-widest uppercase transition-all shadow-inner disabled:opacity-50 disabled:cursor-not-allowed"
+                                :class="isCircuitoNegro ? 'bg-[#120a1f] text-purple-400 border border-purple-500/50 hover:bg-purple-900/40 hover:border-purple-400' : 'bg-[#07241d] text-emerald-500 border border-emerald-500/50 hover:bg-emerald-900/40 hover:border-emerald-400'">
+                            <i class="fas" :class="isCircuitoNegro ? 'fa-ghost' : 'fa-file-invoice'"></i>
                             {{ isCircuitoNegro ? 'CIRCUITO NEGRO' : 'CIRCUITO BLANCO' }}
-                        </span>
-                        <label class="relative inline-flex items-center cursor-pointer scale-75">
-                            <input type="checkbox" v-model="isCircuitoNegro" class="sr-only peer">
-                            <div class="w-9 h-5 bg-gray-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
-                        </label>
+                        </button>
                     </div>
 
                     <!-- SAVE BUTTON BLOCK -->
@@ -658,7 +662,7 @@
                 </div>
 
             </footer>
-            
+            </div> <!-- End of inner content wrapper -->
             </div> <!-- End of Parent -->
             
             <div class="w-full bg-[#0b1120] border-t border-emerald-900/50 p-2 text-center text-xs text-emerald-500/30 font-mono shrink-0 relative z-50">
@@ -1456,6 +1460,14 @@ const isSinIVA = computed(() => {
     if ((flags & (1n << 12n)) !== 0n) return true;
     // [FIX] En circuito blanco, el subtotal siempre es Neto. El IVA debe sumarse al Total Final sea RI o CF.
     return false;
+});
+
+const isFromIngesta = computed(() => {
+    // Si es un pedido nuevo generado directamente desde el módulo Ingesta
+    if (pedidosStore.ingestaData) return true;
+    // Si es un pedido existente y tiene el Bit 38 (ORIGEN_FACTURA) activado
+    const flags = BigInt(flagsEstadoPedido.value || 0);
+    return (flags & (1n << 38n)) !== 0n;
 });
 
 // Global Discount Calculation
