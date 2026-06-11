@@ -716,6 +716,12 @@ def update_pedido(
                 prod.stock_reservado -= Decimal(str(old_item.cantidad))
                 
         # 2. Delete old items
+        # [CASCADE FIX] Limpiar RemitoItems vinculados antes del hard-delete
+        from backend.remitos.models import RemitoItem
+        old_item_ids = [item.id for item in old_items]
+        if old_item_ids:
+            db.query(RemitoItem).filter(RemitoItem.pedido_item_id.in_(old_item_ids)).delete(synchronize_session=False)
+            
         db.query(models.PedidoItem).filter(models.PedidoItem.pedido_id == pedido_id).delete()
         
         # 3. Insert new ones
@@ -982,6 +988,10 @@ def delete_pedido_item(item_id: int, db: Session = Depends(get_db)):
     if prod.stock_reservado is not None:
         prod.stock_reservado -= Decimal(str(item.cantidad))
         
+    # [CASCADE FIX] Limpiar RemitoItems vinculados antes del hard-delete
+    from backend.remitos.models import RemitoItem
+    db.query(RemitoItem).filter(RemitoItem.pedido_item_id == item_id).delete()
+    
     db.delete(item)
     db.commit()
     
