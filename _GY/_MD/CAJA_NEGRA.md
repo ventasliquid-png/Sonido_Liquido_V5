@@ -1,6 +1,17 @@
-Sesión actual: 822
+Sesión actual: 823
 
-# CAJA NEGRA: Hotfix 822.1 — Pantalla negra Nuevo Pedido (2026-06-05)
+# CAJA NEGRA: Parche Defensivo Remitos + UI Z-Index Refactor (2026-06-10)
+
+Sesión 823 OF. Hash D: 1b3dc55b | Hash P: e7572c3. Estado: NOMINAL GOLD.
+Parche Defensivo PDF: Se corrigió bug 500 en impresión de remitos al intentar acceder al producto de un renglón de pedido (`PedidoItem`) inexistente, producto del borrado físico (hard-delete) que no cascada al remito durante ediciones al pedido. Ahora inserta fallback `"ÍTEM DESCONOCIDO"`.
+Deuda Técnica detectada: Falta `ON DELETE CASCADE` en la base de datos para la relación `PedidoItem` → `RemitoItem`, o en su defecto refactor de lógica en backend.
+Refactor UI PedidoCanvas: Footer reubicado dentro de bloque overflow-hidden y subida de jerarquía de `<main>` (z-index) para resolver el corte transversal del menú dropdown de productos Cantera.
+Limpieza Transaccional: Intervención manual exitosa en `pilot_v5x.db`. Se borraron 16 facturas fantasma, 12 remitos huérfanos y los pedidos 47 y 48 de prueba.
+OMEGA V3.0 ejecutado completo. Canario NOMINAL GOLD.
+
+**Agente:** Antigravity (Gy V5) — Hash D: 1b3dc55b | PIN: 1974
+
+---# CAJA NEGRA: Hotfix 822.1 — Pantalla negra Nuevo Pedido (2026-06-05)
 
 Hotfix post-822 OF. Hash D: 34a918fc | Hash P: 7ee67b3. Estado: NOMINAL GOLD.
 HaweLayout.vue: v-if → v-show en GlobalStatsBar.

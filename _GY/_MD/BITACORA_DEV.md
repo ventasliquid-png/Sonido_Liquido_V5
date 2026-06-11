@@ -1,3 +1,31 @@
+## SESIÓN 823 (OF): PARCHE DEFENSIVO REMITOS + UI Z-INDEX REFACTOR + LIMPIEZA DB
+**Fecha:** 2026-06-10
+**Locación:** OF
+**Objetivo:** Solucionar bug 500 en impresión de remitos que abortaba por renglones huérfanos sin producto (`PedidoItem` hard-deleted durante edición táctica de `savePedido` sin `ON DELETE CASCADE` a `RemitoItem`). Corregir z-index del dropdown de productos Cantera en `PedidoCanvas` que quedaba truncado por `overflow-hidden`. Purgar transaccionalmente la DB de basura histórica.
+**Estado:** NOMINAL GOLD — Hash D: 1b3dc55b | Hash P: e7572c3
+
+### Hito 1: Parche Defensivo PDF (router.py)
+* Al imprimir un remito cuyos renglones de pedido (`PedidoItem`) ya no existen en base (por haber sido borrados en edición táctica), el PDF lanzaba error 500.
+* Ahora evalúa defensivamente en `get_remito_pdf`: si la ForeignKey `r_item.pedido_item` es nula, o si no tiene producto, se imprime `"ÍTEM DESCONOCIDO"`.
+* Deuda técnica registrada: Falta cláusula `ON DELETE CASCADE` de `PedidoItem` a `RemitoItem` para no dejar huérfanos.
+
+### Hito 2: Refactor UI Z-Index PedidoCanvas
+* El menú desplegable del buscador de productos Cantera quedaba decapitado por el contenedor `<main>`.
+* Se extrajo el renglón de "Alta Rápida" fuera del contenedor con `overflow-y-auto`.
+* Se elevó el Z-Index del `<main>` (`relative z-50`) por sobre el `<footer>` (`relative z-40`).
+* Se movió el `<footer>` al interior del bloque contenedor con `overflow-hidden` para unificar el contexto espacial y que el desplegable baje libremente.
+
+### Hito 3: Limpieza Transaccional (pilot_v5x.db)
+* Intervención directa vía SQLite: Borradas **16 facturas huérfanas** y **12 remitos huérfanos** que carecían de pedido (pedidos `None` tras borrados).
+* Los pedidos #47 y #48 (de prueba con inconsistencias) fueron eliminados físicamente de la base junto a sus items y vínculos.
+
+### Hito 4: Sello OMEGA y Sincronización P
+* Ejecutado Cherry-Pick de los fixes a la rama de Producción (repositorio `v5-ls-Tom`).
+* Resolución de conflicto menor en `PedidoCanvas.vue` por divergencia UI de la sesión anterior.
+* Push exitoso a `v5-ls-Tom`. OMEGA V3.0 ejecutado al 100%.
+
+---
+
 ## SESIÓN 820 (CA): AUDITORÍA INGESTA + BANDERAS ROJAS + BITS FANTASMA
 **Fecha:** 2026-05-30
 **Locación:** CA

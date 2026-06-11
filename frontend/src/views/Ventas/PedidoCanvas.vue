@@ -292,6 +292,7 @@
                                 <input type="text"
                                     ref="inputSkuRef"
                                     v-model="newItem.sku"
+                                    autocomplete="off"
                                     @input="activateSearch('sku')"
                                     @keydown.down.prevent="navigateProductResults(1)"
                                     @keydown.up.prevent="navigateProductResults(-1)"
