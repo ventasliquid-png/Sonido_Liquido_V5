@@ -85,8 +85,9 @@ def export_pedidos_excel(db: Session = Depends(get_db)):
 
 @router.post("/tactico", status_code=status.HTTP_201_CREATED, response_model=schemas.PedidoResponse)
 def create_pedido_tactico(
-    pedido_data: schemas.PedidoCreate, 
-    db: Session = Depends(get_db)
+    pedido_data: schemas.PedidoCreate,
+    db: Session = Depends(get_db),
+    response: Response = None
 ):
     """
     Cargador Táctico:
@@ -159,12 +160,15 @@ def create_pedido_tactico(
 
         total_pedido = 0.0
         items_excel_data = []
+        items_skipped = []  # Card #52 — productos no encontrados
 
         # 3. Procesar Items
         for item in pedido_data.items:
             producto = db.query(Producto).get(item.producto_id)
             if not producto:
-                continue # O raise error?
+                print(f"[WARN] create_pedido_tactico: producto_id={item.producto_id} no existe — renglón omitido")
+                items_skipped.append(item.producto_id)
+                continue
             
             # Lógica de Precios V5:
             # Si el usuario mandó un precio, lo respetamos (incluso si es 0).
@@ -271,7 +275,10 @@ def create_pedido_tactico(
 
         db.commit()
         db.refresh(nuevo_pedido)
-        
+
+        if items_skipped and response is not None:
+            response.headers["X-Warnings"] = f"productos_no_encontrados:{','.join(str(i) for i in items_skipped)}"
+
         return nuevo_pedido
 
     except Exception as e:
@@ -635,7 +642,14 @@ def get_ultima_venta(
     
     if not last_item:
         return None
-        
+
+    return {
+        "precio": last_item.precio_unitario,
+        "fecha": last_item.pedido.fecha,
+        "pedido_id": last_item.pedido_id,
+        "cantidad": last_item.cantidad,
+    }
+
 @router.patch("/{pedido_id}", response_model=schemas.PedidoResponse)
 def update_pedido(
     pedido_id: int, 
@@ -1124,18 +1138,36 @@ class BipolarRequest(BaseModel):
 def toggle_circuito_bipolar(pedido_id: int, req: BipolarRequest, db: Session = Depends(get_db)):
     """
     Alterna el bit NO_FISCAL_FORCE (4096) para transitar entre circuito Blanco y Negro.
+    Recalcula el total según el nuevo circuito (Card #48).
     """
-    pedido = db.query(models.Pedido).filter(models.Pedido.id == pedido_id).first()
+    pedido = (
+        db.query(models.Pedido)
+        .options(
+            joinedload(models.Pedido.cliente),
+            joinedload(models.Pedido.items).joinedload(models.PedidoItem.producto)
+        )
+        .filter(models.Pedido.id == pedido_id)
+        .first()
+    )
     if not pedido:
         raise HTTPException(status_code=404, detail="Pedido no encontrado")
-        
+
     current_flags = pedido.flags_estado or 0
     if req.is_interno:
         current_flags |= PF.NO_FISCAL_FORCE.value
     else:
         current_flags &= ~PF.NO_FISCAL_FORCE.value
-        
+
     pedido.flags_estado = current_flags
+
+    # Recalcular total según nuevo circuito — Bit 12 ya actualizado antes de llamar _aplica_iva
+    apply_iva = _aplica_iva(pedido, pedido.cliente)
+    items_neto = db.query(func.sum(models.PedidoItem.subtotal)).filter(
+        models.PedidoItem.pedido_id == pedido_id
+    ).scalar() or 0.0
+    raw_neto = items_neto - (pedido.descuento_global_importe or 0)
+    pedido.total = round(raw_neto * 1.21, 2) if apply_iva else round(raw_neto, 2)
+
     db.commit()
     db.refresh(pedido)
     return pedido
