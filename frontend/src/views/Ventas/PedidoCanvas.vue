@@ -626,11 +626,11 @@
                         <button @click="isCircuitoNegro = !isCircuitoNegro" 
                                 type="button"
                                 :disabled="isFromIngesta"
-                                :title="isFromIngesta ? 'Bloqueado: Pedido originado desde Ingesta AFIP' : 'Alternar Circuito (Blanco/Celeste)'"
+                                :title="isFromIngesta ? 'Bloqueado: Pedido originado desde Ingesta AFIP' : 'Alternar Circuito (Blanco/Lista 2)'"
                                 class="flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-[10px] tracking-widest uppercase transition-all shadow-inner disabled:opacity-50 disabled:cursor-not-allowed"
                                 :class="isCircuitoNegro ? 'bg-[#120a1f] text-pink-400 border border-pink-500/50 hover:bg-pink-900/40 hover:border-pink-400' : 'bg-[#07241d] text-emerald-500 border border-emerald-500/50 hover:bg-emerald-900/40 hover:border-emerald-400'">
                             <i class="fas" :class="isCircuitoNegro ? 'fa-ghost' : 'fa-file-invoice'"></i>
-                            {{ isCircuitoNegro ? 'CIRCUITO CELESTE' : 'CIRCUITO BLANCO' }}
+                            {{ isCircuitoNegro ? 'CIRCUITO LISTA 2' : 'CIRCUITO BLANCO' }}
                         </button>
                     </div>
 
