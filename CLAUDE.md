@@ -97,6 +97,8 @@ Si el Canario falla → **no se opera**. Se diagnostica primero.
 - Consolidar trabajo realizado
 - Documentar cambios
 - Ejecutar `git add / commit` con mensaje que incluya PIN 1974 si es entrega crítica
+- **Si hubo cambios en la DB:** ejecutar `python "Q:\Mi unidad\V5_Silo_Claude\backup_db.py"` para rotar el backup en Drive
+- **NO actualizar** `POLIZON_MAESTRO.bak` ni `POLIZON_DESARROLLO.bak` — el sistema de backups Drive los reemplaza
 
 ### PIN de autorización
 Ciertas acciones críticas requieren el PIN `1974` como confirmación explícita de Carlos.
