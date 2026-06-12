@@ -1,4 +1,17 @@
-Sesión actual: 823
+Sesión actual: 824
+
+# CAJA NEGRA: Canon UI Lista 2 + Consolidación Backup DB (2026-06-12)
+
+Sesión 824 OF. Hash D: [Por comitear] | Hash P: [Por comitear]. Estado: NOMINAL GOLD.
+UI PedidoCanvas: Renombrado "Circuito Celeste/Negro" a "CIRCUITO LISTA 2". Paleta ajustada al canon del sistema (Rosa/Magenta `pink-500`).
+Nomenclatura: Renombramiento de `DOCTRINA.md` a `DOCTRINA_DATOS.md` y `DOCTRINA_PROCESOS.md`.
+Omega Protocol: Agregada FASE 1B.2 para rotación en cascada de DBs.
+Backup DB: Restaurado el script avanzado `backup_db.py` (10006 bytes, con hash guards) en el repositorio y limpiado el directorio ROTATIVO en Silo.
+OMEGA V3.0 ejecutándose.
+
+**Agente:** Antigravity (Gy V5) — PIN: 1974
+
+---
 
 # CAJA NEGRA: Parche Defensivo Remitos + UI Z-Index Refactor (2026-06-10)
 

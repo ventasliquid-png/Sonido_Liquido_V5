@@ -66,6 +66,22 @@ Si no devuelve `WAL checkpoint OK` → STOP. No exportar.
 
 ---
 
+## FASE 1B.2 — ROTACIÓN DE BACKUPS (BACKUPS_DB)
+
+Ejecutar:
+```python
+python scripts/backup_db.py
+```
+Rota MAESTRO/DESARROLLO en Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\ROTATIVO
+según esquema dinámico de cascada (slots 1-3: ventana rodante de últimos
+3 días; slot 4: hereda de slot 3 cuando pasaron >=14 días desde su última
+actualización o está vacío; slot 5: hereda de slot 4 cuando pasaron >=35
+días desde su última actualización o está vacío).
+
+Si falla → [WARN] Error en rotación de backups. No bloquea el cierre.
+
+---
+
 ## FASE 1C — ESPEJO EXCEL V2 (Snapshot de Pedidos)
 
 Durante el cierre, el script OMEGA generará automáticamente un Excel Espejo de solo lectura ejecutando:

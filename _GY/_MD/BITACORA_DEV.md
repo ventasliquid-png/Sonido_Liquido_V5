@@ -1,3 +1,23 @@
+## SESIÓN 824 (OF): CANON UI CIRCUITO LISTA 2 + ROTACIÓN BACKUP DB
+**Fecha:** 2026-06-12
+**Locación:** OF
+**Objetivo:** Adaptar nomenclatura Doctrina, ajustar UI de pedido (Circuito Lista 2) al canon Rosa/Magenta, e integrar la FASE 1B.2 de rotación de backups (esquema cascada con guards) al protocolo OMEGA.
+**Estado:** NOMINAL GOLD — Hash D: [Por comitear] | Hash P: [Por comitear]
+
+### Hito 1: Nomenclatura Doctrina
+* Renombrado `DOCTRINA.md` del Silo a `DOCTRINA_DATOS.md`.
+* Renombrado `DOCTRINA.md` de _GENOMA_DOCS a `DOCTRINA_PROCESOS.md`.
+
+### Hito 2: Canon UI "Circuito Lista 2"
+* Ajustado `PedidoCanvas.vue` para el Bit 12 (`NO_FISCAL_FORCE`). El modo informal ("Circuito Negro") pasa a llamarse "CIRCUITO LISTA 2".
+* Se revirtió el color provisorio cyan a la paleta canónica del Dashboard: Rosa/Magenta (`pink-400`, `pink-500`), asegurando consistencia visual.
+
+### Hito 3: FASE 1B.2 y Consolidación de Backups
+* Inyectada FASE 1B.2 (Rotación de Backups DB) a `OMEGA.md` en entornos D y P.
+* Consolidado `backup_db.py`: Restaurada versión original avanzada (10006 bytes, con guards de hash null-null) en `scripts/backup_db.py`. Limpieza de duplicados `slot_1_*.db` en el ROTATIVO del Silo.
+
+---
+
 ## SESIÓN 823 (OF): PARCHE DEFENSIVO REMITOS + UI Z-INDEX REFACTOR + LIMPIEZA DB
 **Fecha:** 2026-06-10
 **Locación:** OF
