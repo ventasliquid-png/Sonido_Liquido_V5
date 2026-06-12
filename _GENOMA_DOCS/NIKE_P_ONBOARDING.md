@@ -16,7 +16,7 @@ Acabamos de completar el **Protocolo Multiplex**, una refactorización nuclear d
 ---
 
 ## 2. Doctrina Operativa (V5.5)
-Para asegurar la supervivencia del sistema, debes adherirte estrictamente a los siguientes principios extraídos de la `DOCTRINA.md`:
+Para asegurar la supervivencia del sistema, debes adherirte estrictamente a los siguientes principios extraídos de la `DOCTRINA_PROCESOS.md`:
 
 1.  **Protocolo GIT (Seguridad):**
     *   Rama `main` **BLOQUEADA**. Prohibido commit directo.

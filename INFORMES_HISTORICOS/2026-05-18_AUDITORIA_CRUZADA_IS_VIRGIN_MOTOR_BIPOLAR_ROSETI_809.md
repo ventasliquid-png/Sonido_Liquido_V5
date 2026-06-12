@@ -40,7 +40,7 @@ Decisión arquitectónica sesión 809:
 Bit 12 (NO_FISCAL_FORCE = 4096) del PEDIDO → soberano para IVA
 isClientRosa (Bit 4) → restricciones operativas únicamente
 Rosa SIEMPRE tiene Bit 12=1, pero el cálculo mira el pedido, no el cliente
-Canonizado en BIBLIOTECA_NIKE.md, DOCTRINA.md, PROMPT_INSTALACION_CLAUDE.md y GEMINI
+Canonizado en BIBLIOTECA_NIKE.md, DOCTRINA_PROCESOS.md, PROMPT_INSTALACION_CLAUDE.md y GEMINI
 
 
 5. Auditoría módulo Clientes — Opus + Antigravity
