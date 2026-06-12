@@ -11,8 +11,10 @@ debug_*.py
 BUILD_PILOTO/
 .venv/
 *.db*
-!POLIZON_MAESTRO.bak
 !.pasaporte_v5.json
+# Polizón discontinuado — reemplazado por backup Drive (backup_db.py). Historial git limpio queda pendiente (BFG).
+POLIZON_MAESTRO.bak
+POLIZON_DESARROLLO.bak
 
 # Releases
 VERSIONES_LIBERADAS/
