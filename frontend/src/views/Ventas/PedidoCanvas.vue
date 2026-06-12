@@ -4,15 +4,15 @@
 
 <template>
     <div class="min-h-full w-full bg-[#0f172a] p-2 flex justify-center items-start">
-        <div class="w-full max-w-[98%] bg-[#0f172a] rounded-2xl border-2 border-emerald-500 shadow-[0_0_40px_-10px_rgba(16,185,129,0.5)] overflow-hidden relative flex flex-col h-full">
+        <div :class="['w-full max-w-[98%] bg-[#0f172a] rounded-2xl border-2 overflow-hidden relative flex flex-col h-full', isCircuitoNegro ? 'border-cyan-500 shadow-[0_0_40px_-10px_rgba(6,182,212,0.5)]' : 'border-emerald-500 shadow-[0_0_40px_-10px_rgba(16,185,129,0.5)]']">
             <!-- HEADER (User Provided Style) -->
             <!-- HEADER (Compact Mode) -->
-            <div class="w-full bg-emerald-950/30 border-b border-emerald-500/20 py-2 px-4 flex justify-between items-center backdrop-blur-sm shrink-0">
+            <div :class="['w-full border-b py-2 px-4 flex justify-between items-center backdrop-blur-sm shrink-0', isCircuitoNegro ? 'bg-cyan-950/30 border-cyan-500/20' : 'bg-emerald-950/30 border-emerald-500/20']">
                 <div class="flex items-center gap-4">
-                    <button @click="goBack" class="text-emerald-500/50 hover:text-emerald-400 transition-colors">
+                    <button @click="goBack" :class="['transition-colors', isCircuitoNegro ? 'text-cyan-500/50 hover:text-cyan-400' : 'text-emerald-500/50 hover:text-emerald-400']">
                         <i class="fas fa-arrow-left"></i>
                     </button>
-                    <h1 class="text-lg font-bold text-emerald-400 tracking-wider flex items-center gap-3">
+                    <h1 :class="['text-lg font-bold tracking-wider flex items-center gap-3', isCircuitoNegro ? 'text-cyan-400' : 'text-emerald-400']">
                         <i class="fas fa-file-invoice"></i> {{ route.params.id ? `FICHA DEL PEDIDO #${route.params.id}` : 'NUEVO PEDIDO' }}
                         <span v-if="route.params.id" :class="['px-2.5 py-0.5 text-xs font-extrabold tracking-widest rounded-full uppercase border', statusBadgeClasses]">
                             {{ estadoPedido }}
@@ -626,11 +626,11 @@
                         <button @click="isCircuitoNegro = !isCircuitoNegro" 
                                 type="button"
                                 :disabled="isFromIngesta"
-                                :title="isFromIngesta ? 'Bloqueado: Pedido originado desde Ingesta AFIP' : 'Alternar Circuito (Blanco/Negro)'"
+                                :title="isFromIngesta ? 'Bloqueado: Pedido originado desde Ingesta AFIP' : 'Alternar Circuito (Blanco/Celeste)'"
                                 class="flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-[10px] tracking-widest uppercase transition-all shadow-inner disabled:opacity-50 disabled:cursor-not-allowed"
-                                :class="isCircuitoNegro ? 'bg-[#120a1f] text-purple-400 border border-purple-500/50 hover:bg-purple-900/40 hover:border-purple-400' : 'bg-[#07241d] text-emerald-500 border border-emerald-500/50 hover:bg-emerald-900/40 hover:border-emerald-400'">
+                                :class="isCircuitoNegro ? 'bg-[#120a1f] text-cyan-400 border border-cyan-500/50 hover:bg-cyan-900/40 hover:border-cyan-400' : 'bg-[#07241d] text-emerald-500 border border-emerald-500/50 hover:bg-emerald-900/40 hover:border-emerald-400'">
                             <i class="fas" :class="isCircuitoNegro ? 'fa-ghost' : 'fa-file-invoice'"></i>
-                            {{ isCircuitoNegro ? 'CIRCUITO NEGRO' : 'CIRCUITO BLANCO' }}
+                            {{ isCircuitoNegro ? 'CIRCUITO CELESTE' : 'CIRCUITO BLANCO' }}
                         </button>
                     </div>
 
@@ -643,7 +643,7 @@
                                                  <div class="flex gap-2">
                               <button @click="savePedido(false)" 
                                       :disabled="isSaving || items.length === 0 || !clienteSeleccionado || !isOCValid || isClosedOrder"
-                                      class="bg-emerald-500 hover:bg-emerald-400 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 uppercase tracking-wider text-sm">
+                                      :class="['disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-all flex items-center justify-center gap-2 uppercase tracking-wider text-sm', isCircuitoNegro ? 'bg-cyan-500 hover:bg-cyan-400 hover:shadow-cyan-500/20' : 'bg-emerald-500 hover:bg-emerald-400 hover:shadow-emerald-500/20']">
                                 <i v-if="isSaving" class="fas fa-spinner fa-spin"></i>
                                 <i v-else class="fas fa-save"></i>
                                 {{ isSaving ? 'Guardando...' : 'Guardar Pedido' }}
