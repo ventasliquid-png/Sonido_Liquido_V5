@@ -1,6 +1,65 @@
 # 📘 MANUAL TÉCNICO V5: "INDEPENDENCIA"
-**Versión:** 2.3 Release (Excel Espejo + GlobalStatsBar Teleport — 822)
-**Fecha:** 2026-06-04
+**Versión:** 2.4 Release (STATE_MASK en transiciones — 825 CA)
+**Fecha:** 2026-06-14
+
+## 36. DOCTRINA STATE_MASK — PATRÓN OBLIGATORIO EN TRANSICIONES DE PEDIDO (Sesión 825 CA, 2026-06-14)
+
+### 36.1 El problema: OR sin máscara
+
+El campo `pedidos.flags_estado` usa bits 32-35 como estados mutuamente excluyentes del ciclo de vida:
+
+| Bit | Valor | Nombre |
+|-----|-------|--------|
+| 32 | 1<<32 | `ES_PRESUPUESTO` |
+| 33 | 1<<33 | `ES_FIRME` |
+| 34 | 1<<34 | `ES_CUMPLIDO` |
+| 35 | 1<<35 | `ES_ANULADO` |
+
+Un `|=` sin limpiar la máscara primero deja múltiples bits activos simultáneamente:
+
+```python
+# INCORRECTO — puede dejar ES_FIRME|ES_ANULADO activos al mismo tiempo
+pedido.flags_estado = (pedido.flags_estado or 0) | PF.ES_ANULADO.value
+```
+
+Esto hace que el pedido aparezca en filtros de **ambos** estados.
+
+### 36.2 El patrón canónico
+
+Toda transición de estado de ciclo de vida **DEBE** limpiar `STATE_MASK` antes de aplicar el nuevo estado:
+
+```python
+# CORRECTO — limpia los 4 bits de ciclo de vida, luego activa el nuevo
+pedido.flags_estado = ((pedido.flags_estado or 0) & ~STATE_MASK.value) | PF.ES_NUEVO_ESTADO.value
+```
+
+**Importación requerida:**
+```python
+from backend.pedidos.constants import PedidoFlags as PF, STATE_MASK
+```
+
+`STATE_MASK` es una constante a nivel módulo en `constants.py` — **no** es miembro de la clase `PedidoFlags`. Acceder vía `PF.STATE_MASK` lanza `AttributeError`.
+
+### 36.3 Caso de aplicación — Fix Card #51 (router.py:266)
+
+La migración quirúrgica (path cuando Ingesta detecta discrepancia con pedido existente del mismo día) tenía este bug latente. Al momento del fix no había instancias activas en DB (`SELECT COUNT(*) WHERE (flags & ES_FIRME) > 0 AND (flags & ES_ANULADO) > 0` → 0 filas). El fix fue preventivo.
+
+**Archivo:** `backend/pedidos/router.py` línea 266.
+
+### 36.4 Regla de búsqueda para auditoría
+
+Para detectar pedidos con estados simultáneos inválidos:
+```sql
+SELECT id, flags_estado FROM pedidos
+WHERE (flags_estado & (1<<32)) > 0 AND (flags_estado & (1<<33)) > 0  -- ES_PRESUPUESTO|ES_FIRME
+   OR (flags_estado & (1<<33)) > 0 AND (flags_estado & (1<<35)) > 0  -- ES_FIRME|ES_ANULADO
+   OR (flags_estado & (1<<32)) > 0 AND (flags_estado & (1<<34)) > 0; -- etc.
+```
+
+**Resultado esperado:** 0 filas. Si hay resultados, corregir con:
+```python
+flags_limpio = (flags_actual & ~STATE_MASK.value) | ESTADO_CORRECTO.value
+```
 
 ## 35. DOCTRINA TELEPORT + v-show — HOTFIX 822.1 OF (2026-06-05)
 

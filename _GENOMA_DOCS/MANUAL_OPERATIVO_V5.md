@@ -1,7 +1,12 @@
 # MANUAL OPERATIVO V5 - SONIDO LÍQUIDO
-**Versión del Documento:** 1.8 (Excel Espejo de Pedidos — 822, 2026-06-04)
+**Versión del Documento:** 1.9 (Fix Card #51 + BOARD #60-70 — 825 CA, 2026-06-14)
 **Estado:** VIGENTE
 **Código de Doctrina:** DEOU-2025
+
+### 📢 Actualización Sesión 825 CA (2026-06-14)
+- **Fix Card #51 (transparente para operador):** Corrección de bug latente en el módulo de ingesta — un pedido viejo podía quedar con dos estados de ciclo de vida activos simultáneamente (Firme + Anulado). El sistema ahora aplica correctamente la transición de estado. No se detectaron casos activos en producción. No requiere acción del operador.
+- **BOARD V5 actualizado hasta Card #70:** Se incorporaron 11 cards nuevas (#60-#70) relacionadas con infraestructura de protocolos, Canario 2.0, Radar de Flota y mejoras al Board. Ver BOARD_V5.xlsx en el Silo Drive.
+- **Entorno CA sincronizado:** Los repositorios D y P en Casa fueron sincronizados con la versión de Oficina. Estado NOMINAL GOLD.
 
 ### 📢 Actualización Sesión 822 (2026-06-04)
 - **Excel Espejo de Pedidos operativo:** El botón naranja **"📊 Exportar Excel"** en la barra superior (junto a "+ Nuevo") genera `PEDIDOS_ESPEJO.xlsx` directamente en el Silo Drive (`Q:\Mi unidad\V5_Silo_Claude\`). No requiere abrir el ERP para consultar pedidos — el archivo es una copia de consulta offline.

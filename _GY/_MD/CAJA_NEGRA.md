@@ -1,4 +1,19 @@
-Sesión actual: 824
+Sesión actual: 825
+
+# CAJA NEGRA: Sync D+P CA + Fix #51 STATE_MASK + Board #60-#70 (2026-06-14)
+
+Sesión 825 CA. Hash D: b2557445 (pendiente commit) | Hash P: pendiente commit. Estado: NOMINAL GOLD.
+ALFA V2.0 ejecutado: sync git D y P en CA. P requirió resolución compleja de conflictos post-stash (remote había eliminado .pyc/.env del tracking en commit 27190c0). Resuelto con git rm --cached recursivo sobre __pycache__, .env, cantera.db, V5_LS_MASTER.db.
+ALFA.md copiado a Q:\Mi unidad\V5_Silo_Claude\ALFA.md (4878 bytes). ALFA.md/ALFA_OLD.md removidos del tracking git D y cubiertos por .gitignore.
+Fix quirúrgico Card #51 (Bug latente — 0 instancias activas): router.py:266 `pedido_viejo.flags_estado = (flags or 0) | PF.ES_ANULADO.value` → `((flags or 0) & ~STATE_MASK.value) | PF.ES_ANULADO.value`. Sin STATE_MASK se dejaba ES_FIRME|ES_ANULADO simultáneos en migración.
+.gy_identity verificado: ambos D y P = "CA".
+BOARD_V5.xlsx Q: actualizado: #51→CERRADO 2026-06-14. Cards nuevas: #60-#70 (infra, protocolo, SISTEMA_STATUS_SPEC V1.1). Cards #59/#65 duplicados → CERRADO.
+Espejo Excel: 36 pedidos, 65 ítems exportados.
+Backups DB rotados: MAESTRO+DESARROLLO slots 1-3. Slot 4 en 11 días.
+
+**Agente:** Claude Code (Sonnet 4.6) — Hash D: b2557445 | PIN: pendiente
+
+---
 
 # CAJA NEGRA: Canon UI Lista 2 + Consolidación Backup DB (2026-06-12)
 

@@ -1,3 +1,28 @@
+## SESIÓN 825 (CA): SYNC GIT D+P + FIX #51 STATE_MASK + BOARD #60-#70
+**Fecha:** 2026-06-14
+**Locación:** CA
+**Objetivo:** Sync git completo CA (ALFA V2.0). Fix quirúrgico Card #51 (ES_FIRME|ES_ANULADO simultáneos en migración). Actualizar BOARD hasta card #70. Remover ALFA.md de tracking git.
+**Estado:** NOMINAL GOLD — Hash D: b2557445 (pendiente commit 825) | Hash P: pendiente commit
+
+### Hito 1: Sync git CA (ALFA V2.0)
+* D pull limpio desde origin. P requirió stash → pull → stash pop con conflictos por remoción remota de .pyc/.env del índice (commit 27190c0 remote).
+* Resuelto con `git rm --cached -r` sobre todos los __pycache__, .env, cantera.db, "../data/V5_LS_MASTER.db". Stash drop post-resolución.
+
+### Hito 2: Fix quirúrgico Card #51
+* `router.py:266` — migración quirúrgica dejaba `ES_FIRME|ES_ANULADO` simultáneos al anotar con `|=` sin limpiar `STATE_MASK`.
+* Fix: `((flags or 0) & ~STATE_MASK.value) | PF.ES_ANULADO.value`. Bug latente (0 instancias activas en DB).
+
+### Hito 3: ALFA.md y .gitignore D
+* ALFA.md/ALFA_OLD.md removidos del tracking git (`git rm --cached`).
+* `.gitignore` de D actualizado con exclusiones para ambos archivos.
+* ALFA.md copiado a Q:\Mi unidad\V5_Silo_Claude\ALFA.md (4878 bytes).
+
+### Hito 4: BOARD_V5.xlsx
+* Card #51 → CERRADO (2026-06-14). Cards #59 y #65 (duplicados) → CERRADO.
+* Cards nuevas #60-#70: infra protocolo PROTOCOLO/, ALFA offline fallback, Semáforo SystemFlags, Nexo Card #000, Board P-Gold Tomy, SISTEMA_STATUS_SPEC V1.1 (Radar + Canario 2.0).
+
+---
+
 ## SESIÓN 824 (OF): CANON UI CIRCUITO LISTA 2 + ROTACIÓN BACKUP DB
 **Fecha:** 2026-06-12
 **Locación:** OF

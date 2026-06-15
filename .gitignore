@@ -95,3 +95,7 @@ session_counter.json
 # Scratch scripts (temporal audit/debug)
 scratch/*.py
 exclude_list.txt
+
+# Protocolos locales (ALFA/OMEGA — cada máquina/entorno tiene versión propia)
+ALFA.md
+ALFA_OLD.md

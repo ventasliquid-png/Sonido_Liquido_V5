@@ -263,7 +263,7 @@ def create_pedido_tactico(
 
                 # 6. Ejecutar la condena (Anular el viejo)
                 pedido_viejo.estado = "ANULADO"
-                pedido_viejo.flags_estado = (pedido_viejo.flags_estado or 0) | PF.ES_ANULADO.value
+                pedido_viejo.flags_estado = ((pedido_viejo.flags_estado or 0) & ~STATE_MASK.value) | PF.ES_ANULADO.value
                 nota_migracion = f"\n[SISTEMA] Migrado a pedido #{nuevo_pedido.id} por discrepancia en Ingesta. Logística transferida."
                 pedido_viejo.nota = (pedido_viejo.nota or "") + nota_migracion
                 db.add(pedido_viejo)
