@@ -36,6 +36,8 @@ El cálculo de IVA en pedidos responde al **Bit 12 (NO_FISCAL_FORCE)** del pedid
 | 0 (apagado) | OFICIAL / con AFIP | Aplica 21% IVA, genera factura borrador, genera remito puente |
 | 1 (encendido) | INTERNO / sin AFIP | Sin IVA, sin documentos fiscales, emitir remito manual |
 
+**Nota UI (Interfaz):** En la interfaz de Ventas (`PedidoCanvas`), el circuito INTERNO se denomina operativamente **"CIRCUITO LISTA 2"** y transforma la interfaz completa a una paleta visual **Magenta/Rosa (pink-500)** para alertar al operador de que no habrá tratamiento fiscal AFIP.
+
 **Cliente Rosa** (OPERATOR_OK, Bit 4): siempre opera en circuito interno. El sistema vincula automáticamente el domicilio de entrega Roseti 1482 si no tiene domicilio propio.
 
 ---

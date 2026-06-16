@@ -743,6 +743,7 @@ Mejora al motor OCR para permitir corrección humana de errores de lectura.
 ## 19. SEGURIDAD DE SINCRONIZACIÓN: PROTOCOLO OMEGA V5.2 (BLINDADO)
 Implementado el 19-03-2026 para evitar desincronías entre los entornos de la Oficina y Casa.
 *   **Ojo de Halcón (`audit_v5.py`)**: Herramienta de auditoría física que rastrea cambios en disco en las últimas 12 horas.
+*   **Rotación de Backups en Cascada (Fase 1B.2)**: Script automatizado (`backup_db.py`) que realiza backups de la base transaccional (`pilot_v5x.db` / `V5_LS_MASTER.db`) hacia el Silo en esquema Grandfather-Father-Son (slots de 3, 14 y 35 días) protegiendo el historial ante desastres.
 *   **Bloqueo de PIN 1974**: El sistema tiene prohibido solicitar el PIN de cierre si existen discrepancias entre el estado de Git y los cambios físicos detectados en el disco.
 *   **Certificación de Salida**: Es obligatorio ejecutar `git show --name-only HEAD` tras cada push para validar la inyección física de los commits.
 
