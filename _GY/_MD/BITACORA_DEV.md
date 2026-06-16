@@ -1,3 +1,32 @@
+## SESIÓN 826 (OF): CARD #70 GOLD + PEDIDOCANVAS SYNC + WATCHER PORT
+**Fecha:** 2026-06-16
+**Locación:** OF
+**Objetivo:** ALFA V2.0 merge OF+CA. Card #70 GOLD (Canario 2.0, BITACORA_VIVA, SISTEMA_STATUS.json, actualizar_card000.py). Sync PedidoCanvas.vue D→P (Lista 2 + pink + watcher). Push P a produccion.
+**Estado:** NOMINAL GOLD — Hash D: 85a0b630 (+ OMEGA) | Hash P: de802c6 ✓
+
+### Hito 1: ALFA V2.0 merge OF+CA
+* D tenía cambios locales OF (manuales) — CA había pusheado. Resuelto con stash → pull → pop. Auto-merge limpio. Commit fa29be66.
+* DOCTRINA.md detectado como rename de DOCTRINA_PROCESOS.md por git. Staged correctamente.
+
+### Hito 2: Card #70 GOLD — Infraestructura SISTEMA_STATUS
+* SISTEMA_STATUS.json creado en Q: con versión 1.2 (4 máquinas: CA/OF/MT/NOTEBOOK).
+* BITACORA_VIVA.md creado en Q: con header sesión 826 y protocolo de cierre.
+* ALFA.md: FASE 3 reemplazada por Canario 2.0 que lee SISTEMA_STATUS.json (LAVIMAR deprecado).
+* OMEGA.md: 4 checkboxes nuevos (BITACORA_VIVA, SISTEMA_STATUS, BANDERAS_ROJAS + actualizar_card000.py).
+* actualizar_card000.py: semaforo() retorna tuple (emoji para Excel, ASCII para consola — CP1252-safe). Commit 0b743562.
+
+### Hito 3: PedidoCanvas.vue — Port watcher + Sync D→P
+* Auditoría forense P vs D: 2 commits únicos en P (DOM separation — ya en D; watcher — no en D).
+* Watcher route.params.id portado de P a D: re-inicializa pedido al navegar entre rutas Vue Router. Commit 85a0b630.
+* Cherry-pick descartado: path mismatch D/P en git root (D: frontend/..., P: current/frontend/...).
+* Sync via copia directa D→P. Build P: 290 módulos, 7.49s. xcopy dist\ a static\. Push prod (de802c6).
+
+### Hito 4: Board — Cards #71 y #72
+* Card #71: Script guardar.py — reemplazo atómico de git commit | FEATURE | MEDIA.
+* Card #72: Verificación de hash en ALFA Fase 0 (Método 2) | INFRA | MEDIA.
+
+---
+
 ## SESIÓN 825 (CA): SYNC GIT D+P + FIX #51 STATE_MASK + BOARD #60-#70
 **Fecha:** 2026-06-14
 **Locación:** CA

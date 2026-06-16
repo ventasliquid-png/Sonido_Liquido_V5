@@ -1,4 +1,13 @@
-Sesión actual: 825
+Sesión actual: 826
+
+# CAJA NEGRA: Card #70 GOLD + PedidoCanvas Sync D→P + Watcher (2026-06-16)
+
+Sesión 826 OF. Hash D: 85a0b630 (+ OMEGA push pendiente) | Hash P: de802c6 ✓. Estado: NOMINAL GOLD.
+ALFA V2.0: merge manuales OF+CA (stash/pull/pop, fa29be66). Forensic DOCTRINA rename + DOCTRINA_PROCESOS.md staged.
+Card #70 GOLD: SISTEMA_STATUS.json V1.2 + BITACORA_VIVA.md (Q:). Canario 2.0 en ALFA.md (LAVIMAR deprecado).
+OMEGA.md 4 capas nuevas + BANDERAS_ROJAS. actualizar_card000.py CP1252-safe. Commit 0b743562.
+PedidoCanvas.vue: port watcher route.params.id P→D (85a0b630). Sync D→P copia directa (cherry-pick descartado: path mismatch git root D vs P). Build 290 módulos. Push prod (de802c6).
+Cards #71 (guardar.py) y #72 (hash ALFA Fase 0) en Board.
 
 # CAJA NEGRA: Sync D+P CA + Fix #51 STATE_MASK + Board #60-#70 (2026-06-14)
 
