@@ -860,6 +860,13 @@ onMounted(async () => {
     window.addEventListener('focus', checkClientSync);
 });
 
+// Watcher: re-inicializar cuando Vue Router navega entre pedidos sin recargar
+watch(() => route.params.id, async (newId) => {
+    if (newId) {
+        await loadPedido(newId);
+    }
+});
+
 const checkClientSync = async () => {
     // If we have a client selected, re-fetch to ensure data is fresh (e.g. edited in Satellite)
     if (clienteSeleccionado.value && (clienteSeleccionado.value.id || clienteSeleccionado.value._id)) {
