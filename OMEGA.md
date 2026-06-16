@@ -101,6 +101,23 @@ Regla de Oro: No decir "voy a actualizar". Presentar texto exacto.
   - Anotar pendientes Nike
   - Registrar callejones explorados si los hubo
 
+- [ ] **BITACORA_VIVA.md** — agregar fila de cierre:
+  `| N | HH:MM | CC | OMEGA — cierre sesión NNN | ✅ | D=HASH P=HASH |`
+  Luego mover a `INFORMES_HISTORICOS/YYYY-MM-DD_SNNN_MAQUINA.md`
+  y crear archivo vacío con header para próxima sesión.
+
+- [ ] **SISTEMA_STATUS.json** — actualizar entrada de esta máquina:
+  - `omega_cerrado: true`
+  - `fecha_ultimo_omega`: hoy
+  - `hash_D` y `hash_P`: hashes del commit de cierre
+  - `commits_sin_push_D/P`: 0 (tras push exitoso)
+  - `system_flags`: encender Bits 60+61+62 (ESPEJO_TOTAL) si las
+    4 capas de la Trinidad se actualizaron correctamente.
+    Encender Bits de agentes activos (20-25) según quién participó.
+    Encender Bit 30 si MT participó en la sesión.
+  - Ejecutar: `python scripts/actualizar_card000.py`
+    (actualiza Card #000 en Board con hash, sesión y semáforo)
+
 - [ ] **ESTADO_ECOSISTEMA** (`Q:\Mi unidad\V5_Silo_Claude\ESTADO_ECOSISTEMA.md`):
   - Hash git actual
   - Estado (🟢 OK / 🟡 ATENCIÓN / 🔴 CRÍTICO)
@@ -113,6 +130,12 @@ Regla de Oro: No decir "voy a actualizar". Presentar texto exacto.
 - [ ] **Bitácora** (`_GY/_MD/BITACORA_DEV.md`): fecha, título, bullets
 
 - [ ] **Informe Histórico** (`INFORMES_HISTORICOS/YYYY-MM-DD_TITULO.md`)
+
+- [ ] **BANDERAS_ROJAS** — verificar hoja en BOARD_V5.xlsx:
+  Si alguna se resolvió en esta sesión → CERRADO + fecha + hash.
+  Si hay nuevas → agregarlas antes de cerrar.
+  Actualizar `banderas_rojas_activas` en SISTEMA_STATUS.json.
+  No cerrar OMEGA con banderas nuevas sin registrarlas.
 
 ---
 
