@@ -2086,69 +2086,9 @@ const savePedido = async (andPrint = false) => {
             const pedidoCreado = await api.post('/pedidos/tactico', payload);
             const pedidoId = pedidoCreado.data.id;
 
-            // Capture wasIngesta BEFORE any document creation or clearing
             const wasIngesta = !!pedidosStore.ingestaData;
 
-            // DOCTRINA: Rosa clients (OPERATOR_OK) do NOT generate factura/remito
-            const clienteRosa = isClientRosa.value;
-            let facturaId = null;
-            let remitoId = null;
-
-            if (!clienteRosa) {
-                // Only create fiscal documents for non-Rosa clients
-                const facturaRes = await api.post(`/facturacion/borrador/pedido/${pedidoId}`);
-                facturaId = facturaRes.data.id;
-                console.log('[PedidoCanvas] Factura borrador creada:', facturaId);
-
-                if (pedidosStore.ingestaData) {
-                    console.log('[PedidoCanvas] Detectada ingestaData en store:', pedidosStore.ingestaData);
-                    const numeroFactura = pedidosStore.ingestaData.factura?.numero;
-
-                    if (numeroFactura) {
-                        console.log('[PedidoCanvas] Intentando sellar factura con número:', numeroFactura);
-                        // Soportar "00001-00002529" o "00001 - 00002529"
-                        const partes = numeroFactura.split(/[\s\-]+/);
-                        if (partes.length >= 2) {
-                            const payloadSellar = {
-                                punto_venta: parseInt(partes[0]),
-                                numero_comprobante: parseInt(partes[1]),
-                                cae: pedidosStore.ingestaData.factura.cae || null,
-                                cae_vencimiento: pedidosStore.ingestaData.factura.vto_cae || null
-                            };
-                            console.log('[PedidoCanvas] Enviando PATCH sellar:', payloadSellar);
-                            await api.patch(`/facturacion/${facturaId}/sellar`, payloadSellar);
-                            console.log('[PedidoCanvas] Factura sellada con éxito.');
-                        } else {
-                            console.warn('[PedidoCanvas] Formato de número de factura no reconocido para sellar:', numeroFactura);
-                        }
-                    } else {
-                        console.warn('[PedidoCanvas] ingestaData existe pero no tiene factura.numero');
-                    }
-                } else {
-                    console.log('[PedidoCanvas] No hay ingestaData en el store. Se omite sellado automático.');
-                }
-
-                if (wasIngesta) {
-                    console.log('[PedidoCanvas] Iniciando creación de remito puente para factura:', facturaId);
-                    const remitoRes = await api.post(`/remitos/puente/desde_factura/${facturaId}`);
-                    remitoId = remitoRes.data.id;
-                    console.log('[PedidoCanvas] Remito puente creado con éxito:', remitoId);
-
-                    if (shouldPrint && remitoId) {
-                        const pdfUrl = `/remitos/${remitoId}/pdf`;
-                        window.open(pdfUrl, '_blank');
-                    }
-                }
-            } else {
-                console.log('[PedidoCanvas] Cliente Rosa (informal): Sin factura/remito fiscal.');
-                if (shouldPrint) {
-                    notificationStore.add('Cliente informal: No genera documentos fiscales', 'info');
-                }
-            }
-
-            // Limpiar flag de impresión automática e ingestaData
             pedidosStore.setAutoPrint(false);
-            pedidosStore.clearIngestaData();
 
             // DOCTRINA:
             // - Si wasIngesta=true: pedido creado desde ingesta → redirect a PedidoList
@@ -2170,6 +2110,7 @@ const savePedido = async (andPrint = false) => {
         notificationStore.add('Error al guardar pedido: ' + (e.response?.data?.detail || e.message), 'error');
     } finally {
         isSaving.value = false;
+        pedidosStore.clearIngestaData();
     }
 };
 

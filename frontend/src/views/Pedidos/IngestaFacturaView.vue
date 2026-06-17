@@ -260,7 +260,7 @@
                                     <span :class="auditLog.confidence >= 80 ? 'text-emerald-400' : 'text-amber-400'">{{ auditLog.confidence }}%</span>
                                 </div>
                                 <div class="flex items-center gap-4">
-                                    <div class="flex flex-col items-end">
+                                    <div v-if="auditLog" class="flex flex-col items-end">
                                         <span class="text-[9px] uppercase font-bold text-slate-500">Confianza Sabueso</span>
                                         <div class="w-16 h-1 bg-slate-800 rounded-full overflow-hidden">
                                             <div class="h-full transition-all duration-1000" :class="auditLog.confidence >= 80 ? 'bg-emerald-500' : 'bg-amber-500'" :style="{width: auditLog.confidence + '%'}"></div>
@@ -439,7 +439,7 @@
                                 <option :value="null">-- Seleccione un pedido --</option>
                                 <option value="NEW">🆕 Crear pedido nuevo (Redirigir a Canvas)</option>
                                 <option v-for="p in pendingPedidos" :key="p.id" :value="p.id">
-                                    #{{ p.id }} — {{ p.cliente.razon_social }} ({{ p.fecha ? p.fecha.split('T')[0] : '' }}) - Total: ${{ p.total }}
+                                    {{ p._esPres ? '[PPTO]' : '[PED]' }} #{{ p.id }} — {{ p.cliente.razon_social }} ({{ p.fecha ? p.fecha.split('T')[0] : '' }}) - Total: ${{ p.total }}
                                 </option>
                             </select>
                         </div>
@@ -552,7 +552,7 @@
                                 >
                                     <option :value="null">-- Seleccione un pedido --</option>
                                     <option v-for="p in pendingPedidos" :key="p.id" :value="p.id">
-                                        #{{ p.id }} — {{ p.cliente.razon_social }} ({{ p.fecha }})
+                                        {{ p._esPres ? '[PPTO]' : '[PED]' }} #{{ p.id }} — {{ p.cliente.razon_social }} ({{ p.fecha }})
                                     </option>
                                 </select>
                             </div>
@@ -649,6 +649,42 @@
                             </div>
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+    </Teleport>
+
+    <!-- PRESUPUESTO CONVERSION MODAL -->
+    <Teleport to="body">
+        <div v-if="showPresupuestoModal" class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-slate-900 border-2 border-violet-500/50 rounded-2xl w-full max-w-lg shadow-[0_0_50px_rgba(139,92,246,0.2)] overflow-hidden">
+                <div class="bg-gradient-to-r from-violet-900/30 to-purple-900/30 border-b border-violet-500/30 p-6">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-3">
+                        <i class="fas fa-file-invoice text-violet-400"></i>
+                        Presupuesto detectado
+                    </h2>
+                    <p class="text-sm text-slate-400 mt-2">
+                        El pedido <span class="text-violet-300 font-bold">#{{ presupuestoToConvert?.id }}</span>
+                        es un presupuesto. Para vincularlo a esta factura debe convertirse a Pendiente.
+                    </p>
+                </div>
+                <div class="p-6 space-y-3">
+                    <button @click="confirmarConvertirPresupuesto"
+                        class="w-full p-4 bg-violet-900/30 border border-violet-500/50 hover:bg-violet-900/50 rounded-lg text-left flex items-start gap-3 transition">
+                        <i class="fas fa-check-circle text-violet-400 mt-1"></i>
+                        <div>
+                            <p class="font-bold text-white">Convertir a Pendiente y vincular</p>
+                            <p class="text-xs text-violet-200/60 mt-1">El presupuesto pasa a estado PENDIENTE y queda vinculado a esta factura.</p>
+                        </div>
+                    </button>
+                    <button @click="cancelarConvertirPresupuesto"
+                        class="w-full p-4 bg-slate-800/50 border border-slate-600/50 hover:bg-slate-700/50 rounded-lg text-left flex items-start gap-3 transition">
+                        <i class="fas fa-hand-paper text-slate-400 mt-1"></i>
+                        <div>
+                            <p class="font-bold text-white">Cancelar</p>
+                            <p class="text-xs text-slate-400 mt-1">Volver al selector sin modificar el presupuesto.</p>
+                        </div>
+                    </button>
                 </div>
             </div>
         </div>
@@ -1008,16 +1044,22 @@ const loadClientDetails = async (clientId) => {
         // Cargar y filtrar pedidos pendientes del cliente por CUIT
         const cuit = res.data.cuit;
         if (cuit) {
-            const pedRes = await api.get('/pedidos/', { params: { estado: 'PENDIENTE' } });
+            const [pedRes, presRes] = await Promise.all([
+                api.get('/pedidos/', { params: { estado: 'PENDIENTE' } }),
+                api.get('/pedidos/', { params: { estado: 'PRESUPUESTO' } })
+            ]);
             const targetCuit = String(cuit).replace(/-/g, '').trim();
-            pendingPedidos.value = (pedRes.data || []).filter(p => {
-                const pCuit = String(p.cliente?.cuit || '').replace(/-/g, '').trim();
-                return pCuit === targetCuit;
-            });
+            const matchCuit = (list, isPresupuesto) => (list || [])
+                .filter(p => String(p.cliente?.cuit || '').replace(/-/g, '').trim() === targetCuit)
+                .map(p => ({ ...p, _esPres: isPresupuesto }));
+            pendingPedidos.value = [
+                ...matchCuit(pedRes.data, false),
+                ...matchCuit(presRes.data, true)
+            ];
             if (pendingPedidos.value.length === 0) {
                 selectedPedidoId.value = 'NEW';
             } else {
-                selectedPedidoId.value = null; // Dejar que el operador seleccione
+                selectedPedidoId.value = null;
             }
         } else {
             pendingPedidos.value = [];
@@ -1082,6 +1124,8 @@ const autoSelectAddress = () => {
 
 const showIdentityModal = ref(false);
 const selectedPedidoObj = ref(null);
+const showPresupuestoModal = ref(false);
+const presupuestoToConvert = ref(null);
 
 const calculateSimilarity = (s1, s2) => {
     if (!s1 || !s2) return 0;
@@ -1124,7 +1168,13 @@ const handleProceder = () => {
             return;
         }
         selectedPedidoObj.value = pedido;
-        
+
+        if (pedido._esPres) {
+            presupuestoToConvert.value = pedido;
+            showPresupuestoModal.value = true;
+            return;
+        }
+
         const namePdf = parsedData.value?.cliente?.razon_social || '';
         const nameDb = pedido.cliente?.razon_social || '';
         
@@ -1140,6 +1190,26 @@ const handleProceder = () => {
 const ignorarIdentidad = () => {
     showIdentityModal.value = false;
     validateAndProceed();
+};
+
+const confirmarConvertirPresupuesto = async () => {
+    const pedido = presupuestoToConvert.value;
+    if (!pedido) return;
+    try {
+        await api.patch(`/pedidos/${pedido.id}`, { estado: 'PENDIENTE' });
+        pedido._esPres = false;
+        pedido.estado = 'PENDIENTE';
+        showPresupuestoModal.value = false;
+        presupuestoToConvert.value = null;
+        validateAndProceed();
+    } catch (e) {
+        notification.add('Error al convertir presupuesto: ' + (e.response?.data?.detail || e.message), 'error');
+    }
+};
+
+const cancelarConvertirPresupuesto = () => {
+    showPresupuestoModal.value = false;
+    presupuestoToConvert.value = null;
 };
 
 const irAPedidoParaCorregir = () => {
@@ -1312,12 +1382,18 @@ const handle409NoPedido = async () => {
     const cuit = parsedData.value?.cliente?.cuit;
     if (cuit) {
         try {
-            const res = await api.get('/pedidos/', { params: { estado: 'PENDIENTE' } });
+            const [res, presRes] = await Promise.all([
+                api.get('/pedidos/', { params: { estado: 'PENDIENTE' } }),
+                api.get('/pedidos/', { params: { estado: 'PRESUPUESTO' } })
+            ]);
             const targetCuit = cuit.replace(/-/g, '').trim();
-            pendingPedidos.value = (res.data || []).filter(p => {
-                const pCuit = (p.cliente?.cuit || '').replace(/-/g, '').trim();
-                return pCuit === targetCuit;
-            });
+            const matchCuit = (list, isPresupuesto) => (list || [])
+                .filter(p => (p.cliente?.cuit || '').replace(/-/g, '').trim() === targetCuit)
+                .map(p => ({ ...p, _esPres: isPresupuesto }));
+            pendingPedidos.value = [
+                ...matchCuit(res.data, false),
+                ...matchCuit(presRes.data, true)
+            ];
         } catch (e) {
             console.error("[V5] No se pudieron cargar pedidos pendientes", e);
             pendingPedidos.value = [];
