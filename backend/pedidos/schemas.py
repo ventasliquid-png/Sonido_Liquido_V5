@@ -91,7 +91,8 @@ class ClienteSummary(BaseModel):
     domicilio_fiscal_resumen: Optional[str] = None
     condicion_iva: Optional[CondicionIvaSummary] = None
     segmento: Optional[SegmentoSummary] = None
-    
+    flags_estado: int = 0
+
     class Config:
         from_attributes = True
 

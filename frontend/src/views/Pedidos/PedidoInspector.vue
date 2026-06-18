@@ -569,8 +569,15 @@ watch(() => props.modelValue, (newVal) => {
 // Methods
 const handleStatusChange = async (newStatus) => {
     if (newStatus === 'PENDIENTE') {
-        const confirmComp = confirm("DISCRECIÓN REQUERIDA:\n\n¿Tipo de Operación para Reservar Stock?\n\n[ACEPTAR] = Con Factura A/B (FISCAL)\n[CANCELAR] = Solo Reserva Interna (X)")
-        const newType = confirmComp ? 'FISCAL' : 'X'
+        const OPERATOR_OK = 16  // Bit 4 = cliente Rosa
+        const esRosa = (props.modelValue.cliente?.flags_estado || 0) & OPERATOR_OK
+        let newType
+        if (esRosa) {
+            newType = 'X'
+        } else {
+            const confirmComp = confirm("¿Cómo continúa este presupuesto?\n\n[ACEPTAR] = Lista 1 (con factura)\n[CANCELAR] = Lista 2 (sin factura)")
+            newType = confirmComp ? 'FISCAL' : 'X'
+        }
         try {
             await store.updatePedido(props.modelValue.id, { 
                 estado: 'PENDIENTE', 
