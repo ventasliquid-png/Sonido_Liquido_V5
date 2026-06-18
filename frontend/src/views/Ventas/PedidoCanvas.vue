@@ -1296,7 +1296,7 @@ const clientValidation = computed(() => {
     }
     if (flags & OPERATOR_OK) {
         // Rosa: solo segmento obligatorio
-        if (!c.segmento_id) missing.push('Segmento');
+        if (!c.segmento_id && !c.segmento?.id) missing.push('Segmento');
     } else {
         // Amarillo/sin clasificar: exigir todo
         if (!c.condicion_iva_id || c.condicion_iva_id === 'null') missing.push('Condición IVA');
