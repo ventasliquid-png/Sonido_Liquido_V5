@@ -1146,3 +1146,111 @@ El desborde en el pie de página de `PedidoCanvas.vue` en sistemas Windows se de
 - La tarjeta interna de edición declara `h-full flex-col`.
 - Con esta configuración, el flexbox padre contiene al canvas de forma reactiva y el pie (TOTAL FINAL) permanece siempre visible por encima de la barra de tareas de Windows.
 
+---
+
+## 36. DOCTRINA ROSA/BLANCO + TABLERO AMBOS — SESIÓN 829 OF (2026-06-18)
+
+### 36.1 Flujo de Activación PENDIENTE — Decisión Bifurcada Rosa vs Blanco (PedidoInspector, línea 570)
+
+**Archivo:** `frontend/src/views/Pedidos/PedidoInspector.vue` línea 570
+
+Cuando el operador cambia el estado de un presupuesto a **PENDIENTE**, el sistema ejecuta `handleStatusChange('PENDIENTE')` que toma una decisión bifurcada según la condición del cliente:
+
+**Código:**
+```javascript
+if (newStatus === 'PENDIENTE') {
+    const OPERATOR_OK = 16  // Bit 4 = cliente Rosa
+    const esRosa = (props.modelValue.cliente?.flags_estado || 0) & OPERATOR_OK
+    let newType
+    if (esRosa) {
+        newType = 'X'  // Rosa → SIN documentos, silencioso
+    } else {
+        const confirmComp = confirm(
+            "¿Cómo continúa este presupuesto?\n\n" +
+            "[ACEPTAR] = Lista 1 (con factura)\n" +
+            "[CANCELAR] = Lista 2 (sin factura)"
+        )
+        newType = confirmComp ? 'FISCAL' : 'X'  // Blanco → pregunta al operador
+    }
+    await store.updatePedido(props.modelValue.id, { 
+        estado: 'PENDIENTE', 
+        tipo_facturacion: newType 
+    })
+}
+```
+
+**Lógica:**
+1. Si cliente Rosa (Bit 4 encendido): asigna `tipo_facturacion = 'X'` automáticamente. Sin preguntar. Sin avisos. Operación silenciosa.
+2. Si cliente Blanco (Bit 4 apagado): abre un `confirm()` dialog:
+   - **[ACEPTAR]** → `FISCAL` (Lista 1, con factura, IVA 21%)
+   - **[CANCELAR]** → `X` (Lista 2, sin factura, sin IVA)
+
+**Impacto operacional:** El motor de precios y documentación posteriores respetan `tipo_facturacion`. Rosa nunca genera borrador fiscal, remito puente, ni factura. Blanco genera documentos según `FISCAL` vs `X`.
+
+### 36.2 ClienteSummary.flags_estado — Enabling Frontend Validation
+
+**Archivo:** `backend/pedidos/schemas.py` línea ~87
+
+El campo `flags_estado` fue agregado a la respuesta `ClienteSummary` para permitir que el frontend valide la condición Rosa/Blanco ANTES de ejecutar `handleStatusChange`:
+
+```python
+class ClienteSummary(BaseModel):
+    id: str
+    razon_social: str
+    cuit: Optional[str]
+    domicilio_fiscal_resumen: Optional[str]
+    condicion_iva: Optional[str]
+    segmento_id: Optional[str]
+    flags_estado: int  # ← NUEVO en sesión 829
+```
+
+**Uso en frontend:**
+```javascript
+const esRosa = (modelValue.cliente?.flags_estado || 0) & 16
+```
+
+Este campo es crítico para que PedidoInspector ejecute la lógica bifurcada sin solicitudes adicionales al backend.
+
+### 36.3 Tablero Pedidos — Botón "Ambos" + Fucsia List 2
+
+**Archivo:** `frontend/src/views/Pedidos/PedidoList.vue`
+
+Tres cambios visuales coordinados:
+
+1. **Botón "Ambos" (DEFAULT):**
+   - Nueva opción: "Ambos" → muestra todos los pedidos (Oficial + Interno)
+   - Gradiente: `bg-gradient-to-r from-emerald-600 to-pink-600`
+   - Estado activo por defecto
+
+2. **Renombramiento botón Interno:**
+   - ANTES: "Circuito Interno" con `bg-gray-700`
+   - AHORA: "Circuito Interno" con `bg-pink-600` (fucsia)
+   - Semántica: Pink = List 2 = sin IVA = Rosa-compatible
+
+3. **Filas Rosa — Styling condicional:**
+   ```vue
+   :class="(p.flags_estado & 4096) ? 'bg-pink-950/30 border-l-2 border-pink-500/40' : ''"
+   ```
+   - Si Bit 12 encendido (NO_FISCAL_FORCE): fila con fondo oscuro fucsia + borde pink
+   - Ayuda visual rápida para identificar pedidos sin IVA
+
+**Impacto operacional:** El operador ve "Ambos" por defecto → cobertura completa sin filtros accidentales. Al clickear "Circuito Interno", los pedidos Rosa aparecen destacados en fucsia.
+
+### 36.4 Validación Rosa Flexible — segmento.id Anidado
+
+**Archivo:** `frontend/src/views/Pedidos/PedidoInspector.vue` línea ~1298
+
+**ANTES:**
+```javascript
+if (!c.segmento_id) throw new Error('Segmento requerido');
+```
+
+**DESPUÉS:**
+```javascript
+if (!c.segmento_id && !c.segmento?.id) {
+    throw new Error('Segmento requerido');
+}
+```
+
+**Motivo:** El backend puede devolver `segmento` como objeto anidado `{id, nombre}` en lugar de solo `segmento_id`. La validación acepta ambas formas para máxima flexibilidad.
+

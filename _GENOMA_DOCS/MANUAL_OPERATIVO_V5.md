@@ -1,7 +1,13 @@
 # MANUAL OPERATIVO V5 - SONIDO LÍQUIDO
-**Versión del Documento:** 1.9 (Fix Card #51 + BOARD #60-70 — 825 CA, 2026-06-14)
+**Versión del Documento:** 1.10 (Fixes Rosa/Blanco + Tablero Ambos/Fucsia — 829 OF, 2026-06-18)
 **Estado:** VIGENTE
 **Código de Doctrina:** DEOU-2025
+
+### 📢 Actualización Sesión 829 OF (2026-06-18)
+- **Motor Silencioso Rosa (PedidoInspector línea 570):** El sistema diferencia automáticamente entre pedidos Rosa (sin documentos fiscales) y Blanco (con documentos). Un operador que carga un pedido Rosa verá la operación sin avisos de borrador/remito — circuito INTERNO soberano.
+- **ClienteSummary.flags_estado:** Nuevo campo en la respuesta backend que permite al frontend validar la condición de cliente (Bit 4 = Rosa) antes de decidir si crear documentos. Validación bifurcada y anticipada.
+- **Tablero Pedidos — Botón "Ambos" (Default):** Nueva vista default que muestra todos los pedidos (Oficial + Interno) con gradiente esmeralda→fucsia. El botón "Circuito Interno" cambió a rosa/fucsia (bg-pink-600) para diferenciación visual clara. Filas Rosa mostradas con fondo pink-950/30 y borde izquierdo fucsia.
+- **Validación Flexible de Segmento:** La validación Rosa ahora acepta `segmento.id` (objeto anidado) además de `segmento_id` (string), maximizando compatibilidad con distintos formatos de respuesta backend.
 
 ### 📢 Actualización Sesión 825 CA (2026-06-14)
 - **Fix Card #51 (transparente para operador):** Corrección de bug latente en el módulo de ingesta — un pedido viejo podía quedar con dos estados de ciclo de vida activos simultáneamente (Firme + Anulado). El sistema ahora aplica correctamente la transición de estado. No se detectaron casos activos en producción. No requiere acción del operador.
@@ -291,9 +297,23 @@ Interfaz de alta velocidad para la toma de pedidos. Evolucionada de una grilla s
 *   **Consumidor Final**: Lógica especial que omite validaciones estrictas de CUIT/Domicilio para ventas rápidas de mostrador.
 *   **Exportación**: Generación instantánea de Excel con el detalle del pedido para procesar en sistemas legacy o enviar por mail.
 
+### 6.3 Tablero Pedidos — Vista "Ambos" + Circuito Interno Visible (Sesión 829)
 
+El tablero ahora presenta una vista unificada por defecto:
 
-### 6.3 Herramientas de Gestión de Sesión
+*   **Botón "Ambos" (Default):** Seleccionado automáticamente al abrir el tablero. Muestra todos los pedidos sin filtro, diferenciando visualmente cuáles son Oficiales (Blanco) y cuáles Internos (Rosa).
+    - **Styling:** Gradiente `emerald-600 → pink-600` para indicar riqueza visual (cobertura total).
+    
+*   **Botón "Circuito Oficial":** Filtra solo pedidos con IVA (Blanco, RI, CUIT real).
+    - **Styling:** `bg-emerald-600` (verde).
+    
+*   **Botón "Circuito Interno":** Filtra solo pedidos sin IVA (Rosa, informal, Bit 12 encendido).
+    - **Styling:** `bg-pink-600` (fucsia). Cambio visual desde sesión 829 para claridad operativa.
+    - **Indicador de fila:** Los pedidos Rosa aparecen con fondo sutilmente oscuro (`bg-pink-950/30`) y borde izquierdo rosa (`border-l-2 border-pink-500/40`) para identificación instantánea.
+
+**Caso de uso:** Al inicio de la jornada, el operador ve el tablero completo ("Ambos"). Si necesita enfocarse solo en rosa (facturación manual) o solo en oficial (ARCA), usa los botones de filtro sin perder contexto.
+
+### 6.4 Herramientas de Gestión de Sesión
 Para evitar errores por datos persistentes ("Datos viejos"), se incorporaron controles explícitos en el pie de página:
 
 1.  **Limpiar Pantalla (Icono Papelera):**
