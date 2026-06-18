@@ -41,7 +41,14 @@ OF:
 
 # --- Main ---
 ahora = datetime.now().strftime("%Y-%m-%d_%H-%M")
-salida = SILO / f"CONTEXTO_CS_{ahora}.md"
+CARPETA_CS = SILO / "CONTEXTO_CS"
+CARPETA_CS.mkdir(exist_ok=True)
+
+# Limpiar anteriores
+for viejo in CARPETA_CS.glob("CONTEXTO_CS_*.md"):
+    viejo.unlink()
+
+salida = CARPETA_CS / f"CONTEXTO_CS_{ahora}.md"
 
 contenido = f"""# CONTEXTO PARA CS NUEVO — {ahora}
 Generado por: generar_contexto_cs.py
