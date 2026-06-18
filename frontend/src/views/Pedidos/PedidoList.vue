@@ -52,16 +52,23 @@
 
           <!-- Split-Brain Toggle (Circuitos) -->
           <div class="flex items-center bg-[#020a06] p-1 rounded-lg border border-white/5 shadow-inner mx-4">
-              <button 
-                  @click="circuitMode = 'OFICIAL'" 
-                  :class="circuitMode === 'OFICIAL' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20' : 'text-gray-500 hover:text-white'" 
+              <button
+                  @click="circuitMode = 'AMBOS'"
+                  :class="circuitMode === 'AMBOS' ? 'bg-gradient-to-r from-emerald-600 to-pink-600 text-white shadow-lg shadow-purple-500/20' : 'text-gray-500 hover:text-white'"
+                  class="px-4 py-1.5 text-xs font-bold rounded transition-all flex items-center gap-2"
+              >
+                  <i class="fas fa-layer-group" v-if="circuitMode === 'AMBOS'"></i> Ambos
+              </button>
+              <button
+                  @click="circuitMode = 'OFICIAL'"
+                  :class="circuitMode === 'OFICIAL' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20' : 'text-gray-500 hover:text-white'"
                   class="px-4 py-1.5 text-xs font-bold rounded transition-all flex items-center gap-2"
               >
                   <i class="fas fa-file-invoice" v-if="circuitMode === 'OFICIAL'"></i> Circuito Oficial
               </button>
-              <button 
-                  @click="circuitMode = 'INTERNO'" 
-                  :class="circuitMode === 'INTERNO' ? 'bg-gray-700 text-white shadow-lg shadow-black/50' : 'text-gray-500 hover:text-white'" 
+              <button
+                  @click="circuitMode = 'INTERNO'"
+                  :class="circuitMode === 'INTERNO' ? 'bg-pink-600 text-white shadow-lg shadow-pink-500/30' : 'text-gray-500 hover:text-white'"
                   class="px-4 py-1.5 text-xs font-bold rounded transition-all flex items-center gap-2"
               >
                   <i class="fas fa-user-ninja" v-if="circuitMode === 'INTERNO'"></i> Circuito Interno
@@ -144,12 +151,13 @@
                   class="group flex items-center justify-between p-4 mb-2 rounded-xl border transition-all relative"
                   :class="[
                     statusMenuOpen === pedido.id ? 'z-50 shadow-2xl' : 'z-auto overflow-hidden',
-                    selectedPedido?.id === pedido.id 
+                    selectedPedido?.id === pedido.id
                     ? (circuitMode === 'OFICIAL' ? 'border-emerald-500 bg-emerald-500/10 ring-1 ring-emerald-500/30 shadow-lg shadow-emerald-500/10 scale-[1.01]' : 'border-indigo-500 bg-indigo-500/10 ring-1 ring-indigo-500/30 shadow-lg shadow-black/50 scale-[1.01]')
                     : ( (pedido.flags_estado & 4096)
-                        ? 'border-indigo-900/40 bg-[#120a1f] hover:bg-[#1a0e2c] hover:border-indigo-500/30 shadow-inner shadow-black/20' 
+                        ? 'border-indigo-900/40 bg-[#120a1f] hover:bg-[#1a0e2c] hover:border-indigo-500/30 shadow-inner shadow-black/20'
                         : (circuitMode === 'OFICIAL' ? 'border-emerald-900/20 bg-[#07241d] hover:bg-[#0a2e26] hover:border-emerald-500/30' : 'border-gray-800/40 bg-[#12161f] hover:bg-[#1a202c] hover:border-gray-500/30')
                       ),
+                    (pedido.flags_estado & 4096) ? 'bg-pink-950/30 border-l-2 border-pink-500/40' : '',
                     'hover:shadow-lg hover:shadow-black/40 hover:-translate-y-px'
                   ]"
                   @click="openPedido(pedido)"
@@ -365,7 +373,7 @@ const store = usePedidosStore()
 
 const searchQuery = ref('')
 const activeFilter = ref('all') 
-const circuitMode = ref('OFICIAL') // 'OFICIAL', 'INTERNO'
+const circuitMode = ref('AMBOS') // 'OFICIAL', 'INTERNO', 'AMBOS'
 const selectedPedido = ref(null)
 const statusMenuOpen = ref(null)
 const contextMenu = ref({ visible: false, x: 0, y: 0, pedido: null })
@@ -453,9 +461,10 @@ const sortedAndFilteredPedidos = computed(() => {
     // Bifurcacion Maestro (Genoma Bipolar: Bit 4096 — NO_FISCAL_FORCE)
     if (circuitMode.value === 'OFICIAL') {
         result = result.filter(p => !(p.flags_estado & 4096))
-    } else {
+    } else if (circuitMode.value === 'INTERNO') {
         result = result.filter(p => (p.flags_estado & 4096))
     }
+    // AMBOS: sin filtro de circuito
     
     if (activeFilter.value !== 'all') {
         if (activeFilter.value === 'PRESUPUESTO') {
