@@ -84,6 +84,23 @@ class SegmentoSummary(BaseModel):
     class Config:
         from_attributes = True
 
+class DomicilioSummary(BaseModel):
+    id: UUID
+    alias: Optional[str] = None
+    calle: Optional[str] = None
+    numero: Optional[str] = None
+    piso: Optional[str] = None
+    depto: Optional[str] = None
+    localidad: Optional[str] = None
+    cp: Optional[str] = None
+    es_fiscal: bool = False
+    es_entrega: bool = False
+    es_predeterminado: bool = False
+    activo: bool = True
+
+    class Config:
+        from_attributes = True
+
 class ClienteSummary(BaseModel):
     id: UUID
     razon_social: str
@@ -92,6 +109,8 @@ class ClienteSummary(BaseModel):
     condicion_iva: Optional[CondicionIvaSummary] = None
     segmento: Optional[SegmentoSummary] = None
     flags_estado: int = 0
+    domicilios: List[DomicilioSummary] = []
+    transporte_habitual_id: Optional[UUID] = None
 
     class Config:
         from_attributes = True
