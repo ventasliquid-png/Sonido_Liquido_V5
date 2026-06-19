@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from backend.core.database import get_db
 from backend.auth.dependencies import get_current_user
-from backend.logistica import schemas, service
+from backend.logistica import schemas, service, models
 from backend.contactos import schemas as contactos_schemas
 from backend.contactos import service as contactos_service
 
@@ -50,6 +50,11 @@ def update_empresa(empresa_id: UUID, empresa: schemas.EmpresaTransporteUpdate, d
 @router.delete("/empresas/{empresa_id}/hard", response_model=schemas.EmpresaTransporteResponse)
 def hard_delete_empresa(empresa_id: UUID, db: Session = Depends(get_db)):
     from sqlalchemy.exc import IntegrityError
+    empresa = db.query(models.EmpresaTransporte).filter(models.EmpresaTransporte.id == empresa_id).first()
+    if empresa and (empresa.flags_estado & 64):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="No se puede eliminar la empresa: tiene nodos activos. Elimina los nodos primero.")
     try:
         db_empresa = service.LogisticaService.hard_delete_empresa(db, empresa_id)
         if db_empresa is None:
@@ -57,7 +62,7 @@ def hard_delete_empresa(empresa_id: UUID, db: Session = Depends(get_db)):
         return db_empresa
     except IntegrityError:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, 
+            status_code=status.HTTP_409_CONFLICT,
             detail="No se puede eliminar la empresa porque tiene registros asociados."
         )
 
@@ -105,7 +110,12 @@ def read_nodos(empresa_id: Optional[UUID] = None, db: Session = Depends(get_db))
 
 @router.post("/nodos", response_model=schemas.NodoTransporteResponse, status_code=status.HTTP_201_CREATED)
 def create_nodo(nodo: schemas.NodoTransporteCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    return service.LogisticaService.create_nodo(db, nodo)
+    db_nodo = service.LogisticaService.create_nodo(db, nodo)
+    empresa = db.query(models.EmpresaTransporte).filter(models.EmpresaTransporte.id == db_nodo.empresa_id).first()
+    if empresa and not (empresa.flags_estado & 64):
+        empresa.flags_estado |= 64
+        db.commit()
+    return db_nodo
 
 @router.get("/nodos/{nodo_id}", response_model=schemas.NodoTransporteResponse)
 def read_nodo(nodo_id: UUID, db: Session = Depends(get_db)):
@@ -124,13 +134,22 @@ def update_nodo(nodo_id: UUID, nodo: schemas.NodoTransporteUpdate, db: Session =
 @router.delete("/nodos/{nodo_id}/hard", response_model=schemas.NodoTransporteResponse)
 def hard_delete_nodo(nodo_id: UUID, db: Session = Depends(get_db)):
     from sqlalchemy.exc import IntegrityError
+    preview = db.query(models.NodoTransporte).filter(models.NodoTransporte.id == nodo_id).first()
+    if not preview:
+        raise HTTPException(status_code=404, detail="Nodo no encontrado")
+    empresa_id_cache = preview.empresa_id
     try:
         db_nodo = service.LogisticaService.hard_delete_nodo(db, nodo_id)
         if db_nodo is None:
             raise HTTPException(status_code=404, detail="Nodo no encontrado")
+        if db.query(models.NodoTransporte).filter(models.NodoTransporte.empresa_id == empresa_id_cache).count() == 0:
+            empresa = db.query(models.EmpresaTransporte).filter(models.EmpresaTransporte.id == empresa_id_cache).first()
+            if empresa and (empresa.flags_estado & 64):
+                empresa.flags_estado &= ~64
+                db.commit()
         return db_nodo
     except IntegrityError:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, 
+            status_code=status.HTTP_409_CONFLICT,
             detail="No se puede eliminar el nodo porque tiene registros asociados."
         )

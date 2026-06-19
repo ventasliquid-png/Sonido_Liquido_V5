@@ -153,6 +153,8 @@ class PedidoResponse(BaseModel):
     # Logística
     domicilio_entrega_id: Optional[UUID] = None
     transporte_id: Optional[UUID] = None
+    contacto_responsable_id: Optional[UUID] = None
+    nodo_transporte_id:      Optional[UUID] = None
     costo_envio_cliente: Optional[float] = 0.0
     costo_flete_interno: Optional[float] = 0.0
     estado_logistico: str = "PENDIENTE"

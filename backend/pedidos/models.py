@@ -32,7 +32,9 @@ class Pedido(Base):
     # Logística (V5.6)
     domicilio_entrega_id = Column(GUID(), ForeignKey("domicilios.id"), nullable=True)
     transporte_id = Column(GUID(), ForeignKey("empresas_transporte.id"), nullable=True)
-    
+    contacto_responsable_id = Column(GUID(), ForeignKey("vinculos.id"), nullable=True)
+    nodo_transporte_id      = Column(GUID(), ForeignKey("nodos_transporte.id"), nullable=True)
+
     # Costos Logísticos (MVP)
     costo_envio_cliente = Column(Float, default=0.0) # Lo que paga el cliente
     costo_flete_interno = Column(Float, default=0.0) # Costo "Alberto"

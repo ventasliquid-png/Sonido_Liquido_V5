@@ -44,6 +44,7 @@ TRANSPORTE_REQ_WEB = 1 << 1      # 0x02: Requiere carga en web externa
 TRANSPORTE_HAS_TRACKING = 1 << 2 # 0x04: Tiene tracking online
 TRANSPORTE_HOME_PICKUP = 1 << 3  # 0x08: Realiza retiro a domicilio
 TRANSPORTE_REQ_LABEL = 1 << 4    # 0x10: Requiere etiqueta impresa específica
+TRANSPORTE_HAS_NODOS = 1 << 6   # 0x40: Tiene nodos de transporte activos (HAS_NODOS)
 
 # --- DOMICILIOS: IDENTIDAD (0x06) ---
 DOM_ACTIVO = 1 << 0              # 0x01

@@ -39,8 +39,9 @@ class EmpresaTransporte(Base):
     # Bit 1: ACTIVE (2)
     # Bit 2: PICKUP (4) 
     # Bit 3: RECOMMENDED (8)
-    # Bit 4: WH_PICKUP (16) 
-    # Bit 5: WEB_REQUIRED (32) 
+    # Bit 4: WH_PICKUP (16)
+    # Bit 5: WEB_REQUIRED (32)
+    # Bit 6: HAS_NODOS (64)
     # Bit 21: MIRROR (2097152) -> Despacho = Fiscal
     flags_estado = Column(BigInteger, default=3, nullable=False) # 1+2 (Existence + Active)
     
