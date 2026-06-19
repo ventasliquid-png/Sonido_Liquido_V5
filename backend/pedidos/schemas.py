@@ -97,6 +97,10 @@ class DomicilioSummary(BaseModel):
     es_entrega: bool = False
     es_predeterminado: bool = False
     activo: bool = True
+    transporte_id: Optional[UUID] = None
+    transporte_habitual_nodo_id: Optional[UUID] = None
+    notas_logistica: Optional[str] = None
+    metodo_entrega: Optional[str] = None
 
     class Config:
         from_attributes = True
