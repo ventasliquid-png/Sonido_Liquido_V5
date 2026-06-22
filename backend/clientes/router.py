@@ -2,7 +2,7 @@
 # Versión: V5.6 GOLD | Sincronización: 20260407130827
 # ---------------------------------------------------------
 
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -229,6 +229,43 @@ def delete_vinculo(cliente_id: UUID, vinculo_id: UUID, db: Session = Depends(get
     if not success:
         raise HTTPException(status_code=404, detail="Vínculo no encontrado")
     return None
+
+@router.get("/{cliente_id}/vinculos", response_model=List[contactos_schemas.VinculoForSelect])
+def list_vinculos(
+    cliente_id: UUID,
+    flags_mask: Optional[int] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Lista vínculos activos de un cliente.
+    flags_mask: filtro OR por bits (ej: 10 = IS_LOGISTIC|IS_DECISION_MAKER)
+    """
+    from backend.contactos.models import Vinculo, Persona
+
+    query = (
+        db.query(Vinculo, Persona)
+        .join(Persona, Vinculo.persona_id == Persona.id)
+        .filter(
+            Vinculo.entidad_id == cliente_id,
+            Vinculo.entidad_tipo == 'CLIENTE',
+            Vinculo.activo == True,
+        )
+    )
+    if flags_mask is not None:
+        query = query.filter(Vinculo.flags_estado.op('&')(flags_mask) != 0)
+
+    return [
+        {
+            "id": v.id,
+            "persona_id": v.persona_id,
+            "nombre_completo": p.nombre_completo,
+            "rol": v.rol,
+            "roles": v.roles or [],
+            "flags_estado": v.flags_estado,
+            "activo": v.activo,
+        }
+        for v, p in query.all()
+    ]
 
 # --- [V5.2 GOLD] Address Hub Soberano ---
 

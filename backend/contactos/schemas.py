@@ -5,6 +5,19 @@ from pydantic import BaseModel, Field, field_validator
 import json
 
 # --- VINCULOS / ROLES ---
+class VinculoForSelect(BaseModel):
+    id: UUID
+    persona_id: UUID
+    nombre_completo: str
+    rol: Optional[str] = None
+    roles: List[str] = []
+    flags_estado: int = 0
+    activo: bool
+
+    class Config:
+        from_attributes = True
+
+
 class VinculoRead(BaseModel):
     id: UUID
     entidad_tipo: str # CLIENTE, TRANSPORTE
