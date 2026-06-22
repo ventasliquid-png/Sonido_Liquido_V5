@@ -74,6 +74,18 @@
                         </span>
                     </div>
                 </div>
+
+                <!-- Nodo / Sucursal Selector (Bit 6 = HAS_NODOS) -->
+                <div v-if="selectedTransport && (selectedTransport.flags_estado & 64)" class="space-y-1">
+                    <label class="text-[9px] font-bold text-white/40 uppercase">Nodo / Sucursal</label>
+                    <SmartSelect
+                        :modelValue="modelValue.nodo_transporte_id"
+                        @update:modelValue="updateNodo"
+                        :options="nodoOptions"
+                        placeholder="Seleccionar nodo..."
+                        :allowCreate="false"
+                    />
+                </div>
             </div>
         </div>
 
@@ -231,6 +243,10 @@ const selectedTransport = computed(() => {
 
 const isLastUsed = computed(() => props.modelValue.transporte_id === lastUsedId.value);
 
+const nodoOptions = computed(() =>
+    logisticaStore.nodos.map(n => ({ id: n.id, nombre: n.nombre_nodo }))
+);
+
 const requiresInternalFreight = computed(() => {
     if (!selectedTransportInfo.value) return true;
     return !selectedTransportInfo.value.retiro;
@@ -288,6 +304,16 @@ const updateTransport = async (transporteId) => {
         notification.add('Transporte actualizado', 'success');
     } catch (e) {
         notification.add('Error actualizando transporte', 'error');
+    }
+};
+
+const updateNodo = async (nodoId) => {
+    try {
+        await pedidosStore.updatePedido(props.modelValue.id, { nodo_transporte_id: nodoId });
+        props.modelValue.nodo_transporte_id = nodoId;
+        notification.add('Nodo de transporte actualizado', 'success');
+    } catch (e) {
+        notification.add('Error actualizando nodo', 'error');
     }
 };
 
