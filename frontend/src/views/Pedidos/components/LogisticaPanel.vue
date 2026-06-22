@@ -86,6 +86,18 @@
                         :allowCreate="false"
                     />
                 </div>
+
+                <!-- Contacto Responsable (flags_mask=10: IS_LOGISTIC|IS_DECISION_MAKER) -->
+                <div v-if="vinculosContacto.length > 0" class="space-y-1">
+                    <label class="text-[9px] font-bold text-white/40 uppercase">Contacto Responsable</label>
+                    <SmartSelect
+                        :modelValue="modelValue.contacto_responsable_id"
+                        @update:modelValue="updateContacto"
+                        :options="contactoOptions"
+                        placeholder="Seleccionar contacto..."
+                        :allowCreate="false"
+                    />
+                </div>
             </div>
         </div>
 
@@ -144,11 +156,12 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import SmartSelect from '@/components/ui/SmartSelect.vue';
 import { useLogisticaStore } from '@/stores/logistica';
 import { usePedidosStore } from '@/stores/pedidos';
 import { useNotificationStore } from '@/stores/notification';
+import clientesService from '@/services/clientes';
 
 const props = defineProps({
     modelValue: {
@@ -164,12 +177,29 @@ const pedidosStore = usePedidosStore();
 const notification = useNotificationStore();
 
 const lastUsedId = ref(null);
+const vinculosContacto = ref([]);
+
+async function fetchVinculos(clienteId) {
+    if (!clienteId) return;
+    try {
+        const res = await clientesService.getVinculos(clienteId, 10);
+        vinculosContacto.value = res.data;
+    } catch {
+        vinculosContacto.value = [];
+    }
+}
+
+watch(() => props.modelValue.cliente_id, (newId) => {
+    vinculosContacto.value = [];
+    fetchVinculos(newId);
+});
 
 onMounted(async () => {
     // Parallel fetching for speed
     await Promise.all([
         logisticaStore.empresas.length === 0 ? logisticaStore.fetchEmpresas() : Promise.resolve(),
-        logisticaStore.fetchAllNodos()
+        logisticaStore.fetchAllNodos(),
+        fetchVinculos(props.modelValue.cliente_id)
     ]);
 
     // Pre-selection logic for new orders (V5.8 Inheritance)
@@ -247,6 +277,10 @@ const nodoOptions = computed(() =>
     logisticaStore.nodos.map(n => ({ id: n.id, nombre: n.nombre_nodo }))
 );
 
+const contactoOptions = computed(() =>
+    vinculosContacto.value.map(v => ({ id: v.id, nombre: v.nombre_completo }))
+);
+
 const requiresInternalFreight = computed(() => {
     if (!selectedTransportInfo.value) return true;
     return !selectedTransportInfo.value.retiro;
@@ -314,6 +348,16 @@ const updateNodo = async (nodoId) => {
         notification.add('Nodo de transporte actualizado', 'success');
     } catch (e) {
         notification.add('Error actualizando nodo', 'error');
+    }
+};
+
+const updateContacto = async (vinculoId) => {
+    try {
+        await pedidosStore.updatePedido(props.modelValue.id, { contacto_responsable_id: vinculoId });
+        props.modelValue.contacto_responsable_id = vinculoId;
+        notification.add('Contacto responsable actualizado', 'success');
+    } catch (e) {
+        notification.add('Error actualizando contacto', 'error');
     }
 };
 

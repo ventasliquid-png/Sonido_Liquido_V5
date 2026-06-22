@@ -29,6 +29,7 @@ export default {
     deleteDomicilio: (clienteId, domicilioId) => api.delete(`/clientes/${clienteId}/domicilios/${domicilioId}`),
 
     // Vinculos (Migrated to V6 Multiplex)
+    getVinculos: (clienteId, flagsMask) => api.get(`/clientes/${clienteId}/vinculos`, { params: { flags_mask: flagsMask } }),
     createVinculo(clienteId, data) {
         const payload = { ...data, cliente_id: clienteId };
         return api.post(`/clientes/${clienteId}/vinculos`, payload);
