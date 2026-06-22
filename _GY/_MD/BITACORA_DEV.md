@@ -1,3 +1,38 @@
+## SESIÓN 832 (OF): CARDS #75/#76 FRONTEND + PROMPTS V4.1/V3.1
+**Fecha:** 2026-06-22
+**Locación:** OF
+**Objetivo:** SmartSelect nodo_transporte_id (Card #76) y SmartSelect contacto_responsable_id + endpoint GET /clientes/{id}/vinculos (Card #75) en LogisticaPanel.vue. Actualizar prompts de instalacion Claude V4.1 y Gemini V3.1.
+**Estado:** NOMINAL GOLD — Hash D: 53429c3f | Hash P: ba9361e | PIN 1974
+
+### Hito 1: Card #76 — SmartSelect nodo_transporte_id (OF desde cero)
+* LogisticaPanel.vue: computed nodoOptions, handler updateNodo, template con v-if="selectedTransport && (selectedTransport.flags_estado & 64)".
+* Condicional Bit 6 (HAS_NODOS=64) en flags_estado de la empresa de transporte seleccionada.
+* Commit D: 87e7d554.
+
+### Hito 2: Card #75 — Backend GET /clientes/{id}/vinculos
+* Schema VinculoForSelect (contactos/schemas.py): nombre_completo es @property de Persona, no columna. Workaround: endpoint retorna list[dict] explicito, no list[ORM].
+* Endpoint clientes/router.py: join Vinculo+Persona, filtro flags_mask=10 (IS_LOGISTIC Bit1 | IS_DECISION_MAKER Bit3).
+* clientesService.getVinculos() agregado en frontend/src/services/clientes.js.
+* Commit D: 5093157f.
+
+### Hito 3: Card #75 — SmartSelect contacto_responsable_id
+* LogisticaPanel.vue: vinculosContacto ref local + fetchVinculos() + watch cliente_id + computed contactoOptions + handler updateContacto.
+* onMounted Promise.all ampliado con fetchVinculos(props.modelValue.cliente_id).
+* FK verificada: contacto_responsable_id -> vinculos.id (no personas.id).
+* Commit D: 53429c3f.
+
+### Hito 4: Prompts V4.1 y V3.1
+* PROMPT_INSTALACION_CLAUDE V4.0->V4.1 + GEMINI V3.0->V3.1.
+* Nueva seccion ROL DE LOS EJECUTORES (CS+Carlos diagnostican, CC ejecuta y propone).
+* Seccion PIN 1974 reemplazada: criterio en lugar de lista estatica. Tabla incluye cherry-pick/merge a P/MT.
+
+### Hito 5: Cherry-pick D->P + push prod
+* 3 commits cherry-picked en orden: 87e7d554, 5093157f, 53429c3f.
+* Pattern: cherry-pick falla por divergencia _GY/_MD en .gitignore, workaround copy manual D->P + commit P.
+* Push a remote "prod" (no "origin") exitoso. P hash final: ba9361e.
+
+---
+
 ## SESIÓN 826 (OF): CARD #70 GOLD + PEDIDOCANVAS SYNC + WATCHER PORT
 **Fecha:** 2026-06-16
 **Locación:** OF

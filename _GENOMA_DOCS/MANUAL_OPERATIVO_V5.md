@@ -3,6 +3,11 @@
 **Estado:** VIGENTE
 **Código de Doctrina:** DEOU-2025
 
+### 📢 Actualización Sesión 832 OF (2026-06-22)
+- **SmartSelect Contacto Responsable (Panel Logistica):** En la pestana de logistica de un pedido, si el cliente tiene contactos con rol logistico o decisor, aparece el selector "Contacto Responsable". Cambiar el contacto actualiza el pedido en tiempo real. Solo visible cuando hay vinculos cargados.
+- **SmartSelect Nodo / Sucursal (Panel Logistica):** Si la empresa de transporte asignada tiene sucursales/nodos (Bit 6 activado en su ficha), aparece el selector de nodo de entrega. Solo visible para empresas con Bit 6.
+- **Sin cambios visibles para el operador en P/MT:** Estas features requieren que Tomy ejecute git pull y reconstruya el frontend.
+
 ### 📢 Actualización Sesión 829 OF (2026-06-18)
 - **Motor Silencioso Rosa (PedidoInspector línea 570):** El sistema diferencia automáticamente entre pedidos Rosa (sin documentos fiscales) y Blanco (con documentos). Un operador que carga un pedido Rosa verá la operación sin avisos de borrador/remito — circuito INTERNO soberano.
 - **ClienteSummary.flags_estado:** Nuevo campo en la respuesta backend que permite al frontend validar la condición de cliente (Bit 4 = Rosa) antes de decidir si crear documentos. Validación bifurcada y anticipada.

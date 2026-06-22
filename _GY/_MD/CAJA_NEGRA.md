@@ -1,4 +1,21 @@
-Sesión actual: 831
+Sesión actual: 832
+
+# CAJA NEGRA: Cards #75/#76 SmartSelect + Prompts V4.1/V3.1 (2026-06-22)
+
+Sesión 832 OF. Hash D: 53429c3f | Hash P: ba9361e. Estado: NOMINAL GOLD.
+
+Card #76 + Card #75 implementacion frontend completa en LogisticaPanel.vue:
+- Card #76: SmartSelect nodo_transporte_id — condicional Bit6(HAS_NODOS=64). Computed nodoOptions + handler updateNodo + PATCH pedidosStore. D:87e7d554.
+- Card #75: GET /clientes/{id}/vinculos — nuevo endpoint con filtro flags_mask opcional. Schema VinculoForSelect: Vinculo+Persona join, nombre_completo es @property, serializacion manual por dict (workaround from_attributes). D:5093157f.
+- Card #75 frontend: SmartSelect contacto_responsable_id — watch cliente_id, fetchVinculos en onMounted+watch, computed contactoOptions, handler updateContacto. FK verificada: contacto_responsable_id -> vinculos.id. D:53429c3f.
+- Cherry-pick pattern: falla por _GY/_MD divergencias .gitignore, workaround copy manual D->P. Remote P = "prod". P:ba9361e push prod OK.
+- PROMPT_INSTALACION_CLAUDE V4.0->V4.1 + GEMINI V3.0->V3.1: ROL EJECUTORES + PIN 1974 criterio vs lista estatica. Cherry-pick/merge a P/MT en tabla PIN.
+- SISTEMA_STATUS.json: banderas_rojas_activas 3->0, deuda tecnica 820 reclasificada amarillo.
+- Board CERRADO: Cards #75/#76, 2026-06-22, D:53429c3f P:ba9361e.
+
+**Agente:** Claude Code (Sonnet 4.6) -- Hash D: 53429c3f | Hash P: ba9361e | PIN: 1974
+
+---
 
 # CAJA NEGRA: Card #70 GOLD + PedidoCanvas Sync D→P + Watcher (2026-06-16)
 

@@ -1,6 +1,38 @@
-# 📘 MANUAL TÉCNICO V5: "INDEPENDENCIA"
-**Versión:** 2.4 Release (STATE_MASK en transiciones — 825 CA)
-**Fecha:** 2026-06-14
+# MANUAL TECNICO V5: "INDEPENDENCIA"
+**Version:** 2.5 Release (dict bypass @property en endpoint join — 832 OF)
+**Fecha:** 2026-06-22
+
+## 37. PATRON DICT BYPASS PARA @property EN ENDPOINT CON JOIN (Sesion 832 OF, 2026-06-22)
+
+### 37.1 El problema
+
+`Persona.nombre_completo` es un `@property` Python — no es columna SQLAlchemy. Al hacer un join Vinculo+Persona y retornar objetos ORM, Pydantic con `from_attributes=True` intenta `getattr(vinculo_orm, 'nombre_completo')` pero el atributo pertenece a `persona_orm`, no a `vinculo_orm`.
+
+### 37.2 El patron canonico
+
+```python
+# En el endpoint, retornar list[dict] en lugar de list[ORM]:
+return [
+    {
+        "id": v.id,
+        "persona_id": v.persona_id,
+        "nombre_completo": p.nombre_completo,  # @property evaluado explicitamente
+        "rol": v.rol,
+        "roles": v.roles or [],
+        "flags_estado": v.flags_estado,
+        "activo": v.activo,
+    }
+    for v, p in query.all()
+]
+```
+
+Pydantic valida los dicts sin intentar introspeccion ORM. El `@property` se evalua sobre el objeto correcto.
+
+### 37.3 Cuando aplicar
+
+Usar este patron en cualquier endpoint que serialice propiedades calculadas de un objeto relacionado en un join multi-tabla.
+
+---
 
 ## 36. DOCTRINA STATE_MASK — PATRÓN OBLIGATORIO EN TRANSICIONES DE PEDIDO (Sesión 825 CA, 2026-06-14)
 
