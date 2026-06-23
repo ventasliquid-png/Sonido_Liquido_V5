@@ -744,6 +744,22 @@ class RemitosService:
             )
             db.add(r_item)
 
+        # 7. EVALUAR HAS_PARTIAL_DELIVERY (Bit 20)
+        db.flush()
+        from backend.pedidos.constants import PedidoFlags
+        has_partial = any(
+            item.cantidad_entregada < item.cantidad
+            for item in db.query(PedidoItem).filter(
+                PedidoItem.pedido_id == nuevo_pedido.id
+            ).all()
+        )
+        nuevo_pedido.flags_estado = (
+            ((nuevo_pedido.flags_estado or 0) | int(PedidoFlags.HAS_PARTIAL_DELIVERY))
+            if has_partial else
+            ((nuevo_pedido.flags_estado or 0) & ~int(PedidoFlags.HAS_PARTIAL_DELIVERY))
+        )
+        db.add(nuevo_pedido)
+
         db.commit()
         db.refresh(remito)
         return remito

@@ -6,14 +6,19 @@ class PedidoFlags(IntFlag):
     Banda baja reservada para bits universales y Motor Bipolar.
     Banda 32+ para ciclo de vida y auditoría forense del pedido.
     """
-    NOTHING   = 0
-    EXISTENCE = 1 << 0   # Bit 0 — existencia lógica
+    NOTHING      = 0
+    EXISTENCE    = 1 << 0   # Bit 0 — existencia lógica
+    HAS_ACTIVITY = 1 << 1   # Bit 1 — Ley Universal: marca de actividad/virginidad. Bit 1 no está libre en ninguna entidad del sistema.
 
     # Bits bajos preexistentes — INTOCABLES
     PEDIDO_DUPLICATE_CONFIRMED = 1 << 6   # Bit 6
     INGESTA_CON_CORRECCION     = 1 << 9   # Bit 9
     NO_FISCAL_FORCE            = 1 << 12  # Bit 12 — Motor Bipolar soberano
     # Bit 13 PROHIBIDO — colisión LAVIMAR
+    # Bit 20 — Pedido tiene ítems con entrega parcial pendiente.
+    # Se enciende automáticamente al crear remito que no cubre el total de algún ítem.
+    # Se apaga cuando todos los ítems están cubiertos al 100%. Canonizado Nike S833.
+    HAS_PARTIAL_DELIVERY = 1 << 20
     # Bit 40 PROHIBIDO — DISCRIMINA_IVA del cliente
 
     # BANDA 32+ — Estados mutuamente excluyentes
