@@ -743,6 +743,13 @@ class RemitosService:
                 cantidad=p_item["cantidad"]
             )
             db.add(r_item)
+            
+            # [GY] Update cantidad_entregada on original PedidoItem
+            original_p_item = db.query(PedidoItem).filter(PedidoItem.id == p_item["pi_id"]).first()
+            if original_p_item:
+                current_entregada = original_p_item.cantidad_entregada or 0.0
+                original_p_item.cantidad_entregada = current_entregada + p_item["cantidad"]
+                db.add(original_p_item)
 
         db.commit()
         db.refresh(remito)

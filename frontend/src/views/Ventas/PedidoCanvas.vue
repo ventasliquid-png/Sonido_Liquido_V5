@@ -478,8 +478,20 @@
                                 </div>
                                 
                                 <!-- Cantidad (Locked) -->
-                                <div class="col-span-1 text-center">
+                                <div class="col-span-1 text-center relative flex flex-col items-center justify-center">
                                     <span class="font-bold text-white text-sm">{{ item.cantidad }}</span>
+                                    <span v-if="item.cantidad_entregada > 0 && item.cantidad_entregada < item.cantidad" 
+                                         class="text-[9px] font-bold text-amber-400 bg-amber-500/20 px-1.5 rounded-sm border border-amber-500/30 whitespace-nowrap mt-0.5"
+                                         title="Entrega Parcial"
+                                    >
+                                        {{ item.cantidad_entregada }}/{{ item.cantidad }}
+                                    </span>
+                                    <span v-else-if="item.cantidad_entregada && item.cantidad_entregada >= item.cantidad"
+                                         class="text-[9px] font-bold text-emerald-400 bg-emerald-500/20 px-1.5 rounded-sm border border-emerald-500/30 mt-0.5"
+                                         title="Entrega Completa"
+                                    >
+                                        OK
+                                    </span>
                                 </div>
 
                                 <!-- Precio (Editable) -->
@@ -722,6 +734,11 @@ import { useNotificationStore } from '@/stores/notification';
 import { useRoute } from 'vue-router'; // Add useRoute
 
 // --- STORES & ROUTER ---
+const props = defineProps({
+    isModal: { type: Boolean, default: false }
+});
+const emit = defineEmits(['close', 'save']);
+
 const route = useRoute();
 const notificationStore = useNotificationStore();
 const clientesStore = useClientesStore();
@@ -730,9 +747,11 @@ const maestrosStore = useMaestrosStore();
 const pedidosStore = usePedidosStore();
 
 const goBack = () => {
-    if (pedidosStore.ingestaData) {
-        // Vinimos desde Ingesta y el usuario quiere abortar o ver el PDF original
-        // No limpiamos el contexto aquí, dejamos que Ingesta lo recupere al montar
+    if (props.isModal) {
+        emit('close');
+        return;
+    }
+    if (route.query.from === 'ingesta') {
         router.push({ name: 'IngestaFactura' });
     } else {
         router.push({ name: 'PedidoList' });
@@ -1054,7 +1073,7 @@ const clientLogistics = computed(() => {
     }
 
     return { address, transport };
-});
+};
 
 const selectedDomicilioId = ref(null);
 const selectedTransporteId = ref(null);
@@ -2083,17 +2102,18 @@ const savePedido = async (andPrint = false) => {
                 payload.nota = payload.nota ? `${payload.nota}\n${notaAuto}` : notaAuto;
             }
 
-            const pedidoCreado = await api.post('/pedidos/tactico', payload);
-            const pedidoId = pedidoCreado.data.id;
-
-            const wasIngesta = !!pedidosStore.ingestaData;
+            const res = await api.post('/pedidos/tactico', payload);
+            const savedPedido = res.data;
+            const pedidoId = savedPedido.id;
 
             pedidosStore.setAutoPrint(false);
 
-            // DOCTRINA:
-            // - Si wasIngesta=true: pedido creado desde ingesta → redirect a PedidoList
-            // - Si wasIngesta=false: pedido creado manualmente → reset canvas
-            if (wasIngesta) {
+            // Notification handled by interceptor
+            if (props.isModal) {
+                emit('save', savedPedido);
+                return;
+            }
+            if (isFromIngesta.value) {
                 // Return to Ingesta to finish linking
                 setTimeout(() => {
                     router.push({ name: 'IngestaFactura' });

@@ -209,6 +209,11 @@
                               {{ pedido.estado }}
                           </button>
                           
+                          <!-- PARCIAL BADGE -->
+                          <div v-if="tieneEntregasParciales(pedido)" class="absolute -top-3 -right-6 px-1.5 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded text-[8px] font-black uppercase tracking-widest shadow-lg animate-pulse pointer-events-none">
+                              PARCIAL
+                          </div>
+                          
                           <!-- Custom Colorful Dropdown Menu -->
                           <div 
                               v-if="statusMenuOpen === pedido.id" 
@@ -691,14 +696,19 @@ const formatDate = (dateString) => {
     })
 }
 
-const formatCurrency = (value) => {
-    return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(value)
-}
+const formatCurrency = (val) => {
+    return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(val);
+};
 
 const getInitials = (name) => {
-    if (!name) return '?'
-    return name.substring(0, 1).toUpperCase()
-}
+    if (!name) return '??';
+    return name.substring(0, 2).toUpperCase();
+};
+
+const tieneEntregasParciales = (pedido) => {
+    if (!pedido || !pedido.items) return false;
+    return pedido.items.some(i => i.cantidad_entregada > 0 && i.cantidad_entregada < i.cantidad);
+};
 
 const toggleSort = (key) => {
     if (sortKey.value === key) {

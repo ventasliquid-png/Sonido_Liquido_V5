@@ -129,6 +129,7 @@ class ProductoSummary(BaseModel):
 
 class PedidoItemResponse(PedidoItemCreate):
     id: int
+    cantidad_entregada: float = 0.0
     subtotal: float
     producto: Optional[ProductoSummary] = None
 

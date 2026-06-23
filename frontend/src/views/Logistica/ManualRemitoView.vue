@@ -56,29 +56,26 @@
 
             <!-- Pedido Selector (NUEVO) -->
             <transition name="fade">
-              <div v-if="form.cliente_id && pendingOrders.length > 0" class="mt-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl p-4 animate-in slide-in-from-top-2">
-                <div class="flex justify-between items-end mb-2">
-                  <label class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Pedido Asociado (Opcional)</label>
-                </div>
-                <select 
-                  v-model="form.pedido_id"
-                  @change="onPedidoSelected"
-                  class="w-full bg-[#0a0f1d] border border-indigo-500/30 rounded-xl px-4 py-3 text-sm text-white focus:border-indigo-500 focus:outline-none transition-all appearance-none"
-                >
-                  <option :value="null">--- Sin Pedido Asociado (Remito Directo) ---</option>
-                  <option v-for="ped in pendingOrders" :key="ped.id" :value="ped.id">
-                    Pedido #{{ ped.id }} - {{ ped.fecha }} - Total: ${{ ped.total }}
-                  </option>
-                </select>
-              </div>
-            </transition>
-            
-            <transition name="fade">
-              <div v-if="form.cliente_id && pendingOrders.length === 0" class="mt-4 flex gap-4">
-                  <span class="text-xs text-orange-400 mt-2"><i class="fas fa-exclamation-triangle"></i> El cliente no tiene pedidos pendientes.</span>
-                  <button @click="$router.push({ name: 'PedidoCanvas' })" class="px-4 py-2 bg-orange-500/20 text-orange-400 hover:bg-orange-500/40 text-xs font-bold uppercase rounded transition-colors">
-                    <i class="fas fa-plus"></i> Crear Pedido Nuevo
-                  </button>
+              <div v-if="form.cliente_id" class="mt-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl p-4 animate-in slide-in-from-top-2">
+                 <div class="flex justify-between items-end mb-2">
+                   <label class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Pedido Asociado (Opcional)</label>
+                   <button @click="openNewPedidoModal" class="text-[10px] bg-orange-500/20 text-orange-400 hover:bg-orange-500/40 px-2 py-1 rounded font-bold uppercase tracking-widest transition-colors flex items-center gap-1">
+                      <i class="fas fa-plus"></i> Crear Nuevo
+                   </button>
+                 </div>
+                 <select 
+                   v-model="form.pedido_id"
+                   @change="onPedidoSelected"
+                   class="w-full bg-[#0a0f1d] border border-indigo-500/30 rounded-xl px-4 py-3 text-sm text-white focus:border-indigo-500 focus:outline-none transition-all appearance-none"
+                 >
+                   <option :value="null">--- Sin Pedido Asociado (Remito Directo) ---</option>
+                   <option v-for="ped in pendingOrders" :key="ped.id" :value="ped.id">
+                     Pedido #{{ ped.id }} - {{ ped.fecha.split('T')[0] }} - Total: ${{ ped.total }}
+                   </option>
+                 </select>
+                 <div v-if="pendingOrders.length === 0" class="mt-2 text-xs text-orange-400 opacity-80">
+                     <i class="fas fa-info-circle"></i> El cliente no tiene pedidos pendientes.
+                 </div>
               </div>
             </transition>
 
@@ -243,6 +240,19 @@
         </div>
       </Teleport>
 
+      <!-- MODAL: PEDIDO NUEVO -->
+      <Teleport to="body">
+        <div v-if="showNewPedidoModal" class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-8 animate-in fade-in duration-300">
+             <div class="w-full max-w-6xl h-full max-h-[95vh] bg-[#0f172a] rounded-3xl shadow-2xl border border-emerald-500/30 overflow-hidden relative">
+                 <PedidoCanvas 
+                    :isModal="true"
+                    @close="showNewPedidoModal = false"
+                    @save="onNewPedidoSaved"
+                 />
+             </div>
+        </div>
+      </Teleport>
+
     </div>
   </div>
 </template>
@@ -254,6 +264,7 @@ import { useMaestrosStore } from '@/stores/maestros';
 import { useNotificationStore } from '@/stores/notification';
 import SmartSelect from '@/components/ui/SmartSelect.vue';
 import ClientCanvas from '../Hawe/ClientCanvas.vue';
+import PedidoCanvas from '../Ventas/PedidoCanvas.vue';
 import api from '@/services/api';
 
 const clientesStore = useClientesStore();
@@ -263,6 +274,7 @@ const notificationStore = useNotificationStore();
 // --- STATE ---
 const isSaving = ref(false);
 const showNewClientModal = ref(false);
+const showNewPedidoModal = ref(false);
 const qtyRefs = ref([]);
 
 const form = reactive({
@@ -369,13 +381,25 @@ const onPedidoSelected = () => {
     if (ped.domicilio_entrega_id) form.domicilio_entrega_id = ped.domicilio_entrega_id;
     if (ped.transporte_id) form.transporte_id = ped.transporte_id;
     
-    // Mapear items
+    // Mapear items con lógica de cantidad parcial
     if (ped.items && ped.items.length > 0) {
-        form.items = ped.items.map(i => ({
-            descripcion: i.producto ? i.producto.nombre : (i.nota || 'Ítem de Pedido'),
-            cantidad: i.cantidad,
-            codigo_visual: i.producto ? i.producto.codigo_visual : null
-        }));
+        form.items = ped.items
+            .map(i => {
+                const entregada = i.cantidad_entregada || 0;
+                const falta = i.cantidad - entregada;
+                return {
+                    descripcion: i.producto ? i.producto.nombre : (i.nota || 'Ítem de Pedido'),
+                    cantidad: falta > 0 ? falta : 0,
+                    codigo_visual: i.producto ? i.producto.codigo_visual : null,
+                    _original_cantidad: i.cantidad,
+                    _entregada: entregada
+                };
+            })
+            .filter(i => i.cantidad > 0); // Omitimos los que ya fueron 100% entregados
+            
+        if (form.items.length === 0) {
+            notificationStore.add("Este pedido ya fue entregado en su totalidad.", "warning");
+        }
     }
 };
 
@@ -386,12 +410,32 @@ const openNewClientModal = () => {
 const onNewClientSaved = (client) => {
     showNewClientModal.value = false;
     if (client) {
-        // Since it's a new client, it might not be in store yet or we can just use the ID
-        // Refresh store
         clientesStore.fetchClientes();
         form.cliente_id = client.id;
         onClientSelected(client.id);
         notificationStore.add('Cliente creado y seleccionado.', 'success');
+    }
+};
+
+const openNewPedidoModal = () => {
+    // Si no tiene cliente, le avisamos? Dejamos que lo elija en el canvas,
+    // pero idealmente en el futuro le pasamos el cliente_id.
+    showNewPedidoModal.value = true;
+};
+
+const onNewPedidoSaved = async (pedido) => {
+    showNewPedidoModal.value = false;
+    if (pedido) {
+        notificationStore.add('Pedido creado con éxito.', 'success');
+        // Refresh orders for this client
+        if (form.cliente_id) {
+            const ordersRes = await api.get('/pedidos/', { params: { estado: 'PENDIENTE', cliente_id: form.cliente_id } });
+            pendingOrders.value = ordersRes.data || [];
+            
+            // Auto select new order
+            form.pedido_id = pedido.id;
+            onPedidoSelected();
+        }
     }
 };
 

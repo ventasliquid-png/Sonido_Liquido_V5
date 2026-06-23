@@ -1,0 +1,13 @@
+[2026-06-19 13:23:54] DB: C:\dev\Sonido_Liquido_V5\pilot_v5x.db
+[2026-06-19 13:23:54] PENDING: 032_contacto_responsable_id, 033_nodo_transporte_id
+[2026-06-19 13:23:54] Backup: pilot_v5x_backup_20260619_132354.db
+[2026-06-19 13:23:54] FAILURE: 'charmap' codec can't encode character '\u2192' in position 108: character maps to <undefined>
+[2026-06-19 13:23:54] Backup restaurado — DB sin cambios
+[2026-06-19 13:24:10] DB: C:\dev\Sonido_Liquido_V5\pilot_v5x.db
+[2026-06-19 13:24:10] PENDING: 032_contacto_responsable_id, 033_nodo_transporte_id
+[2026-06-19 13:24:10] Backup: pilot_v5x_backup_20260619_132410.db
+[2026-06-19 13:24:10] APPLY 032_contacto_responsable_id — Card #75 — contacto_responsable_id en pedidos (FK -> vinculos.id)
+[2026-06-19 13:24:10] VERIFY 032_contacto_responsable_id — OK
+[2026-06-19 13:24:10] APPLY 033_nodo_transporte_id — Card #76 — nodo_transporte_id en pedidos (FK -> nodos_transporte.id)
+[2026-06-19 13:24:10] VERIFY 033_nodo_transporte_id — OK
+[2026-06-19 13:24:10] SUCCESS — 2 migracion(es) aplicada(s)
