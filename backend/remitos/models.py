@@ -87,7 +87,7 @@ class RemitoItem(Base):
     
     # Relaciones
     remito = relationship("Remito", back_populates="items")
-    pedido_item = relationship("PedidoItem")
+    pedido_item = relationship("PedidoItem", back_populates="remitos_items")
     
     @property
     def descripcion_display(self):

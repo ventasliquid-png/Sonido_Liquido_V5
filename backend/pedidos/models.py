@@ -61,7 +61,6 @@ class PedidoItem(Base):
     producto_id = Column(Integer, ForeignKey("productos.id"), nullable=False)
     
     cantidad = Column(Float, default=1.0)
-    cantidad_entregada = Column(Float, default=0.0)
     precio_unitario = Column(Float, default=0.0)
     
     # Descuentos por ítem
@@ -74,3 +73,9 @@ class PedidoItem(Base):
     # Relaciones
     pedido = relationship("Pedido", back_populates="items")
     producto = relationship("Producto")
+    remitos_items = relationship("RemitoItem", back_populates="pedido_item")
+
+    @property
+    def cantidad_entregada(self) -> float:
+        # Runtime calculation of delivered quantity
+        return sum(ri.cantidad for ri in self.remitos_items if ri.remito.estado != "ANULADO")
