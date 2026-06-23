@@ -54,6 +54,34 @@
               />
             </div>
 
+            <!-- Pedido Selector (NUEVO) -->
+            <transition name="fade">
+              <div v-if="form.cliente_id && pendingOrders.length > 0" class="mt-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl p-4 animate-in slide-in-from-top-2">
+                <div class="flex justify-between items-end mb-2">
+                  <label class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Pedido Asociado (Opcional)</label>
+                </div>
+                <select 
+                  v-model="form.pedido_id"
+                  @change="onPedidoSelected"
+                  class="w-full bg-[#0a0f1d] border border-indigo-500/30 rounded-xl px-4 py-3 text-sm text-white focus:border-indigo-500 focus:outline-none transition-all appearance-none"
+                >
+                  <option :value="null">--- Sin Pedido Asociado (Remito Directo) ---</option>
+                  <option v-for="ped in pendingOrders" :key="ped.id" :value="ped.id">
+                    Pedido #{{ ped.id }} - {{ ped.fecha }} - Total: ${{ ped.total }}
+                  </option>
+                </select>
+              </div>
+            </transition>
+            
+            <transition name="fade">
+              <div v-if="form.cliente_id && pendingOrders.length === 0" class="mt-4 flex gap-4">
+                  <span class="text-xs text-orange-400 mt-2"><i class="fas fa-exclamation-triangle"></i> El cliente no tiene pedidos pendientes.</span>
+                  <button @click="$router.push({ name: 'PedidoCanvas' })" class="px-4 py-2 bg-orange-500/20 text-orange-400 hover:bg-orange-500/40 text-xs font-bold uppercase rounded transition-colors">
+                    <i class="fas fa-plus"></i> Crear Pedido Nuevo
+                  </button>
+              </div>
+            </transition>
+
             <!-- Client Info Card (Static) -->
             <transition name="fade">
               <div v-if="selectedClient" class="bg-indigo-500/5 border border-indigo-500/20 rounded-2xl p-4 flex gap-4 items-start animate-in slide-in-from-top-2">
@@ -238,12 +266,13 @@ const showNewClientModal = ref(false);
 const qtyRefs = ref([]);
 
 const form = reactive({
+  pedido_id: null,
   cliente_id: null,
   cliente_nuevo: null,
   domicilio_entrega_id: null,
   transporte_id: null,
   items: [
-    { descripcion: '', cantidad: 1 }
+    { descripcion: '', cantidad: 1, codigo_visual: null }
   ],
   observaciones: '',
   bultos: 1,
@@ -252,6 +281,8 @@ const form = reactive({
 
 const availableAddresses = ref([]);
 const loadingAddresses = ref(false);
+const pendingOrders = ref([]);
+const loadingOrders = ref(false);
 
 // --- COMPUTED ---
 const clientesOptions = computed(() => {
@@ -287,17 +318,24 @@ onMounted(async () => {
   if (maestrosStore.transportes.length === 0) await maestrosStore.fetchTransportes();
 });
 
-// Reactive trigger for client addresses
+// Reactive trigger for client addresses & orders
 watch(() => form.cliente_id, async (newVal) => {
     if (!newVal) {
         availableAddresses.value = [];
+        pendingOrders.value = [];
+        form.pedido_id = null;
         return;
     }
     
     loadingAddresses.value = true;
+    loadingOrders.value = true;
     try {
         const fullClient = await clientesStore.fetchClienteById(newVal);
         availableAddresses.value = fullClient.domicilios || [];
+        
+        // Fetch pending orders
+        const ordersRes = await api.get('/pedidos/', { params: { estado: 'PENDIENTE', cliente_id: newVal } });
+        pendingOrders.value = ordersRes.data || [];
         
         // Auto-select first address if none selected
         if (availableAddresses.value.length > 0 && !form.domicilio_entrega_id) {
@@ -305,17 +343,40 @@ watch(() => form.cliente_id, async (newVal) => {
             form.domicilio_entrega_id = targetDom.id;
         }
     } catch (e) {
-        console.error("Error loading client addresses", e);
+        console.error("Error loading client addresses or orders", e);
     } finally {
         loadingAddresses.value = false;
+        loadingOrders.value = false;
     }
 }, { immediate: true });
 
 const onClientSelected = async (val) => {
     if (!val) return;
     form.cliente_nuevo = null;
-    // Clearing current selection to force re-fetch or re-assignment
     form.domicilio_entrega_id = null;
+    form.pedido_id = null;
+};
+
+const onPedidoSelected = () => {
+    if (!form.pedido_id) {
+        form.items = [{ descripcion: '', cantidad: 1, codigo_visual: null }];
+        return;
+    }
+    const ped = pendingOrders.value.find(p => p.id === form.pedido_id);
+    if (!ped) return;
+
+    // Autocompletar datos logísticos del pedido
+    if (ped.domicilio_entrega_id) form.domicilio_entrega_id = ped.domicilio_entrega_id;
+    if (ped.transporte_id) form.transporte_id = ped.transporte_id;
+    
+    // Mapear items
+    if (ped.items && ped.items.length > 0) {
+        form.items = ped.items.map(i => ({
+            descripcion: i.producto ? i.producto.nombre : (i.nota || 'Ítem de Pedido'),
+            cantidad: i.cantidad,
+            codigo_visual: i.producto ? i.producto.codigo_visual : null
+        }));
+    }
 };
 
 const openNewClientModal = () => {
@@ -358,11 +419,12 @@ const focusQty = (index) => {
 
 const resetForm = () => {
     Object.assign(form, {
+        pedido_id: null,
         cliente_id: null,
         cliente_nuevo: null,
         domicilio_entrega_id: null,
         transporte_id: null,
-        items: [{ descripcion: '', cantidad: 1 }],
+        items: [{ descripcion: '', cantidad: 1, codigo_visual: null }],
         observaciones: '',
         bultos: 1,
         valor_declarado: 0

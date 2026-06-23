@@ -132,6 +132,7 @@ class ManualRemitoItem(BaseModel):
     codigo_visual: Optional[str] = None
 
 class ManualRemitoPayload(BaseModel):
+    pedido_id: Optional[int] = None # ID de pedido existente (Nuevo)
     cliente_id: Optional[str] = None # UUID
     cliente_nuevo: Optional[IngestionCliente] = None # Reuse ingestion structure
     domicilio_entrega_id: Optional[str] = None # UUID

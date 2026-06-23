@@ -431,6 +431,7 @@ def get_pedido_excel(pedido_id: int, db: Session = Depends(get_db)):
 @router.get("/", response_model=List[schemas.PedidoResponse])
 def get_pedidos(
     estado: str = None,
+    cliente_id: str = None,
     limit: int = 50, 
     offset: int = 0, 
     db: Session = Depends(get_db)
@@ -458,6 +459,9 @@ def get_pedidos(
             q = q.filter(models.Pedido.flags_estado.op('&')(bit_value) == bit_value)
         else:
             q = q.filter(models.Pedido.estado == estado)
+            
+    if cliente_id:
+        q = q.filter(models.Pedido.cliente_id == cliente_id)
     
     # Ordenar por fecha descendente (más nuevos primero)
     q = q.order_by(models.Pedido.fecha.desc(), models.Pedido.id.desc())
