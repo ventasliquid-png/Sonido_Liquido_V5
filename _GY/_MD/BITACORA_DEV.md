@@ -1,3 +1,27 @@
+## SESION 833 (OF): GENOMA PEDIDOS BIT 20 + OMEGA V3.1
+**Fecha:** 2026-06-23
+**Locacion:** OF
+**Objetivo:** Canonizar HAS_PARTIAL_DELIVERY (Bit 20) en genoma Pedidos. Actualizar ALFA/OMEGA V3.1. Urgencia remitos manuales circuito Rosa.
+**Estado:** NOMINAL GOLD — Hash D: 241cddff | Hash P: c613d2c | PIN 1974
+
+### Hito 1: Urgencia Remitos Manuales (Gy)
+* schemas.py: pedido_id agregado a ManualRemitoPayload.
+* service.py: create_manual() usa pedido existente si payload.pedido_id.
+* ManualRemitoView.vue V15.1.4: selector pedido, Modal PedidoCanvas (Doctrina Teleport), Badges PARCIAL.
+* Commits: D:96e901c6, P:2e56869c.
+
+### Hito 2: Genoma Pedidos — Bits 1 y 20 (CC)
+* pedidos/constants.py: HAS_ACTIVITY (Bit 1, Ley Universal) + HAS_PARTIAL_DELIVERY (Bit 20).
+* remitos/service.py: create_manual() evalua Bit 20 via @property runtime.
+* Commit: D:241cddff, P:c613d2c.
+
+### Hito 3: Protocolos ALFA V3.1 + OMEGA V3.1 (CC)
+* ALFA.md: archivo BV pre-header, AGENTE obligatorio (CC/Gy/CP/CS/GA), checkpoint cada 5 filas.
+* OMEGA.md: BV archivada como condicion obligatoria, commit OMEGA incluye BV, aclaracion INFORMES_HISTORICOS = BV sesion.
+* Cards #79 (OMEGA perfiles D/P/MT) y #80 (auditoria genomas) creadas.
+
+---
+
 ## SESIÓN 832 (OF): CARDS #75/#76 FRONTEND + PROMPTS V4.1/V3.1
 **Fecha:** 2026-06-22
 **Locación:** OF

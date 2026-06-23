@@ -1,3 +1,22 @@
+Sesion actual: 833
+
+# CAJA NEGRA: HAS_PARTIAL_DELIVERY Bit 20 + OMEGA V3.1 (2026-06-23)
+
+Sesion 833 OF. Hash D: 241cddff | Hash P: c613d2c. Estado: NOMINAL GOLD. Agentes: CC + Gy.
+
+- HAS_ACTIVITY (Bit 1) + HAS_PARTIAL_DELIVERY (Bit 20) canonizados en PedidoFlags. Dictamen Nike S833.
+- create_manual() en remitos/service.py evalua Bit 20 via @property runtime (PedidoItem.cantidad_entregada).
+- ALFA.md V3.0->V3.1: archivo BV pre-header obligatorio, AGENTE explicito, checkpoint cada 5 filas.
+- OMEGA.md V3.0->V3.1: BV archivada como condicion obligatoria, commit OMEGA siempre incluye BV.
+- Gy: Urgencia Remitos Manuales (Rosa) — schemas, service, router, ManualRemitoView V15.1.4.
+- Gy: Modal PedidoCanvas (Doctrina Teleport) + Badges PARCIAL en PedidoList y PedidoCanvas.
+- Gy: migrate_034 revertido (cantidad_entregada = @property, no columna DB).
+- Gy: migrate_035 DROP COLUMN aplicado D+P.
+- Cards #79 (OMEGA perfiles) y #80 (auditoria genomas) creadas en Board.
+- D:241cddff P:c613d2c | PIN: 1974
+
+---
+
 Sesión actual: 832
 
 # CAJA NEGRA: Cards #75/#76 SmartSelect + Prompts V4.1/V3.1 (2026-06-22)

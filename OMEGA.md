@@ -3,7 +3,7 @@
 
 > Protocolo exclusivo para entorno D (desarrollo).
 > Para P ver: C:\dev\v5-ls-Tom\OMEGA.md
-> **Versión:** 3.0 — 2026-06-01
+> **Versión:** 3.1 — 2026-06-23
 > **Dictamen:** Nike Arq 5.5 — Redacción: Carlos + Claude Sonnet 4.6
 
 ---
@@ -101,10 +101,21 @@ Regla de Oro: No decir "voy a actualizar". Presentar texto exacto.
   - Anotar pendientes Nike
   - Registrar callejones explorados si los hubo
 
-- [ ] **BITACORA_VIVA.md** — agregar fila de cierre:
-  `| N | HH:MM | CC | OMEGA — cierre sesión NNN | ✅ | D=HASH P=HASH |`
-  Luego mover a `INFORMES_HISTORICOS/YYYY-MM-DD_SNNN_MAQUINA.md`
-  y crear archivo vacío con header para próxima sesión.
+- [ ] **BITACORA_VIVA.md** — 🔴 **CONDICIÓN OBLIGATORIA: OMEGA SIN BV ARCHIVADA NO ES OMEGA COMPLETO**
+  1. Verificar que BV refleja todas las tareas de la sesión con agente explícito (CC/Gy/CP/CS/GA).
+     Recordatorio: cada 5 filas nuevas debe haber una fila checkpoint:
+     `| N | HH:MM | AGENTE | ✅ SAVED | — | D:{hash} P:{hash} |`
+  2. Agregar fila de cierre:
+     `| N | HH:MM | AGENTE | OMEGA — cierre sesión NNN | ✅ | D=HASH P=HASH |`
+  3. Mover contenido completo a `INFORMES_HISTORICOS/YYYY-MM-DD_SNNN_MAQUINA.md`
+     > El archivo histórico **ES** la BV de esa sesión — no es un documento separado.
+     > Su contenido es la copia fiel e íntegra de BITACORA_VIVA.md de esa sesión.
+  4. Dejar BV con solo el bloque de cierre:
+     ```
+     ## Sesión NNN — YYYY-MM-DD — {máquina} (CERRADA)
+     **Archivado en:** INFORMES_HISTORICOS/YYYY-MM-DD_SNNN_MAQUINA.md
+     **Estado cierre:** OMEGA NNN completado. D:{hash} P:{hash} GOLD
+     ```
 
 - [ ] **SISTEMA_STATUS.json** — actualizar entrada de esta máquina:
   - `omega_cerrado: true`
@@ -125,7 +136,9 @@ Regla de Oro: No decir "voy a actualizar". Presentar texto exacto.
 
 - [ ] **Caja Negra** (`_GY/_MD/CAJA_NEGRA.md`): header + incrementar sesiones
 
-- [ ] **Manuales** (`_GENOMA_DOCS/MANUAL_TECNICO_V5.md` y `MANUAL_OPERATIVO_V5.md`)
+- [ ] **Manuales** (`_GENOMA_DOCS/MANUAL_TECNICO_V5.md` y `MANUAL_OPERATIVO_V5.md`) —
+  **CHECKBOX OBLIGATORIO** — Actualizar con los cambios de esta sesión.
+  Si no hay cambios que documentar → marcar igual con nota: *"sin cambios esta sesión"*.
 
 - [ ] **Bitácora** (`_GY/_MD/BITACORA_DEV.md`): fecha, título, bullets
 
@@ -170,11 +183,12 @@ git branch backup/YYYYMMDD_HHMM_cierre
 Crea una "caja negra" inmutable del estado local exacto.
 
 ### PASO 5C — Autorización y Push
+El commit de OMEGA **incluye siempre** `BITACORA_VIVA.md` archivada y `SISTEMA_STATUS.json` actualizado.
 ```cmd
 # [PROHIBIDO] git add . — siempre explícito
-git add [archivo1] [archivo2] ...
+git add [archivo1] [archivo2] ... OMEGA.md SISTEMA_STATUS.json
 git status  # verificar staged antes de commitear
-git commit -m "Omega: [Resumen] (PIN 1974)"
+git commit -m "Omega NNN: [Resumen] (PIN 1974)"
 git push origin [rama_actual]
 ```
 
@@ -208,5 +222,5 @@ Qué NO toca: User\, Workspaces\, Preferences.
 
 ---
 
-*Última actualización: 2026-06-01 — OF*
-*Reemplaza: OMEGA.md (V2.2)*
+*Última actualización: 2026-06-23 — OF*
+*Reemplaza: OMEGA.md (V3.0)*
