@@ -735,7 +735,9 @@ import { useRoute } from 'vue-router'; // Add useRoute
 
 // --- STORES & ROUTER ---
 const props = defineProps({
-    isModal: { type: Boolean, default: false }
+    isModal: { type: Boolean, default: false },
+    preselectedClienteId: { type: String, default: null },
+    editPedidoId: { type: [String, Number], default: null }
 });
 const emit = defineEmits(['close', 'save']);
 
@@ -791,9 +793,9 @@ const handleClientModalClose = () => {
 
 // --- LIFECYCLE ---
 onMounted(async () => {
-    // 1. Check for Edit Mode
-    if (route.params.id) {
-        await loadPedido(route.params.id);
+    // 1. Check for Edit Mode (route param o prop editPedidoId para uso en modal)
+    if (route.params.id || props.editPedidoId) {
+        await loadPedido(route.params.id || props.editPedidoId);
     } else {
         // New Order Mode: Fetch Suggestion ID
         try {
@@ -857,6 +859,12 @@ onMounted(async () => {
     // 2. Ensure Clients are Loaded
     if (clientesStore.clientes.length === 0) {
         await clientesStore.fetchClientes();
+    }
+
+    // 2.1 Pre-seleccionar cliente si viene desde ManualRemitoView
+    if (props.preselectedClienteId && !clienteSeleccionado.value && !route.params.id) {
+        const client = clientesStore.clientes.find(c => c.id === props.preselectedClienteId);
+        if (client) await selectCliente(client, false);
     }
 
     // 3. Ensure Products are Loaded
@@ -1073,7 +1081,7 @@ const clientLogistics = computed(() => {
     }
 
     return { address, transport };
-};
+});
 
 const selectedDomicilioId = ref(null);
 const selectedTransporteId = ref(null);

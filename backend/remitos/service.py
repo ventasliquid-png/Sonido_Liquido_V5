@@ -713,9 +713,7 @@ class RemitosService:
         resolved_transporte_id = payload.transporte_id
         if not resolved_transporte_id:
              from backend.logistica.models import EmpresaTransporte
-             first_trans = db.query(EmpresaTransporte).filter(EmpresaTransporte.activo == True).first()
-             if not first_trans:
-                  first_trans = db.query(EmpresaTransporte).first()
+             first_trans = db.query(EmpresaTransporte).first()
              resolved_transporte_id = first_trans.id if first_trans else None
 
         if not resolved_domicilio_id or not resolved_transporte_id:
@@ -744,20 +742,36 @@ class RemitosService:
             )
             db.add(r_item)
 
-        # 7. EVALUAR HAS_PARTIAL_DELIVERY (Bit 20)
+        # 7. EVALUAR HAS_PARTIAL_DELIVERY (Bit 20) + FULL_DELIVERED (Bit 21)
         db.flush()
         from backend.pedidos.constants import PedidoFlags
+        items = db.query(PedidoItem).filter(
+            PedidoItem.pedido_id == nuevo_pedido.id
+        ).all()
+
         has_partial = any(
             item.cantidad_entregada < item.cantidad
-            for item in db.query(PedidoItem).filter(
-                PedidoItem.pedido_id == nuevo_pedido.id
-            ).all()
+            for item in items
         )
-        nuevo_pedido.flags_estado = (
-            ((nuevo_pedido.flags_estado or 0) | int(PedidoFlags.HAS_PARTIAL_DELIVERY))
-            if has_partial else
-            ((nuevo_pedido.flags_estado or 0) & ~int(PedidoFlags.HAS_PARTIAL_DELIVERY))
-        )
+        is_full_delivered = all(
+            item.cantidad_entregada >= item.cantidad
+            for item in items
+        ) if items else False  # Si no hay ítems, no es full_delivered
+
+        # Actualizar flags: si completo (Bit 21 ON), apagar Bit 20 (Bit 20 OFF)
+        # Si parcial, encienden Bit 20 y apagan Bit 21
+        flags = nuevo_pedido.flags_estado or 0
+        if is_full_delivered:
+            flags |= int(PedidoFlags.FULL_DELIVERED)
+            flags &= ~int(PedidoFlags.HAS_PARTIAL_DELIVERY)
+        else:
+            flags &= ~int(PedidoFlags.FULL_DELIVERED)
+            if has_partial:
+                flags |= int(PedidoFlags.HAS_PARTIAL_DELIVERY)
+            else:
+                flags &= ~int(PedidoFlags.HAS_PARTIAL_DELIVERY)
+
+        nuevo_pedido.flags_estado = flags
         db.add(nuevo_pedido)
 
         db.commit()

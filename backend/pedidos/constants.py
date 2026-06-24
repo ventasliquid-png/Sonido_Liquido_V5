@@ -19,6 +19,10 @@ class PedidoFlags(IntFlag):
     # Se enciende automáticamente al crear remito que no cubre el total de algún ítem.
     # Se apaga cuando todos los ítems están cubiertos al 100%. Canonizado Nike S833.
     HAS_PARTIAL_DELIVERY = 1 << 20
+    # Bit 21 — Entrega física completa. Se enciende cuando TODOS los ítems tienen
+    # cantidad_entregada >= cantidad. Se apaga si se anula un remito y vuelve a haber pendiente.
+    # Canonizado Nike S833.
+    FULL_DELIVERED = 1 << 21
     # Bit 40 PROHIBIDO — DISCRIMINA_IVA del cliente
 
     # BANDA 32+ — Estados mutuamente excluyentes

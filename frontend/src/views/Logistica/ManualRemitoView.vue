@@ -135,6 +135,17 @@
              <span class="text-[10px] text-gray-600 font-mono">{{ form.items.length }} ítems cargados</span>
           </div>
 
+          <!-- Aviso de bloqueo cuando hay pedido seleccionado -->
+          <div v-if="form.pedido_id" class="flex items-center justify-between bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
+            <div class="flex items-center gap-2 text-xs text-amber-300">
+              <i class="fas fa-lock text-amber-400"></i>
+              <span>Los ítems provienen del pedido. Solo podés ajustar la cantidad a entregar.</span>
+            </div>
+            <button @click="openEditPedidoModal" class="text-[10px] font-black text-amber-400 hover:text-amber-200 bg-amber-500/20 hover:bg-amber-500/30 px-3 py-1.5 rounded-lg uppercase tracking-widest transition-all flex items-center gap-1.5 shrink-0 ml-4">
+              <i class="fas fa-pen-to-square"></i> Editar Pedido
+            </button>
+          </div>
+
           <div class="bg-black/40 rounded-3xl border border-white/5 overflow-hidden">
             <!-- Table Header -->
             <div class="grid grid-cols-12 bg-white/5 px-6 py-3 text-[9px] font-black uppercase tracking-[0.2em] text-gray-500 border-b border-white/5">
@@ -148,30 +159,37 @@
               <div v-for="(item, index) in form.items" :key="index" class="grid grid-cols-12 px-6 py-4 gap-4 items-center group hover:bg-white/[0.02] transition-colors">
                 <div class="col-span-1 font-mono text-xs text-indigo-500/50">{{ index + 1 }}</div>
                 <div class="col-span-9">
-                  <input 
+                  <!-- Descripción editable solo en remito directo (sin pedido) -->
+                  <input
+                    v-if="!form.pedido_id"
                     v-model="item.descripcion"
                     type="text"
                     placeholder="Escriba la descripción..."
                     class="w-full bg-transparent border-none text-white text-sm focus:outline-none placeholder-gray-800"
                     @keydown.enter="focusQty(index)"
                   />
+                  <span v-else class="text-sm text-white select-none">{{ item.descripcion }}</span>
                 </div>
                 <div class="col-span-2 flex items-center justify-end gap-4">
-                  <input 
+                  <input
                     :ref="el => qtyRefs[index] = el"
                     v-model.number="item.cantidad"
                     type="number"
+                    :min="1"
+                    :max="item._original_cantidad ? (item._original_cantidad - (item._entregada || 0)) : undefined"
                     class="w-20 bg-indigo-500/10 border border-indigo-500/20 rounded-lg px-2 py-1 text-right text-indigo-400 font-bold focus:outline-none focus:border-indigo-500"
-                    @keydown.enter="addItem(index)"
+                    @keydown.enter="!form.pedido_id && addItem(index)"
                   />
-                  <button @click="removeItem(index)" class="text-gray-700 hover:text-red-500 transition-colors">
+                  <!-- Quitar ítem solo en remito directo -->
+                  <button v-if="!form.pedido_id" @click="removeItem(index)" class="text-gray-700 hover:text-red-500 transition-colors">
                     <i class="fas fa-times"></i>
                   </button>
+                  <span v-else class="w-4"></span>
                 </div>
               </div>
 
-              <!-- Add Row Trigger -->
-               <div class="p-4 flex justify-center bg-indigo-500/5">
+              <!-- Add Row: solo en remito directo -->
+               <div v-if="!form.pedido_id" class="p-4 flex justify-center bg-indigo-500/5">
                   <button @click="addItem" class="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 transition-all uppercase tracking-widest flex items-center gap-2">
                     <i class="fas fa-plus"></i> Agregar Línea
                   </button>
@@ -212,15 +230,14 @@
         </div>
         
         <div class="flex gap-4">
-            <button 
-                @click="emitirRemito"
+            <button
+                @click="mostrarPreview"
                 :disabled="isSaving || !isValid"
                 class="group relative px-10 py-4 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-800 disabled:cursor-not-allowed text-white font-black uppercase tracking-[0.1em] rounded-2xl shadow-[0_10px_30px_-10px_rgba(79,70,229,0.5)] transition-all hover:-translate-y-1 active:translate-y-0"
             >
                 <div class="flex items-center gap-3">
-                    <i v-if="isSaving" class="fas fa-spinner fa-spin"></i>
-                    <i v-else class="fas fa-rocket"></i>
-                    <span>{{ isSaving ? 'Procesando...' : 'Emitir y Descargar' }}</span>
+                    <i class="fas fa-eye"></i>
+                    <span>Vista Previa</span>
                 </div>
             </button>
         </div>
@@ -244,12 +261,146 @@
       <Teleport to="body">
         <div v-if="showNewPedidoModal" class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-8 animate-in fade-in duration-300">
              <div class="w-full max-w-6xl h-full max-h-[95vh] bg-[#0f172a] rounded-3xl shadow-2xl border border-emerald-500/30 overflow-hidden relative">
-                 <PedidoCanvas 
+                 <PedidoCanvas
                     :isModal="true"
+                    :preselectedClienteId="form.cliente_id"
                     @close="showNewPedidoModal = false"
                     @save="onNewPedidoSaved"
                  />
              </div>
+        </div>
+      </Teleport>
+
+      <!-- MODAL: EDITAR PEDIDO EXISTENTE -->
+      <Teleport to="body">
+        <div v-if="showEditPedidoModal" class="fixed inset-0 z-[150] bg-black/80 backdrop-blur-md flex items-center justify-center p-8 animate-in fade-in duration-300">
+             <div class="w-full max-w-6xl h-full max-h-[95vh] bg-[#0f172a] rounded-3xl shadow-2xl border border-amber-500/30 overflow-hidden relative">
+                 <PedidoCanvas
+                    :isModal="true"
+                    :editPedidoId="form.pedido_id"
+                    @close="showEditPedidoModal = false"
+                    @save="onEditPedidoSaved"
+                 />
+             </div>
+        </div>
+      </Teleport>
+
+      <!-- MODAL: PREVIEW ANTES DE EMITIR -->
+      <Teleport to="body">
+        <div v-show="showPreview" class="fixed inset-0 z-[200] bg-black/90 backdrop-blur-md flex items-center justify-center p-8 animate-in fade-in duration-300">
+          <div class="w-full max-w-3xl max-h-[90vh] bg-[#0f172a] rounded-3xl shadow-2xl border border-indigo-500/30 overflow-hidden flex flex-col">
+
+            <!-- Preview Header -->
+            <div class="shrink-0 bg-indigo-950/40 border-b border-indigo-500/20 px-8 py-5 flex justify-between items-center">
+              <div class="flex items-center gap-4">
+                <div class="w-9 h-9 bg-orange-500/20 rounded-xl flex items-center justify-center border border-orange-500/30">
+                  <i class="fas fa-file-alt text-orange-400"></i>
+                </div>
+                <div>
+                  <h2 class="text-base font-black text-white uppercase tracking-widest">Pre-Visualización de Remito</h2>
+                  <p class="text-[10px] text-indigo-400 font-bold uppercase tracking-widest">Revise antes de emitir</p>
+                </div>
+              </div>
+              <button @click="showPreview = false" class="text-gray-600 hover:text-white transition-colors text-lg">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+
+            <!-- Warning banner for partial delivery -->
+            <div v-if="hasPartialItems" class="shrink-0 mx-6 mt-5 bg-orange-500/10 border border-orange-500/30 rounded-xl px-5 py-3 flex items-center gap-3">
+              <i class="fas fa-exclamation-triangle text-orange-400 text-sm"></i>
+              <span class="text-xs font-bold text-orange-300 uppercase tracking-widest">Atención — Este remito contiene entregas parciales. Los renglones destacados se entregan en cantidad menor al pedido.</span>
+            </div>
+
+            <!-- Preview Body -->
+            <div class="flex-1 overflow-y-auto px-8 py-6 space-y-6 custom-scrollbar">
+
+              <!-- Client + Date -->
+              <div class="grid grid-cols-2 gap-6">
+                <div class="space-y-1">
+                  <p class="text-[10px] font-bold text-indigo-400/60 uppercase tracking-widest">Cliente</p>
+                  <p class="text-sm font-bold text-white">{{ selectedClient?.razon_social || '—' }}</p>
+                  <p class="text-xs text-indigo-400/70 font-mono">{{ selectedClient?.cuit || '' }}</p>
+                </div>
+                <div class="space-y-1">
+                  <p class="text-[10px] font-bold text-indigo-400/60 uppercase tracking-widest">Pedido Ref.</p>
+                  <p class="text-sm font-bold text-white">{{ form.pedido_id ? `#${form.pedido_id}` : '— Remito Directo —' }}</p>
+                  <p class="text-xs text-indigo-400/70">{{ new Date().toLocaleDateString('es-AR') }}</p>
+                </div>
+              </div>
+
+              <!-- Items Table -->
+              <div class="bg-black/30 rounded-2xl border border-white/5 overflow-hidden">
+                <div class="grid grid-cols-12 bg-white/5 px-5 py-2 text-[9px] font-black uppercase tracking-[0.2em] text-gray-500 border-b border-white/5">
+                  <div class="col-span-1">#</div>
+                  <div class="col-span-7">Descripción</div>
+                  <div class="col-span-2 text-right">Pedido</div>
+                  <div class="col-span-2 text-right">A Entregar</div>
+                </div>
+                <div class="divide-y divide-white/5">
+                  <div
+                    v-for="(item, idx) in form.items"
+                    :key="idx"
+                    :class="[
+                      'grid grid-cols-12 px-5 py-3 gap-2 items-center',
+                      isItemPartial(item) ? 'bg-orange-500/8 border-l-2 border-orange-500/60' : ''
+                    ]"
+                  >
+                    <div class="col-span-1 font-mono text-xs text-indigo-500/50">{{ idx + 1 }}</div>
+                    <div class="col-span-7">
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm text-white">{{ item.descripcion }}</span>
+                        <span v-if="isItemPartial(item)" class="text-[9px] font-black text-orange-400 bg-orange-500/15 px-2 py-0.5 rounded-full uppercase tracking-widest">Parcial</span>
+                      </div>
+                      <p v-if="item._entregada > 0" class="text-[10px] text-indigo-400/60 mt-0.5">Ya entregado anteriormente: {{ item._entregada }}</p>
+                    </div>
+                    <div class="col-span-2 text-right">
+                      <span class="text-xs text-gray-500">{{ item._original_cantidad ?? '—' }}</span>
+                    </div>
+                    <div class="col-span-2 text-right">
+                      <span :class="['text-sm font-bold', isItemPartial(item) ? 'text-orange-400' : 'text-emerald-400']">
+                        {{ item.cantidad }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Logistics summary -->
+              <div class="grid grid-cols-3 gap-4 text-xs">
+                <div class="space-y-1">
+                  <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Bultos</p>
+                  <p class="text-white font-bold">{{ form.bultos }}</p>
+                </div>
+                <div class="space-y-1">
+                  <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Valor Decl.</p>
+                  <p class="text-white font-bold">${{ form.valor_declarado }}</p>
+                </div>
+                <div v-if="form.observaciones" class="space-y-1">
+                  <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Obs.</p>
+                  <p class="text-white/70 text-xs">{{ form.observaciones }}</p>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Preview Footer -->
+            <div class="shrink-0 border-t border-indigo-500/20 px-8 py-5 flex justify-between items-center bg-indigo-950/20">
+              <button @click="showPreview = false" class="px-6 py-3 text-xs font-bold text-gray-400 hover:text-white border border-white/10 hover:border-white/30 rounded-xl transition-all uppercase tracking-widest">
+                <i class="fas fa-arrow-left mr-2"></i>Volver a editar
+              </button>
+              <button
+                @click="confirmarYEmitir"
+                :disabled="isSaving"
+                class="px-10 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-800 text-white font-black uppercase tracking-widest rounded-xl shadow-lg transition-all hover:-translate-y-0.5 flex items-center gap-3"
+              >
+                <i v-if="isSaving" class="fas fa-spinner fa-spin"></i>
+                <i v-else class="fas fa-rocket"></i>
+                {{ isSaving ? 'Procesando...' : 'Confirmar y Emitir' }}
+              </button>
+            </div>
+
+          </div>
         </div>
       </Teleport>
 
@@ -275,6 +426,8 @@ const notificationStore = useNotificationStore();
 const isSaving = ref(false);
 const showNewClientModal = ref(false);
 const showNewPedidoModal = ref(false);
+const showEditPedidoModal = ref(false);
+const showPreview = ref(false);
 const qtyRefs = ref([]);
 
 const form = reactive({
@@ -418,9 +571,21 @@ const onNewClientSaved = (client) => {
 };
 
 const openNewPedidoModal = () => {
-    // Si no tiene cliente, le avisamos? Dejamos que lo elija en el canvas,
-    // pero idealmente en el futuro le pasamos el cliente_id.
     showNewPedidoModal.value = true;
+};
+
+const openEditPedidoModal = () => {
+    showEditPedidoModal.value = true;
+};
+
+const onEditPedidoSaved = async () => {
+    showEditPedidoModal.value = false;
+    if (form.pedido_id && form.cliente_id) {
+        const ordersRes = await api.get('/pedidos/', { params: { estado: 'PENDIENTE', cliente_id: form.cliente_id } });
+        pendingOrders.value = ordersRes.data || [];
+        onPedidoSelected();
+        notificationStore.add('Pedido actualizado — ítems del remito sincronizados.', 'success');
+    }
 };
 
 const onNewPedidoSaved = async (pedido) => {
@@ -473,6 +638,24 @@ const resetForm = () => {
         bultos: 1,
         valor_declarado: 0
     });
+};
+
+const isItemPartial = (item) => {
+    if (!item._original_cantidad) return false;
+    const totalAfter = (item._entregada || 0) + item.cantidad;
+    return totalAfter < item._original_cantidad;
+};
+
+const hasPartialItems = computed(() => form.items.some(i => isItemPartial(i)));
+
+const mostrarPreview = () => {
+    if (!isValid.value) return;
+    showPreview.value = true;
+};
+
+const confirmarYEmitir = () => {
+    showPreview.value = false;
+    emitirRemito();
 };
 
 const emitirRemito = async () => {
