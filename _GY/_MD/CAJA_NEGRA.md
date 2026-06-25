@@ -1,4 +1,21 @@
-Sesion actual: 833
+Sesion actual: 835
+
+# CAJA NEGRA: Talonario 0015 + sombra Blanco + ALFA V3.2 (2026-06-25)
+
+Sesion 835 OF. Hash D: b5932bae | Hash B: 3b213d1. Estado: NOMINAL GOLD. Agentes: CC.
+
+- ALFA V3.2 canonizado en Q:\Mi unidad\V5_Silo_Claude\ALFA.md. Base path explícita, lectura Fase 0 expandida, nomenclatura B aplicada. Sin commit — el Silo es su hogar.
+- Cherry-pick S834 completo a B (da006caf → 33610dc, build frontend). Patrón session_counter.json: D-específico, excluir de cherry-pick via `git rm --cached`.
+- Fix UnboundLocalError update_domicilio: service.py:763,775 — `from ... import domicilios_clientes` dentro del cuerpo de función hace el nombre local en toda la función (regla Python: cualquier asignación o import de un nombre dentro de una función lo vuelve local en toda la función). Eliminados imports locales redundantes. D:2493105b, B:f6812e8.
+- Fix talonario DOS CAPAS: (1) service.py create_manual() 0016→0015 en 4 strings (líneas 542,596,597,608). (2) remito_engine.py preserva prefijo del input en lugar de forzar 0016 (líneas 327-342). Test: POST 200 OK → 0015-00003010. PDF = 0015-00003010. D:2a35a5a4, B:403ffee.
+- Diagnóstico ALFA/OMEGA en D y B: B tiene ALFA V2.0 + OMEGA V2.2 desactualizados. D sin ALFA.md en root. Cards #79 y #80 creadas. update_board.py bug: wb.active devuelve CSV_DUMP_ARCHIVADO en lugar de Board V5; corregido ad-hoc vía openpyxl directo. Card #79 trackea fix pendiente del script.
+- DELETE cascade pedidos prueba #52-#60: 9 pedidos, 6 remitos, 10 items, 6 remito_items (PIN 1974). Sobreviven #51, #61, #62.
+- Fix sombra visual Blanco: PedidoList.vue:160 — border emerald en AMBOS mode para pedidos sin Bit4096. D:b5932bae.
+- Fix serie 0015 dinámica: ManualRemitoView.vue — ref `ultimoNumeroLegal` almacena `numero_legal` de la última respuesta API. Template muestra "Último emitido: 0015-XXXXXXXX" en lugar de texto hardcodeado. D:b5932bae, B:3b213d1.
+- Cards creadas: #81 (Rollback bits 20/21, ALTA), #82 (Sombra Blanco, BAJA — CERRADA esta sesión), #83 (Hora hardcodeada, MEDIA).
+- D:b5932bae B:3b213d1 | PIN: 1974
+
+---
 
 # CAJA NEGRA: HAS_PARTIAL_DELIVERY Bit 20 + OMEGA V3.1 (2026-06-23)
 

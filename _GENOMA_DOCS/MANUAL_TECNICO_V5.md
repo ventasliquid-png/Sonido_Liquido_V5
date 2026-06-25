@@ -1,6 +1,44 @@
 # MANUAL TECNICO V5: "INDEPENDENCIA"
-**Version:** 2.5 Release (dict bypass @property en endpoint join — 832 OF)
-**Fecha:** 2026-06-22
+**Version:** 2.6 Release (Python local scope bug + talonario dos capas — 835 OF)
+**Fecha:** 2026-06-25
+
+## 38. REGLA DE ALCANCE LOCAL EN PYTHON: import DENTRO DE FUNCIÓN (Sesion 835 OF, 2026-06-25)
+
+### 38.1 El problema (UnboundLocalError)
+
+Si se hace `from x import y` en *cualquier punto* dentro del cuerpo de una función, Python convierte `y` en variable local para **toda** la función — incluso para las líneas anteriores al import. Resultado: `UnboundLocalError: local variable 'y' referenced before assignment` en la primera referencia a `y`, aunque exista un import global del mismo nombre en la cabecera del módulo.
+
+### 38.2 El patrón en service.py (S835)
+
+```python
+# BUGGY: import local convierte domicilios_clientes en local en toda la función
+def update_domicilio(...):
+    domicilios_clientes.update(...)  # ← UnboundLocalError aquí
+    ...
+    from backend.clientes import domicilios_clientes  # ← causa del bug
+```
+
+### 38.3 La solución
+
+Eliminar todo import dentro del cuerpo de la función. Los imports globales al módulo son suficientes. Nunca duplicar imports dentro de funciones como workaround de circularidad — resolver la circularidad en los módulos correctamente.
+
+### 38.4 Regla de diagnóstico
+
+Ante cualquier `UnboundLocalError` en Python, buscar `import` o `=` del mismo nombre **en cualquier lugar de la función**, sin importar cuán tarde aparezcan.
+
+---
+
+## 38B. TALONARIO DOS CAPAS: service + engine (Sesion 835 OF, 2026-06-25)
+
+El número de serie de un remito puede ser sobreescrito en dos puntos independientes:
+1. **service.py `create_manual()`**: genera el `numero_legal` con la serie correcta (0015).
+2. **remito_engine.py `generar_remito_pdf()`**: podía forzar un prefijo diferente al imprimir en PDF.
+
+Si solo se corrige la capa 1, la DB tiene `0015-` pero el PDF imprime `0016-`. Siempre verificar ambas capas ante bugs de talonario.
+
+**Fix S835**: remito_engine.py ahora preserva el prefijo del `numero_remito` entrante. Detecta `0015`, `0016`, `0001` del input y lo mantiene.
+
+---
 
 ## 37. PATRON DICT BYPASS PARA @property EN ENDPOINT CON JOIN (Sesion 832 OF, 2026-06-22)
 
