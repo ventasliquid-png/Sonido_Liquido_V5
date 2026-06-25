@@ -760,7 +760,6 @@ class ClienteService:
         # Sincronizamos los bits de la tabla puente domicilios_clientes
         rel_flags = update_data.pop('flags', None)
         if rel_flags is not None:
-             from backend.clientes.models import domicilios_clientes
              db.execute(
                  domicilios_clientes.update().where(
                      domicilios_clientes.c.cliente_id == cliente_id,
@@ -772,7 +771,6 @@ class ClienteService:
         # [V5.2.3 GOLD] BIFURCATION LOGIC (Mirror Break)
         # If Bit 21 (Mirror) is active for this client and notes are modified,
         # we must clone the address and link the child independently.
-        from backend.clientes.models import domicilios_clientes
         current_link = db.execute(
             domicilios_clientes.select().where(
                 domicilios_clientes.c.cliente_id == cliente_id,
