@@ -226,7 +226,7 @@
       <footer class="shrink-0 bg-indigo-950/20 border-t border-indigo-500/20 p-6 flex justify-between items-center px-12">
         <div class="flex items-center gap-2 text-indigo-400/50">
            <i class="fas fa-info-circle"></i>
-           <span class="text-[10px] font-bold uppercase tracking-widest">Serie automática 0016-00003010+</span>
+           <span class="text-[10px] font-bold uppercase tracking-widest">{{ ultimoNumeroLegal ? 'Último emitido: ' + ultimoNumeroLegal : 'Serie 0015 — automático' }}</span>
         </div>
         
         <div class="flex gap-4">
@@ -424,6 +424,7 @@ const notificationStore = useNotificationStore();
 
 // --- STATE ---
 const isSaving = ref(false);
+const ultimoNumeroLegal = ref(null);
 const showNewClientModal = ref(false);
 const showNewPedidoModal = ref(false);
 const showEditPedidoModal = ref(false);
@@ -666,7 +667,7 @@ const emitirRemito = async () => {
         const payload = { ...form };
         const res = await api.post('/remitos/manual', payload);
         const remito = res.data;
-        
+        ultimoNumeroLegal.value = remito.numero_legal;
         notificationStore.add(`Remito ${remito.numero_legal} emitido con éxito.`, 'success');
         
         // [GY-FIX] Robust PDF URL resolution

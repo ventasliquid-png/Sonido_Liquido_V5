@@ -157,7 +157,7 @@
                         ? 'border-indigo-900/40 bg-[#120a1f] hover:bg-[#1a0e2c] hover:border-indigo-500/30 shadow-inner shadow-black/20'
                         : (circuitMode === 'OFICIAL' ? 'border-emerald-900/20 bg-[#07241d] hover:bg-[#0a2e26] hover:border-emerald-500/30' : 'border-gray-800/40 bg-[#12161f] hover:bg-[#1a202c] hover:border-gray-500/30')
                       ),
-                    (pedido.flags_estado & 4096) ? 'bg-pink-950/30 border-l-2 border-pink-500/40' : '',
+                    (pedido.flags_estado & 4096) ? 'bg-pink-950/30 border-l-2 border-pink-500/40' : (circuitMode === 'AMBOS' ? 'border-l-2 border-emerald-500/40' : ''),
                     'hover:shadow-lg hover:shadow-black/40 hover:-translate-y-px'
                   ]"
                   @click="openPedido(pedido)"
