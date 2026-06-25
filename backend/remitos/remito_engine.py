@@ -327,19 +327,21 @@ class PDFRemito(FPDF):
 def generar_remito_pdf(cliente_data, items, is_preview=False, output_path="remito_final.pdf", numero_remito=None, cae=None, vto_cae=None, qr_url=None):
     """
     Genera el PDF con las 3 copias.
-    [ALFA-CA] Forzando sucursal 0016- por paridad situacional.
+    Preserva el prefijo de serie del numero_remito: 0015=Manual, 0016=ARCA.
     """
     if numero_remito:
-        # Portar y sellar: Strict enforcement of 0016-0000XXXX
+        # Preservar prefijo de serie (0015=Manual, 0016=ARCA/Ingesta)
         s = numero_remito.replace("-", "")
-        if s.startswith("0016"):
-             s = s[4:]
-        elif s.startswith("0001"):
-             s = s[4:]
-        # Limitar a 8 caracteres (suffix)
+        known_prefixes = ("0015", "0016", "0001")
+        prefix = "0016"
+        for p in known_prefixes:
+            if s.startswith(p):
+                prefix = p if p != "0001" else "0016"
+                s = s[4:]
+                break
         if len(s) > 8:
              s = s[-8:]
-        numero_remito = f"0016-{s.zfill(8)}"
+        numero_remito = f"{prefix}-{s.zfill(8)}"
 
     pdf = PDFRemito()
     pdf.is_preview = is_preview

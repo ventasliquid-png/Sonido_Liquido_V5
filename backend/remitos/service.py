@@ -539,7 +539,7 @@ class RemitosService:
     def create_manual(db: Session, payload: schemas.ManualRemitoPayload):
         """
         Creates a Manual Remito (Rosa/Blanco) from Frontend data.
-        Standardized to Serie 0016- (GOLD OMEGA Compliance)
+        Standardized to Serie 0015- (Manual, sin CAE)
         """
         nuevo_pedido = None
         cliente = None
@@ -593,9 +593,9 @@ class RemitosService:
              if not cliente:
                   raise ValueError(f"No se encontró/creó cliente.")
 
-        # 2. CALCULATE NEXT 0016- NUMBER
-        last_remito = db.query(models.Remito).filter(models.Remito.numero_legal.like("0016-%")).order_by(models.Remito.numero_legal.desc()).first()
-        
+        # 2. CALCULATE NEXT 0015- NUMBER
+        last_remito = db.query(models.Remito).filter(models.Remito.numero_legal.like("0015-%")).order_by(models.Remito.numero_legal.desc()).first()
+
         next_val = 3010
         if last_remito and last_remito.numero_legal:
              try:
@@ -603,9 +603,9 @@ class RemitosService:
                   next_val = int(current_str) + 1
              except:
                   next_val = 3010
-        
+
         if next_val < 3010: next_val = 3010
-        numero_legal = f"0016-{str(next_val).zfill(8)}"
+        numero_legal = f"0015-{str(next_val).zfill(8)}"
 
 
         # 3. CREATE GHOST PEDIDO (Solo si no existe)
