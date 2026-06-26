@@ -1,3 +1,37 @@
+## SESION 836 (OF): DOCTRINA NIKE S836 — BITS FISCALES + ES_NO_COMERCIAL + GENOMA REMITOS
+**Fecha:** 2026-06-26
+**Locación:** OF
+**Objetivo:** Canonizar doctrina fiscal (Bits 22/23), Banda de Excepciones (Bits 11/12), genoma remitos (migrate_036), ALFA V3.3 fast-path. Explorar Ghost + ES_LIBRE → descartado.
+**Estado:** NOMINAL GOLD — Hash D: bbe0dcec | Hash B: 6edba99 | PIN 1974
+
+### Hito 1: ALFA V3.3 — FASE 0 ARRANQUE RÁPIDO (CC)
+* FASE 0 compara hash_D de SISTEMA_STATUS.json con git log -1 local.
+* Si coinciden + omega_cerrado:true → skip FASE 1 y 2, ir a FASE 3.
+* Sin hardcodeo de branch. Reutiliza escritura OMEGA. Canonizado en Q:.
+
+### Hito 2: migrate_036 + RemitoFlags genoma (CC)
+* ALTER TABLE remitos ADD COLUMN flags_estado INTEGER DEFAULT 0.
+* backend/remitos/constants.py: clase RemitoFlags con Bits 0,1,4,10,11,13.
+* ORM models.py: flags_estado Column(Integer, default=0) en Remito.
+* backend/remitos/service.py: VINCULAR_PARCIAL (Bit11) usando RemitoFlags.VINCULAR_PARCIAL.
+
+### Hito 3: Bits 22/23 en pedidos + cherry-pick (CC)
+* HAS_PARTIAL_INVOICE (Bit 22) + FULL_INVOICED (Bit 23) en PedidoFlags.
+* Eje fiscal independiente del eje físico (Bits 20/21). Sin migración DB.
+* Commit D:4f88bf67, cherry-pick → B:b32f47d.
+
+### Hito 4: Doctrina Ghost explorada y descartada (CC)
+* Exploración: PEDIDO_GHOST Bit43, ES_LIBRE Bit4, migrate_037 pedido_id nullable.
+* Decisión Nike: Pedidos soberano — no hay remito sin pedido. Ghost innecesario.
+* migrate_037 eliminado. PEDIDO_GHOST/ES_LIBRE = dead code (purga S837).
+
+### Hito 5: ES_NO_COMERCIAL Bit 11 + commit final (CC)
+* ES_NO_COMERCIAL = 1<<11 — Bypass comercial: muestras, uso interno.
+* Banda de Excepciones junto a NO_FISCAL_FORCE (Bit 12). Reversible c/nota forense.
+* Commit D:bbe0dcec, cherry-pick → B:6edba99.
+
+---
+
 ## SESION 833 (OF): GENOMA PEDIDOS BIT 20 + OMEGA V3.1
 **Fecha:** 2026-06-23
 **Locacion:** OF

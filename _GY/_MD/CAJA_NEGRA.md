@@ -1,8 +1,24 @@
-Sesion actual: 835
+Sesion actual: 836
+
+# CAJA NEGRA: Doctrina Nike S836 — Bits Fiscales + ES_NO_COMERCIAL + Genoma Remitos (2026-06-26)
+
+Sesion 836 OF. Hash D: bbe0dcec | Hash B: 6edba99. Estado: NOMINAL GOLD. Agentes: CC.
+
+- ALFA V3.3 canonizado en Q:\Mi unidad\V5_Silo_Claude\ALFA.md. FASE 0 — ARRANQUE RÁPIDO: compara hash_D de SISTEMA_STATUS.json con hash local git log -1. Si coinciden y omega_cerrado:true → skip FASE 1 y 2, ir directo a FASE 3. Sin hardcodeo de branch, reutiliza lo que OMEGA ya escribe.
+- migrate_036: ALTER TABLE remitos ADD COLUMN flags_estado INTEGER DEFAULT 0. 10 remitos existentes actualizados a DEFAULT 0. Registrada en _migraciones_aplicadas.
+- RemitoFlags genoma canonizado (backend/remitos/constants.py). Bits: EXISTENCE(0), HAS_ACTIVITY(1), ES_LIBRE(4), V15_STRUCT(10), VINCULAR_PARCIAL(11), PROHIBIDO(13). Nota: ES_LIBRE Bit4 y VINCULAR_PARCIAL definidos pero pendientes de uso real.
+- HAS_PARTIAL_INVOICE = 1<<22 y FULL_INVOICED = 1<<23 en PedidoFlags. Sin migración (flags_estado ya existe). Dos ejes ortogonales: físico (Bits 20/21) vs fiscal (Bits 22/23). Cherry-pick 4f88bf67 → B:b32f47d.
+- ES_NO_COMERCIAL = 1<<11 en PedidoFlags. Banda de Excepciones junto a NO_FISCAL_FORCE (Bit 12). Reversible con nota forense obligatoria. Cherry-pick bbe0dcec → B:6edba99.
+- Doctrina Ghost descartada: pedido_id sigue NOT NULL en remitos. No hay remito sin pedido. Ghost + ES_LIBRE + nullable explorados y abandonados. migrate_037 creado y eliminado en la misma sesión. PEDIDO_GHOST Bit43 = dead code en constants.py (purga pendiente S837).
+- Doctrina Nike canonizada: Pedidos soberano — no hay salida de stock sin pedido. R15>R16>Factura. Asimetría Rosa↔Blanco. Banda Excepciones Bits 11/12.
+- Card #84 creada: Agentes activos en SISTEMA_STATUS + ALFA V3.4. Requiere dictamen Nike (N horas stale).
+- D:bbe0dcec B:6edba99 | PIN: 1974
+
+---
 
 # CAJA NEGRA: Talonario 0015 + sombra Blanco + ALFA V3.2 (2026-06-25)
 
-Sesion 835 OF. Hash D: b5932bae | Hash B: 3b213d1. Estado: NOMINAL GOLD. Agentes: CC.
+Sesion 835 OF. Hash D: bfa623ba | Hash B: 3b213d1. Estado: NOMINAL GOLD. Agentes: CC.
 
 - ALFA V3.2 canonizado en Q:\Mi unidad\V5_Silo_Claude\ALFA.md. Base path explícita, lectura Fase 0 expandida, nomenclatura B aplicada. Sin commit — el Silo es su hogar.
 - Cherry-pick S834 completo a B (da006caf → 33610dc, build frontend). Patrón session_counter.json: D-específico, excluir de cherry-pick via `git rm --cached`.
@@ -13,7 +29,7 @@ Sesion 835 OF. Hash D: b5932bae | Hash B: 3b213d1. Estado: NOMINAL GOLD. Agentes
 - Fix sombra visual Blanco: PedidoList.vue:160 — border emerald en AMBOS mode para pedidos sin Bit4096. D:b5932bae.
 - Fix serie 0015 dinámica: ManualRemitoView.vue — ref `ultimoNumeroLegal` almacena `numero_legal` de la última respuesta API. Template muestra "Último emitido: 0015-XXXXXXXX" en lugar de texto hardcodeado. D:b5932bae, B:3b213d1.
 - Cards creadas: #81 (Rollback bits 20/21, ALTA), #82 (Sombra Blanco, BAJA — CERRADA esta sesión), #83 (Hora hardcodeada, MEDIA).
-- D:b5932bae B:3b213d1 | PIN: 1974
+- D:bfa623ba B:3b213d1 | PIN: 1974
 
 ---
 
