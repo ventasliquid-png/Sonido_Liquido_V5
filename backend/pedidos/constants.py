@@ -13,6 +13,9 @@ class PedidoFlags(IntFlag):
     # Bits bajos preexistentes — INTOCABLES
     PEDIDO_DUPLICATE_CONFIRMED = 1 << 6   # Bit 6
     INGESTA_CON_CORRECCION     = 1 << 9   # Bit 9
+    ES_NO_COMERCIAL            = 1 << 11  # 2048 — Bypass comercial: muestras, uso interno
+                                           # Banda de Excepciones junto a NO_FISCAL_FORCE (Bit 12)
+                                           # Reversible con nota forense obligatoria (Nike S836)
     NO_FISCAL_FORCE            = 1 << 12  # Bit 12 — Motor Bipolar soberano
     # Bit 13 PROHIBIDO — colisión LAVIMAR
     # Bit 20 — Pedido tiene ítems con entrega parcial pendiente.
