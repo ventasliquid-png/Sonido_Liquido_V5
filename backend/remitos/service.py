@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException
 
 from backend.remitos import schemas, models
+from backend.remitos.constants import RemitoFlags
 from backend.clientes.models import Cliente, Domicilio
 from backend.productos.models import Producto
 from backend.pedidos.models import Pedido, PedidoItem
@@ -395,8 +396,8 @@ class RemitosService:
                 db.add(r_item)
                 print(f"[REMITO-TRACE] Item parcial vinculado: Remito {remito.id} -> PedidoItem {target_p_item.id} ({p_item.cantidad} uds)")
                 
-            # [DOCTRINA PARCIAL] Encender BIT 11 en el Remito
-            remito.flags_estado = (remito.flags_estado or 0) | 2048
+            # Encender VINCULAR_PARCIAL (Bit 11) en el Remito
+            remito.flags_estado = (remito.flags_estado or 0) | int(RemitoFlags.VINCULAR_PARCIAL)
             db.add(remito)
             
         else:

@@ -23,6 +23,10 @@ class PedidoFlags(IntFlag):
     # cantidad_entregada >= cantidad. Se apaga si se anula un remito y vuelve a haber pendiente.
     # Canonizado Nike S833.
     FULL_DELIVERED = 1 << 21
+    HAS_PARTIAL_INVOICE  = 1 << 22  # 4194304  — Facturas parciales en curso (Nike S836)
+    FULL_INVOICED        = 1 << 23  # 8388608  — Facturación completa / COMMERCIALLY_CLEARED
+                                     #            Rosa: confirmado por operador
+                                     #            Blanco: confirmado por Sabueso ARCA
     # Bit 40 PROHIBIDO — DISCRIMINA_IVA del cliente
 
     # BANDA 32+ — Estados mutuamente excluyentes

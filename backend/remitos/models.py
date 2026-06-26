@@ -49,6 +49,9 @@ class Remito(Base):
     bultos = Column(Integer, nullable=True)
     valor_declarado = Column(Float, nullable=True)
 
+    # Genoma 64-bit (Nike S836)
+    flags_estado = Column(Integer, default=0)
+
     # Relaciones
     pedido = relationship("Pedido", backref="remitos")
     domicilio_entrega = relationship("Domicilio")
