@@ -1,6 +1,24 @@
 # MANUAL TECNICO V5: "INDEPENDENCIA"
-**Version:** 2.6 Release (Python local scope bug + talonario dos capas — 835 OF)
-**Fecha:** 2026-06-25
+**Version:** 2.7 Release (Doctrina Nike S836 — Bits fiscales 22/23 + ES_NO_COMERCIAL Bit 11 + genoma remitos)
+**Fecha:** 2026-06-26
+
+### 📢 Actualización Sesión 836 OF (2026-06-26) — Arquitectura genoma sin cambios de código funcional
+
+**Sin cambios en APIs ni comportamiento observable.** Esta sesión fue de canonización doctrinal pura.
+
+**Nuevos bits en PedidoFlags (`backend/pedidos/constants.py`):**
+- `HAS_PARTIAL_INVOICE = 1 << 22` — Facturas parciales en curso. Se enciende cuando hay al menos una factura R16 que no cubre el 100% del pedido.
+- `FULL_INVOICED = 1 << 23` — Facturación completa (COMMERCIALLY_CLEARED). Rosa: confirmado por operador. Blanco: confirmado por Sabueso ARCA.
+- `ES_NO_COMERCIAL = 1 << 11` — Bypass comercial: muestras, uso interno. Parte de la Banda de Excepciones (Bits 11/12). Reversible con nota forense obligatoria.
+
+**Doctrina canonizada:**
+- Dos ejes ortogonales independientes: **físico** (Bits 20/21 HAS_PARTIAL_DELIVERY/FULL_DELIVERED) vs **fiscal** (Bits 22/23 HAS_PARTIAL_INVOICE/FULL_INVOICED).
+- Pedidos soberano: no existe remito sin pedido padre. La exploración de Ghost/nullable fue descartada por Nike.
+- Banda de Excepciones Bits 11/12: `ES_NO_COMERCIAL` opera junto a `NO_FISCAL_FORCE` como circuito de bypass.
+
+**Nuevos bits en RemitoFlags (`backend/remitos/constants.py`):**
+- `flags_estado INTEGER DEFAULT 0` agregado a tabla `remitos` vía migrate_036.
+- Genoma canonizado: EXISTENCE(0), HAS_ACTIVITY(1), ES_LIBRE(4 — reservado), V15_STRUCT(10), VINCULAR_PARCIAL(11), PROHIBIDO(13).
 
 ## 38. REGLA DE ALCANCE LOCAL EN PYTHON: import DENTRO DE FUNCIÓN (Sesion 835 OF, 2026-06-25)
 

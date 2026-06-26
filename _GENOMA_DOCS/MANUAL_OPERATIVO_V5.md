@@ -3,6 +3,9 @@
 **Estado:** VIGENTE
 **Código de Doctrina:** DEOU-2025
 
+### 📢 Actualización Sesión 836 OF (2026-06-26)
+**Sin cambios visibles para el operador.** Sesión de canonización arquitectónica interna. Los Bits 22/23 (facturación) y Bit 11 (no comercial) están definidos en el genoma pero aún no tienen UI activa — se implementarán en S837.
+
 ### 📢 Actualización Sesión 832 OF (2026-06-22)
 - **SmartSelect Contacto Responsable (Panel Logistica):** En la pestana de logistica de un pedido, si el cliente tiene contactos con rol logistico o decisor, aparece el selector "Contacto Responsable". Cambiar el contacto actualiza el pedido en tiempo real. Solo visible cuando hay vinculos cargados.
 - **SmartSelect Nodo / Sucursal (Panel Logistica):** Si la empresa de transporte asignada tiene sucursales/nodos (Bit 6 activado en su ficha), aparece el selector de nodo de entrega. Solo visible para empresas con Bit 6.
