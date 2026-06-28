@@ -562,35 +562,33 @@
             </main>
 
             <!-- SECTION 3: FOOTER -->
-            <footer class="shrink-0 bg-[#0e0e0e] border-t border-white/10 p-4 relative z-40">
-                
-                <!-- NOTES WIDGET (Bottom Left) -->
-                <div class="absolute left-6 bottom-6 z-50">
-                    <!-- Toggle Button -->
-                    <button @click="showNotes = !showNotes" 
+            <footer class="shrink-0 bg-[#0e0e0e] border-t border-white/10 px-4 pt-3 pb-4 flex flex-col gap-3">
+
+                <!-- INLINE NOTES PANEL (expands above controls row, sin overlay) -->
+                <transition name="fade-slide-up">
+                    <div v-if="showNotes" class="w-80 bg-[#151515] border border-white/20 rounded-xl shadow-2xl p-3 flex flex-col gap-2">
+                        <div class="flex justify-between items-center pb-2 border-b border-white/5">
+                            <span class="text-[10px] font-bold uppercase text-gray-400">Instrucciones / Observaciones</span>
+                            <button @click="showNotes = false" class="text-gray-500 hover:text-white"><i class="fas fa-times"></i></button>
+                        </div>
+                        <textarea
+                           v-model="notas"
+                           placeholder="Escribe aquí instrucciones..."
+                           class="w-full h-32 bg-black/50 border border-white/10 rounded-lg p-2 text-sm text-white focus:border-orange-500/50 focus:outline-none resize-none placeholder-gray-700"
+                        ></textarea>
+                    </div>
+                </transition>
+
+                <!-- CONTROLS ROW: Notas toggle (izq) + Totales (der) -->
+                <div class="flex justify-between items-end">
+                    <button @click="showNotes = !showNotes"
                             class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all text-xs font-bold uppercase tracking-widest bg-[#1a1b26] shadow-lg"
                             :class="hasNotes ? 'text-orange-500 border-orange-500/50' : 'text-gray-500 border-white/10'">
                         <i class="fas fa-sticky-note" :class="hasNotes ? 'text-orange-500' : 'text-gray-600'"></i>
                         Notas
                     </button>
 
-                    <!-- Notes Popup -->
-                    <transition name="fade-slide-up">
-                        <div v-if="showNotes" class="absolute bottom-full left-0 mb-2 w-80 bg-[#151515] border border-white/20 rounded-xl shadow-2xl p-3 flex flex-col gap-2 z-[60]">
-                             <div class="flex justify-between items-center pb-2 border-b border-white/5">
-                                <span class="text-[10px] font-bold uppercase text-gray-400">Instrucciones / Observaciones</span>
-                                <button @click="showNotes = false" class="text-gray-500 hover:text-white"><i class="fas fa-times"></i></button>
-                             </div>
-                             <textarea 
-                                v-model="notas"
-                                placeholder="Escribe aquí instrucciones..." 
-                                class="w-full h-32 bg-black/50 border border-white/10 rounded-lg p-2 text-sm text-white focus:border-orange-500/50 focus:outline-none resize-none placeholder-gray-700"
-                             ></textarea>
-                        </div>
-                    </transition>
-                </div>
-
-                <div class="flex justify-end items-end gap-6">
+                    <div class="flex items-end gap-6">
                     
                     <div class="text-right">
                         <div class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Subtotal Neto</div>
@@ -632,10 +630,22 @@
                         </template>
                     </div>
 
+                    <!-- Toggle ES_NO_COMERCIAL (Bit 11) -->
+                    <div class="flex flex-col items-center justify-center border-l border-white/10 pl-6 h-full self-end pb-1 gap-1">
+                        <div class="text-[9px] font-bold uppercase tracking-wider text-gray-500">Tipo Pedido</div>
+                        <button @click="isNoComercial = !isNoComercial"
+                                type="button"
+                                class="flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-[10px] tracking-widest uppercase transition-all shadow-inner"
+                                :class="isNoComercial ? 'bg-amber-950/50 text-amber-400 border border-amber-500/50 hover:bg-amber-900/40 hover:border-amber-400' : 'bg-[#0b1120] text-gray-500 border border-gray-700 hover:border-gray-500'">
+                            <i class="fas" :class="isNoComercial ? 'fa-box-open' : 'fa-shopping-cart'"></i>
+                            {{ isNoComercial ? 'NO COMERCIAL' : 'COMERCIAL' }}
+                        </button>
+                    </div>
+
                     <!-- Toggle de Circuito Bipolar (NO_FISCAL_FORCE) -->
                     <div class="flex flex-col items-center justify-center border-l border-white/10 pl-6 h-full self-end pb-1 gap-1">
                         <div class="text-[9px] font-bold uppercase tracking-wider text-gray-500">Modalidad Operativa</div>
-                        <button @click="isCircuitoNegro = !isCircuitoNegro" 
+                        <button @click="isCircuitoNegro = !isCircuitoNegro"
                                 type="button"
                                 :disabled="isFromIngesta"
                                 :title="isFromIngesta ? 'Bloqueado: Pedido originado desde Ingesta AFIP' : 'Alternar Circuito (Blanco/Lista 2)'"
@@ -673,6 +683,7 @@
                           </div>
                      </div>          </div>
                 </div>
+                    </div>
 
             </footer>
             </div> <!-- End of inner content wrapper -->
@@ -925,6 +936,7 @@ const loadPedido = async (id) => {
         nroOC.value = p.oc || '';
         flagsEstadoPedido.value = p.flags_estado || 0;
         isCircuitoNegro.value = (BigInt(p.flags_estado || 0) & (1n << 12n)) !== 0n;
+        isNoComercial.value = (BigInt(p.flags_estado || 0) & (1n << 11n)) !== 0n;
         omitirOC.value = !!p.flags_estado && (p.flags_estado & 64) ? false : false; // Placeholder if we had oc_override in DB, but for now just load OC
         // TODO: Handle Order Status specifically if needed (locked state?)
 
@@ -1012,6 +1024,7 @@ const statusBadgeClasses = computed(() => {
     return 'bg-gray-800 text-gray-400 border-gray-700';
 });
 const isCircuitoNegro = ref(false);
+const isNoComercial = ref(false);
 const omitirOC = ref(false); // [V5.5] Flag for OC bypass
 const nroOC = ref(''); // [V5.5] OC Number
 const pedidoOrigenMigracionId = ref(null); // [V5.9] Doctrina Inmutabilidad
@@ -1129,6 +1142,39 @@ watch(isCircuitoNegro, (val) => {
         flags |= bit12;
     } else {
         flags &= ~bit12;
+    }
+    flagsEstadoPedido.value = Number(flags);
+});
+
+// Watch ES_NO_COMERCIAL: en pedido existente llama al endpoint (para nota forense al apagar)
+watch(isNoComercial, async (val) => {
+    const pid = route.params.id;
+    if (pid) {
+        // Al convertir a COMERCIAL: flush de precios actuales antes de que la guardia los consulte
+        if (!val && clienteSeleccionado.value) {
+            try {
+                await api.patch(`/pedidos/${pid}`, buildPayload());
+            } catch (saveErr) {
+                notificationStore.add('No se pudieron guardar los precios. Guardá el pedido manualmente y reintentá.', 'error');
+                isNoComercial.value = !val;
+                return;
+            }
+        }
+        try {
+            await api.patch(`/pedidos/${pid}/no-comercial`, { is_no_comercial: val });
+        } catch (e) {
+            const msg = e?.response?.data?.detail || 'Error al cambiar modo No Comercial';
+            notificationStore.add(msg, 'error');
+            isNoComercial.value = !val;
+            return;
+        }
+    }
+    let flags = BigInt(flagsEstadoPedido.value || 0);
+    if (val) {
+        flags |= (1n << 11n);
+    } else {
+        flags &= ~(1n << 11n);
+        flags &= ~(1n << 23n);
     }
     flagsEstadoPedido.value = Number(flags);
 });
@@ -1310,6 +1356,7 @@ const descuentoGlobalValor = ref('');
 const GOLD_ARCA   = 4;   // Bit 2 — formal, validado AFIP
 const OPERATOR_OK = 16;  // Bit 4 — sello Rosa, informal operativo
 const NO_FISCAL_FORCE = 4096;  // Bit 12 — pedido sin factura AFIP
+const ES_NO_COMERCIAL = 2048;  // Bit 11 — muestras/uso interno
 
 const clientValidation = computed(() => {
     if (!clienteSeleccionado.value) return { valid: true, missing: [] };
@@ -2010,6 +2057,12 @@ const buildPayload = () => {
         finalFlags |= (1 << 12);
     } else {
         finalFlags &= ~(1 << 12);
+    }
+    // ES_NO_COMERCIAL Bit (11)
+    if (isNoComercial.value) {
+        finalFlags |= (1 << 11);
+    } else {
+        finalFlags &= ~(1 << 11);
     }
 
     const basePayload = {

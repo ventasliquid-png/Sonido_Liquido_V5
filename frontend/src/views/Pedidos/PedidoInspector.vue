@@ -13,23 +13,23 @@
         <!-- Order Details State -->
         <div v-else class="flex flex-col h-full w-[400px]"> <!-- Fixed width for consistency -->
             <!-- Header -->
-            <div class="h-16 flex items-center justify-between px-6 border-b border-emerald-900/30 bg-[#052e1e]/50 backdrop-blur-sm shrink-0">
-                <div class="flex flex-col">
+            <div class="h-16 flex items-center px-6 gap-4 border-b border-emerald-900/30 bg-[#052e1e]/50 backdrop-blur-sm shrink-0">
+                <div class="flex flex-col flex-1 min-w-0">
                     <h2 class="font-outfit text-lg font-bold text-white tracking-wide">
                         Pedido <span class="text-emerald-400">#{{ modelValue.id }}</span>
                     </h2>
                     <span class="text-[10px] text-emerald-200/50 uppercase tracking-widest">{{ formatDate(modelValue.fecha) }}</span>
                 </div>
-                <div class="flex items-center">
-                    <button 
-                        @click="captureZen" 
-                        class="h-8 w-8 rounded-full flex items-center justify-center text-emerald-400 hover:text-white hover:bg-white/10 transition-all mr-1 no-zen"
+                <div class="flex items-center gap-1 shrink-0">
+                    <button
+                        @click="captureZen"
+                        class="h-8 w-8 rounded-full flex items-center justify-center text-emerald-400 hover:text-white hover:bg-white/10 transition-all no-zen"
                         title="Copiar Presupuesto (Imagen)"
                     >
                         <i class="fas fa-camera"></i>
                     </button>
-                    <button 
-                        @click="handleClose" 
+                    <button
+                        @click="handleClose"
                         class="h-8 w-8 rounded-full flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all no-zen"
                         title="Cerrar (ESC)"
                     >
@@ -177,7 +177,7 @@
 
                 <!-- QUICK EDIT ITEMS BUTTON -->
                 <div class="pt-2 no-zen">
-                    <button 
+                    <button
                         @click="editInGrid"
                         class="w-full py-3 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500 text-emerald-400 rounded-lg font-bold text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 group/edit"
                     >
@@ -292,12 +292,19 @@
                 </div>
                 
                 <div class="flex gap-2 no-zen">
-                    <button 
+                    <button
                         @click="emit('clone')"
                         class="px-4 py-3 bg-emerald-900/30 hover:bg-emerald-900/50 text-emerald-400 border border-emerald-500/20 rounded-lg font-bold transition-all text-xs uppercase"
                         title="Clonar este pedido"
                     >
                         <i class="fas fa-copy mr-1"></i> Clonar
+                    </button>
+                    <button
+                        @click="emitirRemito"
+                        class="px-4 py-3 bg-indigo-900/30 hover:bg-indigo-900/50 text-indigo-400 border border-indigo-500/20 rounded-lg font-bold transition-all text-xs uppercase"
+                        title="Emitir Remito para este pedido"
+                    >
+                        <i class="fas fa-clipboard-list mr-1"></i> Remito
                     </button>
                     
                     <button 
@@ -774,6 +781,16 @@ const editInGrid = () => {
     router.push({
         name: 'PedidoEditar',
         params: { id: props.modelValue.id }
+    })
+}
+
+const emitirRemito = () => {
+    router.push({
+        name: 'ManualRemito',
+        query: {
+            cliente_id: props.modelValue.cliente_id,
+            pedido_id: props.modelValue.id
+        }
     })
 }
 

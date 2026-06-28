@@ -765,6 +765,9 @@ class RemitosService:
         if is_full_delivered:
             flags |= int(PedidoFlags.FULL_DELIVERED)
             flags &= ~int(PedidoFlags.HAS_PARTIAL_DELIVERY)
+            # ES_NO_COMERCIAL (Bit 11): entrega completa = cerrado comercialmente sin facturar
+            if flags & int(PedidoFlags.ES_NO_COMERCIAL):
+                flags |= int(PedidoFlags.FULL_INVOICED)
         else:
             flags &= ~int(PedidoFlags.FULL_DELIVERED)
             if has_partial:

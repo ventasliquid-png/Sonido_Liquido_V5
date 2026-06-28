@@ -48,6 +48,10 @@ class PedidoCreate(BaseModel):
     pedido_origen_migracion_id: Optional[int] = None
     flags_estado: Optional[int] = 0
 
+class NoComercialRequest(BaseModel):
+    is_no_comercial: bool
+    usuario: Optional[str] = "Sistema"
+
 class PedidoUpdate(BaseModel):
     cliente_id: Optional[UUID] = None
     fecha: Optional[datetime] = None

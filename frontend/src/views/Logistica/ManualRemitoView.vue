@@ -410,6 +410,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { useClientesStore } from '@/stores/clientes';
 import { useMaestrosStore } from '@/stores/maestros';
 import { useNotificationStore } from '@/stores/notification';
@@ -418,6 +419,7 @@ import ClientCanvas from '../Hawe/ClientCanvas.vue';
 import PedidoCanvas from '../Ventas/PedidoCanvas.vue';
 import api from '@/services/api';
 
+const route = useRoute();
 const clientesStore = useClientesStore();
 const maestrosStore = useMaestrosStore();
 const notificationStore = useNotificationStore();
@@ -482,6 +484,17 @@ const isValid = computed(() => {
 onMounted(async () => {
   if (clientesStore.clientes.length === 0) await clientesStore.fetchClientes();
   if (maestrosStore.transportes.length === 0) await maestrosStore.fetchTransportes();
+
+  const { cliente_id, pedido_id } = route.query;
+  if (cliente_id) {
+    form.cliente_id = cliente_id;
+    if (pedido_id) {
+      await nextTick();
+      form.pedido_id = Number(pedido_id);
+      await nextTick();
+      onPedidoSelected();
+    }
+  }
 });
 
 // Reactive trigger for client addresses & orders

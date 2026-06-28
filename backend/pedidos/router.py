@@ -878,7 +878,9 @@ def add_pedido_item(
     # Use provided price or default to product price
     precio_final = item_create.precio_unitario
     if precio_final == 0:
-         precio_final = getattr(producto, 'precio_mayorista', 0)
+        # ES_NO_COMERCIAL (Bit 11): precio $0 es intencional — no aplicar fallback
+        if not (pedido.flags_estado and pedido.flags_estado & PF.ES_NO_COMERCIAL.value):
+            precio_final = getattr(producto, 'precio_mayorista', 0)
          
     subtotal = precio_final * item_create.cantidad
     
@@ -1187,5 +1189,49 @@ def toggle_circuito_bipolar(pedido_id: int, req: BipolarRequest, db: Session = D
     db.refresh(pedido)
     return pedido
 
+
+@router.patch("/{pedido_id}/no-comercial", response_model=schemas.PedidoResponse)
+def toggle_no_comercial(pedido_id: int, req: schemas.NoComercialRequest, db: Session = Depends(get_db)):
+    """
+    Alterna ES_NO_COMERCIAL (Bit 11 — muestras/uso interno).
+    Al apagar: inyecta nota forense y reinicia Bit 23 (FULL_INVOICED).
+    """
+    pedido = db.query(models.Pedido).filter(models.Pedido.id == pedido_id).first()
+    if not pedido:
+        raise HTTPException(status_code=404, detail="Pedido no encontrado")
+
+    current_flags = pedido.flags_estado or 0
+    if req.is_no_comercial:
+        current_flags |= PF.ES_NO_COMERCIAL.value
+        current_flags |= PF.ES_FIRME.value
+    else:
+        # Guardia: no permitir conversión a comercial si hay ítems con precio $0
+        items_sin_precio = (
+            db.query(models.PedidoItem)
+            .options(joinedload(models.PedidoItem.producto))
+            .filter(
+                models.PedidoItem.pedido_id == pedido_id,
+                models.PedidoItem.precio_unitario == 0
+            )
+            .all()
+        )
+        if items_sin_precio:
+            item = items_sin_precio[0]
+            descripcion = item.producto.nombre if item.producto else f"ítem #{item.id}"
+            raise HTTPException(
+                status_code=400,
+                detail=f"No se puede convertir a comercial: el ítem '{descripcion}' tiene precio $0. Guardá el pedido con el nuevo precio y volvé a intentarlo."
+            )
+
+        current_flags &= ~PF.ES_NO_COMERCIAL.value
+        current_flags &= ~PF.FULL_INVOICED.value
+        ts = datetime.now().strftime("%Y-%m-%d %H:%M")
+        nota_forense = f"\n[SISTEMA] Mutación ES_NO_COMERCIAL → Comercial. Bit 23 reiniciado. {ts} {req.usuario}"
+        pedido.nota = (pedido.nota or "") + nota_forense
+
+    pedido.flags_estado = current_flags
+    db.commit()
+    db.refresh(pedido)
+    return pedido
 
 
