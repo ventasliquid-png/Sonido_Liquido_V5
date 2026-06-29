@@ -4,6 +4,8 @@ import logging
 from typing import Optional
 from fastapi import UploadFile
 
+DEBUG_PDF = False  # Set True locally to dump raw AFIP text → pdf_debug.txt
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -31,12 +33,12 @@ def extract_text_from_pdf(file_bytes: bytes):
         doc.close()
         full_text = " | ".join(text_blocks)
         
-        # Debug trace
-        try:
-             with open("pdf_debug.txt", "w", encoding="utf-8") as f:
-                  f.write(full_text)
-        except:
-             pass
+        if DEBUG_PDF:
+            try:
+                with open("pdf_debug.txt", "w", encoding="utf-8") as f:
+                    f.write(full_text)
+            except:
+                pass
              
         return full_text, words_data
     except Exception as e:

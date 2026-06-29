@@ -2065,9 +2065,11 @@ const buildPayload = () => {
         finalFlags &= ~(1 << 11);
     }
 
+    const _now = new Date();
+    const _pad = n => String(n).padStart(2, '0');
     const basePayload = {
         cliente_id: clienteSeleccionado.value.id || clienteSeleccionado.value._id,
-        fecha: fechaPedido.value,
+        fecha: `${fechaPedido.value}T${_pad(_now.getHours())}:${_pad(_now.getMinutes())}:00`,
         nota: notas.value,
         estado: "PENDIENTE",
         oc: nroOC.value.trim(),
