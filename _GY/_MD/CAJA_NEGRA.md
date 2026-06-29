@@ -1,4 +1,18 @@
-Sesion actual: 836
+Sesion actual: 839
+
+# CAJA NEGRA: Card #81 Bits 20/21 + Fixes #83/#59 — S839 (2026-06-29)
+
+Sesion 839 OF. Hash D: ea117af8 | Hash B: 92c2cc8. Estado: NOMINAL GOLD. Agentes: CC.
+
+- _recalcular_bits_entrega: helper centralizado en RemitosService. Predicate corregido (has_any>0 como guard evita Bit20 espurio en rollback total). Cubre 4 paths: create_manual, create_from_ingestion (EC-B R16 drop-shipping directo), update_remito/ANULADO (EC-A), delete_remito/BORRADOR (EC-A).
+- Card #83: PedidoCanvas.vue envía hora local real en payload fecha (era solo fecha → medianoche → 12:00 en locale es-AR 12h). PedidoList.vue formatDate con hour12:false.
+- Card #59: DEBUG_PDF=False en pdf_parser.py. Datos AFIP (CUIT, CAE, cliente) no se vuelcan a disco en producción.
+- Card #36 cerrada en Board: PEDIDO_GHOST descartado, doctrina Pedidos soberano. S836.
+- OMEGA.md: bloque verificación Card #000 post-actualización agregado en FASE 2.
+- Cards #85/#86 creadas: Reestructurar docs D + ALFA V3.4 informe histórico semáforo.
+- D:ea117af8 B:92c2cc8 | PIN: 1974
+
+---
 
 # CAJA NEGRA: Doctrina Nike S836 — Bits Fiscales + ES_NO_COMERCIAL + Genoma Remitos (2026-06-26)
 

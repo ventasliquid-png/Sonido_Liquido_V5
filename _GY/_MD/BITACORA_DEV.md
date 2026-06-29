@@ -1,3 +1,29 @@
+## SESION 839 (OF): CARD #81 BITS 20/21 + FIXES #83/#59
+**Fecha:** 2026-06-29
+**Locacion:** OF
+**Estado:** NOMINAL GOLD — Hash D: ea117af8 | Hash B: 92c2cc8 | PIN 1974
+
+### Hito 1: _recalcular_bits_entrega centralizado (CC)
+* Helper estatico en RemitosService. Predicate corregido (has_any>0 como guard).
+* EC-A: delete_remito + update_remito/ANULADO recalculan bits tras la operacion.
+* EC-B: create_from_ingestion evalua Bit21 directo (R16 drop-shipping).
+* create_manual paso 7: 32 lineas inline → 1 llamada al helper.
+
+### Hito 2: Fix hora 12:00 (Card #83) (CC)
+* PedidoCanvas.vue: payload fecha incluye hora local real (T${HH}:${MM}:00).
+* PedidoList.vue: formatDate hour12:false → midnight muestra 00:00.
+
+### Hito 3: DEBUG_PDF=False guard (Card #59) (CC)
+* pdf_parser.py: constante modulo DEBUG_PDF=False.
+* Datos AFIP no se vuelcan a disco en produccion.
+
+### Hito 4: Board regularizado (CC)
+* Cards #36/#59/#81/#83 cerradas. Cards #85/#86 creadas.
+* Card#000 actualizada: D=ea117af8 P=92c2cc8.
+* OMEGA.md: bloque verificacion Card#000 agregado en FASE 2.
+
+---
+
 ## SESION 836 (OF): DOCTRINA NIKE S836 — BITS FISCALES + ES_NO_COMERCIAL + GENOMA REMITOS
 **Fecha:** 2026-06-26
 **Locación:** OF

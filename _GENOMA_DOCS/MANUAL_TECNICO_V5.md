@@ -1,6 +1,23 @@
 # MANUAL TECNICO V5: "INDEPENDENCIA"
-**Version:** 2.8 Release (S837 CA — ES_NO_COMERCIAL Bit 11 implementado + race condition fix + 3 fixes UI)
-**Fecha:** 2026-06-28
+**Version:** 2.9 Release (S839 OF — Card #81 _recalcular_bits_entrega + Fixes #83/#59)
+**Fecha:** 2026-06-29
+
+### Actualizacion Sesion 839 OF (2026-06-29) — Card #81 Bits 20/21 + Fixes #83/#59
+
+**Commits:** D:`ea117af8` B:`92c2cc8` (cherry-pick + build)
+
+**Card #81 — _recalcular_bits_entrega centralizado:**
+- Nuevo helper estatico en `RemitosService` (`backend/remitos/service.py`). Predicate corregido: `has_any = any(item.cantidad_entregada > 0)` como guard antes de evaluar parcial/completo. Evita Bit20 espurio cuando no hay entregas (rollback a OFF/OFF).
+- Edge Case A: `delete_remito()` (router.py) — si el pedido sobrevive (origen != INGESTA_PDF), recalcula bits post-flush. `update_remito()` estado-ANULADO (service.py) — recalcula bits antes del commit.
+- Edge Case B: `create_from_ingestion()` — llama al helper antes del flush final. R16 drop-shipping directo enciende Bit21 si cubre 100%.
+- `create_manual()` paso 7: 32 lineas inline reemplazadas por una llamada al helper.
+
+**Card #83 — Hora hardcodeada 12:00:**
+- `PedidoCanvas.vue`: payload `fecha` ahora incluye hora local real (`fechaPedido + T${HH}:${MM}:00`). Causa: `<input type="date">` produce solo "YYYY-MM-DD", Pydantic V1 lo parsea como midnight, locale es-AR 12h muestra midnight como "12:00".
+- `PedidoList.vue`: `formatDate` con `hour12: false` — medianoche muestra "00:00" en lugar de "12:00".
+
+**Card #59 — DEBUG_PDF guard:**
+- `pdf_parser.py`: `DEBUG_PDF = False` a nivel modulo. Bloque de dump reenvuelto en `if DEBUG_PDF`. Datos AFIP (CUIT, CAE, razon social) no se escriben a disco en produccion.
 
 ### 📢 Actualización Sesión 837 CA (2026-06-27/28) — ES_NO_COMERCIAL implementado + race condition
 

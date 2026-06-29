@@ -1,7 +1,13 @@
 # MANUAL OPERATIVO V5 - SONIDO LÍQUIDO
-**Versión del Documento:** 1.10 (Fixes Rosa/Blanco + Tablero Ambos/Fucsia — 829 OF, 2026-06-18)
+**Versión del Documento:** 1.11 (S839 OF — Fixes internos Bits 20/21 + hora pedidos + seguridad PDF)
 **Estado:** VIGENTE
 **Código de Doctrina:** DEOU-2025
+
+### Actualizacion Sesion 839 OF (2026-06-29) — Fixes internos, sin cambios de flujo operativo
+
+- **Hora de pedidos corregida:** Los pedidos ahora registran la hora local real de creacion (antes mostraban "12:00" por defecto en la lista). Los pedidos existentes muestran "00:00". Los nuevos pedidos muestran la hora correcta.
+- **Motor de entregas reforzado:** El sistema actualiza correctamente los indicadores de entrega parcial/completa cuando se anula o elimina un remito (antes los bits quedaban encendidos tras revertir una entrega). Sin cambio visible para el operador en el flujo normal.
+- Sin cambios de flujo operativo ni de pantallas.
 
 ### 📢 Actualización Sesión 837 CA (2026-06-27/28) — ES_NO_COMERCIAL activo en UI
 
