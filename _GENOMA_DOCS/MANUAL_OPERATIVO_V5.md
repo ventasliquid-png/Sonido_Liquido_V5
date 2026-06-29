@@ -3,6 +3,20 @@
 **Estado:** VIGENTE
 **Código de Doctrina:** DEOU-2025
 
+### 📢 Actualización Sesión 837 CA (2026-06-27/28) — ES_NO_COMERCIAL activo en UI
+
+**Toggle "No Comercial" en ficha del pedido (PedidoCanvas):**
+- Nuevo toggle junto al de Circuito (Bit 12). Estados: "COMERCIAL" (gris oscuro) / "NO COMERCIAL" (ámbar).
+- Activar ES_NO_COMERCIAL: el pedido queda Bit11 + ES_FIRME (Bit33). Aparece en el selector de remito manual.
+- Ciclo fiscal automático: cuando el pedido ES_NO_COMERCIAL se entrega completamente, el sistema marca FULL_INVOICED (Bit 23) solo — sin necesidad de factura.
+- **Revertir a comercial (apagar toggle):** guardar el pedido primero (guardar precios actualizados) antes de apagar el toggle. Si hay ítems con precio $0 el sistema bloqueará con detalle del producto.
+- Al revertir, el sistema agrega una nota forense inmutable con timestamp y usuario. Esta nota no puede borrarse.
+
+**Botón "Remito" en inspector del pedido (panel lateral del Tablero Táctico):**
+- Nuevo botón en la barra inferior del inspector (junto a CLONAR y ACEPTAR Y VOLVER).
+- Navega directamente a la emisión de remito manual con cliente y pedido preseleccionados.
+- Siempre visible — no requiere scroll en el panel lateral.
+
 ### 📢 Actualización Sesión 836 OF (2026-06-26)
 **Sin cambios visibles para el operador.** Sesión de canonización arquitectónica interna. Los Bits 22/23 (facturación) y Bit 11 (no comercial) están definidos en el genoma pero aún no tienen UI activa — se implementarán en S837.
 

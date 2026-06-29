@@ -1,6 +1,33 @@
 # MANUAL TECNICO V5: "INDEPENDENCIA"
-**Version:** 2.7 Release (Doctrina Nike S836 — Bits fiscales 22/23 + ES_NO_COMERCIAL Bit 11 + genoma remitos)
-**Fecha:** 2026-06-26
+**Version:** 2.8 Release (S837 CA — ES_NO_COMERCIAL Bit 11 implementado + race condition fix + 3 fixes UI)
+**Fecha:** 2026-06-28
+
+### 📢 Actualización Sesión 837 CA (2026-06-27/28) — ES_NO_COMERCIAL implementado + race condition
+
+**Commit:** `cdf70d4e` · B:`5794a62` (cherry-pick S838)
+
+**Implementación ES_NO_COMERCIAL (Bit 11):**
+- `toggle_no_comercial` endpoint en `backend/pedidos/router.py`: guard precio $0 (HTTP 400 con detalle del producto), enciende Bit11+Bit33 en ON, reinicia Bit23 + nota forense inmutable en OFF
+- `backend/remitos/service.py`: Bit 23 (FULL_INVOICED) se enciende automáticamente cuando pedido ES_NO_COMERCIAL alcanza FULL_DELIVERED (Bit 21). Una muestra completamente despachada = ciclo fiscal cerrado automáticamente.
+- `backend/pedidos/schemas.py`: `NoComercialRequest` con campo `usuario` para la nota forense
+- ES_FIRME (Bit 33) ortogonal a ES_NO_COMERCIAL: un pedido no-comercial activo DEBE tener Bit 33 para aparecer en el selector de remito manual
+
+**Race condition (flush-antes-de-toggle):**
+- Bug: watcher `isNoComercial` llamaba `/no-comercial` antes de persistir precios editados → DB veía $0 aunque UI mostraba precio nuevo
+- Fix: flush explícito (`PATCH /pedidos/{id}` con `buildPayload()`) antes del toggle cuando `val=false`
+- Catch block muestra `detail` del backend en lugar de mensaje genérico
+
+**ManualRemitoView — Preselección por query params:**
+- `onMounted` lee `?cliente_id=X&pedido_id=Y` y precarga el formulario de remito manual automáticamente
+- Navegación desde inspector: botón "Remito" en Total Footer → `router.push({ name: 'ManualRemito', query: {...} })`
+
+**Tres fixes UI (segunda iteración — primera falló por corte de sesión):**
+- **Notas en PedidoCanvas:** `fixed left-6` quedaba detrás del sidebar `w-64` → panel INLINE en footer (`flex flex-col gap-3`), sin overlay ni posicionamiento absoluto
+- **Cámara/texto en header inspector:** `ml-2 gap-1` insuficiente → `flex-1 min-w-0` en texto + `shrink-0` en botones
+- **Botón Remito:** en zona scrolleable, invisible al abrir → movido al Total Footer del inspector (junto a CLONAR, siempre visible)
+
+**Migrate_036 en CA:**
+- `flags_estado INTEGER DEFAULT 0` en tabla `remitos` — aplicada en CA (faltaba desde S836 que solo la aplicó en OF)
 
 ### 📢 Actualización Sesión 836 OF (2026-06-26) — Arquitectura genoma sin cambios de código funcional
 
