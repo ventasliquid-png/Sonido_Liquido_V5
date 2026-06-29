@@ -26,6 +26,33 @@ class RemitosService:
         return cond.id if cond else None
 
     @staticmethod
+    def _recalcular_bits_entrega(db: Session, pedido) -> None:
+        """Recalcula Bits 20/21 en el pedido según estado real de entregas.
+        OFF/OFF si ninguna entrega, Bit20 si parcial, Bit21 si completa."""
+        from backend.pedidos.constants import PedidoFlags
+        db.flush()
+        items = db.query(PedidoItem).filter(PedidoItem.pedido_id == pedido.id).all()
+        if not items:
+            return
+        has_any = any(item.cantidad_entregada > 0 for item in items)
+        is_full = has_any and all(item.cantidad_entregada >= item.cantidad for item in items)
+        has_partial = has_any and not is_full
+        flags = pedido.flags_estado or 0
+        if is_full:
+            flags |= int(PedidoFlags.FULL_DELIVERED)
+            flags &= ~int(PedidoFlags.HAS_PARTIAL_DELIVERY)
+            if flags & int(PedidoFlags.ES_NO_COMERCIAL):
+                flags |= int(PedidoFlags.FULL_INVOICED)
+        else:
+            flags &= ~int(PedidoFlags.FULL_DELIVERED)
+            if has_partial:
+                flags |= int(PedidoFlags.HAS_PARTIAL_DELIVERY)
+            else:
+                flags &= ~int(PedidoFlags.HAS_PARTIAL_DELIVERY)
+        pedido.flags_estado = flags
+        db.add(pedido)
+
+    @staticmethod
     def create_from_ingestion(db: Session, payload: schemas.IngestionPayload):
         """
         Creates a Pedido and Remito from PDF Ingestion Data.
@@ -519,6 +546,9 @@ class RemitosService:
             
             print(f"[MODO ESPEJO] Factura {payload.factura.numero} creada y vinculada con flag {mirror_flags}. Total: {factura_mirror.total}")
 
+        # 8. EVALUAR BITS 20/21 (Edge Case B: R16 cubre entrega completa sin R15 previo)
+        RemitosService._recalcular_bits_entrega(db, nuevo_pedido)
+
         try:
             db.flush()
             db.refresh(remito)
@@ -744,39 +774,7 @@ class RemitosService:
             db.add(r_item)
 
         # 7. EVALUAR HAS_PARTIAL_DELIVERY (Bit 20) + FULL_DELIVERED (Bit 21)
-        db.flush()
-        from backend.pedidos.constants import PedidoFlags
-        items = db.query(PedidoItem).filter(
-            PedidoItem.pedido_id == nuevo_pedido.id
-        ).all()
-
-        has_partial = any(
-            item.cantidad_entregada < item.cantidad
-            for item in items
-        )
-        is_full_delivered = all(
-            item.cantidad_entregada >= item.cantidad
-            for item in items
-        ) if items else False  # Si no hay ítems, no es full_delivered
-
-        # Actualizar flags: si completo (Bit 21 ON), apagar Bit 20 (Bit 20 OFF)
-        # Si parcial, encienden Bit 20 y apagan Bit 21
-        flags = nuevo_pedido.flags_estado or 0
-        if is_full_delivered:
-            flags |= int(PedidoFlags.FULL_DELIVERED)
-            flags &= ~int(PedidoFlags.HAS_PARTIAL_DELIVERY)
-            # ES_NO_COMERCIAL (Bit 11): entrega completa = cerrado comercialmente sin facturar
-            if flags & int(PedidoFlags.ES_NO_COMERCIAL):
-                flags |= int(PedidoFlags.FULL_INVOICED)
-        else:
-            flags &= ~int(PedidoFlags.FULL_DELIVERED)
-            if has_partial:
-                flags |= int(PedidoFlags.HAS_PARTIAL_DELIVERY)
-            else:
-                flags &= ~int(PedidoFlags.HAS_PARTIAL_DELIVERY)
-
-        nuevo_pedido.flags_estado = flags
-        db.add(nuevo_pedido)
+        RemitosService._recalcular_bits_entrega(db, nuevo_pedido)
 
         db.commit()
         db.refresh(remito)
@@ -867,7 +865,10 @@ class RemitosService:
         update_data = payload.dict(exclude_unset=True, exclude=exclude_fields)
         for key, value in update_data.items():
             setattr(remito, key, value)
-        
+
+        if getattr(payload, 'estado', None) == "ANULADO" and remito.pedido:
+            RemitosService._recalcular_bits_entrega(db, remito.pedido)
+
         db.add(remito)
         db.commit()
         db.refresh(remito)

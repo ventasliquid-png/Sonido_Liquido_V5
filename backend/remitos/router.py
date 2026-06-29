@@ -350,6 +350,9 @@ def delete_remito(remito_id: str, db: Session = Depends(get_db)):
     pedido = db.query(Pedido).filter(Pedido.id == pedido_id).first()
     if pedido and pedido.origen == "INGESTA_PDF":
         db.delete(pedido) # This cascades to pedido_items
-        
+    elif pedido:
+        from backend.remitos.service import RemitosService
+        RemitosService._recalcular_bits_entrega(db, pedido)
+
     db.commit()
     return {"message": "Remito eliminado correctamente"}
