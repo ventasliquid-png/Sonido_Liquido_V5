@@ -75,7 +75,6 @@ class PedidoUpdate(BaseModel):
 
     items: Optional[List[PedidoItemCreate]] = None
     from_ingesta: Optional[bool] = False
-    flags_estado: Optional[int] = None
 
 class CondicionIvaSummary(BaseModel):
     nombre: str

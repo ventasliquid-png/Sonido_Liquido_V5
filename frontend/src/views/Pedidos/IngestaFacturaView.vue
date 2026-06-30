@@ -239,12 +239,21 @@
                         <div class="flex justify-between items-start">
                             <div class="flex-1 mr-4">
                                  <label class="text-[10px] uppercase font-bold text-blue-400 tracking-wider block mb-1">Nro. Factura / Remito</label>
-                                 <input 
-                                    v-model="parsedData.factura.numero" 
-                                    class="text-2xl font-bold text-white bg-transparent border-none focus:ring-0 p-0 w-full"
+                                 <input
+                                    v-model="parsedData.factura.numero"
+                                    :class="[
+                                        'text-2xl font-bold bg-transparent focus:ring-0 p-0 w-full',
+                                        parsedData.factura?.numero
+                                            ? 'text-white border-none'
+                                            : 'text-amber-300 border-b-2 border-amber-500'
+                                    ]"
                                     placeholder="0000-00000000"
                                  />
-                                 <p class="text-[10px] text-blue-500/50 font-mono italic mt-1">Soberanía Total: Edite si el OCR falló.</p>
+                                 <p v-if="!parsedData.factura?.numero"
+                                    class="text-xs text-amber-400 font-bold mt-1 animate-pulse">
+                                    ⚠️ OCR no detectó número. Ingréselo manualmente (formato: 00001-00000001)
+                                 </p>
+                                 <p v-else class="text-[10px] text-blue-500/50 font-mono italic mt-1">Soberanía Total: Edite si el OCR falló.</p>
                                  <div class="mt-3 p-2 bg-blue-500/5 border border-blue-500/20 rounded-lg animate-pulse" v-if="parsedData.factura.numero">
                                      <span class="text-[9px] uppercase font-bold text-blue-400/50 block mb-1">Remito Resultante (Serie 0016)</span>
                                      <span class="text-lg font-mono font-black text-emerald-400">0016-{{ (parsedData.factura.numero.split('-')[1] || parsedData.factura.numero.split(' ')[1] || parsedData.factura.numero).trim().padStart(8, '0') }}</span>
@@ -1289,6 +1298,13 @@ const validateAndProceed = async () => {
 const confirmIngesta = async () => {
     if (!parsedData.value) return;
 
+    // Guard: número de comprobante requerido antes de aprobar
+    if (!parsedData.value.factura?.numero || !parsedData.value.factura.numero.includes('-')) {
+        error.value = 'NÚMERO DE COMPROBANTE REQUERIDO — El OCR no pudo leer el número. Ingréselo en el campo "Nro. Factura / Remito" (formato: XXXXX-XXXXXXXX).';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+    }
+
     // [V5] Interception Check (ABM Workflow)
     if (!checkClientStatus()) {
         notification.add('El cliente no existe o requiere consistencia AFIP. Complete la ficha técnica.', 'warning');
@@ -1353,6 +1369,14 @@ const confirmIngesta = async () => {
 
     } catch (e) {
         console.error(e);
+
+        // Handle 400: número de comprobante vacío (OCR falló y el operador no lo completó)
+        if (e.response?.status === 400 && e.response?.data?.detail?.includes('NUMERO_COMPROBANTE')) {
+            loading.value = false;
+            error.value = 'NÚMERO DE COMPROBANTE VACÍO — Ingréselo manualmente en el campo "Nro. Factura / Remito" antes de confirmar.';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
 
         // Handle 409 Conflict: Factura sin pedido vinculado OR Duplicada
         if (e.response?.status === 409) {
