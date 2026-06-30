@@ -1,6 +1,31 @@
 # MANUAL TECNICO V5: "INDEPENDENCIA"
-**Version:** 2.9 Release (S839 OF — Card #81 _recalcular_bits_entrega + Fixes #83/#59)
-**Fecha:** 2026-06-29
+**Version:** 3.0 Release (S840 OF — Card #50 + Bug #46#2 + Genoma ALFA Bits 3-9)
+**Fecha:** 2026-06-30
+
+### Actualizacion Sesion 840 OF (2026-06-30) — Card #50 + Bug #46#2 + ALFA V3.6/SPEC V1.5
+
+**Commits:** D:`ad283268` B:`9555956` (cherry-pick parcial: solo backend+script)
+
+**Card #50 — Bypass genoma vía PATCH crudo cerrado:**
+- `backend/pedidos/schemas.py`: eliminada la linea `flags_estado: Optional[int] = None` de `PedidoUpdate`. El endpoint PATCH /pedidos/{id} permitia modificar bits arbitrarios (incluyendo Bit13 LAVIMAR y Bit40 DISCRIMINA_IVA, ambos prohibidos) via `setattr` generico, sin pasar por STATE_MASK ni los endpoints dedicados (/circuito-bipolar, /no-comercial). Verificado cero usos legitimos en frontend/store/scripts antes del fix.
+
+**Card #46 Bug #2 — UX recuperacion OCR fallido (solo D):**
+- `frontend/src/views/Pedidos/IngestaFacturaView.vue`, 3 puntos: (1) input con borde ambar + warning animado si `numero=null`, (2) guard pre-`confirmIngesta` que bloquea el envio sin numero/guion con mensaje claro, (3) handler especifico de HTTP 400 `NUMERO_COMPROBANTE` en el catch. Solo frontend, sin tocar backend.
+- **NO desplegado a B esta sesion**: `current/frontend/` en B ya divergia estructuralmente de D antes de S840 (ver hallazgo abajo). Decision de Carlos: detener despliegue visual, solo pushear backend+script.
+
+**ALFA V3.4 → V3.6 + SISTEMA_STATUS_SPEC V1.4 → V1.5:**
+- Genoma de arranque Bits 3-9: 3-6 (ESPERA_EXPLICITA, BLOQUEO_ENTORNO, LECTURA_OBLIGATORIA, DEUDA_ACUMULADA — Dictamen Nike S840), 7-9 (BOARD_PENDIENTE, CC_PRESENTE, GY_PRESENTE).
+- ALFA: FASE 1 auto-sanacion de stale lock (compara `agente_activo.timestamp_inicio` + `timeout_minutos`), FASE 3 firma de agente al tomar control.
+- SPEC: seccion 14 Edge Cases A (stale lock) y B (colision de identidad Bit8/9 vs `agente_activo.id_agente` — escalar a Carlos, no auto-resolver).
+
+**actualizar_card000.py — Bit 7 automatico:**
+- Nuevas funciones `contar_pendientes(ws)` y `actualizar_bit7(status, count)` — encienden/apagan Bit 7 (BOARD_PENDIENTE=128) en `SISTEMA_STATUS.json` segun cards en estado PENDIENTE del Board, en cada corrida (uso obligatorio en OMEGA).
+
+**Hallazgo — divergencia `current/frontend/` en B vs D:**
+- El cherry-pick del fix de Bug #2 aterrizo en `frontend/` raiz de B (copia NO servida) en vez de `current/frontend/` (la copia real, mapeada a `current/static/` via build). Confirmado por diff de markup — la divergencia es estructural y preexistente a esta sesion, no causada por el cherry-pick. Pendiente: auditoria y reconciliacion completa antes de futuros cambios `.vue`.
+
+**Hallazgo — `.gy_identity` mal seteado:**
+- `C:\dev\Sonido_Liquido_V5\.gy_identity` contenia `"CA"` en vez de `"OF"`. Causaba que `actualizar_card000.py` escribiera el Bit 7 sobre la entrada `CA` de `SISTEMA_STATUS.json` en lugar de `OF` (detectado por dos corridas sin efecto visible en OF). Corregido esta sesion (autorizado por Carlos) y re-corrido el script; entrada OF reparada. Riesgo no descartado de contaminacion historica en la entrada CA si el mismo problema existio en sesiones anteriores.
 
 ### Actualizacion Sesion 839 OF (2026-06-29) — Card #81 Bits 20/21 + Fixes #83/#59
 

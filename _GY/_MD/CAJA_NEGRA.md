@@ -1,4 +1,18 @@
-Sesion actual: 839
+Sesion actual: 840
+
+# CAJA NEGRA: Card #50 + Bug #46#2 + Genoma ALFA Bits 3-9 — S840 (2026-06-30)
+
+Sesion 840 OF. Hash D: ad283268 | Hash B: 9555956. Estado: NOMINAL GOLD. Agentes: CC.
+
+- Card #50 CERRADA: eliminado `flags_estado: Optional[int] = None` de `PedidoUpdate` en schemas.py. Cerraba bypass de superficie — el endpoint PATCH /pedidos/{id} permitía modificar bits arbitrarios (incluyendo Bit 13 LAVIMAR y Bit 40 DISCRIMINA_IVA, ambos prohibidos) vía setattr genérico sin pasar por STATE_MASK ni los endpoints dedicados (/circuito-bipolar, /no-comercial). Verificado cero usos legítimos en frontend/store/scripts antes del fix.
+- Card #46 Bug #2 CERRADO (UX): IngestaFacturaView.vue — fix de 3 puntos quirúrgicos cuando el OCR no lee el número de comprobante de un PDF AFIP: (1) input con borde ámbar + warning animado si numero=null, (2) guard pre-confirmIngesta que bloquea el envío sin número/guión con mensaje claro, (3) handler específico de HTTP 400 NUMERO_COMPROBANTE en el catch. Solo frontend, sin tocar backend.
+- Card #46 Bugs #1/#3/#4 verificados por código (sin fix): #1 ingesta sin vínculo previo → 409 PEDIDO_REQUERIDO por diseño Arlequín V2, sin UX recovery. #3 PedidoTacticoView sin guard de duplicados (PedidoCanvas sí lo tiene). #4 PedidoTacticoView sin lógica de IVA en el total — suma cruda.
+- ALFA V3.4→V3.6 + SISTEMA_STATUS_SPEC V1.4→V1.5: genoma de arranque Bits 3-9 (stale lock auto-sanación, firma de agente), Edge Cases A/B documentados.
+- actualizar_card000.py: agregadas funciones contar_pendientes + actualizar_bit7 para automatizar Bit 7 (BOARD_PENDIENTE) en cada cierre OMEGA.
+- **HALLAZGO IMPORTANTE**: `current/frontend/` en B (v5-ls-Tom) ya divergía estructuralmente de D antes de esta sesión — el cherry-pick del fix de Bug #2 aterrizó en una copia no-servida (`frontend/` raíz de B) porque el path correcto en B's historial git para ese archivo es distinto al de D. Se decidió NO parchear a mano la copia divergente (violaría Regla de Hierro D→B) y NO desplegar el fix visual a B esta sesión. Solo Card #50 (backend) y el script Bit7 llegaron efectivamente a producción. Bug #2 queda pendiente de reconciliación en sesión futura.
+- D:ad283268 B:9555956 | PIN: 1974
+
+---
 
 # CAJA NEGRA: Card #81 Bits 20/21 + Fixes #83/#59 — S839 (2026-06-29)
 

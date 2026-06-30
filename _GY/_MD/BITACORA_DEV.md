@@ -1,3 +1,28 @@
+## SESION 840 (OF): CARD #50 + BUG #46#2 + GENOMA ALFA BITS 3-9
+**Fecha:** 2026-06-30
+**Locacion:** OF
+**Estado:** NOMINAL GOLD — Hash D: ad283268 | Hash B: 9555956 | PIN 1974
+
+### Hito 1: Card #50 — flags_estado fuera de PedidoUpdate (CC)
+* schemas.py: eliminada linea `flags_estado: Optional[int] = None` de PedidoUpdate.
+* Cerraba bypass de superficie: PATCH /pedidos/{id} permitia setattr generico sobre bits prohibidos (Bit13 LAVIMAR, Bit40 DISCRIMINA_IVA) sin pasar por STATE_MASK ni endpoints dedicados.
+* Verificacion previa: cero usos legitimos en frontend/store/scripts.
+
+### Hito 2: Card #46 Bug #2 — UX recuperacion OCR fallido (CC)
+* IngestaFacturaView.vue, 3 puntos: input ambar+warning si numero=null, guard pre-confirmIngesta, handler HTTP 400 NUMERO_COMPROBANTE.
+* Solo frontend D. NO desplegado a B esta sesion — ver Hito 4.
+
+### Hito 3: ALFA V3.6 + SPEC V1.5 + actualizar_card000.py (CC)
+* Genoma de arranque Bits 3-9: ESPERA_EXPLICITA, BLOQUEO_ENTORNO, LECTURA_OBLIGATORIA, DEUDA_ACUMULADA (3-6, Dictamen Nike S840); BOARD_PENDIENTE, CC_PRESENTE, GY_PRESENTE (7-9).
+* SPEC: seccion 14 Edge Cases A (stale lock auto-sanacion) y B (colision identidad Bit8/9 vs agente_activo.id_agente — escalar a Carlos).
+* actualizar_card000.py: contar_pendientes + actualizar_bit7, automatizan Bit7 en cada OMEGA.
+
+### Hito 4: Divergencia B frontend + correccion .gy_identity (CC)
+* Cherry-pick de Bug #2 aterrizo en frontend/ raiz de B (copia no servida) — current/frontend/ ya divergia de D antes de esta sesion. Decision de Carlos: detener despliegue visual, solo backend+script a prod. Pendiente reconciliacion futura.
+* Hallazgo: .gy_identity en D decia "CA" en vez de "OF" — actualizar_card000.py escribia Bit7 sobre entrada equivocada en SISTEMA_STATUS.json. Corregido (autorizado por Carlos), re-corrido el script, OF.system_flags reparado.
+
+---
+
 ## SESION 839 (OF): CARD #81 BITS 20/21 + FIXES #83/#59
 **Fecha:** 2026-06-29
 **Locacion:** OF

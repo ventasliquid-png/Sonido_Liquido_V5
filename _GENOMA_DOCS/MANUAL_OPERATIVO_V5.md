@@ -1,7 +1,13 @@
 # MANUAL OPERATIVO V5 - SONIDO LÍQUIDO
-**Versión del Documento:** 1.11 (S839 OF — Fixes internos Bits 20/21 + hora pedidos + seguridad PDF)
+**Versión del Documento:** 1.12 (S840 OF — Card #50 seguridad + UX ingesta OCR)
 **Estado:** VIGENTE
 **Código de Doctrina:** DEOU-2025
+
+### Actualizacion Sesion 840 OF (2026-06-30) — Seguridad backend + UX ingesta (parcial, solo D)
+
+- **Ingesta de facturas — aviso cuando falta el numero de comprobante:** Si el OCR no logra leer el numero de un PDF AFIP, el campo ahora se marca en color ambar con una animacion de aviso, y el sistema bloquea la confirmacion hasta completarlo manualmente. **Esta mejora todavia NO esta activa en el entorno de produccion (B)** — quedo pendiente por un problema de sincronizacion de codigo detectado esta sesion, sin impacto en datos ni en operacion actual.
+- **Seguridad interna reforzada:** Se cerro una via de modificacion indebida de estados internos de pedidos que no pasaba por los controles habituales del sistema. Sin cambio visible para el operador.
+- Sin cambios de flujo operativo ni de pantallas en producción esta sesión.
 
 ### Actualizacion Sesion 839 OF (2026-06-29) — Fixes internos, sin cambios de flujo operativo
 
