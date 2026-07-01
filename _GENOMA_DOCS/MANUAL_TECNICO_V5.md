@@ -1,6 +1,37 @@
 # MANUAL TECNICO V5: "INDEPENDENCIA"
-**Version:** 3.0 Release (S840 OF — Card #50 + Bug #46#2 + Genoma ALFA Bits 3-9)
-**Fecha:** 2026-06-30
+**Version:** 3.1 Release (S841 OF — OMEGA Completo/Lite + Bits CS 16-19 + Bits 26-28 D→B→P)
+**Fecha:** 2026-07-01
+
+### Actualizacion Sesion 841 OF (2026-07-01) — Perfiles OMEGA + Semaforo CS + Jerarquia D->B->P
+
+**Commits:** D:`{HASH_CIERRE_S841}` B:`9555956` (sin cambios en B esta sesion)
+
+Sesion de doctrina/protocolo pura — sin cambios en codigo de producto (backend/frontend). Nace de un diagnostico forense del propio OMEGA de S840 (56 min, 53k tokens, 285 tool calls) pedido por Carlos para entender donde se iba el tiempo.
+
+**Perfiles OMEGA Completo / Lite (Bit 19 `FORZAR_OMEGA_COMPLETO`):**
+- Se enciende en el momento del evento (alta/cierre de `BANDERAS_ROJAS`, migracion ejecutada, edicion de `ALFA.md`/`OMEGA.md`/`SISTEMA_STATUS_SPEC.md`), no se infiere al cierre.
+- FASE 3 de OMEGA solo lee el bit: ON -> perfil Completo obligatorio; OFF -> perfil Lite propuesto, confirmado junto al PIN del plan.
+- Lite recorta unicamente prosa discursiva (Informe Historico narrativo, hitos de ESTADO_ECOSISTEMA, sub-bullets de BITACORA_DEV) — nunca seguridad ni trazabilidad (Canario, archivado de BITACORA_VIVA, backup branch, verificacion de orbita).
+- Esta misma sesion (S841) cerro en Completo porque el propio acto de escribir esta doctrina en `ALFA.md`/`OMEGA.md`/`SISTEMA_STATUS_SPEC.md` encendio el Bit 19 — primer caso real de uso del mecanismo.
+
+**Bits CS 16-18 — semaforo de salud del arquitecto de sesion:**
+- `CS_VERDE` (16), `CS_AMARILLO` (17), `CS_ROJO` (18) — mutuamente excluyentes, autoevaluados exclusivamente por CS (Claude Sonnet, arquitecto de sesion).
+- Sin auto-recuperacion: un CS en AMARILLO/ROJO no puede subirse solo a VERDE — requiere una CS fresca post-relevo.
+- `CS_ROJO` enciende automaticamente Bit 40 (`CS_CHECKPOINT`, ya existente).
+
+**`CONTEXTO_CS/` adelgazado + convencion DESTILADO CS:**
+- Antes: bundle completo (`SESION_NEXT.md` + cola de BV + resumen de status concatenados en un solo archivo).
+- Ahora: puntero minimo — semaforo heredado + puntero al Informe Historico del dia, seccion `DESTILADO CS`.
+- La proxima CS lee el puntero: si VERDE, sigue directo con `SESION_NEXT.md`; si AMARILLO/ROJO, va a la seccion `DESTILADO CS` del Informe Historico para el detalle completo.
+- `scripts/generar_contexto_cs.py` reescrito: ya no hardcodea la maquina a `"OF"` — lee `.gy_identity` dinamicamente. Mismo patron de bug que costo 47 minutos de debugging en S840 (`actualizar_card000.py` escribiendo sobre la entrada equivocada de `SISTEMA_STATUS.json`).
+
+**Bits 26-28 — jerarquia de fuente de verdad D->B->P:**
+- `D_SOBERANO` (26): siempre ON donde hay checkout D — documentario.
+- `B_DIVERGE` (27) / `P_DIVERGE` (28): comparan campos globales `ultimo_hash_D_en_B` / `ultimo_hash_B_en_P` contra el hash real del remoto correspondiente, antes de cualquier cherry-pick nuevo (nuevo paso 3 en FLUJO DE CAMBIOS de `ALFA.md`).
+- **Limitacion documentada explicitamente**: detectan commits fuera del flujo D->B->P (violacion de Regla de Hierro), pero NO detectan divergencia estructural de paths dentro de un hash valido — el caso real de S840 (`current/frontend/` en B) sigue sin mecanismo automatico de deteccion. Card #87 creada (DISEÑO/ALTA, requiere dictamen Nike) para cerrar ese gap.
+- Hallazgo operativo menor: el campo `ultimo_hash_D_en_B` almacena en la practica un hash de B (no de D) para que la comparacion contra `prod/main` funcione tal como esta escrita — nomenclatura a revisar en sesion futura, no bloqueante.
+
+**Nike-Sync S841:** ratificado sin objeciones.
 
 ### Actualizacion Sesion 840 OF (2026-06-30) — Card #50 + Bug #46#2 + ALFA V3.6/SPEC V1.5
 

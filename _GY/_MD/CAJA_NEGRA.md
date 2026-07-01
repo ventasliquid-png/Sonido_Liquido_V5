@@ -1,4 +1,19 @@
-Sesion actual: 840
+Sesion actual: 841
+
+# CAJA NEGRA: OMEGA Completo/Lite + Bits CS 16-19 + Bits 26-28 D→B→P — S841 (2026-07-01)
+
+Sesion 841 OF. Hash D: PENDIENTE_HASH_CIERRE_S841 | Hash B: 9555956 (sin cambios). Estado: NOMINAL GOLD. Agentes: CC.
+
+- Diagnóstico del OMEGA S840 (56 min, 53k tokens): 285 tool calls totales, distribuidos en 4 ventanas de contexto. Rabbit holes identificados: lectura de plantillas completas para continuidad narrativa (W2), debugging de `.gy_identity` mal seteado (W3, ~47 min), burocracia de FASE 2 sin batching de tareas (W4).
+- Propuesta y aprobación de **perfiles OMEGA Completo/Lite**: Bit 19 (`FORZAR_OMEGA_COMPLETO`) se enciende en el momento del evento (bandera roja, migración, edición de doctrina), no se infiere en FASE 3. FASE 2 anotada ítem por ítem con variante Lite — nunca se recorta seguridad/trazabilidad (Canario, BV archival, git backup, verificación de órbita), solo prosa discursiva (Informe Histórico, hitos de ESTADO_ECOSISTEMA, sub-bullets de BITACORA_DEV).
+- **Bits CS 16-18** (semáforo de salud de CS): autoevaluación exclusiva de CS, mutuamente excluyentes, sin auto-recuperación. CS_ROJO enciende Bit 40 automáticamente.
+- **CONTEXTO_CS/ adelgazado**: de bundle completo (SESION_NEXT + BV + status concatenados) a puntero mínimo (semáforo + puntero al Informe Histórico del día, sección DESTILADO CS). `generar_contexto_cs.py` reescrito — fix adicional: ya no hardcodea "OF", lee `.gy_identity` dinámicamente (mismo patrón de bug que costó 47 min en S840).
+- **Bits 26-28** (jerarquía de fuente de verdad D→B→P): D_SOBERANO (26, siempre ON), B_DIVERGE (27) y P_DIVERGE (28) detectan commits fuera del flujo D→B→P vía comparación de hash. **Limitación documentada explícitamente**: no detectan divergencia estructural de paths dentro de un hash válido — el caso real de S840 (`current/frontend`) sigue sin mecanismo automático → Card #87 creada (DISEÑO/ALTA, requiere dictamen Nike).
+- **HALLAZGO operativo menor**: al operacionalizar el mecanismo de `ultimo_hash_D_en_B`, el nombre del campo sugiere un hash de D pero la mecánica descrita (comparar contra HEAD real de `prod/main`) requiere que almacene un hash de B — inicializado con el hash de B (`9555956`) para que la comparación funcione como está escrita en ALFA.md. Nomenclatura a revisar en sesión futura, no bloqueante.
+- Card #87 creada en Board. Verificado: `generar_contexto_cs.py` no existe en B — nada para cherry-pickear esta sesión.
+- D:PENDIENTE_HASH_CIERRE_S841 B:9555956 (sin cambios) | PIN: 1974
+
+---
 
 # CAJA NEGRA: Card #50 + Bug #46#2 + Genoma ALFA Bits 3-9 — S840 (2026-06-30)
 

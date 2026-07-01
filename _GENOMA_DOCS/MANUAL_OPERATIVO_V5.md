@@ -1,7 +1,11 @@
 # MANUAL OPERATIVO V5 - SONIDO LÍQUIDO
-**Versión del Documento:** 1.12 (S840 OF — Card #50 seguridad + UX ingesta OCR)
+**Versión del Documento:** 1.13 (S841 OF — Protocolo interno de sesiones, sin impacto operativo)
 **Estado:** VIGENTE
 **Código de Doctrina:** DEOU-2025
+
+### Actualizacion Sesion 841 OF (2026-07-01) — Sin cambios de flujo operativo
+
+Sesión dedicada a mejorar el protocolo interno con el que los agentes (Claude Code, Antigravity) abren y cierran sesiones de trabajo — no toca ninguna pantalla, flujo, ni dato del sistema. Sin cambios de código de producto. Se creó una tarjeta de seguimiento (Card #87) para diseñar en una sesión futura un mecanismo que detecte automáticamente cuando el entorno de producción y el de desarrollo divergen en su estructura de archivos — hoy esa verificación sigue siendo manual.
 
 ### Actualizacion Sesion 840 OF (2026-06-30) — Seguridad backend + UX ingesta (parcial, solo D)
 

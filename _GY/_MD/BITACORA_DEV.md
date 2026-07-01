@@ -1,3 +1,49 @@
+## SESION 841 (OF): OMEGA COMPLETO/LITE + BITS CS 16-19 + BITS 26-28 D->B->P
+**Fecha:** 2026-07-01
+**Locacion:** OF
+**Estado:** NOMINAL GOLD — Hash D: {HASH_CIERRE_S841} | Hash B: 9555956 (sin cambios) | PIN 1974
+
+### Hito 1: Diagnostico forense OMEGA S840 (CC)
+* A pedido de Carlos: analisis del propio transcript de S840 via JSONL. 285 tool calls totales
+  en 4 ventanas de contexto (separadas por compactaciones). Distribucion: Read 66, Bash 55,
+  Edit 43, PowerShell 39, Grep 24, Glob 19, TaskUpdate 16, TaskCreate 11, Write 9.
+* Rabbit holes identificados: lectura de plantillas completas para continuidad narrativa (W2,
+  52 calls), debugging de `.gy_identity` mal seteado (W3, 80 calls, ~47 min), burocracia de
+  FASE 2 sin batching de tareas — 27 llamadas TaskCreate/TaskUpdate incrementales (W4).
+
+### Hito 2: Perfiles OMEGA Completo/Lite — Bit 19 (CC)
+* Bit 19 (`FORZAR_OMEGA_COMPLETO`) se enciende en el momento del evento (bandera roja,
+  migracion, edicion de doctrina), no se infiere en FASE 3 de OMEGA.
+* FASE 2 de `OMEGA.md` anotada item por item con variante Lite. Seguridad/trazabilidad
+  (Canario, archivado BV, backup branch, verificacion de orbita) identica en ambos perfiles —
+  solo se recorta prosa discursiva.
+* Override a Lite con Bit19 ON requiere que Carlos lo diga explicitamente.
+
+### Hito 3: Bits CS 16-18 + CONTEXTO_CS/DESTILADO CS (CC)
+* Semaforo de salud de CS (Claude Sonnet, arquitecto de sesion) — mutuamente excluyentes, sin
+  auto-recuperacion. CS_ROJO enciende Bit 40 (`CS_CHECKPOINT`) automaticamente.
+* `CONTEXTO_CS/` adelgazado de bundle completo a puntero minimo (semaforo + puntero al Informe
+  Historico del dia). `generar_contexto_cs.py` reescrito: fix de identidad dinamica via
+  `.gy_identity` (mismo patron de bug que costo 47 min en S840).
+* Esta sesion cerro con Bit17 (CS_AMARILLO) — sesion larga con multiples compactaciones de
+  contexto. Ver DESTILADO CS en Informe Historico S841.
+
+### Hito 4: Bits 26-28 — jerarquia de fuente de verdad D->B->P (CC)
+* `D_SOBERANO` (26, siempre ON), `B_DIVERGE` (27), `P_DIVERGE` (28) — comparan campos globales
+  `ultimo_hash_D_en_B`/`ultimo_hash_B_en_P` contra el hash real del remoto, antes de cherry-pick.
+* Limitacion documentada explicitamente: no detectan divergencia estructural de paths dentro de
+  un hash valido (caso real S840, `current/frontend`) — Card #87 creada para disenar esa deteccion.
+* Hallazgo operativo menor: `ultimo_hash_D_en_B` almacena en la practica un hash de B, no de D
+  — nomenclatura a revisar, no bloqueante.
+
+### Hito 5: Board y verificaciones (CC)
+* Card #87 creada: Deteccion automatica de divergencia estructural D<->B (DISEÑO/ALTA/Sistema,
+  requiere dictamen Nike).
+* Verificado: `generar_contexto_cs.py` no existe en B — nada para cherry-pickear esta sesion.
+* Nike-Sync S841 ratificado sin objeciones.
+
+---
+
 ## SESION 840 (OF): CARD #50 + BUG #46#2 + GENOMA ALFA BITS 3-9
 **Fecha:** 2026-06-30
 **Locacion:** OF
