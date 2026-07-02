@@ -3,6 +3,7 @@ from sqlalchemy import or_, cast, String, func
 from typing import List, Optional
 from fastapi import HTTPException, status
 from decimal import Decimal
+import unicodedata
 
 from backend.productos import models, schemas
 from backend.pricing_engine import calculate_lists
