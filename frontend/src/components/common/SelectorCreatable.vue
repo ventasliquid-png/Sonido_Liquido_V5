@@ -61,15 +61,15 @@
               </li>
             </ComboboxOption>
 
-            <!-- Crear nuevo — siempre visible al fondo cuando hay texto (F4) -->
+            <!-- Crear nuevo — siempre visible al fondo (F4) -->
             <div
-              v-if="query !== ''"
               class="relative cursor-pointer select-none px-4 py-2 text-xs font-bold border-t border-white/10 hover:bg-white/5 transition-colors flex items-center gap-2"
               style="color: #24e70f"
               @click="createNew"
             >
               <i class="fas fa-plus-circle"></i>
-              <span>Crear "{{ query }}"&nbsp;<span class="font-normal opacity-50">(F4)</span></span>
+              <span v-if="query !== ''">Crear "{{ query }}"&nbsp;<span class="font-normal opacity-50">(F4)</span></span>
+              <span v-else>Crear Nuevo...&nbsp;<span class="font-normal opacity-50">(F4)</span></span>
             </div>
           </ComboboxOptions>
         </TransitionRoot>
