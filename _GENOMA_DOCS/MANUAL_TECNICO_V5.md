@@ -1442,3 +1442,6 @@ if (!c.segmento_id && !c.segmento?.id) {
 
 **Motivo:** El backend puede devolver `segmento` como objeto anidado `{id, nombre}` en lugar de solo `segmento_id`. La validaci√≥n acepta ambas formas para m√°xima flexibilidad.
 
+
+## S842 ó Correcciones visuales menores en Alta de Producto (botÛn nuevo y comportamiento modal).
+

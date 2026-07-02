@@ -855,3 +855,6 @@ Para resguardar la consistencia histórica de las operaciones, el sistema bloque
 ### 24.3 Adaptación de Altura de Contenedor (Fix Taskbar Windows)
 Se reemplazaron las directivas rígidas de altura basadas en el viewport (`min-h-screen` / `h-screen`) por directivas fluidas (`min-h-full` / `h-full`) en la estructura del canvas. Esto previene que el panel del TOTAL FINAL y los botones operativos queden recortados o cubiertos por la barra de tareas de Windows, adaptando la interfaz perfectamente al tamaño real del contenedor.
 
+
+## S842 � Correcciones visuales menores en Alta de Producto (bot�n nuevo y comportamiento modal).
+

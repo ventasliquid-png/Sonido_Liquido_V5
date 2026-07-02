@@ -1,7 +1,11 @@
+﻿## SESIÓN 842 (CA): OMEGA LITE — FIXES TOPOLOGÍA Y UI
+**Fecha:** 2026-07-02
+**Locación:** CA
+- S842 (CA): Cierre OMEGA Lite. Fixes UI Alta Producto y Saneamiento Topológico B.
 ## SESION 841 (OF): OMEGA COMPLETO/LITE + BITS CS 16-19 + BITS 26-28 D->B->P
 **Fecha:** 2026-07-01
 **Locacion:** OF
-**Estado:** NOMINAL GOLD — Hash D: {HASH_CIERRE_S841} | Hash B: 9555956 (sin cambios) | PIN 1974
+**Estado:** NOMINAL GOLD â€” Hash D: {HASH_CIERRE_S841} | Hash B: 9555956 (sin cambios) | PIN 1974
 
 ### Hito 1: Diagnostico forense OMEGA S840 (CC)
 * A pedido de Carlos: analisis del propio transcript de S840 via JSONL. 285 tool calls totales
@@ -9,37 +13,37 @@
   Edit 43, PowerShell 39, Grep 24, Glob 19, TaskUpdate 16, TaskCreate 11, Write 9.
 * Rabbit holes identificados: lectura de plantillas completas para continuidad narrativa (W2,
   52 calls), debugging de `.gy_identity` mal seteado (W3, 80 calls, ~47 min), burocracia de
-  FASE 2 sin batching de tareas — 27 llamadas TaskCreate/TaskUpdate incrementales (W4).
+  FASE 2 sin batching de tareas â€” 27 llamadas TaskCreate/TaskUpdate incrementales (W4).
 
-### Hito 2: Perfiles OMEGA Completo/Lite — Bit 19 (CC)
+### Hito 2: Perfiles OMEGA Completo/Lite â€” Bit 19 (CC)
 * Bit 19 (`FORZAR_OMEGA_COMPLETO`) se enciende en el momento del evento (bandera roja,
   migracion, edicion de doctrina), no se infiere en FASE 3 de OMEGA.
 * FASE 2 de `OMEGA.md` anotada item por item con variante Lite. Seguridad/trazabilidad
-  (Canario, archivado BV, backup branch, verificacion de orbita) identica en ambos perfiles —
+  (Canario, archivado BV, backup branch, verificacion de orbita) identica en ambos perfiles â€”
   solo se recorta prosa discursiva.
 * Override a Lite con Bit19 ON requiere que Carlos lo diga explicitamente.
 
 ### Hito 3: Bits CS 16-18 + CONTEXTO_CS/DESTILADO CS (CC)
-* Semaforo de salud de CS (Claude Sonnet, arquitecto de sesion) — mutuamente excluyentes, sin
+* Semaforo de salud de CS (Claude Sonnet, arquitecto de sesion) â€” mutuamente excluyentes, sin
   auto-recuperacion. CS_ROJO enciende Bit 40 (`CS_CHECKPOINT`) automaticamente.
 * `CONTEXTO_CS/` adelgazado de bundle completo a puntero minimo (semaforo + puntero al Informe
   Historico del dia). `generar_contexto_cs.py` reescrito: fix de identidad dinamica via
   `.gy_identity` (mismo patron de bug que costo 47 min en S840).
-* Esta sesion cerro con Bit17 (CS_AMARILLO) — sesion larga con multiples compactaciones de
+* Esta sesion cerro con Bit17 (CS_AMARILLO) â€” sesion larga con multiples compactaciones de
   contexto. Ver DESTILADO CS en Informe Historico S841.
 
-### Hito 4: Bits 26-28 — jerarquia de fuente de verdad D->B->P (CC)
-* `D_SOBERANO` (26, siempre ON), `B_DIVERGE` (27), `P_DIVERGE` (28) — comparan campos globales
+### Hito 4: Bits 26-28 â€” jerarquia de fuente de verdad D->B->P (CC)
+* `D_SOBERANO` (26, siempre ON), `B_DIVERGE` (27), `P_DIVERGE` (28) â€” comparan campos globales
   `ultimo_hash_D_en_B`/`ultimo_hash_B_en_P` contra el hash real del remoto, antes de cherry-pick.
 * Limitacion documentada explicitamente: no detectan divergencia estructural de paths dentro de
-  un hash valido (caso real S840, `current/frontend`) — Card #87 creada para disenar esa deteccion.
+  un hash valido (caso real S840, `current/frontend`) â€” Card #87 creada para disenar esa deteccion.
 * Hallazgo operativo menor: `ultimo_hash_D_en_B` almacena en la practica un hash de B, no de D
-  — nomenclatura a revisar, no bloqueante.
+  â€” nomenclatura a revisar, no bloqueante.
 
 ### Hito 5: Board y verificaciones (CC)
-* Card #87 creada: Deteccion automatica de divergencia estructural D<->B (DISEÑO/ALTA/Sistema,
+* Card #87 creada: Deteccion automatica de divergencia estructural D<->B (DISEÃ‘O/ALTA/Sistema,
   requiere dictamen Nike).
-* Verificado: `generar_contexto_cs.py` no existe en B — nada para cherry-pickear esta sesion.
+* Verificado: `generar_contexto_cs.py` no existe en B â€” nada para cherry-pickear esta sesion.
 * Nike-Sync S841 ratificado sin objeciones.
 
 ---
@@ -47,42 +51,42 @@
 ## SESION 840 (OF): CARD #50 + BUG #46#2 + GENOMA ALFA BITS 3-9
 **Fecha:** 2026-06-30
 **Locacion:** OF
-**Estado:** NOMINAL GOLD — Hash D: ad283268 | Hash B: 9555956 | PIN 1974
+**Estado:** NOMINAL GOLD â€” Hash D: ad283268 | Hash B: 9555956 | PIN 1974
 
-### Hito 1: Card #50 — flags_estado fuera de PedidoUpdate (CC)
+### Hito 1: Card #50 â€” flags_estado fuera de PedidoUpdate (CC)
 * schemas.py: eliminada linea `flags_estado: Optional[int] = None` de PedidoUpdate.
 * Cerraba bypass de superficie: PATCH /pedidos/{id} permitia setattr generico sobre bits prohibidos (Bit13 LAVIMAR, Bit40 DISCRIMINA_IVA) sin pasar por STATE_MASK ni endpoints dedicados.
 * Verificacion previa: cero usos legitimos en frontend/store/scripts.
 
-### Hito 2: Card #46 Bug #2 — UX recuperacion OCR fallido (CC)
+### Hito 2: Card #46 Bug #2 â€” UX recuperacion OCR fallido (CC)
 * IngestaFacturaView.vue, 3 puntos: input ambar+warning si numero=null, guard pre-confirmIngesta, handler HTTP 400 NUMERO_COMPROBANTE.
-* Solo frontend D. NO desplegado a B esta sesion — ver Hito 4.
+* Solo frontend D. NO desplegado a B esta sesion â€” ver Hito 4.
 
 ### Hito 3: ALFA V3.6 + SPEC V1.5 + actualizar_card000.py (CC)
 * Genoma de arranque Bits 3-9: ESPERA_EXPLICITA, BLOQUEO_ENTORNO, LECTURA_OBLIGATORIA, DEUDA_ACUMULADA (3-6, Dictamen Nike S840); BOARD_PENDIENTE, CC_PRESENTE, GY_PRESENTE (7-9).
-* SPEC: seccion 14 Edge Cases A (stale lock auto-sanacion) y B (colision identidad Bit8/9 vs agente_activo.id_agente — escalar a Carlos).
+* SPEC: seccion 14 Edge Cases A (stale lock auto-sanacion) y B (colision identidad Bit8/9 vs agente_activo.id_agente â€” escalar a Carlos).
 * actualizar_card000.py: contar_pendientes + actualizar_bit7, automatizan Bit7 en cada OMEGA.
 
 ### Hito 4: Divergencia B frontend + correccion .gy_identity (CC)
-* Cherry-pick de Bug #2 aterrizo en frontend/ raiz de B (copia no servida) — current/frontend/ ya divergia de D antes de esta sesion. Decision de Carlos: detener despliegue visual, solo backend+script a prod. Pendiente reconciliacion futura.
-* Hallazgo: .gy_identity en D decia "CA" en vez de "OF" — actualizar_card000.py escribia Bit7 sobre entrada equivocada en SISTEMA_STATUS.json. Corregido (autorizado por Carlos), re-corrido el script, OF.system_flags reparado.
+* Cherry-pick de Bug #2 aterrizo en frontend/ raiz de B (copia no servida) â€” current/frontend/ ya divergia de D antes de esta sesion. Decision de Carlos: detener despliegue visual, solo backend+script a prod. Pendiente reconciliacion futura.
+* Hallazgo: .gy_identity en D decia "CA" en vez de "OF" â€” actualizar_card000.py escribia Bit7 sobre entrada equivocada en SISTEMA_STATUS.json. Corregido (autorizado por Carlos), re-corrido el script, OF.system_flags reparado.
 
 ---
 
 ## SESION 839 (OF): CARD #81 BITS 20/21 + FIXES #83/#59
 **Fecha:** 2026-06-29
 **Locacion:** OF
-**Estado:** NOMINAL GOLD — Hash D: ea117af8 | Hash B: 92c2cc8 | PIN 1974
+**Estado:** NOMINAL GOLD â€” Hash D: ea117af8 | Hash B: 92c2cc8 | PIN 1974
 
 ### Hito 1: _recalcular_bits_entrega centralizado (CC)
 * Helper estatico en RemitosService. Predicate corregido (has_any>0 como guard).
 * EC-A: delete_remito + update_remito/ANULADO recalculan bits tras la operacion.
 * EC-B: create_from_ingestion evalua Bit21 directo (R16 drop-shipping).
-* create_manual paso 7: 32 lineas inline → 1 llamada al helper.
+* create_manual paso 7: 32 lineas inline â†’ 1 llamada al helper.
 
 ### Hito 2: Fix hora 12:00 (Card #83) (CC)
 * PedidoCanvas.vue: payload fecha incluye hora local real (T${HH}:${MM}:00).
-* PedidoList.vue: formatDate hour12:false → midnight muestra 00:00.
+* PedidoList.vue: formatDate hour12:false â†’ midnight muestra 00:00.
 
 ### Hito 3: DEBUG_PDF=False guard (Card #59) (CC)
 * pdf_parser.py: constante modulo DEBUG_PDF=False.
@@ -95,15 +99,15 @@
 
 ---
 
-## SESION 836 (OF): DOCTRINA NIKE S836 — BITS FISCALES + ES_NO_COMERCIAL + GENOMA REMITOS
+## SESION 836 (OF): DOCTRINA NIKE S836 â€” BITS FISCALES + ES_NO_COMERCIAL + GENOMA REMITOS
 **Fecha:** 2026-06-26
-**Locación:** OF
-**Objetivo:** Canonizar doctrina fiscal (Bits 22/23), Banda de Excepciones (Bits 11/12), genoma remitos (migrate_036), ALFA V3.3 fast-path. Explorar Ghost + ES_LIBRE → descartado.
-**Estado:** NOMINAL GOLD — Hash D: bbe0dcec | Hash B: 6edba99 | PIN 1974
+**LocaciÃ³n:** OF
+**Objetivo:** Canonizar doctrina fiscal (Bits 22/23), Banda de Excepciones (Bits 11/12), genoma remitos (migrate_036), ALFA V3.3 fast-path. Explorar Ghost + ES_LIBRE â†’ descartado.
+**Estado:** NOMINAL GOLD â€” Hash D: bbe0dcec | Hash B: 6edba99 | PIN 1974
 
-### Hito 1: ALFA V3.3 — FASE 0 ARRANQUE RÁPIDO (CC)
+### Hito 1: ALFA V3.3 â€” FASE 0 ARRANQUE RÃPIDO (CC)
 * FASE 0 compara hash_D de SISTEMA_STATUS.json con git log -1 local.
-* Si coinciden + omega_cerrado:true → skip FASE 1 y 2, ir a FASE 3.
+* Si coinciden + omega_cerrado:true â†’ skip FASE 1 y 2, ir a FASE 3.
 * Sin hardcodeo de branch. Reutiliza escritura OMEGA. Canonizado en Q:.
 
 ### Hito 2: migrate_036 + RemitoFlags genoma (CC)
@@ -114,18 +118,18 @@
 
 ### Hito 3: Bits 22/23 en pedidos + cherry-pick (CC)
 * HAS_PARTIAL_INVOICE (Bit 22) + FULL_INVOICED (Bit 23) en PedidoFlags.
-* Eje fiscal independiente del eje físico (Bits 20/21). Sin migración DB.
-* Commit D:4f88bf67, cherry-pick → B:b32f47d.
+* Eje fiscal independiente del eje fÃ­sico (Bits 20/21). Sin migraciÃ³n DB.
+* Commit D:4f88bf67, cherry-pick â†’ B:b32f47d.
 
 ### Hito 4: Doctrina Ghost explorada y descartada (CC)
-* Exploración: PEDIDO_GHOST Bit43, ES_LIBRE Bit4, migrate_037 pedido_id nullable.
-* Decisión Nike: Pedidos soberano — no hay remito sin pedido. Ghost innecesario.
+* ExploraciÃ³n: PEDIDO_GHOST Bit43, ES_LIBRE Bit4, migrate_037 pedido_id nullable.
+* DecisiÃ³n Nike: Pedidos soberano â€” no hay remito sin pedido. Ghost innecesario.
 * migrate_037 eliminado. PEDIDO_GHOST/ES_LIBRE = dead code (purga S837).
 
 ### Hito 5: ES_NO_COMERCIAL Bit 11 + commit final (CC)
-* ES_NO_COMERCIAL = 1<<11 — Bypass comercial: muestras, uso interno.
+* ES_NO_COMERCIAL = 1<<11 â€” Bypass comercial: muestras, uso interno.
 * Banda de Excepciones junto a NO_FISCAL_FORCE (Bit 12). Reversible c/nota forense.
-* Commit D:bbe0dcec, cherry-pick → B:6edba99.
+* Commit D:bbe0dcec, cherry-pick â†’ B:6edba99.
 
 ---
 
@@ -133,7 +137,7 @@
 **Fecha:** 2026-06-23
 **Locacion:** OF
 **Objetivo:** Canonizar HAS_PARTIAL_DELIVERY (Bit 20) en genoma Pedidos. Actualizar ALFA/OMEGA V3.1. Urgencia remitos manuales circuito Rosa.
-**Estado:** NOMINAL GOLD — Hash D: 241cddff | Hash P: c613d2c | PIN 1974
+**Estado:** NOMINAL GOLD â€” Hash D: 241cddff | Hash P: c613d2c | PIN 1974
 
 ### Hito 1: Urgencia Remitos Manuales (Gy)
 * schemas.py: pedido_id agregado a ManualRemitoPayload.
@@ -141,7 +145,7 @@
 * ManualRemitoView.vue V15.1.4: selector pedido, Modal PedidoCanvas (Doctrina Teleport), Badges PARCIAL.
 * Commits: D:96e901c6, P:2e56869c.
 
-### Hito 2: Genoma Pedidos — Bits 1 y 20 (CC)
+### Hito 2: Genoma Pedidos â€” Bits 1 y 20 (CC)
 * pedidos/constants.py: HAS_ACTIVITY (Bit 1, Ley Universal) + HAS_PARTIAL_DELIVERY (Bit 20).
 * remitos/service.py: create_manual() evalua Bit 20 via @property runtime.
 * Commit: D:241cddff, P:c613d2c.
@@ -153,24 +157,24 @@
 
 ---
 
-## SESIÓN 832 (OF): CARDS #75/#76 FRONTEND + PROMPTS V4.1/V3.1
+## SESIÃ“N 832 (OF): CARDS #75/#76 FRONTEND + PROMPTS V4.1/V3.1
 **Fecha:** 2026-06-22
-**Locación:** OF
+**LocaciÃ³n:** OF
 **Objetivo:** SmartSelect nodo_transporte_id (Card #76) y SmartSelect contacto_responsable_id + endpoint GET /clientes/{id}/vinculos (Card #75) en LogisticaPanel.vue. Actualizar prompts de instalacion Claude V4.1 y Gemini V3.1.
-**Estado:** NOMINAL GOLD — Hash D: 53429c3f | Hash P: ba9361e | PIN 1974
+**Estado:** NOMINAL GOLD â€” Hash D: 53429c3f | Hash P: ba9361e | PIN 1974
 
-### Hito 1: Card #76 — SmartSelect nodo_transporte_id (OF desde cero)
+### Hito 1: Card #76 â€” SmartSelect nodo_transporte_id (OF desde cero)
 * LogisticaPanel.vue: computed nodoOptions, handler updateNodo, template con v-if="selectedTransport && (selectedTransport.flags_estado & 64)".
 * Condicional Bit 6 (HAS_NODOS=64) en flags_estado de la empresa de transporte seleccionada.
 * Commit D: 87e7d554.
 
-### Hito 2: Card #75 — Backend GET /clientes/{id}/vinculos
+### Hito 2: Card #75 â€” Backend GET /clientes/{id}/vinculos
 * Schema VinculoForSelect (contactos/schemas.py): nombre_completo es @property de Persona, no columna. Workaround: endpoint retorna list[dict] explicito, no list[ORM].
 * Endpoint clientes/router.py: join Vinculo+Persona, filtro flags_mask=10 (IS_LOGISTIC Bit1 | IS_DECISION_MAKER Bit3).
 * clientesService.getVinculos() agregado en frontend/src/services/clientes.js.
 * Commit D: 5093157f.
 
-### Hito 3: Card #75 — SmartSelect contacto_responsable_id
+### Hito 3: Card #75 â€” SmartSelect contacto_responsable_id
 * LogisticaPanel.vue: vinculosContacto ref local + fetchVinculos() + watch cliente_id + computed contactoOptions + handler updateContacto.
 * onMounted Promise.all ampliado con fetchVinculos(props.modelValue.cliente_id).
 * FK verificada: contacto_responsable_id -> vinculos.id (no personas.id).
@@ -188,47 +192,47 @@
 
 ---
 
-## SESIÓN 826 (OF): CARD #70 GOLD + PEDIDOCANVAS SYNC + WATCHER PORT
+## SESIÃ“N 826 (OF): CARD #70 GOLD + PEDIDOCANVAS SYNC + WATCHER PORT
 **Fecha:** 2026-06-16
-**Locación:** OF
-**Objetivo:** ALFA V2.0 merge OF+CA. Card #70 GOLD (Canario 2.0, BITACORA_VIVA, SISTEMA_STATUS.json, actualizar_card000.py). Sync PedidoCanvas.vue D→P (Lista 2 + pink + watcher). Push P a produccion.
-**Estado:** NOMINAL GOLD — Hash D: 85a0b630 (+ OMEGA) | Hash P: de802c6 ✓
+**LocaciÃ³n:** OF
+**Objetivo:** ALFA V2.0 merge OF+CA. Card #70 GOLD (Canario 2.0, BITACORA_VIVA, SISTEMA_STATUS.json, actualizar_card000.py). Sync PedidoCanvas.vue Dâ†’P (Lista 2 + pink + watcher). Push P a produccion.
+**Estado:** NOMINAL GOLD â€” Hash D: 85a0b630 (+ OMEGA) | Hash P: de802c6 âœ“
 
 ### Hito 1: ALFA V2.0 merge OF+CA
-* D tenía cambios locales OF (manuales) — CA había pusheado. Resuelto con stash → pull → pop. Auto-merge limpio. Commit fa29be66.
+* D tenÃ­a cambios locales OF (manuales) â€” CA habÃ­a pusheado. Resuelto con stash â†’ pull â†’ pop. Auto-merge limpio. Commit fa29be66.
 * DOCTRINA.md detectado como rename de DOCTRINA_PROCESOS.md por git. Staged correctamente.
 
-### Hito 2: Card #70 GOLD — Infraestructura SISTEMA_STATUS
-* SISTEMA_STATUS.json creado en Q: con versión 1.2 (4 máquinas: CA/OF/MT/NOTEBOOK).
-* BITACORA_VIVA.md creado en Q: con header sesión 826 y protocolo de cierre.
+### Hito 2: Card #70 GOLD â€” Infraestructura SISTEMA_STATUS
+* SISTEMA_STATUS.json creado en Q: con versiÃ³n 1.2 (4 mÃ¡quinas: CA/OF/MT/NOTEBOOK).
+* BITACORA_VIVA.md creado en Q: con header sesiÃ³n 826 y protocolo de cierre.
 * ALFA.md: FASE 3 reemplazada por Canario 2.0 que lee SISTEMA_STATUS.json (LAVIMAR deprecado).
 * OMEGA.md: 4 checkboxes nuevos (BITACORA_VIVA, SISTEMA_STATUS, BANDERAS_ROJAS + actualizar_card000.py).
-* actualizar_card000.py: semaforo() retorna tuple (emoji para Excel, ASCII para consola — CP1252-safe). Commit 0b743562.
+* actualizar_card000.py: semaforo() retorna tuple (emoji para Excel, ASCII para consola â€” CP1252-safe). Commit 0b743562.
 
-### Hito 3: PedidoCanvas.vue — Port watcher + Sync D→P
-* Auditoría forense P vs D: 2 commits únicos en P (DOM separation — ya en D; watcher — no en D).
+### Hito 3: PedidoCanvas.vue â€” Port watcher + Sync Dâ†’P
+* AuditorÃ­a forense P vs D: 2 commits Ãºnicos en P (DOM separation â€” ya en D; watcher â€” no en D).
 * Watcher route.params.id portado de P a D: re-inicializa pedido al navegar entre rutas Vue Router. Commit 85a0b630.
 * Cherry-pick descartado: path mismatch D/P en git root (D: frontend/..., P: current/frontend/...).
-* Sync via copia directa D→P. Build P: 290 módulos, 7.49s. xcopy dist\ a static\. Push prod (de802c6).
+* Sync via copia directa Dâ†’P. Build P: 290 mÃ³dulos, 7.49s. xcopy dist\ a static\. Push prod (de802c6).
 
-### Hito 4: Board — Cards #71 y #72
-* Card #71: Script guardar.py — reemplazo atómico de git commit | FEATURE | MEDIA.
-* Card #72: Verificación de hash en ALFA Fase 0 (Método 2) | INFRA | MEDIA.
+### Hito 4: Board â€” Cards #71 y #72
+* Card #71: Script guardar.py â€” reemplazo atÃ³mico de git commit | FEATURE | MEDIA.
+* Card #72: VerificaciÃ³n de hash en ALFA Fase 0 (MÃ©todo 2) | INFRA | MEDIA.
 
 ---
 
-## SESIÓN 825 (CA): SYNC GIT D+P + FIX #51 STATE_MASK + BOARD #60-#70
+## SESIÃ“N 825 (CA): SYNC GIT D+P + FIX #51 STATE_MASK + BOARD #60-#70
 **Fecha:** 2026-06-14
-**Locación:** CA
-**Objetivo:** Sync git completo CA (ALFA V2.0). Fix quirúrgico Card #51 (ES_FIRME|ES_ANULADO simultáneos en migración). Actualizar BOARD hasta card #70. Remover ALFA.md de tracking git.
-**Estado:** NOMINAL GOLD — Hash D: b2557445 (pendiente commit 825) | Hash P: pendiente commit
+**LocaciÃ³n:** CA
+**Objetivo:** Sync git completo CA (ALFA V2.0). Fix quirÃºrgico Card #51 (ES_FIRME|ES_ANULADO simultÃ¡neos en migraciÃ³n). Actualizar BOARD hasta card #70. Remover ALFA.md de tracking git.
+**Estado:** NOMINAL GOLD â€” Hash D: b2557445 (pendiente commit 825) | Hash P: pendiente commit
 
 ### Hito 1: Sync git CA (ALFA V2.0)
-* D pull limpio desde origin. P requirió stash → pull → stash pop con conflictos por remoción remota de .pyc/.env del índice (commit 27190c0 remote).
-* Resuelto con `git rm --cached -r` sobre todos los __pycache__, .env, cantera.db, "../data/V5_LS_MASTER.db". Stash drop post-resolución.
+* D pull limpio desde origin. P requiriÃ³ stash â†’ pull â†’ stash pop con conflictos por remociÃ³n remota de .pyc/.env del Ã­ndice (commit 27190c0 remote).
+* Resuelto con `git rm --cached -r` sobre todos los __pycache__, .env, cantera.db, "../data/V5_LS_MASTER.db". Stash drop post-resoluciÃ³n.
 
-### Hito 2: Fix quirúrgico Card #51
-* `router.py:266` — migración quirúrgica dejaba `ES_FIRME|ES_ANULADO` simultáneos al anotar con `|=` sin limpiar `STATE_MASK`.
+### Hito 2: Fix quirÃºrgico Card #51
+* `router.py:266` â€” migraciÃ³n quirÃºrgica dejaba `ES_FIRME|ES_ANULADO` simultÃ¡neos al anotar con `|=` sin limpiar `STATE_MASK`.
 * Fix: `((flags or 0) & ~STATE_MASK.value) | PF.ES_ANULADO.value`. Bug latente (0 instancias activas en DB).
 
 ### Hito 3: ALFA.md y .gitignore D
@@ -237,16 +241,16 @@
 * ALFA.md copiado a Q:\Mi unidad\V5_Silo_Claude\ALFA.md (4878 bytes).
 
 ### Hito 4: BOARD_V5.xlsx
-* Card #51 → CERRADO (2026-06-14). Cards #59 y #65 (duplicados) → CERRADO.
-* Cards nuevas #60-#70: infra protocolo PROTOCOLO/, ALFA offline fallback, Semáforo SystemFlags, Nexo Card #000, Board P-Gold Tomy, SISTEMA_STATUS_SPEC V1.1 (Radar + Canario 2.0).
+* Card #51 â†’ CERRADO (2026-06-14). Cards #59 y #65 (duplicados) â†’ CERRADO.
+* Cards nuevas #60-#70: infra protocolo PROTOCOLO/, ALFA offline fallback, SemÃ¡foro SystemFlags, Nexo Card #000, Board P-Gold Tomy, SISTEMA_STATUS_SPEC V1.1 (Radar + Canario 2.0).
 
 ---
 
-## SESIÓN 824 (OF): CANON UI CIRCUITO LISTA 2 + ROTACIÓN BACKUP DB
+## SESIÃ“N 824 (OF): CANON UI CIRCUITO LISTA 2 + ROTACIÃ“N BACKUP DB
 **Fecha:** 2026-06-12
-**Locación:** OF
-**Objetivo:** Adaptar nomenclatura Doctrina, ajustar UI de pedido (Circuito Lista 2) al canon Rosa/Magenta, e integrar la FASE 1B.2 de rotación de backups (esquema cascada con guards) al protocolo OMEGA.
-**Estado:** NOMINAL GOLD — Hash D: [Por comitear] | Hash P: [Por comitear]
+**LocaciÃ³n:** OF
+**Objetivo:** Adaptar nomenclatura Doctrina, ajustar UI de pedido (Circuito Lista 2) al canon Rosa/Magenta, e integrar la FASE 1B.2 de rotaciÃ³n de backups (esquema cascada con guards) al protocolo OMEGA.
+**Estado:** NOMINAL GOLD â€” Hash D: [Por comitear] | Hash P: [Por comitear]
 
 ### Hito 1: Nomenclatura Doctrina
 * Renombrado `DOCTRINA.md` del Silo a `DOCTRINA_DATOS.md`.
@@ -254,313 +258,313 @@
 
 ### Hito 2: Canon UI "Circuito Lista 2"
 * Ajustado `PedidoCanvas.vue` para el Bit 12 (`NO_FISCAL_FORCE`). El modo informal ("Circuito Negro") pasa a llamarse "CIRCUITO LISTA 2".
-* Se revirtió el color provisorio cyan a la paleta canónica del Dashboard: Rosa/Magenta (`pink-400`, `pink-500`), asegurando consistencia visual.
+* Se revirtiÃ³ el color provisorio cyan a la paleta canÃ³nica del Dashboard: Rosa/Magenta (`pink-400`, `pink-500`), asegurando consistencia visual.
 
-### Hito 3: FASE 1B.2 y Consolidación de Backups
-* Inyectada FASE 1B.2 (Rotación de Backups DB) a `OMEGA.md` en entornos D y P.
-* Consolidado `backup_db.py`: Restaurada versión original avanzada (10006 bytes, con guards de hash null-null) en `scripts/backup_db.py`. Limpieza de duplicados `slot_1_*.db` en el ROTATIVO del Silo.
+### Hito 3: FASE 1B.2 y ConsolidaciÃ³n de Backups
+* Inyectada FASE 1B.2 (RotaciÃ³n de Backups DB) a `OMEGA.md` en entornos D y P.
+* Consolidado `backup_db.py`: Restaurada versiÃ³n original avanzada (10006 bytes, con guards de hash null-null) en `scripts/backup_db.py`. Limpieza de duplicados `slot_1_*.db` en el ROTATIVO del Silo.
 
 ---
 
-## SESIÓN 823 (OF): PARCHE DEFENSIVO REMITOS + UI Z-INDEX REFACTOR + LIMPIEZA DB
+## SESIÃ“N 823 (OF): PARCHE DEFENSIVO REMITOS + UI Z-INDEX REFACTOR + LIMPIEZA DB
 **Fecha:** 2026-06-10
-**Locación:** OF
-**Objetivo:** Solucionar bug 500 en impresión de remitos que abortaba por renglones huérfanos sin producto (`PedidoItem` hard-deleted durante edición táctica de `savePedido` sin `ON DELETE CASCADE` a `RemitoItem`). Corregir z-index del dropdown de productos Cantera en `PedidoCanvas` que quedaba truncado por `overflow-hidden`. Purgar transaccionalmente la DB de basura histórica.
-**Estado:** NOMINAL GOLD — Hash D: 1b3dc55b | Hash P: e7572c3
+**LocaciÃ³n:** OF
+**Objetivo:** Solucionar bug 500 en impresiÃ³n de remitos que abortaba por renglones huÃ©rfanos sin producto (`PedidoItem` hard-deleted durante ediciÃ³n tÃ¡ctica de `savePedido` sin `ON DELETE CASCADE` a `RemitoItem`). Corregir z-index del dropdown de productos Cantera en `PedidoCanvas` que quedaba truncado por `overflow-hidden`. Purgar transaccionalmente la DB de basura histÃ³rica.
+**Estado:** NOMINAL GOLD â€” Hash D: 1b3dc55b | Hash P: e7572c3
 
 ### Hito 1: Parche Defensivo PDF (router.py)
-* Al imprimir un remito cuyos renglones de pedido (`PedidoItem`) ya no existen en base (por haber sido borrados en edición táctica), el PDF lanzaba error 500.
-* Ahora evalúa defensivamente en `get_remito_pdf`: si la ForeignKey `r_item.pedido_item` es nula, o si no tiene producto, se imprime `"ÍTEM DESCONOCIDO"`.
-* Deuda técnica registrada: Falta cláusula `ON DELETE CASCADE` de `PedidoItem` a `RemitoItem` para no dejar huérfanos.
+* Al imprimir un remito cuyos renglones de pedido (`PedidoItem`) ya no existen en base (por haber sido borrados en ediciÃ³n tÃ¡ctica), el PDF lanzaba error 500.
+* Ahora evalÃºa defensivamente en `get_remito_pdf`: si la ForeignKey `r_item.pedido_item` es nula, o si no tiene producto, se imprime `"ÃTEM DESCONOCIDO"`.
+* Deuda tÃ©cnica registrada: Falta clÃ¡usula `ON DELETE CASCADE` de `PedidoItem` a `RemitoItem` para no dejar huÃ©rfanos.
 
 ### Hito 2: Refactor UI Z-Index PedidoCanvas
-* El menú desplegable del buscador de productos Cantera quedaba decapitado por el contenedor `<main>`.
-* Se extrajo el renglón de "Alta Rápida" fuera del contenedor con `overflow-y-auto`.
-* Se elevó el Z-Index del `<main>` (`relative z-50`) por sobre el `<footer>` (`relative z-40`).
-* Se movió el `<footer>` al interior del bloque contenedor con `overflow-hidden` para unificar el contexto espacial y que el desplegable baje libremente.
+* El menÃº desplegable del buscador de productos Cantera quedaba decapitado por el contenedor `<main>`.
+* Se extrajo el renglÃ³n de "Alta RÃ¡pida" fuera del contenedor con `overflow-y-auto`.
+* Se elevÃ³ el Z-Index del `<main>` (`relative z-50`) por sobre el `<footer>` (`relative z-40`).
+* Se moviÃ³ el `<footer>` al interior del bloque contenedor con `overflow-hidden` para unificar el contexto espacial y que el desplegable baje libremente.
 
 ### Hito 3: Limpieza Transaccional (pilot_v5x.db)
-* Intervención directa vía SQLite: Borradas **16 facturas huérfanas** y **12 remitos huérfanos** que carecían de pedido (pedidos `None` tras borrados).
-* Los pedidos #47 y #48 (de prueba con inconsistencias) fueron eliminados físicamente de la base junto a sus items y vínculos.
+* IntervenciÃ³n directa vÃ­a SQLite: Borradas **16 facturas huÃ©rfanas** y **12 remitos huÃ©rfanos** que carecÃ­an de pedido (pedidos `None` tras borrados).
+* Los pedidos #47 y #48 (de prueba con inconsistencias) fueron eliminados fÃ­sicamente de la base junto a sus items y vÃ­nculos.
 
-### Hito 4: Sello OMEGA y Sincronización P
-* Ejecutado Cherry-Pick de los fixes a la rama de Producción (repositorio `v5-ls-Tom`).
-* Resolución de conflicto menor en `PedidoCanvas.vue` por divergencia UI de la sesión anterior.
+### Hito 4: Sello OMEGA y SincronizaciÃ³n P
+* Ejecutado Cherry-Pick de los fixes a la rama de ProducciÃ³n (repositorio `v5-ls-Tom`).
+* ResoluciÃ³n de conflicto menor en `PedidoCanvas.vue` por divergencia UI de la sesiÃ³n anterior.
 * Push exitoso a `v5-ls-Tom`. OMEGA V3.0 ejecutado al 100%.
 
 ---
 
-## SESIÓN 820 (CA): AUDITORÍA INGESTA + BANDERAS ROJAS + BITS FANTASMA
+## SESIÃ“N 820 (CA): AUDITORÃA INGESTA + BANDERAS ROJAS + BITS FANTASMA
 **Fecha:** 2026-05-30
-**Locación:** CA
-**Objetivo:** Auditar el sistema de ingesta y facturación contra el diseño arquitectónico. Investigar clientes con flags_estado=65581. Restaurar pilot_v5x.db desde Silo. Actualizar BOARD_V5.xlsx con cards cerrados, nuevos y banderas rojas.
-**Estado:** NOMINAL GOLD — Hash D: e41038a0 | Sin commits nuevos (sesión de auditoría y burocracia)
+**LocaciÃ³n:** CA
+**Objetivo:** Auditar el sistema de ingesta y facturaciÃ³n contra el diseÃ±o arquitectÃ³nico. Investigar clientes con flags_estado=65581. Restaurar pilot_v5x.db desde Silo. Actualizar BOARD_V5.xlsx con cards cerrados, nuevos y banderas rojas.
+**Estado:** NOMINAL GOLD â€” Hash D: e41038a0 | Sin commits nuevos (sesiÃ³n de auditorÃ­a y burocracia)
 
-### AUDITORÍA SISTEMA INGESTA (Solo lectura)
-* Análisis del documento de diseño vs código real en C:\dev\Sonido_Liquido_V5
-* Resultado: 60% implementado (flujo OCR, anti-duplicación, remito 0016 OK)
-* GAP crítico 1: AfipComparisonOverlay.vue no tiene acciones — es visual-only. Falta POST /remitos/resolver-discrepancia y botones ARCA GANA / PEDIDO GANA (Card #43)
-* GAP crítico 2: Split-Brain TIENE_NC/TIENE_ND — Bits 2/3 en ingesta vs Bits 17/18 en facturacion (Bandera Roja #1)
-* GAP identificado: Bit PENDIENTE_AJUSTE_DOCUMENTAL no existe en pedidos/constants.py — dictaminado como Bit 46 por Nike (Card #42)
+### AUDITORÃA SISTEMA INGESTA (Solo lectura)
+* AnÃ¡lisis del documento de diseÃ±o vs cÃ³digo real en C:\dev\Sonido_Liquido_V5
+* Resultado: 60% implementado (flujo OCR, anti-duplicaciÃ³n, remito 0016 OK)
+* GAP crÃ­tico 1: AfipComparisonOverlay.vue no tiene acciones â€” es visual-only. Falta POST /remitos/resolver-discrepancia y botones ARCA GANA / PEDIDO GANA (Card #43)
+* GAP crÃ­tico 2: Split-Brain TIENE_NC/TIENE_ND â€” Bits 2/3 en ingesta vs Bits 17/18 en facturacion (Bandera Roja #1)
+* GAP identificado: Bit PENDIENTE_AJUSTE_DOCUMENTAL no existe en pedidos/constants.py â€” dictaminado como Bit 46 por Nike (Card #42)
 
-### RESTAURACIÓN DB (PIN 1974)
-* Copy Q:\Mi unidad\V5_Silo_Claude\pilot_v5x.db → C:\dev\Sonido_Liquido_V5\pilot_v5x.db
-* Canario post-restauración: NOMINAL GOLD (flags=13, 0.014s certificado)
+### RESTAURACIÃ“N DB (PIN 1974)
+* Copy Q:\Mi unidad\V5_Silo_Claude\pilot_v5x.db â†’ C:\dev\Sonido_Liquido_V5\pilot_v5x.db
+* Canario post-restauraciÃ³n: NOMINAL GOLD (flags=13, 0.014s certificado)
 * WAL checkpoint: OK
 
-### INVESTIGACIÓN FORENSE flags_estado=65581
-* 2 clientes afectados: Lácteos de Poblet SA y CENTRO PET ARGENTINA S.R.L.
-* Bit 16 (65536) activo pero NO documentado en ClientFlags → sospecha de fantasma
+### INVESTIGACIÃ“N FORENSE flags_estado=65581
+* 2 clientes afectados: LÃ¡cteos de Poblet SA y CENTRO PET ARGENTINA S.R.L.
+* Bit 16 (65536) activo pero NO documentado en ClientFlags â†’ sospecha de fantasma
 * Bits documentados: EXISTENCE(0) + GOLD_ARCA(2) + V14_STRUCT(3) + MULTI_CUIT(5)
-* CUITs únicos. CENTRO PET tiene domicilio Vieytes duplicado
+* CUITs Ãºnicos. CENTRO PET tiene domicilio Vieytes duplicado
 * Bandera Roja #3 levantada: pendiente script rescate lunes OF sobre V5_LS_MASTER.db (Card #44)
 
 ### BOARD_V5.xlsx
 * 7 cards CERRADOS con fecha_cierre: #6,7,8 (2026-05-31) | #9,10 (2026-05-28) | #27,28 (2026-05-29)
-* 6 cards NUEVOS #40-#45 en BACKLOG/CERRADO según estado
+* 6 cards NUEVOS #40-#45 en BACKLOG/CERRADO segÃºn estado
 * Hoja BANDERAS_ROJAS nueva: 3 banderas (Split-Brain bits, duplicados pilot, Bits fantasma V5_LS)
 * CSV_DUMP regenerado
 
 ---
 
-## SESIÓN 819 (OF): IDENTIDAD VISUAL P + BOARD V5
+## SESIÃ“N 819 (OF): IDENTIDAD VISUAL P + BOARD V5
 **Fecha:** 2026-05-29
-**Locación:** OF
-**Objetivo:** Finalizar identidad visual del entorno P (título de pestaña, favicon), actualizar BOARD_V5.xlsx con 3 nuevas cards sobre genoma de pedidos, ejecutar OMEGA cierre de sesión completo.
-**Estado:** NOMINAL GOLD — PIN 1974 | Hash D: 5c15bae2 | Hash P: 92497c6
+**LocaciÃ³n:** OF
+**Objetivo:** Finalizar identidad visual del entorno P (tÃ­tulo de pestaÃ±a, favicon), actualizar BOARD_V5.xlsx con 3 nuevas cards sobre genoma de pedidos, ejecutar OMEGA cierre de sesiÃ³n completo.
+**Estado:** NOMINAL GOLD â€” PIN 1974 | Hash D: 5c15bae2 | Hash P: 92497c6
 
-### ACTUALIZACIÓN ENTORNO P (FRONTEND)
-* static/index.html (línea 8): Título "Sonido Líquido V5 [DESARROLLO] - D" → "Sonido Líquido V5 - Mando"
-* static/favicon.svg: Reemplazado con fondo púrpura (#6B21A8) + "SL" blanco (4 cuadrantes neón descontinuado)
+### ACTUALIZACIÃ“N ENTORNO P (FRONTEND)
+* static/index.html (lÃ­nea 8): TÃ­tulo "Sonido LÃ­quido V5 [DESARROLLO] - D" â†’ "Sonido LÃ­quido V5 - Mando"
+* static/favicon.svg: Reemplazado con fondo pÃºrpura (#6B21A8) + "SL" blanco (4 cuadrantes neÃ³n descontinuado)
 * public/favicon.svg: Sincronizado con static/
-* Commit P: 92497c6 "Fix: identidad entorno P - título y favicon (PIN 1974)"
+* Commit P: 92497c6 "Fix: identidad entorno P - tÃ­tulo y favicon (PIN 1974)"
 
-### ACTUALIZACIÓN BOARD_V5.xlsx
+### ACTUALIZACIÃ“N BOARD_V5.xlsx
 * Agregadas 3 cards (total 31):
-  - ID 29: ES_ENTREGADO — nuevo estado genoma pedidos (DISEÑO, ALTA, V6.0, BACKLOG)
-  - ID 30: Bit COBRADO — disparador contable (DISEÑO, ALTA, V6.0, BACKLOG, depende #29)
-  - ID 31: Excel snapshot de pedidos — implementación (FEATURE, MEDIA, V5.9, BACKLOG)
+  - ID 29: ES_ENTREGADO â€” nuevo estado genoma pedidos (DISEÃ‘O, ALTA, V6.0, BACKLOG)
+  - ID 30: Bit COBRADO â€” disparador contable (DISEÃ‘O, ALTA, V6.0, BACKLOG, depende #29)
+  - ID 31: Excel snapshot de pedidos â€” implementaciÃ³n (FEATURE, MEDIA, V5.9, BACKLOG)
 
 ### PROTOCOLO OMEGA COMPLETO (D)
-* FASE 1: Canario ✓ (LAVIMAR flags_estado=13 NOMINAL GOLD)
-* FASE 1B: WAL checkpoint ✓ (pilot_v5x.db sincronizado)
-* FASE 2: ESTADO_ECOSISTEMA actualizado; CAJA_NEGRA sesión 819 registrada; BITACORA_DEV actualizada
+* FASE 1: Canario âœ“ (LAVIMAR flags_estado=13 NOMINAL GOLD)
+* FASE 1B: WAL checkpoint âœ“ (pilot_v5x.db sincronizado)
+* FASE 2: ESTADO_ECOSISTEMA actualizado; CAJA_NEGRA sesiÃ³n 819 registrada; BITACORA_DEV actualizada
 * FASE 3: Rama stable, trabajar tree clean
 * Estado Final: NOMINAL GOLD
 
 ---
 
-## SESIÓN 818 (sub-CA): HARDENING INGESTA — 3 FIXES QUIRÚRGICOS
+## SESIÃ“N 818 (sub-CA): HARDENING INGESTA â€” 3 FIXES QUIRÃšRGICOS
 **Fecha:** 2026-05-28
-**Locación:** CA
-**Objetivo:** Aplicar 3 fixes validados por auditoría cruzada (CC Opus 4.8 + Gy High) sobre el módulo de ingesta: URLs con prefijo /api inexistente (404 en iframes de duplicado), AttributeError por PedidoFlags.STATE_MASK, y TypeError por flags_estado None en anular-y-reingestar.
-**Estado:** NOMINAL GOLD — PIN 1974 | Hash final: 2938c77a
+**LocaciÃ³n:** CA
+**Objetivo:** Aplicar 3 fixes validados por auditorÃ­a cruzada (CC Opus 4.8 + Gy High) sobre el mÃ³dulo de ingesta: URLs con prefijo /api inexistente (404 en iframes de duplicado), AttributeError por PedidoFlags.STATE_MASK, y TypeError por flags_estado None en anular-y-reingestar.
+**Estado:** NOMINAL GOLD â€” PIN 1974 | Hash final: 2938c77a
 
-### FIX 1 — URLs /api inexistente
-* IngestaFacturaView.vue (393, 407, 451): /api/ingesta y /api/remitos → /ingesta y /remitos. Validado: vite.config.js no proxea /api; main.py monta routers sin prefijo.
+### FIX 1 â€” URLs /api inexistente
+* IngestaFacturaView.vue (393, 407, 451): /api/ingesta y /api/remitos â†’ /ingesta y /remitos. Validado: vite.config.js no proxea /api; main.py monta routers sin prefijo.
 
-### FIX 2 — PedidoFlags.STATE_MASK AttributeError
-* router.py (226, 231): STATE_MASK es constante de módulo, no miembro de clase. Import ampliado + referencia directa `~STATE_MASK`. Hubiera dado 500 al anular pedido ORIGEN_FACTURA.
+### FIX 2 â€” PedidoFlags.STATE_MASK AttributeError
+* router.py (226, 231): STATE_MASK es constante de mÃ³dulo, no miembro de clase. Import ampliado + referencia directa `~STATE_MASK`. Hubiera dado 500 al anular pedido ORIGEN_FACTURA.
 
-### FIX 3 — guard flags None
-* router.py:243: `(raw_nuevo.flags_estado or 0) & ~2048`. Paridad con el guard ya presente en la línea 218.
+### FIX 3 â€” guard flags None
+* router.py:243: `(raw_nuevo.flags_estado or 0) & ~2048`. Paridad con el guard ya presente en la lÃ­nea 218.
 
-### Anexo — OMEGA.md FASE 1
-* Snippet inline de canario migrado a máscara de bits (flags & 13)==13, alineado con canario_v2.py.
+### Anexo â€” OMEGA.md FASE 1
+* Snippet inline de canario migrado a mÃ¡scara de bits (flags & 13)==13, alineado con canario_v2.py.
 
 ---
 
-## SESIÓN 818: DETECCIÓN TEMPRANA DE DUPLICADOS + FIXES UI (OF OMEGA)
+## SESIÃ“N 818: DETECCIÃ“N TEMPRANA DE DUPLICADOS + FIXES UI (OF OMEGA)
 **Fecha:** 2026-05-28
-**Locación:** OF
-**Objetivo:** Implementar la detección temprana de facturas duplicadas en la ingesta de PDFs raw, permitiendo la anulación y reingesta con PIN 1974 de comprobantes en estado BORRADOR y la redirección/visualización para remitos ya despachados. Resolver cascada de borrado en Remito para evitar huérfanos en `FacturaRemito` y salvaguardar la trazabilidad marcando el procesado viejo como "ANULADA" en vez de borrar el registro. Resolver bug de includes() sobre CUIT nulo en filtrado de clientes (HaweView.vue) y bucle de redirección en creación de nuevo pedido táctico limpiando `ingestaData` al desmontar (PedidoCanvas.vue).
-**Estado:** NOMINAL GOLD — PIN 1974 | Hash final: f7a48c08
+**LocaciÃ³n:** OF
+**Objetivo:** Implementar la detecciÃ³n temprana de facturas duplicadas en la ingesta de PDFs raw, permitiendo la anulaciÃ³n y reingesta con PIN 1974 de comprobantes en estado BORRADOR y la redirecciÃ³n/visualizaciÃ³n para remitos ya despachados. Resolver cascada de borrado en Remito para evitar huÃ©rfanos en `FacturaRemito` y salvaguardar la trazabilidad marcando el procesado viejo como "ANULADA" en vez de borrar el registro. Resolver bug de includes() sobre CUIT nulo en filtrado de clientes (HaweView.vue) y bucle de redirecciÃ³n en creaciÃ³n de nuevo pedido tÃ¡ctico limpiando `ingestaData` al desmontar (PedidoCanvas.vue).
+**Estado:** NOMINAL GOLD â€” PIN 1974 | Hash final: f7a48c08
 
-### Hito 1: Detección Temprana de Duplicados & Ciclo de Anulación y Reingesta
-* **Detección temprana:** Al subir un PDF a `POST /ingesta/raw`, se realiza una búsqueda en `facturas` por clave única (`tipo_comprobante`, `punto_venta`, `numero_comprobante`). Si existe match, se devuelve metadatos de duplicado al frontend.
-* **UI de Comparación:** El frontend detecta la respuesta de duplicado y muestra un panel especial de comparación bloqueando el flujo estándar.
-* **Bifurcación de Acciones:**
-  * Si el remito asociado está en **BORRADOR**, se permite la acción "Anular procesado y re-ingestar con este PDF" previa verificación del PIN Maestro "1974".
-  * Si el remito ya no es BORRADOR, se muestra un botón para visualizar el remito actual y se bloquea la re-ingesta.
-* **Endpoint de Anulación y Reingesta (`POST /ingesta/raw/{raw_id}/anular-y-reingestar`):**
-  * Valida el PIN de autorización ("1974").
-  * Si el remito está en BORRADOR, marca el RAW viejo con el Bit 11 (`DUPLICATE` = 2048).
-  * Marca el procesado viejo (`procesada_vieja.estado = "ANULADA"`) preservando trazabilidad de auditoría.
+### Hito 1: DetecciÃ³n Temprana de Duplicados & Ciclo de AnulaciÃ³n y Reingesta
+* **DetecciÃ³n temprana:** Al subir un PDF a `POST /ingesta/raw`, se realiza una bÃºsqueda en `facturas` por clave Ãºnica (`tipo_comprobante`, `punto_venta`, `numero_comprobante`). Si existe match, se devuelve metadatos de duplicado al frontend.
+* **UI de ComparaciÃ³n:** El frontend detecta la respuesta de duplicado y muestra un panel especial de comparaciÃ³n bloqueando el flujo estÃ¡ndar.
+* **BifurcaciÃ³n de Acciones:**
+  * Si el remito asociado estÃ¡ en **BORRADOR**, se permite la acciÃ³n "Anular procesado y re-ingestar con este PDF" previa verificaciÃ³n del PIN Maestro "1974".
+  * Si el remito ya no es BORRADOR, se muestra un botÃ³n para visualizar el remito actual y se bloquea la re-ingesta.
+* **Endpoint de AnulaciÃ³n y Reingesta (`POST /ingesta/raw/{raw_id}/anular-y-reingestar`):**
+  * Valida el PIN de autorizaciÃ³n ("1974").
+  * Si el remito estÃ¡ en BORRADOR, marca el RAW viejo con el Bit 11 (`DUPLICATE` = 2048).
+  * Marca el procesado viejo (`procesada_vieja.estado = "ANULADA"`) preservando trazabilidad de auditorÃ­a.
   * Si el pedido asociado provino de la factura, se anula (`estado = "ANULADO"`, flag `ES_ANULADO`).
-  * Elimina el remito viejo en BORRADOR (con cascada de borrado para evitar huérfanos).
+  * Elimina el remito viejo en BORRADOR (con cascada de borrado para evitar huÃ©rfanos).
   * Elimina la factura vieja espejo.
   * Habilita el nuevo RAW (`audit_status = "RECIBIDO"`, limpia Bit 11) para procesamiento normal.
 
 ### Hito 2: Cascada de Borrado en Remito & Integridad
-* Se confirmó que el modelo `Remito` posee `cascade="all, delete-orphan"` configurado en su relación `items` (hacia `RemitoItem`).
-* Se agregó `cascade="all, delete-orphan"` en la relación `vinculos_facturas` (hacia `FacturaRemito`) en `backend/remitos/models.py` para erradicar registros huérfanos en la tabla intermedia al eliminar un remito.
+* Se confirmÃ³ que el modelo `Remito` posee `cascade="all, delete-orphan"` configurado en su relaciÃ³n `items` (hacia `RemitoItem`).
+* Se agregÃ³ `cascade="all, delete-orphan"` en la relaciÃ³n `vinculos_facturas` (hacia `FacturaRemito`) en `backend/remitos/models.py` para erradicar registros huÃ©rfanos en la tabla intermedia al eliminar un remito.
 
-### Hito 3: Fix A — HaweView null.includes()
-* **Causa raíz:** `HaweView.vue:771` filtraba clientes evaluando `cliente.cuit.includes(query)`. Dado que CUIT puede ser null en la base de datos para clientes informales, esto provocaba un error de tipo `Cannot read properties of null (reading 'includes')`.
-* **Resolución:** Se agregó un guard para fallback de string vacío: `(cliente.cuit || '').includes(query)`.
+### Hito 3: Fix A â€” HaweView null.includes()
+* **Causa raÃ­z:** `HaweView.vue:771` filtraba clientes evaluando `cliente.cuit.includes(query)`. Dado que CUIT puede ser null en la base de datos para clientes informales, esto provocaba un error de tipo `Cannot read properties of null (reading 'includes')`.
+* **ResoluciÃ³n:** Se agregÃ³ un guard para fallback de string vacÃ­o: `(cliente.cuit || '').includes(query)`.
 
-### Hito 4: Fix B — Redirección Nuevo Pedido Táctico
-* **Causa raíz:** Al navegar al canvas de creación manual de nuevo pedido táctico, el store Pinia quedaba con datos de ingesta previos (`ingestaData`) si el operador cancelaba una ingesta previa sin limpiarla. Esto gatillaba una redirección no deseada al módulo de Ingesta en lugar de mantener al usuario en el canvas.
-* **Resolución:** Se agregó la llamada a `pedidosStore.clearIngestaData()` en el hook `onUnmounted` de `PedidoCanvas.vue`, garantizando que la navegación limpie el estado al abandonar el canvas.
+### Hito 4: Fix B â€” RedirecciÃ³n Nuevo Pedido TÃ¡ctico
+* **Causa raÃ­z:** Al navegar al canvas de creaciÃ³n manual de nuevo pedido tÃ¡ctico, el store Pinia quedaba con datos de ingesta previos (`ingestaData`) si el operador cancelaba una ingesta previa sin limpiarla. Esto gatillaba una redirecciÃ³n no deseada al mÃ³dulo de Ingesta en lugar de mantener al usuario en el canvas.
+* **ResoluciÃ³n:** Se agregÃ³ la llamada a `pedidosStore.clearIngestaData()` en el hook `onUnmounted` de `PedidoCanvas.vue`, garantizando que la navegaciÃ³n limpie el estado al abandonar el canvas.
 
 ---
 
-## SESIÓN 817: SYNC D→P→MT + MIGRACIONES + FIXES UI (OF OMEGA)
+## SESIÃ“N 817: SYNC Dâ†’Pâ†’MT + MIGRACIONES + FIXES UI (OF OMEGA)
 **Fecha:** 2026-05-27
-**Locación:** OF
-**Objetivo:** Sincronizar el entorno de desarrollo (D) con producción (P) y Mesa Táctica (MT). Reconstrucción y build completo en P/MT. Ejecutar scripts de migración de base de datos en MT (Bit 40, Bit 20/19, fecha_vencimiento y Genoma V6). Corregir bug en `PedidoCanvas.vue` de estado de pedido hardcodeado ("PENDIENTE"). Implementar validación y salvaguarda Poka-Yoke para pedidos en estado `CUMPLIDO` o `ANULADO`. Corregir bug visual de altura en `PedidoCanvas.vue` (h-screen -> h-full) para evitar corte por la barra de tareas de Windows.
-**Estado:** NOMINAL GOLD — PIN 1974 | Hash final: ec5cb6de
+**LocaciÃ³n:** OF
+**Objetivo:** Sincronizar el entorno de desarrollo (D) con producciÃ³n (P) y Mesa TÃ¡ctica (MT). ReconstrucciÃ³n y build completo en P/MT. Ejecutar scripts de migraciÃ³n de base de datos en MT (Bit 40, Bit 20/19, fecha_vencimiento y Genoma V6). Corregir bug en `PedidoCanvas.vue` de estado de pedido hardcodeado ("PENDIENTE"). Implementar validaciÃ³n y salvaguarda Poka-Yoke para pedidos en estado `CUMPLIDO` o `ANULADO`. Corregir bug visual de altura en `PedidoCanvas.vue` (h-screen -> h-full) para evitar corte por la barra de tareas de Windows.
+**Estado:** NOMINAL GOLD â€” PIN 1974 | Hash final: ec5cb6de
 
-### Hito 1: Sincronización y Despliegue de Infraestructura
-* Sincronización de backend (183 archivos) y frontend/src (116 archivos) desde D a P/current.
-* Reconstrucción del entorno virtual (venv), instalación de dependencias requeridas (incluyendo PyMuPDF) y compilación del frontend en producción con éxito.
+### Hito 1: SincronizaciÃ³n y Despliegue de Infraestructura
+* SincronizaciÃ³n de backend (183 archivos) y frontend/src (116 archivos) desde D a P/current.
+* ReconstrucciÃ³n del entorno virtual (venv), instalaciÃ³n de dependencias requeridas (incluyendo PyMuPDF) y compilaciÃ³n del frontend en producciÃ³n con Ã©xito.
 
-### Hito 2: Ejecución de Migraciones de Base de Datos en MT
-* Script de re-auditoría de Bit 40 (DISCRIMINA_IVA) para 28 clientes Responsable Inscripto (excluyendo LAVIMAR).
-* Script de reparación masiva de consistencia de bits (Bits 20 y 19) en 9 clientes anómalos.
-* Migración física de base de datos (`ALTER TABLE pedidos ADD COLUMN fecha_vencimiento DATE`) y migración de estado de pedidos al Genoma V6 en banda 32+ (excluyentes: `ES_PRESUPUESTO`, `ES_FIRME`, `ES_CUMPLIDO`, `ES_ANULADO`).
+### Hito 2: EjecuciÃ³n de Migraciones de Base de Datos en MT
+* Script de re-auditorÃ­a de Bit 40 (DISCRIMINA_IVA) para 28 clientes Responsable Inscripto (excluyendo LAVIMAR).
+* Script de reparaciÃ³n masiva de consistencia de bits (Bits 20 y 19) en 9 clientes anÃ³malos.
+* MigraciÃ³n fÃ­sica de base de datos (`ALTER TABLE pedidos ADD COLUMN fecha_vencimiento DATE`) y migraciÃ³n de estado de pedidos al Genoma V6 en banda 32+ (excluyentes: `ES_PRESUPUESTO`, `ES_FIRME`, `ES_CUMPLIDO`, `ES_ANULADO`).
 
 ### Hito 3: Fix PedidoCanvas Estado Hardcodeado & Poka-Yoke
-* **Causa raíz:** `savePedido()` enviaba siempre `estado: "PENDIENTE"`, pisando el estado real del pedido al guardar en edición.
-* **Resolución:**
-  * Se agregó la variable reactiva `estadoPedido = ref('PENDIENTE')`.
+* **Causa raÃ­z:** `savePedido()` enviaba siempre `estado: "PENDIENTE"`, pisando el estado real del pedido al guardar en ediciÃ³n.
+* **ResoluciÃ³n:**
+  * Se agregÃ³ la variable reactiva `estadoPedido = ref('PENDIENTE')`.
   * `loadPedido()` ahora captura el estado del pedido: `estadoPedido.value = p.estado || 'PENDIENTE'`.
   * `savePedido()` utiliza `estado: estadoPedido.value` en su payload.
-  * Se implementó un badge visible en el encabezado de solo lectura que indica el estado del pedido.
-  * Se agregaron salvaguardas Poka-Yoke: si el pedido es `CUMPLIDO` o `ANULADO`, se muestra un banner de advertencia ("Este pedido está [ESTADO] y no puede editarse"), se deshabilitan los botones de Guardar y Guardar/Imprimir en la UI, se bloquea el guardado mediante atajo de teclado F10 y se interrumpe preventivamente al inicio de `savePedido()`.
+  * Se implementÃ³ un badge visible en el encabezado de solo lectura que indica el estado del pedido.
+  * Se agregaron salvaguardas Poka-Yoke: si el pedido es `CUMPLIDO` o `ANULADO`, se muestra un banner de advertencia ("Este pedido estÃ¡ [ESTADO] y no puede editarse"), se deshabilitan los botones de Guardar y Guardar/Imprimir en la UI, se bloquea el guardado mediante atajo de teclado F10 y se interrumpe preventivamente al inicio de `savePedido()`.
 
 ### Hito 4: Fix de Altura (Bug Barra de Windows)
-* **Causa raíz:** La raíz de `PedidoCanvas.vue` definía `min-h-screen` y la tarjeta interna `h-screen` (que se traducen a `100vh`). Sin embargo, en el layout `HaweLayout.vue`, el componente se dibuja dentro de un contenedor flexible con padding `p-4` y `overflow-hidden`. Esto hacía que la tarjeta desbordara el contenedor por exactamente el padding, cortando el pie del canvas (TOTAL FINAL y botones de guardar) bajo la barra de tareas de Windows.
-* **Resolución:** Se reemplazó `min-h-screen` por `min-h-full` en el div raíz y `h-screen` por `h-full` en la tarjeta interna de `PedidoCanvas.vue`. Con esto, el canvas se adapta perfectamente a la altura fluida calculada por su contenedor padre.
+* **Causa raÃ­z:** La raÃ­z de `PedidoCanvas.vue` definÃ­a `min-h-screen` y la tarjeta interna `h-screen` (que se traducen a `100vh`). Sin embargo, en el layout `HaweLayout.vue`, el componente se dibuja dentro de un contenedor flexible con padding `p-4` y `overflow-hidden`. Esto hacÃ­a que la tarjeta desbordara el contenedor por exactamente el padding, cortando el pie del canvas (TOTAL FINAL y botones de guardar) bajo la barra de tareas de Windows.
+* **ResoluciÃ³n:** Se reemplazÃ³ `min-h-screen` por `min-h-full` en el div raÃ­z y `h-screen` por `h-full` en la tarjeta interna de `PedidoCanvas.vue`. Con esto, el canvas se adapta perfectamente a la altura fluida calculada por su contenedor padre.
 
 ### Hito 5: Burocracia y Sello OMEGA
-* Ejecución de checkpoint WAL sobre `pilot_v5x.db` (`PRAGMA wal_checkpoint(FULL)`).
+* EjecuciÃ³n de checkpoint WAL sobre `pilot_v5x.db` (`PRAGMA wal_checkpoint(FULL)`).
 * Copiado y respaldo de base de datos a `Q:\Mi unidad\V5_Silo_Claude\`.
-* Actualización de `ESTADO_ECOSISTEMA.md`, `INBOX.md` y generación del reporte histórico de sesión 817.
+* ActualizaciÃ³n de `ESTADO_ECOSISTEMA.md`, `INBOX.md` y generaciÃ³n del reporte histÃ³rico de sesiÃ³n 817.
 
 ---
 
-## SESIÓN 816: FIX INGESTA/PEDIDO + SALVAGUARDAS REMITOS (OF OMEGA)
+## SESIÃ“N 816: FIX INGESTA/PEDIDO + SALVAGUARDAS REMITOS (OF OMEGA)
 **Fecha:** 2026-05-26
-**Locación:** OF
-**Objetivo:** Corrección de bugs encadenados en el módulo de ingesta y vinculación de pedidos, reparación de AttributeError en endpoint approve, y remoción de endpoint obsoleto. Corrección de ImportError en router de pedidos (_aplica_iva). Incorporación de salvaguardas defensivas para remitos en get_remito_pdf importadas desde P. Análisis comparativo de archivos .py entre P y D.
-**Estado:** NOMINAL GOLD — PIN 1974 | Hash final: 39309805
+**LocaciÃ³n:** OF
+**Objetivo:** CorrecciÃ³n de bugs encadenados en el mÃ³dulo de ingesta y vinculaciÃ³n de pedidos, reparaciÃ³n de AttributeError en endpoint approve, y remociÃ³n de endpoint obsoleto. CorrecciÃ³n de ImportError en router de pedidos (_aplica_iva). IncorporaciÃ³n de salvaguardas defensivas para remitos en get_remito_pdf importadas desde P. AnÃ¡lisis comparativo de archivos .py entre P y D.
+**Estado:** NOMINAL GOLD â€” PIN 1974 | Hash final: 39309805
 
 ### Hito 1: Bug Ingesta/Pedido (Bugs 1, 2 y 3)
 * **Bug 1 (AttributeError):** Corregido en `backend/ingesta/router.py`. La llamada a `IngestaService.approve` retorna un diccionario en lugar de un objeto. Se corrigieron los accesos a `procesada["id"]` y `procesada["estado"]`.
-* **Bug 2 (Validación Pedido):** Implementada validación estricta de `pedido_id` en `backend/ingesta/service.py` para evitar vinculaciones nulas desde el backend.
-* **Bug 3 (Selector de Pedido):** Se modificó el modal de aprobación en `frontend/src/views/Pedidos/IngestaFacturaView.vue` para forzar la selección de un pedido vinculante y enviar el payload con `pedido_id_vinculado`. El botón de la ficha de remito pasó de "Generar Remito" a "Proceder".
-* **Endpoint deprecado:** Se eliminó la ruta `/remitos/ingesta-process` de backend/remitos y del frontend, unificando todo bajo el router de ingesta.
+* **Bug 2 (ValidaciÃ³n Pedido):** Implementada validaciÃ³n estricta de `pedido_id` en `backend/ingesta/service.py` para evitar vinculaciones nulas desde el backend.
+* **Bug 3 (Selector de Pedido):** Se modificÃ³ el modal de aprobaciÃ³n en `frontend/src/views/Pedidos/IngestaFacturaView.vue` para forzar la selecciÃ³n de un pedido vinculante y enviar el payload con `pedido_id_vinculado`. El botÃ³n de la ficha de remito pasÃ³ de "Generar Remito" a "Proceder".
+* **Endpoint deprecado:** Se eliminÃ³ la ruta `/remitos/ingesta-process` de backend/remitos y del frontend, unificando todo bajo el router de ingesta.
 
 ### Hito 2: ImportError en Pedidos Router
-* Se eliminaron las declaraciones de importación interna redundantes de `PF` y `ClientFlags` dentro del helper `_aplica_iva` en `backend/pedidos/router.py`. Ahora se usan los del scope global para evitar fallos por alias inexistentes en constants.py.
+* Se eliminaron las declaraciones de importaciÃ³n interna redundantes de `PF` y `ClientFlags` dentro del helper `_aplica_iva` en `backend/pedidos/router.py`. Ahora se usan los del scope global para evitar fallos por alias inexistentes en constants.py.
 
-### Hito 3: Sincronización de Salvaguardas de Remitos
-* Se importaron las validaciones defensivas de P a D en `backend/remitos/router.py` (`get_remito_pdf`) para verificar la existencia de `remito.pedido` y de `remito.pedido.cliente` antes de generar el archivo PDF, previniendo caídas con excepciones HTTP 400.
+### Hito 3: SincronizaciÃ³n de Salvaguardas de Remitos
+* Se importaron las validaciones defensivas de P a D en `backend/remitos/router.py` (`get_remito_pdf`) para verificar la existencia de `remito.pedido` y de `remito.pedido.cliente` antes de generar el archivo PDF, previniendo caÃ­das con excepciones HTTP 400.
 
-### Hito 4: Análisis Comparativo P vs D
-* Se ejecutó un análisis de archivos `.py` entre D (`Sonido_Liquido_V5`) y P (`v5-ls-Tom`).
-* Se identificó que la raíz literal de P sólo contiene 9 archivos. La versión activa y desplegada se encuentra en `C:\dev\v5-ls-Tom\current\backend`.
-* Existe paridad casi exacta entre D y P (Current), exceptuando el archivo `backend/core/utils/text.py` que sólo se encuentra en D (contiene `normalize_name`).
+### Hito 4: AnÃ¡lisis Comparativo P vs D
+* Se ejecutÃ³ un anÃ¡lisis de archivos `.py` entre D (`Sonido_Liquido_V5`) y P (`v5-ls-Tom`).
+* Se identificÃ³ que la raÃ­z literal de P sÃ³lo contiene 9 archivos. La versiÃ³n activa y desplegada se encuentra en `C:\dev\v5-ls-Tom\current\backend`.
+* Existe paridad casi exacta entre D y P (Current), exceptuando el archivo `backend/core/utils/text.py` que sÃ³lo se encuentra en D (contiene `normalize_name`).
 
 ### Hito 5: Burocracia y Respaldo
-* Se ejecutó el WAL checkpoint completo sobre `pilot_v5x.db`.
-* Se copió la base de datos `pilot_v5x.db` al silo oficial `Q:\Mi unidad\V5_Silo_Claude\`.
-* Se actualizaron `ESTADO_ECOSISTEMA.md`, `INBOX.md`, `CAJA_NEGRA.md`, y se generó el informe histórico `2026-05-26_FIX_INGESTA_PEDIDO_816.md`.
+* Se ejecutÃ³ el WAL checkpoint completo sobre `pilot_v5x.db`.
+* Se copiÃ³ la base de datos `pilot_v5x.db` al silo oficial `Q:\Mi unidad\V5_Silo_Claude\`.
+* Se actualizaron `ESTADO_ECOSISTEMA.md`, `INBOX.md`, `CAJA_NEGRA.md`, y se generÃ³ el informe histÃ³rico `2026-05-26_FIX_INGESTA_PEDIDO_816.md`.
 
 ---
 
-## SESIÓN 815: AUDITORÍA GENÓMICA + APPLY_IVA BIT 40 (CA OMEGA)
+## SESIÃ“N 815: AUDITORÃA GENÃ“MICA + APPLY_IVA BIT 40 (CA OMEGA)
 **Fecha:** 2026-05-22
-**Locación:** CA
-**Objetivo:** Auditoría forense completa del genoma flags. Diagnóstico causal Bit 40 (DISCRIMINA_IVA) — 28/29 RI clientes desincronizados. Reparación masiva de anomalías (37 total). Implementación helper `_aplica_iva()` centralizando fiscal logic. PROTOCOLO OMEGA V2.2 Fase 2 (Burocracia).
-**Estado:** NOMINAL GOLD — PIN 1974 | Hash final: 1faac75e
+**LocaciÃ³n:** CA
+**Objetivo:** AuditorÃ­a forense completa del genoma flags. DiagnÃ³stico causal Bit 40 (DISCRIMINA_IVA) â€” 28/29 RI clientes desincronizados. ReparaciÃ³n masiva de anomalÃ­as (37 total). ImplementaciÃ³n helper `_aplica_iva()` centralizando fiscal logic. PROTOCOLO OMEGA V2.2 Fase 2 (Burocracia).
+**Estado:** NOMINAL GOLD â€” PIN 1974 | Hash final: 1faac75e
 
-### Hito 1: Auditoría Forense — Diagnóstico Causal Bit 40
-* **Problema:** 28/29 Responsable Inscripto clientes con `Bit 40 (DISCRIMINA_IVA) = 0` cuando deberían ser 1.
-* **Causa:** Clientes creados/actualizados PRE-Sesión 812 (cuando REGLA 3 implementada) nunca pasaron por `_audit_sovereignty()` post-implementación.
-* **Evidencia:** JOFRE SERGIO OMAR (updated 2026-05-21, POST-812) tenía Bit 40=1; ALFAJORES JORGITO (updated 2026-04-08, PRE-812) tenía Bit 40=0.
-* **Conclusión:** `_audit_sovereignty` solo se llama en create/update cliente, no retroactivamente. Patrón sistémico detectado: cada nueva regla deja históricos desactualizados.
+### Hito 1: AuditorÃ­a Forense â€” DiagnÃ³stico Causal Bit 40
+* **Problema:** 28/29 Responsable Inscripto clientes con `Bit 40 (DISCRIMINA_IVA) = 0` cuando deberÃ­an ser 1.
+* **Causa:** Clientes creados/actualizados PRE-SesiÃ³n 812 (cuando REGLA 3 implementada) nunca pasaron por `_audit_sovereignty()` post-implementaciÃ³n.
+* **Evidencia:** JOFRE SERGIO OMAR (updated 2026-05-21, POST-812) tenÃ­a Bit 40=1; ALFAJORES JORGITO (updated 2026-04-08, PRE-812) tenÃ­a Bit 40=0.
+* **ConclusiÃ³n:** `_audit_sovereignty` solo se llama en create/update cliente, no retroactivamente. PatrÃ³n sistÃ©mico detectado: cada nueva regla deja histÃ³ricos desactualizados.
 
-### Hito 2: Anomalías Identificadas (37 total)
+### Hito 2: AnomalÃ­as Identificadas (37 total)
 * **Bit 40 (DISCRIMINA_IVA):** 28/29 RI clientes con bit=0 en lugar de 1.
 * **Bit 20 (PENDIENTE_REVISION):** 6 clientes con bit=1 pero 4+ pilares completos (fantasma).
-* **Bit 19 (MEDALLA_ROSA):** 3 clientes Rosa (Bit 4) sin Bit 19 — inconsistencia color.
-* **CF CUIT fallback, IS_VIRGIN, Bit 2 (GOLD_ARCA):** Verificados consistentes — 0 anomalías.
+* **Bit 19 (MEDALLA_ROSA):** 3 clientes Rosa (Bit 4) sin Bit 19 â€” inconsistencia color.
+* **CF CUIT fallback, IS_VIRGIN, Bit 2 (GOLD_ARCA):** Verificados consistentes â€” 0 anomalÃ­as.
 
-### Hito 3: Script Re-auditoría Bit 40 — PIN 1974
+### Hito 3: Script Re-auditorÃ­a Bit 40 â€” PIN 1974
 * `backend/scripts/re_audit_bit40.py`: ejecutado contra `pilot_v5x.db`.
-* Lógica: Para cada cliente RI (`condicion_iva.nombre LIKE "%RESPONSABLE INSCRIPTO%"`), toggle Bit 40 ON.
-* Resultado: 28 clientes reparados. Verificación post: `SELECT * WHERE Bit40=0 AND Condicion_IVA~RI` → 0 restantes.
+* LÃ³gica: Para cada cliente RI (`condicion_iva.nombre LIKE "%RESPONSABLE INSCRIPTO%"`), toggle Bit 40 ON.
+* Resultado: 28 clientes reparados. VerificaciÃ³n post: `SELECT * WHERE Bit40=0 AND Condicion_IVA~RI` â†’ 0 restantes.
 * Commit: d84641b8.
 
-### Hito 4: Script Reparación Masiva Bits 20 + 19 — PIN 1974
-* **Reparación 1 (Bit 20):** 6 clientes con Bit 20=1 + lista_precios + segmento + 4+ domicilios. Apagado Bit 20.
-* **Reparación 2 (Bit 19):** 3 clientes Rosa (Bit 4=1) sin Bit 19. Encendido Bit 19 (MEDALLA_ROSA).
-* Verificación post: 0 anomalías restantes en ambos casos (100% cobertura).
+### Hito 4: Script ReparaciÃ³n Masiva Bits 20 + 19 â€” PIN 1974
+* **ReparaciÃ³n 1 (Bit 20):** 6 clientes con Bit 20=1 + lista_precios + segmento + 4+ domicilios. Apagado Bit 20.
+* **ReparaciÃ³n 2 (Bit 19):** 3 clientes Rosa (Bit 4=1) sin Bit 19. Encendido Bit 19 (MEDALLA_ROSA).
+* VerificaciÃ³n post: 0 anomalÃ­as restantes en ambos casos (100% cobertura).
 * Commit: 1faac75e.
 
-### Hito 5: Centralización apply_iva() en router.py
+### Hito 5: CentralizaciÃ³n apply_iva() en router.py
 * **Problema:** Fiscal logic duplicada en 5 locaciones (create + update + add_item + update_item + delete_item) con inconsistencia: algunas verificaban estado, otras no.
-* **Solución:** Helper `_aplica_iva(pedido, cliente) -> bool` implementando Doctrina V6:
-  - Circuito Negro (Bit 12 NO_FISCAL_FORCE=1) → siempre False (nunca IVA).
-  - Sin cliente → False.
-  - Circuito Blanco → solo RI (Bit 40) aplica IVA.
-* **Integración:** Reemplazadas 5 instancias de `tipo_facturacion in ["A", "B", "FISCAL"]` con llamadas a `_aplica_iva()`.
-* **Bonus:** PedidoFlags → PF alias corregido en `toggle_circuito_bipolar`.
+* **SoluciÃ³n:** Helper `_aplica_iva(pedido, cliente) -> bool` implementando Doctrina V6:
+  - Circuito Negro (Bit 12 NO_FISCAL_FORCE=1) â†’ siempre False (nunca IVA).
+  - Sin cliente â†’ False.
+  - Circuito Blanco â†’ solo RI (Bit 40) aplica IVA.
+* **IntegraciÃ³n:** Reemplazadas 5 instancias de `tipo_facturacion in ["A", "B", "FISCAL"]` con llamadas a `_aplica_iva()`.
+* **Bonus:** PedidoFlags â†’ PF alias corregido en `toggle_circuito_bipolar`.
 
-### Hito 6: PROTOCOLO OMEGA V2.2 — Fase 2 (Burocracia)
+### Hito 6: PROTOCOLO OMEGA V2.2 â€” Fase 2 (Burocracia)
 * **Fase 1B:** WAL checkpoint (`PRAGMA wal_checkpoint(FULL)`) ejecutado en `pilot_v5x.db`.
-* **Fase 2:** Actualización de 3 archivos de documentación:
+* **Fase 2:** ActualizaciÃ³n de 3 archivos de documentaciÃ³n:
   - ESTADO_ECOSISTEMA.md: CA/D row con hash 1faac75e, estado OK, alert resolved.
-  - CAJA_NEGRA.md: Nueva entrada sesión 815, incremento "Sesión actual: 815", documentación auditoría.
-  - BITÁCORA_DEV.md: Esta entrada (en curso).
-  - INFORME_HISTÓRICO: Creación de 2026-05-22_AUDITORIA_GENOMICA_815CA.md.
+  - CAJA_NEGRA.md: Nueva entrada sesiÃ³n 815, incremento "SesiÃ³n actual: 815", documentaciÃ³n auditorÃ­a.
+  - BITÃCORA_DEV.md: Esta entrada (en curso).
+  - INFORME_HISTÃ“RICO: CreaciÃ³n de 2026-05-22_AUDITORIA_GENOMICA_815CA.md.
 
 ### Commits
-* `d84641b8` (815 CA): apply_iva helper + Bit 40 re-auditoría script + centralización fiscal logic.
-* `1faac75e` (815 CA OMEGA): Reparación masiva Bits 20+19 + ESTADO_ECOSISTEMA.md + CAJA_NEGRA.md update.
+* `d84641b8` (815 CA): apply_iva helper + Bit 40 re-auditorÃ­a script + centralizaciÃ³n fiscal logic.
+* `1faac75e` (815 CA OMEGA): ReparaciÃ³n masiva Bits 20+19 + ESTADO_ECOSISTEMA.md + CAJA_NEGRA.md update.
 
-### Pendiente → Sesión 816 CA
-* Fase 4-7 OMEGA V2.2 (Auditoría de peso, Verificación órbita, Higiene Antigravity).
+### Pendiente â†’ SesiÃ³n 816 CA
+* Fase 4-7 OMEGA V2.2 (AuditorÃ­a de peso, VerificaciÃ³n Ã³rbita, Higiene Antigravity).
 * Mapa de flags para UX (Utilidad Maestra).
-* 6 bugs pedidos (c) CRÍTICO, d) ALTA, a-b) MEDIA, e-f) BAJA).
+* 6 bugs pedidos (c) CRÃTICO, d) ALTA, a-b) MEDIA, e-f) BAJA).
 
 ---
 
-## SESIÓN 814: GENOMA PEDIDOS V6 + OPERACIÓN MUDANZA + DIFF 4 (OF)
+## SESIÃ“N 814: GENOMA PEDIDOS V6 + OPERACIÃ“N MUDANZA + DIFF 4 (OF)
 **Fecha:** 2026-05-22
-**Locación:** OF
-**Objetivo:** Canonización de PedidoFlags Genoma V6 (banda 32+). Migración y Operación Mudanza de 31 pedidos históricos incorporando fecha_vencimiento. Transiciones de estado seguras en router.py mediante STATE_MASK. Implementación de Diff 4 en PedidoCanvas.vue con BigInt bitwise para cliente y desglose fiscal Ley 27.743.
-**Estado:** NOMINAL GOLD — PIN 1974 | Hash final: 5e1e2445
+**LocaciÃ³n:** OF
+**Objetivo:** CanonizaciÃ³n de PedidoFlags Genoma V6 (banda 32+). MigraciÃ³n y OperaciÃ³n Mudanza de 31 pedidos histÃ³ricos incorporando fecha_vencimiento. Transiciones de estado seguras en router.py mediante STATE_MASK. ImplementaciÃ³n de Diff 4 en PedidoCanvas.vue con BigInt bitwise para cliente y desglose fiscal Ley 27.743.
+**Estado:** NOMINAL GOLD â€” PIN 1974 | Hash final: 5e1e2445
 
 ### Hito 1: Genoma Pedidos V6 & Constantes
-* `PedidoFlags` en `backend/pedidos/constants.py` define la banda baja (bits universales como `NO_FISCAL_FORCE` = Bit 12) y banda alta (bits >= 32) para ciclo de vida y auditoría forense.
+* `PedidoFlags` en `backend/pedidos/constants.py` define la banda baja (bits universales como `NO_FISCAL_FORCE` = Bit 12) y banda alta (bits >= 32) para ciclo de vida y auditorÃ­a forense.
 * Estados excluyentes (`STATE_MASK`): `ES_PRESUPUESTO` (Bit 32), `ES_FIRME` (Bit 33), `ES_CUMPLIDO` (Bit 34), `ES_ANULADO` (Bit 35).
 * Flags ortogonales acumulables: `RESERVA_STOCK` (Bit 36), `TUVO_CIRCUITO` (Bit 37), `ORIGEN_FACTURA` (Bit 38), `ORIGEN_RETROACTIVO` (Bit 39), `CAMBIO_A_NEGRO` (Bit 41), `CAMBIO_A_BLANCO` (Bit 42).
 * Commit: `5c231ecb` (Feat PedidoFlags)
 
-### Hito 2: Operación Mudanza (Base de Datos)
-* Migración del campo string `estado` a la estructura de bits en la base de datos `pilot_v5x.db`.
-* 31 pedidos migrados conservando integridad de negocio y añadiendo columna `fecha_vencimiento`.
+### Hito 2: OperaciÃ³n Mudanza (Base de Datos)
+* MigraciÃ³n del campo string `estado` a la estructura de bits en la base de datos `pilot_v5x.db`.
+* 31 pedidos migrados conservando integridad de negocio y aÃ±adiendo columna `fecha_vencimiento`.
 * Commit: `14abd5a0` (Genoma V6 + Mudanza)
 
-### Hito 3: Router Backend (Soberanía Transaccional)
-* **Paso A (Escrituras):** Integración de `STATE_MASK` en escrituras de `backend/pedidos/router.py` para asegurar que las transiciones de estado borren el bit previo y guarden el nuevo estado de forma excluyente.
+### Hito 3: Router Backend (SoberanÃ­a Transaccional)
+* **Paso A (Escrituras):** IntegraciÃ³n de `STATE_MASK` en escrituras de `backend/pedidos/router.py` para asegurar que las transiciones de estado borren el bit previo y guarden el nuevo estado de forma excluyente.
 * **Paso B (Lecturas):** Reemplazo de accesos directos de lectura de estado por operaciones bitwise.
 * Commits: `f8e1df84` (Paso A) y `9fdda7ed` (Paso B)
 
 ### Hito 4: PedidoCanvas.vue (Diff 4 Frontend)
-* **BigInt Safety:** Uso de `BigInt(cliente.flags_estado || 0)` y operadores de BigInt (ej. `1n << 40n`) en `isClienteRI` para prevenir truncado y pérdida de precisión de JS en números > 31 bits.
+* **BigInt Safety:** Uso de `BigInt(cliente.flags_estado || 0)` y operadores de BigInt (ej. `1n << 40n`) en `isClienteRI` para prevenir truncado y pÃ©rdida de precisiÃ³n de JS en nÃºmeros > 31 bits.
 * **Motor Bipolar:** `isSinIVA` alineado con Bit 12 del pedido (`NO_FISCAL_FORCE`) y el Bit 40 del cliente (`DISCRIMINA_IVA`).
-* **Lógica selectProduct:** En precios `LISTA_5`, solo los clientes RI (`isClienteRI`) reciben el neto recalculado (división por 1.21). CF, Monotributo, Exento y Negro preservan el precio original con IVA.
+* **LÃ³gica selectProduct:** En precios `LISTA_5`, solo los clientes RI (`isClienteRI`) reciben el neto recalculado (divisiÃ³n por 1.21). CF, Monotributo, Exento y Negro preservan el precio original con IVA.
 * **Desglose Fiscal (Ley 27.743):**
   - Cliente Responsable Inscripto (en circuito blanco): IVA discriminado.
   - Consumidor Final / Monotributo (en circuito blanco): IVA contenido detallado en leyenda del pie.
   - Circuito Negro / Exento: IVA $0.00.
 * Commit: `5e1e2445` (Diff 4 PedidoCanvas)
 
-### Pendiente → Sesión 815
+### Pendiente â†’ SesiÃ³n 815
 * Integrar `apply_iva` en `router.py` usando el Bit 40 del cliente.
 * Bug de ingesta/remitos en la ventana de pedidos.
 * Bug de UI en ficha remito (barra de Windows).
@@ -568,570 +572,570 @@
 
 ---
 
-## SESIÓN 812: DISCRIMINA_IVA BIT 40 + PURGA HEREJÍA DEL 15 (OF)
+## SESIÃ“N 812: DISCRIMINA_IVA BIT 40 + PURGA HEREJÃA DEL 15 (OF)
 **Fecha:** 2026-05-20
-**Locación:** OF
-**Objetivo:** Implementar Bit 40 DISCRIMINA_IVA. Purgar Bit 15 de pilot_v5x.db (5 clientes). Sellar doctrina Herejía del 15 en BIBLIOTECA_NIKE.
-**Estado:** NOMINAL GOLD — PIN 1974 | Hash D: b0ac3c47
+**LocaciÃ³n:** OF
+**Objetivo:** Implementar Bit 40 DISCRIMINA_IVA. Purgar Bit 15 de pilot_v5x.db (5 clientes). Sellar doctrina HerejÃ­a del 15 en BIBLIOTECA_NIKE.
+**Estado:** NOMINAL GOLD â€” PIN 1974 | Hash D: b0ac3c47
 
-### Hito 1: Bit 40 DISCRIMINA_IVA — constants.py
-* `ClientFlags.DISCRIMINA_IVA = 1 << 40` — nuevo bit en `backend/clientes/constants.py`.
-* Semántica: 1 = Responsable Inscripto (discrimina IVA, Factura A, precio neto / 1.21). 0 = CF / Mono / Exento / Rosa.
+### Hito 1: Bit 40 DISCRIMINA_IVA â€” constants.py
+* `ClientFlags.DISCRIMINA_IVA = 1 << 40` â€” nuevo bit en `backend/clientes/constants.py`.
+* SemÃ¡ntica: 1 = Responsable Inscripto (discrimina IVA, Factura A, precio neto / 1.21). 0 = CF / Mono / Exento / Rosa.
 
-### Hito 2: Auto-detección en afip_bridge.py
+### Hito 2: Auto-detecciÃ³n en afip_bridge.py
 * `AfipBridgeService._fetch_from_rar()`: si condicion_iva contiene "RESPONSABLE INSCRIPTO" (o "(INFERIDO)"), enciende DISCRIMINA_IVA en el dict de retorno al frontend.
 
 ### Hito 3: Regla 3 en _audit_sovereignty (service.py)
-* Toggle permanente en create/update: `condicion_iva.nombre` con "RESPONSABLE INSCRIPTO" → `flags_estado |= DISCRIMINA_IVA`. CF / Mono / Exento / None → `flags_estado &= ~DISCRIMINA_IVA`.
+* Toggle permanente en create/update: `condicion_iva.nombre` con "RESPONSABLE INSCRIPTO" â†’ `flags_estado |= DISCRIMINA_IVA`. CF / Mono / Exento / None â†’ `flags_estado &= ~DISCRIMINA_IVA`.
 
-### Hito 4: Purga Herejía del 15
+### Hito 4: Purga HerejÃ­a del 15
 * 5 clientes en `pilot_v5x.db` con Bit 15 (32768 = FacturaFlags.PASADO_A_PEDIDO) encendido por error de IA.
 * Purga SQL: `UPDATE clientes SET flags_estado = flags_estado & ~32768 WHERE flags_estado & 32768`.
 * DB saneada. Canario: NOMINAL GOLD.
 
-### Hito 5: BIBLIOTECA_NIKE.md — doctrina Herejía del 15
-* Módulo 2 sellado con ítem "La Herejía del 15": prohíbe `1<<15` en `clientes.flags_estado`. Bit 15 es exclusivo del genoma de facturas (PASADO_A_PEDIDO).
+### Hito 5: BIBLIOTECA_NIKE.md â€” doctrina HerejÃ­a del 15
+* MÃ³dulo 2 sellado con Ã­tem "La HerejÃ­a del 15": prohÃ­be `1<<15` en `clientes.flags_estado`. Bit 15 es exclusivo del genoma de facturas (PASADO_A_PEDIDO).
 
-### Pendiente → Sesión 813
-* Diff 4 PedidoCanvas.vue: `selectProduct` + presentación precio por Bit 12 (negro) + Bit 40 (RI) + CF. `isClienteRI` computed ya diseñado (BigInt Bit 40).
+### Pendiente â†’ SesiÃ³n 813
+* Diff 4 PedidoCanvas.vue: `selectProduct` + presentaciÃ³n precio por Bit 12 (negro) + Bit 40 (RI) + CF. `isClienteRI` computed ya diseÃ±ado (BigInt Bit 40).
 
 ---
 
-## SESIÓN 811-CA: SINCRONIZACIÓN Y AUDITORÍA DE ANOMALÍAS (CA)
+## SESIÃ“N 811-CA: SINCRONIZACIÃ“N Y AUDITORÃA DE ANOMALÃAS (CA)
 **Fecha:** 2026-05-19
-**Locación:** CA
-**Objetivo:** Sincronizar con OF (git pull) y auditar anomalías del Bit 19 vs Bit 4.
-**Estado:** NOMINAL GOLD — Hash D: 3f608adb
+**LocaciÃ³n:** CA
+**Objetivo:** Sincronizar con OF (git pull) y auditar anomalÃ­as del Bit 19 vs Bit 4.
+**Estado:** NOMINAL GOLD â€” Hash D: 3f608adb
 
-### Hito 1: Sincronización
+### Hito 1: SincronizaciÃ³n
 * Git pull integrado de 7 commits (sesiones OF 810 y 811).
 * Canario certificado localmente: `flags_estado = 13`.
 * WAL checkpoint (PRAGMA wal_checkpoint(FULL)) ejecutado correctamente.
 
-### Hito 2: Auditoría de anomalías de color (Bit 19 ON / Bit 4 OFF)
-* **MYM ODONTOLÓGICOS LA PLATA:** Válido por diseño. Al ser Consumidor Final/Genérico (CUIT 00000000000), se fuerza a Gold (nibble 15) por lo que no infiere Rosa (no tiene Bit 4), pero recibe la medalla Rosa (Bit 19) por soberanía base de facturación.
-* **SERGIO JOFRE:** Anómalo. CUIT real pero Condición IVA ausente (`None`). Bit 19 forzado por aserciones/excepciones manuales heredadas en scripts de verificación.
-* **Pao Tandil:** Anómalo. CUIT null y segmento null. Al no tener segmento, no recibe Bit 4, y sus flags no han sido recalculados por la auditoría transaccional.
+### Hito 2: AuditorÃ­a de anomalÃ­as de color (Bit 19 ON / Bit 4 OFF)
+* **MYM ODONTOLÃ“GICOS LA PLATA:** VÃ¡lido por diseÃ±o. Al ser Consumidor Final/GenÃ©rico (CUIT 00000000000), se fuerza a Gold (nibble 15) por lo que no infiere Rosa (no tiene Bit 4), pero recibe la medalla Rosa (Bit 19) por soberanÃ­a base de facturaciÃ³n.
+* **SERGIO JOFRE:** AnÃ³malo. CUIT real pero CondiciÃ³n IVA ausente (`None`). Bit 19 forzado por aserciones/excepciones manuales heredadas en scripts de verificaciÃ³n.
+* **Pao Tandil:** AnÃ³malo. CUIT null y segmento null. Al no tener segmento, no recibe Bit 4, y sus flags no han sido recalculados por la auditorÃ­a transaccional.
 
 ---
 
-## SESIÓN 811: HONNEY + DEOU F4 + CF CUIT FALLBACK (OF)
+## SESIÃ“N 811: HONNEY + DEOU F4 + CF CUIT FALLBACK (OF)
 **Fecha:** 2026-05-19
-**Locación:** OF
-**Objetivo:** Fix hard delete fósiles flags=0. Fix alta rápida DEOU F4. CF CUIT fallback backend.
-**Estado:** NOMINAL GOLD — PIN 1974 | Hash D: 208d6a46 | Hash P: 937d5be
+**LocaciÃ³n:** OF
+**Objetivo:** Fix hard delete fÃ³siles flags=0. Fix alta rÃ¡pida DEOU F4. CF CUIT fallback backend.
+**Estado:** NOMINAL GOLD â€” PIN 1974 | Hash D: 208d6a46 | Hash P: 937d5be
 
-### Hito 1: HONNEY — hard delete fósiles flags=0
+### Hito 1: HONNEY â€” hard delete fÃ³siles flags=0
 * Guard IS_VIRGIN: `if current_flags != 0 and not (current_flags & IS_VIRGIN)`.
-* HardDeleteManager.vue: fila amber, label "⚠️ CLIENTE IMPOSIBLE", botón habilitado, integrity safe.
+* HardDeleteManager.vue: fila amber, label "âš ï¸ CLIENTE IMPOSIBLE", botÃ³n habilitado, integrity safe.
 * Commit: `1e5d4327` (D) / `85a48b8` (P)
 
-### Hito 2: DEOU F4 — alta rápida cliente correcto
-* Bug A: `currentFlags |= 3` cuando nibble=0 — EXISTENCE+IS_VIRGIN mínimo vital.
-* Bug B: `cuit: ''` → `cuit: null` en `altaClienteContext()` y F4 handler de PedidoCanvas.
+### Hito 2: DEOU F4 â€” alta rÃ¡pida cliente correcto
+* Bug A: `currentFlags |= 3` cuando nibble=0 â€” EXISTENCE+IS_VIRGIN mÃ­nimo vital.
+* Bug B: `cuit: ''` â†’ `cuit: null` en `altaClienteContext()` y F4 handler de PedidoCanvas.
 * Bug C: `_audit_sovereignty()` + activo sync + `_ensure_domicilio_rosa()` en `create_cliente()`.
 * Commit: `0286f0df` (D) / `0b31fe2` (P)
 
-### Hito 3: CF CUIT fallback — backend soberano
-* `_apply_cf_cuit_fallback()`: condicion_iva CONSUMIDOR FINAL + cuit null → '00000000000'.
+### Hito 3: CF CUIT fallback â€” backend soberano
+* `_apply_cf_cuit_fallback()`: condicion_iva CONSUMIDOR FINAL + cuit null â†’ '00000000000'.
 * Llamado antes de `_audit_sovereignty` en create y update.
 * Commit: `208d6a46` (D) / `937d5be` (P)
 
 ---
 
-## SESIÓN 810: FIX C4 ClientCanvas + IVA Rosa + Navegación PedidoCanvas (OF)
+## SESIÃ“N 810: FIX C4 ClientCanvas + IVA Rosa + NavegaciÃ³n PedidoCanvas (OF)
 **Fecha:** 2026-05-18
-**Locación:** OF
-**Objetivo:** FIX C4 has4Pillars virginidad + bifurcación domicilio Gold/Rosa. Fix IVA Rosa PedidoCanvas. Fix syntax error Vite. Fix navegación Nuevo/Edit. Migración Bit 4 clientes Rosa en D y P.
-**Estado:** NOMINAL GOLD — PIN 1974 | Hash D: ff77a309 | Hash P: 3e060bb
+**LocaciÃ³n:** OF
+**Objetivo:** FIX C4 has4Pillars virginidad + bifurcaciÃ³n domicilio Gold/Rosa. Fix IVA Rosa PedidoCanvas. Fix syntax error Vite. Fix navegaciÃ³n Nuevo/Edit. MigraciÃ³n Bit 4 clientes Rosa en D y P.
+**Estado:** NOMINAL GOLD â€” PIN 1974 | Hash D: ff77a309 | Hash P: 3e060bb
 
-### Hito 1: FIX C4 — ClientCanvas + Doctrina Virginidad
+### Hito 1: FIX C4 â€” ClientCanvas + Doctrina Virginidad
 * `has4Pillars` bifurcado: domicilio `es_entrega` para Rosa, `es_fiscal` para Gold.
-* Eliminada línea `currentFlags &= ~2` — violación doctrina virginidad. IS_VIRGIN solo lo apaga el backend en CUMPLIDO o CAE real.
+* Eliminada lÃ­nea `currentFlags &= ~2` â€” violaciÃ³n doctrina virginidad. IS_VIRGIN solo lo apaga el backend en CUMPLIDO o CAE real.
 * Commit: `bf406415` (D) / `5adf6f4` (P)
 
-### Hito 2: FIX PedidoCanvas — IVA Rosa + Syntax + Navegación
+### Hito 2: FIX PedidoCanvas â€” IVA Rosa + Syntax + NavegaciÃ³n
 * Syntax error Vite (`Unexpected token 1306:10`): eliminado bloque `else {}` espurio en `savePedido` que intentaba colgar como tercer else de un if/else ya cerrado.
 * IVA Rosa: `selectProduct` divide `/1.21` cuando `isSinIVA && origen === 'LISTA_5'`. Template `v-if="!isSinIVA"` oculta bloque IVA pie de pantalla para clientes informales.
-* Reset post-save: `resetPedido(skipConfirm=true)` — elimina `confirm()` espurio que disparaba porque items aún estaban en memoria al momento del reset.
-* Navegación "Nuevo": 2 ocurrencias ruta muerta `/hawe/tactico` en `PedidoList.vue` → `{ name: 'PedidoCanvas' }`.
-* Navegación edición: 2 ocurrencias `/hawe/tactico?edit=` en `PedidoInspector.vue` → `{ name: 'PedidoEditar', params: { id } }`.
+* Reset post-save: `resetPedido(skipConfirm=true)` â€” elimina `confirm()` espurio que disparaba porque items aÃºn estaban en memoria al momento del reset.
+* NavegaciÃ³n "Nuevo": 2 ocurrencias ruta muerta `/hawe/tactico` en `PedidoList.vue` â†’ `{ name: 'PedidoCanvas' }`.
+* NavegaciÃ³n ediciÃ³n: 2 ocurrencias `/hawe/tactico?edit=` en `PedidoInspector.vue` â†’ `{ name: 'PedidoEditar', params: { id } }`.
 * Commit: `ff77a309` (D) / `3e060bb` (P)
 
-### Hito 3: Migración Bit 4 — Clientes Rosa D y P
-* Diagnóstico: `_audit_sovereignty()` línea 346 solo infiere Bit 4 si `has_segmento AND not has_real_cuit`. Clientes creados sin `segmento_id` no reciben sello automático.
-* UPDATE con PIN 1974 en `V5_LS_MASTER.db`: ANA ROBLES, Cecilia Pascual, LUISA PISCITELLI, Pao Tandil → `flags_estado |= 16`. 4/4 confirmadas.
-* Sincronizado en `pilot_v5x.db` (D): Cecilia Pascual y LUISA PISCITELLI (nuevas); Ana Robles ya tenía Bit 4 desde el inicio de sesión.
+### Hito 3: MigraciÃ³n Bit 4 â€” Clientes Rosa D y P
+* DiagnÃ³stico: `_audit_sovereignty()` lÃ­nea 346 solo infiere Bit 4 si `has_segmento AND not has_real_cuit`. Clientes creados sin `segmento_id` no reciben sello automÃ¡tico.
+* UPDATE con PIN 1974 en `V5_LS_MASTER.db`: ANA ROBLES, Cecilia Pascual, LUISA PISCITELLI, Pao Tandil â†’ `flags_estado |= 16`. 4/4 confirmadas.
+* Sincronizado en `pilot_v5x.db` (D): Cecilia Pascual y LUISA PISCITELLI (nuevas); Ana Robles ya tenÃ­a Bit 4 desde el inicio de sesiÃ³n.
 
 ### Commits
 * `bf406415` (D) / `5adf6f4` (P): FIX C4 ClientCanvas + virginidad + domicilio bifurcado Gold/Rosa
-* `ff77a309` (D) / `3e060bb` (P): FIX PedidoCanvas syntax + IVA Rosa + reset + navegación
+* `ff77a309` (D) / `3e060bb` (P): FIX PedidoCanvas syntax + IVA Rosa + reset + navegaciÃ³n
 
 ---
 
-## SESIÓN 809: AUDITORÍA CRUZADA + IS_VIRGIN GLOBAL + MOTOR BIPOLAR + ROSETI 1482 (CA)
+## SESIÃ“N 809: AUDITORÃA CRUZADA + IS_VIRGIN GLOBAL + MOTOR BIPOLAR + ROSETI 1482 (CA)
 **Fecha:** 2026-05-18
-**Locación:** CA
-**Objetivo:** Auditoría cruzada Opus/Antigravity pedidos y clientes. IS_VIRGIN rename global. Canonizar Motor Bipolar Bit 12. Implementar Roseti 1482 para clientes Rosa.
-**Estado:** NOMINAL GOLD (OMEGA pendiente 810) — PIN 1974 | Hash D: 4010b655
+**LocaciÃ³n:** CA
+**Objetivo:** AuditorÃ­a cruzada Opus/Antigravity pedidos y clientes. IS_VIRGIN rename global. Canonizar Motor Bipolar Bit 12. Implementar Roseti 1482 para clientes Rosa.
+**Estado:** NOMINAL GOLD (OMEGA pendiente 810) â€” PIN 1974 | Hash D: 4010b655
 
-### Hito 1: Fixes Backend Pedidos (Opus — C1/C3/C5)
-* C1: `delete_pedido` — variable `pedido` no definida → NameError/500. Fix: query con eager load.
-* C3: `NO_FISCAL_FORCE` ignorado en cálculo IVA — 5 puntos en router.py corregidos con bitwise.
-* C5: `STRICT_MODE_VIOLATION` inalcanzable — `nivel_lista=3` era default antes del check. Fix: `nivel_lista=None`.
+### Hito 1: Fixes Backend Pedidos (Opus â€” C1/C3/C5)
+* C1: `delete_pedido` â€” variable `pedido` no definida â†’ NameError/500. Fix: query con eager load.
+* C3: `NO_FISCAL_FORCE` ignorado en cÃ¡lculo IVA â€” 5 puntos en router.py corregidos con bitwise.
+* C5: `STRICT_MODE_VIOLATION` inalcanzable â€” `nivel_lista=3` era default antes del check. Fix: `nivel_lista=None`.
 
 ### Hito 2: Fixes Frontend PedidoCanvas (C1-C5)
-* C1: `totalFinal` — `isSinIVA` basado en Bit 12 del pedido (soberano), no en `isClientRosa`.
+* C1: `totalFinal` â€” `isSinIVA` basado en Bit 12 del pedido (soberano), no en `isClientRosa`.
 * C2: Factura borrador + remito puente solo si `!clienteRosa`.
-* C3: `wasIngesta` capturado antes de `clearIngestaData()` — bifurcación ingesta/manual.
+* C3: `wasIngesta` capturado antes de `clearIngestaData()` â€” bifurcaciÃ³n ingesta/manual.
 * C4: "Guardar e Imprimir" con `v-if="pedidosStore.ingestaData"`.
-* C5: 409 STRICT_MODE_VIOLATION → early return en catch, bloquea adición de item.
+* C5: 409 STRICT_MODE_VIOLATION â†’ early return en catch, bloquea adiciÃ³n de item.
 
-### Hito 3: Motor Bipolar — canonización doctrinaria
+### Hito 3: Motor Bipolar â€” canonizaciÃ³n doctrinaria
 * Bit 12 (NO_FISCAL_FORCE=4096) del PEDIDO soberano para IVA.
 * `isClientRosa` (Bit 4) exclusivo para restricciones operativas (documentos fiscales).
-* Rosa SIEMPRE tiene Bit 12=1, pero el cálculo mira el pedido, no el cliente.
+* Rosa SIEMPRE tiene Bit 12=1, pero el cÃ¡lculo mira el pedido, no el cliente.
 
 ### Hito 4: IS_VIRGIN rename global
-* `HAS_ACTIVITY → IS_VIRGIN` en 15 archivos. Cero ocurrencias residuales.
+* `HAS_ACTIVITY â†’ IS_VIRGIN` en 15 archivos. Cero ocurrencias residuales.
 * Guard `hard_delete_cliente` invertido: `if not (current_flags & IS_VIRGIN)`.
-* Semántica corregida: Bit 1=1 virgen/borrable, Bit 1=0 tocado/bloqueado.
-* `nivel_id` huérfano eliminado en ClientCanvas.vue:1557.
+* SemÃ¡ntica corregida: Bit 1=1 virgen/borrable, Bit 1=0 tocado/bloqueado.
+* `nivel_id` huÃ©rfano eliminado en ClientCanvas.vue:1557.
 
-### Hito 5: Roseti 1482 — domicilio plantilla Rosa
+### Hito 5: Roseti 1482 â€” domicilio plantilla Rosa
 * Domicilio `ROSETI 1482 CABA` creado en pilot_v5x.db (ID: `59b01b5a...`).
 * Constante `DOMICILIO_ROSETI_ID` en `backend/clientes/constants.py`.
-* `ClienteService._ensure_domicilio_rosa()` vincula automáticamente via `domicilios_clientes` al crear/actualizar cliente Rosa sin domicilios.
-* Deprecación documentada: `cliente_id` legacy en `Domicilio` model.
+* `ClienteService._ensure_domicilio_rosa()` vincula automÃ¡ticamente via `domicilios_clientes` al crear/actualizar cliente Rosa sin domicilios.
+* DeprecaciÃ³n documentada: `cliente_id` legacy en `Domicilio` model.
 
 ### Commits
 * `c2372d5a`: fixes pedidos C1/C3/C5 backend + C1-C5 frontend + isSinIVA Motor Bipolar.
 * `bb5576c9`: IS_VIRGIN rename global + guard invertido + Roseti 1482 + isGeneric fix.
-* `4010b655`: IS_VIRGIN rename `facturacion/constants.py` — cobertura global.
+* `4010b655`: IS_VIRGIN rename `facturacion/constants.py` â€” cobertura global.
 
 ---
 
-## SESIÓN 808: DOCTRINA VIRGINIDAD + ATOMICIDAD INGESTA + UX FIXES (OF)
+## SESIÃ“N 808: DOCTRINA VIRGINIDAD + ATOMICIDAD INGESTA + UX FIXES (OF)
 **Fecha:** 2026-05-15
-**Locación:** OF
-**Objetivo:** Implementar Doctrina de Virginidad canónica. Fix UX PedidoCanvas. Fix Rosa AFIP bypass. Diagnosticar y corregir 409 ingesta. Atomicidad IngestaService.approve(). Sync D↔P.
-**Estado:** NOMINAL GOLD — PIN 1974 | Hash D: 513796bf | Hash P: 5865616
+**LocaciÃ³n:** OF
+**Objetivo:** Implementar Doctrina de Virginidad canÃ³nica. Fix UX PedidoCanvas. Fix Rosa AFIP bypass. Diagnosticar y corregir 409 ingesta. Atomicidad IngestaService.approve(). Sync Dâ†”P.
+**Estado:** NOMINAL GOLD â€” PIN 1974 | Hash D: 513796bf | Hash P: 5865616
 
 ### Hito 1: FIX UX PedidoCanvas
-* Botón "Guardar e Imprimir": `v-if="pedidosStore.ingestaData"` — oculto en flujo manual.
-* `wasIngesta` capturado antes de `clearIngestaData()` para evitar bug de evaluación tardía.
-* Post-guardado manual: reset de canvas (items, cliente, nroPedido, fechas, notas) + notificación "listo".
-* Post-guardado ingesta: redirección a PedidoList (comportamiento anterior conservado).
+* BotÃ³n "Guardar e Imprimir": `v-if="pedidosStore.ingestaData"` â€” oculto en flujo manual.
+* `wasIngesta` capturado antes de `clearIngestaData()` para evitar bug de evaluaciÃ³n tardÃ­a.
+* Post-guardado manual: reset de canvas (items, cliente, nroPedido, fechas, notas) + notificaciÃ³n "listo".
+* Post-guardado ingesta: redirecciÃ³n a PedidoList (comportamiento anterior conservado).
 
 ### Hito 2: FIX Rosa / OPERATOR_OK bypass AFIP
 * `esOperatorOk = !!(flags_estado & 16)` evaluado en `savePedido()`.
 * Si activo: salta todo el bloque fiscal (sin borrador factura, sin remito puente).
-* Muestra warning al operador: "Cliente sin circuito AFIP — emitir remito manual si corresponde."
+* Muestra warning al operador: "Cliente sin circuito AFIP â€” emitir remito manual si corresponde."
 
-### Hito 3: Doctrina de Virginidad — implementación canónica
+### Hito 3: Doctrina de Virginidad â€” implementaciÃ³n canÃ³nica
 * **Removidos triggers incorrectos:**
-  - `clientes/service.py`: eliminada línea `~HAS_ACTIVITY` del bloque 4 pilares.
+  - `clientes/service.py`: eliminada lÃ­nea `~HAS_ACTIVITY` del bloque 4 pilares.
   - `remitos/service.py` (Vanguard Canon): `mutation_flags = current_flags | target_base` (preserva Bit 1).
-* **Agregados triggers canónicos:**
-  - `pedidos/router.py`: hook en PATCH — si `estado == "CUMPLIDO"` y Bit 1 activo → apagarlo.
-  - `facturacion/service.py`: hook en `sellar_factura` — si `update_data.cae` → apagar Bit 1 del cliente.
-* **Ghost pedido:** `remitos/service.py` línea ~532: `estado="PENDIENTE"` (era "CUMPLIDO").
+* **Agregados triggers canÃ³nicos:**
+  - `pedidos/router.py`: hook en PATCH â€” si `estado == "CUMPLIDO"` y Bit 1 activo â†’ apagarlo.
+  - `facturacion/service.py`: hook en `sellar_factura` â€” si `update_data.cae` â†’ apagar Bit 1 del cliente.
+* **Ghost pedido:** `remitos/service.py` lÃ­nea ~532: `estado="PENDIENTE"` (era "CUMPLIDO").
 * Commits: D `8e703914` / P `3690673` (cherry-pick con conflicto resuelto).
 
-### Hito 4: Diagnóstico 409 ingesta
-* Raw `80af6b8b` (Labme, 0001-00002535): `audit_status='RECIBIDO'` pero downstream ya existía.
-* Causa raíz: commit parcial previo — `create_from_ingestion` comiteó, segundo commit de `approve()` nunca corrió.
-* Reconciliación manual: `UPDATE ingesta_facturas_raw SET audit_status='PROCESADO'...` (PIN 1974).
+### Hito 4: DiagnÃ³stico 409 ingesta
+* Raw `80af6b8b` (Labme, 0001-00002535): `audit_status='RECIBIDO'` pero downstream ya existÃ­a.
+* Causa raÃ­z: commit parcial previo â€” `create_from_ingestion` comiteÃ³, segundo commit de `approve()` nunca corriÃ³.
+* ReconciliaciÃ³n manual: `UPDATE ingesta_facturas_raw SET audit_status='PROCESADO'...` (PIN 1974).
 
 ### Hito 5: Atomicidad IngestaService.approve()
-* Auditoría: 2 commits no atómicos con ventana de inconsistencia entre ellos.
-* `remitos/service.py`: `db.commit()` → `db.flush()` en cierre principal y path `solo_actualizar_cliente`.
-* `ingesta/service.py`: checkpoint `PROCESANDO` pre-vuelo, try/except con `ERROR` en fallo, único commit al final.
-* `remitos/router.py`: `db.commit()` explícito en endpoint deprecated `POST /ingesta-process`.
+* AuditorÃ­a: 2 commits no atÃ³micos con ventana de inconsistencia entre ellos.
+* `remitos/service.py`: `db.commit()` â†’ `db.flush()` en cierre principal y path `solo_actualizar_cliente`.
+* `ingesta/service.py`: checkpoint `PROCESANDO` pre-vuelo, try/except con `ERROR` en fallo, Ãºnico commit al final.
+* `remitos/router.py`: `db.commit()` explÃ­cito en endpoint deprecated `POST /ingesta-process`.
 * Commit: D `513796bf` / P `5865616`.
 
-### Hito 6: Sync D↔P
-* 4 cherry-picks a P en orden cronológico (807-808).
+### Hito 6: Sync Dâ†”P
+* 4 cherry-picks a P en orden cronolÃ³gico (807-808).
 * Conflicto en `_GY/_MD/` (burocracia): destagiado.
-* Conflicto en `clientes/service.py`: resuelto con versión D (IS_VIRGIN eliminado).
+* Conflicto en `clientes/service.py`: resuelto con versiÃ³n D (IS_VIRGIN eliminado).
 * Push P: `d3173b2..5865616`.
 
 ---
 
-## SESIÓN 807: SILO DRIVE + PRICING ENGINE SOBERANO + PROTOCOLOS ALFA/OMEGA (OF)
+## SESIÃ“N 807: SILO DRIVE + PRICING ENGINE SOBERANO + PROTOCOLOS ALFA/OMEGA (OF)
 **Fecha:** 2026-05-14
-**Locación:** OF
+**LocaciÃ³n:** OF
 **Objetivo:** Crear Silo Drive como centro de comando entre sesiones. Fix pricing engine 409. Actualizar protocolos ALFA y OMEGA en D y P. Sync DB 807d de MT a D.
-**Estado:** NOMINAL GOLD — PIN 1974 | Hash D: 0b34f1f9 | Hash P: d3173b2
+**Estado:** NOMINAL GOLD â€” PIN 1974 | Hash D: 0b34f1f9 | Hash P: d3173b2
 
 ### Hito 1: Silo Drive
-* `Q:\Mi unidad\V5_Silo_Claude\` creado — README.md, INBOX.md, ESTADO_ECOSISTEMA.md, estructura OF/CA/GLOBAL/LEIDOS.
+* `Q:\Mi unidad\V5_Silo_Claude\` creado â€” README.md, INBOX.md, ESTADO_ECOSISTEMA.md, estructura OF/CA/GLOBAL/LEIDOS.
 * Bug #1 OF/P resuelto y marcado RESUELTO en `OF/P/BUGS.md` del Drive.
 
 ### Hito 2: Protocolos ALFA y OMEGA
-* `ALFA.md` D y P: PASO 0 — lectura INBOX + ESTADO_ECOSISTEMA antes de operar.
+* `ALFA.md` D y P: PASO 0 â€” lectura INBOX + ESTADO_ECOSISTEMA antes de operar.
 * `OMEGA.md` D: FASE 1B WAL checkpoint (`pilot_v5x.db`) + ESTADO_ECOSISTEMA en FASE 2.
-* `OMEGA.md` P: ídem, con ruta `data\V5_LS_MASTER.db`.
+* `OMEGA.md` P: Ã­dem, con ruta `data\V5_LS_MASTER.db`.
 
 ### Hito 3: Fix Pricing Engine
-* Causa raíz bug #1: `get_virtual_price()` abortaba con `PRODUCTO_SIN_COSTO` cuando `costos=None`.
+* Causa raÃ­z bug #1: `get_virtual_price()` abortaba con `PRODUCTO_SIN_COSTO` cuando `costos=None`.
 * `pricing_engine.py`: sin_costo=True (no bloqueante) vs STRICT_MODE_VIOLATION (bloqueante real).
 * `router.py`: 409 solo para STRICT_MODE_VIOLATION. Flag `sin_costo` expuesto en respuesta.
-* Verificado en vivo: SKU 80018/80019 → HTTP 200, precio=0, sin_costo=True.
+* Verificado en vivo: SKU 80018/80019 â†’ HTTP 200, precio=0, sin_costo=True.
 * Cherry-pick a P: hash `922da85`.
 
-### Hito 4: DB y Deuda Técnica
+### Hito 4: DB y Deuda TÃ©cnica
 * DB 807d instalada en D desde MT (1.974.272 bytes).
-* Pedido 38 eliminado (Pao Tandil — ingresado incompleto, a recrear).
-* 3 deudas técnicas registradas en DB: Badge FALTAN, Guardar e Imprimir, etiqueta botón por contexto.
+* Pedido 38 eliminado (Pao Tandil â€” ingresado incompleto, a recrear).
+* 3 deudas tÃ©cnicas registradas en DB: Badge FALTAN, Guardar e Imprimir, etiqueta botÃ³n por contexto.
 
 ---
 
-## SESIÓN 806: ARLEQUÍN V2 — INFERENCIA ROSA + GENOMA_UNIVERSAL + FIX NO_FISCAL_FORCE (OF)
+## SESIÃ“N 806: ARLEQUÃN V2 â€” INFERENCIA ROSA + GENOMA_UNIVERSAL + FIX NO_FISCAL_FORCE (OF)
 **Fecha:** 2026-05-13
-**Locación:** OF
-**Objetivo:** Sellado del GENOMA_UNIVERSAL, purga de herejía NO_FISCAL_FORCE, implementación completa Doctrina Arlequín V2, blindaje Consumidor Final y MOSTRADOR, sincronización D→P.
-**Estado:** NOMINAL GOLD — PIN 1974 | Hash D: abd34332 | Hash P: 2d7c5c2
+**LocaciÃ³n:** OF
+**Objetivo:** Sellado del GENOMA_UNIVERSAL, purga de herejÃ­a NO_FISCAL_FORCE, implementaciÃ³n completa Doctrina ArlequÃ­n V2, blindaje Consumidor Final y MOSTRADOR, sincronizaciÃ³n Dâ†’P.
+**Estado:** NOMINAL GOLD â€” PIN 1974 | Hash D: abd34332 | Hash P: 2d7c5c2
 
-### Hito 1: Infraestructura MT (sesión 805/806 bridge)
-*   Migración 033 schema sync P←D (facturas_remitos + bugs + tablas faltantes).
-*   Python 3.11.9 restaurado en MT — venv reparado.
-*   Flujo ingesta→pedido→remito operativo en MT.
-*   DevBadge oculto en producción (import.meta.env.DEV).
+### Hito 1: Infraestructura MT (sesiÃ³n 805/806 bridge)
+*   MigraciÃ³n 033 schema sync Pâ†D (facturas_remitos + bugs + tablas faltantes).
+*   Python 3.11.9 restaurado en MT â€” venv reparado.
+*   Flujo ingestaâ†’pedidoâ†’remito operativo en MT.
+*   DevBadge oculto en producciÃ³n (import.meta.env.DEV).
 *   Task Scheduler recreado en MT.
 
 ### Hito 2: GENOMA_UNIVERSAL sellado
-*   `docs/GENOMA_UNIVERSAL.md` creado — mapa canónico 64-bit para Clientes, Productos, Pedidos, Facturas (RAW/PRC/Madre) y Remitos.
-*   Auditoría forense Nike Arq 5.5: resolución de contradicciones entre sesiones 798, 800-OF, 800-CA y 806.
-*   NO_FISCAL_FORCE corregido Bit10→Bit12 (herejía purgada): `constants.py`, `PedidoList.vue` (6 referencias), `router.py`.
+*   `docs/GENOMA_UNIVERSAL.md` creado â€” mapa canÃ³nico 64-bit para Clientes, Productos, Pedidos, Facturas (RAW/PRC/Madre) y Remitos.
+*   AuditorÃ­a forense Nike Arq 5.5: resoluciÃ³n de contradicciones entre sesiones 798, 800-OF, 800-CA y 806.
+*   NO_FISCAL_FORCE corregido Bit10â†’Bit12 (herejÃ­a purgada): `constants.py`, `PedidoList.vue` (6 referencias), `router.py`.
 
-### Hito 3: Doctrina Arlequín V2
-*   Inferencia automática Rosa: `_audit_sovereignty()` enciende OPERATOR_OK (Bit4) si tiene segmento y sin CUIT real.
-*   `clientValidation` en PedidoCanvas y `evaluateCliente` en useAuditSemaphore reescritos con lógica por bits.
+### Hito 3: Doctrina ArlequÃ­n V2
+*   Inferencia automÃ¡tica Rosa: `_audit_sovereignty()` enciende OPERATOR_OK (Bit4) si tiene segmento y sin CUIT real.
+*   `clientValidation` en PedidoCanvas y `evaluateCliente` en useAuditSemaphore reescritos con lÃ³gica por bits.
 *   Consumidor Final blindado: CUIT 00000000000 forzado GOLD_ARCA en `_audit_sovereignty()`.
-*   CUIT 00000000000 declarado exclusivo MOSTRADOR/GENÉRICO — bloqueo HTTP 400 en create y update.
+*   CUIT 00000000000 declarado exclusivo MOSTRADOR/GENÃ‰RICO â€” bloqueo HTTP 400 en create y update.
 
-### Hito 4: Documentación y Cierre
-*   `PROTOCOLO_EMERGENCIA_MT.md` creado — flujo canónico D→P→MT sellado.
-*   7 ítems registrados en `deuda_tecnica` (sesión 806).
-*   Cherry-pick 4 commits D→P: limpio, sin conflictos.
+### Hito 4: DocumentaciÃ³n y Cierre
+*   `PROTOCOLO_EMERGENCIA_MT.md` creado â€” flujo canÃ³nico Dâ†’Pâ†’MT sellado.
+*   7 Ã­tems registrados en `deuda_tecnica` (sesiÃ³n 806).
+*   Cherry-pick 4 commits Dâ†’P: limpio, sin conflictos.
 *   Push D y P a GitHub confirmado.
-*   Canario OMEGA: LAVIMAR flags=13 — NOMINAL GOLD.
+*   Canario OMEGA: LAVIMAR flags=13 â€” NOMINAL GOLD.
 
 ---
 
-## SESIÓN 802: ESTABILIZACIÓN INFRAESTRUCTURA Y SOBERANÍA TOMY (OF)
+## SESIÃ“N 802: ESTABILIZACIÃ“N INFRAESTRUCTURA Y SOBERANÃA TOMY (OF)
 **Fecha:** 2026-05-11
-**Locación:** OF
-**Objetivo:** Saneamiento integral de Producción (Tomy), normalización de rutas legacy, unificación de repositorio Git (P), eliminación de mock data en UI y formalización de protocolo OMEGA manual.
-**Estado:** NOMINAL GOLD — PIN 1974
+**LocaciÃ³n:** OF
+**Objetivo:** Saneamiento integral de ProducciÃ³n (Tomy), normalizaciÃ³n de rutas legacy, unificaciÃ³n de repositorio Git (P), eliminaciÃ³n de mock data en UI y formalizaciÃ³n de protocolo OMEGA manual.
+**Estado:** NOMINAL GOLD â€” PIN 1974
 
-### Hito 1: Normalización de Infraestructura (P)
-*   Renombramiento de raíz a `v5-ls-Tom` y saneamiento de rutas `C:/dev/V5-LS` en 28 archivos.
-*   Actualización de archivos `.env` (raíz, current, staging) para apuntar a las bases de datos correctas.
-*   Sincronización de paridad en Staging (P) con puertos y bases asignadas.
+### Hito 1: NormalizaciÃ³n de Infraestructura (P)
+*   Renombramiento de raÃ­z a `v5-ls-Tom` y saneamiento de rutas `C:/dev/V5-LS` en 28 archivos.
+*   ActualizaciÃ³n de archivos `.env` (raÃ­z, current, staging) para apuntar a las bases de datos correctas.
+*   SincronizaciÃ³n de paridad en Staging (P) con puertos y bases asignadas.
 
-### Hito 2: Unificación Git Tomy
+### Hito 2: UnificaciÃ³n Git Tomy
 *   Merge exitoso de ramas divergentes en `v5-ls-Tom`.
-*   Resolución de conflicto en `PedidoCanvas.vue` preservando lógica V5.7 GOLD (`checkout --ours`).
-*   Limpieza de binarios (`.db`, `.pyc`) del índice de Git para asegurar un repositorio liviano.
+*   ResoluciÃ³n de conflicto en `PedidoCanvas.vue` preservando lÃ³gica V5.7 GOLD (`checkout --ours`).
+*   Limpieza de binarios (`.db`, `.pyc`) del Ã­ndice de Git para asegurar un repositorio liviano.
 *   Push exitoso a GitHub unificando entornos OF y CA.
 
-### Hito 3: Saneamiento de Código y Deuda Técnica
-*   Eliminación de mock data (historial/habituales) en `ClientCanvas.vue` en D y P.
-*   Registro de deuda técnica en `pilot_v5x.db` para integración de API real.
-*   Formalización de OMEGA manual en `ALFA.md`.
+### Hito 3: Saneamiento de CÃ³digo y Deuda TÃ©cnica
+*   EliminaciÃ³n de mock data (historial/habituales) en `ClientCanvas.vue` en D y P.
+*   Registro de deuda tÃ©cnica en `pilot_v5x.db` para integraciÃ³n de API real.
+*   FormalizaciÃ³n de OMEGA manual en `ALFA.md`.
 
-### Hito 4: Auditoría OMEGA V2.2
+### Hito 4: AuditorÃ­a OMEGA V2.2
 *   Canario D validado (LAVIMAR flags=13).
-*   Generación de Informe Histórico y actualización de Genoma Documental.
+*   GeneraciÃ³n de Informe HistÃ³rico y actualizaciÃ³n de Genoma Documental.
 
 ---
 
-## SESIÓN 801: DESPLIEGUE TOMY + DIAGNÓSTICO D VS P (CA)
+## SESIÃ“N 801: DESPLIEGUE TOMY + DIAGNÃ“STICO D VS P (CA)
 **Fecha:** 2026-05-10
-**Locación:** CA
-**Objetivo:** Diagnóstico de paridad entre repositorios P y D, registro de deuda técnica en pilot_v5x.db, y creación de automatización ACTUALIZAR_V5.bat para instancia de Tomy.
-**Estado:** NOMINAL GOLD — PIN 1974
+**LocaciÃ³n:** CA
+**Objetivo:** DiagnÃ³stico de paridad entre repositorios P y D, registro de deuda tÃ©cnica en pilot_v5x.db, y creaciÃ³n de automatizaciÃ³n ACTUALIZAR_V5.bat para instancia de Tomy.
+**Estado:** NOMINAL GOLD â€” PIN 1974
 
-### Hito 1: Diagnóstico de Repositorios (D vs P)
-*   Confirmación de bicefalía de repositorios: P (`v5-ls-Tom`) y D (`Sonido_Liquido_V5`) operan sobre remotos distintos.
+### Hito 1: DiagnÃ³stico de Repositorios (D vs P)
+*   ConfirmaciÃ³n de bicefalÃ­a de repositorios: P (`v5-ls-Tom`) y D (`Sonido_Liquido_V5`) operan sobre remotos distintos.
 *   Hash P: `a7759c6` (OMEGA 796).
 *   Hash D: `8027b685` (OMEGA 800).
-*   Identificación de 10 commits pendientes de integración en P desde la rama principal de D.
+*   IdentificaciÃ³n de 10 commits pendientes de integraciÃ³n en P desde la rama principal de D.
 
-### Hito 2: Automatización de Despliegue
-*   Creación de `ACTUALIZAR_V5.bat` en la raíz para permitir updates autónomos via `git pull`.
-*   Validación de entorno Git y manejo de errores de red/conflictos.
+### Hito 2: AutomatizaciÃ³n de Despliegue
+*   CreaciÃ³n de `ACTUALIZAR_V5.bat` en la raÃ­z para permitir updates autÃ³nomos via `git pull`.
+*   ValidaciÃ³n de entorno Git y manejo de errores de red/conflictos.
 
-### Hito 3: Registro de Deuda Técnica
-*   Actualización de tabla `deuda_tecnica` en `pilot_v5x.db`.
-*   Inserción de 4 ítems: Deploy Tomy (Alta), Stock/Depósitos (Media), Precios PDF (Media), ABM Rubros (Baja).
+### Hito 3: Registro de Deuda TÃ©cnica
+*   ActualizaciÃ³n de tabla `deuda_tecnica` en `pilot_v5x.db`.
+*   InserciÃ³n de 4 Ã­tems: Deploy Tomy (Alta), Stock/DepÃ³sitos (Media), Precios PDF (Media), ABM Rubros (Baja).
 
 ### Hito 4: Burocracia OMEGA
-*   Actualización de Caja Negra, Manuales e Informes Históricos.
-*   Sincronización de `SESION_ACTUAL.md` a Mayo 2026.
+*   ActualizaciÃ³n de Caja Negra, Manuales e Informes HistÃ³ricos.
+*   SincronizaciÃ³n de `SESION_ACTUAL.md` a Mayo 2026.
 
 ---
 
 **Fecha:** 2026-05-08
-**Locación:** OF
-**Objetivo:** Estandarizar numeración de remitos (0016-XXXXXXXX), finalizar Módulo Ingesta V2, implementar Conserje V2 auditoría READ ONLY, fix em dash en remito_engine, y habilitar live preview de numeración.
-**Estado:** NOMINAL GOLD — Hash: 9e593e67
+**LocaciÃ³n:** OF
+**Objetivo:** Estandarizar numeraciÃ³n de remitos (0016-XXXXXXXX), finalizar MÃ³dulo Ingesta V2, implementar Conserje V2 auditorÃ­a READ ONLY, fix em dash en remito_engine, y habilitar live preview de numeraciÃ³n.
+**Estado:** NOMINAL GOLD â€” Hash: 9e593e67
 
-### Hito 1: Estandarización Sabueso V5.7
-*   Consolidación del protocolo de numeración **0016-XXXXXXXX** en todos los flujos. Eliminación de regresiones a la serie 0015-.
-*   `backend/remitos/pdf_parser.py`: Mejora en extracción de Punto de Venta y Número de Comprobante (insensible a espacios/guiones).
-*   `backend/remitos/service.py`: Lógica de resolución jerárquica de `numero_legal` priorizando factura real sobre Pedido ID.
+### Hito 1: EstandarizaciÃ³n Sabueso V5.7
+*   ConsolidaciÃ³n del protocolo de numeraciÃ³n **0016-XXXXXXXX** en todos los flujos. EliminaciÃ³n de regresiones a la serie 0015-.
+*   `backend/remitos/pdf_parser.py`: Mejora en extracciÃ³n de Punto de Venta y NÃºmero de Comprobante (insensible a espacios/guiones).
+*   `backend/remitos/service.py`: LÃ³gica de resoluciÃ³n jerÃ¡rquica de `numero_legal` priorizando factura real sobre Pedido ID.
 
-### Hito 2: Módulo Ingesta V2 + Conserje READ ONLY
-*   Finalización de flujo `FacturasRaw` -> `FacturasProcesadas`.
-*   Implementación de Conserje V2: motor de auditoría `READ ONLY` con scoring de domicilios y validación de identidades sellado por Nike Arq 5.5.
-*   Protocolo Bit 22: Establecimiento de `PRE_MODULO_FACTURACION` (Flag 4227083) para vinculación fiscal espejo.
+### Hito 2: MÃ³dulo Ingesta V2 + Conserje READ ONLY
+*   FinalizaciÃ³n de flujo `FacturasRaw` -> `FacturasProcesadas`.
+*   ImplementaciÃ³n de Conserje V2: motor de auditorÃ­a `READ ONLY` con scoring de domicilios y validaciÃ³n de identidades sellado por Nike Arq 5.5.
+*   Protocolo Bit 22: Establecimiento de `PRE_MODULO_FACTURACION` (Flag 4227083) para vinculaciÃ³n fiscal espejo.
 
 ### Hito 3: Fixes UI/UX y Motor de PDF
-*   `frontend/src/views/Pedidos/IngestaFacturaView.vue`: Habilitación de Live Preview del número de remito resultante para evitar errores de carga.
-*   `remito_engine.py`: Fix em dash en header/footer (líneas 74 y 167) para asegurar estética doctrinal.
+*   `frontend/src/views/Pedidos/IngestaFacturaView.vue`: HabilitaciÃ³n de Live Preview del nÃºmero de remito resultante para evitar errores de carga.
+*   `remito_engine.py`: Fix em dash en header/footer (lÃ­neas 74 y 167) para asegurar estÃ©tica doctrinal.
 
 ### Hito 4: Saneamiento y Cierre OMEGA 2.2
 *   Purgado intencional de registros de prueba (LABME, Pedido 32) en base D.
-*   Ejecución de Protocolo OMEGA completo con PIN 1974.
+*   EjecuciÃ³n de Protocolo OMEGA completo con PIN 1974.
 
-## SESIÓN 799: GENOMA FACTURAS + CONSERJE DUPLICADOS + MANUALES (CA)
+## SESIÃ“N 799: GENOMA FACTURAS + CONSERJE DUPLICADOS + MANUALES (CA)
 **Fecha:** 2026-05-08
-**Locación:** CA
-**Objetivo:** Implementar Genoma `FacturaFlags` (mapa bits 0-21 sellado Nike Arq 5.5), campo `notas_auditoria` en modelo Factura, migración 029, conserje HTTP 409 `FACTURA_DUPLICADA` en ingesta-pdf, y Bug G (pedidos duplicados con modal advertencia).
-**Estado:** NOMINAL GOLD — hashes: 93a9a3d4, 58404b1b
+**LocaciÃ³n:** CA
+**Objetivo:** Implementar Genoma `FacturaFlags` (mapa bits 0-21 sellado Nike Arq 5.5), campo `notas_auditoria` en modelo Factura, migraciÃ³n 029, conserje HTTP 409 `FACTURA_DUPLICADA` en ingesta-pdf, y Bug G (pedidos duplicados con modal advertencia).
+**Estado:** NOMINAL GOLD â€” hashes: 93a9a3d4, 58404b1b
 
-### Hito 1: `FacturaFlags` — Genoma constants.py
+### Hito 1: `FacturaFlags` â€” Genoma constants.py
 *   `backend/facturacion/constants.py` (nuevo): clase de constantes con mapa completo bits 0-21 de `flags_estado` en tabla `facturas`. Sellado Nike Arq 5.5. Bits: EXISTENCE(1), HAS_ACTIVITY(2), HAS_REMITO(4), ACTIVE(8), V15_STRUCT(1024), PASADO_A_PEDIDO(32768), EN_CUARENTENA(65536), TIENE_NC(131072), TIENE_ND(262144), ES_NC(524288), ES_ND(1048576), AUDITADA(2097152). Bits 22-29 reservados contabilidad. Bits 30+ ultra-reservados.
 
-### Hito 2: Campo `notas_auditoria` + Migración 029
-*   `backend/facturacion/models.py`: `notas_auditoria = Column(String, nullable=True)` agregado a clase `Factura`. Campo de texto libre para observaciones de auditoría manual — complementa bit `AUDITADA` (bit 21).
+### Hito 2: Campo `notas_auditoria` + MigraciÃ³n 029
+*   `backend/facturacion/models.py`: `notas_auditoria = Column(String, nullable=True)` agregado a clase `Factura`. Campo de texto libre para observaciones de auditorÃ­a manual â€” complementa bit `AUDITADA` (bit 21).
 *   `scripts/migrate_029_facturas_notas_auditoria.py` (nuevo): `ALTER TABLE facturas ADD COLUMN notas_auditoria VARCHAR`. Idempotente, registra en `_migraciones_aplicadas`. Ejecutada en pilot_v5x.db.
 
 ### Hito 3: Conserje FACTURA_DUPLICADA en ingesta-pdf
-*   `backend/remitos/router.py` — `POST /remitos/ingesta-pdf`: guard pre-proceso. Consulta `facturas` por `punto_venta + numero_comprobante`. Si existe → HTTP 409 `{"codigo": "FACTURA_DUPLICADA", "factura_id": "<uuid>"}`. El frontend puede redirigir al registro existente. Hash: 93a9a3d4.
+*   `backend/remitos/router.py` â€” `POST /remitos/ingesta-pdf`: guard pre-proceso. Consulta `facturas` por `punto_venta + numero_comprobante`. Si existe â†’ HTTP 409 `{"codigo": "FACTURA_DUPLICADA", "factura_id": "<uuid>"}`. El frontend puede redirigir al registro existente. Hash: 93a9a3d4.
 
-### Hito 4: Bug G — Pedidos duplicados
-*   Modal de advertencia al detectar posible pedido duplicado (mismo cliente + fecha + ítems similares). Operador puede continuar o cancelar. Hash: 58404b1b.
+### Hito 4: Bug G â€” Pedidos duplicados
+*   Modal de advertencia al detectar posible pedido duplicado (mismo cliente + fecha + Ã­tems similares). Operador puede continuar o cancelar. Hash: 58404b1b.
 
 ---
 
-## SESIÓN 798: BUGS D/E/F/H + EXTRACCIÓN INGESTAITEMMODAL (OF)
+## SESIÃ“N 798: BUGS D/E/F/H + EXTRACCIÃ“N INGESTAITEMMODAL (OF)
 **Fecha:** 2026-05-07
-**Locación:** OF
-**Objetivo:** Cerrar Bugs D/E/F (F4 satélite en PedidoCanvas), extraer IngestaItemModal a componente propio, implementar Fix H (F4 funcional dentro del modal) y botón copy descripción.
-**Estado:** NOMINAL GOLD — hashes: db72e856, afd5cd74
+**LocaciÃ³n:** OF
+**Objetivo:** Cerrar Bugs D/E/F (F4 satÃ©lite en PedidoCanvas), extraer IngestaItemModal a componente propio, implementar Fix H (F4 funcional dentro del modal) y botÃ³n copy descripciÃ³n.
+**Estado:** NOMINAL GOLD â€” hashes: db72e856, afd5cd74
 
-### Hito 1: Bugs D/E/F — F4 satélite PedidoCanvas
-*   `PedidoCanvas.vue`: nombre único `AltaProducto_${Date.now()}` — fuerza ventana nueva, no reutiliza tab bloqueado.
-*   `ProductosView.vue`: `v-if="route.query.mode !== 'satellite' || showInspector"` en `<main>` — bloquea F4 handler hasta que inspector esté listo.
-*   `ProductoInspector.vue`: `fetchRubros()` defensivo en `onMounted` cuando store vacío (modo satellite omite App.vue boot). Hash: db72e856.
+### Hito 1: Bugs D/E/F â€” F4 satÃ©lite PedidoCanvas
+*   `PedidoCanvas.vue`: nombre Ãºnico `AltaProducto_${Date.now()}` â€” fuerza ventana nueva, no reutiliza tab bloqueado.
+*   `ProductosView.vue`: `v-if="route.query.mode !== 'satellite' || showInspector"` en `<main>` â€” bloquea F4 handler hasta que inspector estÃ© listo.
+*   `ProductoInspector.vue`: `fetchRubros()` defensivo en `onMounted` cuando store vacÃ­o (modo satellite omite App.vue boot). Hash: db72e856.
 
-### Hito 2: Extracción IngestaItemModal.vue + Fix H + botón copy
-*   `Ventas/components/IngestaItemModal.vue` (nuevo, 110 líneas): modal de resolución de ítems extraído de PedidoCanvas. Props: `items`. Emits: `resolved(items)`, `cancel`.
-*   Fix H: `handleOverlayKeydown` captura F4 internamente, abre satélite de alta producto — burbujeo detenido antes de llegar a PedidoCanvas.
-*   Botón copy `fa-copy` junto a descripción de factura → llena `searchTerm` con un click.
-*   `PedidoCanvas.vue` −137 líneas neto: 6 refs → 2, 5 funciones → 3, guard `showIngestaModal` en F4. Hash: afd5cd74.
+### Hito 2: ExtracciÃ³n IngestaItemModal.vue + Fix H + botÃ³n copy
+*   `Ventas/components/IngestaItemModal.vue` (nuevo, 110 lÃ­neas): modal de resoluciÃ³n de Ã­tems extraÃ­do de PedidoCanvas. Props: `items`. Emits: `resolved(items)`, `cancel`.
+*   Fix H: `handleOverlayKeydown` captura F4 internamente, abre satÃ©lite de alta producto â€” burbujeo detenido antes de llegar a PedidoCanvas.
+*   BotÃ³n copy `fa-copy` junto a descripciÃ³n de factura â†’ llena `searchTerm` con un click.
+*   `PedidoCanvas.vue` âˆ’137 lÃ­neas neto: 6 refs â†’ 2, 5 funciones â†’ 3, guard `showIngestaModal` en F4. Hash: afd5cd74.
 
 ---
 
-## SESIÓN 797: BUG C BACKEND + SISTEMA DE MIGRACIONES (CA)
+## SESIÃ“N 797: BUG C BACKEND + SISTEMA DE MIGRACIONES (CA)
 **Fecha:** 2026-05-06
-**Locación:** CA
-**Objetivo:** Resolver Bug C — flujo pedido→factura→remito incompleto. Auditoría forense del backend: 7 bugs críticos identificados (B-1 a B-7). Implementación modelo N:M `FacturaRemito` + sistema de control de migraciones idempotente. Bug B (modal 409) también resuelto.
-**Estado:** NOMINAL GOLD — ver informe: `INFORMES_HISTORICOS/2026-05-06_BUG_C_BACKEND_MIGRACIONES_CA.md`
+**LocaciÃ³n:** CA
+**Objetivo:** Resolver Bug C â€” flujo pedidoâ†’facturaâ†’remito incompleto. AuditorÃ­a forense del backend: 7 bugs crÃ­ticos identificados (B-1 a B-7). ImplementaciÃ³n modelo N:M `FacturaRemito` + sistema de control de migraciones idempotente. Bug B (modal 409) tambiÃ©n resuelto.
+**Estado:** NOMINAL GOLD â€” ver informe: `INFORMES_HISTORICOS/2026-05-06_BUG_C_BACKEND_MIGRACIONES_CA.md`
 **Hash:** 529aa2be
 
-### Hito 1: Bug B — ESC no restaura modal 409
-*   `frontend/src/stores/pedidos.js`: `pending409Context` + `set409Context`/`clear409Context` — canal separado que PedidoCanvas nunca toca.
+### Hito 1: Bug B â€” ESC no restaura modal 409
+*   `frontend/src/stores/pedidos.js`: `pending409Context` + `set409Context`/`clear409Context` â€” canal separado que PedidoCanvas nunca toca.
 *   `IngestaFacturaView.vue`: `goToNewPedido()` persiste contexto antes de navegar; `onMounted()` lo restaura y reactiva `show409Modal`. Hash: `9df14bdf`.
 
-### Hito 2: Fix B-1 — `factura_id: int` → `str`
-*   `backend/remitos/router.py:261` y `service.py:586`: parámetro `int` → `str` + `_uuid.UUID(factura_id)` en query. Endpoint era completamente inoperativo — FastAPI rechazaba el UUID antes de llegar al service.
+### Hito 2: Fix B-1 â€” `factura_id: int` â†’ `str`
+*   `backend/remitos/router.py:261` y `service.py:586`: parÃ¡metro `int` â†’ `str` + `_uuid.UUID(factura_id)` en query. Endpoint era completamente inoperativo â€” FastAPI rechazaba el UUID antes de llegar al service.
 
-### Hito 3: Fix B-2 — `fecha_vto_cae` → `cae_vencimiento`
+### Hito 3: Fix B-2 â€” `fecha_vto_cae` â†’ `cae_vencimiento`
 *   `backend/remitos/service.py:606,634`: campo inexistente corregido al campo real. Crash `AttributeError` en ambas ramas.
 
-### Hito 4: Fix B-3 — `numero_legal` con doctrina ARCA real
-*   Helper `_numero_legal_arca()`: con CAE → `0016-XXXX-YYYYYYYY`; sin CAE (borrador) → `0015-XXXXXXXX` (serie manual, doctrina Nike). Antes usaba `pedido.id` o UUID del remito — violación directa de doctrina.
+### Hito 4: Fix B-3 â€” `numero_legal` con doctrina ARCA real
+*   Helper `_numero_legal_arca()`: con CAE â†’ `0016-XXXX-YYYYYYYY`; sin CAE (borrador) â†’ `0015-XXXXXXXX` (serie manual, doctrina Nike). Antes usaba `pedido.id` o UUID del remito â€” violaciÃ³n directa de doctrina.
 
-### Hito 5: Fix B-7 + B-6 — campos silenciosos
-*   `total_bruto` → `factura.total` (valor_declarado siempre era 0.0).
-*   `cuit_comprador` ahora se asigna post-flush en `create_draft_from_pedido` — sello histórico faltante corregido.
+### Hito 5: Fix B-7 + B-6 â€” campos silenciosos
+*   `total_bruto` â†’ `factura.total` (valor_declarado siempre era 0.0).
+*   `cuit_comprador` ahora se asigna post-flush en `create_draft_from_pedido` â€” sello histÃ³rico faltante corregido.
 
 ### Hito 6: Arquitectura N:M `FacturaRemito`
-*   `backend/facturacion/models.py`: `Table` simple → clase `FacturaRemito` completa con GUID, `fecha_vinculo`, `flags_estado`, relaciones bidireccionales (string anti-deadlock).
-*   `Factura.remitos` → `Factura.vinculos_remitos` (cascade `all, delete-orphan`).
+*   `backend/facturacion/models.py`: `Table` simple â†’ clase `FacturaRemito` completa con GUID, `fecha_vinculo`, `flags_estado`, relaciones bidireccionales (string anti-deadlock).
+*   `Factura.remitos` â†’ `Factura.vinculos_remitos` (cascade `all, delete-orphan`).
 *   `backend/remitos/models.py`: `Remito.vinculos_facturas` agregado.
-*   Integración en `create_puente_factura`: guard de idempotencia + helper `_vincular_factura_remito()`.
-*   Migración 026: `DROP/CREATE TABLE facturas_remitos` con id GUID + fecha_vinculo + flags_estado + UNIQUE(factura_id, remito_id).
+*   IntegraciÃ³n en `create_puente_factura`: guard de idempotencia + helper `_vincular_factura_remito()`.
+*   MigraciÃ³n 026: `DROP/CREATE TABLE facturas_remitos` con id GUID + fecha_vinculo + flags_estado + UNIQUE(factura_id, remito_id).
 
 ### Hito 7: Sistema de control de migraciones
-*   `scripts/migrate_000_control_migraciones.py`: crea tabla `_migraciones_aplicadas` (id, nro_sesion, aplicada_en). Patrón idempotente documentado.
-*   `migrate_026_factura_remitos.py` refactorizado: verifica antes de ejecutar → SKIP si ya aplicada. Hash: `529aa2be`.
+*   `scripts/migrate_000_control_migraciones.py`: crea tabla `_migraciones_aplicadas` (id, nro_sesion, aplicada_en). PatrÃ³n idempotente documentado.
+*   `migrate_026_factura_remitos.py` refactorizado: verifica antes de ejecutar â†’ SKIP si ya aplicada. Hash: `529aa2be`.
 
-**Pendiente:** Bug C ítem 13 — `savePedido()` en PedidoCanvas no invoca cadena factura→remito (D-7, sesión futura). Build P pendiente OF.
+**Pendiente:** Bug C Ã­tem 13 â€” `savePedido()` en PedidoCanvas no invoca cadena facturaâ†’remito (D-7, sesiÃ³n futura). Build P pendiente OF.
 
 ---
 
-## SESIÓN 796: PARSER Y-AXIS FIX + MODAL SYNC CA — INGESTA PDF ITEMS RESUELTO
+## SESIÃ“N 796: PARSER Y-AXIS FIX + MODAL SYNC CA â€” INGESTA PDF ITEMS RESUELTO
 **Fecha:** 2026-05-05
-**Locación:** CA
-**Objetivo:** Resolver causa raíz de items[] vacío en flujo PDF→modal PedidoCanvas. Fix Y-axis tolerance `/4`→`/6` en pdf_parser.py. Sync D↔P. Canario actualizado TARGET_FLAGS 8205→13.
-**Estado:** NOMINAL GOLD — ver informe: `INFORMES_HISTORICOS/2026-05-05_INGESTA_PARSER_FIX_MODAL_SYNC_CA.md`
+**LocaciÃ³n:** CA
+**Objetivo:** Resolver causa raÃ­z de items[] vacÃ­o en flujo PDFâ†’modal PedidoCanvas. Fix Y-axis tolerance `/4`â†’`/6` en pdf_parser.py. Sync Dâ†”P. Canario actualizado TARGET_FLAGS 8205â†’13.
+**Estado:** NOMINAL GOLD â€” ver informe: `INFORMES_HISTORICOS/2026-05-05_INGESTA_PARSER_FIX_MODAL_SYNC_CA.md`
 
-### Hito 1: Fix Y-Axis Tolerance (CRÍTICO)
-*   `pdf_parser.py` línea 137: `round(y0/4)*4` → `round(y0/6)*6`. Tolerancia ±2pts insuficiente para PDFs AFIP (delta real: 5pts entre qty y u_medida). Items array no-vacío confirmado. Caso: L EPI S.R.L. — Alcohol 70% — qty=4,00 precio=$13.500,00.
+### Hito 1: Fix Y-Axis Tolerance (CRÃTICO)
+*   `pdf_parser.py` lÃ­nea 137: `round(y0/4)*4` â†’ `round(y0/6)*6`. Tolerancia Â±2pts insuficiente para PDFs AFIP (delta real: 5pts entre qty y u_medida). Items array no-vacÃ­o confirmado. Caso: L EPI S.R.L. â€” Alcohol 70% â€” qty=4,00 precio=$13.500,00.
 
 ### Hito 2: Fix Typo Producto
-*   `pilot_v5x.db` ID 150 SKU 10211: "Acohol" → "Alcohol". Search modal OK.
+*   `pilot_v5x.db` ID 150 SKU 10211: "Acohol" â†’ "Alcohol". Search modal OK.
 
-### Hito 3: Canario v2.py — Actualización Post-Saneamiento
-*   `TARGET_FLAGS = 8205` → `TARGET_FLAGS = 13` en D y Tom. Canario reportaba DESVÍO CRÍTICO con flags=13 por no haber sido actualizado tras saneamiento 2026-05-02 (bit 8192 eliminado). INTEGRITY NOMINAL GOLD confirmado en ambos.
+### Hito 3: Canario v2.py â€” ActualizaciÃ³n Post-Saneamiento
+*   `TARGET_FLAGS = 8205` â†’ `TARGET_FLAGS = 13` en D y Tom. Canario reportaba DESVÃO CRÃTICO con flags=13 por no haber sido actualizado tras saneamiento 2026-05-02 (bit 8192 eliminado). INTEGRITY NOMINAL GOLD confirmado en ambos.
 
 ### Hito 4: Null-checks + Sync + Addendum OF
-*   Commit 7b5794d: null-checks router.py Tom. Commit 534178b: PedidoCanvas sync. Commit 8c658f63: bitácora addendum OF.
+*   Commit 7b5794d: null-checks router.py Tom. Commit 534178b: PedidoCanvas sync. Commit 8c658f63: bitÃ¡cora addendum OF.
 
-**Bugs backlog:** Bug A (search pisa ref), Bug B (ESC modal 409), Bug C (ciclo pedido→factura→remito), Clientes azules. Build P pendiente OF.
+**Bugs backlog:** Bug A (search pisa ref), Bug B (ESC modal 409), Bug C (ciclo pedidoâ†’facturaâ†’remito), Clientes azules. Build P pendiente OF.
 
 ---
 
-## SESIÓN 795: MODAL RESOLUCIÓN ÍTEMS — UX + VISUAL (OF)
+## SESIÃ“N 795: MODAL RESOLUCIÃ“N ÃTEMS â€” UX + VISUAL (OF)
 **Fecha:** 2026-05-05
-**Locación:** OF
-**Objetivo:** Fix visual y UX del modal de resolución de ítems en PedidoCanvas. Diagnóstico inicial de items[] vacío.
-**Estado:** NOMINAL — ver informe completo: `INFORMES_HISTORICOS/2026-05-05_MODAL_INGESTA_ITEMS_UX_OF.md`
+**LocaciÃ³n:** OF
+**Objetivo:** Fix visual y UX del modal de resoluciÃ³n de Ã­tems en PedidoCanvas. DiagnÃ³stico inicial de items[] vacÃ­o.
+**Estado:** NOMINAL â€” ver informe completo: `INFORMES_HISTORICOS/2026-05-05_MODAL_INGESTA_ITEMS_UX_OF.md`
 **Hash:** 296a120e
 
 ---
 
-## SESIÓN 794: ARLEQUÍN V2 MERGE QUIRÚRGICO CA + DOCTRINA BIT 1 RESUELTA
+## SESIÃ“N 794: ARLEQUÃN V2 MERGE QUIRÃšRGICO CA + DOCTRINA BIT 1 RESUELTA
 **Fecha:** 2026-05-04
-**Objetivo:** Merge de feature/arleq-v2-productos en D. Resolución definitiva Bit 1 Clientes/Productos. OMEGA V2.2 desplegado en D y P.
-**Estado:** NOMINAL GOLD — ver informe completo: `INFORMES_HISTORICOS/2026-05-04_ARLEQ_V2_MERGE_QUIRURGICO_CA.md`
+**Objetivo:** Merge de feature/arleq-v2-productos en D. ResoluciÃ³n definitiva Bit 1 Clientes/Productos. OMEGA V2.2 desplegado en D y P.
+**Estado:** NOMINAL GOLD â€” ver informe completo: `INFORMES_HISTORICOS/2026-05-04_ARLEQ_V2_MERGE_QUIRURGICO_CA.md`
 
 ---
 
-## SESIÓN 793: SIEMBRA DE CONTACTOS + SOBERANÍA LOCAL (PURGA POSTGRESQL)
+## SESIÃ“N 793: SIEMBRA DE CONTACTOS + SOBERANÃA LOCAL (PURGA POSTGRESQL)
 **Fecha:** 2026-04-19
-**Objetivo:** Importación masiva de contactos (Person-Centric) y eliminación total de dependencias a base de datos externa.
+**Objetivo:** ImportaciÃ³n masiva de contactos (Person-Centric) y eliminaciÃ³n total de dependencias a base de datos externa.
 
-### Hito 1: Purga PostgreSQL — Soberanía Total
-*   **Raíz del problema**: Variable de entorno de sistema Windows `DATABASE_URL=postgresql://...34.95.172.190` pisaba todo el stack. Toda sesión de scripts apuntaba a la nube sin importar .env.
+### Hito 1: Purga PostgreSQL â€” SoberanÃ­a Total
+*   **RaÃ­z del problema**: Variable de entorno de sistema Windows `DATABASE_URL=postgresql://...34.95.172.190` pisaba todo el stack. Toda sesiÃ³n de scripts apuntaba a la nube sin importar .env.
 *   **Capas eliminadas**: (1) variable de sistema Windows (`SetEnvironmentVariable null`), (2) `backend/.env` reescrito a SQLite, (3) `backend/.env.bak` y `.env.postgres_fail` eliminados.
 *   **Defensa instalada**: `import_contactos_bulk.py` carga `.env` local y rechaza cualquier URL postgres antes de inicializar ORM.
 
-### Hito 2: Reparación de Mappers SQLAlchemy
-*   `backend/clientes/models.py`: imports explícitos de `EmpresaTransporte` y `Pedido` → eliminados `InvalidRequestError` en cadena.
-*   `backend/pedidos/models.py`: import explícito de `Producto` → resuelto mapper de `PedidoItem`.
-*   `backend/contactos/models.py`: campo `notas_sistema` (Text, nullable) → segregación notas script vs notas usuario.
+### Hito 2: ReparaciÃ³n de Mappers SQLAlchemy
+*   `backend/clientes/models.py`: imports explÃ­citos de `EmpresaTransporte` y `Pedido` â†’ eliminados `InvalidRequestError` en cadena.
+*   `backend/pedidos/models.py`: import explÃ­cito de `Producto` â†’ resuelto mapper de `PedidoItem`.
+*   `backend/contactos/models.py`: campo `notas_sistema` (Text, nullable) â†’ segregaciÃ³n notas script vs notas usuario.
 *   SQLite: `ALTER TABLE personas ADD COLUMN notas_sistema TEXT DEFAULT NULL`.
 
 ### Hito 3: Siembra de Contactos Person-Centric
 *   Script `import_contactos_bulk.py` ejecutado sobre `contactos_siembra_gmail_20260419_01.json` (10 registros).
-*   Resultado: 10 personas nuevas, 7 vínculos comerciales, 3 `[ENTIDAD_PENDIENTE]` (Rizobacter).
+*   Resultado: 10 personas nuevas, 7 vÃ­nculos comerciales, 3 `[ENTIDAD_PENDIENTE]` (Rizobacter).
 *   Genoma: Bit 5 (CANTERA_NIKE=16) en todos. Bit 6 (VINCULO_DUDOSO=32) en 5 fuzzy 70-98%.
 *   `notas_sistema` auditadas por registro: origen, % fuzzy, cargo, entidad pendiente.
 
 ### Hito 4: Limpieza de Lastre
-*   Eliminados: `ingest_memory.py`, `config.py`, `backend/data/*.txt`, `atenea_memory.db` — todos dependían de Google Cloud.
+*   Eliminados: `ingest_memory.py`, `config.py`, `backend/data/*.txt`, `atenea_memory.db` â€” todos dependÃ­an de Google Cloud.
 
 **Estado:** NOMINAL GOLD. Protocolo Omega ejecutado. PIN 1974.
 
 ---
 
-## SESIÓN 792: SANEAMIENTO REMITOS (RAR-V1) + RESILIENCIA DE IDENTIDAD (V5-LS)
+## SESIÃ“N 792: SANEAMIENTO REMITOS (RAR-V1) + RESILIENCIA DE IDENTIDAD (V5-LS)
 **Fecha:** 2026-04-16
-**Objetivo:** Estabilizar motor de remitos, corregir el bug de reversión de CUIT y eliminar Error 500 en auditoría de domicilios. Paridad total D/P.
+**Objetivo:** Estabilizar motor de remitos, corregir el bug de reversiÃ³n de CUIT y eliminar Error 500 en auditorÃ­a de domicilios. Paridad total D/P.
 
 ### Hito 1: Saneamiento Remitos (RAR-V1)
 *   **Flexibilidad**: Campos `bultos` y `valor_declarado` ahora son Nullable (Base y Schema).
-*   **PDF Engine**: Etiquetas fijas ("BULTOS:", "VALOR DECL.:") con impresión condicional de valores. QR oficial: `https://liquid-sound.com.ar/`.
-*   **Datoscopio**: Implementación de `@property resumen` en modelo `Domicilio` para visualización unificada de direcciones en remitos legales.
+*   **PDF Engine**: Etiquetas fijas ("BULTOS:", "VALOR DECL.:") con impresiÃ³n condicional de valores. QR oficial: `https://liquid-sound.com.ar/`.
+*   **Datoscopio**: ImplementaciÃ³n de `@property resumen` en modelo `Domicilio` para visualizaciÃ³n unificada de direcciones en remitos legales.
 
 ### Hito 2: Resiliencia de Identidad (V5-LS)
-*   **Soberanía CUIT**: Tras validación ARCA, el CUIT corregido sobreescribe reactivamente el dato de Cantera en el frontend (`ClientCanvas.vue`). Erradicado el bug de reversión a datos legacy.
-*   **Error 500 Audit**: Null-safety en `_audit_sovereignty` de `service.py`. Ya no falla ante clientes con Condición IVA incompleta.
+*   **SoberanÃ­a CUIT**: Tras validaciÃ³n ARCA, el CUIT corregido sobreescribe reactivamente el dato de Cantera en el frontend (`ClientCanvas.vue`). Erradicado el bug de reversiÃ³n a datos legacy.
+*   **Error 500 Audit**: Null-safety en `_audit_sovereignty` de `service.py`. Ya no falla ante clientes con CondiciÃ³n IVA incompleta.
 *   **Error 422**: Manejo robusto de IDs de domicilio malformados (`null`), redirigiendo a `POST` cuando es necesario.
 
-### Hito 3: Homologación P/D (Omega Sync)
-*   Sincronización total de módulos hacia `C:\dev\V5-LS\current`.
-*   Paridad absoluta de lógicas de negocio y blindaje de identidad.
+### Hito 3: HomologaciÃ³n P/D (Omega Sync)
+*   SincronizaciÃ³n total de mÃ³dulos hacia `C:\dev\V5-LS\current`.
+*   Paridad absoluta de lÃ³gicas de negocio y blindaje de identidad.
 
 **Estado:** NOMINAL GOLD. Protocolo Omega ejecutado. PIN 1974.
 
 ---
 
-## SESIÓN 791: PRODUCCIÓN SOBERANA — FIXES OPERATIVOS + DISEÑO DOCTRINAL
+## SESIÃ“N 791: PRODUCCIÃ“N SOBERANA â€” FIXES OPERATIVOS + DISEÃ‘O DOCTRINAL
 **Fecha:** 2026-04-15
-**Objetivo:** Corregir bugs detectados en tiempo real por Tomy en producción (D/V5-LS). Sync completo a P.
+**Objetivo:** Corregir bugs detectados en tiempo real por Tomy en producciÃ³n (D/V5-LS). Sync completo a P.
 
-### Hito 1: Fix Triple — Domicilios 500
-* Bug A: `is_maps_manual` duplicate kwarg en `create_domicilio` → `TypeError` → 500.
-* Bug B: `domicilios_clientes` junction table no insertada → domicilio invisible en GET.
-* Bug C: Pinia store `createDomicilio` reemplazaba cliente con domicilio → loop navegación.
+### Hito 1: Fix Triple â€” Domicilios 500
+* Bug A: `is_maps_manual` duplicate kwarg en `create_domicilio` â†’ `TypeError` â†’ 500.
+* Bug B: `domicilios_clientes` junction table no insertada â†’ domicilio invisible en GET.
+* Bug C: Pinia store `createDomicilio` reemplazaba cliente con domicilio â†’ loop navegaciÃ³n.
 
-### Hito 2: Fix Crítico — PedidoCanvas Edit Mode
-* `savePedido()` siempre usaba POST. Ahora: si `route.params.id` → PATCH. El endpoint ya existía.
-* Limpieza manual DB: 5 pedidos duplicados eliminados (dos pasadas). Próximo pedido: #20.
+### Hito 2: Fix CrÃ­tico â€” PedidoCanvas Edit Mode
+* `savePedido()` siempre usaba POST. Ahora: si `route.params.id` â†’ PATCH. El endpoint ya existÃ­a.
+* Limpieza manual DB: 5 pedidos duplicados eliminados (dos pasadas). PrÃ³ximo pedido: #20.
 
 ### Hito 3: Fix Rosa Clients
 * `clienteEsVerde` ahora detecta Rosa (`flags_estado & 15 in [9,11]`) y devuelve `true` sin validar CUIT/domicilio.
 
-### Hito 4: Migración GENERAL → General
+### Hito 4: MigraciÃ³n GENERAL â†’ General
 * D: 4 productos. P: 7 productos. GENERAL (id=28) dado de baja en ambas DBs.
 
-### Hito 5: Fix PedidoInspector — Nota visible
-* Botón editar nota siempre visible (eliminado `opacity-0 group-hover`).
+### Hito 5: Fix PedidoInspector â€” Nota visible
+* BotÃ³n editar nota siempre visible (eliminado `opacity-0 group-hover`).
 
-### Hito 6: Diseño Doctrinal — Orígenes de Pedido
+### Hito 6: DiseÃ±o Doctrinal â€” OrÃ­genes de Pedido
 * Acordado: bits libres de `flags_estado` para `BIT_ORIGEN_FACTURA` y `BIT_ORIGEN_REMITO`.
-* Implementación pendiente próxima sesión.
+* ImplementaciÃ³n pendiente prÃ³xima sesiÃ³n.
 
 **Estado:** NOMINAL GOLD. Build D ejecutado (6.91s). Commits y push D y P.
 
 ---
 
-## SESIÓN 790: SANEAMIENTO DB + FIXES OPERATIVOS + PARIDAD D/P
+## SESIÃ“N 790: SANEAMIENTO DB + FIXES OPERATIVOS + PARIDAD D/P
 **Fecha:** 2026-04-14
 **Objetivo:** Sanear pilot_v5x.db (paridad con P), fixes de cantera import, F4, Rubro obligatorio e infraestructura.
 
-### Hito 1: Cirugía DB pilot_v5x.db (PIN 1974)
+### Hito 1: CirugÃ­a DB pilot_v5x.db (PIN 1974)
 *   7 fusiones de grupos duplicados. Pedidos de 173 y 159 re-apuntados a survivors 177 y 175.
-*   IDs 158, 159, 160 (NULL SKU) eliminados físicamente.
+*   IDs 158, 159, 160 (NULL SKU) eliminados fÃ­sicamente.
 *   8 productos borrados (flags=0/2, sin movimientos). Total final: 23 productos.
 
-### Hito 2: Cantera Import — Fix 500 + Auto-SKU
-*   `flags_estado=3` en creación desde cantera (ACTIVE+VIRGIN).
+### Hito 2: Cantera Import â€” Fix 500 + Auto-SKU
+*   `flags_estado=3` en creaciÃ³n desde cantera (ACTIVE+VIRGIN).
 *   Auto-SKU: `MAX(sku)+1` con piso 9001 cuando el mirror no trae SKU.
-*   SKU como `int(float(...))` — compatible con mirror JSON que puede traer floats.
-*   `margen_mayorista` → `rentabilidad_target` (campo renombrado en modelo).
+*   SKU como `int(float(...))` â€” compatible con mirror JSON que puede traer floats.
+*   `margen_mayorista` â†’ `rentabilidad_target` (campo renombrado en modelo).
 *   Paridad D/P: mismo fix aplicado en ambos entornos.
 
 ### Hito 3: Fixes Frontend
-*   F4 en PedidoCanvas: product search tiene prioridad; modal cliente solo en foco explícito.
+*   F4 en PedidoCanvas: product search tiene prioridad; modal cliente solo en foco explÃ­cito.
 *   ProductoInspector: asterisco rojo + ring de error + mensaje `rubroError` para campo Rubro.
 
 ### Hito 4: Infraestructura
 *   DESPERTAR.ps1: guard null reference sin .bak / Git no disponible.
 *   boot_system.py: `--reload-dir backend` + health check polling.
-*   main.py: `/` → `/health` en D y P — libera catch-all SPA.
+*   main.py: `/` â†’ `/health` en D y P â€” libera catch-all SPA.
 
 **Estado:** NOMINAL GOLD. Commit OMEGA ejecutado.
 
 ---
 
-# [V5.7.0] 2026-04-09 - Homologación Identity Shield (Bag of Words)
+# [V5.7.0] 2026-04-09 - HomologaciÃ³n Identity Shield (Bag of Words)
 > **ESTADO:** SATISFACTORIO (NOMINAL GOLD)
-> **TIPO:** HOMOLOGACIÓN / SEGURIDAD / SYNC P-D
+> **TIPO:** HOMOLOGACIÃ“N / SEGURIDAD / SYNC P-D
 
 **Hitos:**
-1. **Homologación Genoma V5-LS:** Sincronización total del blindaje "Bag of Words" hacia entorno Staging.
-2. **Backfill Productivo:** Inyección de `razon_social_canon` en `V5_LS_STAGING.db` y normalización de 35 registros legítimos.
-3. **Sensor UI:** Activación de detector de duplicados reactivo debounced en `ClientCanvas.vue`.
-4. **Dictamen de Auditoría:** Certificado `audit_production_duplicates.py` limpio.
+1. **HomologaciÃ³n Genoma V5-LS:** SincronizaciÃ³n total del blindaje "Bag of Words" hacia entorno Staging.
+2. **Backfill Productivo:** InyecciÃ³n de `razon_social_canon` en `V5_LS_STAGING.db` y normalizaciÃ³n de 35 registros legÃ­timos.
+3. **Sensor UI:** ActivaciÃ³n de detector de duplicados reactivo debounced en `ClientCanvas.vue`.
+4. **Dictamen de AuditorÃ­a:** Certificado `audit_production_duplicates.py` limpio.
 
 **Archivos:** `backend/clientes/service.py` | `router.py` | `frontend/src/views/Hawe/ClientCanvas.vue` | `_GY/_MD/CAJA_NEGRA.md`
 
@@ -1139,53 +1143,53 @@
 
 # [V16.2.0] 2026-04-08 - Blindaje Nuclear de Identidad (BOW Protocol)
 > **ESTADO:** SATISFACTORIO (NOMINAL GOLD)
-> **TIPO:** SEGURIDAD / IDENTIDAD / HOMOLOGACIÓN
+> **TIPO:** SEGURIDAD / IDENTIDAD / HOMOLOGACIÃ“N
 
 **Hitos:**
-1. **Protocolo Bag of Words (BOW):** Implementación de `normalize_name` V16.2. La identidad ahora es insensible al orden de las palabras ("Inapyr SRL" == "SRL Inapyr").
-2. **Hémetización Estructural (Homologación):** Sincronización total entre entornos D (`Sonido_Liquido_V5`) y P (`V5-LS`). Inyección de columna `razon_social_canon` en la DB maestra.
-3. **Saneamiento Quirúrgico:** Eliminación física de registros duplicados en pedidos (ID 6 y 7) y reseteo de secuencia SQLite en producción.
-4. **Sensor de Identidad UI:** Integración de alertas de colisión semántica en tiempo real en `ClientCanvas.vue`.
+1. **Protocolo Bag of Words (BOW):** ImplementaciÃ³n de `normalize_name` V16.2. La identidad ahora es insensible al orden de las palabras ("Inapyr SRL" == "SRL Inapyr").
+2. **HÃ©metizaciÃ³n Estructural (HomologaciÃ³n):** SincronizaciÃ³n total entre entornos D (`Sonido_Liquido_V5`) y P (`V5-LS`). InyecciÃ³n de columna `razon_social_canon` en la DB maestra.
+3. **Saneamiento QuirÃºrgico:** EliminaciÃ³n fÃ­sica de registros duplicados en pedidos (ID 6 y 7) y reseteo de secuencia SQLite en producciÃ³n.
+4. **Sensor de Identidad UI:** IntegraciÃ³n de alertas de colisiÃ³n semÃ¡ntica en tiempo real en `ClientCanvas.vue`.
 
 **Archivos:** `backend/clientes/service.py` | `router.py` | `ClientCanvas.vue` | `V5_LS_MASTER.db`
 
 ---
 
-# [V15.2.1] 2026-03-23 - Soberanía Hub & Unificación de Registro
+# [V15.2.1] 2026-03-23 - SoberanÃ­a Hub & UnificaciÃ³n de Registro
 > **ESTADO:** SATISFACTORIO (NOMINAL GOLD)
 > **TIPO:** FEATURE / REFACTOR / DATA MIGRATION
 
 **Hitos:**
-1. **Soberanía del Hub:** Implementada la siembra del Address Hub mediante `seed_hub.py`. Se migraron 47 domicilios legacy a 43 registros únicos en el Hub Soberano con deduplicación semántica.
-2. **Bit 21 (Espejo):** Activación del bit 2097152 para todos los vínculos migrados, garantizando paridad con datos históricos de Clientes.
-3. **Unificación de Registro:** Eliminada la "Bicefalía de Registros" unificando todas las importaciones de `Base` a `backend.core.database`.
-4. **Resiliencia de API:** Fix en `DomicilioResponse` para soportar `cliente_id` opcional y repoblación quirúrgica del registry en `service.py`.
+1. **SoberanÃ­a del Hub:** Implementada la siembra del Address Hub mediante `seed_hub.py`. Se migraron 47 domicilios legacy a 43 registros Ãºnicos en el Hub Soberano con deduplicaciÃ³n semÃ¡ntica.
+2. **Bit 21 (Espejo):** ActivaciÃ³n del bit 2097152 para todos los vÃ­nculos migrados, garantizando paridad con datos histÃ³ricos de Clientes.
+3. **UnificaciÃ³n de Registro:** Eliminada la "BicefalÃ­a de Registros" unificando todas las importaciones de `Base` a `backend.core.database`.
+4. **Resiliencia de API:** Fix en `DomicilioResponse` para soportar `cliente_id` opcional y repoblaciÃ³n quirÃºrgica del registry en `service.py`.
 
 **Archivos:** `backend/main.py` | `backend/clientes/models.py` | `schemas.py` | `service.py` | `router.py` | `backend/pedidos/models.py`
 
 ---
 
-# [V15.2.0] 2026-03-20 - Restauración Logística & Protocolo ALFA V5.2
+# [V15.2.0] 2026-03-20 - RestauraciÃ³n LogÃ­stica & Protocolo ALFA V5.2
 > **ESTADO:** SATISFACTORIO (CON DEUDA)
 > **TIPO:** FEATURE / PROTOCOLO / BUGFIX
 
 **Hitos:**
-1. **Edición de Remitos (Doble Clic):** Restaurada la capacidad de editar cabeceras de remitos (`BORRADOR`) desde el listado. Implementado endpoint `PATCH /remitos/{id}` y modal reactivo.
-2. **Soberanía ALFA (Fix ORM):** Reparada inconsistencia en el Mapper de Pedidos que bloqueaba `verify_sovereignty.py`.
-3. **Sincronización de Bits:** Sergio Jofre (Genoma) sincronizado satisfactoriamente con Bit 19 activo (Valor final: 524301).
-4. **Deuda Técnica (Bit 3):** Sesión marcada con Bit 3 CRÍTICO debido a que la edición de remitos no incluye bultos, valor declarado ni edición de ítems (Cuerpo).
+1. **EdiciÃ³n de Remitos (Doble Clic):** Restaurada la capacidad de editar cabeceras de remitos (`BORRADOR`) desde el listado. Implementado endpoint `PATCH /remitos/{id}` y modal reactivo.
+2. **SoberanÃ­a ALFA (Fix ORM):** Reparada inconsistencia en el Mapper de Pedidos que bloqueaba `verify_sovereignty.py`.
+3. **SincronizaciÃ³n de Bits:** Sergio Jofre (Genoma) sincronizado satisfactoriamente con Bit 19 activo (Valor final: 524301).
+4. **Deuda TÃ©cnica (Bit 3):** SesiÃ³n marcada con Bit 3 CRÃTICO debido a que la ediciÃ³n de remitos no incluye bultos, valor declarado ni ediciÃ³n de Ã­tems (Cuerpo).
 
 **Archivos:** `RemitoListView.vue` | `backend/remitos/service.py` | `router.py` | `schemas.py` | `verify_sovereignty.py`
 
 ---
 
-# [V15.1.4] 2026-03-19 - Logística Táctica & Edición de Ingesta
+# [V15.1.4] 2026-03-19 - LogÃ­stica TÃ¡ctica & EdiciÃ³n de Ingesta
 > **ESTADO:** SATISFACTORIO
-> **TIPO:** FEATURE / UX / LOGÍSTICA
+> **TIPO:** FEATURE / UX / LOGÃSTICA
 
 **Hitos:**
 1. **Remito Manual (0015):** Implementada infraestructura para remitos sin factura (Serie 0015-00003001+) con "Ghost Pedidos".
-2. **Edición de Ingesta:** Refactorizada la pre-carga de PDF a Grilla Editable (Inputs tactical). Permite corregir OCR, agregar y quitar ítems.
+2. **EdiciÃ³n de Ingesta:** Refactorizada la pre-carga de PDF a Grilla Editable (Inputs tactical). Permite corregir OCR, agregar y quitar Ã­tems.
 3. **Fix Reactividad Domicilios:** Solucionado bug de carga diferida de direcciones en el selector mediante `watch` de Pinia.
 4. **Fix Proxy PDF:** Ajustadas rutas relativas para descarga de remitos en red local.
 
@@ -1208,50 +1212,50 @@
 
 ---
 
-# [V14.8.1] 2026-03-17 - Protección Genoma & Rescate COALIX
+# [V14.8.1] 2026-03-17 - ProtecciÃ³n Genoma & Rescate COALIX
 
 > **ESTADO:** SATISFACTORIO
-> **TIPO:** RECUPERACIÓN / SEGURIDAD CRÍTICA
+> **TIPO:** RECUPERACIÃ“N / SEGURIDAD CRÃTICA
 
-**Hitos de la Sesión:**
-1. **Recuperación COALIX:** Extracción y restauración total de COALIX SA desde backup SQLite (1). Recuperados domicilios, personas y vínculos.
-2. **Papelera Global (V14.8):** Implementación de respaldos JSON en `papelera_registros` para toda eliminación física en Utilidades Maestras.
-3. **Blindaje Genoma:** Bloqueo de borrado físico para registros históricos (Bit 1 = 0). Implementación de "Grisado" visual y estatus "PROTEGIDO" en el frontend.
-4. **Fix Serialización:** Implementación de limpiador recursivo para tipos `Decimal` y `UUID` en el motor de papelera.
-5. **Configuración:** Resolución definitiva de conflicto de puertos (Bind 8080) para operación estable en LAN.
+**Hitos de la SesiÃ³n:**
+1. **RecuperaciÃ³n COALIX:** ExtracciÃ³n y restauraciÃ³n total de COALIX SA desde backup SQLite (1). Recuperados domicilios, personas y vÃ­nculos.
+2. **Papelera Global (V14.8):** ImplementaciÃ³n de respaldos JSON en `papelera_registros` para toda eliminaciÃ³n fÃ­sica en Utilidades Maestras.
+3. **Blindaje Genoma:** Bloqueo de borrado fÃ­sico para registros histÃ³ricos (Bit 1 = 0). ImplementaciÃ³n de "Grisado" visual y estatus "PROTEGIDO" en el frontend.
+4. **Fix SerializaciÃ³n:** ImplementaciÃ³n de limpiador recursivo para tipos `Decimal` y `UUID` en el motor de papelera.
+5. **ConfiguraciÃ³n:** ResoluciÃ³n definitiva de conflicto de puertos (Bind 8080) para operaciÃ³n estable en LAN.
 
 ---
 
-# [V14.8] 2026-03-16 - Saneamiento Genoma & Expansión LAN
+# [V14.8] 2026-03-16 - Saneamiento Genoma & ExpansiÃ³n LAN
 
-# [V6.5.1] 2026-02-28 - Sesión 787: Protocolo Omega - Ingesta Consolidada
+# [V6.5.1] 2026-02-28 - SesiÃ³n 787: Protocolo Omega - Ingesta Consolidada
 > **ESTADO:** SATISFACTORIO
-> **TIPO:** INTEGRACIÓN / SINTONÍA FINA
+> **TIPO:** INTEGRACIÃ“N / SINTONÃA FINA
 
-Se completó la migración del ABM de Clientes de Ingesta al nuevo `ClientCanvas` universal. Se resolvieron los bloqueos del motor PDF y la interferencia de variables de entorno globales (Postgres Ghost).
+Se completÃ³ la migraciÃ³n del ABM de Clientes de Ingesta al nuevo `ClientCanvas` universal. Se resolvieron los bloqueos del motor PDF y la interferencia de variables de entorno globales (Postgres Ghost).
 
-**Hitos Técnicos:**
-1. **Frontend:** Relajación de validaciones para Ingesta y Auto-Inyección de Domicilio PDF.
-2. **Backend:** Implementación de Endpoint `/despachar`, instalación de `fpdf2`, y parche de Pydantic para `AttributeError`.
+**Hitos TÃ©cnicos:**
+1. **Frontend:** RelajaciÃ³n de validaciones para Ingesta y Auto-InyecciÃ³n de Domicilio PDF.
+2. **Backend:** ImplementaciÃ³n de Endpoint `/despachar`, instalaciÃ³n de `fpdf2`, y parche de Pydantic para `AttributeError`.
 3. **Parsing:** Regex optimizado para facturas AFIP con formato espacial laxo.
 
 ---
 
-# [RECUPERACIÃ“N] 2026-01-14 - Parche de Emergencia "Math Guard Clauses"
+# [RECUPERACIÃƒâ€œN] 2026-01-14 - Parche de Emergencia "Math Guard Clauses"
 
 > **ESTADO:** SATISFACTORIO
 > **TIPO:** HOTFIX / SEGURIDAD
 
-Se detectÃ³ y documentÃ³ retroactivamente el parche de emergencia 'Math Guard Clauses' tras un colapso por Error 500 (DivisiÃ³n por cero).
+Se detectÃƒÂ³ y documentÃƒÂ³ retroactivamente el parche de emergencia 'Math Guard Clauses' tras un colapso por Error 500 (DivisiÃƒÂ³n por cero).
 
-**Detalles TÃ©cnicos:**
-1.  **Backend:** Se blindaron `pricing_engine.py` y `router.py` (funciÃ³n `calculate_prices`) para capturar valores `None` o `0` en `precio_roca` y `costo_reposicion`.
+**Detalles TÃƒÂ©cnicos:**
+1.  **Backend:** Se blindaron `pricing_engine.py` y `router.py` (funciÃƒÂ³n `calculate_prices`) para capturar valores `None` o `0` en `precio_roca` y `costo_reposicion`.
 2.  **Resultado:** El sistema devuelve `0.00` en todos los precios calculados en lugar de crashear, permitiendo que el listado de productos cargue incluso con datos corruptos.
 3.  **Schemas:** Ajustados `schemas.py` para permitir `0.00` y `Optional` en campos de precios.
 
-**AcciÃ³n Requerida:** Revisar datos de origen para corregir ceros, pero el sistema ya es estable.
+**AcciÃƒÂ³n Requerida:** Revisar datos de origen para corregir ceros, pero el sistema ya es estable.
 
-# [V5.4] 2026-01-15 - ImplementaciÃ³n Multi-Proveedor y Ajustes UI
+# [V5.4] 2026-01-15 - ImplementaciÃƒÂ³n Multi-Proveedor y Ajustes UI
 
 > **ESTADO:** BLOQUEADO (FRONTEND CRASH)
 > **TIPO:** FEATURE / REFINEMENT
@@ -1264,35 +1268,35 @@ Se detectÃ³ y documentÃ³ retroactivamente el parche de emergencia 'Math Guar
     *   Models: Actualizado `Producto` y creado `ProductoProveedor`.
     *   Router: Agregados endpoints `POST /proveedores` y `DELETE /proveedores/{id}`.
 2.  **Frontend (Parcial):**
-    *   Implementado layout y lÃ³gica en `ProductoInspector.vue`.
+    *   Implementado layout y lÃƒÂ³gica en `ProductoInspector.vue`.
     *   Agregado servicio en `productosApi.js`.
 
 **Incidente Bloqueante:**
 *   El componente `ProductoInspector.vue` crashea al intentar abrirse (spinner infinito o error Vue).
-*   **Causa RaÃ­z Identificada:** InicializaciÃ³n de arrays en Store (`tasasIva`, `proveedores`) puede ser `null/undefined` en el momento que el `watch(immediate: true)` dispara la lÃ³gica.
-*   **Estado:** Se aplicaron parches de seguridad (`?.` y `|| []`), pero el error persiste. Se requiere revisiÃ³n profunda del ciclo de vida del componente.
+*   **Causa RaÃƒÂ­z Identificada:** InicializaciÃƒÂ³n de arrays en Store (`tasasIva`, `proveedores`) puede ser `null/undefined` en el momento que el `watch(immediate: true)` dispara la lÃƒÂ³gica.
+*   **Estado:** Se aplicaron parches de seguridad (`?.` y `|| []`), pero el error persiste. Se requiere revisiÃƒÂ³n profunda del ciclo de vida del componente.
 
-**PrÃ³ximos Pasos (Protocolo Omega):**
+**PrÃƒÂ³ximos Pasos (Protocolo Omega):**
 1.  Debuggear inicio de `ProductoInspector` (Store vs Props).
 2.  Verificar persistencia de "Es Insumo".
 3.
-# [V5.6.1] 2026-01-16 - ReparaciÃ³n Integral Pedidos (Orders Bridge)
+# [V5.6.1] 2026-01-16 - ReparaciÃƒÂ³n Integral Pedidos (Orders Bridge)
 
 > **ESTADO:** ESTABLE
 > **TIPO:** HOTFIX / UX RECOVERY
 
-**Objetivo:** Restaurar funcionalidad crÃ­tica de Pedidos, ImportaciÃ³n y Alta de Productos, bloqueada por errores de integraciÃ³n y UX "rota".
+**Objetivo:** Restaurar funcionalidad crÃƒÂ­tica de Pedidos, ImportaciÃƒÂ³n y Alta de Productos, bloqueada por errores de integraciÃƒÂ³n y UX "rota".
 
 **Intervenciones:**
-1.  **Backend (Bridge):** Corregido `router.py` para devolver JSON completo y defaults en importaciÃ³n (`500 Internal Error` Solucionado).
+1.  **Backend (Bridge):** Corregido `router.py` para devolver JSON completo y defaults en importaciÃƒÂ³n (`500 Internal Error` Solucionado).
 2.  **Frontend (GridLoader):**
-    *   **Layout:** Cambiado inspector a `max-w-7xl` (Modal Central) para corregir visualizaciÃ³n "aplastada".
+    *   **Layout:** Cambiado inspector a `max-w-7xl` (Modal Central) para corregir visualizaciÃƒÂ³n "aplastada".
     *   **Integridad:** Implementada captura de hora local en payload de pedidos.
     *   **Seguridad:** Implementado **Guard Clause** (`isSubmitting`) en F10/Click para evitar pedidos duplicados.
 3.  **Frontend (ProductoInspector):**
-    *   **Rubros:** Implementado `SelectorCreatable` + `handleCreateRubro` + `fetchRubros` para ABM dinÃ¡mico en el alta.
+    *   **Rubros:** Implementado `SelectorCreatable` + `handleCreateRubro` + `fetchRubros` para ABM dinÃƒÂ¡mico en el alta.
 
-**MÃ©tricas Finales:**
+**MÃƒÂ©tricas Finales:**
 *   Alta de Productos: OK (Full Screen)
 *   Integridad Pedidos: OK (No Duplicados, Hora Correcta)
 
@@ -1307,81 +1311,81 @@ Se detectÃ³ y documentÃ³ retroactivamente el parche de emergencia 'Math Guar
 1.  **Frontend (SimpleAbmModal):** Implementado soporte para `isLoading` (Spinner + Bloqueo de UI).
 2.  **Frontend (ClienteInspector):**
     *   Integrado `abmLoading` para feedback visual inmediato.
-    *   **ValidaciÃ³n:** Pre-check de duplicados (Case Insensitive) antes de llamar al backend.
-    *   **Feedback:** Cierre automÃ¡tico del modal `showAbm = false` tras Ã©xito.
+    *   **ValidaciÃƒÂ³n:** Pre-check de duplicados (Case Insensitive) antes de llamar al backend.
+    *   **Feedback:** Cierre automÃƒÂ¡tico del modal `showAbm = false` tras ÃƒÂ©xito.
 
 **Resultado:** Eliminada la posibilidad de crear duplicados por doble click y restaurado el feedback visual.
 
-# [V5.6.3] 2026-01-16 - SincronizaciÃ³n Store Domicilios
+# [V5.6.3] 2026-01-16 - SincronizaciÃƒÂ³n Store Domicilios
 
 > **ESTADO:** DEPLOYED
 > **TIPO:** BUGFIX / DATA CONSISTENCY
 
 **Objetivo:** Corregir "Ficha Incompleta" persistente tras agregar Domicilio Fiscal.
 
-**DiagnÃ³stico:**
-*   El Store `createDomicilio` y `updateDomicilio` devolvÃ­a el cliente actualizado al caller (Inspector) pero **NO actualizaba** el array principal `clientes` en memoria.
-*   Consecuencia: La vista principal (detrÃ¡s del inspector) quedaba con datos viejos hasta recargar.
+**DiagnÃƒÂ³stico:**
+*   El Store `createDomicilio` y `updateDomicilio` devolvÃƒÂ­a el cliente actualizado al caller (Inspector) pero **NO actualizaba** el array principal `clientes` en memoria.
+*   Consecuencia: La vista principal (detrÃƒÂ¡s del inspector) quedaba con datos viejos hasta recargar.
 
 **Intervenciones:**
 1.  **Store (clientes.js):**
-    *   `createDomicilio/updateDomicilio`: Implementada actualizaciÃ³n reactiva `this.clientes[index] = response.data`.
-    *   `deleteDomicilio`: Agregado `fetchClienteById` automÃ¡tico tras eliminaciÃ³n (Backend devuelve 204).
+    *   `createDomicilio/updateDomicilio`: Implementada actualizaciÃƒÂ³n reactiva `this.clientes[index] = response.data`.
+    *   `deleteDomicilio`: Agregado `fetchClienteById` automÃƒÂ¡tico tras eliminaciÃƒÂ³n (Backend devuelve 204).
 
-**Resultado:** Al guardar un domicilio, la ficha del cliente se actualiza instantÃ¡neamente en todas las vistas.
+**Resultado:** Al guardar un domicilio, la ficha del cliente se actualiza instantÃƒÂ¡neamente en todas las vistas.
 
-# [V5.6.4] 2026-01-16 - AutonomÃ­a de Guardado Cliente
+# [V5.6.4] 2026-01-16 - AutonomÃƒÂ­a de Guardado Cliente
 
 > **ESTADO:** DEPLOYED
 > **TIPO:** CRITICAL FIX / ARCHITECTURE
 
-**Objetivo:** Solucionar pÃ©rdida de datos al editar clientes desde el Cargador de Pedidos.
+**Objetivo:** Solucionar pÃƒÂ©rdida de datos al editar clientes desde el Cargador de Pedidos.
 
-**DiagnÃ³stico:**
+**DiagnÃƒÂ³stico:**
 *   El componente `ClienteInspector` delegaba el guardado al padre (`emit('save')`) pero **NO llamaba a la API**.
 *   El padre `PedidoTacticoView.vue` **NO escuchaba** el evento save, provocando que los cambios visuales del inspector se perdieran al cerrar el modal.
-*   Resultado: El usuario veÃ­a los cambios en el popup, pero nunca persistÃ­an en la base de datos.
+*   Resultado: El usuario veÃƒÂ­a los cambios en el popup, pero nunca persistÃƒÂ­an en la base de datos.
 
 **Intervenciones:**
 1.  **Backend/Store:** (Sin cambios, ya funcionales).
 2.  **Frontend (`ClienteInspector.vue`):**
-    *   **Refactor:** Implementada llamada directa a `clienteStore.createCliente` y `clienteStore.updateCliente` dentro de la funciÃ³n `save()`.
-    *   **Beneficio:** El componente ahora es autÃ³nomo y garantiza la persistencia independientemente de quiÃ©n lo invoque (Pedidos, Clientes, etc.).
+    *   **Refactor:** Implementada llamada directa a `clienteStore.createCliente` y `clienteStore.updateCliente` dentro de la funciÃƒÂ³n `save()`.
+    *   **Beneficio:** El componente ahora es autÃƒÂ³nomo y garantiza la persistencia independientemente de quiÃƒÂ©n lo invoque (Pedidos, Clientes, etc.).
 
-**Resultado:** La ediciÃ³n de clientes (Nombre, CUIT) ahora persiste correctamente en la base de datos y se refleja al cerrar el inspector.
+**Resultado:** La ediciÃƒÂ³n de clientes (Nombre, CUIT) ahora persiste correctamente en la base de datos y se refleja al cerrar el inspector.
 
-# [V5.6.5] 2026-01-16 - AutonomÃ­a de Guardado Producto
+# [V5.6.5] 2026-01-16 - AutonomÃƒÂ­a de Guardado Producto
 
 > **ESTADO:** DEPLOYED
 > **TIPO:** REFACTOR / ARCHITECTURE
 
-**Objetivo:** Alinear inspector de productos con la arquitectura de "Componente AutÃ³nomo" (Self-Saving).
+**Objetivo:** Alinear inspector de productos con la arquitectura de "Componente AutÃƒÂ³nomo" (Self-Saving).
 
-**ImplementaciÃ³n:**
-*   Se replicÃ³ la lÃ³gica de `ClienteInspector` en `ProductoInspector.vue`.
+**ImplementaciÃƒÂ³n:**
+*   Se replicÃƒÂ³ la lÃƒÂ³gica de `ClienteInspector` en `ProductoInspector.vue`.
 *   Ahora el inspector de productos llama directamente a `productosStore.createProducto` o `updateProducto`.
-*   Esto habilita su uso seguro desde el Cargador TÃ¡ctico sin duplicar lÃ³gica de guardado.
+*   Esto habilita su uso seguro desde el Cargador TÃƒÂ¡ctico sin duplicar lÃƒÂ³gica de guardado.
 
 **Resultado:** Arquitectura unificada para ABMs complejos incrustados.
 
-# [V5.6.6] 2026-01-16 - SincronizaciÃ³n TÃ¡ctica de Estado
+# [V5.6.6] 2026-01-16 - SincronizaciÃƒÂ³n TÃƒÂ¡ctica de Estado
 
 > **ESTADO:** DEPLOYED
 > **TIPO:** UX / DATA COHERENCE
 
 **Objetivo:** Resolver el problema "Pedidos no se entera" tras editar Cliente.
 
-**DiagnÃ³stico:**
+**DiagnÃƒÂ³stico:**
 *   Aunque el Inspector guardaba y actualizaba el Store correctamente (V5.6.4), el componente `PedidoTacticoView` ejecutaba un `fetchClientes()` al cerrar el modal.
-*   Este `fetch` recargaba la lista "Resumida" del backend (sin array de domicilios completo), sobrescribiendo la versiÃ³n "Detallada" que acababa de dejar el Inspector en memoria.
-*   Resultado: Se perdÃ­a el estado verde de validaciÃ³n porque faltaban datos en el objeto cliente recargado.
+*   Este `fetch` recargaba la lista "Resumida" del backend (sin array de domicilios completo), sobrescribiendo la versiÃƒÂ³n "Detallada" que acababa de dejar el Inspector en memoria.
+*   Resultado: Se perdÃƒÂ­a el estado verde de validaciÃƒÂ³n porque faltaban datos en el objeto cliente recargado.
 
 **Intervenciones:**
 1.  **PedidoTacticoView.vue:**
     *   Eliminada la llamada redundante `await clientesStore.fetchClientes()` en `onInspectorClose`.
-    *   Implementado listener `@save` para capturar el resultado del inspector y asegurar la selecciÃ³n inmediata del ID actualizado/creado.
+    *   Implementado listener `@save` para capturar el resultado del inspector y asegurar la selecciÃƒÂ³n inmediata del ID actualizado/creado.
 
-**Resultado:** La vista de Pedidos refleja instantÃ¡neamente los cambios (Nombre, Estado fiscal) sin parpadeos ni reversiones a datos viejos.
+**Resultado:** La vista de Pedidos refleja instantÃƒÂ¡neamente los cambios (Nombre, Estado fiscal) sin parpadeos ni reversiones a datos viejos.
 
 # [V5.6.7] 2026-01-16 - Reactividad Robusta en Store Clientes
 
@@ -1391,97 +1395,97 @@ Se detectÃ³ y documentÃ³ retroactivamente el parche de emergencia 'Math Guar
 **Objetivo:** Garantizar que la UI reaccione a cambios en objetos profundos dentro del array de clientes.
 
 **Problema:**
-*   La asignaciÃ³n directa por Ã­ndice (`this.clientes[i] = data`) a veces no disparaba la reactividad en componentes computed complejos (como `clienteSeleccionado` en Pedidos) debido a limitaciones de detecciÃ³n de cambios en arrays grandes o proxies.
+*   La asignaciÃƒÂ³n directa por ÃƒÂ­ndice (`this.clientes[i] = data`) a veces no disparaba la reactividad en componentes computed complejos (como `clienteSeleccionado` en Pedidos) debido a limitaciones de detecciÃƒÂ³n de cambios en arrays grandes o proxies.
 
-**SoluciÃ³n:**
-*   Se reemplazÃ³ la asignaciÃ³n directa por `this.clientes.splice(index, 1, response.data)` en el Store de Clientes (`updateCliente`, `createDomicilio`, `updateDomicilio`).
-*   Esto fuerza al motor de reactividad de Vue a reconocer la mutaciÃ³n del array y propagar el cambio a todas las vistas suscritas.
+**SoluciÃƒÂ³n:**
+*   Se reemplazÃƒÂ³ la asignaciÃƒÂ³n directa por `this.clientes.splice(index, 1, response.data)` en el Store de Clientes (`updateCliente`, `createDomicilio`, `updateDomicilio`).
+*   Esto fuerza al motor de reactividad de Vue a reconocer la mutaciÃƒÂ³n del array y propagar el cambio a todas las vistas suscritas.
 
-**Resultado:** ActualizaciÃ³n visual infalible tras ediciÃ³n.
+**Resultado:** ActualizaciÃƒÂ³n visual infalible tras ediciÃƒÂ³n.
 
-# [V5.6.8] 2026-01-16 - BÃºsqueda Global de Clientes (Cantera)
+# [V5.6.8] 2026-01-16 - BÃƒÂºsqueda Global de Clientes (Cantera)
 
 > **ESTADO:** DEPLOYED
 > **TIPO:** FEATURE / BACKEND
 
-**Objetivo:** Permitir buscar clientes fuera del lÃ­mite inicial de 1000 registros.
+**Objetivo:** Permitir buscar clientes fuera del lÃƒÂ­mite inicial de 1000 registros.
 
 **Problema:**
-*   La bÃºsqueda en el TÃ¡ctico ("F3") solo filtraba el array local de 1000 clientes precargados. Clientes activos fuera de este lote (ej. clÃ­nicas especÃ­ficas) no aparecÃ­an aunque existieran en DB.
+*   La bÃƒÂºsqueda en el TÃƒÂ¡ctico ("F3") solo filtraba el array local de 1000 clientes precargados. Clientes activos fuera de este lote (ej. clÃƒÂ­nicas especÃƒÂ­ficas) no aparecÃƒÂ­an aunque existieran en DB.
 
-**SoluciÃ³n:**
-*   **Backend:** Se implementÃ³ filtrado `q` (Query) en el endpoint `GET /clientes` con bÃºsqueda `ILIKE` en RazÃ³n Social, FantasÃ­a y CUIT.
-*   **Frontend:** El componente `ClientLookup.vue` ahora dispara la bÃºsqueda al servidor (con debounce de 300ms) al tipear.
-*   Esto actualiza dinÃ¡micamente el Store con los resultados coincidentes de toda la base de datos ("La Cantera").
+**SoluciÃƒÂ³n:**
+*   **Backend:** Se implementÃƒÂ³ filtrado `q` (Query) en el endpoint `GET /clientes` con bÃƒÂºsqueda `ILIKE` en RazÃƒÂ³n Social, FantasÃƒÂ­a y CUIT.
+*   **Frontend:** El componente `ClientLookup.vue` ahora dispara la bÃƒÂºsqueda al servidor (con debounce de 300ms) al tipear.
+*   Esto actualiza dinÃƒÂ¡micamente el Store con los resultados coincidentes de toda la base de datos ("La Cantera").
 
-**Resultado:** Al tipear "Bio", ahora el sistema busca en toda la base y trae "Biotenk" + todas las clÃ­nicas biolÃ³gicas que antes no cargaban.
+**Resultado:** Al tipear "Bio", ahora el sistema busca en toda la base y trae "Biotenk" + todas las clÃƒÂ­nicas biolÃƒÂ³gicas que antes no cargaban.
 
 # [V5.6.9] 2026-01-16 - Acceso Universal a Cantera
 
 > **ESTADO:** DEPLOYED
 > **TIPO:** UX / DATA DISCOVERY
 
-**Objetivo:** Facilitar la importaciÃ³n de clientes histÃ³ricos incluso si existen coincidencias parciales locales.
+**Objetivo:** Facilitar la importaciÃƒÂ³n de clientes histÃƒÂ³ricos incluso si existen coincidencias parciales locales.
 
 **Problema:**
-*   Si el usuario buscaba "Bio" y ya existÃ­a "Biotenk" en el sistema activo, el botÃ³n para "Buscar en Cantera" desaparecÃ­a.
-*   Esto bloqueaba el acceso a otras entidades (ej. "ClÃ­nica BiolÃ³gica") que solo existen en la base histÃ³rica (`cantera.db`) y necesitan ser importadas.
+*   Si el usuario buscaba "Bio" y ya existÃƒÂ­a "Biotenk" en el sistema activo, el botÃƒÂ³n para "Buscar en Cantera" desaparecÃƒÂ­a.
+*   Esto bloqueaba el acceso a otras entidades (ej. "ClÃƒÂ­nica BiolÃƒÂ³gica") que solo existen en la base histÃƒÂ³rica (`cantera.db`) y necesitan ser importadas.
 
-**SoluciÃ³n:**
-*   Se modificÃ³ `ClientLookup.vue` para mostrar **siempre** el enlace "Â¿No estÃ¡ aquÃ­? Buscar en Cantera" al final de la lista de resultados, siempre que haya un tÃ©rmino de bÃºsqueda activo.
+**SoluciÃƒÂ³n:**
+*   Se modificÃƒÂ³ `ClientLookup.vue` para mostrar **siempre** el enlace "Ã‚Â¿No estÃƒÂ¡ aquÃƒÂ­? Buscar en Cantera" al final de la lista de resultados, siempre que haya un tÃƒÂ©rmino de bÃƒÂºsqueda activo.
 
-**Resultado:** Flujo de importaciÃ³n desbloqueado. Ahora conviven resultados locales activos con la opciÃ³n de rescatar legado bajo demanda.
+**Resultado:** Flujo de importaciÃƒÂ³n desbloqueado. Ahora conviven resultados locales activos con la opciÃƒÂ³n de rescatar legado bajo demanda.
 
-# [V5.6.10] 2026-01-16 - Fix DeduplicaciÃ³n Cantera Productos
+# [V5.6.10] 2026-01-16 - Fix DeduplicaciÃƒÂ³n Cantera Productos
 
 > **ESTADO:** DEPLOYED
 > **TIPO:** BUGFIX / DATA INTEGRITY
 
-**Objetivo:** Permitir la bÃºsqueda de productos antiguos (Legado) que no tienen SKU definido.
+**Objetivo:** Permitir la bÃƒÂºsqueda de productos antiguos (Legado) que no tienen SKU definido.
 
 **Problema:**
-*   La lÃ³gica de bÃºsqueda en `GridLoader.vue` filtraba los resultados de la Cantera usando `uniqueBy('sku')`.
-*   Como gran parte de los productos histÃ³ricos tienen `sku: null` o vacÃ­o, el filtro los interpretaba como duplicados y colapsaba cientos de resultados en 1 solo Ã­tem (el primero con sku null) o ninguno.
+*   La lÃƒÂ³gica de bÃƒÂºsqueda en `GridLoader.vue` filtraba los resultados de la Cantera usando `uniqueBy('sku')`.
+*   Como gran parte de los productos histÃƒÂ³ricos tienen `sku: null` o vacÃƒÂ­o, el filtro los interpretaba como duplicados y colapsaba cientos de resultados en 1 solo ÃƒÂ­tem (el primero con sku null) o ninguno.
 
-**SoluciÃ³n:**
-*   Se cambiÃ³ la lÃ³gica de deduplicaciÃ³n a `uniqueBy('id')`.
+**SoluciÃƒÂ³n:**
+*   Se cambiÃƒÂ³ la lÃƒÂ³gica de deduplicaciÃƒÂ³n a `uniqueBy('id')`.
 *   Ahora el sistema solo oculta un resultado de Cantera si su **ID** exacto ya existe en la lista de productos activos (Store), independientemente de si tiene SKU o no.
 
-**Resultado:** La bÃºsqueda de "Bio" en productos ahora trae toda la lista de Ã­tems antiguos disponibles para importaciÃ³n.
+**Resultado:** La bÃƒÂºsqueda de "Bio" en productos ahora trae toda la lista de ÃƒÂ­tems antiguos disponibles para importaciÃƒÂ³n.
 
 # [V5.6.11] 2026-01-16 - Cantera Search: SQL Accent Insensitivity
 
 > **ESTADO:** DEPLOYED
 > **TIPO:** UX / SEARCH ENGINE
 
-**Objetivo:** Mejorar la robustez del buscador de Cantera (Maestros HistÃ³ricos).
+**Objetivo:** Mejorar la robustez del buscador de Cantera (Maestros HistÃƒÂ³ricos).
 
 **Problema:**
-*   SQLite por defecto no soporta bÃºsquedas insensibles a acentos (`LIKE` normal).
-*   El usuario reportÃ³ que buscar "Clinica" no encontraba "CLÃ�NICA", "ClÃ­nica", etc.
+*   SQLite por defecto no soporta bÃƒÂºsquedas insensibles a acentos (`LIKE` normal).
+*   El usuario reportÃƒÂ³ que buscar "Clinica" no encontraba "CLÃƒï¿½NICA", "ClÃƒÂ­nica", etc.
 
-**SoluciÃ³n:**
-*   Se inyectÃ³ una funciÃ³n personalizada `unaccent` (basada en `unicodedata` de Python) en la conexiÃ³n SQLite de `CanteraService`.
-*   Las consultas SQL de bÃºsqueda ahora normalizan tanto la columna (`razon_social`, `nombre`) como el tÃ©rmino de bÃºsqueda antes de comparar: `WHERE unaccent(col) LIKE unaccent(?)`.
+**SoluciÃƒÂ³n:**
+*   Se inyectÃƒÂ³ una funciÃƒÂ³n personalizada `unaccent` (basada en `unicodedata` de Python) en la conexiÃƒÂ³n SQLite de `CanteraService`.
+*   Las consultas SQL de bÃƒÂºsqueda ahora normalizan tanto la columna (`razon_social`, `nombre`) como el tÃƒÂ©rmino de bÃƒÂºsqueda antes de comparar: `WHERE unaccent(col) LIKE unaccent(?)`.
 
-**Resultado:** BÃºsqueda agnÃ³stica a mayÃºsculas, minÃºsculas y tildes. Buscar "clinica" encuentra "CLÃ�NICA".
+**Resultado:** BÃƒÂºsqueda agnÃƒÂ³stica a mayÃƒÂºsculas, minÃƒÂºsculas y tildes. Buscar "clinica" encuentra "CLÃƒï¿½NICA".
 
 # [V5.6.12] 2026-01-16 - Cantera Import: Missing Domiciles
 
 > **ESTADO:** DEPLOYED
 > **TIPO:** BUGFIX
 
-**Objetivo:** Asegurar que los clientes importados desde Cantera tengan un domicilio vÃ¡lido inicial.
+**Objetivo:** Asegurar que los clientes importados desde Cantera tengan un domicilio vÃƒÂ¡lido inicial.
 
 **Problema:**
-*   La funciÃ³n `import_cliente` ignoraba los campos de direcciÃ³n (`domicilio`, `ciudad`, `cp`) del JSON legado.
-*   El cliente se creaba sin domicilios. El Inspector mostraba una fila vacÃ­a o inconsistente, y el sistema exigÃ­a cargar un domicilio fiscal manualmente.
+*   La funciÃƒÂ³n `import_cliente` ignoraba los campos de direcciÃƒÂ³n (`domicilio`, `ciudad`, `cp`) del JSON legado.
+*   El cliente se creaba sin domicilios. El Inspector mostraba una fila vacÃƒÂ­a o inconsistente, y el sistema exigÃƒÂ­a cargar un domicilio fiscal manualmente.
 
-**SoluciÃ³n:**
-*   Se actualizÃ³ `backend/cantera/router.py` para extraer `calle`, `localidad` y `cp` del objeto de origen.
-*   Se crea automÃ¡ticamente un `Domicilio` inicial marcado como **Fiscal** y **Entrega** durante la importaciÃ³n.
+**SoluciÃƒÂ³n:**
+*   Se actualizÃƒÂ³ `backend/cantera/router.py` para extraer `calle`, `localidad` y `cp` del objeto de origen.
+*   Se crea automÃƒÂ¡ticamente un `Domicilio` inicial marcado como **Fiscal** y **Entrega** durante la importaciÃƒÂ³n.
 
-**Resultado:** Al importar "Alfajores Jorgito", el sistema ahora carga automÃ¡ticamente su direcciÃ³n fiscal histÃ³rica si existe en la Cantera.
+**Resultado:** Al importar "Alfajores Jorgito", el sistema ahora carga automÃƒÂ¡ticamente su direcciÃƒÂ³n fiscal histÃƒÂ³rica si existe en la Cantera.
 
 # [V5.6.13] 2026-01-16 - Inspector: Force Refresh on Domicile Save
 
@@ -1491,337 +1495,337 @@ Se detectÃ³ y documentÃ³ retroactivamente el parche de emergencia 'Math Guar
 **Objetivo:** Solucionar inconsistencias visuales al editar domicilios ("ghost rows").
 
 **Problema:**
-*   Al guardar un domicilio en el Inspector, la actualizaciÃ³n optimista del formulario fallaba en reflejar correctamente el estado "Fiscal" o los datos nuevos en clientes importados con datos parciales.
-*   El usuario veÃ­a filas vacÃ­as o validaciones de "Falta direcciÃ³n fiscal" incluso despuÃ©s de cargarla.
+*   Al guardar un domicilio en el Inspector, la actualizaciÃƒÂ³n optimista del formulario fallaba en reflejar correctamente el estado "Fiscal" o los datos nuevos en clientes importados con datos parciales.
+*   El usuario veÃƒÂ­a filas vacÃƒÂ­as o validaciones de "Falta direcciÃƒÂ³n fiscal" incluso despuÃƒÂ©s de cargarla.
 
-**SoluciÃ³n:**
-*   Se modificÃ³ `ClienteInspector.vue` para forzar una recarga completa del Cliente desde el Backend (`fetchClienteById`) inmediatamente despuÃ©s de guardar un domicilio.
-*   Esto garantiza que el UI muestre exactamente lo que estÃ¡ en la base de datos, eliminando problemas de reactividad o respuestas parciales.
+**SoluciÃƒÂ³n:**
+*   Se modificÃƒÂ³ `ClienteInspector.vue` para forzar una recarga completa del Cliente desde el Backend (`fetchClienteById`) inmediatamente despuÃƒÂ©s de guardar un domicilio.
+*   Esto garantiza que el UI muestre exactamente lo que estÃƒÂ¡ en la base de datos, eliminando problemas de reactividad o respuestas parciales.
 
-**Resultado:** EdiciÃ³n de domicilios robusta y confiable.
+**Resultado:** EdiciÃƒÂ³n de domicilios robusta y confiable.
 
-# [V5.6.14] 2026-01-18 - OptimizaciÃ³n UX Pedidos y Fix Backend
+# [V5.6.14] 2026-01-18 - OptimizaciÃƒÂ³n UX Pedidos y Fix Backend
 
 > **ESTADO:** DEPLOYED
 > **TIPO:** FEATURE / UX / BUGFIX
 
-**Objetivo:** Refinamiento de UX en Carga de Pedidos (Canvas) y correcciÃ³n de error crÃ­tico en Limpieza de Datos.
+**Objetivo:** Refinamiento de UX en Carga de Pedidos (Canvas) y correcciÃƒÂ³n de error crÃƒÂ­tico en Limpieza de Datos.
 
-**DiagnÃ³stico:**
-*   **Backend:** Error 500 (`NameError`) al importar productos en Data Cleaner por falta de importaciÃ³n `func` de SQLAlchemy.
-*   **Frontend:** FricciÃ³n en la carga de pedidos: Ceros iniciales molestos, falta de tecla Enter para confirmar, bÃºsqueda confusa al usar TAB, y falta de ediciÃ³n/eliminaciÃ³n explÃ­cita (botones).
+**DiagnÃƒÂ³stico:**
+*   **Backend:** Error 500 (`NameError`) al importar productos en Data Cleaner por falta de importaciÃƒÂ³n `func` de SQLAlchemy.
+*   **Frontend:** FricciÃƒÂ³n en la carga de pedidos: Ceros iniciales molestos, falta de tecla Enter para confirmar, bÃƒÂºsqueda confusa al usar TAB, y falta de ediciÃƒÂ³n/eliminaciÃƒÂ³n explÃƒÂ­cita (botones).
 
 **Intervenciones:**
 1.  **Backend (Hotfix):**
     *   Agregado `from sqlalchemy import func` en `backend/data_intel/router.py`.
 2.  **Frontend (PedidoCanvas.vue):**
-    *   **Enter Workflow:** Commit de renglÃ³n con `ENTER` desde cualquier input numÃ©rico.
-    *   **Inputs Limpios:** Campos inician vacÃ­os (no `0`).
-    *   **BÃºsqueda Unificada:** Search SKU/Desc simultÃ¡neo.
-    *   **Foco Inteligente:** Eliminado popup de bÃºsqueda al navegar con TAB.
-    *   **GestiÃ³n Renglones:** Agregada columna Acciones (Editar/Eliminar).
-    *   **Edit Logic:** Refactorizado `editItem` (Deep Copy + NextTick) para mover datos al input sin pÃ©rdidas.
+    *   **Enter Workflow:** Commit de renglÃƒÂ³n con `ENTER` desde cualquier input numÃƒÂ©rico.
+    *   **Inputs Limpios:** Campos inician vacÃƒÂ­os (no `0`).
+    *   **BÃƒÂºsqueda Unificada:** Search SKU/Desc simultÃƒÂ¡neo.
+    *   **Foco Inteligente:** Eliminado popup de bÃƒÂºsqueda al navegar con TAB.
+    *   **GestiÃƒÂ³n Renglones:** Agregada columna Acciones (Editar/Eliminar).
+    *   **Edit Logic:** Refactorizado `editItem` (Deep Copy + NextTick) para mover datos al input sin pÃƒÂ©rdidas.
     *   **Layout:** Grilla restaurada a 12 columnas.
 
-**Resultado:** Carga de pedidos fluida ("Mouse-less experience") y funcionalidad de importaciÃ³n backend restaurada.
+**Resultado:** Carga de pedidos fluida ("Mouse-less experience") y funcionalidad de importaciÃƒÂ³n backend restaurada.
 
-# [V5.6.15] 2026-01-19 - RefactorizaciÃ³n UI PedidoCanvas y Fix Compilador
+# [V5.6.15] 2026-01-19 - RefactorizaciÃƒÂ³n UI PedidoCanvas y Fix Compilador
 
 > **ESTADO:** DEPLOYED
 > **TIPO:** UX / HOTFIX / VUE COMPILER
 
-**Objetivo:** Estabilizar layout de "Nuevo Pedido", corregir error crÃ­tico de compilaciÃ³n y pulir UX de carga.
+**Objetivo:** Estabilizar layout de "Nuevo Pedido", corregir error crÃƒÂ­tico de compilaciÃƒÂ³n y pulir UX de carga.
 
 **Problemas:**
-*   **Compilador:** Error persistente `Invalid end tag` causado por `divs` huÃ©rfanos.
-*   **Layout:** El pie de pÃ¡gina se perdÃ­a al hacer scroll, y el panel de rentabilidad quedaba atrapado en contextos de apilamiento (z-index) incorrectos.
-*   **UX:** Inputs de descuento desalineados y falta de scroll automÃ¡tico al cargar Ã­tems.
+*   **Compilador:** Error persistente `Invalid end tag` causado por `divs` huÃƒÂ©rfanos.
+*   **Layout:** El pie de pÃƒÂ¡gina se perdÃƒÂ­a al hacer scroll, y el panel de rentabilidad quedaba atrapado en contextos de apilamiento (z-index) incorrectos.
+*   **UX:** Inputs de descuento desalineados y falta de scroll automÃƒÂ¡tico al cargar ÃƒÂ­tems.
 
 **Intervenciones:**
 1.  **HTML/CSS:**
-    *   Limpieza estructura y correcciÃ³n de tags de cierre.
+    *   Limpieza estructura y correcciÃƒÂ³n de tags de cierre.
     *   Layout "Sandwich" (Header Fijo + Body Flexible + Footer Fijo) reforzado con `overflow-hidden` y `min-h-0`.
-    *   Componente `RentabilidadPanel` movido a la raÃ­z del template (fuera de contenedores relativos).
-2.  **LÃ³gica UI:**
+    *   Componente `RentabilidadPanel` movido a la raÃƒÂ­z del template (fuera de contenedores relativos).
+2.  **LÃƒÂ³gica UI:**
     *   **Auto-Scroll:** Implementado `scrollTop = scrollHeight` tras commit.
-    *   **Chevron:** Invertida direcciÃ³n de Ã­conos en panel lateral para coincidir con modelo mental del usuario.
-    *   **Grilla:** NumeraciÃ³n visual, orden cronolÃ³gico de carga y alineaciÃ³n de inputs.
+    *   **Chevron:** Invertida direcciÃƒÂ³n de ÃƒÂ­conos en panel lateral para coincidir con modelo mental del usuario.
+    *   **Grilla:** NumeraciÃƒÂ³n visual, orden cronolÃƒÂ³gico de carga y alineaciÃƒÂ³n de inputs.
 
 **Resultado:** PedidoCanvas estable, con footer persistente y experiencia de carga fluida.
-# [V10.0] 2026-01-20 - EvoluciÃ³n IPL V10 e IntegraciÃ³n LogÃ­stica
+# [V10.0] 2026-01-20 - EvoluciÃƒÂ³n IPL V10 e IntegraciÃƒÂ³n LogÃƒÂ­stica
 
 > **ESTADO:** NOMINAL
-> **TIPO:** PROTOCOLO RAÃ�Z / FEATURE / UX
+> **TIPO:** PROTOCOLO RAÃƒï¿½Z / FEATURE / UX
 
-**Objetivo:** Evolucionar el protocolo de arranque a V10, implementar infraestructura de logÃ­stica en pedidos y habilitar la doctrina DEOU (F4/F10).
+**Objetivo:** Evolucionar el protocolo de arranque a V10, implementar infraestructura de logÃƒÂ­stica en pedidos y habilitar la doctrina DEOU (F4/F10).
 
 **Intervenciones:**
 1.  **Protocolo:** Creado `GY_IPL_V10.md` con Directiva 1 de Seguridad ALFA (Handover Check).
 2.  **Backend (Expandido):**
     *   **Models:** Agregadas columnas `domicilio_entrega_id` y `transporte_id` a la tabla `pedidos`.
-    *   **Schemas:** Alineados esquemas para soportar envÃ­os y descuentos globales.
+    *   **Schemas:** Alineados esquemas para soportar envÃƒÂ­os y descuentos globales.
     *   **Router:** Patcheado `create_pedido_tactico` para persistencia de datos de entrega.
 3.  **Frontend (PedidoCanvas.vue):**
-    *   **POST:** BotÃ³n guardar conectado al Cargador TÃ¡ctico.
-    *   **DEOU F10:** Implementado guardado rÃ¡pido por teclado.
-    *   **DEOU F4:** Implementado salto a Ventana SatÃ©lite (Alta Cliente/Producto) contextual al foco.
-4.  **Base de Datos:** Aplicadas migraciones crÃ­ticas a `pilot.db`.
+    *   **POST:** BotÃƒÂ³n guardar conectado al Cargador TÃƒÂ¡ctico.
+    *   **DEOU F10:** Implementado guardado rÃƒÂ¡pido por teclado.
+    *   **DEOU F4:** Implementado salto a Ventana SatÃƒÂ©lite (Alta Cliente/Producto) contextual al foco.
+4.  **Base de Datos:** Aplicadas migraciones crÃƒÂ­ticas a `pilot.db`.
 
-**MÃ©tricas Finales:**
+**MÃƒÂ©tricas Finales:**
 *   **Integridad:** 11 Clientes, 14 Productos, 5 Pedidos (OK).
-*   **Protocolo Omega:** Generado Informe HistÃ³rico.
+*   **Protocolo Omega:** Generado Informe HistÃƒÂ³rico.
 
-# [RECUPERACIÓN] 2026-01-23 - Protocolo Forense (Rollback & Clean)
+# [RECUPERACIÃ“N] 2026-01-23 - Protocolo Forense (Rollback & Clean)
 
 > **ESTADO:** ESTABLE
 > **TIPO:** SYSTEM RECOVERY / IDENTITY V12
 
-**Operación:** Se ejecutó Rollback al commit `8230154` (Miércoles 21) para eliminar inestabilidad estructural (Imports Anti-Pattern) introducida el Jueves.
+**OperaciÃ³n:** Se ejecutÃ³ Rollback al commit `8230154` (MiÃ©rcoles 21) para eliminar inestabilidad estructural (Imports Anti-Pattern) introducida el Jueves.
 **Identidad:** Sintetizada V12 ("Phoenix") basada en V10.
-**Limpieza:** Eliminada línea temporal fallida V11.
+**Limpieza:** Eliminada lÃ­nea temporal fallida V11.
 
 ## [2026-01-23] PROTOCOLO OMEGA - SECTOR DOMICILIOS
 **Estado:** ESTABLE / FIX FINALIZADO
 **Informe Detallado:** [Ver Reporte OMEGA](../INFORMES_HISTORICOS/2026-01-23_PROTOCOLO_OMEGA_DOMICILIOS.md)
-**Resumen:** Se solucionó el crash de lista de clientes, se implementó la fusión de Piso/Depto en string, y se corrigió la sincronización visual del flag Fiscal.
+**Resumen:** Se solucionÃ³ el crash de lista de clientes, se implementÃ³ la fusiÃ³n de Piso/Depto en string, y se corrigiÃ³ la sincronizaciÃ³n visual del flag Fiscal.
 
 
 ## SESION 781: UX Clientes & Hardening Seguridad
 **Fecha:** 2026-01-24
-**Objetivo:** Finalizar refactorizaciÃ³n de Header Clientes, arreglar visualizaciÃ³n de domicilios y solucionar alertas de contraseÃ±a en navegador.
+**Objetivo:** Finalizar refactorizaciÃƒÂ³n de Header Clientes, arreglar visualizaciÃƒÂ³n de domicilios y solucionar alertas de contraseÃƒÂ±a en navegador.
 
 ### Hito 1: Refactor Header HaweView (Teleport Fix)
-Se completÃ³ la migraciÃ³n del header de Clientes para usar el sistema Teleport hacia GlobalStatsBar.
-**CRÃ�TICO:** Se documentÃ³ y solucionÃ³ una *race condition*. El componente HaweView intentaba teleportar antes de que el target #global-header-center existiera.
-*   **SoluciÃ³n:** Se implementÃ³ gate v-if='isMounted' en el Teleport y se asegurÃ³ la renderizaciÃ³n sÃ­ncrona de la estructura en GlobalStatsBar.
-*   **LecciÃ³n:** Para futuros mÃ³dulos (Productos), es MANDATORIO usar isMounted al usar Teleport.
+Se completÃƒÂ³ la migraciÃƒÂ³n del header de Clientes para usar el sistema Teleport hacia GlobalStatsBar.
+**CRÃƒï¿½TICO:** Se documentÃƒÂ³ y solucionÃƒÂ³ una *race condition*. El componente HaweView intentaba teleportar antes de que el target #global-header-center existiera.
+*   **SoluciÃƒÂ³n:** Se implementÃƒÂ³ gate v-if='isMounted' en el Teleport y se asegurÃƒÂ³ la renderizaciÃƒÂ³n sÃƒÂ­ncrona de la estructura en GlobalStatsBar.
+*   **LecciÃƒÂ³n:** Para futuros mÃƒÂ³dulos (Productos), es MANDATORIO usar isMounted al usar Teleport.
 
 ### Hito 2: UX Clientes
-*   **Toolbar:** Reordenada segÃºn especificaciÃ³n (9 items: Checkbox -> ... -> Nuevo).
-*   **Domicilios:** Se eliminÃ³ el uso de pipes | en la visualizaciÃ³n. Se integrÃ³ la visualizaciÃ³n de Provincia para desambiguar localidades. Backend actualizado (domicilio_fiscal_resumen) para soportar esto.
+*   **Toolbar:** Reordenada segÃƒÂºn especificaciÃƒÂ³n (9 items: Checkbox -> ... -> Nuevo).
+*   **Domicilios:** Se eliminÃƒÂ³ el uso de pipes | en la visualizaciÃƒÂ³n. Se integrÃƒÂ³ la visualizaciÃƒÂ³n de Provincia para desambiguar localidades. Backend actualizado (domicilio_fiscal_resumen) para soportar esto.
 
 ### Hito 3: Seguridad Admin (Password Prompt Bypass)
 Los navegadores modernos (Brave/Chromium) ignoran autocomplete='off'/new-password.
-*   **Fix Definitivo:** Se cambiÃ³ el input del PIN de administrador a type='text' y se aplicÃ³ CSS -webkit-text-security: disc;. Esto elimina completamente la heurÃ­stica de guardado de contraseÃ±as del navegador mientras mantiene la privacidad visual.
+*   **Fix Definitivo:** Se cambiÃƒÂ³ el input del PIN de administrador a type='text' y se aplicÃƒÂ³ CSS -webkit-text-security: disc;. Esto elimina completamente la heurÃƒÂ­stica de guardado de contraseÃƒÂ±as del navegador mientras mantiene la privacidad visual.
 
-**Estado:** MÃ³dulo Clientes VERIFICADO y CERRADO.
+**Estado:** MÃƒÂ³dulo Clientes VERIFICADO y CERRADO.
 
 
 ## SESION 782: SYSTEM REBOOT & MODULE INITIATION (CONTACTOS)
 **Fecha:** 2026-01-26
-**Objetivo:** Intervención BIOS, Instalación de Bootloader V2 y Activación Módulo Agenda.
+**Objetivo:** IntervenciÃ³n BIOS, InstalaciÃ³n de Bootloader V2 y ActivaciÃ³n MÃ³dulo Agenda.
 
-### Hito 1: Intervención de Nivel BIOS (Resolución de Paradoja Marmota)
-Se detectó una desincronización cognitiva severa: La identidad residía dentro de un código que no se actualizaba hasta después de asumir la identidad (Loop Infinito).
-*   **Solución:** Instalación de BOOTLOADER V2.
-*   **Mecanismo:** El script físico DESPERTAR_GY.bat ahora ejecuta git pull de forma autónoma **antes** de lanzar el entorno visual, rompiendo la dependencia causal.
-*   **Artefacto Cognitivo:** Se creó _GY/BOOTLOADER.md como puntero absoluto de verdad al inicio.
+### Hito 1: IntervenciÃ³n de Nivel BIOS (ResoluciÃ³n de Paradoja Marmota)
+Se detectÃ³ una desincronizaciÃ³n cognitiva severa: La identidad residÃ­a dentro de un cÃ³digo que no se actualizaba hasta despuÃ©s de asumir la identidad (Loop Infinito).
+*   **SoluciÃ³n:** InstalaciÃ³n de BOOTLOADER V2.
+*   **Mecanismo:** El script fÃ­sico DESPERTAR_GY.bat ahora ejecuta git pull de forma autÃ³noma **antes** de lanzar el entorno visual, rompiendo la dependencia causal.
+*   **Artefacto Cognitivo:** Se creÃ³ _GY/BOOTLOADER.md como puntero absoluto de verdad al inicio.
 
 ### Hito 2: Upgrade de Identidad (V13 -> V14 VANGUARD)
-Debido a la reestructuración profunda de los protocolos de arranque, se dio de baja la versión V13 (Sentinel) y se activó **V14 'VANGUARD'**.
+Debido a la reestructuraciÃ³n profunda de los protocolos de arranque, se dio de baja la versiÃ³n V13 (Sentinel) y se activÃ³ **V14 'VANGUARD'**.
 *   **Protocolo:** GY_IPL_V14.md establecido como nueva norma.
-*   **Doctrina:** 'La Anticipación es la Clave de la Victoria.'
+*   **Doctrina:** 'La AnticipaciÃ³n es la Clave de la Victoria.'
 
-### Hito 3: Inicio de Operaciones Tácticas
-La rama 5.5-rescate-jueves fue fusionada en main y eliminada. Se creó la rama táctica 5.6-contactos-agenda.
-*   **Misión:** Implementar UX de Agenda en Ficha Cliente e integración Google.
+### Hito 3: Inicio de Operaciones TÃ¡cticas
+La rama 5.5-rescate-jueves fue fusionada en main y eliminada. Se creÃ³ la rama tÃ¡ctica 5.6-contactos-agenda.
+*   **MisiÃ³n:** Implementar UX de Agenda en Ficha Cliente e integraciÃ³n Google.
 
 **Estado:** SISTEMA NOMINAL V14. LISTO PARA OPERACIONES.
 
 
-### Hito 4: Implementación UX Agenda (Contactos V1)
-Se completó la integración visual del módulo de contactos en la interfaz de Cliente.
-*   **Componente Táctico:** Se creó ContactoPopover.vue, un componente reutilizable que muestra la lista de vínculos y permite acciones rápidas (Copiar Teléfono/Mail).
-*   **Integración:**
-    *   **ClienteInspector:** Se redujo el layout del Header para acomodar el botón 'Agenda' junto a la Razón Social.
-    *   **ClientCanvas:** Se añadió el botón en el Header principal.
-    *   **Lógica:** Ambos componentes comparten el estado showAgenda y manejan la navegación hacia la pestaña completa de contactos ('Gestionar').
+### Hito 4: ImplementaciÃ³n UX Agenda (Contactos V1)
+Se completÃ³ la integraciÃ³n visual del mÃ³dulo de contactos en la interfaz de Cliente.
+*   **Componente TÃ¡ctico:** Se creÃ³ ContactoPopover.vue, un componente reutilizable que muestra la lista de vÃ­nculos y permite acciones rÃ¡pidas (Copiar TelÃ©fono/Mail).
+*   **IntegraciÃ³n:**
+    *   **ClienteInspector:** Se redujo el layout del Header para acomodar el botÃ³n 'Agenda' junto a la RazÃ³n Social.
+    *   **ClientCanvas:** Se aÃ±adiÃ³ el botÃ³n en el Header principal.
+    *   **LÃ³gica:** Ambos componentes comparten el estado showAgenda y manejan la navegaciÃ³n hacia la pestaÃ±a completa de contactos ('Gestionar').
 
 **Estado:** Header UX y Popover OPERATIVOS.
 
 
 ### Hito 5: Estrategia Local First (Google Mock)
-Siguiendo órdenes directas, se difirió la integración real de OAuth y se implementó una estructura local compatible.
-*   **DB Schema:** Se añadió google_resource_name y google_etag a la tabla personas vía migración manual (scripts/migrate_agenda_google.py).
-*   **Backend:** Se implementó google_mock_router.py para simular latencia y respuestas de éxito en la sincronización.
-*   **Frontend:** Se activó el botón 'Sincronizar' en ContactoPopover conectado al endpoint simulado.
+Siguiendo Ã³rdenes directas, se difiriÃ³ la integraciÃ³n real de OAuth y se implementÃ³ una estructura local compatible.
+*   **DB Schema:** Se aÃ±adiÃ³ google_resource_name y google_etag a la tabla personas vÃ­a migraciÃ³n manual (scripts/migrate_agenda_google.py).
+*   **Backend:** Se implementÃ³ google_mock_router.py para simular latencia y respuestas de Ã©xito en la sincronizaciÃ³n.
+*   **Frontend:** Se activÃ³ el botÃ³n 'Sincronizar' en ContactoPopover conectado al endpoint simulado.
 
-**Resultado:** El sistema está listo para operar localmente y 'fingir' conexión a la nube sin romper el flujo de trabajo.
+**Resultado:** El sistema estÃ¡ listo para operar localmente y 'fingir' conexiÃ³n a la nube sin romper el flujo de trabajo.
 
 
-### 2026-01-28: [FIX] Transporte, Frankenstein & Simplificación UI
-- **Problema:** Transporte no persistía por conflicto con ID de Nodo Legacy.
-- **Solución:** Patch en Backend Service para limpiar nodo viejo al actualizar transporte.
+### 2026-01-28: [FIX] Transporte, Frankenstein & SimplificaciÃ³n UI
+- **Problema:** Transporte no persistÃ­a por conflicto con ID de Nodo Legacy.
+- **SoluciÃ³n:** Patch en Backend Service para limpiar nodo viejo al actualizar transporte.
 - **Refactor:** Limpieza masiva de ClientCanvas.vue (Frankenstein Cleanup).
-- **UI:** Eliminado selector rápido en tarjeta. Implementado Menú Contextual (Click Derecho) en Dirección.
+- **UI:** Eliminado selector rÃ¡pido en tarjeta. Implementado MenÃº Contextual (Click Derecho) en DirecciÃ³n.
 
-## [2026-01-28] CIERRE DE SESIÃ“N: AGENDA GLOBAL
-- **Hito**: MÃ³dulo de Contactos 100% Funcional (Backend/Frontend/DB).
-- **Fix**: SimetrÃ­a ORM restaurada en Cliente/Transporte.
+## [2026-01-28] CIERRE DE SESIÃƒâ€œN: AGENDA GLOBAL
+- **Hito**: MÃƒÂ³dulo de Contactos 100% Funcional (Backend/Frontend/DB).
+- **Fix**: SimetrÃƒÂ­a ORM restaurada en Cliente/Transporte.
 - **Fix**: Solucionado bug visual 'Contactos Fantasmas' (SPA Routing issue).
 - **Estado**: Sistema estable, limpio de datos corruptos, listo para uso operativo.
 
 ## [2026-01-29] FIX CONTACT CANVAS Y BACKEND 500
-- **Incidente Crítico:** Resuelto error 500 en `/api/clientes` (Backend) y dropdowns vacíos (Frontend).
-- **Backend:** `models.py` (try/catch en property), `service.py` (joinedload para optimización).
+- **Incidente CrÃ­tico:** Resuelto error 500 en `/api/clientes` (Backend) y dropdowns vacÃ­os (Frontend).
+- **Backend:** `models.py` (try/catch en property), `service.py` (joinedload para optimizaciÃ³n).
 - **Frontend:** `ContactCanvas.vue` (HTML Fix, `storeToRefs`, `text-black` en options).
-- **Implementación UI:** Se optó por Botones de Navegación Explícita (↗️) y Recarga (🔄) en lugar de Menú Contextual para mayor estabilidad en el Canvas de Contacto.
+- **ImplementaciÃ³n UI:** Se optÃ³ por Botones de NavegaciÃ³n ExplÃ­cita (â†—ï¸) y Recarga (ðŸ”„) en lugar de MenÃº Contextual para mayor estabilidad en el Canvas de Contacto.
 - **Estado**: Funcionalidad de Agenda Contactos restaurada al 100%. Protocolo Omega Ejecutado.
 
 ## [2026-01-30] PROTOCOLO MULTIPLEX (CONTACTOS N:M) & SEARCH & LINK
-- **Hito Estratégico:** Reingeniería total del núcleo de Identidad (`backend/contactos`) para soportar la "Paradoja de Pedro" (Una persona, Múltiples Roles en distintas empresas).
-- **Backend:** Separación de `Persona` (Identidad) y `Vinculo` (Rol Contextual). Implementación de Polimorfismo en SQLAlchemy y Soporte JSON para canales.
-- **Frontend:** Renovación de `ContactCanvas.vue` con "Billetera de Vínculos" (Tarjetas por empresa).
-- **Blindaje de Identidad:** Implementación de "Search & Link" (Typeahead con Debounce). El sistema detecta si la persona ya existe (incluso buscando por celular en JSON) y permite reutilizarla en lugar de duplicarla.
-- **QA:** Tests de Integración (`test_qa_pedro.py`) y Robustez/Duplicados (`test_qa_edge_cases.py`) superados.
-- **Documentación:** Informe Histórico detallado generado: [2026-01-30_REINGENIERIA_MULTIPLEX_CONTACTOS](../INFORMES_HISTORICOS/2026-01-30_REINGENIERIA_MULTIPLEX_CONTACTOS.md).
-- **Estado:** Módulo Contactos V6 FULL OPERATIVO.
+- **Hito EstratÃ©gico:** ReingenierÃ­a total del nÃºcleo de Identidad (`backend/contactos`) para soportar la "Paradoja de Pedro" (Una persona, MÃºltiples Roles en distintas empresas).
+- **Backend:** SeparaciÃ³n de `Persona` (Identidad) y `Vinculo` (Rol Contextual). ImplementaciÃ³n de Polimorfismo en SQLAlchemy y Soporte JSON para canales.
+- **Frontend:** RenovaciÃ³n de `ContactCanvas.vue` con "Billetera de VÃ­nculos" (Tarjetas por empresa).
+- **Blindaje de Identidad:** ImplementaciÃ³n de "Search & Link" (Typeahead con Debounce). El sistema detecta si la persona ya existe (incluso buscando por celular en JSON) y permite reutilizarla en lugar de duplicarla.
+- **QA:** Tests de IntegraciÃ³n (`test_qa_pedro.py`) y Robustez/Duplicados (`test_qa_edge_cases.py`) superados.
+- **DocumentaciÃ³n:** Informe HistÃ³rico detallado generado: [2026-01-30_REINGENIERIA_MULTIPLEX_CONTACTOS](../INFORMES_HISTORICOS/2026-01-30_REINGENIERIA_MULTIPLEX_CONTACTOS.md).
+- **Estado:** MÃ³dulo Contactos V6 FULL OPERATIVO.
 
 
-## [2026-02-01] SESIÓN 783: BLINDAJE DE PERSISTENCIA Y FIX SCHEMA
-- **Incidente Crítico**: Error 500 en `/contactos` por "Schema Mismatch" (Columna `tipo_contacto_id` inexistente en DB).
-- **Resolución**: Migración manual SQLite (`add_role_column_to_vinculos.py`).
+## [2026-02-01] SESIÃ“N 783: BLINDAJE DE PERSISTENCIA Y FIX SCHEMA
+- **Incidente CrÃ­tico**: Error 500 en `/contactos` por "Schema Mismatch" (Columna `tipo_contacto_id` inexistente en DB).
+- **ResoluciÃ³n**: MigraciÃ³n manual SQLite (`add_role_column_to_vinculos.py`).
 - **Persistence Fix**: 
-    - **Backend**: Implementada lógica dual en `update_vinculo` para soportar `puesto` (alias) y `rol`. Añadido soporte para `tipo_contacto_id`.
-    - **Frontend (`ContactCanvas.vue`)**: Sincronización de Etiqueta (Label) e ID. Se corrigió el bug que dejaba el cargo como "Nuevo Rol".
-    - **Frontend (`ContactosView.vue`)**: Adaptación de Dashboard para leer `vinculos[]` en lugar de campos planos (Legacy).
-- **Integridad**: Verificación manual de DB (`inspect_vinculo_data.py`) confirmando persistencia correcta.
-- **[FALLO DE PROTOCOLO]**: Se detectó "Efecto Túnel". La IA priorizó la solución técnica sobre el Freno de Mano (Fase 2). Se activó Auditoría de Doctrina.
-- **Estado**: Módulo Contactos V6.1 ESTABLE. Auditoría en Curso.
+    - **Backend**: Implementada lÃ³gica dual en `update_vinculo` para soportar `puesto` (alias) y `rol`. AÃ±adido soporte para `tipo_contacto_id`.
+    - **Frontend (`ContactCanvas.vue`)**: SincronizaciÃ³n de Etiqueta (Label) e ID. Se corrigiÃ³ el bug que dejaba el cargo como "Nuevo Rol".
+    - **Frontend (`ContactosView.vue`)**: AdaptaciÃ³n de Dashboard para leer `vinculos[]` en lugar de campos planos (Legacy).
+- **Integridad**: VerificaciÃ³n manual de DB (`inspect_vinculo_data.py`) confirmando persistencia correcta.
+- **[FALLO DE PROTOCOLO]**: Se detectÃ³ "Efecto TÃºnel". La IA priorizÃ³ la soluciÃ³n tÃ©cnica sobre el Freno de Mano (Fase 2). Se activÃ³ AuditorÃ­a de Doctrina.
+- **Estado**: MÃ³dulo Contactos V6.1 ESTABLE. AuditorÃ­a en Curso.
 
 
-# [2026-02-01] AUDITORÍA FORENSE: SATELLITES INTEGRITY CHECK
+# [2026-02-01] AUDITORÃA FORENSE: SATELLITES INTEGRITY CHECK
 
-> **ESTADO:** OBSERVACIÓN (SIN CAMBIOS)
-> **TIPO:** INSPECCIÓN / DOCTRINA
+> **ESTADO:** OBSERVACIÃ“N (SIN CAMBIOS)
+> **TIPO:** INSPECCIÃ“N / DOCTRINA
 
-**Objetivo:** Determinar la 'Deuda Técnica Estructural' de los módulos satélite tras la estabilización del núcleo V6.
+**Objetivo:** Determinar la 'Deuda TÃ©cnica Estructural' de los mÃ³dulos satÃ©lite tras la estabilizaciÃ³n del nÃºcleo V6.
 
 **Hallazgos Forenses:**
-1.  **Clientes:** Estado 'V6 Native Híbrido'. Uso exitoso de 'Pipe Logic' para direcciones.
+1.  **Clientes:** Estado 'V6 Native HÃ­brido'. Uso exitoso de 'Pipe Logic' para direcciones.
 2.  **Productos:** Robusto pero 'Standalone'. No integrado a la Agenda Global.
-3.  **Transportes:** Funcionalidad de espejo en Despacho operativa, pero estructura de Nodos aún plana (V5).
+3.  **Transportes:** Funcionalidad de espejo en Despacho operativa, pero estructura de Nodos aÃºn plana (V5).
 
-**Acción Táctica:**
-*   Se generó reporte INFORMES_HISTORICOS/2026-02-01_AUDITORIA_FORENSE_MODULOS.md.
-*   **Orden D+1:** No migrar logística/proveedores hasta verificar facturación del Lunes.
+**AcciÃ³n TÃ¡ctica:**
+*   Se generÃ³ reporte INFORMES_HISTORICOS/2026-02-01_AUDITORIA_FORENSE_MODULOS.md.
+*   **Orden D+1:** No migrar logÃ­stica/proveedores hasta verificar facturaciÃ³n del Lunes.
 
 
 # [2026-02-01] TESTAMENTO DEL DOMINGO (HOJA DE RUTA FASE 2)
 
-> **ESTADO:** ESTRATÉGICO
-> **TIPO:** DOCUMENTACIÓN / ESTABILIDAD
+> **ESTADO:** ESTRATÃ‰GICO
+> **TIPO:** DOCUMENTACIÃ“N / ESTABILIDAD
 
 **Hitos de Cierre:**
-1.  **Estabilidad Windows 11:** Implementado SISTEMA_SPLIT.bat para mitigar crashes por conflictos de señales en consola unificada.
-2.  **Mapa de Satélites:** Identificada deuda técnica en Vendedores y Proveedores (V5 Standalone).
+1.  **Estabilidad Windows 11:** Implementado SISTEMA_SPLIT.bat para mitigar crashes por conflictos de seÃ±ales en consola unificada.
+2.  **Mapa de SatÃ©lites:** Identificada deuda tÃ©cnica en Vendedores y Proveedores (V5 Standalone).
 3.  **Hoja de Ruta:** Definida estrategia para 'Transportes Favoritos' (Cloud Cookie) y 'Google Sync' (Local First).
 
 **Artefacto Generado:** INFORMES_HISTORICOS/2026-02-01_TESTAMENTO_DOMINGO_F2.md
 
 
-## SESION 784: OPTIMIZACIÓN UX CLIENTES & DOMICILIOS
+## SESION 784: OPTIMIZACIÃ“N UX CLIENTES & DOMICILIOS
 **Fecha:** 2026-02-02
-**Objetivo:** Refinar la experiencia de alta de clientes y gestión de domicilios fiscales.
+**Objetivo:** Refinar la experiencia de alta de clientes y gestiÃ³n de domicilios fiscales.
 
-### Hito 1: Automatización de Carga
-*   **Consumidor Final:** Al seleccionar IVA "Consumidor Final", el CUIT se completa con ceros. Inversamente, al ingresar CUIT 00000000000, se setea IVA y Segmento automáticamente.
+### Hito 1: AutomatizaciÃ³n de Carga
+*   **Consumidor Final:** Al seleccionar IVA "Consumidor Final", el CUIT se completa con ceros. Inversamente, al ingresar CUIT 00000000000, se setea IVA y Segmento automÃ¡ticamente.
 *   **Default Fiscal:** El switch "Fiscal" ahora inicia ACTIVO por defecto en nuevas direcciones para reducir clics.
 
-### Hito 2: Gestión de Domicilios (Ley de Conservación)
-*   **Fix Identidad:** Se solucionó el problema donde direcciones nuevas se sobrescribían por falta de ID.
-*   **Baja Fiscal:** Implementado menú contextual (Click Derecho / 3 Puntos) en la tarjeta Fiscal. Permite "Dar de baja" solo si existe otro domicilio activo para heredar la fiscalidad.
+### Hito 2: GestiÃ³n de Domicilios (Ley de ConservaciÃ³n)
+*   **Fix Identidad:** Se solucionÃ³ el problema donde direcciones nuevas se sobrescribÃ­an por falta de ID.
+*   **Baja Fiscal:** Implementado menÃº contextual (Click Derecho / 3 Puntos) en la tarjeta Fiscal. Permite "Dar de baja" solo si existe otro domicilio activo para heredar la fiscalidad.
 
 ### Hito 3: Estabilidad
-*   **Crash Sort:** Parche defensivo en `HaweView` para evitar pantallas blancas al ordenar clientes sin Razón Social.
+*   **Crash Sort:** Parche defensivo en `HaweView` para evitar pantallas blancas al ordenar clientes sin RazÃ³n Social.
 *   **Auto-Refresh:** Forzado de recarga de lista al volver de la ficha de cliente para asegurar datos frescos.
 
-**Estado:** Módulo Clientes V6.2 PULIDO Y ESTABLE.
+**Estado:** MÃ³dulo Clientes V6.2 PULIDO Y ESTABLE.
 
 
-# [V6.2] 2026-02-02 - UX Clientes & Ley de Conservación Fiscal
+# [V6.2] 2026-02-02 - UX Clientes & Ley de ConservaciÃ³n Fiscal
 
 > **ESTADO:** DEPLOYED
 > **TIPO:** UX / LOGIC GUARDCLAUSE
 
-**Objetivo:** Eliminar fricción en alta de clientes y proteger la integridad del Domicilio Fiscal.
+**Objetivo:** Eliminar fricciÃ³n en alta de clientes y proteger la integridad del Domicilio Fiscal.
 
 **Intervenciones:**
-1.  **Automatización (UX):**
+1.  **AutomatizaciÃ³n (UX):**
     *   **Consumidor Final:** Enlace bidireccional IVA <-> CUIT (00000000000).
-    *   **Default Fiscal:** Inicialización inteligente. es_fiscal=True solo si es el primer domicilio.
-2.  **Integridad (Ley de Conservación):**
+    *   **Default Fiscal:** InicializaciÃ³n inteligente. es_fiscal=True solo si es el primer domicilio.
+2.  **Integridad (Ley de ConservaciÃ³n):**
     *   **Bloqueo:** Deshabilitado borrado directo de domicilio fiscal.
-    *   **Transferencia Contextual:** Implementado Menú Contextual (Click Derecho) para 'Dar de baja' transfiriendo la fiscalidad a un candidato activo.
+    *   **Transferencia Contextual:** Implementado MenÃº Contextual (Click Derecho) para 'Dar de baja' transfiriendo la fiscalidad a un candidato activo.
 3.  **Estabilidad:**
     *   **Crash Sort:** Fix en HaweView para tolerancia a nulos en ordenamiento.
     *   **Refresh:** Forzado de recarga al volver del inspector.
 
 **Resultado:** Alta de clientes fluida y blindada contra errores de 'Sin Domicilio Fiscal'.
 
-# [V6.3] 2026-02-02 - Auditoría Estratégica Multiplex (N:M)
+# [V6.3] 2026-02-02 - AuditorÃ­a EstratÃ©gica Multiplex (N:M)
 
 > **ESTADO:** AUDIT COMPLETE
 > **TIPO:** STRATEGIC ANALYSIS
 
-**Objetivo:** Evaluar viabilidad de arquitectura N:M total (Contactos, Logística, Stock) para Fase 2.
+**Objetivo:** Evaluar viabilidad de arquitectura N:M total (Contactos, LogÃ­stica, Stock) para Fase 2.
 
 **Hallazgos:**
-*   **Contactos:** V6 Ready (Polimorfismo Operativo). Soporta 'Cobrador Rígido'.
-*   **Logística:** Blockade. Modelo 'Hub & Spoke' rígido (1 Transport por Pedido). Requiere 'Split' para envíos multipunto.
-*   **Stock:** Latente. Modelo Deposito existe pero requiere refactor de vinculación con Producto.
+*   **Contactos:** V6 Ready (Polimorfismo Operativo). Soporta 'Cobrador RÃ­gido'.
+*   **LogÃ­stica:** Blockade. Modelo 'Hub & Spoke' rÃ­gido (1 Transport por Pedido). Requiere 'Split' para envÃ­os multipunto.
+*   **Stock:** Latente. Modelo Deposito existe pero requiere refactor de vinculaciÃ³n con Producto.
 
-**Acción:** Generado reporte maestro INFORMES_HISTORICOS/2026-02-02_AUDITORIA_MULTIPLEX.md.
+**AcciÃ³n:** Generado reporte maestro INFORMES_HISTORICOS/2026-02-02_AUDITORIA_MULTIPLEX.md.
 
-# [V7.0] 2026-02-04 - Logística Táctica (Split Orders)
+# [V7.0] 2026-02-04 - LogÃ­stica TÃ¡ctica (Split Orders)
 
 > **ESTADO:** DEPLOYED
 > **TIPO:** MAJOR FEATURE / ARCHITECTURE
 
-**Objetivo:** Permitir entregas parciales y múltiples destinos para un mismo pedido (Caso "La Sevillanita" + "Retira Cliente").
+**Objetivo:** Permitir entregas parciales y mÃºltiples destinos para un mismo pedido (Caso "La Sevillanita" + "Retira Cliente").
 
 **Intervenciones:**
-1.  **Backend (Core Logística):**
+1.  **Backend (Core LogÃ­stica):**
     *   Implementado modelo `Remito` y `RemitoItem`.
-    *   **Stock Logic:** El Pedido ahora solo reserva (`stock_reservado`). El Remito descuenta el físico (`stock_fisico`) al despachar.
-    *   **Gatekeeper:** Bloqueo de creación de remitos si el pedido no tiene `liberado_despacho` (Semáforo Financiero).
+    *   **Stock Logic:** El Pedido ahora solo reserva (`stock_reservado`). El Remito descuenta el fÃ­sico (`stock_fisico`) al despachar.
+    *   **Gatekeeper:** Bloqueo de creaciÃ³n de remitos si el pedido no tiene `liberado_despacho` (SemÃ¡foro Financiero).
 2.  **Frontend (LogisticaSplitter):**
     *   UI de doble panel: "Pool de Pendientes" (Izquierda) -> "Remitos Activos" (Derecha).
-    *   **Drag & Drop:** Asignación visual de mercancía a viajes específicos.
+    *   **Drag & Drop:** AsignaciÃ³n visual de mercancÃ­a a viajes especÃ­ficos.
 3.  **Legacy Cleanup (Forensic):**
-    *   Auditado y reparado `excel_export.py`. Reemplazado campo muerto `tipo_entrega` por lógica dinámica Multiplex.
+    *   Auditado y reparado `excel_export.py`. Reemplazado campo muerto `tipo_entrega` por lÃ³gica dinÃ¡mica Multiplex.
 
-**Resultado:** Sistema capaz de gestionar logística compleja sin romper la integridad del stock ni la trazabilidad financiera.
+**Resultado:** Sistema capaz de gestionar logÃ­stica compleja sin romper la integridad del stock ni la trazabilidad financiera.
 
-# 2026-02-04 | SESIÓN NOCTURNA: REPARACIÓN Y PLANIFICACIÓN V7
+# 2026-02-04 | SESIÃ“N NOCTURNA: REPARACIÃ“N Y PLANIFICACIÃ“N V7
 **Operador:** Gy V14
-**Objetivo:** Estabilización de Sistema y Planificación de Logística V7.
+**Objetivo:** EstabilizaciÃ³n de Sistema y PlanificaciÃ³n de LogÃ­stica V7.
 
-1.  **Diagnóstico y Reparación Crítica:**
-    *   **DB:** Detectado crash por falta de columna `nivel` en `segmentos`. Solucionado mediante reparación de esquema (`ensure_segmentos_migration.py`).
-    *   **Frontend:** Corregido error de compilación Vue "Duplicate Identifier" en `ClienteInspector.vue` (Fusión de funciones `deleteDomicilio`).
+1.  **DiagnÃ³stico y ReparaciÃ³n CrÃ­tica:**
+    *   **DB:** Detectado crash por falta de columna `nivel` en `segmentos`. Solucionado mediante reparaciÃ³n de esquema (`ensure_segmentos_migration.py`).
+    *   **Frontend:** Corregido error de compilaciÃ³n Vue "Duplicate Identifier" en `ClienteInspector.vue` (FusiÃ³n de funciones `deleteDomicilio`).
 
-2.  **Planificación Estratégica (V7 LOGÍSTICA):**
-    *   Diseñado el **"Protocolo Split-View"** para Domicilios.
-    *   Decisión de Arquitectura: Abandonar uso de pipes (`|`) para pisos/deptos y retornar a columnas SQL nativas.
-    *   Establecido soporte para "Unidades de Negocio" (Caso Nestlé: mismo CUIT, distinta logística/identidad).
+2.  **PlanificaciÃ³n EstratÃ©gica (V7 LOGÃSTICA):**
+    *   DiseÃ±ado el **"Protocolo Split-View"** para Domicilios.
+    *   DecisiÃ³n de Arquitectura: Abandonar uso de pipes (`|`) para pisos/deptos y retornar a columnas SQL nativas.
+    *   Establecido soporte para "Unidades de Negocio" (Caso NestlÃ©: mismo CUIT, distinta logÃ­stica/identidad).
     *   **Documento Maestro:** Detallado en `INFORMES_HISTORICOS/2026-02-04_PLAN_TECNICO_SPLIT_V7.md`.
 
-**Estado Final:** Sistema Operativo. Planes listos para ejecución Alfa mañana.
+**Estado Final:** Sistema Operativo. Planes listos para ejecuciÃ³n Alfa maÃ±ana.
 
 # [V7.1] 2026-02-12 - Domicilios Split-View & Migration
 
 > **ESTADO:** DEPLOYED (Feature Branch)
 > **TIPO:** MAJOR REFACTOR / DATA INTEGRITY
 
-**Objetivo:** Implementar arquitectura "Split-View" en Domicilios para separar Datos Fiscales de Logísticos y mejorar la UX en entregas complejas.
+**Objetivo:** Implementar arquitectura "Split-View" en Domicilios para separar Datos Fiscales de LogÃ­sticos y mejorar la UX en entregas complejas.
 
 **Intervenciones:**
 1.  **Backend (Schema V7):**
-    *   **Restauración de Columnas Nativas:** `piso` y `depto` vuelven a ser columnas SQL, eliminando la dependencia de "Pipe Logic" (`|`).
-    *   **Nuevos Campos Logísticos:** `notas_logistica`, `maps_link`, `contacto_id`.
+    *   **RestauraciÃ³n de Columnas Nativas:** `piso` y `depto` vuelven a ser columnas SQL, eliminando la dependencia de "Pipe Logic" (`|`).
+    *   **Nuevos Campos LogÃ­sticos:** `notas_logistica`, `maps_link`, `contacto_id`.
     *   **Split Delivery:** Implementados campos espejo (`calle_entrega`, etc.) para direcciones de entrega divergentes.
-2.  **Migración de Datos (`migration_v7_domicilios.py`):**
+2.  **MigraciÃ³n de Datos (`migration_v7_domicilios.py`):**
     *   Script automatizado para rescatar datos legacy.
     *   Separa strings tipo "Calle 123|4|B" en columnas `calle`, `piso`, `depto`.
 3.  **Service Layer Refactor:**
@@ -1830,236 +1834,237 @@ Siguiendo órdenes directas, se difirió la integración real de OAuth y se impl
 4.  **Frontend (UI):**
     *   Implementado `DomicilioSplitCanvas` (50/50 Layout).
 
-**Resultado:** Integridad de datos garantizada. Bases listas para operatoria logística avanzada (V7).
+**Resultado:** Integridad de datos garantizada. Bases listas para operatoria logÃ­stica avanzada (V7).
 
 # [V7.2] 2026-02-12 - Protocolo Puente RAR-V5 (ARCA Integration)
 
 > **ESTADO:** DEPLOYED (Feature Branch)
 > **TIPO:** STRATEGIC INTEGRATION / SATELLITE LINK
 
-**Objetivo:** Establecer conexión operativa con el satélite de inteligencia fiscal (RAR V1) para validar datos de clientes contra AFIP.
+**Objetivo:** Establecer conexiÃ³n operativa con el satÃ©lite de inteligencia fiscal (RAR V1) para validar datos de clientes contra AFIP.
 
 **Intervenciones:**
 1.  **Arquitectura Puente:**
-    - Implementado `AfipBridgeService` que carga módulos de RAR dinámicamente (`sys.path`).
-    - Endpoint `GET /clientes/afip/{cuit}` expone la lógica de `Conexion_Blindada.py`.
+    - Implementado `AfipBridgeService` que carga mÃ³dulos de RAR dinÃ¡micamente (`sys.path`).
+    - Endpoint `GET /clientes/afip/{cuit}` expone la lÃ³gica de `Conexion_Blindada.py`.
 2.  **MDM (Master Data Management):**
     - Agregado flag `estado_arca` ('PENDIENTE', 'VALIDADO') en tabla `clientes`.
-    - **UI:** Badge "ARCA" verde en Inspector de Clientes si está validado.
+    - **UI:** Badge "ARCA" verde en Inspector de Clientes si estÃ¡ validado.
 3.  **Bugfix Satelital:**
-    - Detectado y corregido error en RAR (`rar_core.py`) al procesar Personas Físicas (AFIP devuelve `formaJuridica: None`).
-4.  **Estrategia Productos (Definición):**
-    - Establecido que V5 es la **Autoridad Exclusiva** de SKUs. RAR operará en modo Read-Only.
+    - Detectado y corregido error en RAR (`rar_core.py`) al procesar Personas FÃ­sicas (AFIP devuelve `formaJuridica: None`).
+4.  **Estrategia Productos (DefiniciÃ³n):**
+    - Establecido que V5 es la **Autoridad Exclusiva** de SKUs. RAR operarÃ¡ en modo Read-Only.
 
 **Resultado:** Clientes blindados con datos oficiales de AFIP. Infraestructura lista para "Reverse Bridge" de productos.
 
 
-# [V6.3] 2026-02-15 - Validación Fiscal Masiva & UX Tuning
+# [V6.3] 2026-02-15 - ValidaciÃ³n Fiscal Masiva & UX Tuning
 
 > **ESTADO:** DEPLOYED
 > **TIPO:** FEATURE / UX / BATCH PROCESSING
 
-**Objetivo:** Cerrar la brecha de validación fiscal para la base instalada y refinar la experiencia de alta.
+**Objetivo:** Cerrar la brecha de validaciÃ³n fiscal para la base instalada y refinar la experiencia de alta.
 
 **Intervenciones:**
 1.  **Backend (Batch Script):**
-    - Implementado `validate_arca_batch.py` con inyección directa de dependencia RAR V1.
-    - Lograda validación del 100% del padrón pendiente (26 clientes).
-    - **Lógica de Preservación:** Respeto de nombres de fantasía/sucursales (UBA) sobre la razón social legal única.
+    - Implementado `validate_arca_batch.py` con inyecciÃ³n directa de dependencia RAR V1.
+    - Lograda validaciÃ³n del 100% del padrÃ³n pendiente (26 clientes).
+    - **LÃ³gica de PreservaciÃ³n:** Respeto de nombres de fantasÃ­a/sucursales (UBA) sobre la razÃ³n social legal Ãºnica.
 2.  **Frontend (ClientCanvas):**
-    - **UX:** Foco automático en CUIT al abrir.
+    - **UX:** Foco automÃ¡tico en CUIT al abrir.
     - **Limpieza:** Eliminado input redundante.
-    - **Inteligencia:** Auto-mapping Fuzzy de Condición IVA (ARCA -> Local) y detección proactiva de duplicados con opción de bifurcación.
+    - **Inteligencia:** Auto-mapping Fuzzy de CondiciÃ³n IVA (ARCA -> Local) y detecciÃ³n proactiva de duplicados con opciÃ³n de bifurcaciÃ³n.
 
 
-# [V6.3.1] 2026-02-15 - Hotfix Dependencias & Validación AFIP
+# [V6.3.1] 2026-02-15 - Hotfix Dependencias & ValidaciÃ³n AFIP
 
 > **ESTADO:** DEPLOYED
 > **TIPO:** HOTFIX / STABILITY
 
-**Objetivo:** Restaurar funcionalidad del botón de validación AFIP (Lupa) y solucionar errores silenciosos de frontend.
+**Objetivo:** Restaurar funcionalidad del botÃ³n de validaciÃ³n AFIP (Lupa) y solucionar errores silenciosos de frontend.
 
 **Intervenciones:**
 1.  **Backend (Hotfix):**
-    *   Instalación de dependencias faltantes `zeep` y `lxml` en entorno virtual (Causa Raíz del Error 400).
-    *   Implementación de logs detallados en `afip_bridge.py` y `router.py` para evitar fallos silenciosos.
+    *   InstalaciÃ³n de dependencias faltantes `zeep` y `lxml` en entorno virtual (Causa RaÃ­z del Error 400).
+    *   ImplementaciÃ³n de logs detallados en `afip_bridge.py` y `router.py` para evitar fallos silenciosos.
     *   Fix de concurrencia en `Conexion_Blindada.py` usando UUIDs para archivos temporales.
 2.  **Frontend (Inspector & Canvas):**
     *   **Fix Reactividad:** Desempaquetado correcto de respuesta Axios (`res.data`) para evitar borrado de campos.
-    *   **Feedback:** Implementación de notificaciones visuales (Toast) al iniciar y finalizar consulta.
+    *   **Feedback:** ImplementaciÃ³n de notificaciones visuales (Toast) al iniciar y finalizar consulta.
     *   **Manejo de Errores:** Bloques `try/catch` robustos para alertar al usuario en lugar de fallar en silencio.
 
-**Resultado:** Validación operativa. El usuario recibe feedback inmediato y los datos persisten correctamente en formulario.
+**Resultado:** ValidaciÃ³n operativa. El usuario recibe feedback inmediato y los datos persisten correctamente en formulario.
 
-# [V6.4] 2026-02-18 - Clientes Híbridos (Pink Mode) & Blindaje de Protocolos
+# [V6.4] 2026-02-18 - Clientes HÃ­bridos (Pink Mode) & Blindaje de Protocolos
 
 > **ESTADO:** DEPLOYED
 > **TIPO:** FEATURE / UX / SECURITY
 
-**Objetivo:** Permitir la operación con clientes informales sin datos fiscales y reforzar la seguridad de los protocolos de inicio/cierre.
+**Objetivo:** Permitir la operaciÃ³n con clientes informales sin datos fiscales y reforzar la seguridad de los protocolos de inicio/cierre.
 
 **Intervenciones:**
-1.  **Frontend (UX Híbrida):**
-    *   **Pink Mode:** Distinción visual para clientes sin CUIT (`!cuit`) en `HaweView` (Lista) y `FichaCard` (Grid).
-    *   **Validación Relajada:** `ClientCanvas` y `DomicilioSplitCanvas` ahora permiten guardar sin datos fiscales estrictos.
-    *   **Auto-Fill:** Lógica de "Fiscal hereda de Entrega" para evitar cargas dobles en informales.
-    *   **Transición:** Actualización automática de datos fiscales vía ARCA al ingresar un CUIT en un cliente existente.
+1.  **Frontend (UX HÃ­brida):**
+    *   **Pink Mode:** DistinciÃ³n visual para clientes sin CUIT (`!cuit`) en `HaweView` (Lista) y `FichaCard` (Grid).
+    *   **ValidaciÃ³n Relajada:** `ClientCanvas` y `DomicilioSplitCanvas` ahora permiten guardar sin datos fiscales estrictos.
+    *   **Auto-Fill:** LÃ³gica de "Fiscal hereda de Entrega" para evitar cargas dobles en informales.
+    *   **TransiciÃ³n:** ActualizaciÃ³n automÃ¡tica de datos fiscales vÃ­a ARCA al ingresar un CUIT en un cliente existente.
 2.  **Backbone (Protocolos):**
     *   **ALFA (V14):** Declarado `pilot.db` y `main.py` como Read-Only en caliente.
-    *   **OMEGA:** Implementada verificación de "4-Byte Flags" y "Freno de Mano 1974".
+    *   **OMEGA:** Implementada verificaciÃ³n de "4-Byte Flags" y "Freno de Mano 1974".
 
-**Resultado:** Alta de clientes ágil para todos los segmentos (Formal/Informal) y mayor seguridad operativa.
-# [FIX] 2026-02-18 - Estabilización de Clientes (Backfill & ARCA)
+**Resultado:** Alta de clientes Ã¡gil para todos los segmentos (Formal/Informal) y mayor seguridad operativa.
+# [FIX] 2026-02-18 - EstabilizaciÃ³n de Clientes (Backfill & ARCA)
 
 > **ESTADO:** SATISFACTORIO
 > **TIPO:** BUGFIX / UX IMPROVEMENT
 
-**Objetivo:** Resolver inconsistencias en códigos de clientes y fallos de persistencia en direcciones validadas.
+**Objetivo:** Resolver inconsistencias en cÃ³digos de clientes y fallos de persistencia en direcciones validadas.
 
 **Intervenciones:**
-1.  **Backfill (Script):** Inyección de códigos internos secuenciales para clientes legacy.
-2.  **Frontend (ClientCanvas):** Implementación de `forceAddressSync` para permitir actualización de domicilios tras validación ARCA.
-3.  **UX (FichaCard):** Reubicación de badge de código para evitar superposiciones y mejora de alertas de error CUIT.
+1.  **Backfill (Script):** InyecciÃ³n de cÃ³digos internos secuenciales para clientes legacy.
+2.  **Frontend (ClientCanvas):** ImplementaciÃ³n de `forceAddressSync` para permitir actualizaciÃ³n de domicilios tras validaciÃ³n ARCA.
+3.  **UX (FichaCard):** ReubicaciÃ³n de badge de cÃ³digo para evitar superposiciones y mejora de alertas de error CUIT.
 
 # [V6.5] 2026-02-19 - Intelligent Upsert (Miner PDF)
 > **ESTADO:** DEPLOYED (Script) / PENDING (Frontend)
 > **TIPO:** FEATURE / REFACTOR
 
-**Objetivo:** Implementar lógica de "Upsert" inteligente para Facturas PDF (ARCA). El sistema debe actualizar clientes existentes con datos fiscales oficiales y crear nuevos con estado 'PENDIENTE_AUDITORIA'.
+**Objetivo:** Implementar lÃ³gica de "Upsert" inteligente para Facturas PDF (ARCA). El sistema debe actualizar clientes existentes con datos fiscales oficiales y crear nuevos con estado 'PENDIENTE_AUDITORIA'.
 
 **Intervenciones:**
 1.  **Backend Script (`miner.py`):**
-    *   **Refactor:** Implementada búsqueda dual (CUIT exacto / Nombre difuso).
-    *   **Lógica Upsert:**
+    *   **Refactor:** Implementada bÃºsqueda dual (CUIT exacto / Nombre difuso).
+    *   **LÃ³gica Upsert:**
         *   **Existentes:** Si el cliente tiene status bajo, se actualiza a **Flag 13** (Gold Candidate) eliminando el flag 'Virgin'.
-        *   **Nuevos:** Inserción directa con Flag 13 y `estado_arca='PENDIENTE_AUDITORIA'` (Amarillo).
-    *   **Regex Fix:** Solucionado bug en extracción de CUIT para facturas compactas (LAVIMAR) escaneando texto crudo.
+        *   **Nuevos:** InserciÃ³n directa con Flag 13 y `estado_arca='PENDIENTE_AUDITORIA'` (Amarillo).
+    *   **Regex Fix:** Solucionado bug en extracciÃ³n de CUIT para facturas compactas (LAVIMAR) escaneando texto crudo.
 2.  **Infraestructura:**
     *   Backup preventivo `pilot_backup_pre_miner_fix.db`.
 
 **Incidente Abierto (Handover):**
 *   El Frontend usa `backend/remitos/pdf_parser.py` (basado en `pypdf`) que falla con los mismos PDFs que `miner.py` ahora procesa bien (`pdfplumber`).
-*   **Próximo Paso:** Migrar la lógica de `miner.py` al endpoint del API.
+*   **PrÃ³ximo Paso:** Migrar la lÃ³gica de `miner.py` al endpoint del API.
 
-**Estado:** Script de Minería Operativo. Ingesta Web requiere refactor (Próxima Sesión).
+**Estado:** Script de MinerÃ­a Operativo. Ingesta Web requiere refactor (PrÃ³xima SesiÃ³n).
 
 
-# [V14.5] 2026-02-21 - Protocolo ENIGMA & Estabilización Bitmask
+# [V14.5] 2026-02-21 - Protocolo ENIGMA & EstabilizaciÃ³n Bitmask
 
 > **ESTADO:** ESTABLE
 > **TIPO:** MAJOR REFACTOR / IDENTIDAD
 
-**Objetivo:** Migrar la identidad de clientes a una estructura Bitmask unificada y estabilizar el puente de validación fiscal.
+**Objetivo:** Migrar la identidad de clientes a una estructura Bitmask unificada y estabilizar el puente de validaciÃ³n fiscal.
 
 **Intervenciones:**
 1.  **Backend (Bitmask):**
     *   Sincronizado `constants.py` con el blueprint ENIGMA. Bits 0-5 definidos.
-    *   Implementada evolución de virginidad en `RemitosService.py`.
+    *   Implementada evoluciÃ³n de virginidad en `RemitosService.py`.
 2.  **Frontend (Inspector):**
     *   Implementado `clientColorClass` basado en bitwise logic.
     *   **Reactor Fix:** Inyectado watcher en `modelValue` para asegurar reactividad post-guardado.
-    *   **Logística:** Toggle 'Retira' bidireccional y blindado.
+    *   **LogÃ­stica:** Toggle 'Retira' bidireccional y blindado.
 3.  **Bridge (ARCA):**
-    *   Corrección de mapeo en `AfipBridgeService.py`. Transparencia total del domicilio fiscal.
-    *   Mapeo inteligente de Condición IVA.
+    *   CorrecciÃ³n de mapeo en `AfipBridgeService.py`. Transparencia total del domicilio fiscal.
+    *   Mapeo inteligente de CondiciÃ³n IVA.
 
 **Estado:** Estabilidad V14.5 alcanzada. Ready for Omega.
 
-# [V14.6] 2026-02-26 - Estabilización Crítica AFIP Dual
+# [V14.6] 2026-02-26 - EstabilizaciÃ³n CrÃ­tica AFIP Dual
 > **ESTADO:** ESTABLE
 > **TIPO:** HOTFIX / ARCHITECTURE
-**Intervenciones:** Refactor de `Conexion_Blindada.py` en el satélite RAR_V1 para manejo segregado de identidades personal (Padrón) y empresa (Fiscal), corrigiendo el bloqueo por Case-Sensitivity en alias.
+**Intervenciones:** Refactor de `Conexion_Blindada.py` en el satÃ©lite RAR_V1 para manejo segregado de identidades personal (PadrÃ³n) y empresa (Fiscal), corrigiendo el bloqueo por Case-Sensitivity en alias.
 
-## SESIÓN 785: SINCRONIZACIÓN CASA-OFICINA & PROTOCOLO 4-BYTES
+## SESIÃ“N 785: SINCRONIZACIÃ“N CASA-OFICINA & PROTOCOLO 4-BYTES
 **Fecha:** 2026-02-26 / 27
 **Objetivo:** Unificar terminales CASA-OFICINA y establecer doctrina de Consciencia Situacional.
 
-### Hito 1: Sincronización Forense
-*   **Diagnóstico:** Se identificó dispersión de trabajo entre `feat/v5x-universal` (OFICINA) y `feature/sabueso-local-plumber` (CASA).
-*   **Resolución:** Forzado de checkout a `feat/v5x-universal` en CASA. Paridad de DB verificada (428 KB).
+### Hito 1: SincronizaciÃ³n Forense
+*   **DiagnÃ³stico:** Se identificÃ³ dispersiÃ³n de trabajo entre `feat/v5x-universal` (OFICINA) y `feature/sabueso-local-plumber` (CASA).
+*   **ResoluciÃ³n:** Forzado de checkout a `feat/v5x-universal` en CASA. Paridad de DB verificada (428 KB).
 
 ### Hito 2: Protocolo de Consciencia Situacional (4-Bytes)
-*   **Infraestructura:** Creación de `manager_status.py` y `session_status.bit` para persistencia de estados inter-terminales.
-*   **Geolocalización Lógica:** Implementada detección automática de host (CA, OF, NB) para alertar sobre desincronizaciones de Git/DB al cambiar de terminal.
-*   **Comunicación:** Estructura `CARTA_MOMENTO_CERO.md` activa para instrucciones críticas de "Despertar".
+*   **Infraestructura:** CreaciÃ³n de `manager_status.py` y `session_status.bit` para persistencia de estados inter-terminales.
+*   **GeolocalizaciÃ³n LÃ³gica:** Implementada detecciÃ³n automÃ¡tica de host (CA, OF, NB) para alertar sobre desincronizaciones de Git/DB al cambiar de terminal.
+*   **ComunicaciÃ³n:** Estructura `CARTA_MOMENTO_CERO.md` activa para instrucciones crÃ­ticas de "Despertar".
 
-### Hito 3: Automatización de Arranque Dual
-*   **Cargador:** Evolución de `DESPERTAR_DOBLE.bat` a v2 con HUD de telemetría y HUD de origen.
+### Hito 3: AutomatizaciÃ³n de Arranque Dual
+*   **Cargador:** EvoluciÃ³n de `DESPERTAR_DOBLE.bat` a v2 con HUD de telemetrÃ­a y HUD de origen.
 
 **Estado:** SISTEMA NOMINAL MULTIPLEX v14-B. LISTO PARA SABUESO PDF.
 
-## SESIÓN 786: INTEGRACIÓN SABUESO PDF & PARIDAD RAR
+## SESIÃ“N 786: INTEGRACIÃ“N SABUESO PDF & PARIDAD RAR
 **Fecha:** 2026-02-27
-**Objetivo:** Portar el motor de facturación "Sabueso ARCA" desde el satélite RAR al núcleo V5 garantizando la exactitud funcional y preservación del entorno.
+**Objetivo:** Portar el motor de facturaciÃ³n "Sabueso ARCA" desde el satÃ©lite RAR al nÃºcleo V5 garantizando la exactitud funcional y preservaciÃ³n del entorno.
 
 ### Hito 1: Parsing y Regex Resiliente
-*   **Diagnóstico:** El formato AFIP producía corrupciones al extraer "Razón Social" y "0001-XXXX" donde existían interrupciones/delimitadores inesperados.
-*   **Resolución:** Integración de "Positive Lookaheads" preventivos en `pdf_parser.py` para asegurar aislar datos legalísimos.
+*   **DiagnÃ³stico:** El formato AFIP producÃ­a corrupciones al extraer "RazÃ³n Social" y "0001-XXXX" donde existÃ­an interrupciones/delimitadores inesperados.
+*   **ResoluciÃ³n:** IntegraciÃ³n de "Positive Lookaheads" preventivos en `pdf_parser.py` para asegurar aislar datos legalÃ­simos.
 
 ### Hito 2: Blindaje de Ingesta (Frontend)
 *   **UI:** Agregado bloqueo interactivo en `IngestaFacturaView.vue`. Si el CUIT decodificado devuelve un status carente de 'Blanco' (DbStatus: NO_EXISTE), el flujo de remitos frena.
-*   **Corrección Asistida:** Lanzamiento de componente `ClienteInspector.vue` obligando al data-entry a consolidación (domicilio + AFIP) permitiendo reanudar o corregir.
+*   **CorrecciÃ³n Asistida:** Lanzamiento de componente `ClienteInspector.vue` obligando al data-entry a consolidaciÃ³n (domicilio + AFIP) permitiendo reanudar o corregir.
 
-### Hito 3: Mutación de Virginidad (Backend)
-*   **Doctrina:** Incorporado el bloque ORM en la capa de servicios donde el remito recién emparejado somete al cliente a auditoria bit a bit.
-*   **Resultado:** Nivel de virginidad comercial extirpado; Level 15 (Virgin) es purgado automáticamente a Nivel 13 (Activo Consistido) persistiendo DB clavada.
+### Hito 3: MutaciÃ³n de Virginidad (Backend)
+*   **Doctrina:** Incorporado el bloque ORM en la capa de servicios donde el remito reciÃ©n emparejado somete al cliente a auditoria bit a bit.
+*   **Resultado:** Nivel de virginidad comercial extirpado; Level 15 (Virgin) es purgado automÃ¡ticamente a Nivel 13 (Activo Consistido) persistiendo DB clavada.
 
-**Estado:** SISTEMA V5-B Y MÓDULO SABUESO NOMINAL Y SINCRONIZADO.
+**Estado:** SISTEMA V5-B Y MÃ“DULO SABUESO NOMINAL Y SINCRONIZADO.
 
-## SESIÓN 787: RESOLUCIÓN DE REGRESIONES UI Y ESTANDARIZACIÓN DE CLIENTCANVAS
+## SESIÃ“N 787: RESOLUCIÃ“N DE REGRESIONES UI Y ESTANDARIZACIÃ“N DE CLIENTCANVAS
 **Fecha:** 2026-02-27
-**Objetivo:** Restaurar funcionalidades perdidas (Remitos) y unificar la experiencia de usuario (UX) en la carga de clientes a través del sistema interactivo (Lupa ARCA).
+**Objetivo:** Restaurar funcionalidades perdidas (Remitos) y unificar la experiencia de usuario (UX) en la carga de clientes a travÃ©s del sistema interactivo (Lupa ARCA).
 
-### Hito 1: Restauración de Logística (Remitos)
-*   **Problema:** Tras múltiples interacciones de UI, el ítem de navegación "Remitos" había desaparecido y no poseía una vista global (Dashboard).
-*   **Solución:** Se integró nuevamente en `AppSidebar.vue`, se registró la ruta en `router/index.js` y se creó de cero `RemitoListView.vue` con conectividad al store y servicios correspondientes.
+### Hito 1: RestauraciÃ³n de LogÃ­stica (Remitos)
+*   **Problema:** Tras mÃºltiples interacciones de UI, el Ã­tem de navegaciÃ³n "Remitos" habÃ­a desaparecido y no poseÃ­a una vista global (Dashboard).
+*   **SoluciÃ³n:** Se integrÃ³ nuevamente en `AppSidebar.vue`, se registrÃ³ la ruta en `router/index.js` y se creÃ³ de cero `RemitoListView.vue` con conectividad al store y servicios correspondientes.
 
-### Hito 2: Refactorización Dual (ClientCanvas vs Inspector)
-*   **Problema:** El usuario solicitó mantener la experiencia "original" de alta de clientes (`ClientCanvas`) con su lupa de ARCA en el header, pero el sistema inyectaba un componente reducido (`ClienteInspector`) durante intercepciones de flujos de trabajo (como en Ingesta de Facturas).
-*   **Solución:** Se refactorizó `ClientCanvas.vue` para aceptar parámetros dinámicos (`isModal`, `initialData`) transformándolo en un híbrido capaz de instanciarse como página completa o como Modal Popup. 
+### Hito 2: RefactorizaciÃ³n Dual (ClientCanvas vs Inspector)
+*   **Problema:** El usuario solicitÃ³ mantener la experiencia "original" de alta de clientes (`ClientCanvas`) con su lupa de ARCA en el header, pero el sistema inyectaba un componente reducido (`ClienteInspector`) durante intercepciones de flujos de trabajo (como en Ingesta de Facturas).
+*   **SoluciÃ³n:** Se refactorizÃ³ `ClientCanvas.vue` para aceptar parÃ¡metros dinÃ¡micos (`isModal`, `initialData`) transformÃ¡ndolo en un hÃ­brido capaz de instanciarse como pÃ¡gina completa o como Modal Popup. 
 
-### Hito 3: Propagación de UX
-*   **Ejecución:** Se erradicó el componente `ClienteInspector.vue` en favor del nuevo `ClientCanvas` modal.
-*   **Alcance:** La estandarización afectó exitosamente a `IngestaFacturaView`, `PedidoTacticoView`, `PedidoCanvas` y `HaweView`.
+### Hito 3: PropagaciÃ³n de UX
+*   **EjecuciÃ³n:** Se erradicÃ³ el componente `ClienteInspector.vue` en favor del nuevo `ClientCanvas` modal.
+*   **Alcance:** La estandarizaciÃ³n afectÃ³ exitosamente a `IngestaFacturaView`, `PedidoTacticoView`, `PedidoCanvas` y `HaweView`.
 
 **Estado:** UI Y UX ESTABILIZADAS, REGRESIONES SOLUCIONADAS. LISTO PARA OMEGA.
 
-## SESIÓN 788: BURBUJA TOMY V5-LS + AUDITORÍA SEGURIDAD NPM
+## SESIÃ“N 788: BURBUJA TOMY V5-LS + AUDITORÃA SEGURIDAD NPM
 **Fecha:** 2026-04-01
-**Objetivo:** Aislar a Tomy en su entorno V5-LS independiente (puerto 8090 unificado) y auditar la instalación de Claude Code tras el incidente npm del 31/03.
+**Objetivo:** Aislar a Tomy en su entorno V5-LS independiente (puerto 8090 unificado) y auditar la instalaciÃ³n de Claude Code tras el incidente npm del 31/03.
 
-### Hito 1: Auditoría de Seguridad
-*   **Contexto:** Anthropic publicó accidentalmente v2.1.88 de Claude Code con source map de 60MB expuesto en npm.
-*   **Resultado:** Instalación local limpia — método nativo (no npm), axios 1.13.2, sin persistencia maliciosa.
-*   **Acción:** Eliminado binario obsoleto `claude.exe.old.*`.
+### Hito 1: AuditorÃ­a de Seguridad
+*   **Contexto:** Anthropic publicÃ³ accidentalmente v2.1.88 de Claude Code con source map de 60MB expuesto en npm.
+*   **Resultado:** InstalaciÃ³n local limpia â€” mÃ©todo nativo (no npm), axios 1.13.2, sin persistencia maliciosa.
+*   **AcciÃ³n:** Eliminado binario obsoleto `claude.exe.old.*`.
 
 ### Hito 2: Fixes Dev Versionados (Gy, 31/03)
-*   **ClientCanvas.vue**: UUID nulo al crear cliente — fix en `emit('save', resCreated || payload)`.
-*   **PedidoCanvas.vue**: F10 bloqueado en modal de cliente — guarda `if (showClientModal.value) return`.
-*   **Login.vue**: endpoint hardcodeado `:8000` → `api.post('/auth/token')`; texto invisible en inputs.
+*   **ClientCanvas.vue**: UUID nulo al crear cliente â€” fix en `emit('save', resCreated || payload)`.
+*   **PedidoCanvas.vue**: F10 bloqueado en modal de cliente â€” guarda `if (showClientModal.value) return`.
+*   **Login.vue**: endpoint hardcodeado `:8000` â†’ `api.post('/auth/token')`; texto invisible en inputs.
 
 ### Hito 3: Blindaje V5-LS
-*   **Arquitectura anterior**: dos procesos (backend 8090 + http.server 5174) sin proxy → las llamadas API morían en 5174.
-*   **Solución**: backend unificado en 8090 sirve API + SPA. Fix de `static_dir` path en `main.py` (+1 nivel `..`).
+*   **Arquitectura anterior**: dos procesos (backend 8090 + http.server 5174) sin proxy â†’ las llamadas API morÃ­an en 5174.
+*   **SoluciÃ³n**: backend unificado en 8090 sirve API + SPA. Fix de `static_dir` path en `main.py` (+1 nivel `..`).
 *   **Archivos**: `LANZAR_V5_SOBERANA.bat`, `SATELITE_TOMY.bat`, `Login.vue` (V5-LS) actualizados.
 
-**Estado:** ALERTA CONTROLADA. Burbuja V5-LS lista en código. Pendiente npm run build antes del despliegue productivo.
+**Estado:** ALERTA CONTROLADA. Burbuja V5-LS lista en cÃ³digo. Pendiente npm run build antes del despliegue productivo.
 
-## SESIÓN 789: DEUDAS TÉCNICAS V5 + SYNC DB INAPYR
+## SESIÃ“N 789: DEUDAS TÃ‰CNICAS V5 + SYNC DB INAPYR
 **Fecha:** 2026-04-02
-**Objetivo:** Resolver 3 deudas técnicas verificadas y sincronizar base con trabajo de Casa.
+**Objetivo:** Resolver 3 deudas tÃ©cnicas verificadas y sincronizar base con trabajo de Casa.
 
-### Hito 1: Sincronización DB (CA → OF)
-*   Base CA reemplazó OF. INAPYR S.R.L. + pedido INGESTA_PDF + remito CAE `86139705410697` incorporados.
+### Hito 1: SincronizaciÃ³n DB (CA â†’ OF)
+*   Base CA reemplazÃ³ OF. INAPYR S.R.L. + pedido INGESTA_PDF + remito CAE `86139705410697` incorporados.
 *   Canario: NOMINAL GOLD (flags 8205).
 
-### Hito 2: Auditoría flags_estado 64-bit
+### Hito 2: AuditorÃ­a flags_estado 64-bit
 *   7 modelos SQLAlchemy: BigInteger confirmado en todos. Deuda cerrada sin cambios.
 
-### Hito 3: Conexion_Blindada — Desacople OpenSSL
+### Hito 3: Conexion_Blindada â€” Desacople OpenSSL
 *   `OPENSSL_PATH` env var + `shutil.which` + fallback lista Windows. `.env.example` creado.
 
-### Hito 4: Purga de Scripts Huérfanos
+### Hito 4: Purga de Scripts HuÃ©rfanos
 *   37 archivos eliminados (debug_*, test_*, miner.py). tests/test_v7_*.py conservados.
 
 **Estado:** NOMINAL GOLD. Commit `0b8e53ac`. Push OMEGA ejecutado.
+
