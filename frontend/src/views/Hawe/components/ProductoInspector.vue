@@ -402,8 +402,8 @@
                 type="text"
                 class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-amber-500/50 focus:outline-none transition-all"
                 placeholder="Ej: Desinfectantes Industriales"
-                @keydown.enter="saveRubroFromModal"
-                @keydown.escape="showRubroModal = false"
+                @keydown.enter.prevent="saveRubroFromModal"
+                @keydown.escape.prevent.stop="showRubroModal = false"
               />
             </div>
 
