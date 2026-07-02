@@ -53,9 +53,14 @@
 
               <!-- Rubro -->
               <div class="col-span-2">
-                   <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-1">
-                     Rubro <span class="text-rose-500">*</span>
-                   </label>
+                   <div class="flex justify-between items-center mb-1">
+                        <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest block">
+                          Rubro <span class="text-rose-500">*</span>
+                        </label>
+                        <button type="button" @click.prevent="handleCreateRubro()" tabindex="-1" class="text-[9px] font-bold text-emerald-500 hover:text-emerald-700 bg-emerald-500/10 hover:bg-emerald-500/20 px-2 py-0.5 rounded transition-colors uppercase tracking-wider" title="Nuevo Rubro (F4)">
+                            + NUEVO
+                        </button>
+                   </div>
                    <SelectorCreatable
                         v-model="localProducto.rubro_id"
                         :options="flattenedRubros"
