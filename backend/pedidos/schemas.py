@@ -46,7 +46,6 @@ class PedidoCreate(BaseModel):
     duplicate_confirmed: Optional[bool] = False
     from_ingesta: Optional[bool] = False
     pedido_origen_migracion_id: Optional[int] = None
-    flags_estado: Optional[int] = 0
 
 class NoComercialRequest(BaseModel):
     is_no_comercial: bool

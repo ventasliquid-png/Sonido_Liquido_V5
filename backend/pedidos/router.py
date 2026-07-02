@@ -118,10 +118,10 @@ def create_pedido_tactico(
         
         # [ARLEQUÍN V2] Auto-encender NO_FISCAL_FORCE si cliente es Rosa (Bit 4 = OPERATOR_OK)
         from backend.clientes.constants import ClientFlags
-        pedido_flags_inicial = pedido_data.flags_estado or PF.EXISTENCE.value
+        pedido_flags_inicial = PF.EXISTENCE.value
         
-        # Siempre aplicar la regla si es nuevo y no viene forzado
-        if not pedido_data.flags_estado and (cliente.flags_estado & ClientFlags.OPERATOR_OK):
+        # Siempre aplicar la regla si el cliente es Rosa (Bit 4 = OPERATOR_OK)
+        if cliente.flags_estado & ClientFlags.OPERATOR_OK:
             pedido_flags_inicial |= PF.NO_FISCAL_FORCE.value
             
         if pedido_data.from_ingesta:
