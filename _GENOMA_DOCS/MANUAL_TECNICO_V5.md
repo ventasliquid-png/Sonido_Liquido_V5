@@ -1445,3 +1445,5 @@ if (!c.segmento_id && !c.segmento?.id) {
 
 ## S842 — Correcciones visuales menores en Alta de Producto (botón nuevo y comportamiento modal).
 
+
+## S843 â€” Sin cambios funcionales/tecnicos en D. Sesion de proceso: diagnostico y resolucion de push faltante B->prod desde S842 (6 commits atrapados ~22hs, incluido fix critico de unicodedata en productos/service.py), formalizacion de Bits 10/11 (CS_PRESENTE/GA_PRESENTE) en doctrina, y reparacion de auto-bloqueo de current/frontend/dist/ en MT (incursion directa de Carlos). Card #88 creada en Board.

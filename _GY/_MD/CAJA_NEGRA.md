@@ -1,4 +1,15 @@
-﻿Sesion actual: 842
+﻿Sesion actual: 843
+
+# CAJA NEGRA: OMEGA Completo — Diagnostico push faltante B->prod + Bits 10/11 — S843 (2026-07-03)
+
+Sesion 843 OF. Hash D: 0bd56218 | Hash B: 218f2a3. Estado: NOMINAL GOLD. Agentes: CC, Carlos (incursion directa en MT).
+- Bits 10/11 (CS_PRESENTE/GA_PRESENTE) formalizados: modelo Principal/Consultivo sin exclusion mutua, dictamen Nike S842 (2026-07-02). SISTEMA_STATUS_SPEC.md + ALFA.md actualizados.
+- Diagnostico y resolucion de push faltante B->prod desde cierre de S842: 6 commits (incluido fix critico de `unicodedata` en productos/service.py) quedaron atrapados en B ~22hs. Rebuild frontend + `git push prod main` (PIN 1974). Card #88 creada en Board (deuda tecnica: OMEGA no verifica push multi-remoto).
+- Episodio paralelo en MT (incursion directa de Carlos, sin ALFA corrido): atraso de 13 commits por auto-bloqueo de `current/frontend/dist/` trackeado en git — backup, migracion schema 036, pull limpio, rebuild, fix del lanzador `.vbs`. Bug original de Tomy (Rubro con padre_id, 500) confirmado resuelto con smoke test real tras sincronizar B.
+- Hallazgo de proceso: Bit 19 (FORZAR_OMEGA_COMPLETO) no se encendio en tiempo real pese a ediciones de ALFA.md/SISTEMA_STATUS_SPEC.md esta sesion — encendido retroactivamente, perfil de cierre = Completo.
+- D:0bd56218 B:218f2a3 | PIN: 1974
+
+---
 
 # CAJA NEGRA: OMEGA Lite — Fixes Topología B y UI — S842 (2026-07-02)
 

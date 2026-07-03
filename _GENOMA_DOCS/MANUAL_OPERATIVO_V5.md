@@ -858,3 +858,5 @@ Se reemplazaron las directivas rÃ­gidas de altura basadas en el viewport (`min-h
 
 ## S842 — Correcciones visuales menores en Alta de Producto (botón nuevo y comportamiento modal).
 
+
+## S843 â€” Sin cambios de UX/operativos visibles en D esta sesion. Se resolvio un episodio de 22hs donde el bug de Rubro con padre_id (500) seguia activo en produccion (MT) pese a estar corregido en D desde el 01/07 â€” causa: el push del cierre anterior no habia llegado al repo de puente B. Ya resuelto y confirmado con prueba real en MT.

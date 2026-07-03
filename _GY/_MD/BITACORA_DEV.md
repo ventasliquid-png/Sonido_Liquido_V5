@@ -2068,3 +2068,27 @@ Siguiendo Ã³rdenes directas, se difiriÃ³ la integraciÃ³n real de OAuth y s
 
 **Estado:** NOMINAL GOLD. Commit `0b8e53ac`. Push OMEGA ejecutado.
 
+
+
+## SESION 843: DIAGNOSTICO PUSH FALTANTE B->PROD + BITS 10/11 ARQUITECTOS
+**Fecha:** 2026-07-03
+**Objetivo:** Formalizar Bits 10/11 (presencia de arquitectos) y resolver episodio de 22hs de bug persistente en produccion causado por push incompleto en el cierre de S842.
+
+### Hito 1: Bits 10/11 (CS_PRESENTE / GA_PRESENTE)
+* Dictaminados por Nike el 02/07, formalizados hoy en SISTEMA_STATUS_SPEC.md y ALFA.md.
+* Modelo Principal/Consultivo -- sin exclusion mutua (a diferencia de CC/GY).
+* Convencion de registro forense (SIN ARQUITECTO) si ambos bits estan OFF -- solo registro, sin auto-escalacion de autoridad.
+
+### Hito 2: Diagnostico y resolucion de push faltante B->prod
+* Cierre de OMEGA S842 (02/07 19:00) empujo D a origin/main pero nunca verifico ni ejecuto push en B hacia prod/main.
+* 6 commits quedaron atrapados en B ~22hs, incluido el fix critico de import unicodedata (bug de Rubro con padre_id, reportado por Tomy el 01/07).
+* Investigacion legitima paralela en MT (incursion directa de Carlos): atraso de 13 commits por auto-bloqueo de current/frontend/dist/ trackeado en git -- resuelto con backup, migracion schema 036, pull, rebuild, fix del lanzador.
+* Smoke test post-reparacion revelo que el bug de Tomy persistia -- disparo segunda investigacion que termino en el hallazgo del push faltante.
+* Resolucion: rebuild de frontend en B, git push prod main (PIN 1974), pull + rebuild en MT, smoke test 200 OK.
+* Card #88 creada en Board V5 (deuda tecnica: OMEGA no verifica push multi-remoto).
+
+### Hito 3: Correccion de doctrina
+* OMEGA debe verificar push de todos los remotos del ecosistema antes de declarar cierre completo.
+* Nueva disciplina: ante "el fix no llego a produccion", Paso 0 es comparar local vs remoto (git log remoto/main..HEAD) antes de diagnostico forense complejo.
+
+**Estado:** NOMINAL GOLD. D:0bd56218 B:218f2a3. PIN: 1974.
