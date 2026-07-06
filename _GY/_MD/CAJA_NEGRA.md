@@ -1,4 +1,15 @@
-﻿Sesion actual: 843
+﻿Sesion actual: 844
+
+# CAJA NEGRA: OMEGA Completo — Feature CUIT duplicado + colision de genoma Bit5 D/B — S844 (2026-07-06)
+
+Sesion 844 CA. Hash D: cf6248ba (pendiente commit de cierre) | Hash B: 218f2a3 (sin cambios). Estado: NOMINAL GOLD. Agentes: CC.
+- Correccion de identidad de maquina: `.gy_identity` de la Silo decia "OF" desde 2026-06-18 pese a ser CA la maquina real. SISTEMA_STATUS.json de CA sincronizado (habia cerrado S837 localmente, congelado en el registro desde entonces). Card #89: `.gy_identity` versionado en git dentro de D hereda identidad de la ultima maquina que lo commitea (diseno roto).
+- Diagnostico de severidad PIN 1974 en MasterToolsView.vue: proteccion cosmetica de UI, sin validacion server-side en 7 endpoints `/hard` (hard-delete ejecutable sin conocer el PIN via API directa).
+- Feature completo "CUIT duplicado / Unidades de Negocio" (dictamen Nike, antecedente real 2026-02-04 nunca completado + Sesion 787): matching difuso (SequenceMatcher 0.85) sobre razon social + domicilio de entrega como gate, modal 3 vias, panel de hermanos, excepcion a guarda GOLD de CUIT unico condicionada a Bit 5 (guarda de razon social / Blindaje Nuclear INAPYR 2026-04-08 PIN 1974, intacta sin excepcion). Verificado con POST real + DB en D (Escenario A 201+bit, Escenario B 400 limpio).
+- HALLAZGO CRITICO al cherry-pickear a B: colision de genoma real, Bit 5 = MULTI_CUIT en D vs IS_GHOST en B, divergencia desde ~2026-03-30 nunca detectada — reabre BR#3 (bits fantasma Lacteos/Centro Pet) con causa raiz nueva. Cherry-pick revertido sin commitear, working tree de B limpio confirmado. Card #90 creada, pendiente dictamen Nike. Bloquea despliegue del feature a B.
+- D:cf6248ba B:218f2a3 | PIN: 1974
+
+---
 
 # CAJA NEGRA: OMEGA Completo — Diagnostico push faltante B->prod + Bits 10/11 — S843 (2026-07-03)
 

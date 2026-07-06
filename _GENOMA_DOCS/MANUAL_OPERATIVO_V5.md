@@ -856,7 +856,29 @@ Para resguardar la consistencia histórica de las operaciones, el sistema bloque
 Se reemplazaron las directivas rígidas de altura basadas en el viewport (`min-h-screen` / `h-screen`) por directivas fluidas (`min-h-full` / `h-full`) en la estructura del canvas. Esto previene que el panel del TOTAL FINAL y los botones operativos queden recortados o cubiertos por la barra de tareas de Windows, adaptando la interfaz perfectamente al tamaño real del contenedor.
 
 
-## S842 � Correcciones visuales menores en Alta de Producto (bot�n nuevo y comportamiento modal).
+## S842 � Correcciones visuales menores en Alta de Producto (bot�n nuevo y comportamiento modal).
 
 
 ## S843 — Sin cambios de UX/operativos visibles en D esta sesion. Se resolvio un episodio de 22hs donde el bug de Rubro con padre_id (500) seguia activo en produccion (MT) pese a estar corregido en D desde el 01/07 — causa: el push del cierre anterior no habia llegado al repo de puente B. Ya resuelto y confirmado con prueba real en MT.
+
+---
+
+## CAPÍTULO 25: DETECCIÓN DE CUIT DUPLICADO Y UNIDADES DE NEGOCIO (Sesión 844 CA, 2026-07-06)
+
+### 25.1 Contexto — Caso Nestlé/UBA
+Algunos clientes reales operan bajo el mismo CUIT pero como entidades distintas dentro del sistema: distintas sucursales, facultades o unidades de negocio de una misma razón social fiscal (ej. una cadena con varios locales, o una universidad con varias facultades). El sistema ahora distingue entre "es el mismo cliente cargado dos veces" y "es una unidad de negocio legítima que comparte CUIT".
+
+### 25.2 Qué ve el operador al cargar un cliente
+Al tipear el CUIT y presionar el botón de validación ARCA en el Alta de Cliente (`ClientCanvas.vue`):
+- **Si el CUIT no existe en el sistema:** el alta continúa normalmente, sin interrupciones.
+- **Si el CUIT ya existe y el nombre/domicilio de entrega que se está cargando es claramente distinto** (ej. otra sucursal con otro nombre y otra dirección de entrega): el sistema lo detecta automáticamente como una unidad de negocio distinta y continúa sin pedir confirmación — queda marcado internamente como relacionado.
+- **Si el CUIT ya existe y el nombre y/o domicilio de entrega son muy parecidos** al de un registro existente: aparece un modal de alerta ("Posible Duplicado — CUIT Compartido") mostrando lado a lado los datos del cliente existente y los que se están por cargar, con el porcentaje de similitud de cada campo. El operador elige una de tres acciones:
+  1. **Descartar y Usar el Existente** — navega directamente a la ficha del cliente ya cargado, sin crear un registro nuevo (para cuando era un error de tipeo o doble carga).
+  2. **Vincular como Relacionado** — confirma que es una unidad de negocio distinta y continúa la creación.
+  3. **Confirmar Distinto y Crear** — mismo resultado que la opción anterior, para cuando el operador ya evaluó la comparación y está seguro.
+
+### 25.3 Panel de Unidades de Negocio Relacionadas
+En la ficha de todo cliente que comparte CUIT con otra unidad de negocio ya confirmada, aparece una sección "Unidades de Negocio Relacionadas (mismo CUIT)" listando las demás entidades vinculadas, con acceso directo a cada una con un clic.
+
+### 25.4 Estado de despliegue
+Disponible en el entorno de Desarrollo (D). **Aún no disponible en Producción (B/MT)** — el despliegue quedó bloqueado por un hallazgo técnico de arquitectura (ver Manual Técnico, Capítulo correspondiente a S844) que requiere resolución previa. Se informará cuando esté disponible.

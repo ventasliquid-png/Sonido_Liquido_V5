@@ -47,8 +47,14 @@ def consultar_web(cuit: str):
     return resultado
 
 @router.get("/check-cuit/{cuit}", response_model=schemas.CuitCheckResponse)
-def check_cuit(cuit: str, exclude_id: UUID = None, db: Session = Depends(get_db)):
-    return ClienteService.check_cuit(db, cuit, exclude_id)
+def check_cuit(cuit: str, exclude_id: UUID = None, razon_social: str = None,
+               domicilio_entrega: str = None, db: Session = Depends(get_db)):
+    return ClienteService.check_cuit(db, cuit, exclude_id, razon_social, domicilio_entrega)
+
+@router.get("/hermanos/{cuit}", response_model=List[schemas.ClienteSummary])
+def get_hermanos(cuit: str, exclude_id: UUID = None, db: Session = Depends(get_db)):
+    """[Genoma Bit 5 - MULTI_CUIT] Clientes relacionados (mismo CUIT, Unidad de Negocio confirmada)."""
+    return ClienteService.get_hermanos(db, cuit, exclude_id)
 
 @router.get("/check-similarity")
 def check_similarity(name: str, threshold: float = 0.85, db: Session = Depends(get_db)):

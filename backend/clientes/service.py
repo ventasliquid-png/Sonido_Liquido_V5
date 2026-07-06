@@ -36,15 +36,21 @@ class ClienteService:
                     )
 
             # 1. CUIT Block
-            if cliente_in.cuit and cliente_in.cuit not in GENERIC_CUITS:
+            # [S845 - Dictamen Nike] Excepción MULTI_CUIT (Bit 5): si el payload ya trae el bit
+            # encendido, el propio flujo de creación (matching difuso + modal/gate en ClientCanvas)
+            # ya determinó que es una Unidad de Negocio legítima distinta (Caso Nestlé/UBA).
+            # La guarda de razón social (Blindaje Nuclear BOW, 2026-04-08) NO tiene excepción: sigue abajo intacta.
+            es_multi_cuit = bool((cliente_in.flags_estado or 0) & ClientFlags.MULTI_CUIT)
+            if cliente_in.cuit and cliente_in.cuit not in GENERIC_CUITS and not es_multi_cuit:
                  existing_cuit = db.query(Cliente).filter(Cliente.cuit == cliente_in.cuit).first()
                  if existing_cuit:
                      raise HTTPException(
-                         status_code=status.HTTP_400_BAD_REQUEST, 
+                         status_code=status.HTTP_400_BAD_REQUEST,
                          detail=f"BLOQUEO DE DUPLICADO: El CUIT {cliente_in.cuit} ya está registrado bajo '{existing_cuit.razon_social}'."
                      )
-            
-            # 2. Razón Social Block (Protocolo Nike - Nuclear Normalization)
+
+            # 2. Razón Social Block (Protocolo Nike - Nuclear Normalization / Blindaje Nuclear BOW)
+            # Sin excepción para MULTI_CUIT: una unidad de negocio distinta debe tener nombre distinguible.
             canon_name = normalize_name(cliente_in.razon_social)
             
             # Bloqueo por Clave Canónica (Exacta Limpia)
@@ -142,8 +148,11 @@ class ClienteService:
             db.commit()
             db.refresh(db_cliente)
             return db_cliente
+        except HTTPException:
+            db.rollback()
+            raise
         except Exception as e:
-            print(f"❌ ERROR CRÍTICO EN CREATE_CLIENTE: {e}")
+            print(f"[X] ERROR CRITICO EN CREATE_CLIENTE: {e}")
             import traceback
             traceback.print_exc()
             db.rollback()
@@ -519,48 +528,69 @@ class ClienteService:
             )
 
     @staticmethod
-    def check_cuit(db: Session, cuit: str, exclude_id: UUID = None) -> schemas.CuitCheckResponse:
+    def check_cuit(db: Session, cuit: str, exclude_id: UUID = None,
+                    razon_social: str = None, domicilio_entrega: str = None) -> schemas.CuitCheckResponse:
         # Check for Generic CUITs (Consumidor Final)
         clean_cuit = cuit.replace("-", "").replace(" ", "").strip()
         if clean_cuit in ["00000000000", "99999999999"]:
              return schemas.CuitCheckResponse(status="NEW", existing_clients=[])
 
         query = db.query(Cliente).filter(Cliente.cuit == cuit)
-        
+
         if exclude_id:
             query = query.filter(Cliente.id != exclude_id)
-            
+
         clients = query.all()
-        
+
         if not clients:
             return schemas.CuitCheckResponse(status="NEW", existing_clients=[])
-        
+
         # Check if any is active
         active_clients = [c for c in clients if c.activo]
-        
+
+        # [S845] Matching difuso (Protocolo Nike — mismo algoritmo que check_similarity)
+        from difflib import SequenceMatcher
+
+        def ratio(a: str, b: str) -> float:
+            if not a or not b:
+                return 0.0
+            return round(SequenceMatcher(None, a.upper().strip(), b.upper().strip()).ratio(), 2)
+
         summary_list = []
         for c in clients:
             # Find main address
             # Assuming c.domicilios is accessible (lazy check)
             domicilio_str = "Sin Domicilio"
+            domicilio_entrega_str = "Sin Domicilio"
             if c.domicilios:
-                # Privilegiar Fiscal o Entrega
+                # Fiscal (domicilio_principal — doctrina legal/AFIP)
                 fiscal = next((d for d in c.domicilios if d.es_fiscal), None)
                 if fiscal:
                     domicilio_str = f"{fiscal.calle} {fiscal.numero}, {fiscal.localidad}"
                 else:
                     first = c.domicilios[0]
                     domicilio_str = f"{first.calle} {first.numero}, {first.localidad}"
-            
+
+                # Entrega (domicilio real de operación — el que discrimina unidades de negocio)
+                entrega = next((d for d in c.domicilios if d.es_entrega), None)
+                if entrega:
+                    domicilio_entrega_str = f"{entrega.calle} {entrega.numero}, {entrega.localidad}"
+                else:
+                    first = c.domicilios[0]
+                    domicilio_entrega_str = f"{first.calle} {first.numero}, {first.localidad}"
+
             # Safe Access to Relations
             lp_nombre = c.lista_precios.nombre if c.lista_precios else None
             seg_nombre = c.segmento.nombre if c.segmento else None
 
             summary_list.append(schemas.ClienteSummary(
-                id=c.id, 
-                razon_social=c.razon_social, 
-                nombre_fantasia=getattr(c, 'nombre_fantasia', None), 
+                id=c.id,
+                razon_social=c.razon_social,
+                nombre_fantasia=getattr(c, 'nombre_fantasia', None),
                 domicilio_principal=domicilio_str,
+                domicilio_entrega=domicilio_entrega_str,
+                similarity_nombre=ratio(razon_social, c.razon_social) if razon_social else None,
+                similarity_domicilio=ratio(domicilio_entrega, domicilio_entrega_str) if domicilio_entrega else None,
                 lista_precios_nombre=lp_nombre,
                 segmento_nombre=seg_nombre,
                 lista_precios_id=c.lista_precios_id,
@@ -572,6 +602,35 @@ class ClienteService:
             return schemas.CuitCheckResponse(status="EXISTS", existing_clients=summary_list)
         else:
             return schemas.CuitCheckResponse(status="INACTIVE", existing_clients=summary_list)
+
+    @staticmethod
+    def get_hermanos(db: Session, cuit: str, exclude_id: UUID = None) -> List[schemas.ClienteSummary]:
+        """[Genoma Bit 5 - MULTI_CUIT] Panel de hermanos: clientes que comparten CUIT
+        y ya fueron confirmados como Unidad de Negocio distinta (Bit 5 encendido)."""
+        query = db.query(Cliente).filter(
+            Cliente.cuit == cuit,
+            Cliente.flags_estado.op('&')(32) == 32
+        )
+        if exclude_id:
+            query = query.filter(Cliente.id != exclude_id)
+
+        clients = query.all()
+        summary_list = []
+        for c in clients:
+            domicilio_str = "Sin Domicilio"
+            if c.domicilios:
+                fiscal = next((d for d in c.domicilios if d.es_fiscal), None)
+                ref = fiscal or c.domicilios[0]
+                domicilio_str = f"{ref.calle} {ref.numero}, {ref.localidad}"
+
+            summary_list.append(schemas.ClienteSummary(
+                id=c.id,
+                razon_social=c.razon_social,
+                nombre_fantasia=getattr(c, 'nombre_fantasia', None),
+                domicilio_principal=domicilio_str,
+                activo=c.activo
+            ))
+        return summary_list
 
     @staticmethod
     def get_transportes_habituales(db: Session, cliente_id: UUID) -> List[UUID]:

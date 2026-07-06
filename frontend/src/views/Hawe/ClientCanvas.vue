@@ -321,6 +321,32 @@
               </div>
           </div>
 
+          <!-- BLOCK 3.5: HERMANOS (Genoma Bit 5 - MULTI_CUIT) -->
+          <section v-if="hermanos.length > 0" class="space-y-2">
+              <div class="flex items-center justify-between px-2">
+                  <h3 class="text-[10px] font-bold text-cyan-500/60 uppercase tracking-widest flex items-center gap-2">
+                      <i class="fas fa-building"></i> Unidades de Negocio Relacionadas (mismo CUIT)
+                  </h3>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div
+                      v-for="h in hermanos"
+                      :key="h.id"
+                      @click="goToHermano(h.id)"
+                      class="bg-cyan-500/[0.03] border border-cyan-500/20 rounded-xl p-3 flex items-center gap-3 hover:border-cyan-500/40 hover:bg-cyan-500/[0.06] transition-all cursor-pointer group"
+                  >
+                      <div class="h-8 w-8 rounded-full bg-cyan-900/40 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
+                          <i class="fas fa-building text-xs"></i>
+                      </div>
+                      <div class="min-w-0 flex-1">
+                          <p class="text-[11px] font-bold text-white truncate leading-tight">{{ h.razon_social }}</p>
+                          <p class="text-[9px] text-cyan-500/60 truncate">{{ h.domicilio_principal || 'Sin Domicilio' }}</p>
+                      </div>
+                      <i class="fas fa-arrow-up-right-from-square text-[9px] text-cyan-500/40 group-hover:text-cyan-400 transition-colors"></i>
+                  </div>
+              </div>
+          </section>
+
           <!-- BLOCK 4: CONTACTS (COMPACT) -->
           <section id="contacts-section" class="space-y-2 relative" @contextmenu.prevent="openContactContextMenu($event)">
                <div class="flex items-center justify-between px-2">
@@ -422,7 +448,19 @@
         @saved="handleDomicilioSaved" 
       />
       <ContactoForm v-if="showContactoForm" :show="showContactoForm" :clienteId="String(form.id)" :contacto="selectedContacto" @close="showContactoForm = false" @saved="handleContactoSaved" />
-      
+
+      <!-- CUIT Conflict Modal (Genoma Bit 5 - MULTI_CUIT) — 3 vías (dictamen Nike S845) -->
+      <CuitConflictModal
+        v-if="showCuitConflictModal"
+        :cuit="cuitConflictData.cuit"
+        :new-data="{ razon_social: form.razon_social, domicilio_entrega: getCurrentDomicilioEntregaStr() }"
+        :existing-clients="cuitConflictData.existingClients"
+        @cancel="resolveCuitConflict('cancel')"
+        @use-existing="handleUseExisting"
+        @link-related="resolveCuitConflict('link-related')"
+        @confirm-distinct="resolveCuitConflict('confirm-distinct')"
+      />
+
        <!-- Transport Canvas Modal (V5) -->
        <Teleport to="body">
        <Transition name="fade">
@@ -473,6 +511,7 @@ import DomicilioSplitCanvas from './components/DomicilioSplitCanvas.vue'
 import AddressSelector from './components/AddressSelector.vue'
 import ContactoForm from './components/ContactoForm.vue'
 import ContactoPopover from './components/ContactoPopover.vue'
+import CuitConflictModal from './components/CuitConflictModal.vue'
 import SmartSelect from '../../components/ui/SmartSelect.vue'
 import TransporteCanvas from '@/views/Logistica/components/TransporteCanvas.vue'
 import ContextMenu from '../../components/common/ContextMenu.vue'
@@ -528,6 +567,68 @@ const activeTab = ref('CLIENTE') // 'CLIENTE', 'DOMICILIO', 'CONTACTO'
 // --- RAR-V5 BRIDGE (AFIP) ---
 const loadingAfip = ref(false)
 const loadingWeb = ref(false)
+
+// --- [GENOMA Bit 5 - MULTI_CUIT] Conflicto de CUIT compartido (dictamen Nike S845) ---
+const SIMILARITY_THRESHOLD = 0.85 // Referencia de industria (Protocolo Nike, mismo umbral que check-similarity)
+const showCuitConflictModal = ref(false)
+const cuitConflictData = ref({ cuit: '', existingClients: [] })
+const pendingMultiCuit = ref(false)
+let cuitConflictResolver = null
+
+// Domicilio de ENTREGA (no fiscal) — el que realmente discrimina unidades de negocio distintas
+const getCurrentDomicilioEntregaStr = () => {
+    const entrega = domicilios.value.find(d => d.es_entrega) || domicilios.value.find(d => d.es_fiscal)
+    if (!entrega || !(entrega.calle || '').trim()) return 'Sin Domicilio'
+    return `${entrega.calle} ${entrega.numero || ''}, ${entrega.localidad || ''}`.trim()
+}
+
+// Abre el modal de conflicto y devuelve una Promise que se resuelve con la acción del operador
+const openCuitConflictModal = (cuit, existingClients) => {
+    cuitConflictData.value = { cuit, existingClients }
+    showCuitConflictModal.value = true
+    return new Promise((resolve) => {
+        cuitConflictResolver = resolve
+    })
+}
+
+const resolveCuitConflict = (action) => {
+    showCuitConflictModal.value = false
+    if (cuitConflictResolver) {
+        cuitConflictResolver(action)
+        cuitConflictResolver = null
+    }
+}
+
+const handleUseExisting = (existingId) => {
+    resolveCuitConflict('use-existing')
+    if (existingId) goToHermano(existingId)
+}
+
+// --- [GENOMA Bit 5] Panel de Hermanos (Unidades de Negocio relacionadas) ---
+const hermanos = ref([])
+const loadingHermanos = ref(false)
+
+const fetchHermanos = async () => {
+    const cuit = form.value.cuit
+    if (!cuit || cuit.length < 11 || GENERIC_CUITS.includes(cuit)) {
+        hermanos.value = []
+        return
+    }
+    loadingHermanos.value = true
+    try {
+        const res = await clientesService.getHermanos(cuit, form.value.id || null)
+        hermanos.value = res.data || []
+    } catch (e) {
+        console.error('Error cargando hermanos', e)
+        hermanos.value = []
+    } finally {
+        loadingHermanos.value = false
+    }
+}
+
+const goToHermano = (id) => {
+    router.push({ name: 'HaweClientCanvas', params: { id } })
+}
 
 const consultarWeb = async () => {
     if (!form.value.cuit) {
@@ -606,15 +707,32 @@ const consultarAfip = async () => {
     loadingAfip.value = true
     notificationStore.add('Consultando ARCA/AFIP... Por favor espere.', 'info')
     try {
-        // [GY-UX] 0. Duplicate Check (UBA / Shared CUITs handling)
+        // [GY-UX] 0. Duplicate Check (UBA / Shared CUITs handling) — Matching difuso como gate (dictamen Nike S845)
+        pendingMultiCuit.value = false
         if (isNew.value) {
-             const checkRes = await clientesService.checkCuit(form.value.cuit)
+             const currentDomicilioEntrega = getCurrentDomicilioEntregaStr()
+             const checkRes = await clientesService.checkCuit(form.value.cuit, null, form.value.razon_social, currentDomicilioEntrega)
              if (checkRes.data && checkRes.data.status === 'EXISTS') {
-                 const names = checkRes.data.existing_clients.map(c => c.razon_social).join(', ')
-                 const confirmed = confirm(`ATENCIÓN: Este CUIT ya está registrado para:\n\n${names}\n\n¿Desea crear una NUEVA entidad con este mismo CUIT (ej: Sucursal o Facultad distinta)?\n\n- Aceptar: Crear Nuevo (Permite Multi-CUIT)\n- Cancelar: Detener`)
-                 if (!confirmed) {
-                     loadingAfip.value = false
-                     return
+                 const existing = checkRes.data.existing_clients || []
+
+                 // Gate: solo interrumpe si el matching difuso (nombre o domicilio de entrega) supera el umbral.
+                 // Por debajo del umbral, es claramente una unidad de negocio distinta (patrón Nestlé/UBA) -> bit automático, sin modal.
+                 const suspicious = existing.some(c =>
+                     (c.similarity_nombre || 0) >= SIMILARITY_THRESHOLD ||
+                     (c.similarity_domicilio || 0) >= SIMILARITY_THRESHOLD
+                 )
+
+                 if (suspicious) {
+                     const action = await openCuitConflictModal(form.value.cuit, existing)
+                     if (action === 'use-existing') {
+                         loadingAfip.value = false
+                         return
+                     }
+                     // 'link-related' y 'confirm-distinct' llevan al mismo resultado técnico: Bit 5 ON
+                     pendingMultiCuit.value = true
+                 } else {
+                     // Sin ambigüedad -> se sabe que el CUIT es compartido, se enciende el bit sin interrumpir
+                     pendingMultiCuit.value = true
                  }
              }
         }
@@ -649,6 +767,11 @@ const consultarAfip = async () => {
         // 1 = Existence, 2 = Virginity, 4 = Gold_Arca, 8 = Struct
         // Nivel 13 (No Virgen) para Modales Operativos (Ingesta). Nivel 15 (Virgen) para ABM Manual.
         form.value.flags_estado = props.isModal ? 13 : 15;
+
+        // [GENOMA Bit 5 - MULTI_CUIT] Operador confirmó "Crear Nueva Unidad de Negocio" en el modal de conflicto
+        if (pendingMultiCuit.value) {
+            form.value.flags_estado |= 32;
+        }
         
         // 2. Map Condicion IVA (Fuzzy Logic)
         const arcaIva = (res.condicion_iva || '').toUpperCase()
@@ -1446,9 +1569,10 @@ const loadCliente = async (id, mode = 'full') => {
             }
             
             domicilios.value = client.domicilios || []
-            contactos.value = client.vinculos || [] 
+            contactos.value = client.vinculos || []
             loadCommercialIntel()
             checkCuitStatus(false)
+            fetchHermanos()
         }
     } catch (e) {
         console.error(e)
@@ -1611,6 +1735,7 @@ const saveCliente = async () => {
             const resCreated = await store.createCliente(payload)
             emit('save', resCreated || payload)
             notificationStore.add('Cliente creado exitosamente', 'success')
+            fetchHermanos()
         } else {
             // [GY-FIX] Drop domicilios from main payload as backend Pydantic 'ClienteUpdate' doesn't support them.
             delete payload.domicilios;

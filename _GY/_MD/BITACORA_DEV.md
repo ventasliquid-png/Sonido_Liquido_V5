@@ -1,4 +1,39 @@
-﻿## SESIÓN 842 (CA): OMEGA LITE — FIXES TOPOLOGÍA Y UI
+﻿## SESIÓN 844 (CA): FEATURE CUIT DUPLICADO + COLISIÓN DE GENOMA BIT 5 D/B
+**Fecha:** 2026-07-06
+**Locación:** CA
+**Estado:** NOMINAL GOLD — Hash D: cf6248ba→pendiente commit cierre | Hash B: 218f2a3 (sin cambios) | PIN 1974
+
+### Hito 1: Higiene de identidad y hallazgos de seguridad menores (CC)
+* `.gy_identity` de la Silo desactualizado desde 2026-06-18 (decía "OF", máquina real CA) — corregido. SISTEMA_STATUS.json de CA sincronizado con su historial real (había cerrado S837 localmente).
+* Card #89: `.gy_identity` versionado en git dentro de D hereda identidad de la última máquina que lo commitea — diseño roto, candidato a `.gitignore`.
+* PIN 1974 en `MasterToolsView.vue` diagnosticado como cosmético — sin validación server-side en los 7 endpoints `/hard`. Reportado, sin fix (fuera de alcance).
+
+### Hito 2: Feature "CUIT Duplicado / Unidades de Negocio" completo en D (CC)
+* Antecedente real encontrado: plan técnico 2026-02-04 (`PLAN_TECNICO_SPLIT_V7.md`) ya especificaba el botón "Crear Nueva Unidad de Negocio", nunca completado; también Sesión 787 (erradicación `ClienteInspector`→`ClientCanvas`, no "Multiplex" como se creía inicialmente).
+* Dictamen Nike: matching difuso (`SequenceMatcher`, umbral 0.85) sobre razón social y domicilio de entrega como gate, modal de 3 vías (`CuitConflictModal.vue`, nuevo), panel de hermanos (`GET /clientes/hermanos/{cuit}`).
+* Guarda GOLD de CUIT único en `create_cliente` (sin antecedente documentado, a diferencia de la guarda de razón social) recibió excepción condicionada a Bit 5 (MULTI_CUIT); guarda de razón social (Blindaje Nuclear/INAPYR, 2026-04-08, PIN 1974) permanece intacta sin excepción.
+* Fix adyacente: `except Exception` genérico en `create_cliente` crasheaba con `UnicodeEncodeError` (emoji + consola cp1252) antes de poder re-lanzar `HTTPException`, convirtiendo 400s legítimos en 500 opacos.
+* Verificado con POST real + consulta directa a DB: Escenario A (nombre distinto, 201 + Bit 5 en DB) y Escenario B (nombre similar, 400 limpio pese al bit) confirmados en D.
+
+### Hito 3: Colisión de genoma Bit 5 entre D y B — cherry-pick bloqueado (CC)
+* Al cherry-pickear el feature a B: `AttributeError: ClientFlags has no attribute MULTI_CUIT`. Investigación reveló que B define Bit 5 (32) = `IS_GHOST` ("Operaciones Ocultas/Sin Rastro"), no `MULTI_CUIT`.
+* Reconstrucción vía `git log`: origen común (`1574e950`, 12/03) con MULTI_CUIT en ambos repos; B redefinió el bit antes del 30/03; D perdió la línea de su propio archivo entre el 13/03 y el 20/05, reintroducida en Sesión 820 (31/05) — la misma sesión que investigó los "bits fantasma" de Bandera Roja #3 (Lácteos de Poblet SA, CENTRO PET ARGENTINA S.R.L.) evaluándolos solo contra la doctrina de D.
+* Dato de esos clientes con Bit 5 ON confirmado únicamente en la copia LOCAL de `V5_LS_MASTER.db` dentro del checkout de B en CA (no es MT real, última modificación 2026-06-14).
+* Reasignación de bit existente = Línea Roja explícita (FAQ_ARRANQUE.md) — no resuelto unilateralmente. Cherry-pick de los 5 archivos + build de `static/` revertido sin commitear; `constants.py` nunca se copió; working tree de B confirmado limpio. Card #90 creada, pendiente dictamen Nike.
+
+---
+
+## SESIÓN 843 (OF): OMEGA COMPLETO — DIAGNÓSTICO PUSH FALTANTE B→PROD + BITS 10/11
+**Fecha:** 2026-07-03
+**Locación:** OF
+- Bits 10/11 (CS_PRESENTE/GA_PRESENTE) formalizados — modelo Principal/Consultivo, dictamen Nike 02/07.
+- Diagnóstico y resolución de push faltante B→prod desde S842: 6 commits atrapados ~22hs (incluido fix crítico de `unicodedata`). Card #88 creada.
+- Incursión directa de Carlos en MT: atraso de 13 commits por auto-bloqueo de `current/frontend/dist/`, resuelto con backup + migración 036 + rebuild.
+- *(Nota S844: esta entrada se backfillea retroactivamente — no se había registrado en este archivo al momento de su cierre.)*
+
+---
+
+## SESIÓN 842 (CA): OMEGA LITE — FIXES TOPOLOGÍA Y UI
 **Fecha:** 2026-07-02
 **Locación:** CA
 - S842 (CA): Cierre OMEGA Lite. Fixes UI Alta Producto y Saneamiento Topológico B.

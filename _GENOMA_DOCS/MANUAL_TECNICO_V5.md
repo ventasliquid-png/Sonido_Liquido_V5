@@ -1443,7 +1443,56 @@ if (!c.segmento_id && !c.segmento?.id) {
 **Motivo:** El backend puede devolver `segmento` como objeto anidado `{id, nombre}` en lugar de solo `segmento_id`. La validación acepta ambas formas para máxima flexibilidad.
 
 
-## S842 � Correcciones visuales menores en Alta de Producto (bot�n nuevo y comportamiento modal).
+## S842 � Correcciones visuales menores en Alta de Producto (bot�n nuevo y comportamiento modal).
 
 
 ## S843 — Sin cambios funcionales/tecnicos en D. Sesion de proceso: diagnostico y resolucion de push faltante B->prod desde S842 (6 commits atrapados ~22hs, incluido fix critico de unicodedata en productos/service.py), formalizacion de Bits 10/11 (CS_PRESENTE/GA_PRESENTE) en doctrina, y reparacion de auto-bloqueo de current/frontend/dist/ en MT (incursion directa de Carlos). Card #88 creada en Board.
+
+---
+
+## CAPÍTULO 37: CUIT DUPLICADO — MATCHING DIFUSO, MODAL 3 VÍAS Y GENOMA BIT 5 (Sesión 844 CA, 2026-07-06)
+
+### 37.1 Backend — `backend/clientes/service.py`, `schemas.py`, `router.py`
+
+**`check_cuit()` extendido:**
+- Acepta ahora `razon_social` y `domicilio_entrega` como query params opcionales.
+- Calcula `domicilio_entrega` del cliente existente privilegiando el domicilio con `es_entrega=True` (fallback al primero disponible) — distinto de `domicilio_principal`, que privilegia `es_fiscal=True`. Verificado en S844: en la práctica, `es_fiscal` y `es_entrega` coinciden en el 100% de los domicilios de D que tienen fiscal (35/35), por lo que ambos campos rinden el mismo valor salvo casos sin domicilio fiscal cargado.
+- Calcula `similarity_nombre` y `similarity_domicilio` con `difflib.SequenceMatcher` (mismo algoritmo que `check_similarity`, "Protocolo Nike") comparando contra cada cliente existente. `ClienteSummary` extendido con estos 4 campos nuevos.
+
+**Nuevo endpoint `GET /clientes/hermanos/{cuit}`:**
+```python
+db.query(Cliente).filter(Cliente.cuit == cuit, Cliente.flags_estado.op('&')(32) == 32)
+```
+Devuelve los clientes que comparten CUIT y ya tienen el Bit 5 (MULTI_CUIT) encendido — alimenta el panel de "hermanos" en el frontend.
+
+**Excepción en `create_cliente()` — guarda de CUIT (línea ~38):**
+```python
+es_multi_cuit = bool((cliente_in.flags_estado or 0) & ClientFlags.MULTI_CUIT)
+if cliente_in.cuit and cliente_in.cuit not in GENERIC_CUITS and not es_multi_cuit:
+     existing_cuit = db.query(Cliente).filter(Cliente.cuit == cliente_in.cuit).first()
+     if existing_cuit:
+         raise HTTPException(400, ...)
+```
+Si el payload ya trae Bit 5 encendido, la guarda de CUIT único se salta. **La guarda de razón social (Blindaje Nuclear BOW, ver Informe Histórico 2026-04-08) NO tiene excepción** — un duplicado casi idéntico de nombre sigue bloqueado con 400 aunque el Bit 5 esté presente.
+
+**Fix adyacente:** el `except Exception` genérico de `create_cliente` crasheaba con `UnicodeEncodeError` (emoji en `print()`, consola Windows cp1252) antes de poder re-lanzar cualquier `HTTPException`, convirtiendo todo 400 legítimo de esa función en un 500 opaco sin mensaje. Se agregó un `except HTTPException: raise` explícito antes del catch-all.
+
+### 37.2 Frontend — `ClientCanvas.vue`, `CuitConflictModal.vue` (nuevo)
+
+En `consultarAfip()`: al detectar CUIT existente, calcula el domicilio de entrega actual (`getCurrentDomicilioEntregaStr()`, privilegia `es_entrega`) y llama a `check_cuit` con nombre + domicilio. Si `similarity_nombre >= 0.85` o `similarity_domicilio >= 0.85` (umbral, mismo que "Protocolo Nike"), abre `CuitConflictModal.vue` (patrón Promise, reemplaza `confirm()` nativo). Si ninguno supera el umbral, enciende `pendingMultiCuit` y continúa sin interrumpir — el bit se aplica automáticamente sobre `flags_estado` justo después de la asignación de nivel ARCA (13/15), para que no lo pise.
+
+`CuitConflictModal.vue`: modal de 3 vías (`use-existing` con navegación, `link-related`, `confirm-distinct` — estos dos últimos emiten resultados técnicamente idénticos, diferenciados solo visualmente).
+
+Panel de hermanos: `fetchHermanos()` se dispara en `loadCliente()` (edición) y tras creación exitosa; consulta `/clientes/hermanos/{cuit}` y renderiza una sección en la ficha si hay resultados.
+
+### 37.3 HALLAZGO CRÍTICO — Colisión de genoma Bit 5 entre D y B
+
+`backend/clientes/constants.py`:
+- **D:** `Bit 5 (32) = MULTI_CUIT`
+- **B (`v5-ls-Tom/current`):** `Bit 5 (32) = IS_GHOST` ("Operaciones Ocultas / Sin Rastro")
+
+Reconstrucción vía `git log`: ambos repos parten del mismo origen (commit `1574e950`, 2026-03-12, MULTI_CUIT en los dos). En algún punto antes del 2026-03-30, B redefinió Bit 5 a `IS_GHOST`. En paralelo, D perdió la línea `MULTI_CUIT` de su propio archivo entre el 13/03 y el 20/05, y la reintrodujo recién en la Sesión 820 (31/05) — la misma sesión que investigó `flags_estado=65581` en Lácteos de Poblet SA y CENTRO PET ARGENTINA S.R.L. (Bandera Roja #3), evaluando ese valor únicamente contra la doctrina de D, sin cruzar con B.
+
+`IS_GHOST` no tiene ningún uso en código actual de B (solo la declaración), pero hay datos reales con Bit 5 encendido — confirmado en la **copia local de `V5_LS_MASTER.db` dentro del checkout de B en CA** (`data/V5_LS_MASTER.db`, última modificación 2026-06-14, no es MT real, dato de 3+ semanas de antigüedad).
+
+Por ser "reasignación de bit existente" (Línea Roja explícita, FAQ_ARRANQUE.md), el cherry-pick del feature completo a B queda **bloqueado hasta dictamen Nike**. Card #90 creada. `constants.py` nunca se copió a B; los otros 5 archivos + build de `static/` se revirtieron sin commitear tras el hallazgo — working tree de B confirmado limpio (`git status`).

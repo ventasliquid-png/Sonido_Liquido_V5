@@ -7,10 +7,17 @@ import api from './api';
 export default {
     getAll: (params) => api.get('/clientes/', { params }),
     getById: (id) => api.get(`/clientes/${id}`),
-    checkCuit: (cuit, excludeId = null) => {
+    checkCuit: (cuit, excludeId = null, razonSocial = null, domicilioEntrega = null) => {
         const params = {};
         if (excludeId) params.exclude_id = excludeId;
+        if (razonSocial) params.razon_social = razonSocial;
+        if (domicilioEntrega) params.domicilio_entrega = domicilioEntrega;
         return api.get(`/clientes/check-cuit/${cuit}`, { params });
+    },
+    getHermanos: (cuit, excludeId = null) => {
+        const params = {};
+        if (excludeId) params.exclude_id = excludeId;
+        return api.get(`/clientes/hermanos/${cuit}`, { params });
     },
     getTransportesHabituales: (id) => api.get(`/clientes/${id}/transportes-habituales`),
     create: (data) => api.post('/clientes/', data),
