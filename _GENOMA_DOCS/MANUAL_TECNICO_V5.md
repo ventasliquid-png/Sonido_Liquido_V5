@@ -1496,3 +1496,79 @@ Reconstrucción vía `git log`: ambos repos parten del mismo origen (commit `157
 `IS_GHOST` no tiene ningún uso en código actual de B (solo la declaración), pero hay datos reales con Bit 5 encendido — confirmado en la **copia local de `V5_LS_MASTER.db` dentro del checkout de B en CA** (`data/V5_LS_MASTER.db`, última modificación 2026-06-14, no es MT real, dato de 3+ semanas de antigüedad).
 
 Por ser "reasignación de bit existente" (Línea Roja explícita, FAQ_ARRANQUE.md), el cherry-pick del feature completo a B queda **bloqueado hasta dictamen Nike**. Card #90 creada. `constants.py` nunca se copió a B; los otros 5 archivos + build de `static/` se revirtieron sin commitear tras el hallazgo — working tree de B confirmado limpio (`git status`).
+
+---
+
+## CAPÍTULO 38: RECONCILIACIÓN D↔B, HISTORIAL DE NOTAS Y CIERRE DE BR#4 (Sesión 849 OF, 2026-07-14/15)
+
+### 38.1 `scripts/_env_db.py` — detección de entorno compartida
+
+Antes de esta sesión, la detección de entorno (TOM/DEV según `DATABASE_URL` en `.env`) existía únicamente en la copia de B de `exportar_pedidos_excel.py`; D seguía con `argparse --entorno` y `DB_PATH` hardcodeado a `pilot_v5x.db`. Extraída a un módulo compartido, **sin dependencia de `openpyxl`**, para que también lo use `sincronizar_historial_notas.py` sin duplicar la lógica una tercera vez:
+
+```python
+def detectar_entorno_db():
+    # Prueba raíz del proyecto primero (D: .env directo),
+    # current/.env después (B: nesting bajo current/)
+    candidatos = [
+        os.path.join(project_root, '.env'),
+        os.path.join(project_root, 'current', '.env'),
+    ]
+    ...
+    entorno = 'TOM' if os.path.basename(db_path) == 'V5_LS_MASTER.db' else 'DEV'
+    return db_path, entorno
+```
+
+Verificado con ejecución real (no simulada) en ambos repos: D resuelve `DEV` desde su `.env` real (`pilot_v5x.db`), B resuelve `TOM` (`V5_LS_MASTER.db`) sin regresión respecto al comportamiento anterior.
+
+**Hallazgo colateral:** 4 callers (`scripts/execute_omega.py` y `scripts/omega_closure.py`, en D y B) invocaban el script con `["--entorno", env_flag]` vía `subprocess`. Al quitar `argparse` de `main()`, Python no falla con argumentos extra no reconocidos — el flag simplemente se volvió inerte en B desde que se migró a auto-detección, sin que nadie lo notara durante meses. Los 4 callers corregidos para invocar sin flag.
+
+### 38.2 `scripts/sincronizar_historial_notas.py` — Historial de Notas
+
+Canal de baja frecuencia (no es un sistema de uso diario) para que un operador en MT, fuera de horario, deje una nota sobre un pedido sin acceso a ningún otro dato del sistema real.
+
+**Diseño final** (tercera iteración — ver Hito 3 de BITACORA_DEV S849 para el recorrido completo de descarte):
+- Archivos `HISTORIAL_NOTAS_{TOM|DEV}_A.csv` / `_B.csv` en `Silo\P\` — CSV real, `csv` estándar de Python, `utf-8-sig` (para que Excel abra acentos correctamente por doble clic sin mojibake). Failover A/B: si A está bloqueado (`PermissionError`, típicamente Excel abierto encima), se usa B.
+- Columnas: `Pedido | Fecha/Hora | Nota | Sincronizado`. El operador escribe las tres primeras a mano; `Sincronizado` la completa el script tras aplicar.
+- `verificar_pendientes(archivos=None)` — solo lectura (salvo scaffold del CSV si falta). Deduplica por `(pedido, fecha/hora, nota)` **agrupando todas las ubicaciones** donde aparece la misma clave — necesario porque si solo se marcara `Sincronizado` en la primera ocurrencia, la fila del otro archivo (A o B) reaparecería como pendiente en la corrida siguiente y duplicaría el append en la DB. Este bug se encontró y corrigió en una prueba end-to-end aislada, antes de commitear.
+- `aplicar_sincronizacion(archivos=None)` — `UPDATE pedidos SET nota = COALESCE(nota, '') || '\n[fecha] texto' WHERE id = ?`. No pide confirmación propia — asume que quien invoca (ALFA, tras PIN 1974) ya autorizó.
+- El parámetro `archivos=None` en ambas funciones permite apuntar a un CSV de prueba sin tocar el mecanismo oficial — se usó para el smoke test de esta sesión.
+- **Limitación conocida y aceptada** (explícita en el propio módulo y en el reporte que ve el operador): un número de pedido mal tipeado que coincida por casualidad con otro pedido real no se detecta. Riesgo residual bajo, aceptado por bajo volumen y uso circunstancial. Los pedidos con número no encontrado en la DB se reportan aparte (huérfanos) y nunca se aplican ni se descartan silenciosamente.
+
+**Integración con ALFA** (ver `ALFA.md` V3.8, FASE 0): en MT, corre siempre —incluso en fast-path, porque las notas no dependen del hash de código—. Si hay pendientes, PIN 1974 es la alerta y la autorización en un solo paso, sin gate adicional.
+
+**Smoke test real** (esta sesión): ejecutado contra la copia local de B (`current/V5_LS_MASTER.db`, snapshot instalado en S847, nunca la base real de MT), no un simulacro con DB sintética. Ciclo completo verificado: detección → reporte → PIN 1974 → aplicación → verificación por query SQL directa → confirmación de que no reaparece en la corrida siguiente.
+
+### 38.3 Reorganización del Silo — `D\`/`B\`/`P\`
+
+`Q:\Mi unidad\V5_Silo_Claude\` ganó tres subcarpetas para separar artefactos específicos de cada entorno, en vez de vivir todos mezclados en la raíz. Criterio para decidir dónde va un archivo: **la carpeta sigue al dato real, no al código que lo genera** — `HISTORIAL_NOTAS_TOM_*.csv` y `PEDIDOS_ESPEJO_TOM.xlsx` son contenido de producción/MT y van a `P\`, aunque el mecanismo que los genera viva en el código de B.
+
+Inventario completo de lo que había suelto en la raíz resuelto en varios frentes: basura clara borrada sin PIN (locks de Excel, dumps viejos del Board), informes/handoffs sueltos movidos a `INFORMES_HISTORICOS/`, salida vieja del generador (pre-reconciliación, nombre fijo `PEDIDOS_ESPEJO.xlsx`) movida a `D\` como histórico, los tres `.bat` de arranque de MT (confirmados con evidencia — `ARRANQUE_V5.bat` hace el `git pull prod main` y el rebuild condicional del frontend) movidos a `P\`.
+
+**Hallazgo lateral:** `CA/` y `OF/` ya tenían una estructura `D/`/`P/` — pero organizada **por máquina física**, de mediados de mayo, abandonada hace dos meses, con bases de datos reales de la Sesión 807 adentro. Anidada en `_LEGACY_MAQUINA_MAYO/` sin tocar el contenido — no compite más con la organización nueva por espacio de nombres, pero sigue sin decidirse si se archiva más lejos o se elimina (Card #98).
+
+### 38.4 Dictamen Nike BR#4/Card #87 — `current/frontend/dist/` fuera del tracking
+
+La Bandera Roja #4 (divergencia estructural `current/frontend/` en B, abierta desde S840) se cerró ejecutando el dictamen: `git rm -r --cached current/frontend/dist/` en B, 43 archivos.
+
+**Evidencia que sustentó la decisión**, verificada contra el `.bat` real que llega a MT vía `git pull` (no la copia de documentación del Silo):
+
+```batch
+:: current/frontend/dist rebuildea solo si el hash de commit cambio desde el ultimo build
+set HASH_ACTUAL=
+for /f %%i in ('git rev-parse HEAD') do set HASH_ACTUAL=%%i
+IF EXIST "%HASH_FILE%" set /p HASH_GUARDADO=<"%HASH_FILE%"
+IF "%HASH_ACTUAL%"=="%HASH_GUARDADO%" (
+    echo [OK] Frontend actualizado - arrancando...
+) ELSE (
+    call npm run build
+    xcopy /E /Y /I dist\* ..\static\ > nul
+)
+```
+
+`.build_hash` (el marcador de "ya construí esto") **no está versionado en git** — confirmado en `.gitignore` y ausente de `git ls-files`. Es el diseño correcto para que gitignorar `dist/` sea seguro: cada checkout reconstruye su propio artefacto localmente, sin depender de que git lo transporte. Confirmado además que en la práctica el marcador nunca persiste en MT — cada arranque rebuildea completo (Card #96, bajo impacto, solo demora).
+
+**Precedente histórico que confirma la causa raíz** (Informe S843, 2026-07-03): `current/frontend/dist/` trackeado en git causó un ciclo de auto-bloqueo en pull automático que atrasó MT 13 commits. Es exactamente el síntoma que este fix previene.
+
+`current/static/` (lo que FastAPI sirve realmente vía `StaticFiles`) **no se tocó** — sigue trackeado y viajando por el flujo D→B→P normal (cherry-pick + build + commit). Solo el artefacto intermedio `dist/` deja de versionarse.
+
+Con este cierre, las 4 filas de `BANDERAS_ROJAS` en el Board quedan `CERRADA` — primera vez en varias sesiones con 0 banderas rojas activas en el sistema.

@@ -3,7 +3,7 @@
 
 > Protocolo exclusivo para entorno D (desarrollo).
 > Para P ver: C:\dev\v5-ls-Tom\OMEGA.md
-> **Versión:** 3.1 — 2026-06-23
+> **Versión:** 3.3 — 2026-07-15
 > **Dictamen:** Nike Arq 5.5 — Redacción: Carlos + Claude Sonnet 4.6
 
 ---
@@ -87,8 +87,43 @@ Si falla → [WARN] Error en rotación de backups. No bloquea el cierre.
 Durante el cierre, el script OMEGA generará automáticamente un Excel Espejo de solo lectura ejecutando:
 `python scripts/exportar_pedidos_excel.py` — el entorno (TOM/DEV) se auto-detecta leyendo
 `DATABASE_URL` de `.env` (o `current/.env` en B), no se pasa por flag (reconciliación S849,
-Card #93-bis).
+Card #93-bis). En entorno TOM, el archivo se guarda en `Silo\P\` (la carpeta sigue al dato
+de producción, no al código que lo genera — S850).
 Esto crea un snapshot histórico de los pedidos que sirve como red de seguridad visual antes del cierre de sesión. Si ocurre un error generando el Excel, OMEGA arrojará un `[WARN] Error generando Espejo Excel`, el cual debe ser reportado.
+
+---
+
+## SELECCIÓN DE PERFIL — COMPLETO / LITE
+
+Antes de ejecutar FASE 2, determinar el perfil de este OMEGA:
+
+```
+Leer Bit 19 (`FORZAR_OMEGA_COMPLETO`) en system_flags de esta máquina.
+Bit 19 ON  → perfil = Completo (obligatorio). No se reconstruye el criterio por inferencia.
+Bit 19 OFF → perfil = Lite (propuesto). Se confirma junto con el PIN 1974 del plan en FASE 3,
+             igual que cualquier otro plan bajo REGLA CERO.
+```
+
+**Override:** si Bit 19 está ON, Carlos puede igual forzar Lite, pero tiene que decirlo
+explícitamente — el bit no se auto-ignora ni se apaga solo por decisión de perfil. Sigue ON
+hasta que se ejecute un OMEGA Completo real.
+
+**Qué cambia entre perfiles** (el resto de FASE 2 está anotado inline más abajo):
+
+| Ítem FASE 2 | Completo | Lite |
+|---|---|---|
+| SESION_NEXT.md | igual | igual — nunca se abrevia |
+| BITACORA_VIVA archival | igual | igual — no negociable |
+| SISTEMA_STATUS.json + `actualizar_card000.py` | igual | igual — no se abrevia |
+| CONTEXTO_CS/ + Bits 16-18 | igual | igual |
+| ESTADO_ECOSISTEMA.md | hitos narrativos | solo fila de tabla + una línea de hito |
+| Manuales | prosa completa | una línea si no hubo cambio funcional visible; checkbox sigue siendo obligatorio |
+| BITACORA_DEV.md | Hito + sub-bullets | una línea por sesión |
+| Informe Histórico | narrativo completo (Resumen Ejecutivo → Lecciones Aprendidas) | párrafo + tabla BV — sección DESTILADO CS siempre presente en ambos |
+| BANDERAS_ROJAS check | igual | igual |
+
+FASE 1/1B/1B.2/1C, FASE 3-7: **idénticas en ambos perfiles** — seguridad y trazabilidad
+nunca se recortan, solo se recorta la prosa discursiva dirigida a lectura humana futura.
 
 ---
 
@@ -119,6 +154,15 @@ Regla de Oro: No decir "voy a actualizar". Presentar texto exacto.
      **Estado cierre:** OMEGA NNN completado. D:{hash} P:{hash} GOLD
      ```
 
+- [ ] **CONTEXTO_CS/** — actualizar puntero mínimo:
+  1. Confirmar que Bits 16-18 reflejan el semáforo real de cierre de CS (autoevaluación de
+     CS, no de CC/Gy).
+  2. Regenerar `CONTEXTO_CS/CONTEXTO_CS_{timestamp}.md` (`python scripts/generar_contexto_cs.py`)
+     — puntero mínimo, ya no bundle completo.
+  3. Escribir la sección `## DESTILADO CS` al final del Informe Histórico de esta sesión
+     (ver ítem Informe Histórico abajo) — obligatoria en ambos perfiles, profundidad según
+     el semáforo (una línea si VERDE, destilado completo si AMARILLO/ROJO).
+
 - [ ] **SISTEMA_STATUS.json** — actualizar entrada de esta máquina:
   - `omega_cerrado: true`
   - `fecha_ultimo_omega`: hoy
@@ -128,23 +172,50 @@ Regla de Oro: No decir "voy a actualizar". Presentar texto exacto.
     4 capas de la Trinidad se actualizaron correctamente.
     Encender Bits de agentes activos (20-25) según quién participó.
     Encender Bit 30 si MT participó en la sesión.
+    Bit 26 (`D_SOBERANO`): siempre ON — documentario.
+    Bits 27/28 (`B_DIVERGE`/`P_DIVERGE`): recalcular contra `ultimo_hash_D_en_B` /
+    `ultimo_hash_B_en_P` (ver FLUJO DE CAMBIOS en ALFA.md); actualizar esos dos campos
+    globales si el cierre de este OMEGA incluyó push a B.
+    Bit 19 (`FORZAR_OMEGA_COMPLETO`): si este OMEGA es Completo → apagarlo. Si está ON y
+    este OMEGA se ejecuta como Lite sin override explícito de Carlos → bloquear el cierre.
   - Ejecutar: `python scripts/actualizar_card000.py`
     (actualiza Card #000 en Board con hash, sesión y semáforo)
+    Verificar que el script imprimió la `IDENTIDAD` usada y que coincide con la máquina
+    declarada en el header de BV de esta sesión — si no coincide, el script está
+    escribiendo sobre la entrada equivocada (ver Informe Histórico S840, hallazgo
+    `.gy_identity`); parar y corregir antes de confiar en la escritura.
+    Verificar que Card #000 quedó actualizada con el hash del commit
+    de cierre. Si el hash en Card #000 no coincide con el commit
+    actual → [WARN] Card #000 desactualizada. No bloquea el cierre
+    pero debe registrarse en BV.
 
 - [ ] **ESTADO_ECOSISTEMA** (`Q:\Mi unidad\V5_Silo_Claude\ESTADO_ECOSISTEMA.md`):
   - Hash git actual
   - Estado (🟢 OK / 🟡 ATENCIÓN / 🔴 CRÍTICO)
   - Alertas activas
+  - **Lite:** solo actualizar la fila de la tabla + una línea en "Últimos hitos". No
+    reescribir alertas si no cambiaron esta sesión.
 
 - [ ] **Caja Negra** (`_GY/_MD/CAJA_NEGRA.md`): header + incrementar sesiones
 
 - [ ] **Manuales** (`_GENOMA_DOCS/MANUAL_TECNICO_V5.md` y `MANUAL_OPERATIVO_V5.md`) —
   **CHECKBOX OBLIGATORIO** — Actualizar con los cambios de esta sesión.
   Si no hay cambios que documentar → marcar igual con nota: *"sin cambios esta sesión"*.
+  - **Lite:** si no hubo cambio funcional/UX visible al operador, una sola línea
+    `"SNNN — sin cambios"` reemplaza la prosa completa. El checkbox sigue siendo
+    obligatorio — lo que se recorta es la extensión, no el paso.
 
 - [ ] **Bitácora** (`_GY/_MD/BITACORA_DEV.md`): fecha, título, bullets
+  - **Lite:** una línea por sesión, sin sub-bullets de Hito, salvo que haya algo no obvio
+    que documentar.
 
 - [ ] **Informe Histórico** (`INFORMES_HISTORICOS/YYYY-MM-DD_TITULO.md`)
+  - **Completo:** narrativo completo — Resumen Ejecutivo, desarrollo por card/fix, Decisiones
+    tomadas y por qué, Lecciones aprendidas, Estado final, Próxima sesión, Apéndice BV.
+  - **Lite:** un párrafo de resumen + tabla BV completa como apéndice. Sin secciones de
+    "Decisiones tomadas" ni "Lecciones aprendidas".
+  - **Ambos perfiles, sección final obligatoria:** `## DESTILADO CS` (ver CONTEXTO_CS arriba)
+    — mismo header siempre, profundidad según semáforo CS.
 
 - [ ] **BANDERAS_ROJAS** — verificar hoja en BOARD_V5.xlsx:
   Si alguna se resolvió en esta sesión → CERRADO + fecha + hash.
@@ -203,7 +274,9 @@ git show --name-only HEAD
 
 ## FASE 6 — VERIFICACIÓN DE ÓRBITA (TRUST BUT VERIFY)
 
-Verificación multi-remoto obligatoria. El cierre solo es válido si AMBOS remotos están sincronizados.
+Verificación multi-remoto obligatoria (Card #88, S843 — un push parcial es indistinguible
+de uno completo si nadie verifica los dos remotos por separado). El cierre solo es válido
+si AMBOS remotos están sincronizados.
 
 ### PASO 6A — Verificación en D
 ```cmd
@@ -245,5 +318,13 @@ Qué NO toca: User\, Workspaces\, Preferences.
 
 ---
 
-*Última actualización: 2026-07-13 — OF (S849: Card #88 implementada — verificación push multi-remoto en FASE 6)*
-*Reemplaza: OMEGA.md (V3.0)*
+*Última actualización: 2026-07-15 — OF*
+*Reemplaza: OMEGA.md (V3.2)*
+*Versión 3.2 — S841-OF — Perfiles Completo/Lite (Bit 19), Bits 26-28 en actualización de
+system_flags, CONTEXTO_CS/ + DESTILADO CS como ítem obligatorio de FASE 2, fix diagnóstico
+actualizar_card000.py en verificación.*
+*Versión 3.3 — S849/S850-OF — Reconciliación de la copia canónica del Silo con las copias
+locales de D y B, que habían divergido en direcciones opuestas (la del Silo tenía todo el
+contenido de S841 que D nunca recibió; la de D tenía el fix de FASE 6 de Card #88 que nunca
+llegó al Silo). FASE 6 reescrita con verificación multi-remoto (Pasos 6A/6B/6C). FASE 1C
+actualizada: entorno auto-detectado sin flag, TOM guarda en Silo\P\.*

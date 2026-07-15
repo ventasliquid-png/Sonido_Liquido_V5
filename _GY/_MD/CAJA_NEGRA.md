@@ -1,4 +1,16 @@
-﻿Sesion actual: 845
+﻿Sesion actual: 850
+
+# CAJA NEGRA: OMEGA Completo — Reconciliacion D<->B, Historial de Notas, reorganizacion del Silo, cierre BR#4 — S849 (2026-07-14/15)
+
+Sesion 849 OF (accidentada — corte de luz a mitad de sesion, retomada sin perdida de contexto). Hash D: {HASH_CIERRE_D} | Hash B: {HASH_CIERRE_B}. Estado: NOMINAL GOLD. Agentes: CC.
+- Reconciliacion completa D<->B de `exportar_pedidos_excel.py`: la deteccion de entorno (TOM/DEV via .env) existia solo en B; extraida a `scripts/_env_db.py` compartido (sin openpyxl) para que D tenga la misma capacidad real. Corregidos 4 callers (`execute_omega.py`/`omega_closure.py` en D y B) que invocaban el script con un flag `--entorno` ya inerte en B desde hace meses.
+- Feature nuevo "Historial de Notas": canal CSV de baja frecuencia para que Tomy deje notas operativas en MT fuera de horario, sincronizadas a `Pedidos.nota` via ALFA + PIN 1974. Diseño iterado en 3 rondas (hoja oculta+formulas -> hoja visible -> CSV real) hasta viabilidad confirmada. Bug real de deduplicacion A/B encontrado y corregido en prueba end-to-end antes de commitear. Verificado con smoke test contra la copia local de B (nunca produccion real).
+- Reorganizacion del Silo: carpetas `D\`/`B\`/`P\` creadas para separar lo especifico de cada entorno. Inventario completo de la raiz, resuelto en 6 puntos (basura borrada, historicos archivados, PEDIDOS_ESPEJO viejo a D\, HISTORIAL_NOTAS/PEDIDOS_ESPEJO_TOM/`.bat` de MT a P\, estructura legacy CA/OF anidada en `_LEGACY_MAQUINA_MAYO/`). Card #98 creada para lo que queda.
+- Dictamen Nike sobre BR#4/Card #87 ejecutado: `current/frontend/dist/` sacado del tracking de git en B (43 archivos) con evidencia real — mecanismo de rebuild condicional en `ARRANQUE_V5.bat` confirmado (aunque con `.build_hash` roto, nunca persiste — Card #96), precedente historico S843 confirmado como causa raiz del mismo sintoma. Card #87 y las 4 filas de `BANDERAS_ROJAS` cerradas — primera vez en varias sesiones con 0 banderas rojas activas.
+- Hallazgo de proceso: `OMEGA.md` del Silo (canonico) y de D habian divergido en direcciones opuestas desde S841 — Silo tenia contenido que D nunca recibio, D tenia el fix de FASE 6 de Card #88 que nunca llego al Silo. B ademas tenia un bug de header (decia "Entorno D", se autorreferenciaba) congelado en V3.0 desde 2026-06-01. Reconciliadas las 3 copias a V3.3.
+- D:{HASH_CIERRE_D} B:{HASH_CIERRE_B} | PIN: 1974
+
+---
 
 # CAJA NEGRA: OMEGA Completo — Feature CUIT duplicado + colision de genoma Bit5 D/B — S844 (2026-07-06)
 

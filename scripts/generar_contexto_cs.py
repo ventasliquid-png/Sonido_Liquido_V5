@@ -3,8 +3,11 @@ generar_contexto_cs.py — Genera puntero mínimo de contexto para CS nuevo
 Uso: python scripts/generar_contexto_cs.py
 """
 import json
+import re
 from datetime import datetime
 from pathlib import Path
+
+PATRON_FECHA = re.compile(r'^\d{4}-\d{2}-\d{2}_')
 
 SILO = Path(r"Q:\Mi unidad\V5_Silo_Claude")
 REPO_D = Path(r"C:\dev\Sonido_Liquido_V5")
@@ -23,8 +26,18 @@ def color_semaforo(system_flags):
     return "VERDE"  # default si ningun bit fue escrito aun
 
 def ultimo_informe_historico():
+    """
+    Solo considera archivos con convencion de fecha YYYY-MM-DD_ al inicio del
+    nombre -- otros .md sueltos en la carpeta (handoffs, mensajes, sesiones
+    transitorias archivadas por nombre propio) rompen el orden alfabetico
+    simple si ordenamos por nombre completo (S850: 'SESION_TRANSITORIA...'
+    quedaba "primero" porque 'S' > '2' en ASCII, pese a ser de junio).
+    """
     carpeta = SILO / "INFORMES_HISTORICOS"
-    archivos = sorted(carpeta.glob("*.md"), reverse=True)
+    archivos = sorted(
+        (f for f in carpeta.glob("*.md") if PATRON_FECHA.match(f.name)),
+        reverse=True,
+    )
     return archivos[0].name if archivos else "(sin informes)"
 
 # --- Main ---

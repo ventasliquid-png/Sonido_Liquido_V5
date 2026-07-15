@@ -1,4 +1,41 @@
-﻿## SESIÓN 844 (CA): FEATURE CUIT DUPLICADO + COLISIÓN DE GENOMA BIT 5 D/B
+﻿## SESIÓN 849 (OF): RECONCILIACIÓN D↔B, HISTORIAL DE NOTAS, REORGANIZACIÓN DEL SILO, CIERRE BR#4
+**Fecha:** 2026-07-14/15 (sesión accidentada — corte de luz a mitad, retomada sin pérdida de contexto)
+**Locación:** OF
+**Estado:** NOMINAL GOLD — Hash D: {HASH_CIERRE_D} | Hash B: {HASH_CIERRE_B} | PIN 1974
+
+### Hito 1: Auditoría profunda del sistema (CC)
+* Relevamiento completo de 17 Informes Históricos + Board (94→98 filas) + BANDERAS_ROJAS + panel. Hallazgo mayor: Cards #47/#48/#51/#52 resueltas en D desde hace un mes pero marcadas BACKLOG en el Board — verificado contra código real, no contra memoria del Board.
+* Bit 40 (DISCRIMINA_IVA) investigado: presente en D y B, byte-idéntico. Poblet/Centro Pet deberían tenerlo ON (son Responsables Inscriptos) pero está OFF por edad de registro — no es bug, es backfill pendiente desde antes de la canonización de la regla.
+* Card #44 rescatada: título vacío escondía el registro completo del fix de BR#3 (PIN 1974) — a punto de perderse en una limpieza futura de cards vacías.
+
+### Hito 2: Reconciliación D↔B de `exportar_pedidos_excel.py` (CC)
+* La detección de entorno (TOM/DEV vía `.env`) existía solo en B (`_detectar_entorno()`); D seguía con `argparse --entorno` + `DB_PATH` hardcodeado. Extraída a `scripts/_env_db.py` compartido, sin dependencia de `openpyxl`, para no duplicar la lógica una tercera vez.
+* Verificado con ejecución real en ambos repos: D resuelve DEV desde su `.env` real (no un stub simulado), B sigue resolviendo TOM sin regresión.
+* Hallazgo colateral: 4 callers (`execute_omega.py`/`omega_closure.py` en D y B) invocaban el script con un flag `--entorno` que en B llevaba meses siendo silenciosamente ignorado (Python no falla con argumentos extra si el script no usa `argparse`). Corregidos los 4, y `OMEGA.md` de ambos repos (documentaba el flag viejo).
+
+### Hito 3: Feature "Historial de Notas" — canal CSV para MT (CC)
+* Diseño iterado en 3 rondas con Carlos hasta viabilidad confirmada: hoja oculta + fórmulas de detección de cambios (descartado — fragilidad de versión de Excel) → hoja visible "Historial de Notas" dentro del mismo Excel (descartado — riesgo de pérdida en el full-overwrite del generador) → **CSV real separado**, con failover A/B, sync disparado por ALFA en MT con PIN 1974 como alerta+autorización en un solo paso.
+* `scripts/sincronizar_historial_notas.py` (D→B, idéntico): `verificar_pendientes()`/`aplicar_sincronizacion()`, dedup por `(pedido, fecha/hora, nota)`, huérfanos (pedido no encontrado) reportados y nunca aplicados ni descartados silenciosamente.
+* Bug real encontrado en prueba end-to-end aislada, antes de commitear: cuando la misma nota aparecía duplicada en A y B, solo se marcaba `Sincronizado` en el archivo que ganaba el dedup — el otro reaparecía como pendiente en la corrida siguiente, arriesgando duplicar el append en la DB. Corregido agrupando todas las ubicaciones por clave antes de marcar.
+* Smoke test real (no simulacro aislado) contra la copia local de B (`current/V5_LS_MASTER.db`, snapshot S847, nunca la real de MT): detección → reporte → PIN 1974 → aplicación → verificación por query SQL directa → confirmación de que no reaparece. Nota de test en Pedido #2 de esa copia queda como evidencia intencional, no revertida (decisión explícita de Carlos).
+
+### Hito 4: Reorganización del Silo — carpetas D\/B\/P\ (CC)
+* Carpetas creadas para separar lo específico de cada entorno; migración de lo ya suelto en raíz queda como Card #98, sin ejecutar hoy salvo los casos evidentes.
+* Inventario completo de la raíz — hallazgo importante: `CA/` y `OF/` ya tenían una estructura `D/`/`P/` por **máquina**, de mediados de mayo, abandonada dos meses, con bases reales de la Sesión 807 adentro. Anidada en `_LEGACY_MAQUINA_MAYO/` sin tocar el contenido.
+* Resuelto en 6 puntos: basura borrada sin PIN (locks de Excel, dumps viejos de Board), 4 handoffs sueltos → `INFORMES_HISTORICOS/`, `PEDIDOS_ESPEJO.xlsx` + 4 timestamped (huérfanos, pre-reconciliación) → `D\`, `PEDIDOS_ESPEJO_TOM.xlsx` + los 3 `.bat` de arranque de MT → `P\` (los tres confirmados con evidencia — apuntan a `git pull prod main`, migraciones, puerto de Tomy).
+* Corrección de rumbo a mitad de camino: los `HISTORIAL_NOTAS_TOM_*.csv`/`PEDIDOS_ESPEJO_TOM.xlsx` se habían puesto en `B\` en la primera pasada — corregidos a `P\` cuando Carlos aclaró el criterio ("la carpeta sigue al dato de producción, no al código que lo genera").
+
+### Hito 5: Dictamen Nike sobre BR#4/Card #87 — `dist/` fuera del tracking (CC)
+* Antes de ejecutar: confirmación con evidencia real de que `ARRANQUE_V5.bat` (el que efectivamente llega a MT vía `git pull`) rebuildea el frontend localmente comparando `git rev-parse HEAD` contra `.build_hash` — confirmado que ese marcador **no está versionado en git** (diseño correcto para que gitignorar `dist/` sea seguro). Encontrado además el precedente histórico exacto: Informe S843 documenta que `dist/` trackeado causó un ciclo de auto-bloqueo que atrasó MT 13 commits — la causa raíz que este fix corrige.
+* `git rm -r --cached current/frontend/dist/` en B — 43 archivos, verificado con `git check-ignore` que la regla del `.gitignore` (que ya existía pero nunca tuvo efecto retroactivo) ahora sí los cubre. `current/static/` (lo que realmente sirve FastAPI) sin tocar.
+* Card #87 y las 4 filas de `BANDERAS_ROJAS` cerradas con la evidencia completa — primera vez en varias sesiones con 0 banderas rojas activas en el sistema.
+* Dos cards nuevas sin bloquear el cierre: `.build_hash` nunca persiste en MT en la práctica (cada arranque rebuildea completo, bajo impacto — Card #96), `static/assets/` acumula bundles viejos sin purgar (`xcopy` no borra huérfanos — Card #97).
+
+### Hito 6: Reconciliación de `OMEGA.md` — 3 copias divergentes (CC)
+* Encontrado al arrancar el cierre de esta sesión: el `OMEGA.md` canónico del Silo y la copia local de D habían divergido en direcciones opuestas desde S841 (Silo tenía todo el contenido de perfiles Completo/Lite que D nunca recibió; D tenía el fix de FASE 6 de Card #88 —verificación multi-remoto— que nunca llegó al Silo). La copia de B tenía además un bug de header real (decía "Entorno D", se autorreferenciaba a sí misma) y estaba congelada en V3.0 desde 2026-06-01, sin ninguna mejora de S841.
+* Las 3 copias reconciliadas a V3.3 antes de ejecutar el propio cierre — no se podía correr "el protocolo completo" sin resolver primero cuál era la fuente de verdad.
+
+## SESIÓN 844 (CA): FEATURE CUIT DUPLICADO + COLISIÓN DE GENOMA BIT 5 D/B
 **Fecha:** 2026-07-06
 **Locación:** CA
 **Estado:** NOMINAL GOLD — Hash D: cf6248ba→pendiente commit cierre | Hash B: 218f2a3 (sin cambios) | PIN 1974

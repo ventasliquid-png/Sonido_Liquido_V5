@@ -882,3 +882,26 @@ En la ficha de todo cliente que comparte CUIT con otra unidad de negocio ya conf
 
 ### 25.4 Estado de despliegue
 Disponible en el entorno de Desarrollo (D). **Aún no disponible en Producción (B/MT)** — el despliegue quedó bloqueado por un hallazgo técnico de arquitectura (ver Manual Técnico, Capítulo correspondiente a S844) que requiere resolución previa. Se informará cuando esté disponible.
+
+---
+
+## CAPÍTULO 26: HISTORIAL DE NOTAS — CANAL PARA DEJAR AVISOS FUERA DE HORARIO (Sesión 849 OF, 2026-07-15)
+
+### 26.1 Para qué sirve
+No es un sistema de uso diario. Es una vía para que alguien en MT (Tomy) deje una nota operativa sobre un pedido específico cuando no hay nadie más operando el sistema — por ejemplo, un sábado a la mañana. La nota queda pendiente hasta que se sincroniza (automáticamente, la próxima vez que un agente arranca sesión en MT).
+
+### 26.2 Cómo dejar una nota
+En la carpeta del Silo en Google Drive (`Q:\Mi unidad\V5_Silo_Claude\P\`), abrir el archivo `HISTORIAL_NOTAS_TOM_A.csv` con doble clic (se abre en Excel como una planilla normal). Si ese archivo está bloqueado (alguien más lo tiene abierto), usar `HISTORIAL_NOTAS_TOM_B.csv` en su lugar — cualquiera de los dos funciona igual.
+
+Agregar una fila nueva al final con:
+- **Pedido:** el número de pedido exacto.
+- **Fecha/Hora:** cuándo se escribió la nota (formato libre, ej. `2026-07-20 09:15`).
+- **Nota:** el texto de la nota.
+- **Sincronizado:** dejar vacío — se completa solo cuando la nota se aplica.
+
+Guardar el archivo (Ctrl+S, mantener formato CSV si Excel pregunta).
+
+### 26.3 Qué pasa después
+La próxima vez que se abra una sesión en MT, el sistema detecta la nota pendiente y avisa antes de aplicarla — no queda aplicada sola sin que nadie la vea. Una vez aplicada, la nota queda pegada al pedido de forma permanente (visible en el campo de notas del pedido) y la fila del CSV se marca como sincronizada.
+
+**Importante:** verificar bien el número de pedido antes de guardar — si se tipea mal y por casualidad coincide con otro pedido real que existe, el sistema no tiene forma de detectar el error (no puede saber que "era para el 48" si se escribió "84" y el pedido 84 también existe). Volumen bajo, pero conviene revisar el número dos veces.
