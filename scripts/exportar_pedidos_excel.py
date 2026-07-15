@@ -22,7 +22,6 @@ Uso: python scripts/exportar_pedidos_excel.py
 import sqlite3
 import os
 import sys
-import argparse
 from datetime import datetime
 
 try:
@@ -34,11 +33,27 @@ except ImportError:
     sys.exit(1)
 
 # ── CONFIGURACIÓN ────────────────────────────────────────────────────────────
-DB_PATH  = 'pilot_v5x.db'
-SILO_DIR = r'Q:\Mi unidad\V5_Silo_Claude'
-OUTPUT   = os.path.join(SILO_DIR, 'PEDIDOS_ESPEJO.xlsx')
+from _env_db import detectar_entorno_db, SILO_DIR
+
 FMT_PESO = '"$"#,##0.00'    # formato moneda argentina
 FMT_NUM  = '#,##0.##'       # cantidades (sin ceros decimales innecesarios)
+
+def _detectar_entorno():
+    """
+    Envoltorio sobre _env_db.detectar_entorno_db() — agrega el nombre de archivo
+    de salida y el color de banner, específicos de este generador.
+    Retorna (db_path, entorno, output_path, bg_titulo).
+    - TOM (V5_LS_MASTER.db) → PEDIDOS_ESPEJO_TOM.xlsx | verde claro
+    - DEV (cualquier otro)  → PEDIDOS_ESPEJO_DEV.xlsx | azul claro
+    """
+    db_path, entorno = detectar_entorno_db()
+    if entorno == 'TOM':
+        filename, bg_titulo = 'PEDIDOS_ESPEJO_TOM.xlsx', 'DCFCE7'
+    else:
+        filename, bg_titulo = 'PEDIDOS_ESPEJO_DEV.xlsx', 'DBEAFE'
+    return db_path, entorno, os.path.join(SILO_DIR, filename), bg_titulo
+
+DB_PATH, ENTORNO, OUTPUT, BG_TITULO = _detectar_entorno()
 
 # ── MAPA DE COLUMNAS (1-indexed) ─────────────────────────────────────────────
 CA = 1   # PRODUCTO / labels
@@ -351,13 +366,9 @@ def _write_notas_row(ws, row, nota, bg_impar):
 
 # ── MAIN ─────────────────────────────────────────────────────────────────────
 def main():
-    parser = argparse.ArgumentParser(description='Exportar Pedidos a Excel Espejo')
-    parser.add_argument('--entorno', choices=['P', 'D'], default='D', help='Entorno: P=MASTER, D=PILOT')
-    args = parser.parse_args()
-    entorno_name = 'MASTER' if args.entorno == 'P' else 'PILOT'
-
     ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    print(f'[ESPEJO PEDIDOS] Iniciando — {ts} — Entorno: {entorno_name}')
+    print(f'[ESPEJO PEDIDOS] Iniciando — {ts}')
+    print(f'  Entorno : {ENTORNO}')
     print(f'  DB      : {DB_PATH}')
     print(f'  Destino : {OUTPUT}')
 
@@ -420,7 +431,7 @@ def main():
     # ── Workbook ──────────────────────────────────────────────────────────
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = f'Pedidos {entorno_name}'
+    ws.title = f'Pedidos {ENTORNO}'
 
     # Anchos de columna
     for col, width in COL_WIDTHS.items():
@@ -495,7 +506,7 @@ def main():
     ws_info = wb.create_sheet('_info')
     info = [
         ('Generado',         datetime.now().strftime('%Y-%m-%d %H:%M:%S')),
-        ('Entorno',          entorno_name),
+        ('Entorno',          ENTORNO),
         ('Fuente DB',        os.path.abspath(DB_PATH)),
         ('Pedidos',          total_pedidos),
         ('Ítems totales',    total_items),
@@ -516,8 +527,8 @@ def main():
     except PermissionError:
         # Archivo bloqueado (Drive o Excel abierto) → fallback con timestamp
         ts      = datetime.now().strftime('%Y%m%d_%H%M%S')
-        destino = os.path.join(SILO_DIR, f'PEDIDOS_ESPEJO_{ts}.xlsx')
-        print(f'[!] PEDIDOS_ESPEJO.xlsx en uso — guardando como: {os.path.basename(destino)}')
+        destino = os.path.join(SILO_DIR, f'PEDIDOS_ESPEJO_{ENTORNO}_{ts}.xlsx')
+        print(f'[!] Archivo en uso — guardando como: {os.path.basename(destino)}')
         wb.save(destino)
 
     size_kb = os.path.getsize(destino) // 1024

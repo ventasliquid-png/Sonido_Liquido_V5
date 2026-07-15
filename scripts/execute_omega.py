@@ -92,11 +92,10 @@ def execute_omega():
     old_bits = read_bits()
     new_bits |= (old_bits & 0xFFFFFFFFFFFFFFFF)
 
-    # [ESPEJO EXCEL V2] Generar Excel antes de cerrar
-    env_flag = "P" if is_stable_branch else "D"
-    print(f"[OMEGA] Generando Espejo Excel V2 (Entorno: {env_flag})...")
+    # [ESPEJO EXCEL V2] Generar Excel antes de cerrar — entorno auto-detectado desde .env
+    print("[OMEGA] Generando Espejo Excel V2 (entorno auto-detectado)...")
     try:
-        subprocess.check_call([sys.executable, "scripts/exportar_pedidos_excel.py", "--entorno", env_flag], cwd=base_dir)
+        subprocess.check_call([sys.executable, "scripts/exportar_pedidos_excel.py"], cwd=base_dir)
         print("[OK] Espejo Excel generado correctamente.")
     except Exception as e:
         print(f"[WARN] Error generando Espejo Excel: {e}")

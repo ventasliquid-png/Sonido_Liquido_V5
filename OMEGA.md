@@ -85,7 +85,9 @@ Si falla → [WARN] Error en rotación de backups. No bloquea el cierre.
 ## FASE 1C — ESPEJO EXCEL V2 (Snapshot de Pedidos)
 
 Durante el cierre, el script OMEGA generará automáticamente un Excel Espejo de solo lectura ejecutando:
-`python scripts/exportar_pedidos_excel.py --entorno D` (o P según corresponda).
+`python scripts/exportar_pedidos_excel.py` — el entorno (TOM/DEV) se auto-detecta leyendo
+`DATABASE_URL` de `.env` (o `current/.env` en B), no se pasa por flag (reconciliación S849,
+Card #93-bis).
 Esto crea un snapshot histórico de los pedidos que sirve como red de seguridad visual antes del cierre de sesión. Si ocurre un error generando el Excel, OMEGA arrojará un `[WARN] Error generando Espejo Excel`, el cual debe ser reportado.
 
 ---
@@ -201,14 +203,35 @@ git show --name-only HEAD
 
 ## FASE 6 — VERIFICACIÓN DE ÓRBITA (TRUST BUT VERIFY)
 
-PROHIBIDO reportar éxito sin verificar:
+Verificación multi-remoto obligatoria. El cierre solo es válido si AMBOS remotos están sincronizados.
+
+### PASO 6A — Verificación en D
 ```cmd
-git log origin/[RAMA_ACTIVA] -n 1 --format="%h - %s"
-git rev-parse HEAD
+cd C:\dev\Sonido_Liquido_V5
+git log origin/main..HEAD --oneline
 ```
-Los hashes DEBEN coincidir.
-- Coinciden → reportar **"SESIÓN CLAUSURADA CON ÉXITO"**
-- No coinciden → reportar **"FALLO DE SINCRONIZACIÓN"** de inmediato.
+**Resultado esperado:** vacío (sin salida)
+- Si está vacío → D sincronizado ✓
+- Si hay commits → **DETENER** — existe push pendiente a `origin/main`. Reportar:
+  > *"FALLO: D tiene commits sin pushear a origin/main. Ejecutar `git push origin main` antes de cerrar."*
+
+### PASO 6B — Verificación en B
+```cmd
+cd C:\dev\v5-ls-Tom\current
+git log prod/main..HEAD --oneline
+```
+**Resultado esperado:** vacío (sin salida)
+- Si está vacío → B sincronizado ✓
+- Si hay commits → **DETENER** — existe push pendiente a `prod/main`. Reportar:
+  > *"FALLO: B tiene commits sin pushear a prod/main. Ejecutar `git push prod main` antes de cerrar."*
+
+### PASO 6C — Reporte de Cierre
+Solo si ambos pasos 6A y 6B dieron vacío:
+```cmd
+git log origin/main -n 1 --format="%h - %s"
+git log prod/main -n 1 --format="%h - %s"
+```
+Registrar en BITACORA_VIVA. Reportar **"SESIÓN CLAUSURADA CON ÉXITO"** con hashes de ambos remotos.
 
 ---
 
@@ -222,5 +245,5 @@ Qué NO toca: User\, Workspaces\, Preferences.
 
 ---
 
-*Última actualización: 2026-06-23 — OF*
+*Última actualización: 2026-07-13 — OF (S849: Card #88 implementada — verificación push multi-remoto en FASE 6)*
 *Reemplaza: OMEGA.md (V3.0)*
