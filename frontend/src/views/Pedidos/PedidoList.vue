@@ -727,7 +727,7 @@ const exportandoEspejo = ref(false)
 const exportarEspejo = async () => {
     if (exportandoEspejo.value) return
     exportandoEspejo.value = true
-    notificationStore.add('Generando PEDIDOS_ESPEJO.xlsx en Silo Drive...', 'info')
+    notificationStore.add('Generando Excel Espejo en Silo Drive...', 'info')
     try {
         const { data } = await api.get('/pedidos/exportar-espejo')
         notificationStore.add('✅ ' + (data.mensaje || 'Excel generado correctamente'), 'success')

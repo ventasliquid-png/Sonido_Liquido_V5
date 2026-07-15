@@ -573,8 +573,9 @@ def check_duplicate_pedido(
 @router.get("/exportar-espejo")
 def exportar_espejo_excel():
     """
-    Ejecuta scripts/exportar_pedidos_excel.py y guarda
-    PEDIDOS_ESPEJO.xlsx en Q:\\Mi unidad\\V5_Silo_Claude\\.
+    Ejecuta scripts/exportar_pedidos_excel.py y guarda el Excel Espejo en
+    Q:\\Mi unidad\\V5_Silo_Claude\\ (nombre y carpeta según entorno auto-detectado
+    por el script: DEV en la raíz, TOM en P\\ — ver scripts/_env_db.py).
     No requiere DB session — el script abre su propia conexión.
     """
     import subprocess, sys, os
@@ -599,10 +600,22 @@ def exportar_espejo_excel():
             detail=f"Error al generar Excel: {detalle}"
         )
 
+    salida = result.stdout.strip()
+    nombre_archivo = None
+    for linea in salida.splitlines():
+        if 'Path' in linea and ':' in linea:
+            ruta = linea.split(':', 1)[1].strip()
+            if ruta:
+                nombre_archivo = os.path.basename(ruta)
+            break
+
+    mensaje = f"{nombre_archivo} generado en Silo Drive." if nombre_archivo \
+        else "Espejo Excel generado en Silo Drive."
+
     return {
         "ok": True,
-        "mensaje": "PEDIDOS_ESPEJO.xlsx generado en Silo Drive.",
-        "output": result.stdout.strip(),
+        "mensaje": mensaje,
+        "output": salida,
     }
 
 
