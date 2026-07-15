@@ -31,12 +31,11 @@ COLUMNAS = ['Pedido', 'Fecha/Hora', 'Nota', 'Sincronizado']
 
 def _archivos_historial(entorno):
     """
-    Los archivos oficiales viven en Q:\\...\\Silo\\B\\ — este canal solo opera con
-    sentido en entorno TOM (D nunca resuelve TOM en la práctica, su .env siempre
-    apunta a pilot_v5x.db). Carpeta fija, no depende de `entorno` en el path
-    (organización S850: Silo separado en D\\/B\\ por ubicación de checkout).
+    Los archivos oficiales viven en Q:\\...\\Silo\\P\\ — la carpeta sigue al dato
+    (contenido real de producción/MT), no al código que lo genera. Corregido de
+    B\\ a P\\ en S850 tras crear la carpeta P\\ para lo específico de MT.
     """
-    carpeta = os.path.join(SILO_DIR, 'B')
+    carpeta = os.path.join(SILO_DIR, 'P')
     return [
         os.path.join(carpeta, f'HISTORIAL_NOTAS_{entorno}_A.csv'),
         os.path.join(carpeta, f'HISTORIAL_NOTAS_{entorno}_B.csv'),

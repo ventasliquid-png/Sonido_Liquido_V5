@@ -43,15 +43,18 @@ def _detectar_entorno():
     Envoltorio sobre _env_db.detectar_entorno_db() — agrega el nombre de archivo
     de salida y el color de banner, específicos de este generador.
     Retorna (db_path, entorno, output_path, bg_titulo).
-    - TOM (V5_LS_MASTER.db) → PEDIDOS_ESPEJO_TOM.xlsx | verde claro
-    - DEV (cualquier otro)  → PEDIDOS_ESPEJO_DEV.xlsx | azul claro
+    - TOM (V5_LS_MASTER.db) → Silo\\P\\PEDIDOS_ESPEJO_TOM.xlsx | verde claro
+      (la carpeta sigue al dato de producción, no al código — S850)
+    - DEV (cualquier otro)  → Silo\\PEDIDOS_ESPEJO_DEV.xlsx | azul claro
     """
     db_path, entorno = detectar_entorno_db()
     if entorno == 'TOM':
+        carpeta = os.path.join(SILO_DIR, 'P')
         filename, bg_titulo = 'PEDIDOS_ESPEJO_TOM.xlsx', 'DCFCE7'
     else:
+        carpeta = SILO_DIR
         filename, bg_titulo = 'PEDIDOS_ESPEJO_DEV.xlsx', 'DBEAFE'
-    return db_path, entorno, os.path.join(SILO_DIR, filename), bg_titulo
+    return db_path, entorno, os.path.join(carpeta, filename), bg_titulo
 
 DB_PATH, ENTORNO, OUTPUT, BG_TITULO = _detectar_entorno()
 
@@ -525,9 +528,11 @@ def main():
     try:
         wb.save(destino)
     except PermissionError:
-        # Archivo bloqueado (Drive o Excel abierto) → fallback con timestamp
+        # Archivo bloqueado (Drive o Excel abierto) → fallback con timestamp,
+        # en la misma carpeta que OUTPUT (P\ o raíz según entorno) — nunca hardcodear
+        # SILO_DIR directo, o el fallback de TOM caería fuera de P\.
         ts      = datetime.now().strftime('%Y%m%d_%H%M%S')
-        destino = os.path.join(SILO_DIR, f'PEDIDOS_ESPEJO_{ENTORNO}_{ts}.xlsx')
+        destino = os.path.join(os.path.dirname(OUTPUT), f'PEDIDOS_ESPEJO_{ENTORNO}_{ts}.xlsx')
         print(f'[!] Archivo en uso — guardando como: {os.path.basename(destino)}')
         wb.save(destino)
 
