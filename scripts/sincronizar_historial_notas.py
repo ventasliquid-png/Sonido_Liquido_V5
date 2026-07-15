@@ -30,9 +30,16 @@ COLUMNAS = ['Pedido', 'Fecha/Hora', 'Nota', 'Sincronizado']
 
 
 def _archivos_historial(entorno):
+    """
+    Los archivos oficiales viven en Q:\\...\\Silo\\B\\ — este canal solo opera con
+    sentido en entorno TOM (D nunca resuelve TOM en la práctica, su .env siempre
+    apunta a pilot_v5x.db). Carpeta fija, no depende de `entorno` en el path
+    (organización S850: Silo separado en D\\/B\\ por ubicación de checkout).
+    """
+    carpeta = os.path.join(SILO_DIR, 'B')
     return [
-        os.path.join(SILO_DIR, f'HISTORIAL_NOTAS_{entorno}_A.csv'),
-        os.path.join(SILO_DIR, f'HISTORIAL_NOTAS_{entorno}_B.csv'),
+        os.path.join(carpeta, f'HISTORIAL_NOTAS_{entorno}_A.csv'),
+        os.path.join(carpeta, f'HISTORIAL_NOTAS_{entorno}_B.csv'),
     ]
 
 
@@ -62,7 +69,7 @@ def _asegurar_csv(path):
             pass  # no bloquea la verificación — se reintenta en la próxima corrida
 
 
-def verificar_pendientes():
+def verificar_pendientes(archivos=None):
     """
     Solo lectura (salvo scaffold inicial del CSV si falta). Retorna:
       {
@@ -74,11 +81,16 @@ def verificar_pendientes():
     aparece la misma clave se agrupan juntas, para poder marcar Sincronizado en cada
     una al aplicar (si solo se marcara la primera ocurrencia, la fila del otro archivo
     reaparecería como pendiente en la próxima corrida y duplicaría la nota en la DB).
+
+    `archivos`: lista opcional de paths a usar en vez de los oficiales
+    (`_archivos_historial(entorno)`) — para pruebas dirigidas a un CSV de test sin
+    tocar el mecanismo real. Por defecto (None) usa siempre los archivos oficiales.
     """
     db_path, entorno = detectar_entorno_db()
+    lista_archivos = archivos if archivos is not None else _archivos_historial(entorno)
 
     agrupados = {}   # clave -> {pedido, fecha_hora, nota, ubicaciones: [(archivo, idx), ...]}
-    for archivo in _archivos_historial(entorno):
+    for archivo in lista_archivos:
         _asegurar_csv(archivo)
         filas = _leer_csv(archivo)
         for idx, fila in enumerate(filas):
@@ -123,13 +135,15 @@ def verificar_pendientes():
     return {'pendientes': pendientes, 'huerfanos': huerfanos, 'db_path': db_path, 'entorno': entorno}
 
 
-def aplicar_sincronizacion():
+def aplicar_sincronizacion(archivos=None):
     """
     Aplica los pendientes válidos: UPDATE pedidos.nota (append) + marca Sincronizado
     en el CSV de origen. No pide confirmación propia — se asume que quien invoca
     (ALFA, tras PIN 1974) ya autorizó la operación.
+
+    `archivos`: ver verificar_pendientes() — mismo mecanismo de override para pruebas.
     """
-    resultado = verificar_pendientes()
+    resultado = verificar_pendientes(archivos=archivos)
     pendientes = resultado['pendientes']
     db_path = resultado['db_path']
 
