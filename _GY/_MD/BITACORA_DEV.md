@@ -1,7 +1,7 @@
 ﻿## SESIÓN 849 (OF): RECONCILIACIÓN D↔B, HISTORIAL DE NOTAS, REORGANIZACIÓN DEL SILO, CIERRE BR#4
 **Fecha:** 2026-07-14/15 (sesión accidentada — corte de luz a mitad, retomada sin pérdida de contexto)
 **Locación:** OF
-**Estado:** NOMINAL GOLD — Hash D: {HASH_CIERRE_D} | Hash B: {HASH_CIERRE_B} | PIN 1974
+**Estado:** NOMINAL GOLD — Hash D: 8429cb14 | Hash B: e3424a6 | PIN 1974
 
 ### Hito 1: Auditoría profunda del sistema (CC)
 * Relevamiento completo de 17 Informes Históricos + Board (94→98 filas) + BANDERAS_ROJAS + panel. Hallazgo mayor: Cards #47/#48/#51/#52 resueltas en D desde hace un mes pero marcadas BACKLOG en el Board — verificado contra código real, no contra memoria del Board.
