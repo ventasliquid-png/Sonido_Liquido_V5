@@ -208,6 +208,39 @@
                     </div>
                 </div>
 
+                <!-- SECTION: O.C. (Editable, mismo patrón que PedidoInspector) -->
+                <div class="bg-blue-500/5 border-l-2 border-blue-500/30 p-3 rounded-r relative group/oc">
+                    <label class="block text-[10px] font-bold text-blue-400/70 uppercase tracking-widest mb-1">
+                        Orden de Compra (O.C.) — Pedido #{{ editingRemito?.pedido_id }}
+                    </label>
+
+                    <div v-if="!isEditingOC" class="flex justify-between items-start">
+                        <p class="text-xs font-mono tracking-wide text-blue-100/80 min-h-[1.5rem]">
+                            {{ pedidoOC || '-' }}
+                        </p>
+                        <button
+                            @click="startEditingOC"
+                            class="text-blue-500/30 hover:text-blue-400 opacity-0 group-hover/oc:opacity-100 transition-opacity"
+                            title="Editar O.C."
+                        >
+                            <i class="fas fa-pencil-alt"></i>
+                        </button>
+                    </div>
+
+                    <div v-else>
+                        <input
+                            type="text"
+                            v-model="tempOC"
+                            class="w-full bg-slate-900 text-blue-100 border border-blue-500/30 rounded-lg px-4 py-3 text-xs font-mono font-bold focus:outline-none focus:border-blue-500"
+                            placeholder="Nro Orden Compra..."
+                        >
+                        <div class="flex justify-end gap-2 mt-2">
+                            <button @click="cancelEditOC" class="text-xs text-white/50 hover:text-white">Cancelar</button>
+                            <button @click="saveOC" class="text-xs bg-blue-600/50 hover:bg-blue-600 text-white px-2 py-1 rounded font-bold">Guardar</button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- SECTION: DIRECCIÓN -->
                 <div class="bg-blue-900/10 border border-blue-500/20 rounded-2xl p-6 space-y-4">
                     <div class="flex justify-between items-center">
@@ -333,6 +366,7 @@ import { useRouter } from 'vue-router'
 import { useRemitosStore } from '@/stores/remitos'
 import { useMaestrosStore } from '@/stores/maestros'
 import { useClientesStore } from '@/stores/clientes'
+import { usePedidosStore } from '@/stores/pedidos'
 import { useNotificationStore } from '@/stores/notification'
 import SmartSelect from '@/components/ui/SmartSelect.vue'
 import api from '@/services/api'
@@ -341,6 +375,7 @@ const router = useRouter()
 const store = useRemitosStore()
 const maestrosStore = useMaestrosStore()
 const clientesStore = useClientesStore()
+const pedidosStore = usePedidosStore()
 const notification = useNotificationStore()
 
 const searchQuery = ref('')
@@ -353,6 +388,9 @@ const showEditModal = ref(false)
 const isSaving = ref(false)
 const editingRemito = ref(null)
 const clientAddresses = ref([])
+const pedidoOC = ref('')
+const isEditingOC = ref(false)
+const tempOC = ref('')
 const editForm = reactive({
     cliente_id: null,
     numero_legal: '',
@@ -440,16 +478,57 @@ const openEditModal = async (remito) => {
     if (editForm.cliente_id) {
         await onClientChanged(editForm.cliente_id);
     }
-    
+
     isForcingAddress.value = false;
     editForm.nuevo_domicilio = { calle: '', numero: '', localidad: '', provincia_id: 'X' };
-    
+
+    // O.C. vive en Pedido, no en Remito — se trae aparte (mismo patrón que onClientChanged)
+    isEditingOC.value = false;
+    tempOC.value = '';
+    pedidoOC.value = '';
+    if (remito.pedido_id) {
+        try {
+            const res = await api.get(`/pedidos/${remito.pedido_id}`);
+            pedidoOC.value = res.data.oc || '';
+        } catch (e) {
+            console.error("Error loading pedido OC", e);
+        }
+    }
+
     showEditModal.value = true;
 }
 
 const closeEditModal = () => {
     showEditModal.value = false;
     editingRemito.value = null;
+    isEditingOC.value = false;
+    tempOC.value = '';
+    pedidoOC.value = '';
+}
+
+const startEditingOC = () => {
+    tempOC.value = pedidoOC.value || '';
+    isEditingOC.value = true;
+}
+
+const cancelEditOC = () => {
+    isEditingOC.value = false;
+    tempOC.value = '';
+}
+
+const saveOC = async () => {
+    if (tempOC.value === pedidoOC.value) {
+        cancelEditOC();
+        return;
+    }
+    try {
+        await pedidosStore.updatePedido(editingRemito.value.pedido_id, { oc: tempOC.value });
+        notification.add('O.C. actualizada', 'success');
+        pedidoOC.value = tempOC.value;
+        isEditingOC.value = false;
+    } catch (e) {
+        notification.add('Error actualizando O.C.', 'error');
+    }
 }
 
 const saveEdition = async () => {
