@@ -387,14 +387,13 @@ class ClienteService:
             # CF/Genéricos siempre tienen soberanía base (Rosa)
             db_cliente.flags_estado |= 524288
 
-        # --- REGLA 2: ARCA_OK (Bit 20) ---
-        # Requisito: Nivel 13/15 + 4 Pilares + Auditoría CUIT (Lupa)
-        # Nota: La "Lupa" se asume si el sistema corre la auditoría y todo es OK.
-        if is_formal and not is_generic and not is_cf:
-            if has_iva and has_lista and has_segmento and has_fiscal:
-                db_cliente.flags_estado |= 1048576 # Medalla Blanca
-            else:
-                db_cliente.flags_estado &= ~1048576 # Pierde medalla si retrocede
+        # --- REGLA 2: PENDIENTE_REVISION (Bit 20) ---
+        # No es una medalla — es una alerta. Se prende si falta segmento o lista
+        # de precios, se apaga al completarse (mismo criterio que remitos/service.py).
+        if not has_segmento or not has_lista:
+            db_cliente.flags_estado |= ClientFlags.PENDIENTE_REVISION
+        else:
+            db_cliente.flags_estado &= ~ClientFlags.PENDIENTE_REVISION
 
         # --- REGLA 3: DISCRIMINA_IVA (Bit 40) ---
         # Si la condicion_iva.nombre contiene 'RESPONSABLE INSCRIPTO' -> encender Bit 40

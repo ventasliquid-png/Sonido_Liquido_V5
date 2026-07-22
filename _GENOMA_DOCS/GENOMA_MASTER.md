@@ -44,12 +44,12 @@ Control jerárquico del Byte 0:
 
 ---
 
-## 2. Auditoría de Capas Superiores (Paz Binaria V15.1)
-- **Bit 19 (524288):** POWER_PINK. Soberanía Informal Éxito (Niveles 9/11).
-- **Bit 20 (1.048.576):** ARCA_OK. Soberanía Formal Auditada (Niveles 13/15).
+## 2. Capas Superiores — Medalla y Alerta de Soberanía
+- **Bit 19 (524288):** POWER_PINK. Medalla de soberanía informal — cliente Rosa (Niveles 9/11) con lista de precios y segmento completos.
+- **Bit 20 (1.048.576):** PENDIENTE_REVISION. Alerta, no medalla — cliente formal (Nivel 13/15) al que le falta segmento o lista de precios. Se apaga solo cuando se completan esos datos.
 
 ---
-**NOTA:** El Amarillo es el estado base por defecto si no hay medallas de soberanía (Bits 19/20).
+**NOTA:** El Amarillo es el estado base por defecto para clientes Rosa sin la medalla Bit 19. Bit 20 no es una medalla — es una alerta de datos incompletos, independiente de Bit 19.
 
 ---
 *Firma: Antigravity / Gy V14 - Bajo supervisión de Carlos.*

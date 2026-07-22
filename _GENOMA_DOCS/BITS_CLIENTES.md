@@ -8,7 +8,8 @@
 - **Bit 4 (16)**: SABUESO (Auditado por el motor de búsqueda inteligente).
 
 ## Bits de Gestión Específica
-- **Bit 20 (1048576)**: AUDIT_REQ (Requiere revisión manual por un operador).
+- **Bit 19 (524288)**: POWER_PINK (Medalla de soberanía informal para clientes Rosa con lista y segmento completos).
+- **Bit 20 (1048576)**: PENDIENTE_REVISION (Requiere revisión manual — falta segmento o lista de precios).
 
 ## Bits de Canal de Origen
 - **Bit 30**: CH_TNUBE (Canal Tiendanube).

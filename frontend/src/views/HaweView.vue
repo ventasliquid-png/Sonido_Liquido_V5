@@ -444,8 +444,9 @@ const getClientColorMode = (cliente) => {
         return 'PINK'; 
     }
 
-    // 2. [V5.2 SOBERANIA DUAL] - Bit 20 (1048576) o Bit 13 (8192 - LAVIMAR)
-    if ((flags & 1048576) || (flags & 8192)) {
+    // 2. [SOBERANIA DUAL] - Bit 20 (1048576) es alerta de revision, no medalla:
+    // validado cuando NO esta pendiente, u Bit 13 (8192 - LAVIMAR)
+    if (!(flags & 1048576) || (flags & 8192)) {
         return 'VALIDADO';
     }
 

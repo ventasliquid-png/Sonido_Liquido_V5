@@ -14,7 +14,7 @@
           </div>
           <div>
             <h1 class="text-xl font-bold text-white tracking-tight uppercase">Nuevo Remito Manual</h1>
-            <p class="text-[10px] text-indigo-400 font-bold tracking-widest uppercase">Protocolo Rosa/Blanco • V15.1.4</p>
+            <p class="text-[10px] text-indigo-400 font-bold tracking-widest uppercase">Protocolo Rosa/Blanco</p>
           </div>
         </div>
         

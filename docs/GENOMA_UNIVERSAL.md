@@ -25,6 +25,8 @@ Las siguientes banderas son inmutables y atraviesan horizontalmente a **todas** 
 | 4 | 16 | `OPERATOR_OK` | Sello Rosa (Validación manual del operador). | ACTIVO | Arlequín V2 |
 | 5 | 32 | `MULTI_CUIT` | Sello Azul (Permite CUIT compartido / Sucursales). | ACTIVO | Arlequín V2 |
 | 6 | 64 | `TRUSTED_MANUAL` | Rosa Fucsia (Corporativo informal, ej. Luvianka). | ACTIVO | Arlequín V2 |
+| 19 | 524288 | `POWER_PINK` | Medalla de soberanía informal — cliente Rosa con lista y segmento completos. **Namespace propio de Clientes** — no confundir con Bit 19 `ES_NC` del genoma de Facturas (§4). | ACTIVO | V15.1, 18/03 — reunificado sesión 850 |
+| 20 | 1048576 | `PENDIENTE_REVISION` | Alerta (no medalla) — cliente formal al que le falta segmento o lista de precios. **Namespace propio de Clientes** — no confundir con Bit 20 `ES_ND` del genoma de Facturas (§4). | ACTIVO | Base V14, reunificado sesión 850 |
 | 10 | 1024 | `V15_STRUCT` | Reserva estructural global. | INTOCABLE | Global |
 | 13 | 8192 | `PROHIBIDO` | Colisión LAVIMAR. | PROHIBIDO | Global |
 | 40 | 1099511627776 | `DISCRIMINA_IVA` | 1=Responsable Inscripto (Factura A, precio/1.21). 0=CF/Mono/Exento/Rosa. | ACTIVO | 812 OF |

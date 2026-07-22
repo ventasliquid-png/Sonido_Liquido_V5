@@ -927,9 +927,14 @@ const consultarAfip = async () => {
         
         // 2. Set ARCA Status
         form.value.estado_arca = 'VALIDADO';
-        
-        // 3. Clear Revision Bit (20) - 1048576
-        form.value.flags_estado &= ~1048576;
+
+        // 3. PENDIENTE_REVISION (Bit 20) — alerta, no medalla: se recalcula con el
+        // mismo criterio que el backend (falta segmento o lista de precios)
+        if (!form.value.segmento_id || !form.value.lista_precios_id) {
+            form.value.flags_estado |= 1048576;
+        } else {
+            form.value.flags_estado &= ~1048576;
+        }
 
         notificationStore.add(`Validación ARCA Exitosa: ${res.razon_social}`, 'success')
         forceAddressSync.value = true;
@@ -1702,24 +1707,13 @@ const saveCliente = async () => {
             }
         }
 
-        // [V14.8.4 SOBERANIA OPERATIVA - PIN 1974]
-        // 4 Pilares de Integridad de Carga: Nombre + Domicilio + Lista + Segmento
-        // Si el operador los cargo, el cliente es Veterano de Facto.
-        // Accion: Bit 20 OFF (Quitar Amarillo) + Bit 1 OFF (Promotion 15->13: Quitar Virginidad)
-        const isRosa = (currentFlags & 16) !== 0;
-        const hasDomicilioValido = isRosa
-            ? domicilios.value.some(d => d.es_entrega && (d.calle || '').trim().length > 2)
-            : domicilios.value.some(d => d.es_fiscal && (d.calle || '').trim().length > 2);
-        const has4Pillars = payload.razon_social && payload.lista_precios_id &&
-                            payload.segmento_id && hasDomicilioValido;
-        if (has4Pillars) {
-            currentFlags |= 1048576;  // Bit 20 ON: SOBERANÍA (Éxito)
-            currentFlags |= 1;        // Bit 0 ON: Asegurar IS_ACTIVE
-        } else if (payload.lista_precios_id && payload.segmento_id) {
-            // [GY-UX] Promoción Parcial: Si tiene lo básico, intentamos soberanía
-            // Pero si falta el domicilio fiscal, lo dejamos en manos del operador o Bit 20 OFF?
-            // En V15, si no tiene los 4 pilares, NO es blanco.
-            currentFlags &= ~1048576; // Asegurar que NO es blanco si no cumple pilares
+        // [SOBERANIA OPERATIVA] PENDIENTE_REVISION (Bit 20) — alerta, no medalla:
+        // mismo criterio que backend/clientes/service.py y backend/remitos/service.py
+        currentFlags |= 1; // Bit 0 ON: Asegurar IS_ACTIVE
+        if (!payload.segmento_id || !payload.lista_precios_id) {
+            currentFlags |= 1048576;
+        } else {
+            currentFlags &= ~1048576;
         }
         
         payload.flags_estado = currentFlags;
@@ -2269,8 +2263,9 @@ const clientColorMode = computed(() => {
         return 'pink'; 
     }
     
-    // 2. [V5.2 SOBERANIA DUAL] - Bit 20 (1048576) o Bit 13 (8192 - LAVIMAR)
-    if ((flags & 1048576) || (flags & 8192)) {
+    // 2. [SOBERANIA DUAL] - Bit 20 (1048576) es alerta de revision, no medalla:
+    // verde cuando NO esta pendiente, u Bit 13 (8192 - LAVIMAR)
+    if (!(flags & 1048576) || (flags & 8192)) {
         return 'green';
     }
 
