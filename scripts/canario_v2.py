@@ -16,7 +16,8 @@ if sys.platform == "win32":
         sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 
 # CONFIGURACIÓN GEOMETRÍA LÓGICA
-DB_PATH = r'C:\dev\Sonido_Liquido_V5\pilot_v5x.db'
+from _env_db import detectar_entorno_db
+DB_PATH, _ENTORNO = detectar_entorno_db()
 UUID_LAVIMAR = 'e1be0585cd3443efa33204d00e199c4e'
 TRINCHERA_FLAGS = 8207  # Legacy — pendiente revisión post-saneamiento
 
