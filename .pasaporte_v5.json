@@ -1,7 +1,7 @@
 {
-    "origen":  "SESION 829 OF",
-    "fecha_cierre_real":  "2026-06-18 19:00:00",
+    "origen":  "SESION 851 OF",
+    "fecha_cierre_real":  "2026-07-23 18:45:00",
     "estado_salud":  "GOLD",
     "db_fuente":  "pilot_v5x.db",
-    "resumen":  "Auditoría Contactos/Logística + UI fixes (Rosa/Blanco + Ambos + segmento_id). 3 cards BOARD + dictamen Nike #75."
+    "resumen":  "Cierre de los pendientes de S850: Bandera Roja #5 (Bit20) y #6 (auto-push MT) CERRADAS con evidencia -- MT confirmado en edaf219 (pull + reparacion de datos, 7->1 clientes con Bit20 ON, solo caso genuino restante). Fix de causa raiz del backend de Tomy caido dos veces hoy: canario_v2.py duplicado y envenenado en current/scripts/ (hardcodeado a la ruta de D) disparaba espolon_defensivo()/taskkill contra el uvicorn real de produccion -- eliminado, y ambas copias vivas (D y B) migradas a _env_db.detectar_entorno_db(). IP muerta (192.168.0.34) en ARRANQUE_V5.bat corregida a localhost. Hallazgo de proceso: S850 nunca commiteo su propia burocracia OMEGA (CAJA_NEGRA/manuales/pasaporte quedaron editados en disco, nunca pusheados) -- absorbido en este cierre. Investigacion de modelo (sin fix): Pedido/Remito/Factura ya soportan 1:N real, pero PATCH /pedidos/{id} con items destruye la traza de entregas parciales al reemplazar PedidoItems -- Card #99 creada."
 }

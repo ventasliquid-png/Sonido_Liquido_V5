@@ -1,4 +1,64 @@
-﻿## SESIÓN 849 (OF): RECONCILIACIÓN D↔B, HISTORIAL DE NOTAS, REORGANIZACIÓN DEL SILO, CIERRE BR#4
+﻿## SESIÓN 851 (OF): CIERRE BR#5/BR#6, CAUSA RAÍZ BACKEND DE TOMY CAÍDO, INVESTIGACIÓN PEDIDO/REMITO
+
+**Fecha:** 2026-07-23
+**Locación:** OF
+**Estado:** NOMINAL GOLD — Hash D: 42857e8f | Hash B: edaf219 | PIN 1974
+
+### Hito 1: Cierre de las dos Banderas Rojas abiertas desde S850 (CC + Carlos)
+* BR#5 (fork Bit 20 Clientes): propagación a MT confirmada — `LANZAR_V5_SOBERANA.bat` corrido por Carlos en MT trajo el pull, y la reparación de datos de clientes se verificó con un `SELECT` directo sobre `V5_LS_MASTER.db` real: Bit20 ON pasó de 7 a 1 — único caso genuino restante "Cecilia Pascual" (confirmada sin domicilio vinculado).
+* La reparación sí tuvo PIN 1974 + backup previo (`data\V5_LS_MASTER_backup_pre_BIT20_MT_20260723_124953.db`, confirmado) + dry-run, autorizada por Carlos en chat — no quedó registrada en archivo en el momento, se reconstruyó y registró retroactivamente hoy. No fue `migrate_pin1974.py` (intacto desde 27/05) sino un script ad-hoc nuevo — decisión: no se versiona, cumplió su función puntual.
+* BR#6 (auto-push de MT): confirmada resuelta — MT en `edaf219` incluye el commit del veto (`58c5d49`).
+
+### Hito 2: Causa raíz del backend de Tomy caído dos veces hoy (CC)
+* `current/scripts/canario_v2.py` en B era un duplicado legacy (sin tocar desde 2026-05-29) hardcodeado a la ruta de D. En MT esa ruta no existe → `calibracion_constitucional()` siempre fallaba → `radar_electrico()` encontraba "uvicorn" en el commandline del backend real → `espolon_defensivo()` lo mataba con `taskkill /F`. Eliminado el duplicado.
+* La copia viva (`scripts/canario_v2.py`, tanto en D como en B) migrada a `scripts/_env_db.detectar_entorno_db()` (Card #93-bis) en vez de mantener una tercera lógica de detección de entorno en paralelo.
+* IP muerta `192.168.0.34` (subred vieja de MT) en `scripts/ARRANQUE_V5.bat` corregida a `localhost`; chequeo de existencia de `data\V5_LS_MASTER.db` agregado (antes arrancaba a ciegas). Banner de "modo emergencia" agregado a `ARRANCAR_TOMY.bat` (el fallback real que se usó hoy mientras se investigaba — no actualiza código ni rebuildea frontend).
+* Verificado en producción real: Carlos corrió `LANZAR_V5_SOBERANA.bat` en MT — cargó actualizaciones y abrió el sistema sin colgarse.
+
+### Hito 3: Investigación de modelo — Remito/Factura complementario sobre el mismo Pedido (CC, sin fix)
+* A pedido explícito de Carlos (caso real: pedido cargado con 6 E2 en vez de 9 E2, ya facturado y remitado por Remito #16), se investigó si el sistema soporta un segundo Remito/Factura complementario preservando la traza de lo ya entregado.
+* Confirmado con evidencia de código: `Remito.pedido_id`/`Factura.pedido_id` son FK 1:N reales sin `unique`; `FacturaRemito` es una tabla puente N:M diseñada explícitamente para "split de pedidos, consolidaciones, re-facturación" (docstring propio). `PedidoItem.cantidad_entregada` + Bits 20/21 (`HAS_PARTIAL_DELIVERY`/`FULL_DELIVERED`) están vivos y conectados en `create_manual`. Bits 22/23 (facturación parcial) están reservados en el genoma sin lógica general detrás.
+* Hallazgo real: `PATCH /pedidos/{id}` con `items` (usado por `PedidoCanvas.vue`, la pantalla estándar de edición) borra y recrea `PedidoItem`, cascadeando `DELETE` sobre los `RemitoItem` vinculados — destruye la traza de entregas parciales al corregir un pedido. Existe una vía no-destructiva ya en el código (`PATCH /pedidos/items/{item_id}`) pero no conectada al flujo de guardado principal.
+* Card #99 creada (DEUDA, MEDIA) — sin diseño ni decisión tomada, queda para sesión futura (posible consulta a Nike sobre cuándo usar cada vía).
+
+### Hito 4: Hallazgo de proceso — burocracia de cierre de S850 nunca commiteada (CC)
+* `CAJA_NEGRA.md`, ambos Manuales, este mismo archivo, `.pasaporte_v5.json` y `session_counter.json` quedaron editados en disco tras el cierre de S850 (su FASE 2 sí se corrió) pero nunca se agregaron a un commit — el único commit de aquel cierre (`775216e1`) fue el de código. Contenido verificado correcto contra la narrativa ya conocida, conservado y sumado en el commit de cierre de esta sesión, no descartado.
+
+### Hito 5: Precaución evitada — ejecución remota sin supervisión (CC)
+* Antes de disparar `Invoke-Command` remoto contra MT para correr `LANZAR_V5_SOBERANA.bat` sin nadie presente, CC frenó y pidió confirmación explícita — mismo precedente documentado en S850 (misma pregunta de Carlos, misma respuesta) más un riesgo técnico concreto: el script tiene un `pause` interactivo y abre una consola vía `start`, ninguno de los dos pensado para correr bajo una sesión WinRM no interactiva. Carlos terminó corriéndolo él mismo, de forma física/propia.
+
+## SESIÓN 850 (OF): PURGA DE FORK DE DOCTRINA BIT 20 CLIENTES + AUTOAUDITORÍA OMEGA
+
+**Fecha:** 2026-07-20/22 (sesión abierta 20/07, cerrada 22/07 tras pausa sin OMEGA de por medio)
+**Locación:** OF
+**Estado:** NOMINAL GOLD (con Bandera Roja #5 abierta) — Hash D: 775216e1 | Hash B: 32f630a | PIN 1974
+
+### Hito 1: Housekeeping de arranque (CC)
+* Lock fantasma de agente en MT limpiado (`agente_activo`/Bit8), sin tocar el debt separado de Bit19 de MT.
+* OC editable agregada al modal "Editar Remito" (`RemitoListView.vue`), reusando `pedidosStore.updatePedido()`. D `f5bdb53a` / B `371b04d`.
+* `PEDIDOS_ESPEJO_DEV.xlsx` verificado correcto — no era bug.
+
+### Hito 2: Acceso de red directo OF→MT (CC)
+* Primer acceso habilitado vía share `\\Izquierda\dev` — requirió cambiar el perfil de red de Público a Privado y resolver credenciales SMB (sesión invitado vs autenticada) más permisos NTFS.
+* Permitió verificar por lectura directa (no inferencia) que `ARRANQUE_V5.bat` de MT coincide con lo versionado, y que el auto-push de MT a `prod/main` es una feature deliberada (commits `7e608a1`/`a9ebe18`) que contradice la Regla de Hierro — reportado, sin resolver.
+
+### Hito 3: Fork de doctrina de 4 meses — Bit 20 Clientes (CC)
+* Catalogando archivos sueltos en MT apareció `migrate_pin1974.py`, que reveló dos significados opuestos del Bit 20 de `clientes.flags_estado` activos simultáneamente en producción: `PENDIENTE_REVISION` (V14, marzo) vs `ARCA_OK` (V15.1, posterior) — con al menos un cliente real mal clasificado (Cecilia Pascual, en D y MT).
+* Nike dictaminó unificar a `PENDIENTE_REVISION`. Purga ejecutada en un solo commit (doctrina + backend + frontend) en D y B: `GENOMA_MASTER.md`, `BITS_CLIENTES.md`, `GENOMA_UNIVERSAL.md`, `backend/clientes/service.py`, `ClientCanvas.vue`, `HaweView.vue`, `ManualRemitoView.vue`.
+* Error de cherry-pick detectado y corregido antes de pushear: 3/7 archivos habían aterrizado en árboles legacy de B (`frontend/` raíz, `staging/`) en vez de `current/` — revertido, recopiado a la ruta correcta, verificado con build real en D y B antes de commitear.
+* Falta propagar a MT (PIN 1974, máquina apagada) y correr el script de reparación de datos para clientes ya mal clasificados (separado del commit de código, no ejecutado). Registrado como Bandera Roja #5, `ABIERTA`.
+
+### Hito 4: Numeración de sesión reconstruida con evidencia (CC)
+* A pedido explícito de Carlos, no se asumió el número por simple incremento: reconstruido cruzando `git log` de D/B contra `BITACORA_VIVA.md`/`INFORMES_HISTORICOS/` — confirmada 850, no la estimación inicial de 851. `session_counter.json` (huérfano, sin consumidor real) reparado de todos modos de `{count:0}` a `{count:850}`.
+* Hallazgo honesto: la reconstrucción completa fue innecesaria — `_GY/_MD/CAJA_NEGRA.md` línea 1 ya tenía la respuesta ("Sesión actual: 850") desde el principio.
+
+### Hito 5: Autoauditoría OMEGA y remediación (CC)
+* A pedido de Carlos ("revisá Omega en Q y decime si cumple"), auditoría honesta contra el texto literal de `OMEGA.md` V3.3 — reveló brechas reales: Canario/WAL/backup/Excel de cierre nunca corridos, Bits 20-28 de agentes no recalculados, `actualizar_card000.py` no corrido (Card #000 stale), Manuales/`BITACORA_DEV.md`/`BANDERAS_ROJAS` no actualizados, falta rama `backup/` pre-push, formato de commit no conforme.
+* Remediación en orden de prioridad fijado por Carlos: A) integridad de datos (Canario `OK`, WAL checkpoint `OK`, `backup_db.py`, `exportar_pedidos_excel.py` — todo corrido limpio); B) honestidad de estado (Bits 20-28 recalculados uno por uno — Bit22/GY encontrado prendido sin motivo, apagado; `actualizar_card000.py` corrido, semáforo bajado honestamente a `🔴 BANDERAS ROJAS` por la Bandera Roja #5 abierta); C) reconocido sin reescribir historia (rama `backup/` faltante y formato de commit no conforme — aplicar correctamente de acá en adelante, no retrofit); D) Manuales técnico/operativo actualizados, `BANDERAS_ROJAS` con fila nueva, FASE 4 verificada limpia, FASE 7 confirmada N/A (Gy no participó).
+* Bug de secuencia autocapturado antes de ejecutar: `actualizar_card000.py` casi corre con `CAJA_NEGRA.md` ya en "851", lo que hubiera hecho que Card #000 mintiera la sesión siguiente como la actual — revertido temporalmente a "850", corrido, restaurado a "851".
+* Gaps residuales detectados en una segunda pasada de autoverificación tras pregunta directa de Carlos ("¿está cumplido el Omega?"): `CONTEXTO_CS/` nunca regenerado y Bits 16-18 (semáforo CS) apagados pese a la Bandera Roja #5 — corregido (Bit18 ON, `generar_contexto_cs.py` corrido, semáforo `ROJO` real); esta misma bitácora (`BITACORA_DEV.md`) nunca abierta pese a estar en el pedido — corregido con esta entrada.
+
+## SESIÓN 849 (OF): RECONCILIACIÓN D↔B, HISTORIAL DE NOTAS, REORGANIZACIÓN DEL SILO, CIERRE BR#4
 **Fecha:** 2026-07-14/15 (sesión accidentada — corte de luz a mitad, retomada sin pérdida de contexto)
 **Locación:** OF
 **Estado:** NOMINAL GOLD — Hash D: 8429cb14 | Hash B: e3424a6 | PIN 1974

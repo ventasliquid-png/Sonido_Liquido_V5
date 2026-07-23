@@ -1,7 +1,20 @@
 # MANUAL OPERATIVO V5 - SONIDO LÍQUIDO
-**Versión del Documento:** 1.13 (S841 OF — Protocolo interno de sesiones, sin impacto operativo)
+**Versión del Documento:** 1.15 (S851 OF — Estabilidad de MT restaurada + corrección de color de clientes llegó a MT)
 **Estado:** VIGENTE
 **Código de Doctrina:** DEOU-2025
+
+### Actualizacion Sesion 851 OF (2026-07-23) — Estabilidad de MT restaurada
+
+- **El sistema de Tomy se cayó dos veces hoy — ya está identificado y corregido.** Un script de diagnóstico interno tenía una configuración vieja que, en la máquina de Tomy, terminaba apagando por error el proceso del sistema en pleno uso. Se corrigió de raíz — no debería volver a pasar por esa causa.
+- **Al abrir el sistema desde el ícono de siempre ("Soberana"), la ventana del navegador ahora abre bien.** Antes, en algunos casos, se quedaba cargando sin fin porque intentaba abrir una dirección de red vieja que ya no existe.
+- **La corrección de color de clientes de la actualización anterior ya llegó a la máquina de Tomy.** Los clientes que estaban marcados en verde por error (les faltaba un dato) ahora se ven correctamente como pendientes de revisión, igual que ya se veía en las otras máquinas.
+- Sin cambios en Pedidos, Facturación ni Logística — se identificó (sin corregir todavía) que corregir la cantidad de un Pedido que ya tiene un Remito o Factura parcial puede hacer que el sistema "olvide" lo que ya se entregó. Queda en estudio para una próxima sesión, no cambia nada en el uso diario por ahora.
+
+### Actualizacion Sesion 850 OF (2026-07-20/22) — O.C. editable en Remito + corrección de color de clientes
+
+- **Orden de Compra editable desde la pantalla de Remito:** hasta ahora, si te olvidabas de cargar la O.C. al confeccionar un pedido, solo podías corregirla volviendo a Pedidos → Inspector. Ahora también se puede editar directo en el modal de Remito (mismo ícono de lápiz, mismo click-y-guardar que ya usás en el Inspector). Todavía no está disponible en MT — llega en la próxima actualización.
+- **Color de algunos clientes en pantalla puede cambiar:** se corrigió un problema de fondo donde un mismo indicador interno tenía dos significados contradictorios desde hace meses — algunos clientes aparecían en verde ("completo") cuando en realidad les faltaba un dato (segmento o lista de precios). A partir de esta actualización, esos clientes van a aparecer correctamente marcados como pendientes de revisión. Es una corrección, no un cambio de comportamiento — si un cliente cambia de color, es porque efectivamente le falta completar algo. Todavía no está disponible en MT.
+- Sin cambios en Pedidos, Facturación ni Logística fuera de lo anterior.
 
 ### Actualizacion Sesion 841 OF (2026-07-01) — Sin cambios de flujo operativo
 

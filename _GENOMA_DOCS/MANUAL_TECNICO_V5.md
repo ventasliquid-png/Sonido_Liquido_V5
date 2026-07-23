@@ -1,6 +1,44 @@
 # MANUAL TECNICO V5: "INDEPENDENCIA"
-**Version:** 3.1 Release (S841 OF — OMEGA Completo/Lite + Bits CS 16-19 + Bits 26-28 D→B→P)
-**Fecha:** 2026-07-01
+**Version:** 3.3 Release (S851 OF — Causa raiz backend Tomy caido, canario unificado a _env_db)
+**Fecha:** 2026-07-23
+
+### Actualizacion Sesion 851 OF (2026-07-23) — Canario envenenado (causa raiz backend Tomy caido) + investigacion Pedido/Remito
+
+**Commits:** D:`42857e8f` B:`e7d643b`+`edaf219`
+
+**Causa raiz de dos crashes reales del backend de Tomy en produccion hoy:** `current/scripts/canario_v2.py` en B era un duplicado legacy (sin tocar desde 2026-05-29) con `DB_PATH` hardcodeado a `C:\dev\Sonido_Liquido_V5\pilot_v5x.db` (la ruta de D). En MT esa ruta no existe → `calibracion_constitucional()` fallaba siempre → `radar_electrico()` detectaba "uvicorn" en el commandline del backend real de produccion → `espolon_defensivo()` lo mataba con `taskkill /F`. Duplicado eliminado.
+
+**Unificacion de deteccion de entorno:** la copia viva de `canario_v2.py` (en D y en B, `scripts/`) usaba dos logicas distintas para resolver la DB — D hardcodeada a si misma, B con una lista de candidatos por existencia de archivo. Ambas migradas a `scripts/_env_db.detectar_entorno_db()` (Card #93-bis, ya usado por `exportar_pedidos_excel.py` y `sincronizar_historial_notas.py`) — evita mantener una tercera implementacion en paralelo.
+
+**Fix de lanzadores (B, `scripts/ARRANQUE_V5.bat` y `ARRANCAR_TOMY.bat`):** IP hardcodeada muerta (`192.168.0.34`, subred vieja de MT) reemplazada por `localhost` — el navegador se abre en la misma maquina que sirve, no depende de que la subred no vuelva a cambiar. Chequeo de existencia de `data\V5_LS_MASTER.db` agregado antes de arrancar (antes arrancaba a ciegas). `ARRANCAR_TOMY.bat` (fallback sin pull ni rebuild, usado hoy mientras se investigaba) marcado con banner de modo emergencia.
+
+**Investigacion de modelo (sin fix, ver Card #99):** confirmado que `Remito`/`Factura` ya son FK 1:N reales hacia `Pedido` (sin `unique constraint`), y que `FacturaRemito` es una tabla puente N:M disenada explicitamente para "split de pedidos, consolidaciones, re-facturacion" (docstring propio en `facturacion/models.py`). `PedidoItem.cantidad_entregada` + Bits 20/21 (`HAS_PARTIAL_DELIVERY`/`FULL_DELIVERED`) estan vivos y conectados en `create_manual`. Pero `PATCH /pedidos/{id}` con `items` (la via que usa `PedidoCanvas.vue`, pantalla estandar de edicion) borra y recrea `PedidoItem`, cascadeando `DELETE` sobre `RemitoItem` vinculados (`[CASCADE FIX]` explicito en `pedidos/router.py` para no violar la FK) — destruye la traza de `cantidad_entregada` al corregir un pedido con entregas parciales ya emitidas. Existe una via no-destructiva ya en el codigo (`PATCH /pedidos/items/{item_id}`, modifica in-place) pero no conectada al flujo de guardado principal.
+
+### Actualizacion Sesion 850 OF (2026-07-20/22) — Fork de doctrina Bit 20 Clientes: `PENDIENTE_REVISION` vs `ARCA_OK`
+
+**Commits:** D:`775216e1` B:`32f630a` (cherry-pick + build, con correccion de rutas legacy)
+
+**El hallazgo:** el Bit 20 de `clientes.flags_estado` tenia dos significados opuestos activos simultaneamente en produccion desde el 18/03 (arquitectura "Paz Binaria V15.1"), sin que ningun documento ni sesion detectara el fork durante 4 meses:
+- `clientes/service.py` (REGLA 2, semantica V15.1): lo prendia como medalla de exito — "cliente formal auditado y completo".
+- `remitos/service.py` (semantica V14 original): lo prendia como alerta — "falta segmento o lista de precios, revisar".
+
+Un cliente real ("Cecilia Pascual", incompleta) quedaba clasificada como soberana en pantalla, en D y en MT.
+
+**Origen del fork:** `GENOMA_MASTER.md` documentaba la semantica V15.1 desde marzo. `BITS_CLIENTES.md` (editado 08/04, tres semanas despues) y `DOCTRINA_DATOS.md` (Silo, junio) heredaron la semantica V14 sin ninguna nota de que existiera una version distinta — dos linajes de documentacion citandose cada uno a si mismo, ninguno consciente del otro.
+
+**Dictamen Nike:** unificar a `PENDIENTE_REVISION` (V14, alerta) — no a `ARCA_OK` (medalla). Un falso "completo" deja pasar datos incompletos; un falso "pendiente" como mucho genera una revision de mas.
+
+**Purga ejecutada en un solo commit** (no por partes — dejar una punta corregida junto a otra con semantica vieja es el mismo patron que causo el fork original):
+- `GENOMA_MASTER.md`, `BITS_CLIENTES.md`, `docs/GENOMA_UNIVERSAL.md`: `ARCA_OK` purgado, Bit 20 = `PENDIENTE_REVISION` unanime. `GENOMA_UNIVERSAL.md` tenia un hueco real — nunca listaba Bit 19/20 de Clientes — completado con nota explicita de namespace separado del Bit 19/20 de Facturas (`ES_NC`/`ES_ND`, mismo numero de bit, tabla distinta).
+- `clientes/service.py` REGLA 2 reescrita: usa `has_segmento`/`has_lista` (mismo criterio que `remitos/service.py`), ya no los "4 pilares".
+- `ClientCanvas.vue`: tres bloques con semantica vieja alineados (validacion ARCA, guardado, color) — `isRosa`/`hasDomicilioValido`/`has4Pillars` removidos por quedar sin otro uso tras simplificar.
+- `HaweView.vue`: condicion de color invertida.
+
+**Trampa de cherry-pick descubierta de paso:** B tiene tres arboles paralelos de frontend (`frontend/` raiz, `current/`, `staging/`) con las mismas rutas relativas que D. El auto-merge de git aterrizo 3 de los 7 archivos en los arboles legacy (sin tocar desde mayo/junio) en vez de `current/` — la unica que sirve `ARRANQUE_V5.bat`. Sin ningun error visible (build y cherry-pick "funcionaron"). Detectado comparando contra que carpeta usa el lanzador real, corregido en el mismo commit. Candidato a limpieza (archivar/borrar los arboles legacy) — emparentado con Card #95.
+
+**Pendiente:** propagar a MT (PIN 1974, maquina apagada al cierre de esta sesion) y correr script de reparacion de datos para clientes ya mal clasificados con el criterio viejo (D sin PIN, MT con PIN — escribe en volumen sobre `V5_LS_MASTER.db`).
+
+**Hallazgo colateral de proceso:** la lista de gatillos del Bit 19 (`FORZAR_OMEGA_COMPLETO`) no cubre edicion de `GENOMA_MASTER.md`/`BITS_CLIENTES.md`/`GENOMA_UNIVERSAL.md` — solo `ALFA.md`/`OMEGA.md`/`SISTEMA_STATUS_SPEC.md`. Segunda vez que se detecta retroactivo (S843, S850). Consulta a Nike pendiente para ampliarla.
 
 ### Actualizacion Sesion 841 OF (2026-07-01) — Perfiles OMEGA + Semaforo CS + Jerarquia D->B->P
 
