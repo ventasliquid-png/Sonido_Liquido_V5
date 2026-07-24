@@ -2,6 +2,16 @@
 **Version:** 3.3 Release (S851 OF — Causa raiz backend Tomy caido, canario unificado a _env_db)
 **Fecha:** 2026-07-23
 
+### Actualizacion Sesion 852 OF (2026-07-24) — sin cambios funcionales/tecnicos en D
+
+Sesion administrativa: Card #100 creada (diseno de mecanismo de actualizacion periodica del Espejo
+Excel/copia offline de MT), intento de cierre remoto de OMEGA/MT via WinRM bloqueado por TrustedHosts
+(cambio de configuracion de seguridad, no ejecutado por CC sin la mano de Carlos), certificacion OMEGA
+de MT completada por otra via (S852-MT — ver seccion Bit19/Trinity en `SISTEMA_STATUS.json` y el Informe
+Historico del dia para el detalle: `backup_db.py` tenia un bug real, MAESTRO nunca se respaldaba desde
+el Silo, corregido con el mismo patron `_env_db` de `canario_v2.py`). Ningun archivo de codigo de D
+modificado esta sesion.
+
 ### Actualizacion Sesion 851 OF (2026-07-23) — Canario envenenado (causa raiz backend Tomy caido) + investigacion Pedido/Remito
 
 **Commits:** D:`42857e8f` B:`e7d643b`+`edaf219`

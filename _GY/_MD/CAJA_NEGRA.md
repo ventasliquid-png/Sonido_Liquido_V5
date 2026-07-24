@@ -1,5 +1,19 @@
 ﻿Sesion actual: 852
 
+# CAJA NEGRA: OMEGA administrativo — Card #100, diagnostico WinRM bloqueado, certificacion OMEGA/MT por otra via — S852 (2026-07-24)
+
+Sesion 852 OF. Hash D: 6bcf1057 (sin commit de codigo nuevo en D esta sesion) | Hash B: edaf219. Estado: NOMINAL GOLD. Agentes: CC.
+- Card #100 creada (BOARD_V5.xlsx, MEJORA, MEDIA): diseno de mecanismo de actualizacion periodica del Espejo Excel/copia offline de MT para consulta sin conexion. Dos caminos evaluados (app en vivo por HTTP vs copia periodica en Drive), direccion elegida es copia periodica con checkpoint cada ~30 min via Task Scheduler, descartando copiar en cada movimiento A/B/M por riesgo real de inconsistencia WAL/locking. Pendiente investigar si backup_db.py ya usa la API de backup online de SQLite antes de inventar mecanismo nuevo. Confirmado #99 como ultimo ID antes de numerar.
+- Tarea 1 (pedido de Carlos): cerrar el OMEGA de MT (Bit19, deuda desde S846) via WinRM remoto desde OF (Invoke-Command contra 192.168.1.2). Test-WSMan respondio OK (servicio WinRM activo), pero Invoke-Command fallo -- este cliente (OF) no tiene 192.168.1.2 en TrustedHosts, requerido porque ambas maquinas estan en workgroup (no dominio). Configurar TrustedHosts es un cambio de configuracion de seguridad del sistema -- CC no lo ejecuto sin la mano de Carlos, reporto el comando exacto (`Set-Item WSMan:\localhost\Client\TrustedHosts -Value "192.168.1.2" -Concatenate -Force`) y pidio definicion de credenciales. No se toco Bit19 ni omega_cerrado de MT en ese momento.
+- La certificacion de MT se completo igual, por otra via (S852-MT, ver entrada propia de MT en SISTEMA_STATUS.json): canario NOMINAL GOLD, WAL checkpoint OK (con uvicorn real corriendo, sin tocarlo), backup_db.py corrido -- encontro y corrigio un bug real (FUENTES["MAESTRO"] apuntaba a una copia en el Silo que nunca existio ahi, ni en MT ni en OF; fix con el mismo patron _env_db que ya usa canario_v2.py), hash de git edaf219 confirmado. Bit19 de MT apagado, omega_cerrado:true, fecha_ultimo_omega:2026-07-24. Deuda abierta desde S846 saldada.
+- Verificacion pedida por Carlos antes de cerrar: git status en D y B confirmado limpio (sin commits ni cambios sin pushear de la sesion) -- unicos hallazgos: 3 archivos sueltos sin trackear en D, todos preexistentes de S851 (documentados en Card #98), ninguno nuevo de hoy.
+- FASE 1/1B/1B.2/1C corridas: canario NOMINAL GOLD (0.031s), WAL checkpoint OK, backup_db.py (DESARROLLO rotado nuevo dia sin cambios; MAESTRO sobrescrito mismo dia -- resuelto via checkout local de B en OF que resuelve a entorno TOM), Espejo Excel DEV regenerado (42 pedidos, 73 items).
+- Sesion administrativa: sin ALTER TABLE, sin alta/baja de BANDERAS_ROJAS en OF, sin edicion de ALFA.md/OMEGA.md/SISTEMA_STATUS_SPEC.md -- ningun gatillo mecanico de Bit19 (OF) se disparo esta sesion. Perfil de cierre evaluado junto a Carlos considerando el peso real del evento (cierre de deuda de MT de varias semanas, aunque en otra maquina).
+- `banderas_rojas_activas` en SISTEMA_STATUS.json: 0 (sin cambios, ya estaba en 0).
+- D:6bcf1057 B:edaf219 | PIN: (pendiente FASE 3)
+
+---
+
 # CAJA NEGRA: OMEGA Completo — Cierre BR#5/BR#6, causa raiz backend Tomy caido, investigacion Pedido/Remito — S851 (2026-07-23)
 
 Sesion 851 OF. Hash D: 42857e8f | Hash B: edaf219. Estado: NOMINAL GOLD. Agentes: CC, Carlos (incursion directa en MT).

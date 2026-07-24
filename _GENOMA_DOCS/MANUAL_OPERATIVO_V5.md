@@ -3,6 +3,15 @@
 **Estado:** VIGENTE
 **Código de Doctrina:** DEOU-2025
 
+### Actualizacion Sesion 852 OF (2026-07-24) — sin cambios en el uso diario
+
+- Sesión administrativa, sin cambios visibles para el operador en Pedidos, Facturación ni Logística.
+- La máquina de Tomy quedó formalmente certificada como al día (backup automático corregido — antes se
+  saltaba la copia de la base principal sin avisar, ahora sí se guarda).
+- Se anotó una idea para el futuro (Card #100): tener una copia de los pedidos de Tomy actualizada cada
+  media hora en el Drive, para poder consultarla aunque el sistema esté apagado o sin internet. Todavía
+  sin implementar — es solo el plan.
+
 ### Actualizacion Sesion 851 OF (2026-07-23) — Estabilidad de MT restaurada
 
 - **El sistema de Tomy se cayó dos veces hoy — ya está identificado y corregido.** Un script de diagnóstico interno tenía una configuración vieja que, en la máquina de Tomy, terminaba apagando por error el proceso del sistema en pleno uso. Se corrigió de raíz — no debería volver a pasar por esa causa.

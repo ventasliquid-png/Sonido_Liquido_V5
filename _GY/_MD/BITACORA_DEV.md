@@ -1,4 +1,26 @@
-﻿## SESIÓN 851 (OF): CIERRE BR#5/BR#6, CAUSA RAÍZ BACKEND DE TOMY CAÍDO, INVESTIGACIÓN PEDIDO/REMITO
+﻿## SESIÓN 852 (OF): CARD #100, DIAGNÓSTICO WinRM BLOQUEADO, CERTIFICACIÓN OMEGA/MT POR OTRA VÍA
+
+**Fecha:** 2026-07-24
+**Locación:** OF
+**Estado:** NOMINAL GOLD — Hash D: 6bcf1057 (sin commit de código nuevo) | Hash B: edaf219 | PIN (pendiente FASE 3)
+
+### Hito 1: Card #100 — diseño de Espejo/copia offline de MT (CC)
+* Confirmado #99 como último ID leyendo `BOARD_V5.xlsx` real antes de numerar.
+* MEJORA, MEDIA: mecanismo de actualización periódica (checkpoint ~30 min vía Task Scheduler) de una copia de solo-lectura de `V5_LS_MASTER.db` en el Drive, para consulta offline. Descartado copiar en cada movimiento A/B/M (riesgo de inconsistencia WAL/locking). Pendiente investigar si `backup_db.py` ya usa la API de backup online de SQLite antes de construir un mecanismo nuevo.
+
+### Hito 2: Intento de cierre remoto de OMEGA/MT vía WinRM — bloqueado (CC)
+* A pedido de Carlos, se intentó cerrar la deuda de Bit 19 de MT (abierta desde S846) ejecutando el checklist de certificación por `Invoke-Command` remoto desde OF contra `192.168.1.2`. `Test-WSMan` respondió OK, pero `Invoke-Command` falló: este cliente no tiene `192.168.1.2` en `TrustedHosts` — necesario porque ambas máquinas están en workgroup, no en dominio.
+* Configurar `TrustedHosts` es un cambio de configuración de seguridad del sistema — CC no lo ejecutó unilateralmente, reportó el comando exacto a Carlos y pidió definición de credenciales para continuar. No se tocó `Bit19` ni `omega_cerrado` de MT en ese momento — la deuda quedó explícitamente abierta hasta tener evidencia real.
+
+### Hito 3: Certificación OMEGA de MT completada por otra vía (S852-MT)
+* MT terminó certificando su propio OMEGA — no vía el WinRM bloqueado, sino corrida directa en la máquina real (hostname "Izquierda"). Los 4 puntos verificados: canario NOMINAL GOLD, WAL checkpoint PASSIVE con un uvicorn de producción real corriendo (sin tocar el proceso), `backup_db.py` (encontró y corrigió un bug real: `FUENTES["MAESTRO"]` apuntaba a una copia en el Silo que nunca existió ahí, ni en MT ni en OF — fix con el mismo patrón `_env_db` de `canario_v2.py`), hash de git `edaf219` confirmado. `Bit19` apagado, deuda de varias semanas (desde S846) saldada.
+
+### Hito 4: Verificación de limpieza git pedida por Carlos antes de cerrar (CC)
+* `git status` en D y B confirmado limpio en ambos — sin commits ni cambios sin pushear de la sesión. Único hallazgo: los 3 archivos sueltos sin trackear en D, todos preexistentes de S851 (`audit_results.txt`, `audit_results_utf8.txt`, `_PELIGRO_fix_status.py`, ya documentados en Card #98) — ninguno nuevo.
+
+---
+
+## SESIÓN 851 (OF): CIERRE BR#5/BR#6, CAUSA RAÍZ BACKEND DE TOMY CAÍDO, INVESTIGACIÓN PEDIDO/REMITO
 
 **Fecha:** 2026-07-23
 **Locación:** OF
