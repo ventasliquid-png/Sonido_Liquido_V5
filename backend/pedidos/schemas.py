@@ -50,6 +50,9 @@ class PedidoCreate(BaseModel):
     duplicate_confirmed: Optional[bool] = False
     from_ingesta: Optional[bool] = False
     pedido_origen_migracion_id: Optional[int] = None
+    # Circuito Bipolar en creación — mismo campo que BipolarRequest (/circuito-bipolar).
+    # None = no se tocó el toggle (compat con callers viejos, ej. PedidoTacticoView.vue).
+    is_interno: Optional[bool] = None
 
 class NoComercialRequest(BaseModel):
     is_no_comercial: bool

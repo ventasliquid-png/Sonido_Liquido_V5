@@ -116,14 +116,26 @@ def create_pedido_tactico(
         # o podríamos forzar el ID si la BD lo permitiera (pero es serial).
         # Asumimos que la "sugerencia" del frontend es visual para que coincida con el ID que se va a generar.
         
-        # [ARLEQUÍN V2] Auto-encender NO_FISCAL_FORCE si cliente es Rosa (Bit 4 = OPERATOR_OK)
+        # [ARLEQUÍN V2] Circuito Bipolar en creación — mismo campo/patrón que /circuito-bipolar.
         from backend.clientes.constants import ClientFlags
         pedido_flags_inicial = PF.EXISTENCE.value
-        
-        # Siempre aplicar la regla si el cliente es Rosa (Bit 4 = OPERATOR_OK)
+        aviso_circuito = None
+
+        # Rosa es soberano: fuerza Lista 2 sin excepción, sin importar lo que mande el
+        # operador. Si intentó Blanco explícitamente (is_interno=False), se avisa por qué
+        # se ignoró — pero el pedido se guarda igual, no se bloquea.
         if cliente.flags_estado & ClientFlags.OPERATOR_OK:
             pedido_flags_inicial |= PF.NO_FISCAL_FORCE.value
-            
+            if pedido_data.is_interno is False:
+                aviso_circuito = (
+                    "Eligió guardar pedido Blanco a un cliente Rosa. Eso no es posible a "
+                    "menos que el cliente pase a Blanco. Complete los datos fiscales y "
+                    "vuelva a modificar el pedido. Ahora se guardará Lista 2."
+                )
+        elif pedido_data.is_interno:
+            # Blanco puede optar por una venta informal puntual sin tocar su ficha.
+            pedido_flags_inicial |= PF.NO_FISCAL_FORCE.value
+
         if pedido_data.from_ingesta:
             pedido_flags_inicial |= PF.ORIGEN_FACTURA.value
             
@@ -278,6 +290,11 @@ def create_pedido_tactico(
 
         if items_skipped and response is not None:
             response.headers["X-Warnings"] = f"productos_no_encontrados:{','.join(str(i) for i in items_skipped)}"
+
+        if aviso_circuito and response is not None:
+            # Headers HTTP son ASCII-only — el mensaje tiene acentos, se manda url-encoded.
+            from urllib.parse import quote
+            response.headers["X-Aviso-Circuito"] = quote(aviso_circuito)
 
         return nuevo_pedido
 

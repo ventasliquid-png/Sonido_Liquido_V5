@@ -2170,9 +2170,19 @@ const savePedido = async (andPrint = false) => {
                 payload.nota = payload.nota ? `${payload.nota}\n${notaAuto}` : notaAuto;
             }
 
+            // Circuito (Bit 12) en creación: mismo campo que usa /circuito-bipolar en edición.
+            // El servidor decide — Rosa fuerza Lista 2 sin excepción (con aviso si se intentó
+            // Blanco); Blanco respeta este valor libremente.
+            payload.is_interno = isCircuitoNegro.value;
+
             const res = await api.post('/pedidos/tactico', payload);
             const savedPedido = res.data;
             const pedidoId = savedPedido.id;
+
+            const avisoCircuito = res.headers?.['x-aviso-circuito'];
+            if (avisoCircuito) {
+                notificationStore.add(decodeURIComponent(avisoCircuito), 'warning');
+            }
 
             pedidosStore.setAutoPrint(false);
 
