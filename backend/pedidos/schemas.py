@@ -2,7 +2,7 @@
 # Versión: V5.6 GOLD | Sincronización: 20260407130827
 # ---------------------------------------------------------
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional, Union
 from datetime import datetime
 from uuid import UUID
@@ -23,6 +23,10 @@ class PedidoItemUpdate(BaseModel):
     nota: Optional[str] = None
 
 class PedidoCreate(BaseModel):
+    # [Fallar ruidoso, no en silencio] Un campo que el frontend manda y este
+    # schema no declara debe ser un 422 explícito, no un 200 que lo ignora.
+    model_config = ConfigDict(extra="forbid")
+
     cliente_id: UUID
     fecha: Optional[datetime] = None
     nota: Optional[str] = None
@@ -52,6 +56,10 @@ class NoComercialRequest(BaseModel):
     usuario: Optional[str] = "Sistema"
 
 class PedidoUpdate(BaseModel):
+    # [Fallar ruidoso, no en silencio] Un campo que el frontend manda y este
+    # schema no declara debe ser un 422 explícito, no un 200 que lo ignora.
+    model_config = ConfigDict(extra="forbid")
+
     cliente_id: Optional[UUID] = None
     fecha: Optional[datetime] = None
     nota: Optional[str] = None

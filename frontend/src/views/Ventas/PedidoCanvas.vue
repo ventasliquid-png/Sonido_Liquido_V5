@@ -1134,8 +1134,22 @@ watch(clienteSeleccionado, (newVal) => {
    }
 });
 
-// Watch to sync isCircuitoNegro with flagsEstadoPedido (BigInt safe)
-watch(isCircuitoNegro, (val) => {
+// Watch ES_CIRCUITO_NEGRO (Bit 12): en pedido existente llama al endpoint dedicado de
+// inmediato (mismo patrón que watch(isNoComercial) más abajo) — antes este toggle solo
+// mutaba estado local y dependía de que "Guardar Pedido" lo persistiera, pero el PATCH
+// genérico nunca declaró flags_estado en su schema y lo descartaba en silencio.
+watch(isCircuitoNegro, async (val) => {
+    const pid = route.params.id;
+    if (pid) {
+        try {
+            await api.patch(`/pedidos/${pid}/circuito-bipolar`, { is_interno: val });
+        } catch (e) {
+            const msg = e?.response?.data?.detail || 'Error al cambiar el circuito';
+            notificationStore.add(msg, 'error');
+            isCircuitoNegro.value = !val;
+            return;
+        }
+    }
     let flags = BigInt(flagsEstadoPedido.value || 0);
     const bit12 = 1n << 12n;
     if (val) {
@@ -2050,21 +2064,13 @@ const resetPedido = async (skipConfirm = false) => {
 const isSaving = ref(false);
 
 const buildPayload = () => {
-    let finalFlags = flagsEstadoPedido.value || 0;
-    
-    // [V5.5] Inject Circuito Negro Bit (12)
-    if (isCircuitoNegro.value) {
-        finalFlags |= (1 << 12);
-    } else {
-        finalFlags &= ~(1 << 12);
-    }
-    // ES_NO_COMERCIAL Bit (11)
-    if (isNoComercial.value) {
-        finalFlags |= (1 << 11);
-    } else {
-        finalFlags &= ~(1 << 11);
-    }
-
+    // [Fallar ruidoso, no en silencio] flags_estado NO viaja acá — ninguno de los dos
+    // schemas del backend (PedidoCreate/PedidoUpdate) lo declara, así que con
+    // extra="forbid" mandarlo tumbaría el guardado con un 422. Bit 12 (circuito) se
+    // persiste en tiempo real vía /circuito-bipolar (ver watch(isCircuitoNegro)); Bit 11
+    // (no comercial) vía /no-comercial (ver watch(isNoComercial)) — ambos ya lo hacían
+    // antes de este cambio. Este campo era, de hecho, descartado en silencio por el
+    // backend desde siempre (el schema nunca lo declaró).
     const _now = new Date();
     const _pad = n => String(n).padStart(2, '0');
     const basePayload = {
@@ -2074,7 +2080,6 @@ const buildPayload = () => {
         estado: "PENDIENTE",
         oc: nroOC.value.trim(),
         oc_override: omitirOC.value,
-        flags_estado: finalFlags,
         domicilio_entrega_id: selectedDomicilioId.value || null,
         transporte_id: selectedTransporteId.value || null,
         descuento_global_porcentaje: Number(descuentoGlobalPorcentaje.value) || 0,
