@@ -1141,14 +1141,27 @@ watch(clienteSeleccionado, (newVal) => {
 watch(isCircuitoNegro, async (val) => {
     const pid = route.params.id;
     if (pid) {
+        let res;
         try {
-            await api.patch(`/pedidos/${pid}/circuito-bipolar`, { is_interno: val });
+            res = await api.patch(`/pedidos/${pid}/circuito-bipolar`, { is_interno: val });
         } catch (e) {
             const msg = e?.response?.data?.detail || 'Error al cambiar el circuito';
             notificationStore.add(msg, 'error');
             isCircuitoNegro.value = !val;
             return;
         }
+        // El servidor es la fuente de verdad (ej: Rosa fuerza Lista 2 pese a is_interno=false).
+        const avisoCircuito = res.headers?.['x-aviso-circuito'];
+        if (avisoCircuito) {
+            notificationStore.add(decodeURIComponent(avisoCircuito), 'warning');
+        }
+        const flagsServidor = BigInt(res.data?.flags_estado ?? 0);
+        flagsEstadoPedido.value = Number(flagsServidor);
+        const estadoReal = (flagsServidor & (1n << 12n)) !== 0n;
+        if (estadoReal !== val) {
+            isCircuitoNegro.value = estadoReal;
+        }
+        return;
     }
     let flags = BigInt(flagsEstadoPedido.value || 0);
     const bit12 = 1n << 12n;

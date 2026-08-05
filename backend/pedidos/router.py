@@ -1182,7 +1182,7 @@ class BipolarRequest(BaseModel):
     is_interno: bool
 
 @router.patch("/{pedido_id}/circuito-bipolar", response_model=schemas.PedidoResponse)
-def toggle_circuito_bipolar(pedido_id: int, req: BipolarRequest, db: Session = Depends(get_db)):
+def toggle_circuito_bipolar(pedido_id: int, req: BipolarRequest, db: Session = Depends(get_db), response: Response = None):
     """
     Alterna el bit NO_FISCAL_FORCE (4096) para transitar entre circuito Blanco y Negro.
     Recalcula el total según el nuevo circuito (Card #48).
@@ -1199,8 +1199,24 @@ def toggle_circuito_bipolar(pedido_id: int, req: BipolarRequest, db: Session = D
     if not pedido:
         raise HTTPException(status_code=404, detail="Pedido no encontrado")
 
+    # Rosa es soberano también en edición: mismo criterio que en creación — fuerza Lista 2
+    # sin excepción, avisa si se intentó Blanco explícitamente, no bloquea el guardado.
+    cliente = pedido.cliente
+    es_rosa = bool(cliente and cliente.flags_estado & ClientFlags.OPERATOR_OK)
+    is_interno_efectivo = req.is_interno
+    if es_rosa and not req.is_interno:
+        is_interno_efectivo = True
+        if response is not None:
+            from urllib.parse import quote
+            aviso = (
+                "Eligió guardar pedido Blanco a un cliente Rosa. Eso no es posible a "
+                "menos que el cliente pase a Blanco. Complete los datos fiscales y "
+                "vuelva a modificar el pedido. Ahora se guardará Lista 2."
+            )
+            response.headers["X-Aviso-Circuito"] = quote(aviso)
+
     current_flags = pedido.flags_estado or 0
-    if req.is_interno:
+    if is_interno_efectivo:
         current_flags |= PF.NO_FISCAL_FORCE.value
     else:
         current_flags &= ~PF.NO_FISCAL_FORCE.value
