@@ -1,4 +1,38 @@
-﻿## SESIÓN 852 (OF): CARD #100, DIAGNÓSTICO WinRM BLOQUEADO, CERTIFICACIÓN OMEGA/MT POR OTRA VÍA
+﻿## SESION 853 (OF): OMEGA COMPLETO - HASHES STALE, CALLEJON DEL SHARE DE MT, REPORTE AUTOMATICO DE ESTADO, BR#8
+
+**Fecha:** 2026-07-25 -> 2026-08-10 (16 dias, 3 maquinas)
+**Locacion:** cierre en OF
+**Estado:** NOMINAL GOLD - Hash B: a732e6c | Semaforo CS: AMARILLO | PIN 1974
+
+### Hito 1: ALFA sobre sesion de 16 dias - hashes stale corregidos (CC)
+* Fast-path denegado: hash local de D (`5a3677d6`) != `hash_D` registrado (`b43647f0`). FASE 1 completa.
+* `SISTEMA_STATUS.json.OF` nunca se actualizo tras los push del 05/08 - el campo global `ultimo_hash_D_en_B` si, el bloque de maquina no. **Mismo error exacto que causo la crisis de identidad de CA del 03/08**, repetido siete dias despues.
+* Edge Case A: stale lock de 6d 16h saneado. `timeout_minutos` sigue ausente del JSON pese a estar en doctrina (segundo arranque consecutivo que lo detecta).
+
+### Hito 2: Acceso de red a MT - callejon cerrado con causa raiz (CC)
+* Tres intentos. El share existe y responde, pero la reinstalacion de Win11 del 31/07 vacio el almacen de credenciales y la cuenta de MT no tiene contrasena: Windows rechaza SMB por politica de cuentas con clave en blanco.
+* Descartado destrabarlo - implicaria desactivar una politica de seguridad en la maquina de produccion para una consulta de solo lectura. WinRM tampoco: `TrustedHosts` ni existe en la maquina reinstalada.
+
+### Hito 3: MT reporta su propio estado - solucion estructural (CC)
+* `espejo_mt.py` (Silo, fuera de git, fuera del flujo D->B->MT) ahora escribe `ESPEJO_MT/estado_mt.json` con hash, rama, ultimo commit, arbol limpio, archivos sucios y hostname, en cada corrida de su tarea programada en MT.
+* Solo lectura sobre el repo, envuelto en `try/except` total, colocado **antes** del backup a proposito. Probado en cuatro frentes incluidos tres caminos de falla y dry-run completo.
+* Cierra el hueco de que el estado de produccion solo se podia averiguar yendo fisicamente (Card #96).
+* **Riesgo detectado y no resuelto:** el script no tiene guarda de maquina - correrlo sin `--dry-run` en OF sobrescribiria el espejo de MT con la base de prueba local.
+
+### Hito 4: El hallazgo del Board y la BR#8 (CC + CS)
+* BR#7 fue cerrada el 05/08 17:41 reportando pull a `a732e6c` y E2E completo en MT real, **pero sin fila en `BITACORA_VIVA.md`** - la bitacora de esa tarde corta a las 16:55 en 'pendiente PIN 1974 para MT'.
+* El **Bit 7 (`BOARD_PENDIENTE`) estaba encendido** y se reporto como dato decodificado sin ir a mirar el Board, que tenia la respuesta a la pregunta que ocupo el dia.
+* Evidencia corroborante hallada en disco: backup de la base real de MT escrito a las 17:51 (75/54/31, mismo linaje que el espejo) y `ultima_actualizacion` del JSON a las 17:41. Tres artefactos en esa franja.
+* **BR#8 abierta** (unica activa): el hash del codigo en MT hoy sigue sin confirmar. Cierra sola con el primer `estado_mt.json`. `ultimo_hash_B_en_P` se dejo en `edaf219` deliberadamente.
+
+### Hito 5: Housekeeping con causa (CC)
+* `fix_status.py` y su copia `_PELIGRO_` no eran sueltos inertes: es un script de S842 que sobrescribe `SISTEMA_STATUS.json` con valores hardcodeados de julio. Correrlo habria revertido la correccion de hashes de esta misma sesion.
+* Card #101 reclasificada de BAJA a real: los tres lanzadores abortan sin `data\V5_LS_MASTER.db` aunque el backend lea `current/`.
+* `session_counter.json` corregido de 1 a 853. `.claude/launch.json` ignorado. `pyvenv.cfg` revertido en B.
+
+---
+
+## SESIÓN 852 (OF): CARD #100, DIAGNÓSTICO WinRM BLOQUEADO, CERTIFICACIÓN OMEGA/MT POR OTRA VÍA
 
 **Fecha:** 2026-07-24
 **Locación:** OF

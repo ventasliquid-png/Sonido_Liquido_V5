@@ -1,4 +1,4 @@
-# MANUAL OPERATIVO V5 - SONIDO LÍQUIDO
+﻿# MANUAL OPERATIVO V5 - SONIDO LÍQUIDO
 **Versión del Documento:** 1.15 (S851 OF — Estabilidad de MT restaurada + corrección de color de clientes llegó a MT)
 **Estado:** VIGENTE
 **Código de Doctrina:** DEOU-2025
@@ -927,3 +927,8 @@ Guardar el archivo (Ctrl+S, mantener formato CSV si Excel pregunta).
 La próxima vez que se abra una sesión en MT, el sistema detecta la nota pendiente y avisa antes de aplicarla — no queda aplicada sola sin que nadie la vea. Una vez aplicada, la nota queda pegada al pedido de forma permanente (visible en el campo de notas del pedido) y la fila del CSV se marca como sincronizada.
 
 **Importante:** verificar bien el número de pedido antes de guardar — si se tipea mal y por casualidad coincide con otro pedido real que existe, el sistema no tiene forma de detectar el error (no puede saber que "era para el 48" si se escribió "84" y el pedido 84 también existe). Volumen bajo, pero conviene revisar el número dos veces.
+
+
+---
+
+**S853 - sin cambios operativos.** La sesion no introdujo cambios funcionales ni de interfaz visibles para el operador. Todo el trabajo fue de infraestructura, trazabilidad y cierre.

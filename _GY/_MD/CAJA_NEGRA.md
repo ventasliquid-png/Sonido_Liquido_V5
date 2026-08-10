@@ -1,4 +1,16 @@
-﻿Sesion actual: 852
+﻿Sesion actual: 853
+
+# CAJA NEGRA: OMEGA Completo - correccion de hashes stale, callejon del share de MT, reporte automatico de estado, BR#8 - S853 (2026-08-10)
+
+Sesion 853 OF (la mas larga del proyecto: 16 dias, 3 maquinas, dos bloques concurrentes que numeraron en paralelo). Hash B: a732e6c (sin cambios). Estado: NOMINAL GOLD. Semaforo CS: AMARILLO. Agentes: CC, CS.
+- ALFA: fast-path denegado (hash local 5a3677d6 != hash_D registrado b43647f0). SISTEMA_STATUS.json.OF tenia hash_D/hash_P stale desde los push del 05/08 -- mismo patron exacto que causo la crisis de identidad de CA del 03/08, repetido siete dias despues en otra maquina. Corregido contra disco. Edge Case A: stale lock de 6d16h saneado. timeout_minutos sigue sin escribirse en el JSON (segundo arranque consecutivo que lo detecta).
+- Acceso de red a MT: tres intentos, abandonado con causa raiz. El share existe y responde (TCP 445 abierto, nombre resuelto), pero la reinstalacion de Win11 del 31/07 vacio las credenciales y la cuenta de MT no tiene contrasena: Windows rechaza SMB por politica de cuentas con clave en blanco. Destrabarlo exigiria desactivar esa politica en produccion para una consulta de solo lectura. WinRM sigue bloqueado (TrustedHosts ni existe en la maquina reinstalada).
+- Solucion estructural: espejo_mt.py (Silo, fuera de git, fuera del flujo D->B->MT) ahora escribe ESPEJO_MT/estado_mt.json con hash, rama, ultimo commit, arbol limpio y hostname de MT en cada corrida de su tarea programada. Solo lectura, envuelto en try/except total, colocado antes del backup a proposito. Cierra el hueco de que el estado de produccion solo se podia averiguar yendo fisicamente (Card #96: .build_hash nunca persiste alli). Riesgo detectado y no resuelto: el script no tiene guarda de maquina.
+- Hallazgo en FASE 2: BR#7 fue cerrada el 05/08 17:41 reportando pull a a732e6c y E2E completo en MT real, pero NO tiene fila en BITACORA_VIVA. El Bit 7 (BOARD_PENDIENTE) estaba encendido desde entonces y se reporto como dato decodificado sin ir a mirar el Board, que tenia la respuesta a la pregunta que ocupo el dia. Evidencia corroborante hallada en disco: backup de la base real de MT escrito a las 17:51 (75/54/31, mismo linaje que el espejo) y ultima_actualizacion del JSON a las 17:41.
+- BR#8 abierta (unica activa): estado del codigo de MT sin confirmacion directa. Cierra sola con el primer estado_mt.json que reporte a732e6c o posterior. ultimo_hash_B_en_P se dejo deliberadamente en edaf219 -- actualizarlo habria sido dar por confirmado justo lo que la bandera declara no confirmado.
+- Card #101 reclasificada de BAJA a real: ARRANQUE_V5.bat:7 y ARRANCAR_TOMY.bat:17 abortan si falta data\V5_LS_MASTER.db, aunque el backend lea current/. Borrar el huerfano tumbaria los tres lanzadores.
+- Housekeeping con causa: fix_status.py (y su copia _PELIGRO_) no era un suelto inerte sino un script de S842 que sobrescribe SISTEMA_STATUS.json con valores hardcodeados de julio -- correrlo habria revertido la correccion de hashes de esta misma sesion. Borrado. session_counter.json corregido de 1 a 853.
+- Sin cambios de codigo funcional en D ni en B. Commit de cierre solo bookkeeping.
 
 # CAJA NEGRA: OMEGA administrativo — Card #100, diagnostico WinRM bloqueado, certificacion OMEGA/MT por otra via — S852 (2026-07-24)
 

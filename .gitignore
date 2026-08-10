@@ -99,3 +99,6 @@ exclude_list.txt
 # Protocolos locales (ALFA/OMEGA — cada máquina/entorno tiene versión propia)
 ALFA.md
 ALFA_OLD.md
+
+# Config local de Claude Code (no es del producto; settings.local.json si esta trackeado)
+.claude/launch.json

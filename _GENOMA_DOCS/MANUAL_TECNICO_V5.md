@@ -1,4 +1,4 @@
-# MANUAL TECNICO V5: "INDEPENDENCIA"
+﻿# MANUAL TECNICO V5: "INDEPENDENCIA"
 **Version:** 3.3 Release (S851 OF — Causa raiz backend Tomy caido, canario unificado a _env_db)
 **Fecha:** 2026-07-23
 
@@ -1620,3 +1620,22 @@ IF "%HASH_ACTUAL%"=="%HASH_GUARDADO%" (
 `current/static/` (lo que FastAPI sirve realmente vía `StaticFiles`) **no se tocó** — sigue trackeado y viajando por el flujo D→B→P normal (cherry-pick + build + commit). Solo el artefacto intermedio `dist/` deja de versionarse.
 
 Con este cierre, las 4 filas de `BANDERAS_ROJAS` en el Board quedan `CERRADA` — primera vez en varias sesiones con 0 banderas rojas activas en el sistema.
+
+
+---
+
+## S853 - Estado de MT observable desde el Silo
+
+Hasta esta sesion, el estado de git de la maquina de produccion (MT) solo podia conocerse yendo fisicamente: `.build_hash` nunca persiste alli (Card #96), el share de red quedo sin credenciales tras la reinstalacion de Win11 del 31/07, y WinRM sigue bloqueado por `TrustedHosts`.
+
+`espejo_mt.py` -- que vive en el Silo, **no** en git, y corre en MT por Programador de Tareas cada ~30 minutos -- ahora escribe ademas `ESPEJO_MT\estado_mt.json` con `hash`, `rama`, `ultimo_commit`, `arbol_limpio`, `archivos_sucios`, `commits_sin_pushear`, `hostname` y `build_hash_local`.
+
+Es de **solo lectura** sobre el repo (`rev-parse`, `status`, `log`) y esta envuelto en `try/except` total: si falla, el espejo sigue haciendo el backup igual que antes. Se ejecuta **antes** del backup a proposito -- si la copia fallara, igual interesa saber en que hash quedo la maquina.
+
+**Advertencia:** el script no tiene guarda de maquina. `resolver_maestro_local()` corrido en OF resuelve a la base local de OF, asi que ejecutarlo sin `--dry-run` fuera de MT sobrescribiria el espejo de produccion con una base de prueba. El campo `hostname` del JSON permite detectar un reporte escrito desde la maquina equivocada.
+
+## S853 - Card #101: los lanzadores dependen de `data\V5_LS_MASTER.db`
+
+`ARRANQUE_V5.bat:7` y `ARRANCAR_TOMY.bat:17` **abortan el arranque** si no existe `data\V5_LS_MASTER.db`, aunque el backend lea `current/V5_LS_MASTER.db` segun `current/.env`. Borrar el archivo huerfano de `data/` tumba los tres lanzadores.
+
+Agravante: `.env` esta en `.gitignore`, de modo que cada maquina tiene el suyo y no se puede determinar desde otra maquina que base lee MT realmente.
