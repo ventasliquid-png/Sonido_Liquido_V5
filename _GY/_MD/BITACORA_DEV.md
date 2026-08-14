@@ -1,4 +1,35 @@
-﻿## SESION 853 (OF): OMEGA COMPLETO - HASHES STALE, CALLEJON DEL SHARE DE MT, REPORTE AUTOMATICO DE ESTADO, BR#8
+﻿## SESION 854 (OF): BR#8 CERRADA POR PRECEDENTE, BOARD RECONCILIADO, DIAGNOSTICO REMITO PARCIAL SIN FIX
+
+**Fecha:** 2026-08-14
+**Locacion:** cierre en OF
+**Estado:** NOMINAL GOLD - Hash B: a732e6c (sin cambios) | Semaforo CS: VERDE | PIN 1974
+
+### Hito 1: Verificacion de OMEGA de S853 (CC)
+* Cruzados 5 indicadores documentales -- SI hubo OMEGA formal el 10/08; BR#8 quedo abierta a proposito, no por un cierre incompleto.
+
+### Hito 2: BR#8 cerrada por evidencia de hash -- precedente sentado (CC + Carlos + CS)
+* Criterio literal (hash Y arbol limpio) estructuralmente incumplible: MT rebuildea en cada arranque, current/static/index.html trackeado.
+* Investigacion documental previa confirmo que el precedente de BR#4/Card #87 pesaba en contra de destrackear static/, no a favor -- static/ es lo que FastAPI sirve.
+* Cerrada con evidencia de hash consistente 9 dias sin error, con salvedad explicita: codigo confirmado en el checkout de MT, build servido y E2E real no verificados hoy.
+
+### Hito 3: Board reconciliado (CC)
+* Card #102 (S853) nunca habia llegado al Board -- segunda perdida confirmada del bug wb.active (Card #93 -> ALTA). Escrita verbatim.
+* Cards #103/#104/#105 creadas (angostar arbol_limpio; redundancia rebuild MT vs cherry-pick, Nike; canonizacion de dictamenes de Nike, proceso).
+
+### Hito 4: Diagnostico del remito parcial -- causa real, sin fix (CC)
+* cantidad_entregada confirmado expuesto con JSON real de Pedido #63 (100/50, Bit20 ON). Hipotesis de dato faltante descartada.
+* Causa real de frontend: ManualRemitoView.vue auto-completa sin paso de seleccion; PedidoList.vue no renderiza cantidad_entregada por renglon ni oc, aunque los recibe.
+* Hallazgo no buscado: pipeline de aviso "FALTA REFERENCIA OC" en PedidoInspector.vue inerte -- backend nunca envia cliente.oc_required. Bit 6 de Cliente muerto en las dos lecturas (OC_REQUIRED codigo, TRUSTED_MANUAL doctrina).
+* Decision de Carlos: sandbox con datos de produccion en D descartado, no postergado -- Pedido #63 alcanza.
+
+### Hito 5: Housekeeping (CC)
+* session_counter.json aparecio en 0 (mismo sintoma de S853, causantes ya no existen en disco). Descartado, corregido a 854.
+
+D:(hash de este commit -- actualizado en el commit de control) B:a732e6c | PIN: 1974
+
+---
+
+## SESION 853 (OF): OMEGA COMPLETO - HASHES STALE, CALLEJON DEL SHARE DE MT, REPORTE AUTOMATICO DE ESTADO, BR#8
 
 **Fecha:** 2026-07-25 -> 2026-08-10 (16 dias, 3 maquinas)
 **Locacion:** cierre en OF

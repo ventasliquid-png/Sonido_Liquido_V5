@@ -3,6 +3,10 @@
 **Estado:** VIGENTE
 **Código de Doctrina:** DEOU-2025
 
+### Actualizacion Sesion 854 OF (2026-08-14) — sin cambios en el uso diario
+
+- BR#8 cerrada (ver Board). Nada visible cambia para Tomy/Carlos hoy.
+
 ### Actualizacion Sesion 852 OF (2026-07-24) — sin cambios en el uso diario
 
 - Sesión administrativa, sin cambios visibles para el operador en Pedidos, Facturación ni Logística.

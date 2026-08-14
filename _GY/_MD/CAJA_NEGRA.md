@@ -1,4 +1,20 @@
-﻿Sesion actual: 853
+﻿Sesion actual: 854
+
+# CAJA NEGRA: OMEGA Completo - BR#8 cerrada por evidencia de hash (precedente), Board reconciliado (Card #102 recuperada, #103/#104/#105 creadas), diagnostico remito parcial sin fix - S854 (2026-08-14)
+
+Sesion 854 OF (un dia). Hash D: (hash de este commit -- actualizado en el commit de control) | Hash B: a732e6c (sin cambios). Estado: NOMINAL GOLD. Semaforo CS: VERDE. Agentes: CC, Carlos, CS.
+- Etapa 1 de arranque: verificacion de si hubo OMEGA real de S853 (Carlos creia recordar haberlo cerrado desde otro chat, sin rastro en el Silo). Cruzados 5 indicadores (informe historico, session_counter.json, BITACORA_VIVA archivada, SISTEMA_STATUS.json, Board BANDERAS_ROJAS) -- veredicto: SI hubo OMEGA formal el 10/08, pero la Bandera Roja (BR#8) quedo abierta a proposito, no por descuido.
+- BR#8 cerrada por evidencia de hash, no por su criterio literal (hash Y arbol limpio) -- estructuralmente incumplible porque MT rebuildea en cada arranque y current/static/index.html esta trackeado. Ademas el criterio media la cosa equivocada: BR#8 investiga un fix de backend, el unico archivo trackeado sucio es un artefacto de frontend. Primera vez en el Silo que se cierra una bandera con evidencia distinta a la que su criterio pide -- precedente sentado con fundamento completo en el comentario de cierre (BOARD_V5.xlsx, BANDERAS_ROJAS fila 8).
+- Investigacion documental previa: el dictamen de BR#4/Card #87 (dist/, S850) fue puntual, no general -- static/ se excluyo a proposito porque es lo que FastAPI sirve. El precedente pesaba en contra de destrackear static/, no a favor.
+- Board: Card #102 (creada S853, contradiccion Bit1 en GENOMA_UNIVERSAL.md) nunca habia llegado a BOARD_V5.xlsx -- segunda perdida de registro confirmada por el bug de wb.active (Card #93, ahora en ALTA). Escrita con texto verbatim. Cards #103 (angostar arbol_limpio), #104 (por que MT rebuildea si ya recibe el build por git -- Nike) y #105 (dictamenes de Nike sin canonizar) creadas.
+- Diagnostico del remito parcial completo, sin fix: cantidad_entregada se expone correctamente (confirmado con JSON real de Pedido #63: 100/50, Bit20 ON). El bug es de frontend -- ManualRemitoView.vue auto-completa todos los renglones con saldo sin paso de seleccion; PedidoList.vue (tablero) ya recibe cantidad_entregada y oc y no los renderiza por renglon.
+- Hallazgo no buscado: PedidoInspector.vue tiene logica de aviso "FALTA REFERENCIA OC" condicionada a cliente.oc_required, campo que el backend nunca envia (0 matches en backend/**/*.py) -- inerte desde que se escribio. Bit 6 de Cliente confirmado muerto en las dos lecturas (OC_REQUIRED codigo / TRUSTED_MANUAL doctrina), con comentario en clientes/constants.py que afirma falsamente su uso en router.py.
+- Decision de Carlos: no se importa produccion a D (Etapa 2 cancelada) -- el diagnostico es de frontend y Pedido #63 ya da el caso real necesario.
+- Housekeeping: session_counter.json aparecio pisado a 0 (mismo sintoma que el fix de S853, cuyos causantes -- fix_status.py/_PELIGRO_ -- ya no existen en disco, confirmado por busqueda). Descartado y corregido a 854 en este cierre.
+- Sin cambios de codigo funcional en D ni en B. Commit de cierre bookkeeping (Board via Excel en el Silo, no via git).
+- D:(hash de este commit) B:a732e6c | PIN: 1974
+
+---
 
 # CAJA NEGRA: OMEGA Completo - correccion de hashes stale, callejon del share de MT, reporte automatico de estado, BR#8 - S853 (2026-08-10)
 

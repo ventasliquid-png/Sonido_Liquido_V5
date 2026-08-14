@@ -2,6 +2,12 @@
 **Version:** 3.3 Release (S851 OF — Causa raiz backend Tomy caido, canario unificado a _env_db)
 **Fecha:** 2026-07-23
 
+### Actualizacion Sesion 854 OF (2026-08-14) — sin cambios funcionales/tecnicos en D
+
+Diagnostico completo (sin fix) del bug de remito parcial: ver Informe Historico S854 para
+detalle de `ManualRemitoView.vue` / `PedidoList.vue` / Bit 6 de Cliente (`OC_REQUIRED` en
+codigo / `TRUSTED_MANUAL` en doctrina, confirmado muerto en las dos lecturas).
+
 ### Actualizacion Sesion 852 OF (2026-07-24) — sin cambios funcionales/tecnicos en D
 
 Sesion administrativa: Card #100 creada (diseno de mecanismo de actualizacion periodica del Espejo
