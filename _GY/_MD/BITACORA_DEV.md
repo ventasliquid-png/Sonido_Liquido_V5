@@ -25,7 +25,7 @@
 ### Hito 5: Housekeeping (CC)
 * session_counter.json aparecio en 0 (mismo sintoma de S853, causantes ya no existen en disco). Descartado, corregido a 854.
 
-D:(hash de este commit -- actualizado en el commit de control) B:a732e6c | PIN: 1974
+D:f65e8048 B:a732e6c | PIN: 1974
 
 ---
 

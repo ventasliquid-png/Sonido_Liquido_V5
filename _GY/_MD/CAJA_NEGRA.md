@@ -2,7 +2,7 @@
 
 # CAJA NEGRA: OMEGA Completo - BR#8 cerrada por evidencia de hash (precedente), Board reconciliado (Card #102 recuperada, #103/#104/#105 creadas), diagnostico remito parcial sin fix - S854 (2026-08-14)
 
-Sesion 854 OF (un dia). Hash D: (hash de este commit -- actualizado en el commit de control) | Hash B: a732e6c (sin cambios). Estado: NOMINAL GOLD. Semaforo CS: VERDE. Agentes: CC, Carlos, CS.
+Sesion 854 OF (un dia). Hash D: f65e8048 | Hash B: a732e6c (sin cambios). Estado: NOMINAL GOLD. Semaforo CS: VERDE. Agentes: CC, Carlos, CS.
 - Etapa 1 de arranque: verificacion de si hubo OMEGA real de S853 (Carlos creia recordar haberlo cerrado desde otro chat, sin rastro en el Silo). Cruzados 5 indicadores (informe historico, session_counter.json, BITACORA_VIVA archivada, SISTEMA_STATUS.json, Board BANDERAS_ROJAS) -- veredicto: SI hubo OMEGA formal el 10/08, pero la Bandera Roja (BR#8) quedo abierta a proposito, no por descuido.
 - BR#8 cerrada por evidencia de hash, no por su criterio literal (hash Y arbol limpio) -- estructuralmente incumplible porque MT rebuildea en cada arranque y current/static/index.html esta trackeado. Ademas el criterio media la cosa equivocada: BR#8 investiga un fix de backend, el unico archivo trackeado sucio es un artefacto de frontend. Primera vez en el Silo que se cierra una bandera con evidencia distinta a la que su criterio pide -- precedente sentado con fundamento completo en el comentario de cierre (BOARD_V5.xlsx, BANDERAS_ROJAS fila 8).
 - Investigacion documental previa: el dictamen de BR#4/Card #87 (dist/, S850) fue puntual, no general -- static/ se excluyo a proposito porque es lo que FastAPI sirve. El precedente pesaba en contra de destrackear static/, no a favor.
@@ -12,7 +12,7 @@ Sesion 854 OF (un dia). Hash D: (hash de este commit -- actualizado en el commit
 - Decision de Carlos: no se importa produccion a D (Etapa 2 cancelada) -- el diagnostico es de frontend y Pedido #63 ya da el caso real necesario.
 - Housekeeping: session_counter.json aparecio pisado a 0 (mismo sintoma que el fix de S853, cuyos causantes -- fix_status.py/_PELIGRO_ -- ya no existen en disco, confirmado por busqueda). Descartado y corregido a 854 en este cierre.
 - Sin cambios de codigo funcional en D ni en B. Commit de cierre bookkeeping (Board via Excel en el Silo, no via git).
-- D:(hash de este commit) B:a732e6c | PIN: 1974
+- D:f65e8048 B:a732e6c | PIN: 1974
 
 ---
 
