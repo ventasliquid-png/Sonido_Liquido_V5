@@ -26,7 +26,7 @@
 * Manuales de esta sesion NO se tildaron "sin cambios" -- se declaro explicitamente que la revision de contenido no se hizo (mismo checkbox que denuncia #116, no se repite el patron en el propio cierre que lo crea).
 * CA no declaro territorio en S855 -- no se corrige a ciegas desde OF, queda pendiente en `SESION_NEXT.md`.
 
-D:(hash de este commit -- actualizado en el commit de control) B:a732e6c | PIN: 1974
+D:29e2bf0b B:a732e6c | PIN: 1974
 
 ---
 
