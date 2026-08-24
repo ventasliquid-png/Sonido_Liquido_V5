@@ -2,8 +2,11 @@ import openpyxl
 from datetime import datetime
 
 file_path = r"Q:\Mi unidad\V5_Silo_Claude\BOARD_V5.xlsx"
+BOARD_SHEET = "Board V5"
+
 wb = openpyxl.load_workbook(file_path)
-ws = wb.active
+ws = wb[BOARD_SHEET]  # Card #93/#855: NUNCA wb.active — apunta a CSV_DUMP_ARCHIVADO,
+                       # ya se comio 2 registros (Card #102, dos cards de S834) en silencio.
 
 # Find header row
 header_row_idx = 1
@@ -49,3 +52,20 @@ for row in range(2, ws.max_row + 1):
 
 wb.save(file_path)
 print(f"Cards actualizadas exitosamente: {updated_count}")
+
+# Verificación de relectura post-guardado (Card #93/#855): confirmar que el guardado
+# aterrizó en la hoja correcta antes de dar la escritura por buena.
+verify_wb = openpyxl.load_workbook(file_path, data_only=True)
+verify_ws = verify_wb[BOARD_SHEET]
+mismatches = []
+for row in range(2, verify_ws.max_row + 1):
+    cell_id = verify_ws.cell(row=row, column=id_col).value
+    if cell_id in updates:
+        estado_real = verify_ws.cell(row=row, column=estado_col).value
+        if estado_real != "CERRADO":
+            mismatches.append((cell_id, estado_real))
+
+if mismatches:
+    print(f"[FALLO VERIFICACION] {len(mismatches)} card(s) no reflejan el cambio tras releer: {mismatches}")
+else:
+    print(f"[OK] Verificado por relectura: {updated_count} card(s) confirmadas en hoja '{BOARD_SHEET}'.")

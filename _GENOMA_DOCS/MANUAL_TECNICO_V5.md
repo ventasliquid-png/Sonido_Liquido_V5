@@ -2,6 +2,12 @@
 **Version:** 3.3 Release (S851 OF — Causa raiz backend Tomy caido, canario unificado a _env_db)
 **Fecha:** 2026-07-23
 
+### Actualizacion Sesion 856 OF (2026-08-24) — cierre retroactivo de S855 (CA, 15/08)
+
+Sin cambios funcionales. Revision de contenido NO realizada — pendiente: MANUAL_TECNICO_V5.md
+Cap. 27 (polaridad del Bit 1 invertida) y Caps. 13/24 (Bit 6 con dos definiciones distintas
+dentro del mismo documento). Ver #116, #115.
+
 ### Actualizacion Sesion 854 OF (2026-08-14) — sin cambios funcionales/tecnicos en D
 
 Diagnostico completo (sin fix) del bug de remito parcial: ver Informe Historico S854 para

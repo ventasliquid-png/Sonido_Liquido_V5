@@ -1,4 +1,36 @@
-﻿## SESION 854 (OF): BR#8 CERRADA POR PRECEDENTE, BOARD RECONCILIADO, DIAGNOSTICO REMITO PARCIAL SIN FIX
+﻿## SESION 856 (OF): CIERRE RETROACTIVO DE S855 (CA, 15/08) + FIX REAL DE CARD #93
+
+**Fecha:** 2026-08-24 (cierre retroactivo -- la sesion 855 real ocurrio el 2026-08-15 en CA)
+**Locacion:** cierre en OF
+**Estado:** NOMINAL GOLD - Hash B: a732e6c (sin cambios) | Semaforo CS: [pendiente] | PIN 1974
+
+### Hito 1: Descubrimiento de la brecha de fecha (CC)
+* Al preguntar la fecha real del sistema: 2026-08-24, diez dias despues de lo que toda la sesion anterior asumia como "hoy". Verificado con `date`/`Get-Date`, no solo con archivos del Silo.
+* Cruce de evidencia (git fetch, mtimes reales, API de Drive) confirmo Sesion 855 en CA (15/08), mas moderna que la nuestra y nunca cerrada.
+
+### Hito 2: Contenido real de Sesion 855, verificado antes de narrarlo (CC + CS)
+* CA pulleo a los hashes de cierre de S854, arreglo Card #93 en su disco (sin commitear), hizo recorrido completo del Board (17 escrituras, cards #106-115, duplicados resueltos, #21 reabierta).
+* Canonizo 4 entradas en BIBLIOTECA_NIKE.md (21->26 encabezados, verificado independientemente hoy).
+* Hallazgo central: de 5 decisiones a canonizar, 3 no tenian respaldo en disco (Genoma Cliente 30/07, C2/C3, "Regla A/B") -- venian de memoria de CS, descartadas antes de escribirlas como canon.
+
+### Hito 3: Fix real de la herramienta (CC)
+* `scripts/update_board.py` linea 6: `wb.active` -> `wb['Board V5']` explicito + verificacion de relectura post-guardado. Probado con escritura inocua antes de usarlo en serio.
+* CA tiene el mismo fix sin commitear -- pendiente de reconciliar, no duplicar.
+
+### Hito 4: Tres cards nuevas, halladas releyendo el propio protocolo (CS)
+* #116: checkbox de Manuales en OMEGA permite vaciar contenido real con "sin cambios esta sesion".
+* #117: fast-path de ALFA usa hash de codigo como proxy de integridad de datos -- no detecta drift de schema.
+* #118 (CRITICA): canario de OMEGA FASE 1 hardcodeado a `pilot_v5x.db` -- confirmado que `C:\dev\v5-ls-Tom\OMEGA.md` tambien lo tiene, mismo patron que mato el backend de Tomy en S851.
+
+### Hito 5: Cierre honesto, no maquillado (CC)
+* Manuales de esta sesion NO se tildaron "sin cambios" -- se declaro explicitamente que la revision de contenido no se hizo (mismo checkbox que denuncia #116, no se repite el patron en el propio cierre que lo crea).
+* CA no declaro territorio en S855 -- no se corrige a ciegas desde OF, queda pendiente en `SESION_NEXT.md`.
+
+D:(hash de este commit -- actualizado en el commit de control) B:a732e6c | PIN: 1974
+
+---
+
+## SESION 854 (OF): BR#8 CERRADA POR PRECEDENTE, BOARD RECONCILIADO, DIAGNOSTICO REMITO PARCIAL SIN FIX
 
 **Fecha:** 2026-08-14
 **Locacion:** cierre en OF

@@ -3,6 +3,12 @@
 **Estado:** VIGENTE
 **Código de Doctrina:** DEOU-2025
 
+### Actualizacion Sesion 856 OF (2026-08-24) — cierre retroactivo de S855 (CA, 15/08)
+
+Sin cambios operativos conocidos. Revision de contenido NO realizada esta sesion — no se
+verifico si algo de lo hallado en S855/S856 (bits en fork, Card #116/#117/#118) afecta el uso
+diario descripto aca. Ver Informe Historico S855 para el detalle.
+
 ### Actualizacion Sesion 854 OF (2026-08-14) — sin cambios en el uso diario
 
 - BR#8 cerrada (ver Board). Nada visible cambia para Tomy/Carlos hoy.

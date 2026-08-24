@@ -1,4 +1,18 @@
-﻿Sesion actual: 854
+﻿Sesion actual: 856
+
+# CAJA NEGRA: OMEGA Completo - cierre retroactivo de S855 (CA, 15/08, nueve dias despues) + fix real de Card #93 en update_board.py - S856 (2026-08-24)
+
+Sesion 856 OF. Hash D: (hash de este commit -- actualizado en el commit de control) | Hash B: a732e6c (sin cambios). Estado: NOMINAL GOLD. Semaforo CS: [pendiente confirmar]. Agentes: CC, Carlos, CS.
+- ALFA completo corrido antes de tocar nada (a pedido explicito de Carlos/CS). Canario NOMINAL GOLD, rama main en D y B, sin bits bloqueantes, FAQ_ARRANQUE sin cambios.
+- Detectado al preguntar por la fecha real: el reloj del sistema decia 2026-08-24, diez dias despues de lo que toda la documentacion de la sesion anterior asumia como "hoy" (2026-08-14). Verificacion cruzada (git fetch, mtimes reales de archivos, API de Google Drive) confirmo que hubo una Sesion 855 en CA el 2026-08-15, mas moderna que la nuestra y nunca cerrada con OMEGA.
+- Sesion 855 (CA) hizo trabajo real: pull a los hashes de cierre de S854, arreglo de Card #93 en el disco de CA (sin commitear), recorrido completo del Board (17 escrituras, cards #106-115 creadas, duplicados resueltos, Card #21 reabierta por cierre prematuro sobre cobertura futura), canonizacion de 4 entradas en BIBLIOTECA_NIKE.md (21->26 encabezados, verificado independientemente). Hallazgo central de esa sesion: de 5 decisiones que se iban a canonizar como dictamen, 3 no tenian respaldo en disco (dictamen Nike Genoma Cliente 30/07 inexistente, C2/C3 nunca elevado a Nike, "Regla A/B" nomenclatura de chat) -- venian de memoria de CS, descartadas por falta de fuente antes de escribirlas como canon.
+- Cierre retroactivo ejecutado hoy desde OF, no desde CA -- marcado explicitamente como tal en el Informe Historico, sin simular que ocurrio el 15/08. Dos cosas NO se corrigieron a ciegas: el bloque de CA en SISTEMA_STATUS.json (sigue con datos de S844, agente_activo:null, pese al pull real) y el fix de update_board.py en el disco de CA (sigue sin commitear alli) -- ambas quedan como pendiente explicito para la proxima sesion fisica en CA.
+- Fix real de Card #93 aplicado y commiteado desde OF: scripts/update_board.py linea 6 wb.active -> wb['Board V5'] explicito, mas verificacion de relectura post-guardado. Probado con escritura inocua (fila de prueba en Board V5, confirmado que no toco CSV_DUMP_ARCHIVADO, luego borrada) antes de usarlo para las cards nuevas.
+- 3 cards nuevas (#116/#117/#118), halladas por CS releyendo ALFA.md/OMEGA.md el 15/08: checkbox de Manuales en OMEGA permite vaciar contenido real con "sin cambios esta sesion" (verificado hoy: Manuales de esta misma sesion NO se tildaron asi, se dejo constancia explicita de que Bit1/Cap27 y Bit6/Caps13-24 no se revisaron); fast-path de ALFA usa hash de codigo como proxy de integridad de datos, sin detectar drift de schema (incidente real: CA con hash perfecto y 3 migraciones faltantes, 500 reales); canario de OMEGA FASE 1 hardcodeado a pilot_v5x.db -- confirmado hoy que C:\dev\v5-ls-Tom\OMEGA.md tambien lo tiene hardcodeado (lineas 35 y 66), mismo patron que mato el backend real de Tomy en S851.
+- Manuales: Sesion 856 NO se tildo "sin cambios" -- se declaro explicitamente que la revision de contenido no se hizo, con las secciones pendientes nombradas (Cap 27, Caps 13/24 del Manual Tecnico). Decision de Carlos, para no cumplir el checkbox del mismo modo que la propia Card #116 denuncia.
+- D:(hash de este commit) B:a732e6c | PIN: 1974
+
+---
 
 # CAJA NEGRA: OMEGA Completo - BR#8 cerrada por evidencia de hash (precedente), Board reconciliado (Card #102 recuperada, #103/#104/#105 creadas), diagnostico remito parcial sin fix - S854 (2026-08-14)
 
