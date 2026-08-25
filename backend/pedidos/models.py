@@ -78,4 +78,4 @@ class PedidoItem(Base):
     @property
     def cantidad_entregada(self) -> float:
         # Runtime calculation of delivered quantity
-        return sum(ri.cantidad for ri in self.remitos_items if ri.remito.estado != "ANULADO")
+        return sum(ri.cantidad for ri in self.remitos_items if ri.remito and ri.remito.estado != "ANULADO")
