@@ -453,8 +453,11 @@
                         <!-- SAVED ROWS -->
                         <div v-for="(item, index) in items" :key="item.sku || index" :class="{'bg-white/10': expandedRows.has(index)}">
                             <div class="grid grid-cols-12 px-4 py-3 gap-2 bg-white/[0.02] hover:bg-white/5 rounded-lg items-center group transition-colors border border-transparent hover:border-white/5 relative"
-                                 :class="{'bg-red-500/10 border-red-500/30': item.precio === 0 || item.producto_obj?.needs_cost}">
-                            
+                                 :class="{
+                                     'bg-red-500/10 border-red-500/30': item.precio === 0 || item.producto_obj?.needs_cost,
+                                     'opacity-40 grayscale-[30%]': estadoRenglon(item) === ESTADO_CUMPLIDO
+                                 }">
+
                                 <!-- Index -->
                                 <div class="col-span-1 text-center font-mono text-gray-500 text-xs select-none">
                                     {{ index + 1 }}
@@ -480,13 +483,13 @@
                                 <!-- Cantidad (Locked) -->
                                 <div class="col-span-1 text-center relative flex flex-col items-center justify-center">
                                     <span class="font-bold text-white text-sm">{{ item.cantidad }}</span>
-                                    <span v-if="item.cantidad_entregada > 0 && item.cantidad_entregada < item.cantidad" 
+                                    <span v-if="estadoRenglon(item) === ESTADO_PARCIAL"
                                          class="text-[9px] font-bold text-amber-400 bg-amber-500/20 px-1.5 rounded-sm border border-amber-500/30 whitespace-nowrap mt-0.5"
-                                         title="Entrega Parcial"
+                                         :title="`Pedido ${item.cantidad} / Entregado ${item.cantidad_entregada} / Pendiente ${saldoRenglon(item)}`"
                                     >
-                                        {{ item.cantidad_entregada }}/{{ item.cantidad }}
+                                        {{ item.cantidad_entregada }}/{{ item.cantidad }} (saldo {{ saldoRenglon(item) }})
                                     </span>
-                                    <span v-else-if="item.cantidad_entregada && item.cantidad_entregada >= item.cantidad"
+                                    <span v-else-if="estadoRenglon(item) === ESTADO_CUMPLIDO"
                                          class="text-[9px] font-bold text-emerald-400 bg-emerald-500/20 px-1.5 rounded-sm border border-emerald-500/30 mt-0.5"
                                          title="Entrega Completa"
                                     >
@@ -590,6 +593,16 @@
 
                     <div class="flex items-end gap-6">
                     
+                    <!-- Deuda de entrega -- por resta sobre renglones, no por Bit 20 (ver comentario en el computed) -->
+                    <div v-if="items.length > 0" class="text-right border-r border-white/10 pr-6">
+                        <div class="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Deuda de Entrega</div>
+                        <div class="font-mono text-xs text-gray-400">
+                            {{ resumenEntrega.unidadesPendientes }} / {{ resumenEntrega.unidadesTotal }} u.
+                            <span class="text-amber-400 ml-1">$ {{ resumenEntrega.montoPendiente.toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</span>
+                        </div>
+                        <div class="font-mono text-[10px] text-gray-600">entregado: {{ resumenEntrega.unidadesEntregadas }} u. / $ {{ resumenEntrega.montoEntregado.toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</div>
+                    </div>
+
                     <div class="text-right">
                         <div class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Subtotal Neto</div>
                         <div class="font-mono text-gray-300">$ {{ subtotal.toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</div>
@@ -741,6 +754,7 @@ import _ from 'lodash';
 import canteraService from '@/services/canteraService';
 import pedidosService from '@/services/pedidos';
 import { useNotificationStore } from '@/stores/notification';
+import { estadoRenglon, saldoRenglon, resumenEntregaPedido, ESTADO_CUMPLIDO, ESTADO_PARCIAL } from '@/utils/entregaParcial';
 
 import { useRoute } from 'vue-router'; // Add useRoute
 
@@ -958,6 +972,7 @@ const loadPedido = async (id) => {
             sku: i.producto?.sku || '???',
             descripcion: i.producto?.nombre || 'Producto Desconocido',
             cantidad: Number(i.cantidad),
+            cantidad_entregada: Number(i.cantidad_entregada || 0), // [FIX S857] faltaba -- las badges de abajo nunca se disparaban sin esto
             precio: Number(i.precio_unitario),
             descuento_porcentaje: Number(i.descuento_porcentaje || 0),
             descuento_valor: Number(i.descuento_importe || 0),
@@ -1550,6 +1565,22 @@ const saldoDeudor = computed(() => clienteSeleccionado.value?.saldo_actual || 0)
 
 // Sum of line totals (which already have line discounts deducted)
 const subtotal = computed(() => items.value.reduce((sum, item) => sum + item.total, 0));
+
+// Deuda de entrega (S857, Card #99/#se854): resumen derivado por RESTA sobre
+// los renglones, no condicionado al Bit 20 -- el bit es dato materializado
+// (lo mantiene _recalcular_bits_entrega en el backend, la misma función que
+// crasheaba con huérfanos hasta el fix de C5) y puede quedar desincronizado.
+// Sirve para pintar un badge en una lista; para mostrar cifras acá, la resta.
+// Adaptador de nombres: este componente usa item.precio/item.total en vez de
+// precio_unitario/subtotal (nombres que sí trae el backend).
+const resumenEntrega = computed(() => resumenEntregaPedido(
+    items.value.map(i => ({
+        cantidad: i.cantidad,
+        cantidad_entregada: i.cantidad_entregada || 0,
+        precio_unitario: i.precio,
+        subtotal: i.total,
+    }))
+));
 
 // Check if client is Responsable Inscripto (Bit 40 = 1)
 const isClienteRI = computed(() => {

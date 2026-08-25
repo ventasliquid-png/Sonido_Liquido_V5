@@ -63,7 +63,7 @@
                       <i class="fas fa-plus"></i> Crear Nuevo
                    </button>
                  </div>
-                 <select 
+                 <select
                    v-model="form.pedido_id"
                    @change="onPedidoSelected"
                    class="w-full bg-[#0a0f1d] border border-indigo-500/30 rounded-xl px-4 py-3 text-sm text-white focus:border-indigo-500 focus:outline-none transition-all appearance-none"
@@ -75,6 +75,11 @@
                  </select>
                  <div v-if="pendingOrders.length === 0" class="mt-2 text-xs text-orange-400 opacity-80">
                      <i class="fas fa-info-circle"></i> El cliente no tiene pedidos pendientes.
+                 </div>
+                 <div v-if="pedidoSeleccionado" class="mt-2 flex items-center gap-2 text-[11px] text-indigo-300/80">
+                     <i class="fas fa-file-signature text-indigo-400/70"></i>
+                     <span class="font-bold uppercase tracking-widest">O.C.:</span>
+                     <span class="font-mono">{{ pedidoSeleccionado.oc || 'S/D' }}</span>
                  </div>
               </div>
             </transition>
@@ -132,33 +137,47 @@
         <div class="space-y-4">
           <div class="flex justify-between items-center">
              <label class="text-[10px] font-bold text-indigo-400/60 uppercase tracking-widest">Detalle de Mercadería</label>
-             <span class="text-[10px] text-gray-600 font-mono">{{ form.items.length }} ítems cargados</span>
+             <span class="text-[10px] text-gray-600 font-mono">{{ itemsAEnviar.length }} ítem(s) a remitir</span>
           </div>
 
-          <!-- Aviso de bloqueo cuando hay pedido seleccionado -->
+          <!-- Aviso cuando hay pedido seleccionado: elegí renglones, no todos vienen tildados -->
           <div v-if="form.pedido_id" class="flex items-center justify-between bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
             <div class="flex items-center gap-2 text-xs text-amber-300">
-              <i class="fas fa-lock text-amber-400"></i>
-              <span>Los ítems provienen del pedido. Solo podés ajustar la cantidad a entregar.</span>
+              <i class="fas fa-check-square text-amber-400"></i>
+              <span>Los renglones cumplidos no se muestran. Tildá los que salen en este remito y ajustá la cantidad si hace falta.</span>
             </div>
             <button @click="openEditPedidoModal" class="text-[10px] font-black text-amber-400 hover:text-amber-200 bg-amber-500/20 hover:bg-amber-500/30 px-3 py-1.5 rounded-lg uppercase tracking-widest transition-all flex items-center gap-1.5 shrink-0 ml-4">
               <i class="fas fa-pen-to-square"></i> Editar Pedido
             </button>
           </div>
 
+          <!-- Bloqueo real de sobre-entrega -- el :max del input es cosmético -->
+          <div v-if="excedeSaldo" class="flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-xs text-red-300">
+            <i class="fas fa-triangle-exclamation text-red-400"></i>
+            <span>Hay un renglón con cantidad mayor al saldo pendiente. Corregilo antes de continuar — no se puede emitir así.</span>
+          </div>
+
           <div class="bg-black/40 rounded-3xl border border-white/5 overflow-hidden">
             <!-- Table Header -->
             <div class="grid grid-cols-12 bg-white/5 px-6 py-3 text-[9px] font-black uppercase tracking-[0.2em] text-gray-500 border-b border-white/5">
               <div class="col-span-1">#</div>
-              <div class="col-span-9">Descripción del ítem</div>
+              <div v-if="form.pedido_id" class="col-span-1 text-center">Sale</div>
+              <div :class="form.pedido_id ? 'col-span-7' : 'col-span-9'">Descripción del ítem</div>
               <div class="col-span-2 text-right">Cantidad</div>
+              <div v-if="form.pedido_id" class="col-span-1 text-right">Saldo</div>
             </div>
 
             <!-- Items -->
             <div class="divide-y divide-white/5">
-              <div v-for="(item, index) in form.items" :key="index" class="grid grid-cols-12 px-6 py-4 gap-4 items-center group hover:bg-white/[0.02] transition-colors">
+              <div v-for="(item, index) in form.items" :key="index"
+                   class="grid grid-cols-12 px-6 py-4 gap-4 items-center group hover:bg-white/[0.02] transition-colors"
+                   :class="{ 'opacity-40': form.pedido_id && !item.seleccionado }">
                 <div class="col-span-1 font-mono text-xs text-indigo-500/50">{{ index + 1 }}</div>
-                <div class="col-span-9">
+                <div v-if="form.pedido_id" class="col-span-1 flex justify-center">
+                  <input type="checkbox" v-model="item.seleccionado"
+                         class="w-4 h-4 accent-indigo-500 cursor-pointer" />
+                </div>
+                <div :class="form.pedido_id ? 'col-span-7' : 'col-span-9'">
                   <!-- Descripción editable solo en remito directo (sin pedido) -->
                   <input
                     v-if="!form.pedido_id"
@@ -176,8 +195,14 @@
                     v-model.number="item.cantidad"
                     type="number"
                     :min="1"
-                    :max="item._original_cantidad ? (item._original_cantidad - (item._entregada || 0)) : undefined"
-                    class="w-20 bg-indigo-500/10 border border-indigo-500/20 rounded-lg px-2 py-1 text-right text-indigo-400 font-bold focus:outline-none focus:border-indigo-500"
+                    :max="item._saldo ?? undefined"
+                    :disabled="form.pedido_id && !item.seleccionado"
+                    :class="[
+                      'w-20 rounded-lg px-2 py-1 text-right font-bold focus:outline-none border',
+                      (item._saldo != null && item.cantidad > item._saldo)
+                        ? 'bg-red-500/10 border-red-500/40 text-red-400'
+                        : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400 focus:border-indigo-500'
+                    ]"
                     @keydown.enter="!form.pedido_id && addItem(index)"
                   />
                   <!-- Quitar ítem solo en remito directo -->
@@ -185,6 +210,9 @@
                     <i class="fas fa-times"></i>
                   </button>
                   <span v-else class="w-4"></span>
+                </div>
+                <div v-if="form.pedido_id" class="col-span-1 text-right text-[11px] font-mono text-gray-500">
+                  {{ item._saldo }}
                 </div>
               </div>
 
@@ -339,7 +367,7 @@
                 </div>
                 <div class="divide-y divide-white/5">
                   <div
-                    v-for="(item, idx) in form.items"
+                    v-for="(item, idx) in itemsAEnviar"
                     :key="idx"
                     :class="[
                       'grid grid-cols-12 px-5 py-3 gap-2 items-center',
@@ -418,6 +446,7 @@ import SmartSelect from '@/components/ui/SmartSelect.vue';
 import ClientCanvas from '../Hawe/ClientCanvas.vue';
 import PedidoCanvas from '../Ventas/PedidoCanvas.vue';
 import api from '@/services/api';
+import { saldoRenglon, estadoRenglon, ESTADO_CUMPLIDO } from '@/utils/entregaParcial';
 
 const route = useRoute();
 const clientesStore = useClientesStore();
@@ -474,9 +503,33 @@ const clientAddresses = computed(() => {
 
 const transportes = computed(() => maestrosStore.transportes);
 
+const pedidoSeleccionado = computed(() => {
+  if (!form.pedido_id) return null;
+  return pendingOrders.value.find(p => p.id === form.pedido_id) || null;
+});
+
+// Renglones que efectivamente se van a remitir: en modo pedido, solo los
+// tildados; en remito directo (sin pedido), todos los cargados a mano.
+const itemsAEnviar = computed(() => {
+  return form.pedido_id ? form.items.filter(i => i.seleccionado) : form.items;
+});
+
+// Guard de sobre-entrega: el :max del input es cosmético (no bloquea nada por
+// sí solo) -- esto es lo que efectivamente impide enviar más de lo pendiente.
+const excedeSaldo = computed(() => {
+  if (!form.pedido_id) return false;
+  return itemsAEnviar.value.some(i => i.cantidad > i._saldo);
+});
+
 const isValid = computed(() => {
-  return (form.cliente_id || form.cliente_nuevo) && 
-         form.items.length > 0 && 
+  const clienteOk = form.cliente_id || form.cliente_nuevo;
+  if (!clienteOk) return false;
+  if (form.pedido_id) {
+    return itemsAEnviar.value.length > 0 &&
+           itemsAEnviar.value.every(i => i.cantidad > 0) &&
+           !excedeSaldo.value;
+  }
+  return form.items.length > 0 &&
          form.items.every(i => i.descripcion.trim() && i.cantidad > 0);
 });
 
@@ -548,22 +601,27 @@ const onPedidoSelected = () => {
     if (ped.domicilio_entrega_id) form.domicilio_entrega_id = ped.domicilio_entrega_id;
     if (ped.transporte_id) form.transporte_id = ped.transporte_id;
     
-    // Mapear items con lógica de cantidad parcial
+    // Selección explícita: listamos solo renglones con saldo > 0 (los
+    // cumplidos no aparecen), sin tildar ninguno por defecto. La cantidad
+    // sugerida es el saldo completo, pero es editable con el saldo como tope
+    // (ver excedeSaldo para el bloqueo real, el :max del input es cosmético).
     if (ped.items && ped.items.length > 0) {
         form.items = ped.items
+            .filter(i => estadoRenglon(i) !== ESTADO_CUMPLIDO)
             .map(i => {
                 const entregada = i.cantidad_entregada || 0;
-                const falta = i.cantidad - entregada;
+                const saldo = saldoRenglon(i);
                 return {
                     descripcion: i.producto ? i.producto.nombre : (i.nota || 'Ítem de Pedido'),
-                    cantidad: falta > 0 ? falta : 0,
+                    cantidad: saldo,
                     codigo_visual: i.producto ? i.producto.codigo_visual : null,
                     _original_cantidad: i.cantidad,
-                    _entregada: entregada
+                    _entregada: entregada,
+                    _saldo: saldo,
+                    seleccionado: false,
                 };
-            })
-            .filter(i => i.cantidad > 0); // Omitimos los que ya fueron 100% entregados
-            
+            });
+
         if (form.items.length === 0) {
             notificationStore.add("Este pedido ya fue entregado en su totalidad.", "warning");
         }
@@ -660,7 +718,7 @@ const isItemPartial = (item) => {
     return totalAfter < item._original_cantidad;
 };
 
-const hasPartialItems = computed(() => form.items.some(i => isItemPartial(i)));
+const hasPartialItems = computed(() => itemsAEnviar.value.some(i => isItemPartial(i)));
 
 const mostrarPreview = () => {
     if (!isValid.value) return;
@@ -674,10 +732,18 @@ const confirmarYEmitir = () => {
 
 const emitirRemito = async () => {
     if (!isValid.value) return;
-    
+
     isSaving.value = true;
     try {
-        const payload = { ...form };
+        // Payload limpio: solo lo seleccionado (modo pedido) o todo lo cargado
+        // (remito directo), y solo los campos que ManualRemitoItem espera --
+        // sin _saldo/_entregada/seleccionado, que son metadata de UI.
+        const itemsPayload = itemsAEnviar.value.map(i => ({
+            descripcion: i.descripcion,
+            cantidad: i.cantidad,
+            codigo_visual: i.codigo_visual || null,
+        }));
+        const payload = { ...form, items: itemsPayload };
         const res = await api.post('/remitos/manual', payload);
         const remito = res.data;
         ultimoNumeroLegal.value = remito.numero_legal;

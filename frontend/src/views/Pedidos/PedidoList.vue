@@ -187,7 +187,12 @@
                            {{ getInitials(pedido.cliente?.razon_social) }}
                       </div>
                       <div class="min-w-0 flex-1">
-                          <h3 class="font-bold text-emerald-50 text-sm truncate group-hover:text-emerald-300 transition-colors">{{ pedido.cliente?.razon_social || 'Cliente Desconocido' }}</h3>
+                          <div class="flex items-center gap-2 min-w-0">
+                              <h3 class="font-bold text-emerald-50 text-sm truncate group-hover:text-emerald-300 transition-colors">{{ pedido.cliente?.razon_social || 'Cliente Desconocido' }}</h3>
+                              <span v-if="pedido.oc" class="shrink-0 text-[9px] font-bold text-emerald-300/70 bg-emerald-500/10 border border-emerald-500/20 rounded px-1.5 py-0.5 font-mono" :title="'Orden de Compra'">
+                                  OC {{ pedido.oc }}
+                              </span>
+                          </div>
                            <p v-if="pedido.nota" class="text-xs text-emerald-200/30 font-mono italic truncate max-w-[300px]">{{ pedido.nota }}</p>
                       </div>
                   </div>
