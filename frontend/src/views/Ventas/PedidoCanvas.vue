@@ -3,7 +3,7 @@
 // ------------------------------------------
 
 <template>
-    <div class="min-h-full w-full bg-[#0f172a] p-2 flex justify-center items-start">
+    <div class="h-full w-full bg-[#0f172a] p-2 flex justify-center items-start">
         <div :class="['w-full max-w-[98%] bg-[#0f172a] rounded-2xl border-2 overflow-hidden relative flex flex-col h-full', isCircuitoNegro ? 'border-pink-500 shadow-[0_0_40px_-10px_rgba(236,72,153,0.5)]' : 'border-emerald-500 shadow-[0_0_40px_-10px_rgba(16,185,129,0.5)]']">
             <!-- HEADER (User Provided Style) -->
             <!-- HEADER (Compact Mode) -->
@@ -487,7 +487,7 @@
                                          class="text-[9px] font-bold text-amber-400 bg-amber-500/20 px-1.5 rounded-sm border border-amber-500/30 whitespace-nowrap mt-0.5"
                                          :title="`Pedido ${item.cantidad} / Entregado ${item.cantidad_entregada} / Pendiente ${saldoRenglon(item)}`"
                                     >
-                                        {{ item.cantidad_entregada }}/{{ item.cantidad }} (saldo {{ saldoRenglon(item) }})
+                                        faltan {{ saldoRenglon(item) }} de {{ item.cantidad }}
                                     </span>
                                     <span v-else-if="estadoRenglon(item) === ESTADO_CUMPLIDO"
                                          class="text-[9px] font-bold text-emerald-400 bg-emerald-500/20 px-1.5 rounded-sm border border-emerald-500/30 mt-0.5"
@@ -593,14 +593,24 @@
 
                     <div class="flex items-end gap-6">
                     
-                    <!-- Deuda de entrega -- por resta sobre renglones, no por Bit 20 (ver comentario en el computed) -->
-                    <div v-if="items.length > 0" class="text-right border-r border-white/10 pr-6">
-                        <div class="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Deuda de Entrega</div>
-                        <div class="font-mono text-xs text-gray-400">
-                            {{ resumenEntrega.unidadesPendientes }} / {{ resumenEntrega.unidadesTotal }} u.
-                            <span class="text-amber-400 ml-1">$ {{ resumenEntrega.montoPendiente.toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</span>
+                    <!-- Deuda de entrega -- por resta sobre renglones, no por Bit 20 (ver comentario en el
+                         computed). Nunca sumar unidades entre renglones de productos distintos: no significa
+                         nada (barbijos + cofias + guantes) y engaña sobre cuánto falta en serio. Solo cuenta
+                         de renglones + monto (eso sí es sumable) + detalle uno por uno. -->
+                    <div v-if="renglonesPendientes.length > 0" class="text-right border-r border-white/10 pr-6 max-w-xs">
+                        <div class="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">
+                            {{ renglonesPendientes.length }} de {{ items.length }} renglones pendientes
                         </div>
-                        <div class="font-mono text-[10px] text-gray-600">entregado: {{ resumenEntrega.unidadesEntregadas }} u. / $ {{ resumenEntrega.montoEntregado.toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</div>
+                        <div class="font-mono text-xs text-amber-400">
+                            $ {{ resumenEntrega.montoPendiente.toLocaleString('es-AR', {minimumFractionDigits: 2}) }}
+                            <span class="text-gray-600 normal-case">(neto)</span>
+                        </div>
+                        <div class="mt-1 space-y-0.5 text-left max-h-16 overflow-y-auto">
+                            <div v-for="r in renglonesPendientes" :key="r.idx"
+                                 class="text-[10px] text-gray-500 font-mono truncate" :title="r.item.descripcion">
+                                Renglón {{ r.idx + 1 }} — {{ r.item.descripcion }}: faltan {{ r.saldo }} de {{ r.item.cantidad }}
+                            </div>
+                        </div>
                     </div>
 
                     <div class="text-right">
@@ -1581,6 +1591,16 @@ const resumenEntrega = computed(() => resumenEntregaPedido(
         subtotal: i.total,
     }))
 ));
+
+// Renglones con saldo pendiente, uno por uno -- nunca se suman unidades entre
+// sí (mezclar barbijos + cofias + guantes en un solo número no significa
+// nada y engaña sobre cuánto falta en serio). El monto sí es sumable
+// (resumenEntrega.montoPendiente), las unidades no.
+const renglonesPendientes = computed(() =>
+    items.value
+        .map((item, idx) => ({ item, idx, saldo: saldoRenglon(item) }))
+        .filter(r => r.saldo > 0)
+);
 
 // Check if client is Responsable Inscripto (Bit 40 = 1)
 const isClienteRI = computed(() => {
