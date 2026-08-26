@@ -599,7 +599,7 @@
                          de renglones + monto (eso sí es sumable) + detalle uno por uno. -->
                     <div v-if="renglonesPendientes.length > 0" class="text-right border-r border-white/10 pr-6 max-w-xs">
                         <div class="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">
-                            {{ renglonesPendientes.length }} de {{ items.length }} renglones pendientes
+                            {{ renglonesPendientes.length }} de {{ items.length }} renglón{{ items.length === 1 ? '' : 'es' }} pendiente{{ items.length === 1 ? '' : 's' }}
                         </div>
                         <div class="font-mono text-xs text-amber-400">
                             $ {{ resumenEntrega.montoPendiente.toLocaleString('es-AR', {minimumFractionDigits: 2}) }}
