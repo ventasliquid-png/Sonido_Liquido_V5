@@ -2343,3 +2343,25 @@ Siguiendo Ã³rdenes directas, se difiriÃ³ la integraciÃ³n real de OAuth y s
 * Nueva disciplina: ante "el fix no llego a produccion", Paso 0 es comparar local vs remoto (git log remoto/main..HEAD) antes de diagnostico forense complejo.
 
 **Estado:** NOMINAL GOLD. D:0bd56218 B:218f2a3. PIN: 1974.
+
+## SESION 857: REMITO PARCIAL D->B + MAPA DE DRIFT ESTRUCTURAL
+
+### Hito 1: Fix C5 + UI de seleccion de renglones (D)
+* `pedidos/models.py`: null-check en `cantidad_entregada` contra `remitos_items` huerfanos (FK sin `PRAGMA foreign_keys`).
+* Nueva utilidad `frontend/src/utils/entregaParcial.js`, consumida por `PedidoCanvas.vue`, `ManualRemitoView.vue`, `PedidoList.vue`.
+* Cards #119 (ALTA, enmascaramiento Pydantic `getattr` 3-args) y #120 (ALTA, borrado de remito sin paso por `papelera_registros`) creadas.
+
+### Hito 2: Cherry-pick a B frenado + investigacion de drift
+* Pre-flight OK pero divergencia preexistente (~24 bloques) en `PedidoCanvas.vue` de B detiene el cherry-pick.
+* Investigacion solo lectura (`git log --follow`, `git log -S`): 13 archivos divergentes en 6 modulos, practica estructural repetida (no incidente puntual), un caso legitimo de flujo inverso P->D autodocumentado (`dbfca1e`->`85a0b630`). Informe completo: `INVESTIGACION_DRIFT_B_S857.md` (Silo).
+* Doctrina FIX-P y plan de espejo en 6 lotes disenados, pendientes de dictamen Nike (FIX-P y Lote 5) o ejecucion (Lote 0/2).
+
+### Hito 3: Relevo de arquitecto e instalacion de CS nueva
+* Sesion de chat con contexto extenso; CS nueva instalada como arquitecta principal via prompt de instalacion estandar, CC como puente de continuidad.
+* Confirmada continuidad sin repetir ALFA (misma sesion CC, hashes verificados contra `SISTEMA_STATUS.json`). Descubierto conector de Google Drive habilitado en la cuenta de la CS -- matiz no contemplado en `FAQ_ARRANQUE.md` sobre "acceso a disco solo via CC/Gy".
+* CS autorizo Lote 1 (C5) + Lote 3 (UI) del cherry-pick; ejecutado, buildeado y verificado E2E contra datos reales de B (remito parcial creado en vivo sobre Pedido #66), pusheado a `prod/main` con PIN 1974.
+
+### Hito 4: Correccion de proceso
+* `.pasaporte_v5.json` (capa Maquina de la Trinidad) llevaba sin actualizarse desde S852 pese a multiples OMEGA formales -- corregido en este cierre.
+
+**Estado:** NOMINAL GOLD. D:13d6ca3e B:527156b. PIN: 1974.

@@ -1651,3 +1651,38 @@ Es de **solo lectura** sobre el repo (`rev-parse`, `status`, `log`) y esta envue
 `ARRANQUE_V5.bat:7` y `ARRANCAR_TOMY.bat:17` **abortan el arranque** si no existe `data\V5_LS_MASTER.db`, aunque el backend lea `current/V5_LS_MASTER.db` segun `current/.env`. Borrar el archivo huerfano de `data/` tumba los tres lanzadores.
 
 Agravante: `.env` esta en `.gitignore`, de modo que cada maquina tiene el suyo y no se puede determinar desde otra maquina que base lee MT realmente.
+
+## S857 - Fix C5 y utilidad compartida de entrega parcial
+
+`pedidos/models.py`, property `cantidad_entregada`: sumaba `ri.cantidad` sobre
+`self.remitos_items` filtrando `ri.remito.estado != "ANULADO"` sin verificar que
+`ri.remito` no fuera `None`. Un `remitos_items` huerfano (FK a un remito borrado,
+posible porque `PRAGMA foreign_keys` nunca se activa en `backend/core/database.py`)
+crasheaba con `AttributeError` en escritura (`_recalcular_bits_entrega`, llamado al
+crear/anular remitos) pero **no** en lectura simple: Pydantic v2 usa `getattr(obj,
+field, default)` de 3 argumentos, que traga el `AttributeError` interno de una
+`@property` y devuelve el default silenciosamente -- un `GET /pedidos/{id}` nunca
+mostraba el crash real, solo un valor de 0 incorrecto. Fix de una linea: `if
+ri.remito and ri.remito.estado != "ANULADO"`. Card #119 (ALTA) abierta para barrer
+el resto de los `@property` de `models.py` por el mismo patron -- no se hizo barrido
+exhaustivo, solo se confirmo que las otras 9 encontradas no lo tienen.
+
+Nueva utilidad `frontend/src/utils/entregaParcial.js`, consumida desde
+`PedidoCanvas.vue`, `ManualRemitoView.vue` y `PedidoList.vue` -- una sola derivacion
+(`saldoRenglon = cantidad - cantidad_entregada`) para las tres pantallas, evita
+logica duplicada y diferencias sutiles entre vistas.
+
+## S857 - Drift estructural D↔B: mapa completo
+
+Al intentar cherry-pickear el lote anterior a B se encontraron 13 archivos con
+divergencia real (mas alla de CRLF) entre `frontend/src`+`backend` de D y
+`current/` de B, en 6 modulos. Investigacion completa de solo lectura, con
+`git log --follow` y `git log -S` para rastrear origen/eliminacion de cada
+feature, documentada en `INVESTIGACION_DRIFT_B_S857.md` (Silo). Hallazgo
+central: no es drift aleatorio -- los cherry-picks de este proyecto son
+quirurgicos (portan exactamente lo que necesita el fix puntual) y por diseño
+no arrastran features adyacentes que D agrega o revierte entre sincronizaciones
+masivas. Confirmado un unico caso legitimo de flujo inverso P→D, autodocumentado
+en el propio mensaje de commit (`dbfca1e`→`85a0b630`). Doctrina FIX-P (marca de
+emergencia para cambios directos en B/P) redactada, pendiente de dictamen Nike
+antes de escribirse en `FAQ_ARRANQUE.md`.

@@ -1,6 +1,17 @@
-﻿Sesion actual: 856
+﻿Sesion actual: 857
 
-# CAJA NEGRA: OMEGA Completo - cierre retroactivo de S855 (CA, 15/08, nueve dias despues) + fix real de Card #93 en update_board.py - S856 (2026-08-24)
+# CAJA NEGRA: OMEGA Completo - remito parcial D->B + mapa de drift estructural + relevo de arquitecto - S857 (2026-08-24 a 2026-08-27)
+
+Sesion 857 OF. Hash D: 13d6ca3e | Hash B: 527156b. Estado: NOMINAL GOLD. Semaforo CS: AMARILLO. Agentes: CC, Carlos, CS.
+- Fix C5 (null-check remitos_items huerfano) + UI de seleccion de renglones/OC/resumen de deuda en remito parcial, construidos y verificados en D (4 commits). Cards #119/#120 (ALTA) creadas.
+- Cherry-pick a B frenado al detectar ~24 bloques de divergencia preexistente en PedidoCanvas.vue. Investigacion solo lectura (git log --follow/-S) confirmo 13 archivos divergentes en 6 modulos: practica estructural repetida (cherry-picks quirurgicos no arrastran features adyacentes de D), no incidente puntual. Un caso legitimo de flujo inverso P->D autodocumentado (dbfca1e->85a0b630). Informe completo: INVESTIGACION_DRIFT_B_S857.md (Silo).
+- Doctrina FIX-P (marca de emergencia para fixes directos en B/P) y plan de espejo D->B en 6 lotes disenados, pendientes de dictamen Nike (doctrina y Lote 5) segun exige FAQ_ARRANQUE.md sin excepcion.
+- Relevo de arquitecto: CS nueva instalada como arquitecta principal (prompt de instalacion estandar), CC como puente de continuidad. Confirmada continuidad con evidencia real (hashes contra SISTEMA_STATUS.json) sin repetir ALFA -- misma sesion CC ininterrumpida. Descubierto que la cuenta de la CS tiene conector de Google Drive habilitado sobre el mismo Silo (autorizado por Carlos para otro uso) -- matiz no contemplado en FAQ_ARRANQUE.md sobre acceso a disco exclusivo via CC/Gy.
+- CS autorizo Lote 1 (C5) + Lote 3 (UI propia) del cherry-pick, Zona Verde. Card #92 verificado sin divergencia oculta. Ejecutado: build limpio en B, verificacion E2E contra datos reales (remito parcial genuino creado sobre Pedido #66, guard de sobre-entrega confirmado por atributo HTML real, preview con marca PARCIAL). Push a prod/main con PIN 1974 (527156b).
+- Correccion de proceso: .pasaporte_v5.json no se actualizaba desde S852 (24/07) pese a multiples OMEGA de por medio -- corregido.
+- D:13d6ca3e B:527156b | PIN: 1974
+
+---
 
 Sesion 856 OF. Hash D: 29e2bf0b | Hash B: a732e6c (sin cambios). Estado: NOMINAL GOLD. Semaforo CS: [pendiente confirmar]. Agentes: CC, Carlos, CS.
 - ALFA completo corrido antes de tocar nada (a pedido explicito de Carlos/CS). Canario NOMINAL GOLD, rama main en D y B, sin bits bloqueantes, FAQ_ARRANQUE sin cambios.

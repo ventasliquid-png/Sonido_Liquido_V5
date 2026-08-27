@@ -942,3 +942,46 @@ La próxima vez que se abra una sesión en MT, el sistema detecta la nota pendie
 ---
 
 **S853 - sin cambios operativos.** La sesion no introdujo cambios funcionales ni de interfaz visibles para el operador. Todo el trabajo fue de infraestructura, trazabilidad y cierre.
+
+---
+
+## CAPÍTULO 27: SELECCIÓN DE RENGLONES EN REMITO PARCIAL (Sesión 857, 2026-08-27)
+
+Hasta esta sesión, un Pedido con entregas parciales (algunos productos ya
+salieron, otros no) no tenía forma de indicar en el Remito Manual *cuáles*
+renglones remitir ni *cuánto* de cada uno — el operador debía calcularlo a
+mano y arriesgarse a remitir de más.
+
+**En el Pedido (Detalle del Pedido / PedidoCanvas):**
+- Los renglones ya 100% entregados aparecen atenuados (gris) y con la
+  etiqueta **"OK"** junto a la cantidad.
+- Los renglones con entrega parcial muestran **"faltan X de Y"** (X =
+  cantidad pendiente, Y = cantidad total del renglón).
+- Un bloque **"Deuda de Entrega"** resume, solo cuando hay algo pendiente:
+  cuántos renglones faltan de cuántos en total, el monto pendiente (neto,
+  sin IVA — aclarado explícitamente para no confundir con el Total Final),
+  y el detalle uno por uno de qué falta en cada renglón. El monto es
+  sumable entre productos distintos; las unidades **nunca** se suman entre
+  sí (mezclar cantidades de barbijos, cofias y guantes en un solo número no
+  significa nada real).
+
+**En el Remito Manual (serie 0015):**
+- Al elegir un Pedido asociado, la lista de renglones ofrecidos **excluye
+  automáticamente** los ya 100% entregados — solo aparecen los que
+  todavía tienen saldo.
+- Cada renglón trae tildado/destildado y una cantidad sugerida igual al
+  saldo pendiente, editable.
+- Si se intenta cargar una cantidad mayor al saldo disponible, el sistema
+  **bloquea el envío** (el botón queda inhabilitado de verdad, no es solo
+  un aviso visual) hasta corregir la cantidad.
+- La Vista Previa del remito marca con la etiqueta **"PARCIAL"** cualquier
+  renglón que se está entregando en menos cantidad que la pedida.
+
+**En el Listado de Pedidos:** la Orden de Compra (OC) del cliente ahora se
+ve junto al nombre del cliente en cada fila, sin tener que entrar al
+detalle del Pedido.
+
+**Nota de redacción:** el contador "N de M renglones pendientes" tiene un
+error de tipeo conocido en el plural ("renglónes" con tilde de más) —
+cosmético, no afecta el número ni el funcionamiento, pendiente de
+corrección en una sesión futura.
