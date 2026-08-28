@@ -2365,3 +2365,14 @@ Siguiendo Ã³rdenes directas, se difiriÃ³ la integraciÃ³n real de OAuth y s
 * `.pasaporte_v5.json` (capa Maquina de la Trinidad) llevaba sin actualizarse desde S852 pese a multiples OMEGA formales -- corregido en este cierre.
 
 **Estado:** NOMINAL GOLD. D:13d6ca3e B:527156b. PIN: 1974.
+
+# 2026-08-28 — Sesión 858 (OF, Lite)
+S858 — fix Rosa/Blanco completo (bucket CUIT, paridad MULTI_CUIT, Escudo Backend,
+Doctrina de Linaje `cliente_origen_id`), root-cause de dictámenes de Nike verificados
+contra código real antes de aceptarlos, migración 038 corrida sobre producción real
+(8 clientes Rosa migrados, PIN 1974, coordinado vía relay de archivos con CC en
+Izquierda/MT). Sesión rescatada tras corte de plataforma — ALFA completo, Edge Case A
+resuelto, nada perdido. Cierre Lite por override explícito de Carlos (límite de
+tiempo/tokens); Bit 19 sigue ON. Pendiente: desplegar `98220f9`/`b3366e2` a P y
+reiniciar el proceso vivo.
+**Estado:** NOMINAL GOLD. D:<CIERRE> B(OF):b3366e2. PIN: 1974.

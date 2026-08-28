@@ -985,3 +985,18 @@ detalle del Pedido.
 error de tipeo conocido en el plural ("renglónes" con tilde de más) —
 cosmético, no afecta el número ni el funcionamiento, pendiente de
 corrección en una sesión futura.
+
+## S858 (Lite) - Baja de clientes Rosa y formalización a Blanco
+
+**Dar de baja un cliente** ahora funciona de verdad, incluso en clientes con
+todos los datos completos — antes, en algunos casos, el sistema revertía la
+baja en silencio sin avisar. En un cliente "Rosa" (sin CUIT propio), la baja
+ya no debería trabarse con el error "CUIT reservado" — si eso vuelve a
+aparecer, es un cliente viejo que todavía no pasó por la migración de datos
+de hoy, avisar.
+
+**Nuevo botón "Formalizar a Blanco"** en la ficha de un cliente Rosa: abre el
+alta de un cliente nuevo con los datos precargados y el cursor en el CUIT.
+El cliente Rosa original **no se borra ni se mezcla** — queda intacto con
+todo su historial, y la ficha del cliente Blanco nuevo muestra un link
+"Ver historial Rosa" para volver a consultarlo.

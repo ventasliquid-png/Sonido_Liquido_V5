@@ -1,6 +1,22 @@
-﻿Sesion actual: 857
+﻿Sesion actual: 858
 
-# CAJA NEGRA: OMEGA Completo - remito parcial D->B + mapa de drift estructural + relevo de arquitecto - S857 (2026-08-24 a 2026-08-27)
+# CAJA NEGRA: OMEGA Lite - fix Rosa/Blanco (CUIT bucket, MULTI_CUIT edicion, Doctrina de Linaje) + migracion 038 en produccion real - S858 (2026-08-28)
+
+Sesion 858 OF. Hash D: <CIERRE> | Hash B (OF): b3366e2. Estado: NOMINAL GOLD. Semaforo CS: AMARILLO. Agentes: CC, Carlos, Nike, CS (relevo), CC-en-P (Izquierda/MT).
+- Root-cause de bug real de produccion (400 al dar de baja cliente Rosa MYM/M&M): CUIT '00000000000' (reservado a Mostrador/Generico) compartido con 8 clientes Rosa + Escudo Backend pisando la baja logica. Reproducido con evidencia real en copia aislada de P antes de tocar nada.
+- Serie de dictamenes/enmiendas de Nike (bocetados por CC, corregidos dos veces tras verificar contra codigo real antes de aceptarlos): Bit 1 = IS_VIRGIN universal salvo Remitos (por 'estado', no CAE); MULTI_CUIT paridad alta/edicion + propagacion excluyendo GENERIC_CUITS; Doctrina de Linaje de Identidad Rosa->Blanco via 'cliente_origen_id' (auto-referencial).
+- Implementados y verificados en D con evidencia real (navegador + API, no solo lectura): (1) bucket CUIT Rosa 11111111119 en vez de '00000000000'; (2) MULTI_CUIT en edicion (409/200 segun Bit5, propagacion a hermanos, exclusion de GENERIC_CUITS); (3) Escudo Backend ya no pisa baja logica explicita; (4) 'cliente_origen_id' + flujo de formalizacion Rosa->Blanco en frontend. Card #122 creada (delete_pedido no verifica remitos).
+- Commits D: b872da72 (items 1/2/4 + Escudo) y 54555ded (migracion 038, script de datos). Cherry-pick a B: 98220f9 y b3366e2, ambos en prod/main.
+- Sesion se corto por interrupciones de plataforma justo antes del handoff a Izquierda/MT -- rescatada en una sesion nueva, ALFA corrido de cero (no fast-path), Edge Case A (stale lock, timeout doctrinal) resuelto, estado verificado contra disco real (nada se perdio ni se ejecuto de mas durante el corte).
+- Coordinacion con CC-en-P (Izquierda) vía relay de archivos en Silo/B/CC_en_P y CC_en_D: migracion 038 corrida sobre V5_LS_MASTER.db real con backup previo verificado -- 8 clientes Rosa migrados a 11111111119, Mostrador/Generico real intacto (verificado dos veces). CC-en-P detecto por su cuenta que el pull completo traeria tambien 98220f9 (fuera del alcance autorizado ese paso puntual) y opto por copiar solo el script -- decision correcta, deja pendiente el deploy del fix del Escudo a P.
+- Diagnostico Soberana: `.build_hash` en P SI persistio correctamente hoy (527156b, 10:08) -- la corrida de esta manana de Tomy simplemente fue antes de que existiera el codigo nuevo (pusheado a las 16:52). No hay evidencia de lanzador roto en esta instancia. El escenario de static/index.html modificado bloqueando un pull real sigue sin probarse -- el pull posterior quedo bloqueado por el clasificador de permisos de esa sesion, pendiente aprobacion en vivo.
+- Hallazgo operativo nuevo: hay un proceso vivo en P (puerto 8090) sirviendo produccion ahora mismo -- traer codigo nuevo a disco no alcanza, hace falta reiniciar el proceso para que sirva el fix.
+- Cierre Lite por decision explicita de Carlos (override de Bit 19, que sigue ON) dado limite de tiempo/tokens de esta sesion rescatada -- retomar Completo en el proximo cierre real.
+- D:<CIERRE> B(OF):b3366e2 | PIN: 1974
+
+---
+
+Sesion 857 OF. Hash D: 13d6ca3e | Hash B: 527156b. Estado: NOMINAL GOLD. Semaforo CS: AMARILLO. Agentes: CC, Carlos, CS.
 
 Sesion 857 OF. Hash D: 13d6ca3e | Hash B: 527156b. Estado: NOMINAL GOLD. Semaforo CS: AMARILLO. Agentes: CC, Carlos, CS.
 - Fix C5 (null-check remitos_items huerfano) + UI de seleccion de renglones/OC/resumen de deuda en remito parcial, construidos y verificados en D (4 commits). Cards #119/#120 (ALTA) creadas.

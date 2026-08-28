@@ -1686,3 +1686,21 @@ masivas. Confirmado un unico caso legitimo de flujo inverso P→D, autodocumenta
 en el propio mensaje de commit (`dbfca1e`→`85a0b630`). Doctrina FIX-P (marca de
 emergencia para cambios directos en B/P) redactada, pendiente de dictamen Nike
 antes de escribirse en `FAQ_ARRANQUE.md`.
+
+## S858 (Lite) - Bucket de CUIT Rosa, paridad MULTI_CUIT en edición, Doctrina de Linaje
+
+Clientes Rosa dejan de heredar `cuit='00000000000'` (reservado a Mostrador/Genérico,
+Regla 2 Nike 806) — nuevo default `11111111119`, corregido tanto en el watcher de
+`ClientCanvas.vue` como en el fallback de backend (`_apply_cf_cuit_fallback`).
+`update_cliente` ahora exige Bit 5 (`MULTI_CUIT`) para permitir CUIT duplicado, igual
+que `create_cliente` desde S845 (paridad alta/edición); propagación automática del
+bit a hermanos por CUIT real, excluyendo `GENERIC_CUITS`. Escudo Backend V14.8.4 ya
+no fuerza `IS_ACTIVE` cuando el payload trae `activo: false` explícito. Campo nuevo
+`cliente_origen_id` (self-FK, auto-referencial, nunca NULL) en `Cliente` — Doctrina
+de Linaje Rosa→Blanco: formalizar abre el alta normal precargada, el Rosa viejo
+queda intacto con su historial, sin fusionar. Migración de datos real ejecutada
+sobre producción (`migrate_038_rosa_cuit_bucket.py`, PIN 1974, con backup previo):
+8 clientes Rosa migrados, Mostrador real intacto. Todo verificado con evidencia real
+(navegador + API), no solo lectura de código. Pendiente: desplegar el fix a P
+(commits `98220f9`/`b3366e2` sin pull confirmado en Izquierda) y reiniciar el
+proceso vivo para que lo sirva.
