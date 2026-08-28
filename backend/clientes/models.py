@@ -40,6 +40,14 @@ class Cliente(Base):
     __tablename__ = "clientes"
 
     id = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
+
+    # [Doctrina de Linaje de Identidad V14.6 -- dictamen Nike, migrate_037]
+    # Auto-referencial: nace apuntando a si mismo (sin vinculo). Si apunta a OTRO
+    # cliente, ese es el Rosa del que este Blanco se formalizo -- trazabilidad
+    # interna pura, nunca se usa para reportes fiscales ni se mezcla historial.
+    # NUNCA es NULL -- comparar con `id != cliente_origen_id`, jamas `if campo:`.
+    cliente_origen_id = Column(GUID(), ForeignKey('clientes.id'), nullable=False, index=True)
+
     # Identidad e Identificadores
     razon_social = Column(String, nullable=False, index=True)
     razon_social_canon = Column(String, unique=True, index=True, nullable=True)

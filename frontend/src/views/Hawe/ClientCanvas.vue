@@ -123,6 +123,12 @@
           
           <div class="flex items-center gap-4">
               <span v-if="form.codigo_interno" class="font-mono text-xs text-cyan-500/50 mr-4">#{{ form.codigo_interno }}</span>
+              <button v-if="!isNew && form.cliente_origen_id && form.cliente_origen_id !== form.id"
+                      @click="router.push(`/hawe/cliente/${form.cliente_origen_id}`)"
+                      class="flex items-center gap-1 mr-4 px-2 py-1 rounded-md bg-fuchsia-500/10 border border-fuchsia-500/30 text-fuchsia-400 text-[10px] font-bold uppercase tracking-wide hover:bg-fuchsia-500/20 transition-all"
+                      title="Este cliente se formalizó desde un Rosa -- el historial informal quedó separado, solo trazabilidad interna">
+                  <i class="fas fa-clock-rotate-left"></i> Ver historial Rosa
+              </button>
               <div v-if="form.fecha_alta" class="flex flex-col items-end mr-4">
                   <span class="text-[8px] font-bold text-cyan-500/30 uppercase tracking-[0.2em]">Fecha de Alta</span>
                   <span class="font-mono text-[10px] text-cyan-500/60 transition-all hover:text-cyan-400 cursor-default">{{ formatDate(form.fecha_alta) }}</span>
@@ -418,10 +424,13 @@
           </div>
 
           <div class="flex items-center gap-4">
+              <button v-if="!isNew && (!form.cuit || GENERIC_CUITS.includes(form.cuit))" @click="formalizarCliente" class="px-6 py-2.5 rounded-full text-fuchsia-400/70 hover:text-fuchsia-300 hover:bg-fuchsia-500/10 transition-all text-xs font-bold uppercase tracking-widest border border-fuchsia-500/30" title="Crea un cliente Blanco nuevo con el mismo nombre/segmento, sin mezclar el historial Rosa">
+                  <i class="fas fa-arrow-up-right-from-square mr-2"></i> Formalizar a Blanco
+              </button>
               <button @click="cloneCliente" class="px-6 py-2.5 rounded-full text-white/50 hover:text-white hover:bg-white/5 transition-all text-xs font-bold uppercase tracking-widest border border-white/10">
                   <i class="fas fa-copy mr-2"></i> Clonar
               </button>
-              
+
               <button 
                   @click="saveCliente"
                   :disabled="isCanonicalDuplicate"
@@ -708,10 +717,14 @@ const consultarAfip = async () => {
     notificationStore.add('Consultando ARCA/AFIP... Por favor espere.', 'info')
     try {
         // [GY-UX] 0. Duplicate Check (UBA / Shared CUITs handling) — Matching difuso como gate (dictamen Nike S845)
+        // [Corrección S858 -- Dictamen Nike, paridad alta/edición] Corre siempre que se valida
+        // un CUIT, sea alta o edición (formalización de un Rosa) -- antes solo corría en alta,
+        // dejando la edición sin ninguna chance de detectar el duplicado ni marcar MULTI_CUIT.
         pendingMultiCuit.value = false
-        if (isNew.value) {
+        {
              const currentDomicilioEntrega = getCurrentDomicilioEntregaStr()
-             const checkRes = await clientesService.checkCuit(form.value.cuit, null, form.value.razon_social, currentDomicilioEntrega)
+             const excludeId = isNew.value ? null : form.value.id
+             const checkRes = await clientesService.checkCuit(form.value.cuit, excludeId, form.value.razon_social, currentDomicilioEntrega)
              if (checkRes.data && checkRes.data.status === 'EXISTS') {
                  const existing = checkRes.data.existing_clients || []
 
@@ -988,7 +1001,14 @@ watch(() => form.value.condicion_iva_id, (newId) => {
     if (!newId) return
     const cf = condicionesIva.value.find(i => i.nombre.toLowerCase().includes('consumidor final'))
     if (cf && newId === cf.id) {
-        if (!form.value.cuit) form.value.cuit = '00000000000'
+        if (!form.value.cuit) {
+            // [Corrección S858] '00000000000' es exclusivo del Mostrador/Genérico real
+            // (REGLA 1 — Nike 806 lo fuerza a GOLD_ARCA sin validación real). Un Rosa con
+            // nombre propio no es una venta anónima de mostrador -- usa el bucket genérico
+            // de contingencia AFIP en vez de usurpar el CUIT del Mostrador.
+            const esVentaAnonima = !form.value.razon_social || ['MOSTRADOR', 'GENERICO', 'GENÉRICO', 'CONSUMIDOR FINAL'].includes(form.value.razon_social.trim().toUpperCase())
+            form.value.cuit = esVentaAnonima ? '00000000000' : '11111111119'
+        }
     }
 })
 
@@ -1818,6 +1838,22 @@ const cloneCliente = () => {
     form.value.razon_social += ' (COPIA)'
     isNew.value = true
     notificationStore.add('Registro clonado. Revise y guarde.', 'info')
+}
+
+// [Doctrina de Linaje de Identidad V14.6] Formalizar un Rosa: mismo patron que
+// "Clonar" (mutar form in-place, id=null, isNew=true) pero limpia CUIT/condicion
+// IVA/flags (el operador carga el dato real de cero) y deja el vinculo hacia el
+// Rosa origen en cliente_origen_id -- el historial del Rosa NUNCA se toca ni se
+// mezcla, solo queda referenciado para navegar de uno al otro.
+const formalizarCliente = () => {
+    const origenId = form.value.id
+    form.value.id = null
+    form.value.cuit = null
+    form.value.condicion_iva_id = null
+    form.value.flags_estado = 0
+    form.value.cliente_origen_id = origenId
+    isNew.value = true
+    notificationStore.add('Formalizando a Blanco. Ingrese el CUIT real para validar con ARCA.', 'info')
 }
 
 const openDomicilioTab = (dom = null) => {

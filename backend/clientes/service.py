@@ -94,6 +94,12 @@ class ClienteService:
             db.commit()
             db.refresh(db_cliente)
 
+            # [Doctrina de Linaje de Identidad V14.6] Auto-referencial por defecto.
+            # Si cliente_in trae un origen explicito (formalizacion Rosa->Blanco),
+            # ese Rosa queda vinculado -- nunca se mezcla su historial, es solo
+            # trazabilidad interna para que el operador navegue entre los dos.
+            db_cliente.cliente_origen_id = cliente_in.cliente_origen_id or db_cliente.id
+
             # [V5.2 GOLD] N:M Transition Bridge
             for dom_in in cliente_in.domicilios:
                 # [ACCIÓN 2] Permitir domicilio vacío para clientes Rosa (OPERATOR_OK activo o inferido)
@@ -147,6 +153,7 @@ class ClienteService:
 
             db.commit()
             db.refresh(db_cliente)
+            ClienteService._propagar_multi_cuit(db, db_cliente)
             return db_cliente
         except HTTPException:
             db.rollback()
@@ -233,14 +240,19 @@ class ClienteService:
              # GENERIC CUITs are always allowed to duplicate
              GENERIC_CUITS = ['00000000000', '11111111119', '11111111111', '99999999999']
              if update_data['cuit'] not in GENERIC_CUITS:
-                 # Check for strict duplicates only for Real Entities
-                 # [GY-FIX-UBA] "Caso UBA": Large entities share CUITs. We should warn, not block.
-                 # For now, we allow saving to support these cases, relying on Frontend Warning.
-                  existing = db.query(Cliente).filter(Cliente.cuit == update_data['cuit'], Cliente.id != cliente_id).first()
-                  if existing:
-                      # raise HTTPException(status_code=400, detail=f"El CUIT {update_data['cuit']} ya está en uso.")
-                      # print(f"[WARN] CUIT Duplicado DETECTADO pero PERMITIDO (Caso UBA/Sucursal): {update_data['cuit']}")
-                      pass
+                 # [Dictamen Nike -- paridad POST/PATCH] Mismo cortafuegos que create_cliente:
+                 # "Caso UBA" (entidades grandes que comparten CUIT a propósito) se permite
+                 # solo si el Bit 5 MULTI_CUIT está confirmado -- vía el mismo modal de
+                 # 3 vías que ya usa el alta -- no como excepción silenciosa para cualquiera.
+                 flags_payload = update_data.get('flags_estado', db_cliente.flags_estado) or 0
+                 es_multi_cuit = bool(flags_payload & ClientFlags.MULTI_CUIT)
+                 if not es_multi_cuit:
+                     existing = db.query(Cliente).filter(Cliente.cuit == update_data['cuit'], Cliente.id != cliente_id).first()
+                     if existing:
+                         raise HTTPException(
+                             status_code=409,
+                             detail=f"El CUIT {update_data['cuit']} ya está en uso por '{existing.razon_social}'."
+                         )
 
         # [V5-X] Flags logic updates
         if 'flags_estado' in update_data:
@@ -258,24 +270,35 @@ class ClienteService:
         for key, value in update_data.items():
             setattr(db_cliente, key, value)
 
-        # [V14.8.4 SOBERANIA OPERATIVA - PIN 1974] Escudo Backend
-        # Si los 4 Pilares estan presentes post-update, forzar promocion al Nivel 13.
-        # Esto protege el GENOMA incluso contra llamadas directas a la API.
-        has_domicilio_fiscal = any(
-            d.es_fiscal and d.calle and len((d.calle or '').strip()) > 2
-            for d in db_cliente.domicilios
-        )
-        has_4_pillars = bool(
-            db_cliente.razon_social
-            and db_cliente.lista_precios_id
-            and db_cliente.segmento_id
-            and has_domicilio_fiscal
-        )
-        if has_4_pillars:
+        # [Dictamen Nike — Escudo solo protege a los vivos] Si el payload pide
+        # explícitamente activo=False, es una baja lógica a propósito: el Escudo
+        # da un paso al costado y no promueve ni recalcula desde los 4 pilares.
+        solicita_baja = update_data.get('activo') is False
+
+        if solicita_baja:
             current_flags = db_cliente.flags_estado or 0
-            current_flags &= ~ClientFlags.PENDIENTE_REVISION  # Bit 20 OFF
-            current_flags |= ClientFlags.IS_ACTIVE            # Bit 0 ON
+            current_flags &= ~ClientFlags.IS_ACTIVE  # Bit 0 OFF
             db_cliente.flags_estado = current_flags
+            db_cliente.activo = False
+        else:
+            # [V14.8.4 SOBERANIA OPERATIVA - PIN 1974] Escudo Backend
+            # Si los 4 Pilares estan presentes post-update, forzar promocion al Nivel 13.
+            # Esto protege el GENOMA incluso contra llamadas directas a la API.
+            has_domicilio_fiscal = any(
+                d.es_fiscal and d.calle and len((d.calle or '').strip()) > 2
+                for d in db_cliente.domicilios
+            )
+            has_4_pillars = bool(
+                db_cliente.razon_social
+                and db_cliente.lista_precios_id
+                and db_cliente.segmento_id
+                and has_domicilio_fiscal
+            )
+            if has_4_pillars:
+                current_flags = db_cliente.flags_estado or 0
+                current_flags &= ~ClientFlags.PENDIENTE_REVISION  # Bit 20 OFF
+                current_flags |= ClientFlags.IS_ACTIVE            # Bit 0 ON
+                db_cliente.flags_estado = current_flags
 
         db_cliente.activo = bool(db_cliente.flags_estado & ClientFlags.IS_ACTIVE)
 
@@ -310,6 +333,7 @@ class ClienteService:
         db.add(db_cliente)
         db.commit()
         db.refresh(db_cliente)
+        ClienteService._propagar_multi_cuit(db, db_cliente)
         return db_cliente
 
     @staticmethod
@@ -407,8 +431,15 @@ class ClienteService:
     def _apply_cf_cuit_fallback(db_cliente: "Cliente") -> None:
         """
         [GENOMA V14.8+ / CF FALLBACK] Si el cliente tiene condición IVA
-        'Consumidor Final' y no tiene CUIT real, asigna '00000000000'.
+        'Consumidor Final' y no tiene CUIT real, asigna un CUIT genérico.
         Llamar ANTES de _audit_sovereignty para que el audit vea el CUIT correcto.
+
+        [Corrección S858]: '00000000000' es exclusivo del Mostrador/Genérico real
+        (REGLA 1 -- Nike 806 lo fuerza a GOLD_ARCA sin validación real). Un cliente
+        con razón social propia (un Rosa con nombre, no una venta anónima) usa en
+        cambio el bucket genérico de contingencia AFIP '11111111119' -- comparte
+        exclusión de duplicados con los demás genéricos, pero no usurpa el CUIT
+        reservado del Mostrador ni se marca como validado por ARCA sin haberlo sido.
         """
         if db_cliente.cuit and db_cliente.cuit.strip():
             return  # Ya tiene CUIT — no tocar
@@ -418,7 +449,36 @@ class ClienteService:
             and "CONSUMIDOR FINAL" in db_cliente.condicion_iva.nombre.upper()
         )
         if is_cf:
-            db_cliente.cuit = '00000000000'
+            razon_social = (db_cliente.razon_social or '').strip().upper()
+            es_venta_anonima = not razon_social or razon_social in ('MOSTRADOR', 'GENERICO', 'GENÉRICO', 'CONSUMIDOR FINAL')
+            db_cliente.cuit = '00000000000' if es_venta_anonima else '11111111119'
+
+    @staticmethod
+    def _propagar_multi_cuit(db: Session, db_cliente: "Cliente") -> None:
+        """
+        [Dictamen Nike -- Canonización Card #38] Si el cliente guardado tiene el
+        Bit 5 (MULTI_CUIT) encendido sobre un CUIT real, propaga el bit a todos
+        los demás registros que compartan ese mismo CUIT -- panel de hermanos
+        consistente en toda la "hidra" fiscal.
+
+        [Enmienda Nike -- exclusión de genéricos]: nunca propaga sobre GENERIC_CUITS
+        -- esos buckets (Mostrador, contingencia AFIP, Rosa) agrupan clientes sin
+        relación real entre sí; marcarlos "hermanos" desnaturalizaría el bit.
+        """
+        GENERIC_CUITS = ['00000000000', '11111111119', '11111111111', '99999999999']
+        cuit = db_cliente.cuit
+        if not cuit or cuit in GENERIC_CUITS:
+            return
+        if not ((db_cliente.flags_estado or 0) & ClientFlags.MULTI_CUIT):
+            return
+        db.query(Cliente).filter(
+            Cliente.cuit == cuit,
+            Cliente.id != db_cliente.id
+        ).update(
+            {Cliente.flags_estado: Cliente.flags_estado.op('|')(ClientFlags.MULTI_CUIT)},
+            synchronize_session=False
+        )
+        db.commit()
 
     @staticmethod
     def delete_cliente(db: Session, cliente_id: UUID) -> Optional[Cliente]:

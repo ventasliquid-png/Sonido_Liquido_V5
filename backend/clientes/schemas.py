@@ -178,6 +178,10 @@ class ClienteBase(BaseModel):
 class ClienteCreate(ClienteBase):
     domicilios: List[DomicilioCreate] = []
     vinculos: List[VinculoComercialCreate] = []
+    # [Doctrina de Linaje de Identidad V14.6] Si viene poblado, formaliza un Rosa:
+    # el nuevo Blanco queda vinculado a ese id sin mezclar historial. Si se omite,
+    # el backend lo auto-referencia (apunta a si mismo -- sin vinculo).
+    cliente_origen_id: Optional[UUID] = None
 
     @model_validator(mode='after')
     def check_fiscal_consistency(self):
@@ -277,6 +281,7 @@ class ClienteVinculoResponse(BaseModel):
 
 class ClienteResponse(ClienteBase):
     id: UUID
+    cliente_origen_id: Optional[UUID] = None
     codigo_interno: Optional[int] = None
     saldo_actual: Optional[float] = 0.0
     contador_uso: Optional[int] = 0
