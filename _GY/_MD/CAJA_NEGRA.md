@@ -2,7 +2,7 @@
 
 # CAJA NEGRA: OMEGA Lite - fix Rosa/Blanco (CUIT bucket, MULTI_CUIT edicion, Doctrina de Linaje) + migracion 038 en produccion real - S858 (2026-08-28)
 
-Sesion 858 OF. Hash D: <CIERRE> | Hash B (OF): b3366e2. Estado: NOMINAL GOLD. Semaforo CS: AMARILLO. Agentes: CC, Carlos, Nike, CS (relevo), CC-en-P (Izquierda/MT).
+Sesion 858 OF. Hash D: b798ac09 | Hash B (OF): b3366e2. Estado: NOMINAL GOLD. Semaforo CS: AMARILLO. Agentes: CC, Carlos, Nike, CS (relevo), CC-en-P (Izquierda/MT).
 - Root-cause de bug real de produccion (400 al dar de baja cliente Rosa MYM/M&M): CUIT '00000000000' (reservado a Mostrador/Generico) compartido con 8 clientes Rosa + Escudo Backend pisando la baja logica. Reproducido con evidencia real en copia aislada de P antes de tocar nada.
 - Serie de dictamenes/enmiendas de Nike (bocetados por CC, corregidos dos veces tras verificar contra codigo real antes de aceptarlos): Bit 1 = IS_VIRGIN universal salvo Remitos (por 'estado', no CAE); MULTI_CUIT paridad alta/edicion + propagacion excluyendo GENERIC_CUITS; Doctrina de Linaje de Identidad Rosa->Blanco via 'cliente_origen_id' (auto-referencial).
 - Implementados y verificados en D con evidencia real (navegador + API, no solo lectura): (1) bucket CUIT Rosa 11111111119 en vez de '00000000000'; (2) MULTI_CUIT en edicion (409/200 segun Bit5, propagacion a hermanos, exclusion de GENERIC_CUITS); (3) Escudo Backend ya no pisa baja logica explicita; (4) 'cliente_origen_id' + flujo de formalizacion Rosa->Blanco en frontend. Card #122 creada (delete_pedido no verifica remitos).
@@ -12,7 +12,7 @@ Sesion 858 OF. Hash D: <CIERRE> | Hash B (OF): b3366e2. Estado: NOMINAL GOLD. Se
 - Diagnostico Soberana: `.build_hash` en P SI persistio correctamente hoy (527156b, 10:08) -- la corrida de esta manana de Tomy simplemente fue antes de que existiera el codigo nuevo (pusheado a las 16:52). No hay evidencia de lanzador roto en esta instancia. El escenario de static/index.html modificado bloqueando un pull real sigue sin probarse -- el pull posterior quedo bloqueado por el clasificador de permisos de esa sesion, pendiente aprobacion en vivo.
 - Hallazgo operativo nuevo: hay un proceso vivo en P (puerto 8090) sirviendo produccion ahora mismo -- traer codigo nuevo a disco no alcanza, hace falta reiniciar el proceso para que sirva el fix.
 - Cierre Lite por decision explicita de Carlos (override de Bit 19, que sigue ON) dado limite de tiempo/tokens de esta sesion rescatada -- retomar Completo en el proximo cierre real.
-- D:<CIERRE> B(OF):b3366e2 | PIN: 1974
+- D:b798ac09 B(OF):b3366e2 | PIN: 1974
 
 ---
 

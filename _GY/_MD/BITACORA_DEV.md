@@ -2375,4 +2375,4 @@ Izquierda/MT). Sesión rescatada tras corte de plataforma — ALFA completo, Edg
 resuelto, nada perdido. Cierre Lite por override explícito de Carlos (límite de
 tiempo/tokens); Bit 19 sigue ON. Pendiente: desplegar `98220f9`/`b3366e2` a P y
 reiniciar el proceso vivo.
-**Estado:** NOMINAL GOLD. D:<CIERRE> B(OF):b3366e2. PIN: 1974.
+**Estado:** NOMINAL GOLD. D:b798ac09 B(OF):b3366e2. PIN: 1974.
