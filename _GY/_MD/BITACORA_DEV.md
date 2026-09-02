@@ -2394,4 +2394,4 @@ reiniciar el proceso vivo.
 * Probado con 3 casos reales en sandbox aislado: nada pendiente (silencioso), migración rota simulada (frena limpio, backup, no sigue con las siguientes), y de paso encontró y aplicó dos migraciones reales huérfanas (`030` en D, `030`+`038` en la copia local de prueba de B) — aditivas, ya probadas, sin riesgo.
 * Integrado en `ARRANQUE_V5.bat` de B (paso 1.5). `_env_db.py` cherry-pickeado a `current/scripts/` (nunca había llegado ahí). Commits: D `b4d900da`, B `d176b59` (prod/main).
 
-**Estado:** NOMINAL GOLD. D:<CIERRE> B:d176b59. PIN: 1974.
+**Estado:** NOMINAL GOLD. D:8e05da45 B:d176b59. PIN: 1974.
