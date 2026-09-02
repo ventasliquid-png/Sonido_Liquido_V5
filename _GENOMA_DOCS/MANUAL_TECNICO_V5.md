@@ -1701,6 +1701,41 @@ de Linaje Rosa→Blanco: formalizar abre el alta normal precargada, el Rosa viej
 queda intacto con su historial, sin fusionar. Migración de datos real ejecutada
 sobre producción (`migrate_038_rosa_cuit_bucket.py`, PIN 1974, con backup previo):
 8 clientes Rosa migrados, Mostrador real intacto. Todo verificado con evidencia real
-(navegador + API), no solo lectura de código. Pendiente: desplegar el fix a P
-(commits `98220f9`/`b3366e2` sin pull confirmado en Izquierda) y reiniciar el
-proceso vivo para que lo sirva.
+(navegador + API), no solo lectura de código.
+
+## S859 (Completo) - Cierre real en P + `scripts/auto_migrar.py`
+
+**Cierre del deploy pendiente de S858:** el pull a P (`b3366e2`) estaba bloqueado por
+`current/static/index.html` modificado sin commitear — descartado (`git checkout --`),
+y un segundo conflicto con el script suelto `migrate_038_rosa_cuit_bucket.py` (copiado
+a mano el 28/08, byte-idéntico al que traía el merge) resuelto sacándolo del working
+tree antes de reintentar. Pull fast-forward limpio, confirmado por hash y por contenido
+real (`solicita_baja` presente en `service.py`).
+
+**Incidente real, causa y fix:** al reiniciar con el código nuevo, la app cayó
+completa (500 en `/clientes`, `/pedidos`, `/stats/dashboard`) porque la migración `037`
+(columna `cliente_origen_id`) nunca se había corrido contra la base real de
+producción — el ORM ya la esperaba, el dato no la tenía. Backup previo + migración 037
+corrida sobre `V5_LS_MASTER.db` real (57 clientes backfilled). Recuperado, verificado
+sin 500.
+
+**Prevención de fondo — `scripts/auto_migrar.py` (Card #123):** se integró en
+`ARRANQUE_V5.bat` (paso 1.5, después de activar el venv, antes del rebuild de frontend
+y de levantar `uvicorn`). Lee `MIGRATION_ID` de cada `migrate_*.py` por texto (regex,
+sin importar/ejecutar el módulo — `findall` + último match, no `search`, para no
+confundir el `MIGRATION_ID` de ejemplo del docstring de `migrate_000` con el real),
+compara contra `_migraciones_aplicadas` vía `_env_db.detectar_entorno_db()` (mismo
+helper que ya usan `canario_v2.py`/`exportar_pedidos_excel.py`, sin reinventar la
+detección de ruta), y si hay pendientes: `PRAGMA wal_checkpoint(FULL)` + backup
+timestamped, corre cada migración pendiente como subproceso con `DATABASE_URL`
+explícito, y si alguna devuelve código de salida distinto de cero, frena de inmediato
+(no corre las siguientes) e imprime la migración afectada + la ruta del backup — el
+`.bat` detecta el `ERRORLEVEL` y no levanta `uvicorn`. Si no hay nada pendiente, no
+imprime nada y no toca la base — silencioso, mismo modelo que una actualización de
+sistema operativo. Probado con 3 casos en un sandbox aislado antes de tocar código
+real: nada pendiente, migración rota simulada, y — de paso — dos migraciones
+legítimamente huérfanas que se aplicaron sin error (`030_ingesta_v2_schema` en D,
+`030`+`038` en la copia local de prueba de B; ambas aditivas, ya probadas antes,
+ninguna tocó la base real de producción durante las pruebas). `_env_db.py` se
+cherry-pickeó a `current/scripts/` de B en el mismo lote — nunca había llegado ahí,
+solo existía en el `scripts/` propio de B para sus herramientas de lanzador.

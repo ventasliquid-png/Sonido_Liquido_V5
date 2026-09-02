@@ -2376,3 +2376,22 @@ resuelto, nada perdido. Cierre Lite por override explícito de Carlos (límite d
 tiempo/tokens); Bit 19 sigue ON. Pendiente: desplegar `98220f9`/`b3366e2` a P y
 reiniciar el proceso vivo.
 **Estado:** NOMINAL GOLD. D:b798ac09 B(OF):b3366e2. PIN: 1974.
+
+# 2026-09-02 — Sesión 859 (OF, Completo)
+
+### Hito 1: Cierre real del deploy de S858 a P
+* Diagnóstico coordinado vía relay de archivos (Silo/B/CC_en_D y CC_en_P) confirmó que el pull a P nunca había traído `b3366e2` — `current/static/index.html` modificado sin commitear lo bloqueaba en silencio, mismo sospechoso documentado desde antes.
+* PIN 1974 dado en vivo, en la sesión de CC-en-P (no bastaba con aprobación en este chat — regla explícita, respetada al pie de la letra). Descartado el archivo sucio, resuelto un segundo conflicto (script suelto `migrate_038` colisionando con el mismo archivo del merge, verificado byte-idéntico antes de sacarlo), pull fast-forward limpio confirmado por hash y por contenido real.
+
+### Hito 2: Incidente real de producción, causa y fix
+* Al reiniciar con el código nuevo, la app cayó completa (500 en clientes/pedidos/dashboard) — la migración 037 (`cliente_origen_id`) nunca se había corrido contra la base real de P. Diagnóstico propio de CC-en-P, sin que nadie se lo pidiera.
+* PIN 1974 en vivo, backup previo, migración 037 corrida sobre producción real (57 clientes backfilled). Recuperado, verificado sin 500.
+* Confirmación final end-to-end por Carlos en la UI real: MYM dado de baja lógica y luego borrado físico correcto desde Utilidades Maestras. Cierra la saga completa iniciada el 28/08.
+
+### Hito 3: Prevención de fondo — `scripts/auto_migrar.py` (Card #123)
+* Diseño discutido con Carlos: detectar-y-frenar vs. auto-aplicar. Reencuadre clave tras la analogía con actualizaciones de OS: ninguna migración llega a `prod/main` sin probarse antes en D/B — el incidente no fue "migración riesgosa", fue "migración huérfana". Auto-aplicar con backup siempre previo es coherente con la disciplina existente.
+* Construido, con un bug propio encontrado y corregido antes de integrarlo (`findall`+último match, no `search` — el docstring de `migrate_000` tiene un `MIGRATION_ID` de ejemplo que el regex tomaba por error).
+* Probado con 3 casos reales en sandbox aislado: nada pendiente (silencioso), migración rota simulada (frena limpio, backup, no sigue con las siguientes), y de paso encontró y aplicó dos migraciones reales huérfanas (`030` en D, `030`+`038` en la copia local de prueba de B) — aditivas, ya probadas, sin riesgo.
+* Integrado en `ARRANQUE_V5.bat` de B (paso 1.5). `_env_db.py` cherry-pickeado a `current/scripts/` (nunca había llegado ahí). Commits: D `b4d900da`, B `d176b59` (prod/main).
+
+**Estado:** NOMINAL GOLD. D:<CIERRE> B:d176b59. PIN: 1974.

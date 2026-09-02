@@ -1000,3 +1000,17 @@ alta de un cliente nuevo con los datos precargados y el cursor en el CUIT.
 El cliente Rosa original **no se borra ni se mezcla** — queda intacto con
 todo su historial, y la ficha del cliente Blanco nuevo muestra un link
 "Ver historial Rosa" para volver a consultarlo.
+
+## S859 (Completo) - El fix de Rosa/Blanco ya llegó a la máquina real, y una novedad invisible
+
+Lo de S858 (dar de baja un cliente Rosa) ya funciona de punta a punta en la máquina
+real, confirmado con un caso real: se dio de baja y después se borró físicamente un
+cliente de prueba sin problemas.
+
+**Novedad que no vas a notar, y esa es la idea:** de ahora en más, cuando se actualiza
+el sistema (`LANZAR_V5_SOBERANA.bat`) y esa actualización necesita también un cambio
+en la base de datos, el sistema lo hace solo — como una actualización de Windows o del
+celular. Vas a ver un mensaje breve en la consola mientras pasa, nada más. Si algo
+raro pasara (poco probable, ya está probado), el sistema **no va a arrancar** y te va
+a pedir que avises a Carlos, en vez de mostrar errores confusos en la pantalla como
+pasó una vez esta semana.

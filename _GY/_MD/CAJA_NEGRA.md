@@ -1,4 +1,20 @@
-﻿Sesion actual: 858
+﻿Sesion actual: 859
+
+# CAJA NEGRA: OMEGA Completo - cierre real de la saga Rosa/Blanco en P + auto_migrar.py - S859 (2026-09-02)
+
+Sesion 859 OF. Hash D: <CIERRE> | Hash B: <CIERRE_B>. Estado: NOMINAL GOLD. Semaforo CS: AMARILLO. Agentes: CC, Carlos, CC-en-P (Izquierda/MT).
+- Retomando el pendiente critico de S858 (deploy del fix Rosa/Blanco a P nunca completado por bloqueo de permisos): diagnostico confirmo que P seguia en 527156b -- el pull nunca habia traido b3366e2, ni con el proceso reiniciado. Coordinado via relay de archivos Silo/B/CC_en_D y CC_en_P.
+- PIN 1974 en vivo en la sesion de CC-en-P (no alcanzaba con aprobacion en este chat -- regla explicita). Causa confirmada por git status: current/static/index.html modificado sin commitear bloqueaba el pull en silencio. Descartado, reintentado -- nuevo conflicto con el script suelto migrate_038 (copiado a mano el 28/08) colisionando con el mismo archivo del merge; verificado byte-identico antes de sacarlo del medio. Pull fast-forward limpio a b3366e2, confirmado por hash Y por contenido real (solicita_baja presente en service.py).
+- Incidente de produccion real: al reiniciar con el codigo nuevo, la app completa cayo con 500 en clientes/pedidos/dashboard. Diagnostico propio de CC-en-P sin que nadie lo pidiera: la migracion 037 (cliente_origen_id) nunca se habia corrido contra la base real de P -- el codigo ya asumia la columna, el dato no la tenia. PIN 1974 en vivo, backup previo, migracion 037 corrida sobre produccion real (57 clientes backfilled). App recuperada, verificado sin 500.
+- Confirmacion final end-to-end por Carlos en la UI real: MYM dado de baja logica, luego borrado fisico correcto desde Utilidades Maestras (sin hijos, IS_VIRGIN habilitaba el borrado). Cierra la saga completa iniciada el 28/08.
+- Prevencion de fondo disenada y construida: scripts/auto_migrar.py -- detecta migraciones pendientes por MIGRATION_ID (sin ejecutar), backup automatico solo si hay algo pendiente, corre en orden, frena limpio sin arrancar el servidor si una falla. Analogia explicita de Carlos con actualizaciones de OS (silenciosas, sin exponer al operador). Un bug propio encontrado y corregido antes de integrarlo (regex tomaba el MIGRATION_ID de ejemplo del docstring de migrate_000 en vez del real). Probado con 3 casos reales en sandbox aislado antes de tocar produccion: nada pendiente (silencioso), migracion rota simulada (frena limpio, backup, no sigue), y de paso encontro y aplico dos migraciones reales que estaban huerfanas (030 en D, 030+038 en la copia local de prueba de B) -- ambas aditivas, sin riesgo.
+- Integrado en ARRANQUE_V5.bat de B como paso 1.5. Cherry-pick de _env_db.py a current/scripts/ (nunca habia llegado ahi). Card #123 creada y cerrada con evidencia de las 3 pruebas. Commits D: b4d900da. Commit B: d176b59, pusheado a prod/main.
+- P/Izquierda queda en b3366e2 (un commit detras de prod/main, solo trae auto_migrar.py sin cambio de schema -- bajo riesgo, sin apuro).
+- D:<CIERRE> B(OF):<CIERRE_B> | PIN: 1974
+
+---
+
+Sesion 858 — 2026-08-28 — OF (referencia historica preservada abajo)
 
 # CAJA NEGRA: OMEGA Lite - fix Rosa/Blanco (CUIT bucket, MULTI_CUIT edicion, Doctrina de Linaje) + migracion 038 en produccion real - S858 (2026-08-28)
 
