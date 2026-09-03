@@ -2405,4 +2405,4 @@ migrado a Windows 11 rompió el venv (Python/Node faltantes) — plan entregado 
 sin confirmar terminado. Cierre Lite deliberado con contexto al 80%, antes de encarar
 la reconciliación D↔B completa — `PLAN_RECONCILIACION_D_B_2026-09-03.md` escrito como
 briefing para la próxima sesión.
-**Estado:** NOMINAL GOLD. D:<CIERRE> B:c7b57da. PIN: 1974.
+**Estado:** NOMINAL GOLD. D:39cfde8a B:c7b57da. PIN: 1974.
