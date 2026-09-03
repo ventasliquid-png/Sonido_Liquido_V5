@@ -1739,3 +1739,13 @@ legítimamente huérfanas que se aplicaron sin error (`030_ingesta_v2_schema` en
 ninguna tocó la base real de producción durante las pruebas). `_env_db.py` se
 cherry-pickeó a `current/scripts/` de B en el mismo lote — nunca había llegado ahí,
 solo existía en el `scripts/` propio de B para sus herramientas de lanzador.
+
+## S860 (Lite) — 3 fixes puntuales, ver `BITACORA_DEV.md`/`PLAN_RECONCILIACION_D_B_2026-09-03.md`
+
+`IngestaFacturaView.vue`: `currentRawId` no se persistía en `pending409Context` al
+navegar a `PedidoCanvas` y volver — agregado en los 2 `set409Context(...)` y restaurado
+en `onMounted` (D-only, `bbdb6d3c`). `ManualRemitoView.vue`: selector de pedidos ahora
+interpola `ped.oc` (`e36bd2b9`). `remitos/router.py`: el fallback de `factura_vinculada`
+ya no trunca cualquier `pedido.nota` — solo si empieza con el prefijo real de ingesta
+(`e36bd2b9`). Los últimos dos, cherry-pickeados a B (`c7b57da`), byte-idénticos antes
+del fix.

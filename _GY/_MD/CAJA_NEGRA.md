@@ -1,4 +1,17 @@
-﻿Sesion actual: 859
+﻿Sesion actual: 860
+
+# CAJA NEGRA: OMEGA Lite - fix currentRawId Ingesta + fixes Remito Manual (OC + factura_vinculada) + plan reconciliacion D-B - S860 (2026-09-02/03)
+
+Sesion 860 OF. Hash D: <CIERRE> | Hash B: c7b57da. Estado: NOMINAL GOLD. Semaforo CS: AMARILLO. Agentes: CC, Carlos, CC-en-MT.
+- Fix real: currentRawId se perdia en IngestaFacturaView.vue al volver de PedidoCanvas via 409 (vincular pedido existente) -- causa raiz encontrada por lectura de codigo, verificada en vivo inyectando estado en el store Pinia (sin archivo real para subir). D-only (bbdb6d3c) -- B tiene una version mas simple sin este bug, confirmado antes de descartar el cherry-pick a proposito.
+- 3 problemas reportados por Carlos en Remito Manual tras uso real de Tomy: selector de pedidos sin OC (fix), nota de sistema ajena truncada como referencia de factura en el PDF (causa real encontrada en remitos/router.py, fix), bultos default incorrecto (Card #124, sin fix -- falta config en Producto). Ambos fixes cherry-pickeados a B (archivos byte-identicos antes del cambio, sin divergencia oculta), build limpio, commit B c7b57da.
+- Migracion de Izquierda/MT a Windows 11 rompio el venv (Python 3.11 inexistente en la PC nueva). Diagnosticado por CC-en-MT, plan armado (Python 3.12.10 + Node v24.12.0 + venv desde cero) y entregado para que Tomy lo ejecute -- en curso, sin confirmar terminado.
+- Carlos senalo contexto de sesion al 80% antes de encarar la reconciliacion D-B completa (proximo objetivo grande). Cierre deliberado ahora, perfil Lite, con PLAN_RECONCILIACION_D_B_2026-09-03.md escrito como briefing para la proxima sesion -- estado real de los 6 lotes de S857 (1 y 3 hechos, 0/2 sin ejecutar, 4 esperando Carlos, 5 bloqueado sin Nike, 6 con hallazgo nuevo de hoy sobre IngestaFacturaView.vue) mas metodologia concreta para retomarlo.
+- D:<CIERRE> B:c7b57da | PIN: 1974
+
+---
+
+Sesion 859 — 2026-09-02 — OF (referencia historica preservada abajo)
 
 # CAJA NEGRA: OMEGA Completo - cierre real de la saga Rosa/Blanco en P + auto_migrar.py - S859 (2026-09-02)
 

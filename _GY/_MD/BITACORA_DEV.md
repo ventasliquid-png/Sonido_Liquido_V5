@@ -2395,3 +2395,14 @@ reiniciar el proceso vivo.
 * Integrado en `ARRANQUE_V5.bat` de B (paso 1.5). `_env_db.py` cherry-pickeado a `current/scripts/` (nunca había llegado ahí). Commits: D `b4d900da`, B `d176b59` (prod/main).
 
 **Estado:** NOMINAL GOLD. D:8e05da45 B:d176b59. PIN: 1974.
+
+# 2026-09-02/03 — Sesión 860 (OF, Lite)
+S860 — fix `currentRawId` perdido en Ingesta al volver de PedidoCanvas (D-only, B no
+tiene el bug, versión más simple confirmada). Fixes en Remito Manual: OC visible en
+selector de pedidos, nota de sistema ajena ya no se trunca como factura vinculada
+(ambos cherry-pickeados a B). Card #124 (bultos default) registrada, sin fix. MT
+migrado a Windows 11 rompió el venv (Python/Node faltantes) — plan entregado a Tomy,
+sin confirmar terminado. Cierre Lite deliberado con contexto al 80%, antes de encarar
+la reconciliación D↔B completa — `PLAN_RECONCILIACION_D_B_2026-09-03.md` escrito como
+briefing para la próxima sesión.
+**Estado:** NOMINAL GOLD. D:<CIERRE> B:c7b57da. PIN: 1974.

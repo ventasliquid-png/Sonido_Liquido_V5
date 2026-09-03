@@ -1014,3 +1014,10 @@ celular. Vas a ver un mensaje breve en la consola mientras pasa, nada más. Si a
 raro pasara (poco probable, ya está probado), el sistema **no va a arrancar** y te va
 a pedir que avises a Carlos, en vez de mostrar errores confusos en la pantalla como
 pasó una vez esta semana.
+
+## S860 (Lite) — sin cambios funcionales nuevos
+
+Arreglos internos en Remito Manual (la OC ahora se ve en el selector de pedidos, y un
+mensaje interno del sistema dejó de aparecer donde no correspondía) e Ingesta de
+Facturas (vincular a un pedido existente ya no falla al volver de la pantalla de
+Pedido). Nada nuevo que aprender — mismos botones, mismo flujo de siempre.
