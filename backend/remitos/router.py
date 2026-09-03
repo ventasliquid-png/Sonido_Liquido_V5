@@ -130,8 +130,10 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
             match = re.search(r'(\d{4,5}-\d{8})', remito.pedido.nota)
             if match:
                 factura_vinculada_str = match.group(1)
-            else:
-                # Limpieza agresiva de prefijos conocidos
+            elif remito.pedido.nota.startswith("Ingesta Automática Factura: "):
+                # Solo limpiar el prefijo conocido -- si la nota no es de este tipo
+                # (ej: avisos de duplicado u otras notas de sistema), no hay factura
+                # que mostrar, dejar factura_vinculada_str vacío.
                 factura_vinculada_str = remito.pedido.nota.replace("Ingesta Automática Factura: ", "")[:20]
 
         cliente_data = {

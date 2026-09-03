@@ -70,7 +70,7 @@
                  >
                    <option :value="null">--- Sin Pedido Asociado (Remito Directo) ---</option>
                    <option v-for="ped in pendingOrders" :key="ped.id" :value="ped.id">
-                     Pedido #{{ ped.id }} - {{ ped.fecha.split('T')[0] }} - Total: ${{ ped.total }}
+                     Pedido #{{ ped.id }}{{ ped.oc ? ' - OC ' + ped.oc : ' - S/OC' }} - {{ ped.fecha.split('T')[0] }} - Total: ${{ ped.total }}
                    </option>
                  </select>
                  <div v-if="pendingOrders.length === 0" class="mt-2 text-xs text-orange-400 opacity-80">
