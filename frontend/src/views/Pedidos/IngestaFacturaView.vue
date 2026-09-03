@@ -1443,7 +1443,8 @@ const goToNewPedido = () => {
     pedidosStore.setIngestaData(parsedData.value);
     pedidosStore.set409Context({
         parsedData: parsedData.value,
-        pendingPedidos: pendingPedidos.value
+        pendingPedidos: pendingPedidos.value,
+        rawId: currentRawId.value
     });
     router.push({ name: 'PedidoCanvas' });
 };
@@ -1455,7 +1456,8 @@ const goToVincularPedido = () => {
     pedidosStore.setIngestaData(data);
     pedidosStore.set409Context({
         parsedData: parsedData.value,
-        pendingPedidos: pendingPedidos.value
+        pendingPedidos: pendingPedidos.value,
+        rawId: currentRawId.value
     });
     router.push({ name: 'PedidoCanvas', params: { id: selectedPedidoId.value } });
 };
@@ -1542,6 +1544,7 @@ onMounted(async () => {
         const ctx = pedidosStore.pending409Context;
         parsedData.value = ctx.parsedData;
         pendingPedidos.value = ctx.pendingPedidos || [];
+        currentRawId.value = ctx.rawId || null;
         pedidosStore.clear409Context();
 
         if (ctx.parsedData?.cliente?.id) {
