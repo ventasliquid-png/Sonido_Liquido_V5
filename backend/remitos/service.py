@@ -110,7 +110,10 @@ class RemitosService:
                 ).first()
                 if existing_factura:
                     raise HTTPException(status_code=409, detail=f"FACTURA_DUPLICADA: La factura fiscal {original_invoice} ya existe en el sistema.")
-            except: pass
+            except HTTPException:
+                raise
+            except (ValueError, IndexError):
+                pass
 
             
         # 1. FIND CLIENT (Anti-Duplication Strategy)

@@ -342,8 +342,21 @@ def delete_remito(remito_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Solo se pueden eliminar remitos en estado BORRADOR")
         
     pedido_id = remito.pedido_id
-    
-    # Delete remito (cascades to remito_items)
+
+    # [FIX] La Factura "espejo" (MODO ESPEJO, ver RemitosService.create_from_ingestion)
+    # vinculada a este remito quedaba huerfana en estado BORRADOR al borrar el
+    # remito, bloqueando para siempre cualquier reintento de ingesta del mismo
+    # numero de factura (choca contra el UNIQUE de facturas). Si la factura sigue
+    # en BORRADOR (nunca se convirtio en un comprobante fiscal real), se borra
+    # junto con el remito.
+    from backend.facturacion.models import Factura, FacturaItem, FacturaRemito
+    for vinculo in db.query(FacturaRemito).filter(FacturaRemito.remito_id == remito.id).all():
+        factura = db.query(Factura).filter(Factura.id == vinculo.factura_id).first()
+        if factura and factura.estado == "BORRADOR":
+            db.query(FacturaItem).filter(FacturaItem.factura_id == factura.id).delete()
+            db.delete(factura)
+
+    # Delete remito (cascades to remito_items y factura_remito)
     db.delete(remito)
     db.flush()
     

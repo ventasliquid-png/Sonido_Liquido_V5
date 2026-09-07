@@ -26,7 +26,51 @@ class PDFRemito(FPDF):
         self.cae = None # nuevo: CAE de Factura
         self.vto_cae = None # nuevo: Vencimiento CAE
         self.qrcode_url = None # nuevo: URL para QR Datos ARCA
-    
+
+    @staticmethod
+    def _pdf_safe(value):
+        """Sanea texto para las fuentes core de FPDF (solo soportan Latin-1/cp1252).
+        El texto de facturas ingeridas por PDF/OCR suele traer guiones y comillas
+        tipográficas Unicode (–—''""…) que no existen en ese rango y hacían crashear
+        la generación entera del PDF (ver notas_auditoria / MODO ESPEJO)."""
+        if value is None:
+            return value
+        text = str(value)
+        replacements = {
+            '–': '-', '—': '-',
+            '‘': "'", '’': "'",
+            '“': '"', '”': '"',
+            '…': '...',
+            '\xa0': ' ',
+        }
+        for old, new in replacements.items():
+            text = text.replace(old, new)
+        return text.encode('latin-1', errors='replace').decode('latin-1')
+
+    def cell(self, *args, **kwargs):
+        if len(args) >= 3:
+            args = list(args)
+            args[2] = self._pdf_safe(args[2])
+        if 'text' in kwargs:
+            kwargs['text'] = self._pdf_safe(kwargs['text'])
+        return super().cell(*args, **kwargs)
+
+    def multi_cell(self, *args, **kwargs):
+        if len(args) >= 3:
+            args = list(args)
+            args[2] = self._pdf_safe(args[2])
+        if 'text' in kwargs:
+            kwargs['text'] = self._pdf_safe(kwargs['text'])
+        return super().multi_cell(*args, **kwargs)
+
+    def text(self, *args, **kwargs):
+        if len(args) >= 3:
+            args = list(args)
+            args[2] = self._pdf_safe(args[2])
+        if 'text' in kwargs:
+            kwargs['text'] = self._pdf_safe(kwargs['text'])
+        return super().text(*args, **kwargs)
+
     def header(self):
         # 1. Background Image (Full Page)
         # Adjust path dynamically based on script location
