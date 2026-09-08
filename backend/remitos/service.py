@@ -869,7 +869,7 @@ class RemitosService:
         for key, value in update_data.items():
             setattr(remito, key, value)
 
-        if getattr(payload, 'estado', None) == "ANULADO" and remito.pedido:
+        if remito.pedido and (payload.items is not None or getattr(payload, 'estado', None) == "ANULADO"):
             RemitosService._recalcular_bits_entrega(db, remito.pedido)
 
         db.add(remito)
