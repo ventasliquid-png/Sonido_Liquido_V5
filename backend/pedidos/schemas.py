@@ -45,7 +45,11 @@ class PedidoCreate(BaseModel):
     costo_envio_cliente: Optional[float] = 0.0
     costo_flete_interno: Optional[float] = 0.0
     estado_logistico: Optional[str] = "PENDIENTE"
-    
+
+    # Roles de contacto (Dictamen Nike 20260908/20260909 v2)
+    comprador_id: Optional[UUID] = None
+    contacto_entrega_id: Optional[UUID] = None
+
     items: List[PedidoItemCreate]
     duplicate_confirmed: Optional[bool] = False
     from_ingesta: Optional[bool] = False
@@ -82,6 +86,10 @@ class PedidoUpdate(BaseModel):
     costo_envio_cliente: Optional[float] = None
     costo_flete_interno: Optional[float] = None
     estado_logistico: Optional[str] = None
+
+    # Roles de contacto (Dictamen Nike 20260908/20260909 v2)
+    comprador_id: Optional[UUID] = None
+    contacto_entrega_id: Optional[UUID] = None
 
     items: Optional[List[PedidoItemCreate]] = None
     from_ingesta: Optional[bool] = False
@@ -169,6 +177,8 @@ class PedidoResponse(BaseModel):
     transporte_id: Optional[UUID] = None
     contacto_responsable_id: Optional[UUID] = None
     nodo_transporte_id:      Optional[UUID] = None
+    comprador_id: Optional[UUID] = None
+    contacto_entrega_id: Optional[UUID] = None
     costo_envio_cliente: Optional[float] = 0.0
     costo_flete_interno: Optional[float] = 0.0
     estado_logistico: str = "PENDIENTE"

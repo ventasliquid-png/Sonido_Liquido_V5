@@ -8,6 +8,7 @@ from sqlalchemy.orm import relationship
 from datetime import datetime, timedelta, date
 from backend.core.database import Base, GUID
 from backend.productos.models import Producto # [AUDIT FIX] Resolve InvalidRequestError in Mapper initialization
+from backend.contactos.models import Vinculo # [AUDIT FIX] Resolve InvalidRequestError in Mapper initialization (comprador/contacto_entrega)
 
 class Pedido(Base):
     __tablename__ = "pedidos"
@@ -35,6 +36,12 @@ class Pedido(Base):
     contacto_responsable_id = Column(GUID(), ForeignKey("vinculos.id"), nullable=True)
     nodo_transporte_id      = Column(GUID(), ForeignKey("nodos_transporte.id"), nullable=True)
 
+    # Roles de contacto en el Pedido (Dictamen Nike 20260908, enmendado 20260909 v2)
+    # Dos roles distintos y potencialmente distintas personas: quien autoriza la
+    # compra vs. quien recibe la entrega. Ver backend/contactos/constants.py.
+    comprador_id = Column(GUID(), ForeignKey("vinculos.id"), nullable=True)
+    contacto_entrega_id = Column(GUID(), ForeignKey("vinculos.id"), nullable=True)
+
     # Costos Logísticos (MVP)
     costo_envio_cliente = Column(Float, default=0.0) # Lo que paga el cliente
     costo_flete_interno = Column(Float, default=0.0) # Costo "Alberto"
@@ -52,6 +59,8 @@ class Pedido(Base):
     items = relationship("PedidoItem", back_populates="pedido", cascade="all, delete-orphan")
     domicilio_entrega = relationship("Domicilio")
     transporte = relationship("EmpresaTransporte")
+    comprador = relationship("Vinculo", foreign_keys=[comprador_id])
+    contacto_entrega = relationship("Vinculo", foreign_keys=[contacto_entrega_id])
 
 class PedidoItem(Base):
     __tablename__ = "pedidos_items"

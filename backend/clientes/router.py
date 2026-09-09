@@ -244,7 +244,9 @@ def list_vinculos(
 ):
     """
     Lista vínculos activos de un cliente.
-    flags_mask: filtro OR por bits (ej: 10 = IS_LOGISTIC|IS_DECISION_MAKER)
+    flags_mask: filtro OR por bits de VinculoFlags (backend/contactos/constants.py).
+    Ej: 40 = IS_LOGISTIC (bit 3, valor 8) | IS_DECISION_MAKER (bit 5, valor 32).
+    Doctrina Nike 20260909 v2 -- bits 0-1 reservados (Ley Universal), roles en 2-6.
     """
     from backend.contactos.models import Vinculo, Persona
 

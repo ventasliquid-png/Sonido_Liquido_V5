@@ -162,6 +162,8 @@ def create_pedido_tactico(
             descuento_global_importe=pedido_data.descuento_global_importe or 0.0,
             domicilio_entrega_id=pedido_data.domicilio_entrega_id,
             transporte_id=pedido_data.transporte_id,
+            comprador_id=pedido_data.comprador_id,
+            contacto_entrega_id=pedido_data.contacto_entrega_id,
             flags_estado=pedido_flags_inicial,
             total=0.0 # Se calcula abajo
         )

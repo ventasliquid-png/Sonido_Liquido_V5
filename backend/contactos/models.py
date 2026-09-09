@@ -87,7 +87,9 @@ class Vinculo(Base):
     canales_laborales = Column(JSON, default=list)
     
     # [GENOMA 64-bit] Hybrid Flags (64-bit): Rol, Prioridad, Validación
-    flags_estado = Column(BigInteger, default=0, nullable=False)
+    # Default=3 (EXISTENCE|IS_VIRGIN) -- Dictamen Nike 20260909 v2, cierra el drift
+    # con la tabla real (que hasta ahora tenia DEFAULT 1 a nivel SQL).
+    flags_estado = Column(BigInteger, default=3, nullable=False)
     
     notas_vinculo = Column(Text, nullable=True)
     

@@ -260,6 +260,50 @@
                     </div>
                 </div>
 
+                <!-- Roles de contacto (Comprador / Contacto de Entrega) -->
+                <div class="grid grid-cols-12 gap-4 mt-3">
+                    <div class="col-span-6">
+                        <label class="block text-[10px] font-bold uppercase tracking-widest text-emerald-400/40 mb-2 flex items-center gap-2">
+                            <i class="fas fa-user-check"></i> Comprador
+                        </label>
+                        <div class="relative">
+                            <select
+                                v-model="selectedCompradorId"
+                                class="w-full bg-emerald-900/10 border border-emerald-500/20 text-emerald-100/90 text-sm rounded-lg p-3 pr-8 focus:outline-none focus:border-emerald-500/50 appearance-none"
+                                :disabled="!clienteSeleccionado"
+                            >
+                                <option :value="null">Sin especificar...</option>
+                                <option v-for="v in vinculosCliente" :key="v.id" :value="v.id">
+                                    {{ v.nombre_completo }}{{ v.rol ? ' - ' + v.rol : '' }}
+                                </option>
+                            </select>
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                <i class="fas fa-chevron-down text-emerald-500/50"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-span-6">
+                        <label class="block text-[10px] font-bold uppercase tracking-widest text-amber-400/40 mb-2 flex items-center gap-2">
+                            <i class="fas fa-dolly"></i> Contacto de Entrega
+                        </label>
+                        <div class="relative">
+                            <select
+                                v-model="selectedContactoEntregaId"
+                                class="w-full bg-amber-900/10 border border-amber-500/20 text-amber-100/90 text-sm rounded-lg p-3 pr-8 focus:outline-none focus:border-amber-500/50 appearance-none"
+                                :disabled="!clienteSeleccionado"
+                            >
+                                <option :value="null">Sin especificar...</option>
+                                <option v-for="v in vinculosCliente" :key="v.id" :value="v.id">
+                                    {{ v.nombre_completo }}{{ v.rol ? ' - ' + v.rol : '' }}
+                                </option>
+                            </select>
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                <i class="fas fa-chevron-down text-amber-500/50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </header>
 
             <!-- SECTION 2: BODY (Grid Productos) -->
@@ -1001,6 +1045,12 @@ const loadPedido = async (id) => {
         if (p.transporte_id) {
              selectedTransporteId.value = p.transporte_id;
         }
+        if (p.comprador_id) {
+             selectedCompradorId.value = p.comprador_id;
+        }
+        if (p.contacto_entrega_id) {
+             selectedContactoEntregaId.value = p.contacto_entrega_id;
+        }
 
         notificationStore.add('Pedido cargado para edición.', 'success');
 
@@ -1124,6 +1174,24 @@ const clientLogistics = computed(() => {
 const selectedDomicilioId = ref(null);
 const selectedTransporteId = ref(null);
 
+// Roles de contacto (Dictamen Nike 20260908/20260909 v2) -- comprador y contacto
+// de entrega pueden ser personas distintas dentro del mismo cliente.
+const selectedCompradorId = ref(null);
+const selectedContactoEntregaId = ref(null);
+const vinculosCliente = ref([]);
+
+async function fetchVinculosCliente(clienteId) {
+    vinculosCliente.value = [];
+    if (!clienteId) return;
+    try {
+        const res = await api.get(`/clientes/${clienteId}/vinculos`);
+        vinculosCliente.value = res.data || [];
+    } catch (e) {
+        console.error('[V5] No se pudieron cargar los vínculos del cliente', e);
+        vinculosCliente.value = [];
+    }
+}
+
 const clientAddresses = computed(() => {
     return clienteSeleccionado.value?.domicilios || [];
 });
@@ -1153,9 +1221,15 @@ watch(clienteSeleccionado, (newVal) => {
            selectedDomicilioId.value = null;
            selectedTransporteId.value = null;
        }
+       selectedCompradorId.value = null;
+       selectedContactoEntregaId.value = null;
+       fetchVinculosCliente(newVal.id || newVal._id);
    } else {
        selectedDomicilioId.value = null;
        selectedTransporteId.value = null;
+       selectedCompradorId.value = null;
+       selectedContactoEntregaId.value = null;
+       vinculosCliente.value = [];
    }
 });
 
@@ -2146,6 +2220,8 @@ const buildPayload = () => {
         oc_override: omitirOC.value,
         domicilio_entrega_id: selectedDomicilioId.value || null,
         transporte_id: selectedTransporteId.value || null,
+        comprador_id: selectedCompradorId.value || null,
+        contacto_entrega_id: selectedContactoEntregaId.value || null,
         descuento_global_porcentaje: Number(descuentoGlobalPorcentaje.value) || 0,
         descuento_global_importe: Number(descuentoGlobalValor.value) || 0,
         items: items.value.map(i => ({
