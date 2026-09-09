@@ -1,4 +1,8 @@
-﻿## SESION 856 (OF): CIERRE RETROACTIVO DE S855 (CA, 15/08) + FIX REAL DE CARD #93
+﻿## SESION 861 (OF) — 2026-09-09: Card #125 (Pedido Soberano a nivel renglón) + Contacto en Pedido (Nike Vinculo/roles)
+
+Fix real de producción (`update_remito` no recalculaba bits de entrega) + Card #125 (bloqueo 409 si un renglón de ingesta excede o es ajeno al Pedido) + arquitectura Nike Vinculo/roles ratificada e implementada (`comprador_id`/`contacto_entrega_id`, `VinculoFlags` bits 2-6, migrate_039/040) + rescate de `contacto_principal_nombre` (S860). D:6d734547 B:34de7ae, verificado E2E. P sin verificar (`espejo_mt.py` caído, red inalcanzable). PIN 1974.
+
+## SESION 856 (OF): CIERRE RETROACTIVO DE S855 (CA, 15/08) + FIX REAL DE CARD #93
 
 **Fecha:** 2026-08-24 (cierre retroactivo -- la sesion 855 real ocurrio el 2026-08-15 en CA)
 **Locacion:** cierre en OF

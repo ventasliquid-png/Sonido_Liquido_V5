@@ -3,6 +3,20 @@
 **Estado:** VIGENTE
 **Código de Doctrina:** DEOU-2025
 
+### Actualizacion Sesion 861 OF (2026-09-09) — Aviso al facturar de más + nuevo Pedido con Comprador/Contacto de Entrega
+
+- **Al ingestar una factura, si un renglón trae más cantidad de la que tiene el Pedido, o un
+  producto que el Pedido no tiene cargado, el sistema ahora avisa y no deja seguir** hasta que
+  se actualice el Pedido — antes esto podía pasar en silencio y el Pedido quedaba con datos de
+  entrega incorrectos (caso real: Pedido #98, guantes veterinarios).
+- **Pantalla de Nuevo Pedido: dos selectores nuevos, "Comprador" y "Contacto de Entrega"** —
+  se completan solos con los contactos ya cargados para ese cliente (los mismos vínculos que
+  ya se ven en la ficha del Cliente). Opcionales, no bloquean el guardado si se dejan vacíos.
+- **Buscador de clientes (Nuevo Pedido): ahora también encuentra por nombre de contacto**, no
+  solo por razón social/CUIT/nombre de fantasía — y muestra el contacto principal debajo del
+  nombre del cliente en los resultados.
+- Sin cambios en Remitos ni Facturación fuera de lo del primer punto.
+
 ### Actualizacion Sesion 856 OF (2026-08-24) — cierre retroactivo de S855 (CA, 15/08)
 
 Sin cambios operativos conocidos. Revision de contenido NO realizada esta sesion — no se

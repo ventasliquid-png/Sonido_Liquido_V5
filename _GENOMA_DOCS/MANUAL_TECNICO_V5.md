@@ -2,6 +2,25 @@
 **Version:** 3.3 Release (S851 OF — Causa raiz backend Tomy caido, canario unificado a _env_db)
 **Fecha:** 2026-07-23
 
+### Actualizacion Sesion 861 OF (2026-09-09) — Card #125 (Pedido Soberano a renglon) + Contacto en Pedido
+
+**Commits:** D:`6d734547` B:`34de7ae`
+
+`create_from_ingestion` (los 3 modos VINCULAR_*) ahora valida a nivel renglon antes de crear
+el RemitoItem: si la cantidad de un renglon excede lo pendiente del PedidoItem, o el producto
+no esta cargado en el Pedido, bloquea con 409 (`CANTIDAD_EXCEDE_PEDIDO` / `RENGLON_AJENO_AL_PEDIDO`)
+en vez de continuar en silencio -- mismo tratamiento que "factura sin pedido asociado". Motivado
+por Pedido #98 (factura 2600), donde se ingesto 80 cuando el remito real era de 20 sin ningun aviso.
+
+`update_remito()` corregido: editar cantidades de items de un remito ahora recalcula los bits de
+entrega del pedido (`HAS_PARTIAL_DELIVERY`/`FULL_DELIVERED`), antes solo se recalculaba al anular.
+
+Nueva arquitectura de roles de contacto (dictamen Nike 20260908/20260909 v2): `Vinculo.roles`
+(JSON, nunca usado) deprecado. Rol vive en bits 2-6 de `Vinculo.flags_estado`
+(`backend/contactos/constants.py:VinculoFlags` -- bits 0-1 reservados, Ley Universal). Default
+de `flags_estado` corregido de 0 a 3 (cerraba drift ORM/tabla real). `Pedido` gana
+`comprador_id`/`contacto_entrega_id` (FK a `Vinculo`). Migraciones `039`/`040` aplicadas en D y B.
+
 ### Actualizacion Sesion 856 OF (2026-08-24) — cierre retroactivo de S855 (CA, 15/08)
 
 Sin cambios funcionales. Revision de contenido NO realizada — pendiente: MANUAL_TECNICO_V5.md

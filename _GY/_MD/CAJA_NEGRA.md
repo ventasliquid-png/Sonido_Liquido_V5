@@ -1,4 +1,19 @@
-﻿Sesion actual: 860
+﻿Sesion actual: 861
+
+# CAJA NEGRA: OMEGA Lite - Card #125 Pedido Soberano a nivel renglon + arquitectura Nike Vinculo/roles ratificada e implementada (Contacto en Pedido) - S861 (2026-09-08/09)
+
+Sesion 861 OF. Hash D: 6d734547 | Hash B: 34de7ae. Estado: NOMINAL (13/13). Semaforo CS: AMARILLO (heredado, sin CS presente esta sesion). Agentes: CC, Carlos, Nike, CC-auditora(Opus).
+- Fix real reportado por Tomy en P (pedido #98, factura 2600, guantes veterinarios): `update_remito()` no recalculaba el estado de entrega del pedido al editar cantidades de items, solo al anular -- corregido D->B->prod, verificado contra el pedido real. Hallazgo mayor en el camino, Card #125 creada: ni VINCULAR_PARCIAL ni VINCULAR_EXISTENTE/CUMPLIDO comparaban la cantidad ingestada contra lo cargado en el Pedido -- se podia facturar/remitir de mas sin bloqueo, violando "Pedido es Soberano". Implementado hoy: bloqueo 409 (RENGLON_AJENO_AL_PEDIDO / CANTIDAD_EXCEDE_PEDIDO) en los 3 modos de vinculacion, D->B->prod, falta pull en P.
+- Discusion de arquitectura de Contactos (Vinculo N:M Persona<->Cliente): se necesitaban dos roles por pedido (comprador, contacto de entrega) sin reinstalar el `es_principal` que V6 elimino a proposito. Puente real a Nike (NotebookLM) establecido, dictamen obtenido: usar `Vinculo.flags_estado` (bitmask, existente, sin uso) con bits de rol. Una sesion paralela (Opus, pedida por Carlos para auditar) encontro que el dictamen original colisionaba bits 0/1 con la Ley Universal (EXISTENCE/IS_VIRGIN) antes de que se implementara nada, y ademas que el patch de datos ordenado (`|1`) habria danado irreversiblemente 7 vinculos virgenes -- corregido a `|3` tras re-consulta v2 a Nike, ratificada. Implementado completo hoy: `VinculoFlags` (bits 2-6), `Pedido.comprador_id`/`contacto_entrega_id` (FK a Vinculo), migrate_039 (columnas) + migrate_040 (patch |3), frontend (`PedidoCanvas.vue`, selectores Comprador/Contacto de Entrega). Verificado end-to-end con un pedido real creado via UI real (POST /pedidos/tactico -> 201, comprador_id correcto en la respuesta).
+- Cherry-pick a B reconstruido por patch (B nestea todo bajo `current/`, cherry-pick directo no aplica por paths) -- verificado que los hunks cayeron en el lugar correcto pese a divergencia preexistente no relacionada en `PedidoCanvas.vue`. Migraciones corridas contra la base real de B (`V5_LS_MASTER.db`) con backup previo y `DATABASE_URL` explicito (el fallback del script apunta a un archivo viejo en B, no al real).
+- Rescatado de S860 sin commitear: `contacto_principal_nombre` en el lookup de clientes -- verificado en vivo contra la API real y commiteado hoy.
+- P (Izquierda) sin verificar hoy por dos vias fallidas: `espejo_mt.py` no reporta desde 2026-09-03 (previo a la migracion de esa maquina a Windows 11), y el acceso de red intentado (`Z:` -> `\\192.168.1.2\Users`) no respondio (host inaccesible). Tomy ya se habia retirado. Requiere relay CC-en-P.
+- Prioridad de S860 (reconciliacion D<->B, Lotes 0-6 de `PLAN_RECONCILIACION_D_B_2026-09-03.md`) sigue sin tocar por segunda sesion consecutiva -- queda como prioridad absoluta de la proxima sesion.
+- D:6d734547 B:34de7ae | PIN: 1974
+
+---
+
+Sesion 860 — 2026-09-02/03 — OF (referencia historica preservada abajo)
 
 # CAJA NEGRA: OMEGA Lite - fix currentRawId Ingesta + fixes Remito Manual (OC + factura_vinculada) + plan reconciliacion D-B - S860 (2026-09-02/03)
 
