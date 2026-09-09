@@ -193,6 +193,7 @@ class ClienteService:
         
         query = db.query(Cliente).options(
             joinedload(Cliente.domicilios).joinedload(Domicilio.provincia),
+            joinedload(Cliente.vinculos).joinedload(Vinculo.persona),
         )
 
         # Filter by active status unless requested otherwise

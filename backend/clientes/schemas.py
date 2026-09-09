@@ -306,7 +306,8 @@ class ClienteListResponse(ClienteBase):
     domicilio_fiscal_resumen: Optional[str] = None
     requiere_entrega: bool = False
     fecha_alta: Optional[datetime] = None
-    
+    contacto_principal_nombre: Optional[str] = None
+
     class Config:
         from_attributes = True
 

@@ -19,10 +19,11 @@ const searchInput = ref(null);
 const filteredClientes = computed(() => {
     if (!searchQuery.value) return props.clientes.slice(0, 50); // Top 50 default
     const q = searchQuery.value.toLowerCase();
-    return props.clientes.filter(c => 
+    return props.clientes.filter(c =>
         (c.razon_social?.toLowerCase().includes(q)) ||
         (c.cuit?.includes(q)) ||
-        (c.nombre_fantasia?.toLowerCase().includes(q))
+        (c.nombre_fantasia?.toLowerCase().includes(q)) ||
+        (c.contacto_principal_nombre?.toLowerCase().includes(q))
     ).slice(0, 50); // Limit results for perf
 });
 
@@ -282,6 +283,7 @@ const selectCanteraItem = async (item) => {
                             <td class="p-2 text-slate-300">
                                 <div class="font-bold text-sm">{{ cliente.razon_social }}</div>
                                 <div class="text-xs text-slate-500" v-if="cliente.nombre_fantasia">{{ cliente.nombre_fantasia }}</div>
+                                <div class="text-xs text-cyan-400" v-if="cliente.contacto_principal_nombre">Contacto: {{ cliente.contacto_principal_nombre }}</div>
                             </td>
                             <td class="p-2 text-slate-400 font-mono text-sm">
                                 {{ cliente.cuit || '---' }}
