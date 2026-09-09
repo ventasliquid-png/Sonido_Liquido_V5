@@ -1391,6 +1391,17 @@ const confirmIngesta = async () => {
                 return;
             }
 
+            // [Card #125] Renglon ajeno al pedido o cantidad que excede lo pendiente --
+            // el pedido YA esta vinculado correctamente, no tiene sentido mandar al
+            // operador de vuelta al flujo de "elegir/crear pedido" (handle409NoPedido).
+            if (detail.includes('RENGLON_AJENO_AL_PEDIDO') || detail.includes('CANTIDAD_EXCEDE_PEDIDO')) {
+                const mensaje = detail.replace(/^(RENGLON_AJENO_AL_PEDIDO|CANTIDAD_EXCEDE_PEDIDO): /, '');
+                notification.add(mensaje, 'error');
+                error.value = mensaje;
+                setTimeout(() => { error.value = ''; }, 12000);
+                return;
+            }
+
             notification.add('Se requiere vinculación de pedido para continuar', 'warning');
             await handle409NoPedido();
             return;

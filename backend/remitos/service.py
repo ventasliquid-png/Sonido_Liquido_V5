@@ -309,6 +309,41 @@ class RemitosService:
             pedido_items = db.query(PedidoItem).filter(PedidoItem.pedido_id == nuevo_pedido.id).all()
             goto_remito = True
 
+        # [Card #125 -- Doctrina Pedido Soberano a nivel renglon] Ningun renglon de la
+        # ingesta puede ser ajeno al Pedido vinculado ni exceder lo que todavia tiene
+        # pendiente de entrega. Aplica a los 3 modos VINCULAR_* -- modo_cuarentena queda
+        # afuera porque genera su propio Pedido a medida de la factura, sin margen de
+        # desvio. Antes de esta guarda, un renglon podia facturarse/remitirse de mas (o
+        # un producto ajeno al Pedido) sin ningun aviso ni bloqueo (caso real: Pedido #98,
+        # factura 2600, guantes veterinarios).
+        if goto_remito:
+            pedido_items_check = db.query(PedidoItem).filter(
+                PedidoItem.pedido_id == nuevo_pedido.id
+            ).all()
+            for p_item in payload.items:
+                target = next(
+                    (pi for pi in pedido_items_check if str(pi.producto_id) == str(p_item.producto_id)),
+                    None
+                )
+                if not target:
+                    raise HTTPException(
+                        status_code=409,
+                        detail=(
+                            f"RENGLON_AJENO_AL_PEDIDO: '{p_item.descripcion}' no está cargado en "
+                            f"el Pedido #{nuevo_pedido.id}. Actualice el Pedido antes de continuar."
+                        )
+                    )
+                pendiente = target.cantidad - target.cantidad_entregada
+                if p_item.cantidad > pendiente + 0.001:  # tolerancia de redondeo flotante
+                    raise HTTPException(
+                        status_code=409,
+                        detail=(
+                            f"CANTIDAD_EXCEDE_PEDIDO: '{p_item.descripcion}' trae {p_item.cantidad}, "
+                            f"pero el Pedido #{nuevo_pedido.id} solo tiene {pendiente} pendiente. "
+                            f"Actualice el Pedido antes de continuar."
+                        )
+                    )
+
         if not goto_remito:
             if getattr(payload, 'modo_cuarentena', False):
                 # Crear pedido "fantasma" en cuarentena (para cumplir fk del remito)
