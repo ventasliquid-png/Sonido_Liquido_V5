@@ -3,6 +3,22 @@
 **Estado:** VIGENTE
 **Código de Doctrina:** DEOU-2025
 
+### Actualizacion Sesion 862 OF (2026-09-10) — Cambio real en el flujo de Ingesta + selector de Nodo/Sucursal en Logística
+
+- **IMPORTANTE, avisar a Tomy antes de que lo note solo:** al guardar un Pedido que viene
+  de una factura ingestada, el sistema **ya no genera automáticamente la Factura y el
+  Remito en el mismo paso**. Ahora vuelve a la pantalla de Ingesta para completar la
+  vinculación en dos pasos (elegir/confirmar el Pedido, después vincular la Factura y el
+  Remito). Es a propósito — evita que se facture o remita algo que nunca se comparó de
+  verdad contra el Pedido real.
+- **Empresas de Transporte con sucursales/nodos**: al cargar el primer nodo de una
+  transportista, ahora aparece el selector "Nodo/Sucursal" en la pantalla de logística
+  del Pedido (antes no aparecía nunca, aunque la transportista tuviera nodos cargados).
+  También se bloquea borrar una transportista mientras tenga nodos activos.
+- **Toggle "Tipo Pedido" (Comercial / No Comercial)** y el panel de Notas ahora se ven
+  igual en todas las máquinas (antes el panel de notas se abría distinto según la PC).
+- Sin cambios en Facturación fuera de lo del primer punto.
+
 ### Actualizacion Sesion 861 OF (2026-09-09) — Aviso al facturar de más + nuevo Pedido con Comprador/Contacto de Entrega
 
 - **Al ingestar una factura, si un renglón trae más cantidad de la que tiene el Pedido, o un

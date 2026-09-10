@@ -2,6 +2,67 @@
 **Version:** 3.3 Release (S851 OF — Causa raiz backend Tomy caido, canario unificado a _env_db)
 **Fecha:** 2026-07-23
 
+### Actualizacion Sesion 862 OF (2026-09-10) — Reconciliacion D<->B Lotes 2/4/5 + doctrina Esclusa de Verdad + incidente venv en P
+
+**Commits B:** `9c3e143` (Lote 2), `ddbf7d9` (Lote 4), `90481ac` (Lote 5), `805be6e` (lock de venv de P)
+
+Reconciliacion D<->B (`PLAN_RECONCILIACION_D_B_2026-09-03.md`), Lotes 2/4/5 completos --
+con Lote 0 (hecho en S861), solo queda Lote 6 (`IngestaFacturaView.vue`) de todo el plan.
+
+**Lote 2:** `logistica/router.py` de B no tenia el guard 409 (bloquea borrar una
+`EmpresaTransporte` con nodos activos) ni el ciclo de vida de `flags_estado` Bit 6
+(`HAS_NODOS`) al crear/borrar nodos -- D si lo tenia. Sin esto, `LogisticaPanel.vue:79`
+(selector Nodo/Sucursal) nunca se mostraba en B aunque una transportista tuviera nodos
+reales cargados. Portado, verificado con empresa+nodo de prueba contra la base real de B.
+
+**Lote 4:** backend de `ES_NO_COMERCIAL` (Bit 11) ya identico en B -- solo faltaba el
+toggle de frontend en `PedidoCanvas.vue`. Portado junto con el panel de notas inline
+(reemplaza el popup flotante absoluto que tenia B, drift cosmetico desde el primer
+deploy). Verificado contra pedido real (#73, Gelato SA).
+
+**Lote 5 -- el mas importante arquitectonicamente:** B tenia un segundo camino en
+`savePedido()` (generar Factura "borrador" desde el Pedido -> sellarla -> Remito puente)
+que D habia eliminado en junio (commit `3d037a32`, sesion 827) sin que la eliminacion se
+propagara nunca a B ni se documentara por que. Diagnostico: ese camino generaba la
+Factura A PARTIR de lo tipeado en el Pedido, sin comparar nunca contra una ingesta real
+-- "espejo tautologico", el guard de Card #125 (`create_from_ingestion`) no tenia nada
+contra que chocar ahi. Consultado a Nike Arq 5.5 en vivo (formato Contexto/Problema/
+Opciones de `FAQ_ARRANQUE.md`): dictamen con Sello de Oro, nombra la doctrina "Esclusa
+de Verdad" (una Factura AFIP/ARCA jamas es soberana sobre la realidad fisica del
+inventario; debe quedar en cuarentena hasta que un Pedido la respalde explicitamente),
+falla por reconciliar B a D. Canonizado en `BIBLIOTECA_NIKE.md` junto con una nota de
+honestidad: no existe un informe de sesion 827 que documente esa motivacion
+explicitamente -- el commit real solo habla de "consolidar en flujo canonico" -- pero
+"Pedidos soberano" ya era dictamen Nike ratificado 9 dias despues (S836, 2026-06-26) y
+"Todo nace y muere en Pedidos" ya estaba canonizado antes de esta consulta. Toda la
+infraestructura de reemplazo (Bit 38 `ORIGEN_FACTURA`, `isFromIngesta`, `VINCULAR_EXISTENTE`,
+`handle409NoPedido`) ya existia identica en D y B -- el cambio se redujo a borrar el
+atajo en `savePedido()` y corregir el `finally` para no perder `clearIngestaData()`.
+Verificado en dos frentes: patron exacto probado end-to-end contra el dev server de D
+con estado real (`POST /pedidos/tactico` -> 201, redirect a Ingesta, cero llamadas a
+`/facturacion`/`/remitos/puente`), y `isFromIngesta` reactivo confirmado en vivo contra
+B real (tooltip del toggle Circuito). **Pendiente no tecnico: avisar a Tomy del cambio
+de flujo** (ver Manual Operativo).
+
+**Incidente real en P (Izquierda), causado y resuelto en esta misma sesion:** un
+`git checkout -- current/backend/venv/` pedido a una sesion CC-en-P para limpiar el
+arbol antes de un pull piso un venv que Tomy habia reconstruido a mano con Python 3.12
+tras la migracion a Windows 11 (arreglo local nunca commiteado, mismo patron ya visto
+antes con `pyvenv.cfg` en B) -- trajo de vuelta el venv roto de Python 3.11 (inexistente
+en esa PC), el lanzador dejo de abrir nada. Diagnosticado via acceso de red directo a P
+(comparte SMB `Users` y `C` completo), resuelto con un segundo prompt a CC-en-P con PIN
+1974: venv viejo archivado (no borrado) en `venv_roto_python311_2026-09-10/`, venv
+nuevo con Python 3.12.10, 127 dependencias reinstaladas desde un `pip freeze` real y
+probado de B (NO desde `requirements.txt`, desactualizado -- le faltan `fpdf2`/`zeep`/
+`PyMuPDF` entre otros). Lista de dependencias commiteada en `prod/main` (`805be6e`,
+`venv_confirmado_2026-09-10.lock` -- renombrada de `.txt` por una regla `*.txt`
+deliberada del `.gitignore` de P). Como efecto colateral bueno, el lanzador real corrio
+`auto_migrar.py` (Card #123) y aplico solas las migraciones de Item 2 que habian quedado
+pendientes desde la manana. P quedo con codigo, venv y datos al dia -- confirmado por
+Carlos en persona ("disparo correcto y abrio el sistema"). Pendiente de baja prioridad:
+borrar el venv archivado (Card #128), a proposito diferido hasta que Tomy confirme uso
+real manana.
+
 ### Actualizacion Sesion 861 OF (2026-09-09) — Card #125 (Pedido Soberano a renglon) + Contacto en Pedido
 
 **Commits:** D:`6d734547` B:`34de7ae`

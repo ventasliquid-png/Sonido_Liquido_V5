@@ -1,4 +1,19 @@
-﻿Sesion actual: 861
+﻿Sesion actual: 862
+
+# CAJA NEGRA: OMEGA Completo - Reconciliacion D-B Lotes 2/4/5 + doctrina Esclusa de Verdad (Nike) + incidente y fix de venv en P - S862 (2026-09-10)
+
+Sesion 862 OF. Hash D: [cierre] | Hash B: 805be6e. Estado: NOMINAL (13/13). Semaforo CS: AMARILLO (heredado, sin CS presente). Agentes: CC, Carlos, Nike, CC-en-P.
+- Cerrados Lote 2 (guard 409 + Bit 6 HAS_NODOS en EmpresaTransporte, B nunca lo tuvo), Lote 4 (toggle ES_NO_COMERCIAL + notas inline, backend ya identico en B) y Lote 5 (elimina el camino paralelo de auto-generacion de Factura/Remito en B) de la reconciliacion D<->B. Con Lote 0 de S861, solo queda Lote 6 (IngestaFacturaView.vue, 953 lineas) de todo el plan original.
+- Lote 5 fue el mas importante: B generaba la Factura A PARTIR del Pedido tipeado, sin comparar nunca contra una ingesta real -- "espejo tautologico" que dejaba sin efecto el guard de Card #125. Consultado a Nike Arq 5.5 en vivo (Carlos logueado, pregunta formal segun FAQ_ARRANQUE.md): dictamen con Sello de Oro, doctrina "Esclusa de Verdad" (Factura jamas soberana sobre la realidad fisica, cuarentena hasta que el Pedido la respalde), falla por reconciliar B a D. Canonizado en BIBLIOTECA_NIKE.md con nota de honestidad: no hay informe de sesion 827 que documente esa motivacion para el commit real que elimino esto en D, pero "Pedidos soberano" ya era dictamen ratificado 9 dias despues (S836) y "Todo nace y muere en Pedidos" ya era doctrina canonizada antes de esta consulta.
+- Incidente real en P (Izquierda), causado y resuelto en la misma sesion: un git checkout pedido a CC-en-P para limpiar el arbol piso un venv que Tomy habia reconstruido a mano con Python 3.12 tras la migracion a Windows 11 (arreglo local no commiteado) -- trajo de vuelta el venv roto de Python 3.11, el lanzador dejo de abrir nada. Diagnosticado via acceso de red directo a P (Carlos la habia encendido), resuelto con un segundo prompt a CC-en-P con PIN 1974: venv archivado (no borrado), venv nuevo con Python 3.12.10, 127 dependencias del pip freeze real de B (no de requirements.txt, desactualizado). Lista commiteada en prod/main (805be6e). Efecto colateral bueno: el lanzador real corrio auto_migrar.py y cerro solo las migraciones de Item 2 que quedaban pendientes desde la manana. P confirmado al dia por Carlos en persona.
+- Cards #125/#126 cerradas en el Board (P ya no esta pendiente). Card #128 creada (borrar el venv archivado en P, Prioridad BAJA, diferido a proposito hasta que Tomy confirme uso real manana).
+- Pendiente no tecnico, real: avisar a Tomy del cambio de flujo operativo de Lote 5 -- ya esta en produccion, sin comunicar todavia.
+- Reorganizacion del Silo: Q:\...\Intercambio\ separada de B\ (que ahora solo tiene los .bat reales del sistema B).
+- D:[cierre] B:805be6e | PIN: 1974
+
+---
+
+Sesion 861 — 2026-09-08/09 — OF (referencia historica preservada abajo)
 
 # CAJA NEGRA: OMEGA Lite - Card #125 Pedido Soberano a nivel renglon + arquitectura Nike Vinculo/roles ratificada e implementada (Contacto en Pedido) - S861 (2026-09-08/09)
 

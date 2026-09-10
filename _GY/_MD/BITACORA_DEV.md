@@ -1,4 +1,8 @@
-﻿## SESION 861 (OF) — 2026-09-09: Card #125 (Pedido Soberano a nivel renglón) + Contacto en Pedido (Nike Vinculo/roles)
+﻿## SESION 862 (OF) — 2026-09-10: Reconciliación D↔B (Lotes 2/4/5) + doctrina "Esclusa de Verdad" (Nike) + incidente y fix de venv en P
+
+Cerrados Lotes 2/4/5 de la reconciliación D↔B (con Lote 0 de S861, solo queda Lote 6). El más importante: Lote 5 eliminó en B un camino paralelo que auto-generaba Factura+Remito desde el Pedido tipeado sin comparar contra la ingesta real — Nike ratificó con Sello de Oro la doctrina "Esclusa de Verdad" (canonizada en BIBLIOTECA_NIKE.md). Aparte: un `git checkout` de esta misma sesión rompió el venv de P (pisó un arreglo local no commiteado de Tomy post-Windows 11) — diagnosticado y resuelto en la misma sesión vía acceso de red directo, venv reconstruido con Python 3.12, P confirmado al día por Carlos en persona. D:[cierre] B:805be6e. PIN 1974.
+
+## SESION 861 (OF) — 2026-09-09: Card #125 (Pedido Soberano a nivel renglón) + Contacto en Pedido (Nike Vinculo/roles)
 
 Fix real de producción (`update_remito` no recalculaba bits de entrega) + Card #125 (bloqueo 409 si un renglón de ingesta excede o es ajeno al Pedido) + arquitectura Nike Vinculo/roles ratificada e implementada (`comprador_id`/`contacto_entrega_id`, `VinculoFlags` bits 2-6, migrate_039/040) + rescate de `contacto_principal_nombre` (S860). D:6d734547 B:34de7ae, verificado E2E. P sin verificar (`espejo_mt.py` caído, red inalcanzable). PIN 1974.
 
