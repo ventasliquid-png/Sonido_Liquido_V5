@@ -711,7 +711,8 @@ def update_pedido(
         raise HTTPException(status_code=404, detail="Pedido no encontrado")
     
     update_data = pedido_update.dict(exclude_unset=True)
-    
+    cierre_confirmado = update_data.pop("cierre_confirmado", False)  # flag de confirmación, no es columna de Pedido
+
     # [GY-FIX] Recalculate Total if Status, Type, Discounts or ITEMS change
     status_changed = False
     if "estado" in update_data:
@@ -733,6 +734,30 @@ def update_pedido(
         current_state_bit = (pedido.flags_estado or 0) & STATE_MASK.value
         target_state_bit = new_state_flag & STATE_MASK.value
         status_changed = (current_state_bit != target_state_bit)
+
+        # Doctrina CIERRE_CON_AJUSTE por discrepancia al cerrar (Bit 46, S863):
+        # cerrar un pedido (CUMPLIDO) es una accion soberana del operador aunque
+        # algun renglon haya quedado con cantidad_entregada distinta de cantidad
+        # (tolerancia de fabricacion, o el cliente pidio no completar la
+        # entrega) -- sin necesidad de editar cantidad. El backend detecta la
+        # discrepancia y exige confirmacion explicita en vez de cerrar en
+        # silencio; si se confirma, documenta la diferencia en pedido.nota.
+        cierre_discrepancias = []
+        if status_changed and val_upper == "CUMPLIDO":
+            cierre_discrepancias = [
+                (item.producto.nombre if item.producto else f"ítem #{item.id}", item.cantidad, item.cantidad_entregada)
+                for item in pedido.items
+                if item.cantidad != item.cantidad_entregada
+            ]
+            if cierre_discrepancias and not cierre_confirmado:
+                detalle = "; ".join(f"{nombre}: pedido {ped}, entregado {ent}" for nombre, ped, ent in cierre_discrepancias)
+                raise HTTPException(
+                    status_code=409,
+                    detail=(
+                        f"CIERRE_CON_DISCREPANCIA: este pedido tiene renglones donde lo entregado "
+                        f"no coincide con lo pedido: {detalle}. Confirme el cierre para continuar."
+                    )
+                )
 
     type_changed = ("tipo_facturacion" in update_data and update_data["tipo_facturacion"] != pedido.tipo_facturacion)
     discounts_changed = ("descuento_global_importe" in update_data or "descuento_global_porcentaje" in update_data)
@@ -859,7 +884,14 @@ def update_pedido(
                 new_state_flag = PF.ES_FIRME.value
                 
             pedido.flags_estado = (pedido.flags_estado & ~STATE_MASK.value) | new_state_flag
-            
+
+            if val_upper == "CUMPLIDO" and cierre_discrepancias:
+                ts = datetime.now().strftime("%Y-%m-%d %H:%M")
+                detalle = "; ".join(f"{nombre}: pedido {ped}, entregado {ent}" for nombre, ped, ent in cierre_discrepancias)
+                nota_forense = f"\n[SISTEMA] Cierre confirmado con discrepancia. {detalle}. {ts}"
+                pedido.nota = (pedido.nota or "") + nota_forense
+                pedido.flags_estado |= PF.CIERRE_CON_AJUSTE.value
+
     if pedido_update.from_ingesta:
         pedido.flags_estado |= PF.ORIGEN_FACTURA.value
     

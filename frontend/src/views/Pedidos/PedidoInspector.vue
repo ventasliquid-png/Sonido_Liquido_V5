@@ -604,6 +604,24 @@ const handleStatusChange = async (newStatus) => {
         emit('update-status', props.modelValue, newStatus)
         notification.add(`Estado: ${newStatus}`, 'success')
     } catch (e) {
+        // Cierre con discrepancia (Bit 46, S863): el backend pide confirmación
+        // explícita en vez de cerrar en silencio un pedido cuya entrega real
+        // no coincide con lo pedido -- ver update_pedido() en router.py.
+        const detail = e.response?.data?.detail || ''
+        if (e.response?.status === 409 && detail.startsWith('CIERRE_CON_DISCREPANCIA')) {
+            const mensaje = detail.replace('CIERRE_CON_DISCREPANCIA: ', '')
+            if (confirm(`⚠️ ${mensaje}`)) {
+                try {
+                    await store.updatePedido(props.modelValue.id, { estado: newStatus, cierre_confirmado: true })
+                    props.modelValue.estado = newStatus
+                    emit('update-status', props.modelValue, newStatus)
+                    notification.add(`Estado: ${newStatus} (con nota de discrepancia)`, 'success')
+                } catch (e2) {
+                    notification.add('Error al cambiar estado', 'error')
+                }
+            }
+            return
+        }
         notification.add('Error al cambiar estado', 'error')
     }
 }

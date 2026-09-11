@@ -77,6 +77,10 @@ class PedidoUpdate(BaseModel):
     oc: Optional[str] = None
     oc_override: Optional[bool] = None
     estado: Optional[str] = None
+    # Confirma el cierre (CUMPLIDO) de un pedido con renglones cuya cantidad
+    # entregada difiere de la pedida (Bit 46, S863). Sin esta confirmación, el
+    # backend rechaza el cierre con 409 CIERRE_CON_DISCREPANCIA.
+    cierre_confirmado: Optional[bool] = False
     tipo_facturacion: Optional[str] = None
     origen: Optional[str] = None
     descuento_global_porcentaje: Optional[float] = None

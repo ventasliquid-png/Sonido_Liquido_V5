@@ -4,8 +4,14 @@
 
 <template>
   <div class="h-full w-full flex flex-col">
-  <!-- Acciones principales → teletransportadas al centro del GlobalStatsBar -->
-  <Teleport to="#global-header-center">
+  <!-- Acciones principales → teletransportadas al centro del GlobalStatsBar.
+       v-if="isMounted" (mismo patrón que HaweView.vue): en una carga en frío
+       directo sobre esta ruta, el destino del Teleport (GlobalStatsBar) puede
+       no estar todavía en el DOM en el mismo pase de montaje -- sin la guarda,
+       Vue tira "Cannot set properties of null (setting '__vnode')" y aborta el
+       render de TODO el componente, dejando la lista vacía para siempre
+       aunque los datos sí llegaron (fix S863). -->
+  <Teleport to="#global-header-center" v-if="isMounted">
     <div class="flex items-center gap-3">
       <!-- Nuevo Pedido (F4) -->
       <button
@@ -271,8 +277,14 @@
                                 class="flex justify-between text-[11px] items-center"
                             >
                                 <span class="text-emerald-100/70 truncate max-w-[160px]">{{ item.producto?.nombre }}</span>
-                                <div class="flex gap-2 font-mono text-emerald-500/50">
+                                <div class="flex gap-2 font-mono text-emerald-500/50 items-center">
                                     <span>x{{ item.cantidad }}</span>
+                                    <span v-if="item.cantidad_entregada > 0 && item.cantidad_entregada !== item.cantidad"
+                                        class="text-amber-400 font-bold"
+                                        :title="'Pedido: ' + item.cantidad + ' / Entregado real: ' + item.cantidad_entregada"
+                                    >
+                                        (entreg. {{ item.cantidad_entregada }})
+                                    </span>
                                 </div>
                             </div>
                             <div v-if="zoomedPedido.items.length > 4" class="text-[10px] text-emerald-500/50 italic text-center pt-1">
@@ -632,12 +644,32 @@ const handleStatusChange = async (pedido, newStatus) => {
     try {
         await store.updatePedido(pedido.id, { estado: newStatus })
         notificationStore.add(`Pedido #${pedido.id} actualizado a ${newStatus}`, 'success')
-        
+
         const updated = store.pedidos.find(p => p.id === pedido.id)
         if (updated && selectedPedido.value && selectedPedido.value.id === pedido.id) {
             selectedPedido.value = updated
         }
     } catch (e) {
+        // Cierre con discrepancia (Bit 46, S863): el backend pide confirmación
+        // explícita en vez de cerrar en silencio un pedido cuya entrega real
+        // no coincide con lo pedido -- ver update_pedido() en router.py.
+        const detail = e.response?.data?.detail || ''
+        if (e.response?.status === 409 && detail.startsWith('CIERRE_CON_DISCREPANCIA')) {
+            const mensaje = detail.replace('CIERRE_CON_DISCREPANCIA: ', '')
+            if (confirm(`⚠️ ${mensaje}`)) {
+                try {
+                    await store.updatePedido(pedido.id, { estado: newStatus, cierre_confirmado: true })
+                    notificationStore.add(`Pedido #${pedido.id} actualizado a ${newStatus} (con nota de discrepancia)`, 'success')
+                    const updated = store.pedidos.find(p => p.id === pedido.id)
+                    if (updated && selectedPedido.value && selectedPedido.value.id === pedido.id) {
+                        selectedPedido.value = updated
+                    }
+                } catch (e2) {
+                    notificationStore.add('Error actualizando estado', 'error')
+                }
+            }
+            return
+        }
         notificationStore.add('Error actualizando estado', 'error')
     }
 }
@@ -674,7 +706,10 @@ const handleDeleteItem = async (itemId) => {
     }
 }
 
+const isMounted = ref(false)
+
 onMounted(() => {
+    isMounted.value = true
     refresh()
     window.addEventListener('keydown', handleGlobalKeydown)
 })
