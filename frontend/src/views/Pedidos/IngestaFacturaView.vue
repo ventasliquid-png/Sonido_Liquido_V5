@@ -561,7 +561,7 @@
                                 >
                                     <option :value="null">-- Seleccione un pedido --</option>
                                     <option v-for="p in pendingPedidos" :key="p.id" :value="p.id">
-                                        {{ p._esPres ? '[PPTO]' : '[PED]' }} #{{ p.id }} — {{ p.cliente.razon_social }} ({{ p.fecha }})
+                                        {{ tieneEntregasParciales(p) ? '⚠️ PARCIAL — ' : '' }}{{ p._esPres ? '[PPTO]' : '[PED]' }} #{{ p.id }} — OC: {{ p.oc || 'S/N' }} — {{ p.cliente.razon_social }} ({{ p.fecha }})
                                     </option>
                                 </select>
                             </div>
