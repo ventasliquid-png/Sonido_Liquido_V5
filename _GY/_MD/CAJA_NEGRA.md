@@ -1,6 +1,19 @@
-﻿Sesion actual: 862
+﻿Sesion actual: 863
 
-# CAJA NEGRA: OMEGA Completo - Reconciliacion D-B Lotes 2/4/5 + doctrina Esclusa de Verdad (Nike) + incidente y fix de venv en P - S862 (2026-09-10)
+# CAJA NEGRA: OMEGA Completo - Bug critico de trazabilidad + Bit 46 (dictamen Nike, correccion de proceso) + cierre con discrepancia + fix del Tablero - S863 (2026-09-11)
+
+Sesion 863 OF. Hash D: 884c910c | Hash B: 3391e45. Estado: NOMINAL (13/13). Semaforo CS: AMARILLO (heredado, sin CS presente). Agentes: CC, Carlos, Nike.
+- Saldada deuda de 2 semanas: 4 dictamenes de Nike de S858 (excepcion Bit 1 Remitos, paridad MULTI_CUIT+exclusion de genericos, Doctrina de Linaje cliente_origen_id) canonizados en BIBLIOTECA_NIKE.md, verificados contra codigo vigente antes de escribirse.
+- Fix real en Ingesta de Facturas: el combo de vincular pedido y el modal 409 ahora muestran la OC de cada candidato y una alerta "PARCIAL" si ya tiene entregas -- antes el operador tenia que abandonar la pantalla y buscar la OC fisica a mano.
+- **BUG CRITICO encontrado y corregido**: investigando un caso real de negocio (OC de un cliente con tolerancia de fabricacion +-7%, entrego 1480 de 1500 pedidos), se descubrio que PATCH /pedidos/{id} trataba CUALQUIER guardado de un pedido como "borrar todos los renglones y recrearlos" -- y el frontend manda el array completo de items en cada guardado, sin condicion. Resultado: guardar un pedido ya entregado, por el motivo que fuera, le borraba el vinculo a sus remitos y reseteaba la entrega a cero. Corregido con upsert por id (preserva el vinculo), antes de seguir con cualquier feature nueva -- decision explicita de Carlos.
+- Construido un mecanismo para cerrar un pedido con cantidad distinta a la pedida: boton de ajuste + nota forense + bit nuevo del Genoma. Se eligio un bit "libre" por lectura propia de constants.py SIN consultar a Nike -- Carlos freno el commit y exigio el proceso correcto ("Nike determina el bit, tiene el mapa"). Se encontro que ese bit YA estaba reservado por un dictamen previo de Nike nunca implementado ni documentado en ningun otro lugar del Silo. Re-consultado con el contexto completo, Nike dio Sello de Oro al diseno y asigno el Bit 46 -- 44 y 45 quedan reservados y documentados.
+- Probado el mecanismo contra un pedido real (Cassara) en el Tablero de P, Carlos objeto que editar la cantidad borra el hecho comercial original (la OC). Rediseno final: el pedido se cierra (CUMPLIDO) sin tocar cantidad -- el backend detecta la discrepancia pedido/entregado, exige confirmacion explicita (409), y si se confirma agrega la nota + el mismo Bit 46.
+- En el camino de verificar esto cruzando D y B se encontro y corrigio un bug real y aparte: el Tablero de Pedidos podia quedar en blanco en una carga en frio, por un Teleport sin la misma guarda (v-if="isMounted") que otra pantalla del propio proyecto ya usaba para el mismo destino.
+- P no recibio ninguno de los 4 cambios de hoy -- queda un push detras de B, prioridad alta para el proximo relay a CC-en-P.
+- D:884c910c B:3391e45 | PIN: 1974
+
+---
+
 
 Sesion 862 OF. Hash D: bc7057a7 | Hash B: 805be6e. Estado: NOMINAL (13/13). Semaforo CS: AMARILLO (heredado, sin CS presente). Agentes: CC, Carlos, Nike, CC-en-P.
 - Cerrados Lote 2 (guard 409 + Bit 6 HAS_NODOS en EmpresaTransporte, B nunca lo tuvo), Lote 4 (toggle ES_NO_COMERCIAL + notas inline, backend ya identico en B) y Lote 5 (elimina el camino paralelo de auto-generacion de Factura/Remito en B) de la reconciliacion D<->B. Con Lote 0 de S861, solo queda Lote 6 (IngestaFacturaView.vue, 953 lineas) de todo el plan original.

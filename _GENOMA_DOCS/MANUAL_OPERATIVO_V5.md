@@ -1051,3 +1051,38 @@ Arreglos internos en Remito Manual (la OC ahora se ve en el selector de pedidos,
 mensaje interno del sistema dejó de aparecer donde no correspondía) e Ingesta de
 Facturas (vincular a un pedido existente ya no falla al volver de la pantalla de
 Pedido). Nada nuevo que aprender — mismos botones, mismo flujo de siempre.
+
+## S863 (Completo) — OC visible en Ingesta, alerta de parcial, y cierre de pedidos con diferencia
+
+**En Ingesta de Facturas**, al elegir a qué Pedido corresponde una factura, la lista
+ahora muestra la OC de cada candidato junto al cliente y la fecha — ya no hace falta
+salir de la pantalla a buscar la OC física para saber cuál es. Si un candidato ya tiene
+alguna entrega parcial registrada, aparece marcado con **"⚠️ PARCIAL —"** al principio,
+como aviso preventivo antes de elegirlo.
+
+**Novedad que no vas a notar, y esa es la idea:** guardar un pedido que ya tiene
+entregas registradas (por ejemplo, para cambiarle una nota o el transporte) es ahora
+más seguro — antes, en un caso raro, podía perder por accidente el registro de lo ya
+entregado. No cambia nada en cómo se usa el sistema.
+
+**Cerrar un pedido con una cantidad distinta a la pedida.** Puede pasar que un
+producto tenga tolerancia de fabricación (se entrega un poco más o menos de lo
+pedido), o que un cliente pida no completar el resto de una entrega. Dos formas de
+resolverlo, según el caso:
+
+- Si hay que **corregir un error de tipeo** en la cantidad original del pedido, o
+  **subir la cantidad** porque el cliente pidió más a mitad de entrega: en la ficha
+  del Pedido, un renglón que ya tiene alguna entrega registrada muestra un lápiz al
+  lado de la cantidad — tocarlo permite editarla. El sistema deja registrado
+  automáticamente qué cambió y cuándo.
+- Si lo que corresponde es **dar por cerrado el pedido tal cual quedó** (sin editar
+  ninguna cantidad): al marcar el pedido como CUMPLIDO, si algún renglón quedó con
+  una cantidad entregada distinta de la pedida, el sistema muestra una alerta con el
+  detalle antes de cerrar. Si se confirma, el pedido cierra igual y queda una nota
+  automática explicando la diferencia — la cantidad original del pedido **no se
+  toca**, para no perder el dato de lo que realmente se había pedido.
+
+**En el Tablero de Pedidos**, pasando el mouse sobre un pedido (sin hacer click), la
+tarjeta que aparece ahora muestra la cantidad realmente entregada de cada renglón
+entre paréntesis, pero solo cuando es distinta de la cantidad pedida — si coinciden,
+no se agrega nada de más.

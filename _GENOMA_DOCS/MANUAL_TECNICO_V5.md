@@ -260,6 +260,68 @@ Sesion de doctrina/protocolo pura — sin cambios en codigo de producto (backend
 - `flags_estado INTEGER DEFAULT 0` agregado a tabla `remitos` vía migrate_036.
 - Genoma canonizado: EXISTENCE(0), HAS_ACTIVITY(1), ES_LIBRE(4 — reservado), V15_STRUCT(10), VINCULAR_PARCIAL(11), PROHIBIDO(13).
 
+## 39. UPSERT POR ID EN update_pedido() + BIT 46 CIERRE_CON_AJUSTE (Sesión 863 OF, 2026-09-11)
+
+### 39.1 Bug crítico: guardar un pedido con entregas borraba su trazabilidad
+
+**Síntoma:** ninguno visible — el bug no daba error, simplemente `cantidad_entregada`
+volvía a 0 en la ficha del pedido después de guardarlo por cualquier motivo (una nota,
+cambiar el transporte), aunque no se hubiera tocado ningún renglón.
+
+**Causa raíz:** `cantidad_entregada` es una `@property` calculada en el momento sumando
+`RemitoItem` vinculados a ese `PedidoItem.id` (`pedidos/models.py`). El endpoint
+`PATCH /pedidos/{id}` (`update_pedido()`, `router.py`), al recibir `items` en el payload,
+borraba **todos** los `PedidoItem` del pedido (y en cascada sus `RemitoItem`, para no
+violar la FK) y creaba renglones nuevos desde cero — con **id distinto**. Como
+`PedidoCanvas.vue::buildPayload()` manda el array completo de ítems en **cada** guardado,
+sin condición, cualquier guardado normal de un pedido ya entregado destruía el vínculo con
+sus remitos reales.
+
+**Fix:** `update_pedido()` ahora hace upsert por id. `PedidoItemCreate` ganó un campo
+`id: Optional[int] = None` — presente y existente = actualizar ese renglón en el lugar
+(preserva `PedidoItem.id`, y por lo tanto sus `RemitoItem`); ausente = alta nueva. Un
+renglón que estaba y ya no viene en el array solo se borra si `cantidad_entregada == 0`
+para él — si tiene entrega real, 400 explícito en vez de borrado silencioso. El frontend
+debe mandar el `id` real de cada renglón existente (`PedidoCanvas.vue` lo hidrata como
+`pedido_item_id`, separado de la key sintética de UI que usa `v-for`).
+
+> **REGLA:** cualquier endpoint que reciba una colección completa de sub-entidades hijas
+> (`items`, `renglones`, etc.) y las persista con un patrón "borrar todo y recrear" debe
+> preguntarse primero si esas filas hijas tienen relaciones que dependen de su `id`
+> permanecer estable. Si las tienen, el patrón correcto es upsert por id, no
+> replace-all — aunque replace-all sea más simple de escribir.
+
+### 39.2 Bit 46 CIERRE_CON_AJUSTE — cicatriz forense por discrepancia al cerrar
+
+Un pedido puede cerrarse (`estado = CUMPLIDO`) con algún renglón donde
+`cantidad_entregada != cantidad` (tolerancia de fabricación, el cliente pide no completar
+la entrega, sobre-entrega). Doctrina (Nike, Sello de Oro, corrigiendo un intento previo de
+usar el Bit 44 sin consultar — ver `BIBLIOTECA_NIKE.md` Módulo 2): **`cantidad` nunca se
+edita para forzar el cierre** — el Pedido es el documento soberano, editarla borraría el
+hecho comercial original (lo que la OC decía).
+
+En vez de eso, `update_pedido()` detecta la discrepancia al transicionar a CUMPLIDO y
+exige confirmación explícita:
+- Sin `cierre_confirmado: true` en el payload → `409 CIERRE_CON_DISCREPANCIA` con el
+  detalle (qué renglón, cantidad pedida vs entregada).
+- Con `cierre_confirmado: true` → cierra igual, agrega nota forense automática a
+  `pedido.nota` (`"[SISTEMA] Cierre confirmado con discrepancia. <detalle>. <fecha>"`) y
+  enciende `PedidoFlags.CIERRE_CON_AJUSTE` (Bit 46) — cicatriz irreversible, banda 32+
+  ortogonal y acumulable (mismo tipo que `CAMBIO_A_NEGRO`/`PEDIDO_GHOST`).
+
+El mismo Bit 46 también se enciende por la vía del editor de cantidad (`PATCH
+/pedidos/items/{id}`, lápiz en `PedidoCanvas.vue`) — para el caso distinto de corregir un
+error de tipeo real en la cantidad original, o subir la cantidad para destrabar la guarda
+`CANTIDAD_EXCEDE_PEDIDO` al reconciliar una ingesta. Ambos caminos son legítimos y
+coexisten: uno cierra sin tocar `cantidad`, el otro edita `cantidad` deliberadamente — el
+Bit 46 marca "hubo una discrepancia documentada", sin importar por cuál de los dos caminos
+se llegó a ella.
+
+**Bits 44 (`ES_ENTREGADO`) y 45 (`COBRADO`)** quedan documentados en `constants.py` como
+RESERVADOS por un dictamen previo de Nike, nunca implementado — no reutilizar esos
+números aunque `constants.py` los muestre "libres" a simple vista. Antes de asignar
+cualquier bit nuevo del Genoma, consultar a Nike — no inferir por lectura del archivo.
+
 ## 38. REGLA DE ALCANCE LOCAL EN PYTHON: import DENTRO DE FUNCIÓN (Sesion 835 OF, 2026-06-25)
 
 ### 38.1 El problema (UnboundLocalError)
@@ -426,6 +488,41 @@ Cuando Vue Router inicia la navegación a `PedidoCanvas`, `route.name` cambia **
 | `v-show=false` | `display:none` | ✅ SÍ — target permanece |
 
 **Afecta a:** cualquier componente que use `<Teleport to="#global-header-center">` → HaweView.vue, PedidoList.vue, y cualquier vista futura que use el portal del GlobalStatsBar.
+
+### 35.4 Segunda cara del mismo problema: carga en frío (Sesión 863 OF, 2026-09-11)
+
+**Síntoma:** `PedidoList.vue` ("Tablero de Pedidos") mostraba "No se encontraron pedidos"
+pese a que la API devolvía los datos reales — pero solo en una **carga en frío directa**
+sobre `/pedidos` (URL tipeada, `Ctrl+F5`). Navegando desde el menú de la app (SPA, sin
+recarga completa) funcionaba bien.
+
+**Causa raíz:** `v-show` en `GlobalStatsBar` (35.2) resuelve el caso de que el target
+*desaparezca* durante una transición de ruta ya en curso. Pero no dice nada sobre el
+**primer montaje**: en una carga en frío, todo el árbol (layout + ruta activa) se monta en
+el mismo pase. Si `PedidoList.vue` intenta resolver su `<Teleport to="#global-header-center">`
+antes de que `GlobalStatsBar` haya insertado ese `<div>` en el DOM, Vue lanza `TypeError:
+Cannot set properties of null (setting '__vnode')` y aborta el render de **todo** el
+componente — la lista queda vacía para siempre, aunque los datos lleguen bien después.
+
+`HaweView.vue` ya tenía el fix correcto para esto, sin que nadie lo hubiera propagado:
+
+```html
+<Teleport to="#global-header-center" v-if="isMounted">
+```
+```js
+const isMounted = ref(false)
+onMounted(() => { isMounted.value = true; /* ...resto del onMounted... */ })
+```
+
+`isMounted` arranca en `false` (el Teleport ni se intenta en el primer render síncrono) y
+pasa a `true` recién dentro de `onMounted()` — momento en el que el target ya existe.
+`PedidoList.vue` no tenía esta guarda pese a teletransportar al mismo destino — agregada.
+
+**Doctrina Teleport, actualizada:** un `<Teleport>` a `#global-header-center` necesita
+**las dos** protecciones, no una sola — `v-show` (nunca `v-if`) en `GlobalStatsBar` para
+sobrevivir transiciones de ruta, y `v-if="isMounted"` en cada componente que teletransporta
+ahí, para sobrevivir el primer montaje en una carga en frío. Cualquier vista nueva que use
+este portal debe copiar el patrón `isMounted` de `HaweView.vue`, no reinventar uno propio.
 
 ## 34. EXCEL ESPEJO DE PEDIDOS — SESIÓN 822 OF (2026-06-04)
 

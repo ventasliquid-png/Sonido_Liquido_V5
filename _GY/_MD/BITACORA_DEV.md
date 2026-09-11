@@ -1,4 +1,31 @@
-﻿## SESION 862 (OF) — 2026-09-10: Reconciliación D↔B (Lotes 2/4/5) + doctrina "Esclusa de Verdad" (Nike) + incidente y fix de venv en P
+﻿## SESION 863 (OF) — 2026-09-11: Bug crítico de trazabilidad + Bit 46 (Nike, corrección de proceso) + cierre con discrepancia + fix del Tablero
+
+**Estado:** NOMINAL GOLD — D:884c910c B:3391e45 (P un push detrás, sin los 4 cambios de hoy) | Semáforo CS: AMARILLO (heredado) | PIN 1974
+
+### Hito 1: Deuda de Nike de S858 saldada
+* 4 dictámenes de la sesión 858 (excepción Bit 1 Remitos, paridad MULTI_CUIT + exclusión de genéricos, Doctrina de Linaje `cliente_origen_id`) canonizados en `BIBLIOTECA_NIKE.md`, verificados contra código vigente antes de escribirse — dos semanas sin canonizar.
+
+### Hito 2: OC + alerta PARCIAL en Ingesta de Facturas
+* El combo de "Vincular Pedido Existente" y el modal 409 de `IngestaFacturaView.vue` ahora muestran la OC de cada candidato y un prefijo "⚠️ PARCIAL —" si ya tiene entregas parciales reales (mismo criterio que `PedidoList.vue`, no el bit `flags_estado`). D:e05e6fbb B:e11aea2.
+
+### Hito 3: Bug crítico de trazabilidad — encontrado y corregido antes de seguir
+* Investigando cómo cerrar un pedido con cantidad distinta a la pedida (caso real: OC con tolerancia de fabricación ±7%), se encontró que `PATCH /pedidos/{id}` trataba cualquier guardado con `items` en el payload como "borrar todo y recrear" — y el frontend manda el array completo en cada guardado, sin condición.
+* Efecto real: guardar un pedido ya entregado, por cualquier motivo (una nota, el transporte), le borraba el vínculo con sus `RemitoItem` y reseteaba `cantidad_entregada` a cero, en D y B por igual.
+* Corregido con upsert por id (`PedidoItemCreate.id` nuevo) — actualiza en el lugar, solo borra renglones sin entregas reales, recalcula Bits 20/21 al final. Decisión explícita de Carlos: arreglar esto antes de construir nada nuevo encima. D:0369bcbf B:c75acc1.
+
+### Hito 4: CIERRE_CON_AJUSTE (Bit 46) y la corrección de proceso de Carlos
+* Construido un editor de cantidad (lápiz en `PedidoCanvas.vue`) que dispara nota forense + un bit nuevo del Genoma al ajustar un renglón con entrega real. Elegido inicialmente el Bit 44 por lectura propia de `constants.py`, **sin consultar a Nike**.
+* Carlos frenó el commit: *"el proceso debe ser que Nike determine el bit correspondiente, en tanto tiene el mapa"*. Encontrado en el backup del Studio de Nike que el Bit 44 ya estaba reservado (`ES_ENTREGADO`, dictamen previo nunca implementado ni registrado como pendiente en ningún otro documento del Silo) — habría colisionado.
+* Re-consultada Nike con el contexto completo: Sello de Oro al diseño, Bit 46 asignado; 44 y 45 quedan documentados como reservados. D:612817f7 B:da8987e.
+
+### Hito 5: El giro — cerrar con discrepancia en vez de editar cantidad
+* Carlos probó el mecanismo contra un pedido real (Cassará) en el Tablero de P: editar `cantidad` borra el hecho comercial original (la OC). Generalizado con sobre-entrega y corrección de typos, concluyó que `cantidad` no puede ser inmutable del todo, pero el caso de "cerrar tal cual está" no debe tocarla.
+* Rediseño final: al marcar CUMPLIDO, el backend compara cantidad vs entregado renglón por renglón; si discrepa y no hay `cierre_confirmado=true`, 409 con el detalle; si se confirma, cierra + nota forense + Bit 46, sin editar ningún renglón. `PedidoInspector.vue`/`PedidoList.vue` capturan el 409 y confirman. D:884c910c B:3391e45.
+
+### Hito 6: Fix del Tablero de Pedidos (hallazgo aparte)
+* Verificando el mecanismo cruzando D y B, se encontró que `PedidoList.vue` podía quedar en blanco ("No se encontraron pedidos") en una carga en frío directa sobre `/pedidos` — le faltaba la guarda `v-if="isMounted"` en su `Teleport` a `#global-header-center`, que `HaweView.vue` ya usaba para el mismo destino. Agregada la misma guarda, verificado con navegación en frío en pestaña nueva: cero errores de consola.
+
+## SESION 862 (OF) — 2026-09-10: Reconciliación D↔B (Lotes 2/4/5) + doctrina "Esclusa de Verdad" (Nike) + incidente y fix de venv en P
 
 Cerrados Lotes 2/4/5 de la reconciliación D↔B (con Lote 0 de S861, solo queda Lote 6). El más importante: Lote 5 eliminó en B un camino paralelo que auto-generaba Factura+Remito desde el Pedido tipeado sin comparar contra la ingesta real — Nike ratificó con Sello de Oro la doctrina "Esclusa de Verdad" (canonizada en BIBLIOTECA_NIKE.md). Aparte: un `git checkout` de esta misma sesión rompió el venv de P (pisó un arreglo local no commiteado de Tomy post-Windows 11) — diagnosticado y resuelto en la misma sesión vía acceso de red directo, venv reconstruido con Python 3.12, P confirmado al día por Carlos en persona. D:bc7057a7 B:805be6e. PIN 1974.
 
