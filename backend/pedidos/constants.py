@@ -49,6 +49,23 @@ class PedidoFlags(IntFlag):
     CAMBIO_A_NEGRO     = 1 << 41  # Cicatriz: nació blanco, operó negro
     CAMBIO_A_BLANCO    = 1 << 42  # Cicatriz: nació negro, operó blanco
     PEDIDO_GHOST       = 1 << 43  # Bit 43 — operado sin rastro (auditoría)
+    # Bit 44 — RESERVADO por Nike (dictamen "Protocolo de Evolución del Genoma
+    # V5-X - Bits 44 y 45", NIKE_BACKUP): ES_ENTREGADO, nuevo estado de
+    # STATE_MASK (ES_PRESUPUESTO → ES_FIRME → ES_ENTREGADO → ES_CUMPLIDO).
+    # NO IMPLEMENTADO — fuera de alcance de S863 (dictamen explícito: no tocar
+    # UI de despacho/cobranzas en este sprint). No reutilizar este número.
+    # Bit 45 — RESERVADO por Nike, mismo dictamen: COBRADO, evento financiero
+    # ortogonal e irreversible. NO IMPLEMENTADO — mismo motivo que el 44.
+    # Bit 46 — Cicatriz: se ajustó la cantidad de al menos un renglón después de
+    # tener entrega real registrada (tolerancia de fabricación, cliente pidió
+    # menos/más a mitad de entrega, etc.). "Pedido Soberano" pero lo fáctico es
+    # regla cero: el operador ajusta el papel a lo que realmente pasó. Se prende
+    # una sola vez y queda para siempre — marca de búsqueda/auditoría, no un
+    # estado reversible. El detalle de qué renglón/cuánto queda en pedido.nota
+    # (nota forense auto-generada, ver update_pedido_item() en router.py).
+    # Canonizado por Nike (Sello de Oro) S863 (caso OC LPC, tolerancia 7%) —
+    # asignado a 46 en vez de 44 por colisión con ES_ENTREGADO (ver arriba).
+    CIERRE_CON_AJUSTE  = 1 << 46
 
 # Máscara de estados excluyentes
 STATE_MASK = (

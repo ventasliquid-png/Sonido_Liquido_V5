@@ -24,6 +24,7 @@ class PedidoItemUpdate(BaseModel):
     descuento_porcentaje: Optional[float] = None
     descuento_importe: Optional[float] = None
     nota: Optional[str] = None
+    usuario: Optional[str] = "Sistema"  # para la nota forense de CIERRE_CON_AJUSTE
 
 class PedidoCreate(BaseModel):
     # [Fallar ruidoso, no en silencio] Un campo que el frontend manda y este

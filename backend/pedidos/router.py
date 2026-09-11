@@ -1010,6 +1010,7 @@ def update_pedido_item(
 
     # Update fields
     update_data = item_update.dict(exclude_unset=True)
+    usuario = update_data.pop("usuario", None) or "Sistema"
 
     # [LOGISTICA V7] Ajustar Reserva si cambia cantidad
     if "cantidad" in update_data:
@@ -1026,6 +1027,22 @@ def update_pedido_item(
         old_qty = item.cantidad
         new_qty = update_data["cantidad"]
         diff = new_qty - old_qty
+
+        # Doctrina CIERRE_CON_AJUSTE (Bit 46): ajustar la cantidad de un renglón
+        # que ya tiene entrega real es "lo fáctico manda" -- Pedido Soberano,
+        # pero el papel se corrige a lo que pasó. Marca + nota forense
+        # autogenerada, mismo patrón que ES_NO_COMERCIAL (/no-comercial).
+        if entregado > 0 and diff != 0:
+            pedido = item.pedido
+            descripcion = item.producto.nombre if item.producto else f"ítem #{item.id}"
+            ts = datetime.now().strftime("%Y-%m-%d %H:%M")
+            nota_forense = (
+                f"\n[SISTEMA] Ajuste de cantidad post-entrega. Renglón: {descripcion}. "
+                f"Original: {old_qty} → Ajustado: {new_qty}. Entregado: {entregado}. {ts} {usuario}"
+            )
+            pedido.nota = (pedido.nota or "") + nota_forense
+            pedido.flags_estado = (pedido.flags_estado or 0) | PF.CIERRE_CON_AJUSTE.value
+            db.add(pedido)
 
         prod = item.producto
         if prod.stock_reservado is None: prod.stock_reservado = Decimal("0.0")

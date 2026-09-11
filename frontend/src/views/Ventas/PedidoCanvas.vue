@@ -524,21 +524,46 @@
                                     </div>
                                 </div>
                                 
-                                <!-- Cantidad (Locked) -->
-                                <div class="col-span-1 text-center relative flex flex-col items-center justify-center">
-                                    <span class="font-bold text-white text-sm">{{ item.cantidad }}</span>
-                                    <span v-if="estadoRenglon(item) === ESTADO_PARCIAL"
-                                         class="text-[9px] font-bold text-amber-400 bg-amber-500/20 px-1.5 rounded-sm border border-amber-500/30 whitespace-nowrap mt-0.5"
-                                         :title="`Pedido ${item.cantidad} / Entregado ${item.cantidad_entregada} / Pendiente ${saldoRenglon(item)}`"
-                                    >
-                                        faltan {{ saldoRenglon(item) }} de {{ item.cantidad }}
-                                    </span>
-                                    <span v-else-if="estadoRenglon(item) === ESTADO_CUMPLIDO"
-                                         class="text-[9px] font-bold text-emerald-400 bg-emerald-500/20 px-1.5 rounded-sm border border-emerald-500/30 mt-0.5"
-                                         title="Entrega Completa"
-                                    >
-                                        OK
-                                    </span>
+                                <!-- Cantidad (Locked, salvo ajuste post-entrega -- fix S863) -->
+                                <div class="col-span-1 text-center relative flex flex-col items-center justify-center group/cant">
+                                    <template v-if="editingCantidadIndex === index">
+                                        <input type="number" min="0" step="any"
+                                            v-model.number="editCantidadValue"
+                                            @keydown.enter.prevent="confirmEditCantidad(index)"
+                                            @keydown.esc.prevent="cancelEditCantidad"
+                                            class="w-14 bg-slate-900 border border-amber-500/50 rounded px-1 text-center font-mono text-sm text-white focus:outline-none focus:border-amber-400"
+                                        >
+                                        <div class="flex gap-2 mt-1">
+                                            <button @click="confirmEditCantidad(index)" class="text-emerald-400 hover:text-emerald-300" title="Confirmar ajuste">
+                                                <i class="fas fa-check text-xs"></i>
+                                            </button>
+                                            <button @click="cancelEditCantidad" class="text-gray-500 hover:text-gray-300" title="Cancelar">
+                                                <i class="fas fa-times text-xs"></i>
+                                            </button>
+                                        </div>
+                                    </template>
+                                    <template v-else>
+                                        <span class="font-bold text-white text-sm">{{ item.cantidad }}</span>
+                                        <button v-if="item.pedido_item_id && estadoRenglon(item) !== ESTADO_SIN_ENTREGAS"
+                                            @click="startEditCantidad(index)"
+                                            class="absolute -top-1.5 -right-1.5 opacity-0 group-hover/cant:opacity-100 text-gray-500 hover:text-amber-400 transition-opacity"
+                                            title="Ajustar cantidad (renglón con entrega registrada -- p.ej. tolerancia de fabricación, cliente pidió más/menos)"
+                                        >
+                                            <i class="fas fa-pen text-[9px]"></i>
+                                        </button>
+                                        <span v-if="estadoRenglon(item) === ESTADO_PARCIAL"
+                                             class="text-[9px] font-bold text-amber-400 bg-amber-500/20 px-1.5 rounded-sm border border-amber-500/30 whitespace-nowrap mt-0.5"
+                                             :title="`Pedido ${item.cantidad} / Entregado ${item.cantidad_entregada} / Pendiente ${saldoRenglon(item)}`"
+                                        >
+                                            faltan {{ saldoRenglon(item) }} de {{ item.cantidad }}
+                                        </span>
+                                        <span v-else-if="estadoRenglon(item) === ESTADO_CUMPLIDO"
+                                             class="text-[9px] font-bold text-emerald-400 bg-emerald-500/20 px-1.5 rounded-sm border border-emerald-500/30 mt-0.5"
+                                             title="Entrega Completa"
+                                        >
+                                            OK
+                                        </span>
+                                    </template>
                                 </div>
 
                                 <!-- Precio (Editable) -->
@@ -808,7 +833,7 @@ import _ from 'lodash';
 import canteraService from '@/services/canteraService';
 import pedidosService from '@/services/pedidos';
 import { useNotificationStore } from '@/stores/notification';
-import { estadoRenglon, saldoRenglon, resumenEntregaPedido, ESTADO_CUMPLIDO, ESTADO_PARCIAL } from '@/utils/entregaParcial';
+import { estadoRenglon, saldoRenglon, resumenEntregaPedido, ESTADO_CUMPLIDO, ESTADO_PARCIAL, ESTADO_SIN_ENTREGAS } from '@/utils/entregaParcial';
 
 import { useRoute } from 'vue-router'; // Add useRoute
 
@@ -2257,6 +2282,55 @@ const buildPayload = () => {
     }
 
     return basePayload;
+};
+
+// Ajuste de cantidad post-entrega (fix S863 -- caso OC LPC, tolerancia 7%):
+// solo para renglones que ya tienen entrega real registrada. Va por el
+// endpoint dedicado (PATCH /pedidos/items/{id}), no por el guardado general,
+// porque el backend marca Bit 46 (CIERRE_CON_AJUSTE) e inyecta nota forense
+// automática solo ahí -- ver update_pedido_item() en router.py.
+const editingCantidadIndex = ref(null);
+const editCantidadValue = ref(0);
+
+const startEditCantidad = (index) => {
+    editingCantidadIndex.value = index;
+    editCantidadValue.value = items.value[index].cantidad;
+};
+
+const cancelEditCantidad = () => {
+    editingCantidadIndex.value = null;
+};
+
+const confirmEditCantidad = async (index) => {
+    const item = items.value[index];
+    const nuevaCantidad = Number(editCantidadValue.value);
+
+    if (!nuevaCantidad || nuevaCantidad <= 0) {
+        notificationStore.add('La cantidad debe ser mayor a 0.', 'warning');
+        return;
+    }
+    if (nuevaCantidad === item.cantidad) {
+        editingCantidadIndex.value = null;
+        return;
+    }
+
+    try {
+        const pedidoActualizado = await pedidosStore.updatePedidoItem(
+            route.params.id, item.pedido_item_id, { cantidad: nuevaCantidad, usuario: 'Operador' }
+        );
+        const itemActualizado = pedidoActualizado.items.find(i => i.id === item.pedido_item_id);
+        if (itemActualizado) {
+            item.cantidad = Number(itemActualizado.cantidad);
+            item.cantidad_entregada = Number(itemActualizado.cantidad_entregada || 0);
+            item.total = Number(itemActualizado.subtotal);
+        }
+        notas.value = pedidoActualizado.nota || '';
+        flagsEstadoPedido.value = Number(pedidoActualizado.flags_estado || 0);
+        notificationStore.add('Cantidad ajustada. Se registró nota de auditoría en el pedido.', 'success');
+        editingCantidadIndex.value = null;
+    } catch (e) {
+        notificationStore.add('Error al ajustar cantidad: ' + (e.response?.data?.detail || e.message), 'error');
+    }
 };
 
 const savePedido = async (andPrint = false) => {
