@@ -448,7 +448,7 @@
                                 <option :value="null">-- Seleccione un pedido --</option>
                                 <option value="NEW">🆕 Crear pedido nuevo (Redirigir a Canvas)</option>
                                 <option v-for="p in pendingPedidos" :key="p.id" :value="p.id">
-                                    {{ p._esPres ? '[PPTO]' : '[PED]' }} #{{ p.id }} — {{ p.cliente.razon_social }} ({{ p.fecha ? p.fecha.split('T')[0] : '' }}) - Total: ${{ p.total }}
+                                    {{ tieneEntregasParciales(p) ? '⚠️ PARCIAL — ' : '' }}{{ p._esPres ? '[PPTO]' : '[PED]' }} #{{ p.id }} — OC: {{ p.oc || 'S/N' }} — {{ p.cliente.razon_social }} ({{ p.fecha ? p.fecha.split('T')[0] : '' }}) - Total: ${{ p.total }}
                                 </option>
                             </select>
                         </div>
@@ -732,6 +732,14 @@ const isDraggingGlobal = ref(false);
 const showPreview = ref(false);
 const selectedPedidoId = ref(null);
 const pendingPedidos = ref([]);
+
+// Mismo criterio que PedidoList.vue (tieneEntregasParciales): por cantidades reales
+// entregadas a nivel renglón, no por el Bit 20 (flags_estado) -- ese bit puede
+// desincronizarse de la realidad (ver fix real de pedido #98, S861).
+const tieneEntregasParciales = (pedido) => {
+    if (!pedido || !pedido.items) return false;
+    return pedido.items.some(i => i.cantidad_entregada > 0 && i.cantidad_entregada < i.cantidad);
+};
 
 const showClientAbm = ref(false);
 const clientAddresses = ref([]);
