@@ -1022,6 +1022,7 @@ const loadPedido = async (id) => {
         // Hydrate Items
         items.value = p.items.map(i => ({
             id: `line_${Math.random().toString(36).substr(2, 9)}`, // Unique key for UI
+            pedido_item_id: i.id, // id real en backend -- preservarlo evita que buildPayload() dispare un alta en vez de un update (ver fix S863, router.py update_pedido)
             producto_id: i.producto_id,
             sku: i.producto?.sku || '???',
             descripcion: i.producto?.nombre || 'Producto Desconocido',
@@ -1891,9 +1892,19 @@ const onIngestaResolved = (resolvedItems) => {
             notificationStore.add('Modo Migración activado. Guarde el pedido para finalizar.', 'warning');
         } else {
             notificationStore.add('Verificación exitosa: Sin discrepancias.', 'success');
+            // Preservar el pedido_item_id real (ya probamos arriba que cantidad/precio
+            // coinciden por producto_id) -- si no, buildPayload() los manda sin id y
+            // el backend los trata como renglones nuevos, perdiendo el vínculo con
+            // las entregas ya registradas (fix S863).
+            const idPorProducto = new Map(items.value.map(i => [i.producto_id, i.pedido_item_id]));
+            resolvedItems.forEach(r => {
+                if (idPorProducto.has(r.producto_id)) {
+                    r.pedido_item_id = idPorProducto.get(r.producto_id);
+                }
+            });
         }
     }
-    
+
     items.value = resolvedItems;
     showIngestaModal.value = false;
     ingestaItemsForModal.value = [];
@@ -2225,6 +2236,7 @@ const buildPayload = () => {
         descuento_global_porcentaje: Number(descuentoGlobalPorcentaje.value) || 0,
         descuento_global_importe: Number(descuentoGlobalValor.value) || 0,
         items: items.value.map(i => ({
+            id: i.pedido_item_id || undefined, // preserva el renglón existente (fix S863) -- ausente = alta
             producto_id: i.producto_id || i.producto_obj?.id,
             cantidad: Number(i.cantidad),
             precio_unitario: Number(i.precio),

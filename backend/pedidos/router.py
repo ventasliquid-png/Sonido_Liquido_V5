@@ -739,58 +739,101 @@ def update_pedido(
     items_changed = "items" in update_data
     
     if items_changed:
-        # REPLACE ALL ITEMS (Tactical Mode Pattern)
-        new_items_count = len(update_data["items"])
-        if new_items_count == 0:
+        # UPSERT POR ID (fix S863 — reemplaza el patrón viejo "borrar todo y
+        # recrear", que hard-borraba los RemitoItem de CUALQUIER renglón con
+        # entregas reales en CADA guardado del pedido, aunque las cantidades
+        # no hubieran cambiado -- ver INFORMES_HISTORICOS/2026-09-11_S863_OF.md.
+        # cantidad_entregada es una propiedad calculada sobre remitos_items
+        # (pedidos/models.py), así que borrar el PedidoItem viejo y crear uno
+        # nuevo con otro id destruye la trazabilidad de lo ya entregado.
+        incoming_items = update_data["items"]
+        if len(incoming_items) == 0:
              # Safety: Normally frontend blocks this, but backend must be sovereign
              raise HTTPException(status_code=400, detail="El pedido debe tener al menos un ítem.")
 
-        # 1. Release Stock of old items
-        old_items = db.query(models.PedidoItem).filter(models.PedidoItem.pedido_id == pedido_id).all()
-        for old_item in old_items:
-            prod = old_item.producto
-            if prod.stock_reservado is not None:
-                prod.stock_reservado -= Decimal(str(old_item.cantidad))
-                
-        # 2. Delete old items
-        # [CASCADE FIX] Limpiar RemitoItems vinculados antes del hard-delete
         from backend.remitos.models import RemitoItem
-        old_item_ids = [item.id for item in old_items]
-        if old_item_ids:
-            db.query(RemitoItem).filter(RemitoItem.pedido_item_id.in_(old_item_ids)).delete(synchronize_session=False)
-            
-        db.query(models.PedidoItem).filter(models.PedidoItem.pedido_id == pedido_id).delete()
-        
-        # 3. Insert new ones
-        for it in update_data["items"]:
-            # [STRICT-CHECK] Get product with lock or direct hit to ensure it exists
+
+        existing_items = {
+            item.id: item
+            for item in db.query(models.PedidoItem).filter(models.PedidoItem.pedido_id == pedido_id).all()
+        }
+        seen_ids = set()
+
+        for it in incoming_items:
             producto = db.query(Producto).get(it['producto_id'])
             if not producto:
                  raise HTTPException(
-                     status_code=404, 
+                     status_code=404,
                      detail=f"Producto con ID {it['producto_id']} no encontrado durante la actualización."
                  )
 
-            # Recalculate subtotal for safety
             subtotal = (it['cantidad'] * it['precio_unitario']) - (it.get('descuento_importe') or 0.0)
-            new_item = models.PedidoItem(
-                pedido_id=pedido_id,
-                producto_id=it['producto_id'],
-                cantidad=it['cantidad'],
-                precio_unitario=it['precio_unitario'],
-                descuento_porcentaje=it.get('descuento_porcentaje') or 0,
-                descuento_importe=it.get('descuento_importe') or 0,
-                subtotal=subtotal,
-                nota=it.get('nota')
+            it_id = it.get('id')
+            existing_item = existing_items.get(it_id) if it_id else None
+
+            if existing_item:
+                # Renglón existente: ACTUALIZAR IN PLACE (preserva el id -> RemitoItem intacto)
+                seen_ids.add(it_id)
+                diff = Decimal(str(it['cantidad'])) - Decimal(str(existing_item.cantidad))
+                if diff != 0:
+                    if producto.stock_reservado is None: producto.stock_reservado = Decimal("0.0")
+                    producto.stock_reservado += diff
+
+                existing_item.producto_id = it['producto_id']
+                existing_item.cantidad = it['cantidad']
+                existing_item.precio_unitario = it['precio_unitario']
+                existing_item.descuento_porcentaje = it.get('descuento_porcentaje') or 0
+                existing_item.descuento_importe = it.get('descuento_importe') or 0
+                existing_item.subtotal = subtotal
+                existing_item.nota = it.get('nota')
+            else:
+                # Renglón nuevo
+                new_item = models.PedidoItem(
+                    pedido_id=pedido_id,
+                    producto_id=it['producto_id'],
+                    cantidad=it['cantidad'],
+                    precio_unitario=it['precio_unitario'],
+                    descuento_porcentaje=it.get('descuento_porcentaje') or 0,
+                    descuento_importe=it.get('descuento_importe') or 0,
+                    subtotal=subtotal,
+                    nota=it.get('nota')
+                )
+                db.add(new_item)
+
+                # [LOGISTICA V7] Reserva de Stock (Nuevo Item)
+                if producto.stock_reservado is None: producto.stock_reservado = Decimal("0.0")
+                producto.stock_reservado += Decimal(str(it['cantidad']))
+
+        # Renglones que estaban y ya no vienen en el array: solo se pueden borrar
+        # si nunca tuvieron entrega real -- si tienen, es un intento de borrar
+        # trazabilidad y se rechaza (Pedido Soberano, pero no a costa de la verdad
+        # de lo ya entregado).
+        removed_ids = set(existing_items.keys()) - seen_ids
+        for rid in removed_ids:
+            old_item = existing_items[rid]
+            entregado = sum(
+                ri.cantidad for ri in old_item.remitos_items
+                if ri.remito and ri.remito.estado != "ANULADO"
             )
-            db.add(new_item)
-            
-            # [LOGISTICA V7] Reserva de Stock (Nuevo Item)
-            if producto.stock_reservado is None: producto.stock_reservado = Decimal("0.0")
-            producto.stock_reservado += Decimal(str(it['cantidad']))
-        
+            if entregado > 0:
+                descripcion = old_item.producto.nombre if old_item.producto else f"ítem #{old_item.id}"
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"No se puede eliminar el renglón '{descripcion}': ya tiene {entregado} unidades entregadas."
+                )
+            prod = old_item.producto
+            if prod and prod.stock_reservado is not None:
+                prod.stock_reservado -= Decimal(str(old_item.cantidad))
+            db.query(RemitoItem).filter(RemitoItem.pedido_item_id == rid).delete(synchronize_session=False)
+            db.delete(old_item)
+
         # We need to commit the deletes/inserts now so subsequent sum() works if we don't use the list directly
-        db.flush() 
+        db.flush()
+
+        # Bits 20/21 (HAS_PARTIAL_DELIVERY / FULL_DELIVERED) pueden haber quedado
+        # obsoletos si se ajustó una cantidad -- recalcular contra la realidad.
+        from backend.remitos.service import RemitosService
+        RemitosService._recalcular_bits_entrega(db, pedido)
         # Important: clear items from update_data so it doesn't crash on setattr(pedido, 'items', ...)
         del update_data["items"]
 
@@ -964,36 +1007,50 @@ def update_pedido_item(
     item = db.query(models.PedidoItem).filter(models.PedidoItem.id == item_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Item no encontrado")
-    
+
     # Update fields
     update_data = item_update.dict(exclude_unset=True)
-    
+
     # [LOGISTICA V7] Ajustar Reserva si cambia cantidad
     if "cantidad" in update_data:
+        entregado = sum(
+            ri.cantidad for ri in item.remitos_items
+            if ri.remito and ri.remito.estado != "ANULADO"
+        )
+        if update_data["cantidad"] < entregado:
+            raise HTTPException(
+                status_code=400,
+                detail=f"No se puede bajar la cantidad a {update_data['cantidad']}: ya se entregaron {entregado} unidades de este renglón."
+            )
+
         old_qty = item.cantidad
         new_qty = update_data["cantidad"]
         diff = new_qty - old_qty
-        
+
         prod = item.producto
         if prod.stock_reservado is None: prod.stock_reservado = Decimal("0.0")
         prod.stock_reservado += Decimal(str(diff))
-    
+
     for key, value in update_data.items():
         setattr(item, key, value)
-    
+
     # Recalculate Subtotal
     item.subtotal = (item.cantidad * item.precio_unitario) - (item.descuento_importe or 0)
-    
+
     # Recalculate Order Total
     pedido = item.pedido
     db.flush() # Save item change first
-    
+
     raw_neto = sum(i.subtotal for i in pedido.items) - (pedido.descuento_global_importe or 0)
     cliente = db.query(Cliente).get(pedido.cliente_id)
     if _aplica_iva(pedido, cliente):
         pedido.total = round(raw_neto * 1.21, 2)
     else:
         pedido.total = round(raw_neto, 2)
+
+    # Bits 20/21 pueden haber quedado obsoletos si cambió la cantidad
+    from backend.remitos.service import RemitosService
+    RemitosService._recalcular_bits_entrega(db, pedido)
 
     db.commit()
 

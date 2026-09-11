@@ -8,6 +8,9 @@ from datetime import datetime
 from uuid import UUID
 
 class PedidoItemCreate(BaseModel):
+    # id: presente = actualizar ese renglón existente (preserva vínculo con RemitoItem).
+    # Ausente/None = renglón nuevo. Ver update_pedido() en router.py.
+    id: Optional[int] = None
     producto_id: int
     cantidad: float
     precio_unitario: float
