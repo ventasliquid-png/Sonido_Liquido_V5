@@ -1,5 +1,14 @@
 import sqlite3
 import os
+import sys
+
+# Uso: python scripts/diagnostico/check_model_discrepancies.py [ruta_a_la_base.db]
+# Sin argumento mide la base que resuelve DATABASE_URL (la misma que usa el backend).
+# Con argumento mide esa base. Los PRAGMA se hacen sobre la misma ruta que el engine:
+# antes estaban hardcodeados a ./pilot_v5x.db y median la base viva aunque se pidiera
+# otra, con un log de arranque que mostraba la ruta pedida (hallazgo S864-CA).
+if len(sys.argv) > 1:
+    os.environ["DATABASE_URL"] = "sqlite:///" + os.path.abspath(sys.argv[1]).replace("\\", "/")
 
 from sqlalchemy import create_engine, inspect
 from backend.core.database import Base, engine
@@ -7,7 +16,12 @@ from backend.clientes.models import Cliente, Domicilio
 from backend.productos.models import Producto, Rubro, ProductoCosto
 from sqlalchemy.schema import CreateTable
 
-db_path = "pilot_v5x.db"
+db_path = engine.url.database
+print(f"Base medida: {os.path.abspath(db_path)}")
+if not os.path.exists(db_path):
+    # sqlite3.connect crearia una base vacia y reportaria todas las tablas faltantes.
+    print("ERROR: la base no existe.")
+    sys.exit(1)
 conn = sqlite3.connect(db_path)
 cursor = conn.cursor()
 
