@@ -2,11 +2,16 @@ import sqlite3
 import os
 import sys
 
+from dotenv import load_dotenv
+
 # Uso: python scripts/diagnostico/check_model_discrepancies.py [ruta_a_la_base.db]
-# Sin argumento mide la base que resuelve DATABASE_URL (la misma que usa el backend).
+# Sin argumento mide la misma base que el backend: carga <raiz>/.env con override=True,
+# igual que backend/main.py (en B la ruta viene del .env; sin cargarlo se media otra).
 # Con argumento mide esa base. Los PRAGMA se hacen sobre la misma ruta que el engine:
 # antes estaban hardcodeados a ./pilot_v5x.db y median la base viva aunque se pidiera
 # otra, con un log de arranque que mostraba la ruta pedida (hallazgo S864-CA).
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+load_dotenv(os.path.join(ROOT_DIR, ".env"), override=True)
 if len(sys.argv) > 1:
     os.environ["DATABASE_URL"] = "sqlite:///" + os.path.abspath(sys.argv[1]).replace("\\", "/")
 
