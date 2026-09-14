@@ -617,6 +617,16 @@
         </div>
     </Teleport>
 
+    <!-- INGESTA ITEM RESOLUTION MODAL [S864-OF]: mismo componente que usa PedidoCanvas,
+         para que "Vincular Pedido Existente" -> Proceder también deje elegir a mano
+         contra el padrón de Productos cuando el matcheo automático no encuentra renglón. -->
+    <IngestaItemModal
+        v-if="showItemResolutionModal"
+        :items="itemsForResolutionModal"
+        @resolved="onItemResolutionModalResolved"
+        @cancel="onItemResolutionModalCancel"
+    />
+
     <!-- IDENTITY DISCREPANCY MODAL -->
     <Teleport to="body">
         <div v-if="showIdentityModal" class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
@@ -716,6 +726,7 @@ import { useClientesStore } from '@/stores/clientes';
 import { usePedidosStore } from '@/stores/pedidos';
 import ClientCanvas from '../Hawe/ClientCanvas.vue';
 import SmartSelect from '@/components/ui/SmartSelect.vue';
+import IngestaItemModal from '@/views/Ventas/components/IngestaItemModal.vue';
 import api from '@/services/api';
 
 const router = useRouter();
@@ -732,6 +743,14 @@ const isDraggingGlobal = ref(false);
 const showPreview = ref(false);
 const selectedPedidoId = ref(null);
 const pendingPedidos = ref([]);
+
+// [S864-OF] Homogeneización de matcheo: cuando el texto de la factura no matchea
+// automático contra el Pedido, se ofrece el mismo buscador de catálogo que ya
+// existe en PedidoCanvas (IngestaItemModal), en vez de bloquear sin salida (Card #125).
+const showItemResolutionModal = ref(false);
+const itemsForResolutionModal = ref([]);
+const pendingAutoResolved = ref([]);
+const pendingUnresolved = ref([]);
 
 // Mismo criterio que PedidoList.vue (tieneEntregasParciales): por cantidades reales
 // entregadas a nivel renglón, no por el Bit 20 (flags_estado) -- ese bit puede
@@ -1238,47 +1257,74 @@ const irAPedidoParaCorregir = () => {
 const validateAndProceed = async () => {
     const pedido = selectedPedidoObj.value;
     const rawItems = parsedData.value.items || [];
-    
-    let isDiscrepancy = false;
-    let motivos = [];
-    
-    // Preparar saldos del pedido
-    const pendingMap = {};
-    for (const pItem of pedido.items || []) {
-        const qty = pItem.cantidad_pendiente !== undefined ? pItem.cantidad_pendiente : pItem.cantidad;
-        pendingMap[pItem.producto_id] = (pendingMap[pItem.producto_id] || 0) + parseFloat(qty);
-    }
-    
+
     // Función helper para limpiar strings
     const normalize = (s) => s ? String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim() : '';
 
-    const resolvedItems = [];
+    // Paso 1: intento de matcheo automático por código o similitud de texto.
+    // Los renglones que NO matchean ya no bloquean directo -- pasan a resolución
+    // manual contra el padrón (mismo criterio que el camino que ya tenía esto,
+    // vía IngestaItemModal en PedidoCanvas). [S864-OF]
+    const autoResolved = []; // [{ rItem, producto_id }]
+    const unresolved = [];   // [{ rItem }]
 
     for (const rItem of rawItems) {
-        const reqQty = parseFloat(rItem.cantidad);
         const reqDesc = normalize(rItem.descripcion);
         const reqCod = normalize(rItem.codigo);
-        
+
         let match = null;
         for (const pItem of pedido.items || []) {
             const pSku = normalize(pItem.producto?.sku || pItem.codigo);
             const pDesc = normalize(pItem.producto?.nombre || pItem.producto?.descripcion);
-            
-            if ((reqCod && reqCod === pSku) || 
+
+            if ((reqCod && reqCod === pSku) ||
                 (reqDesc && pDesc && (reqDesc.includes(pDesc) || pDesc.includes(reqDesc) || calculateSimilarity(reqDesc, pDesc) > 0.6))) {
                 match = pItem;
                 break;
             }
         }
-        
-        if (!match) {
-            isDiscrepancy = true;
-            motivos.push(`Renglón faltante en pedido: ${rItem.descripcion}`);
-            continue;
+
+        if (match) {
+            autoResolved.push({ rItem, producto_id: match.producto_id });
+        } else {
+            unresolved.push({ rItem });
         }
-        
-        const pid = match.producto_id;
-        if (!pendingMap[pid] || reqQty > pendingMap[pid]) {
+    }
+
+    if (unresolved.length > 0) {
+        pendingAutoResolved.value = autoResolved;
+        pendingUnresolved.value = unresolved;
+        itemsForResolutionModal.value = unresolved.map(u => ({
+            descripcion: u.rItem.descripcion,
+            cantidad: u.rItem.cantidad,
+            precio_unitario: u.rItem.precio_unitario,
+            codigo: u.rItem.codigo
+        }));
+        showItemResolutionModal.value = true;
+        return;
+    }
+
+    await finalizeValidation(autoResolved);
+};
+
+// Paso 2 (corre directo, o después de resolver a mano en el modal):
+// chequea saldo pendiente por producto_id y recién ahí genera el remito.
+const finalizeValidation = async (allResolved) => {
+    const pedido = selectedPedidoObj.value;
+
+    const pendingMap = {};
+    for (const pItem of pedido.items || []) {
+        const qty = pItem.cantidad_pendiente !== undefined ? pItem.cantidad_pendiente : pItem.cantidad;
+        pendingMap[pItem.producto_id] = (pendingMap[pItem.producto_id] || 0) + parseFloat(qty);
+    }
+
+    let isDiscrepancy = false;
+    let motivos = [];
+    const resolvedItems = [];
+
+    for (const { rItem, producto_id: pid } of allResolved) {
+        const reqQty = parseFloat(rItem.cantidad);
+        if (!pid || !pendingMap[pid] || reqQty > pendingMap[pid]) {
             isDiscrepancy = true;
             motivos.push(`Exceso de cantidad: ${rItem.descripcion} (Fac: ${reqQty}, Ped: ${pendingMap[pid] || 0})`);
         } else {
@@ -1290,7 +1336,7 @@ const validateAndProceed = async () => {
             producto_id: pid
         });
     }
-    
+
     if (isDiscrepancy) {
         const errorMsg = "⛔ BLOQUEO DE INGESTA\nLas reglas de negocio indican que la Factura no puede exceder al Pedido ni inventar renglones.\nERRORES ENCONTRADOS:\n- " + motivos.join("\n- ");
         error.value = errorMsg;
@@ -1298,9 +1344,29 @@ const validateAndProceed = async () => {
     } else {
         notification.add('Validación Exitosa. Generando remito...', 'success');
         parsedData.value.items = resolvedItems;
-        parsedData.value.modo_ingesta = 'VINCULAR_PARCIAL'; 
+        parsedData.value.modo_ingesta = 'VINCULAR_PARCIAL';
         await confirmIngesta();
     }
+};
+
+const onItemResolutionModalResolved = async (resolvedFromModal) => {
+    // resolvedFromModal viene en el mismo orden que itemsForResolutionModal (=> mismo orden que pendingUnresolved.value)
+    const merged = [...pendingAutoResolved.value];
+    resolvedFromModal.forEach((item, idx) => {
+        const original = pendingUnresolved.value[idx];
+        merged.push({ rItem: original.rItem, producto_id: item.producto_id });
+    });
+    showItemResolutionModal.value = false;
+    pendingAutoResolved.value = [];
+    pendingUnresolved.value = [];
+    await finalizeValidation(merged);
+};
+
+const onItemResolutionModalCancel = () => {
+    showItemResolutionModal.value = false;
+    pendingAutoResolved.value = [];
+    pendingUnresolved.value = [];
+    error.value = 'Ingesta cancelada: quedaron ítems sin resolver contra el catálogo de Productos.';
 };
 
 const confirmIngesta = async () => {
