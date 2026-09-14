@@ -1,4 +1,17 @@
-﻿Sesion actual: 863
+﻿Sesion actual: 864
+
+# CAJA NEGRA: OMEGA Completo - Bug critico de Ingesta (Card #125) + auditoria D<->B + limpieza de catalogo - S864 (2026-09-12/14, CA+OF)
+
+Sesion 864, CA (12/09) + OF (14/09), maquina distinta a mitad de sesion (patron S853). Hash D: b7929abf | Hash B: c4d5429 | Hash P: 8bd8d51+migracion de datos. Estado: NOMINAL (13/13). Semaforo CS: VERDE. Agentes: CC, CC-en-P, Carlos.
+- CA reconcilio el handoff de Board (scripts peligrosos retirados, Cards #129-#132) e investigo en solo lectura los remitos (informe con hallazgos D1-D6/B1-B12, sin corregir) y el diseno del modulo de Estadisticas (charla, nada construido) -- de paso corrigio una lectura historica equivocada de S861 (Tomy si habia tipeado bien 20, el bug era del sistema).
+- OF encontro y corrigio un bug critico de produccion: vincular una factura ingestada a un Pedido existente rechazaba siempre, sin importar el texto, porque el camino de B/P nunca mandaba producto_id al backend. Fix: mismo buscador de catalogo que ya usaba PedidoCanvas (IngestaItemModal) en los dos caminos de vinculacion, pasando a VINCULAR_PARCIAL -- de rebote corrige tambien el bug ya documentado de que el 0016 copiaba cantidades del pedido en vez de la factura real. Verificado end-to-end en produccion real (Pedido #113, factura 2602).
+- Auditoria completa D<->B (118 archivos de frontend + backend completo, no muestreo): solo 3+2 archivos con diferencia de codigo real. Cerrados: props de modal en PedidoCanvas (integracion con Remito Manual, rota en B/P), contacto_principal_nombre. Card #134.
+- Limpieza de catalogo (Card #135): 6 SKUs duplicados de Surgibac/nitrilo sin uso borrados en D/B/P con respaldo en papelera_registros; un septimo (con historial real) migrado y fusionado al SKU canonico en vez de solo desactivado, a pedido explicito de Carlos.
+- Fix de orden alfabetico con acentos en Clientes, reportado por Tomy: SQLite ordenaba por bytes UTF-8 crudos, mandando las vocales acentuadas al final de la lista.
+- Card #133 cerrada (hoja activa del Board fijada en "Board V5", condicion cumplida).
+- Leccion de proceso: el Lote 6 (IngestaFacturaView.vue) estuvo documentado como pendiente durante meses sin que nadie lo retomara -- el incidente de hoy fue el costo real de esa deuda sin dueno. Se recomienda crear Cards para los bugs B1-B12/D1-D6 de Remitos aunque no se resuelvan hoy, para no repetir el patron.
+
+---
 
 # CAJA NEGRA: OMEGA Completo - Bug critico de trazabilidad + Bit 46 (dictamen Nike, correccion de proceso) + cierre con discrepancia + fix del Tablero - S863 (2026-09-11)
 

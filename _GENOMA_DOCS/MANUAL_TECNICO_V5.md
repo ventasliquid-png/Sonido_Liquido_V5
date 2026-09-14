@@ -1926,3 +1926,41 @@ interpola `ped.oc` (`e36bd2b9`). `remitos/router.py`: el fallback de `factura_vi
 ya no trunca cualquier `pedido.nota` — solo si empieza con el prefijo real de ingesta
 (`e36bd2b9`). Los últimos dos, cherry-pickeados a B (`c7b57da`), byte-idénticos antes
 del fix.
+
+## S864 (Completo) — Card #125: homogeneización de la vinculación de Ingesta a Pedido existente
+
+`IngestaFacturaView.vue`, en D ya tenía un intento de auto-match por texto
+(`calculateSimilarity`) antes de vincular una factura a un Pedido existente, con la
+regla anti-talle (evita confundir Talle S con Talle M) tropezando con casos donde
+número+unidad se tokenizan distinto entre factura y catálogo ("5 Lts" vs "5lts"). En B
+y P el problema era más de fondo: ninguno de los dos caminos de vinculación (dropdown
+inline `confirmIngesta`, ni el modal de 409 `retryWithPedido`) mandaba `producto_id` en
+absoluto — el backend (guarda Card #125, `remitos/service.py:319-345`) lo rechaza
+siempre en ese caso, sea cual sea el texto.
+
+Fix homogéneo en D y B/P: si el auto-match falla (D) o directamente no se intenta (B/P),
+se abre `IngestaItemModal` — el mismo buscador de catálogo que ya usaba `PedidoCanvas`
+para pedidos nuevos — antes de bloquear. Una vez resuelto el `producto_id`, ambos
+caminos mandan `modo_ingesta: VINCULAR_PARCIAL` en vez de `VINCULAR_EXISTENTE`, lo que
+además corrige de rebote que el remito 0016 copiara las cantidades del Pedido en vez de
+las reales de la factura (bug ya documentado por CA en S864).
+
+Verificado en vivo contra un pedido real de B antes de pushear, y confirmado end-to-end
+en producción real (P) contra el caso que lo disparó: Pedido #113, factura 2602 —
+remito y cantidad correctos, `cantidad_entregada` actualizada.
+
+## S864 (Completo) — Orden alfabético insensible a acentos en Clientes
+
+`backend/clientes/service.py::get_clientes` ordenaba con `query.order_by(Cliente.razon_social)`
+directo en SQL. SQLite usa la collation `BINARY` por default — compara por bytes UTF-8
+crudos, y ahí una vocal acentuada mayúscula (`Á` = 0xC3 0x81) pesa más que cualquier
+letra minúscula sin acentuar (`z` = 0x7A). Resultado: un cliente cuyo nombre empezara
+con acento se iba al final de una lista A-Z en vez de ir con las demás letras.
+Reportado por Tomy en producción.
+
+Fix: nueva función `sort_key()` en `backend/core/utils/text.py` (accent-stripped,
+case-insensitive, preserva el orden de las palabras — a diferencia de `normalize_name()`,
+que las reordena para detección de duplicados). `get_clientes` ahora trae todas las
+filas filtradas, ordena en Python con `sort_key`, y recién ahí pagina con
+`clientes[skip:skip+limit]`. A esta escala de datos (decenas de clientes) el costo de
+traer todo antes de paginar es irrelevante. D y B idénticos.

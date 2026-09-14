@@ -1086,3 +1086,18 @@ resolverlo, según el caso:
 tarjeta que aparece ahora muestra la cantidad realmente entregada de cada renglón
 entre paréntesis, pero solo cuando es distinta de la cantidad pedida — si coinciden,
 no se agrega nada de más.
+
+## S864 — Vincular una factura a un Pedido ya cargado
+
+Si al ingestar una factura y elegir "Vincular Pedido Existente" el sistema no
+reconocía el producto (por ejemplo porque el texto de la factura decía algo un poco
+distinto al nombre del catálogo), antes se cortaba con un cartel de error sin más
+opción que ir a corregir el Pedido a mano. Ahora, en ese caso, se abre el mismo
+buscador de catálogo que ya aparece al vincular una factura sin pedido — se busca por
+SKU o descripción, se elige el producto correcto, y se sigue.
+
+## S864 — Orden de la lista de Clientes
+
+Los clientes cuyo nombre empieza con una vocal acentuada (Á, É, Í, Ó, Ú) antes se iban
+al final de la lista en vez de aparecer junto a los demás nombres con esa letra.
+Corregido — ahora el orden alfabético trata igual a una letra con acento y sin acento.

@@ -1,4 +1,29 @@
-﻿## SESION 863 (OF) — 2026-09-11: Bug crítico de trazabilidad + Bit 46 (Nike, corrección de proceso) + cierre con discrepancia + fix del Tablero
+﻿## SESION 864 (CA+OF) — 2026-09-12/14: Bug crítico de Ingesta (Card #125) + auditoría D↔B + limpieza de catálogo
+
+**Estado:** NOMINAL GOLD — D:b7929abf B:c4d5429 P:8bd8d51+migración de datos (sin el fix de acentos todavía) | Semáforo CS: VERDE | PIN 1974
+
+### Hito 1: Reconciliación de Board (CA)
+* Handoff completo ejecutado: scripts de mayo que podían destruir `BOARD_V5.xlsx` retirados, `check_model_discrepancies.py` arreglado, `audit_fracturas_meli.py` rescatado. Cards #129-#132 cerradas.
+
+### Hito 2: Investigación de remitos y diseño de Estadísticas (CA, solo lectura)
+* Informe completo con diseño de reporte de entregas por cliente/OC (prototipo probado), 6 problemas de datos rotos (D1-D6) y 12 bugs de código (B1-B12) en Remitos — ninguno corregido todavía.
+* Charla de diseño extensa del módulo de Estadísticas, sin construir. De paso corrigió una lectura histórica equivocada de S861: Tomy sí había tipeado 20 correctamente, el bug era del sistema (`VINCULAR_PARCIAL` muerto).
+
+### Hito 3: Bug crítico de Ingesta — Card #125 homogeneizado y migrado a B/P
+* Vincular una factura a un Pedido existente rechazaba siempre en B/P (no solo cuando el texto no coincidía): el camino nunca mandaba `producto_id`. Se agregó `IngestaItemModal` a los dos caminos de vinculación, pasando a `VINCULAR_PARCIAL` — corrige de rebote el bug de que el 0016 copiaba cantidades del pedido, no de la factura real. Verificado end-to-end en producción real (Pedido #113, factura 2602).
+
+### Hito 4: Auditoría completa D↔B
+* Diff recursivo de 118 archivos de frontend + backend completo: solo 3+2 con diferencia de código real. Cerrados: props de modal en `PedidoCanvas.vue` (integración con Remito Manual, rota en B/P), `contacto_principal_nombre`. Card #134.
+
+### Hito 5: Limpieza de catálogo — Card #135
+* 6 SKUs duplicados sin uso borrados (papelera_registros); uno con historial real migrado y fusionado al canónico (`UPDATE pedidos_items SET producto_id=...`) en vez de solo desactivado, a pedido de Carlos.
+
+### Hito 6: Fix de acentos + Card #133
+* Orden alfabético de Clientes insensible a acentos (SQLite ordenaba por bytes UTF-8 crudos), reportado por Tomy. Card #133 cerrada (hoja activa del Board).
+
+---
+
+## SESION 863 (OF) — 2026-09-11: Bug crítico de trazabilidad + Bit 46 (Nike, corrección de proceso) + cierre con discrepancia + fix del Tablero
 
 **Estado:** NOMINAL GOLD — D:884c910c B:3391e45 (P un push detrás, sin los 4 cambios de hoy) | Semáforo CS: AMARILLO (heredado) | PIN 1974
 
