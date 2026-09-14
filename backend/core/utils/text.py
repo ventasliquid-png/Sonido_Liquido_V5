@@ -50,3 +50,17 @@ def normalize_name(name: str) -> str:
 
     # 6. Sellado
     return "".join(tokens)
+
+
+def sort_key(name: str) -> str:
+    """
+    Clave de orden alfabético insensible a acentos y mayúsculas, preservando el
+    orden de las palabras (a diferencia de normalize_name, que las reordena para
+    detectar duplicados). SQLite ordena TEXT por bytes UTF-8 (collation BINARY);
+    "Á"/"á" pesan más que "z" ahí, así que cualquier nombre que empiece con una
+    vocal acentuada cae al final de una lista A-Z en vez de ir con las demás A.
+    """
+    if not name:
+        return ""
+    text = unicodedata.normalize('NFKD', str(name))
+    return text.encode('ASCII', 'ignore').decode('ASCII').lower()

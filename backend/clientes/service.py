@@ -16,7 +16,7 @@ from backend.clientes.constants import ClientFlags
 from backend.agenda import models as agenda_models
 from backend.contactos.models import Vinculo # [V6 Multiplex Sync]
 from backend.pedidos.models import Pedido # [V5.2-FIX] Load Pedido to avoid Mapper Registry KeyError
-from backend.core.utils.text import normalize_name
+from backend.core.utils.text import normalize_name, sort_key
 
 class ClienteService:
     @staticmethod
@@ -211,10 +211,14 @@ class ClienteService:
                 )
             )
         
-        # Determine sorting? Usually by name
-        query = query.order_by(Cliente.razon_social)
+        # [S864-OF] Orden alfabético insensible a acentos -- SQLite ordena TEXT por
+        # bytes UTF-8 (BINARY), y ahí "Á"/"á" pesan más que "z", así que cualquier
+        # cliente que arranque con vocal acentuada caía al final de la lista en vez
+        # de ir con las demás A. Se ordena en Python con sort_key antes de paginar.
+        clientes = query.all()
+        clientes.sort(key=lambda c: sort_key(c.razon_social))
 
-        return query.offset(skip).limit(limit).all()
+        return clientes[skip:skip + limit]
 
     @staticmethod
     def update_cliente(db: Session, cliente_id: UUID, cliente_in: schemas.ClienteUpdate) -> Optional[Cliente]:
