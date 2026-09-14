@@ -1101,3 +1101,8 @@ SKU o descripción, se elige el producto correcto, y se sigue.
 Los clientes cuyo nombre empieza con una vocal acentuada (Á, É, Í, Ó, Ú) antes se iban
 al final de la lista en vez de aparecer junto a los demás nombres con esa letra.
 Corregido — ahora el orden alfabético trata igual a una letra con acento y sin acento.
+
+## S865 — sin cambios
+
+Sin cambios visibles para el operador en producción (el ajuste de Ingesta de esta sesión
+iguala D a lo que P ya tenía desde S864).

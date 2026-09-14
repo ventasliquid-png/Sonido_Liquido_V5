@@ -1,4 +1,8 @@
-﻿## SESION 864 (CA+OF) — 2026-09-12/14: Bug crítico de Ingesta (Card #125) + auditoría D↔B + limpieza de catálogo
+﻿## SESION 865 (CA) — 2026-09-14: D detrás de B/P en Ingesta corregido (`ebdb72e4`) + base CA = OF — NOMINAL — D:ebdb72e4 B:c4d5429 | Semáforo CS: AMARILLO (heredado) | PIN 1974 | Lite
+
+---
+
+## SESION 864 (CA+OF) — 2026-09-12/14: Bug crítico de Ingesta (Card #125) + auditoría D↔B + limpieza de catálogo
 
 **Estado:** NOMINAL GOLD — D:b7929abf B:c4d5429 P:8bd8d51+migración de datos (sin el fix de acentos todavía) | Semáforo CS: VERDE | PIN 1974
 

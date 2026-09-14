@@ -1964,3 +1964,24 @@ que las reordena para detección de duplicados). `get_clientes` ahora trae todas
 filas filtradas, ordena en Python con `sort_key`, y recién ahí pagina con
 `clientes[skip:skip+limit]`. A esta escala de datos (decenas de clientes) el costo de
 traer todo antes de paginar es irrelevante. D y B idénticos.
+
+## S865 (Lite) — Ingesta en D: el payload mandaba VINCULAR_EXISTENTE (D había quedado detrás de B/P)
+
+Corrección a la entrada S864 de arriba: el fix de B/P (`enviarVinculacionExistente`,
+`c4d5429`) sí manda `VINCULAR_PARCIAL`, pero en D `finalizeValidation` asignaba
+`parsedData.value.modo_ingesta = 'VINCULAR_PARCIAL'` y `confirmIngesta` —su único
+llamador— armaba el payload con el literal `'VINCULAR_EXISTENTE'`, sin leer esa
+propiedad. En D el 0016 seguía copiando las cantidades del Pedido. Fix (`ebdb72e4`): se
+elimina la asignación muerta y el payload manda `VINCULAR_PARCIAL` cuando hay pedido
+seleccionado. Verificado contra el backend de D con la factura 2600 real y el pedido #10
+(40/80/50): remito 0016 con 40/80/20.
+
+Efecto conocido del modo PARCIAL (igual en B/P desde S864): el pedido no pasa a
+`estado="FACTURADO"` (`remitos/service.py:277` solo corre en EXISTENTE); no afecta
+listados porque `GET /pedidos/?estado=PENDIENTE` filtra por genoma (`ES_FIRME`).
+
+Hallazgo abierto (Card #136, D=B=P): después de vincular, `_recalcular_bits_entrega` no
+refleja el remito recién creado — pedido #10 quedó con 140/170 entregado y Bit 20 apagado.
+Causa probable: la guarda de Card #125 lee `PedidoItem.cantidad_entregada` y deja
+cacheada la colección `remitos_items` vacía; el recálculo hace flush + query sin expirar
+ese atributo.

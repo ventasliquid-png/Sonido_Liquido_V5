@@ -1,4 +1,16 @@
-﻿Sesion actual: 864
+﻿Sesion actual: 865
+
+# CAJA NEGRA: OMEGA Lite - D estaba detras de B/P en la Ingesta (corregido) + base de CA espejo de OF - S865 (2026-09-14, CA)
+
+Sesion 865 CA. Hash D: ebdb72e4 | Hash B: c4d5429 | Hash P: 8bd8d51 (sin cambios). Estado: NOMINAL (13/13). Semaforo CS: AMARILLO (heredado, sin CS presente). Agentes: CC, Carlos.
+- Pull post-OMEGA 864 (D c40260ec, B c4d5429, sin migraciones). Hallado que el fix de Ingesta de S864 quedo en B/P pero NO en D: confirmIngesta de D armaba el payload con el literal VINCULAR_EXISTENTE e ignoraba la asignacion VINCULAR_PARCIAL de finalizeValidation (codigo muerto). La auditoria D<->B de S864 habia dado D por correcto leyendo solo la asignacion.
+- Corregido en D (ebdb72e4, PIN 1974) y verificado contra el backend de D con la factura 2600 real y el pedido #10: remito 0016 con 40/80/20 (cantidades de factura), no 40/80/50 (pedido). Recorrido por UI no hecho (requiere login).
+- Hallazgo lateral, no corregido (D=B=P): tras vincular una factura el pedido no recalcula Bits 20/21 (causa probable: guarda Card #125 cachea remitos_items antes de crear el remito). Card #136.
+- pilot_v5x.db de CA reemplazada por DESARROLLO_01.db de OF (PIN 1974). CA = OF en codigo y datos de desarrollo.
+- OMEGA: scripts/backup_db.py de D es copia vieja sin guarda Card #131 ni Board (OMEGA.md apunta a ella) -- se corrio la del Silo. Card #137.
+- Instrucciones para CC en OF en INBOX [2026-09-14 noche]: explicarle a Carlos por que la auditoria dio D por bueno y proponer cambio de proceso ("nunca puede estar atras D de B/P").
+
+---
 
 # CAJA NEGRA: OMEGA Completo - Bug critico de Ingesta (Card #125) + auditoria D<->B + limpieza de catalogo - S864 (2026-09-12/14, CA+OF)
 
