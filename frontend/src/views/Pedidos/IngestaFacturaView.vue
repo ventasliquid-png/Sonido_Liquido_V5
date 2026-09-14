@@ -1344,7 +1344,6 @@ const finalizeValidation = async (allResolved) => {
     } else {
         notification.add('Validación Exitosa. Generando remito...', 'success');
         parsedData.value.items = resolvedItems;
-        parsedData.value.modo_ingesta = 'VINCULAR_PARCIAL';
         await confirmIngesta();
     }
 };
@@ -1414,7 +1413,12 @@ const confirmIngesta = async () => {
             valor_declarado: valor_declarado.value,
             nuevo_domicilio: selectedAddressId.value === 'ADD_NEW' ? newAddress.value : null,
             audit_log: auditLog.value,
-            modo_ingesta: selectedPedidoId.value && selectedPedidoId.value !== 'NEW' ? 'VINCULAR_EXISTENTE' : null,
+            // [S865-CA] VINCULAR_PARCIAL: el 0016 se arma con los renglones de la factura.
+            // VINCULAR_EXISTENTE copiaba las cantidades del Pedido (caso real: factura 2600,
+            // 20 facturados -> 80 remitidos). finalizeValidation seteaba PARCIAL en
+            // parsedData.modo_ingesta, pero este payload nunca lo leía. Igual que B/P
+            // (enviarVinculacionExistente, c4d5429).
+            modo_ingesta: selectedPedidoId.value && selectedPedidoId.value !== 'NEW' ? 'VINCULAR_PARCIAL' : null,
             pedido_id_vinculado: selectedPedidoId.value && selectedPedidoId.value !== 'NEW' ? Number(selectedPedidoId.value) : null,
             modo_cuarentena: false
         };
