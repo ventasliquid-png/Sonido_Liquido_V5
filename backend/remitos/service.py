@@ -1011,3 +1011,214 @@ class RemitosService:
         print(f"Logística Asíncrona: Remito {remito.numero_legal} generado y vinculado a Factura #{factura.id}")
         return remito
 
+    @staticmethod
+    def get_entregas(
+        db: Session,
+        cliente_id: Optional[str] = None,
+        desde: Optional[datetime] = None,
+        hasta: Optional[datetime] = None,
+        producto_id: Optional[int] = None,
+        oc: Optional[str] = None,
+        incluir_anulados: bool = False,
+    ) -> dict:
+        """
+        [Reporte de Entregas — Zona Verde] Filas planas: una por renglón de remito
+        (más un placeholder por renglón de pedido sin ninguna entrega), para poder
+        reconstruir "qué remitos cubrieron esta OC/pedido" — hoy inexistente en el
+        sistema. Diseño consolidado en Q:/.../MAPA_TRABAJO_TRAZABILIDAD_REMITOS_S864.md.
+
+        Solo lectura: consultas batched (sin N+1), no toca schema/genoma/ciclo de vida.
+        """
+        from sqlalchemy.orm import joinedload
+        from backend.facturacion.models import Factura, FacturaRemito
+
+        def _norm_oc(value: Optional[str]) -> Optional[str]:
+            if not value:
+                return None
+            return " ".join(value.strip().upper().split())
+
+        # 1) PedidoItems candidatos (filtros SQL-level: baratos y selectivos).
+        item_query = (
+            db.query(PedidoItem)
+            .join(Pedido, PedidoItem.pedido_id == Pedido.id)
+            .options(
+                joinedload(PedidoItem.pedido).joinedload(Pedido.cliente),
+                joinedload(PedidoItem.producto),
+            )
+        )
+        if cliente_id:
+            item_query = item_query.filter(Pedido.cliente_id == cliente_id)
+        if producto_id:
+            item_query = item_query.filter(PedidoItem.producto_id == producto_id)
+        if oc:
+            item_query = item_query.filter(Pedido.oc.ilike(f"%{oc.strip()}%"))
+
+        pedido_items = item_query.all()
+        pedido_item_ids = [pi.id for pi in pedido_items]
+
+        # 2) RemitoItems de esos renglones (batched, sin N+1).
+        remito_items_by_pedido_item_id: dict = {}
+        remito_ids = set()
+        if pedido_item_ids:
+            ri_query = (
+                db.query(models.RemitoItem)
+                .filter(models.RemitoItem.pedido_item_id.in_(pedido_item_ids))
+                .options(joinedload(models.RemitoItem.remito))
+            )
+            for ri in ri_query.all():
+                if not ri.remito:
+                    continue
+                if not incluir_anulados and ri.remito.estado == "ANULADO":
+                    continue
+                remito_items_by_pedido_item_id.setdefault(ri.pedido_item_id, []).append(ri)
+                remito_ids.add(ri.remito_id)
+
+        # 3) Facturas vinculadas a esos remitos — TODAS, no vinculos_facturas[0]
+        # (ver "Foco: Factura 1:N Remitos" en el mapa de trabajo).
+        facturas_by_remito_id: dict = {}
+        if remito_ids:
+            fr_query = (
+                db.query(FacturaRemito)
+                .filter(FacturaRemito.remito_id.in_(remito_ids))
+                .options(joinedload(FacturaRemito.factura))
+            )
+            for fr in fr_query.all():
+                if not fr.factura:
+                    continue
+                facturas_by_remito_id.setdefault(fr.remito_id, []).append(fr.factura)
+
+        def _facturas_str(remito_id) -> str:
+            facturas = facturas_by_remito_id.get(remito_id) or []
+            return ", ".join(f.numero_completo for f in facturas)
+
+        # 4) Ensamblado de filas planas.
+        filas = []
+        oc_por_pedido: dict = {}  # pedido_id -> oc normalizada (para OC_EN_VARIOS_PEDIDOS)
+        for p_item in pedido_items:
+            pedido = p_item.pedido
+            cliente = pedido.cliente if pedido else None
+            producto = p_item.producto
+            nombre_producto = producto.nombre if producto else (p_item.nota or "Ítem")
+            codigo_producto = producto.codigo_visual if producto else None
+            if pedido:
+                oc_por_pedido[pedido.id] = _norm_oc(pedido.oc)
+
+            r_items = remito_items_by_pedido_item_id.get(p_item.id, [])
+            fila_base = {
+                "cliente_id": str(cliente.id) if cliente else None,
+                "cliente": cliente.razon_social if cliente else None,
+                "oc": pedido.oc if pedido else None,
+                "pedido_id": pedido.id if pedido else None,
+                "fecha_pedido": pedido.fecha.isoformat() if pedido and pedido.fecha else None,
+                "pedido_item_id": p_item.id,
+                "producto_id": producto.id if producto else None,
+                "producto": f"{codigo_producto} - {nombre_producto}" if codigo_producto else nombre_producto,
+                "cantidad_pedida": p_item.cantidad,
+            }
+
+            if not r_items:
+                fila = dict(fila_base)
+                fila.update({
+                    "remito": None, "fecha_documento": None,
+                    "cantidad_remitida": 0.0, "factura": None,
+                })
+                filas.append(fila)
+                continue
+
+            for ri in r_items:
+                remito = ri.remito
+                fecha_doc = remito.fecha_creacion
+                facturas = facturas_by_remito_id.get(remito.id) or []
+                if facturas and facturas[0].fecha_emision:
+                    fecha_doc = facturas[0].fecha_emision
+                fila = dict(fila_base)
+                fila.update({
+                    "remito": remito.numero_legal,
+                    "remito_id": str(remito.id),
+                    "remito_estado": remito.estado,
+                    "fecha_documento": fecha_doc.isoformat() if fecha_doc else None,
+                    "cantidad_remitida": ri.cantidad,
+                    "factura": _facturas_str(remito.id) or None,
+                })
+                filas.append(fila)
+
+        # 5) Filtro de fecha — sobre la fecha efectiva de cada fila (fecha_documento
+        # si hay entrega, si no fecha_pedido), aplicado en Python: la consulta de
+        # arriba ya viene acotada por cliente/oc/producto y no vale la pena partir
+        # en dos queries SQL distintas (con entrega / sin entrega) por esto.
+        if desde or hasta:
+            def _en_rango(fila) -> bool:
+                raw = fila["fecha_documento"] or fila["fecha_pedido"]
+                if not raw:
+                    return False
+                fecha = datetime.fromisoformat(raw)
+                if desde and fecha < desde:
+                    return False
+                if hasta and fecha > hasta:
+                    return False
+                return True
+            filas = [f for f in filas if _en_rango(f)]
+
+        # 6) Anomalías.
+        anomalias = []
+
+        # SOBRE_ENTREGA y OC_EN_VARIOS_PEDIDOS — derivadas del set ya filtrado por
+        # cliente/producto/oc (tiene sentido acotarlas al mismo universo de la consulta).
+        for p_item in pedido_items:
+            entregado = sum(ri.cantidad for ri in remito_items_by_pedido_item_id.get(p_item.id, []))
+            if entregado > p_item.cantidad:
+                anomalias.append({
+                    "tipo": "SOBRE_ENTREGA",
+                    "pedido_id": p_item.pedido_id,
+                    "pedido_item_id": p_item.id,
+                    "detalle": f"Entregado {entregado} sobre pedido {p_item.cantidad}",
+                })
+
+        oc_a_pedidos: dict = {}
+        for pedido_id, oc_norm in oc_por_pedido.items():
+            if not oc_norm:
+                continue
+            oc_a_pedidos.setdefault(oc_norm, set()).add(pedido_id)
+        for oc_norm, pedido_ids in oc_a_pedidos.items():
+            if len(pedido_ids) > 1:
+                anomalias.append({
+                    "tipo": "OC_EN_VARIOS_PEDIDOS",
+                    "oc": oc_norm,
+                    "pedido_ids": sorted(pedido_ids),
+                })
+
+        # REMITO_SIN_RENGLONES, REMITO_SIN_PEDIDO, NUMERO_LEGAL_DUPLICADO — son
+        # anomalías estructurales globales (no dependen de los filtros de cliente/
+        # producto/OC: un remito huérfano no tiene pedido del cual heredar cliente).
+        remitos_globales_query = db.query(models.Remito).options(joinedload(models.Remito.items))
+        if not incluir_anulados:
+            remitos_globales_query = remitos_globales_query.filter(models.Remito.estado != "ANULADO")
+        remitos_globales = remitos_globales_query.all()
+        pedido_ids_existentes = {p.id for p in db.query(Pedido.id).all()}
+        numero_legal_count: dict = {}
+        for remito in remitos_globales:
+            if not remito.items:
+                anomalias.append({
+                    "tipo": "REMITO_SIN_RENGLONES",
+                    "remito_id": str(remito.id),
+                    "remito": remito.numero_legal,
+                })
+            if remito.pedido_id not in pedido_ids_existentes:
+                anomalias.append({
+                    "tipo": "REMITO_SIN_PEDIDO",
+                    "remito_id": str(remito.id),
+                    "remito": remito.numero_legal,
+                    "pedido_id": remito.pedido_id,
+                })
+            if remito.numero_legal:
+                numero_legal_count.setdefault(remito.numero_legal, []).append(str(remito.id))
+        for numero_legal, ids in numero_legal_count.items():
+            if len(ids) > 1:
+                anomalias.append({
+                    "tipo": "NUMERO_LEGAL_DUPLICADO",
+                    "numero_legal": numero_legal,
+                    "remito_ids": ids,
+                })
+
+        return {"filas": filas, "anomalias": anomalias}
+

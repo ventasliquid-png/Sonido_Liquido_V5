@@ -3,7 +3,7 @@ print("--- [LOAD] Remitos Router (Soberanía Total V5.1) cargado con éxito ---"
 from fastapi.responses import FileResponse
 from datetime import datetime
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from backend.core.database import get_db
 from .pdf_parser import process_pdf_ingestion
 from backend.remitos import schemas, models
@@ -25,6 +25,36 @@ def list_remitos(db: Session = Depends(get_db)):
     remitos = db.query(models.Remito).order_by(models.Remito.fecha_creacion.desc()).all()
 
     return remitos
+
+@router.get("/entregas")
+def get_entregas(
+    cliente_id: Optional[str] = None,
+    desde: Optional[datetime] = None,
+    hasta: Optional[datetime] = None,
+    producto_id: Optional[int] = None,
+    oc: Optional[str] = None,
+    incluir_anulados: bool = False,
+    db: Session = Depends(get_db),
+):
+    """
+    [Reporte de Entregas — Zona Verde] Filas planas de qué remitos cubrieron qué
+    renglón de pedido, más anomalías (remitos huérfanos, sobre-entregas, OC
+    repetida entre pedidos, etc). Solo lectura.
+
+    NOTA: esta ruta debe ir ANTES de GET /{remito_id} en este archivo — comparten
+    la misma forma de path (un solo segmento) y FastAPI resuelve en orden de
+    declaración, así que /{remito_id} la taparía si quedara antes.
+    """
+    from backend.remitos.service import RemitosService
+    return RemitosService.get_entregas(
+        db,
+        cliente_id=cliente_id,
+        desde=desde,
+        hasta=hasta,
+        producto_id=producto_id,
+        oc=oc,
+        incluir_anulados=incluir_anulados,
+    )
 
 @router.get("/{remito_id}", response_model=schemas.RemitoResponse)
 def get_remito(remito_id: str, db: Session = Depends(get_db)):
