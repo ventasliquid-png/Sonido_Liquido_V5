@@ -137,6 +137,11 @@ const routes = [
                 component: () => import('../views/Logistica/ManualRemitoView.vue')
             },
             {
+                path: 'logistica/entregas',
+                name: 'EntregasReport',
+                component: () => import('../views/Logistica/EntregasView.vue')
+            },
+            {
                 path: 'domicilios',
                 name: 'AddressHub',
                 component: () => import('../views/Maestros/AddressHubView.vue')
