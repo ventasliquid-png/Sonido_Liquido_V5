@@ -1021,6 +1021,11 @@ class RemitosService:
                 remito_existente.numero_legal = _numero_legal_arca(factura)
             db.add(remito_existente)
             _vincular_factura_remito(db, factura, remito_existente)
+            # [Bloque 3, doctrina "Remitos Chequeables"] Esta rama no cambia
+            # cantidades del remito, pero recalcular acá es barato e idempotente
+            # -- si el remito ya venía con los bits desalineados por otra causa,
+            # esto lo autocorrige de paso. Ver AUDITORIA_REMITOS_CHEQUEABLES_S865.md.
+            RemitosService._recalcular_bits_entrega(db, pedido)
             db.commit()
             db.refresh(remito_existente)
             return remito_existente
@@ -1059,6 +1064,14 @@ class RemitosService:
             ))
 
         _vincular_factura_remito(db, factura, remito)
+
+        # [Bloque 3, doctrina "Remitos Chequeables"] Quinta ruta sin cobertura de
+        # Bits 20/21 (ver AUDITORIA_REMITOS_CHEQUEABLES_S865.md §2.2/§5-ter): esta
+        # función existe desde 67b06853 (22/04) y crea un Remito con TODA la
+        # cantidad del Pedido copiada -- sin esto, un pedido cubierto al 100% por
+        # este camino nunca encendía Bit 21 (mismo bug que Card #81/S839, en una
+        # ruta que esa auditoría no vio).
+        RemitosService._recalcular_bits_entrega(db, pedido)
 
         db.commit()
         db.refresh(remito)
