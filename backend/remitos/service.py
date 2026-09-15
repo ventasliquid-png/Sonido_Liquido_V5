@@ -31,6 +31,13 @@ class RemitosService:
         OFF/OFF si ninguna entrega, Bit20 si parcial, Bit21 si completa."""
         from backend.pedidos.constants import PedidoFlags
         db.flush()
+        # [Card #136] El guard de la Card #125 (RENGLON_AJENO_AL_PEDIDO/CANTIDAD_EXCEDE_PEDIDO)
+        # lee cantidad_entregada (-> item.remitos_items) ANTES de crear el remito nuevo, y
+        # SQLAlchemy cachea esa relación vacía en el objeto. El RemitoItem se crea con
+        # pedido_item_id a mano (no vía la relación), así que ese cache nunca se actualiza, y
+        # db.flush() no lo expira. Sin este expire_all(), la consulta de abajo devuelve el
+        # mismo PedidoItem ya cacheado -- cantidad_entregada da 0 y los Bits 20/21 nunca prenden.
+        db.expire_all()
         items = db.query(PedidoItem).filter(PedidoItem.pedido_id == pedido.id).all()
         if not items:
             return
