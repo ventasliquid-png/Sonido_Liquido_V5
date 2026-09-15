@@ -279,6 +279,11 @@ class RemitosService:
                 PedidoModel.id == payload.pedido_id_vinculado
             ).first()
             if not pedido_existente:
+                # [FIX Bloque 1, doctrina "Remitos Chequeables"] rollback explícito --
+                # ver AUDITORIA_REMITOS_CHEQUEABLES_S865.md §3. Sin esto, el llamador
+                # real (IngestaService.approve) comitea la misma sesión al marcar el
+                # raw como ERROR, arrastrando Cliente/Domicilio nuevos ya flusheados.
+                db.rollback()
                 raise ValueError(f"Pedido {payload.pedido_id_vinculado} no encontrado")
             nuevo_pedido = pedido_existente
             nuevo_pedido.estado = "FACTURADO"
@@ -294,8 +299,9 @@ class RemitosService:
                 PedidoModel.id == payload.pedido_id_vinculado
             ).first()
             if not pedido_existente:
+                db.rollback()  # [FIX Bloque 1] ver §3 de la auditoría -- misma razón que arriba
                 raise ValueError(f"Pedido {payload.pedido_id_vinculado} no encontrado")
-            
+
             # [DOCTRINA PARCIAL] No cambiamos el estado del pedido, asume que sigue PENDIENTE.
             nuevo_pedido = pedido_existente
             # Se pasará un flag a la seccion de items
@@ -306,8 +312,9 @@ class RemitosService:
                 PedidoModel.id == payload.pedido_id_vinculado
             ).first()
             if not pedido_existente:
+                db.rollback()  # [FIX Bloque 1] ver §3 de la auditoría -- misma razón que arriba
                 raise ValueError(f"Pedido {payload.pedido_id_vinculado} no encontrado")
-            
+
             # [V5.9 GOLD] In VINCULAR_CUMPLIDO we just acknowledge the invoice linkage
             # and potentially create a remito if requested, but for now we follow legacy closure.
             # However, we MUST NOT return None if the user expects a remito.
@@ -333,6 +340,10 @@ class RemitosService:
                     None
                 )
                 if not target:
+                    # [FIX Bloque 1] rollback explícito -- sin esto, para VINCULAR_EXISTENTE
+                    # el Pedido ya quedaba mutado a estado="FACTURADO" (línea de arriba, ya
+                    # flusheado) pese al 409. Probado en vivo, ver §3 de la auditoría.
+                    db.rollback()
                     raise HTTPException(
                         status_code=409,
                         detail=(
@@ -342,6 +353,7 @@ class RemitosService:
                     )
                 pendiente = target.cantidad - target.cantidad_entregada
                 if p_item.cantidad > pendiente + 0.001:  # tolerancia de redondeo flotante
+                    db.rollback()  # [FIX Bloque 1] misma razón que arriba
                     raise HTTPException(
                         status_code=409,
                         detail=(
@@ -405,8 +417,9 @@ class RemitosService:
                 # [ARLEQUÍN V2 — DOCTRINA SOLO LECTURA]
                 # Una factura sin pedido vinculado no puede procesarse.
                 # El operador debe crear o identificar el pedido antes de reintentar.
+                db.rollback()  # [FIX Bloque 1] ver §3 de la auditoría
                 raise HTTPException(
-                    status_code=409, 
+                    status_code=409,
                     detail="PEDIDO_REQUERIDO: Esta factura no tiene un pedido vinculado. Identifique o cree el pedido correspondiente."
                 )
 
@@ -422,8 +435,13 @@ class RemitosService:
         if not numero_legal:
             # Si llegamos aquí sin numero_legal, el OCR falló y es un error crítico.
             print(f"[DEBUG INGESTA] Numero Legal was empty. Raising explicit error.")
+            # [FIX Bloque 1] rollback explícito -- este es justo el punto donde, en
+            # modo_cuarentena, ya se habían creado y flusheado el Pedido fantasma,
+            # sus PedidoItem y hasta Productos VS9999 nuevos. Sin esto, el 400
+            # "OCR falló" dejaba igual toda esa basura persistida. Ver §3 auditoría.
+            db.rollback()
             raise HTTPException(
-                status_code=400, 
+                status_code=400,
                 detail="NUMERO_COMPROBANTE_REQUERIDO: No se pudo extraer el número de factura del PDF. Verifique el archivo."
             )
         
