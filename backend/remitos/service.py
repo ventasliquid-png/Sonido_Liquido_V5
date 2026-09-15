@@ -656,6 +656,13 @@ class RemitosService:
         Creates a Manual Remito (Rosa/Blanco) from Frontend data.
         Standardized to Serie 0015- (Manual, sin CAE)
         """
+        # [Bloque 2, doctrina "Remitos Chequeables"] Renglón cero imposible --
+        # ver AUDITORIA_REMITOS_CHEQUEABLES_S865.md §2.1. Antes de este chequeo,
+        # items: [] pasaba de largo y creaba un remito 0015 (y su Pedido fantasma
+        # si tampoco había pedido_id) totalmente vacío, HTTP 200. Probado en vivo.
+        if not payload.items:
+            raise ValueError("RENGLON_CERO: El remito debe tener al menos un ítem.")
+
         nuevo_pedido = None
         cliente = None
         
@@ -875,6 +882,14 @@ class RemitosService:
         
         if remito.estado != "BORRADOR" and payload.estado is None:
             raise ValueError("No se puede editar un remito que ya no está en estado BORRADOR.")
+
+        # [Bloque 2, doctrina "Remitos Chequeables"] Renglón cero imposible --
+        # ver AUDITORIA_REMITOS_CHEQUEABLES_S865.md §2.1. Antes de este chequeo,
+        # un PATCH con items: [] vaciaba el remito a cero renglones, HTTP 200,
+        # sin borrar el remito en sí. Probado en vivo. Si la intención es
+        # eliminar el remito, existe DELETE /remitos/{id}.
+        if payload.items is not None and len(payload.items) == 0:
+            raise ValueError("RENGLON_CERO: Un remito no puede quedar sin ítems. Para eliminarlo, use la opción de borrar el remito.")
 
         # 1. CAMBIO DE CLIENTE (Si se solicita)
         if payload.cliente_id:
