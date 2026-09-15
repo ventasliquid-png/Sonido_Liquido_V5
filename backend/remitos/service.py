@@ -450,6 +450,7 @@ class RemitosService:
 
         # 6. CREATE REMITO ITEMS (GY-TRACE)
         print(f"[REMITO-TRACE] Procesando items para Remito {remito.id} (Pedido {nuevo_pedido.id})")
+        remito_items_creados = 0
         if payload.modo_ingesta == "VINCULAR_PARCIAL":
             # Para despachos parciales, construimos los RemitoItem basados en payload.items
             pedido_items = db.query(PedidoItem).filter(PedidoItem.pedido_id == nuevo_pedido.id).all()
@@ -459,19 +460,20 @@ class RemitosService:
                 if not target_p_item:
                     print(f"[REMITO-CRITICAL] ERROR DE INTEGRIDAD: Producto {p_item.producto_id} no pertenece al Pedido Original. Omitiendo asociación.")
                     continue
-                
+
                 r_item = models.RemitoItem(
                     remito_id=remito.id,
                     pedido_item_id=target_p_item.id,
                     cantidad=p_item.cantidad
                 )
                 db.add(r_item)
+                remito_items_creados += 1
                 print(f"[REMITO-TRACE] Item parcial vinculado: Remito {remito.id} -> PedidoItem {target_p_item.id} ({p_item.cantidad} uds)")
-                
+
             # Encender VINCULAR_PARCIAL (Bit 11) en el Remito
             remito.flags_estado = (remito.flags_estado or 0) | int(RemitoFlags.VINCULAR_PARCIAL)
             db.add(remito)
-            
+
         else:
             # Flujo Total / Existente
             for p_item in pedido_items:
@@ -486,8 +488,27 @@ class RemitosService:
                     cantidad=p_item.cantidad
                 )
                 db.add(r_item)
+                remito_items_creados += 1
                 print(f"[REMITO-TRACE] Item vinculado: Remito {remito.id} -> PedidoItem {p_item.id}")
-            
+
+        # [Doctrina "Remitos Chequeables", Carlos 2026-09-15] Renglón cero es
+        # imposible: ni 0015 ni 0016 pueden existir sin al menos un ítem. Cubre
+        # tanto la ingesta en cuarentena con PDF sin ítems parseables como el
+        # caso (más raro) de que ningún ítem de VINCULAR_PARCIAL matcheara
+        # contra el Pedido.
+        # [FIX] db.rollback() explícito, NO alcanza con "no hacer commit acá":
+        # el llamador real (IngestaService.approve) atrapa esta excepción y
+        # comitea la MISMA sesión para marcar el raw como ERROR -- sin este
+        # rollback, ese commit arrastra también el Pedido fantasma y el Remito
+        # que ya estaban flusheados (probado en vivo: quedaban persistidos
+        # pese al 409).
+        if remito_items_creados == 0:
+            db.rollback()
+            raise HTTPException(
+                status_code=409,
+                detail="RENGLON_CERO: La ingesta no generó ningún ítem de remito (factura sin renglones reconocibles). Cargue los ítems a mano o vincule un Pedido existente antes de continuar."
+            )
+
         # 7. [VANGUARD CANON] Genoma 64-bit Evolution - PIN 1974
         from backend.clientes.constants import ClientFlags
         
