@@ -94,6 +94,14 @@
                 </span>
               </div>
 
+              <div class="grid grid-cols-12 gap-2 px-3 pt-1 pb-1 ml-4 text-[9px] font-bold uppercase tracking-widest text-blue-400/40">
+                <div class="col-span-5">Producto</div>
+                <div class="col-span-2 text-right">Pedido</div>
+                <div class="col-span-2 text-right">Entregado</div>
+                <div class="col-span-2 text-right">Pendiente</div>
+                <div class="col-span-1"></div>
+              </div>
+
               <div v-for="pedido in oc.pedidos" :key="pedido.pedido_id" class="ml-4 mb-2 rounded-lg bg-black/20 border border-blue-900/10">
                 <div class="flex items-center justify-between px-3 py-2 text-xs">
                   <span class="text-blue-100 font-semibold">Pedido #{{ pedido.pedido_id }}</span>
