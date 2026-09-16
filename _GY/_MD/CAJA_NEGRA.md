@@ -1,4 +1,22 @@
-﻿Sesion actual: 865
+﻿Sesion actual: 866
+
+# CAJA NEGRA: OMEGA Lite - Bloques 1/2/3 de la auditoria de Remitos + auditoria Lacteos contra P real + decision de abandonar el 0016 - S866 (2026-09-15/16, OF)
+
+Sesion 866 OF, dos dias. Hash D: 727dd912 | Hash B: d65c281 | Hash P: 8bd8d51 (sin cambios). Estado: NOMINAL (13/13). Semaforo CS: AMARILLO. Agentes: CC, Carlos.
+- Cierra ademas el hueco de burocracia del 15/09, que quedo sin OMEGA por decision de Carlos y sin filas en BV. Los documentos escritos el 15 se nombraron S865, colisionando con la sesion de CA del 14 -- registrado, no renombrado.
+- Auditoria profunda "Remitos Chequeables" (pedido de Carlos: "no quiero que abandonemos esta etapa sin saber profundamente como esta todo"). Inventario de los 4 caminos que escriben remitos, censo de D y B, plan de 6 bloques.
+- Bloque 1 (870894fd / ac464d0): db.rollback() explicito antes de las 7 guardas con fuga en create_from_ingestion. Causa: IngestaService.approve atrapa la excepcion y comitea LA MISMA sesion para marcar el raw como ERROR, arrastrando todo lo ya flusheado. Probado en vivo: sin el fix, un 409 CANTIDAD_EXCEDE_PEDIDO dejaba el pedido en FACTURADO.
+- Bloque 2 (dd1eb4c0 / ef08320): cerradas las otras dos puertas de renglon cero -- create_manual con items:[] y PATCH /remitos/{id} con items:[] (esta ultima vaciaba un remito existente sin borrarlo).
+- Bloque 3.1 (727dd912 / d65c281): Bits 20/21 en create_puente_factura, quinta ruta sin cobertura, viva desde 2026-04-22 (commit 67b06853) -- anterior a la auditoria "exhaustiva" de S839 que debia encontrarla.
+- Doctrina 0015/0016 derivada con Carlos a preguntas sucesivas, y luego DEROGADA de hecho por la decision del dia 16 (ver abajo).
+- Auditoria de Lacteos de Poblet contra copia de solo lectura de la base viva de P y contra documentos primarios (PDF reales, duplicados oficiales de ARCA, correo). Tres correcciones sucesivas de conclusiones propias, dos detectadas por Carlos. Resultado: 3 facturas reales con CAE valido en ARCA que NO existen en V5 (2530, 2566, 2586), y la OC 3476 resulto entregada y facturada al 100% -- el "pendiente de 50 bolsas" era el pedido fantasma #83. Mail al cliente enviado por Carlos.
+- Bloque 4.2 resuelto: la pregunta de precedencia a Nike (bit NO_FACTURABLE vs Bit 12 del pedido) no tenia objeto -- son ejes ortogonales. Dictamen propuesto: herencia one-shot al nacer, nunca re-propagacion; toggle_circuito_bipolar NO debe tocar remitos existentes. Hallazgo adicional: falta un cuarto estado, "facturado fuera de V5", hoy indistinguible de "pendiente de facturar".
+- Estudio del ERP anterior (Discovery v3.71, Buenos Aires Software, 2013) accedido en P: manuales + 440 remitos reales. Un solo remito, un talonario, numeracion corrida, estado derivado del vinculo. Confirma por fuera dos reglas que Carlos habia derivado solo (pedido cumplido inmutable; medicion por renglon).
+- DECISION DE CARLOS: abandonar el remito 0016; el 0015 queda como unico talonario. Plan de transicion T1-T7 consolidado punto por punto (tres bloques llevan correcciones suyas). Correccion aportada: lo que reemplaza al 16 no es el bit NO_FACTURABLE sino el vinculo facturas_remitos. Card #138 (paraguas, a pedido de Carlos para no inflar el board).
+- Hallazgo con datos de P: Producto.stock_reservado derivando -- campo guardado mantenido a mano en 6 puntos de pedidos/router.py, sin liberacion al entregar. 37 productos con reserva viva, 4 reservando para pedidos que ya no existen. stock_fisico = 0 en todos.
+- Hallazgo normativo verificado en fuentes oficiales (RG 5678/2025, RG 5866/2026, regimenes sectoriales, RG 100/98): el remito se autoriza con CAI, no con CAE, y V5 no imprime CAI en ninguna parte. Origen identificado por Carlos ("la genesis de V5 de alguna manera"). Existe el regimen de autoimpresor como via posible. NO es tarea de desarrollo: decision del contador.
+
+---
 
 # CAJA NEGRA: OMEGA Lite - D estaba detras de B/P en la Ingesta (corregido) + base de CA espejo de OF - S865 (2026-09-14, CA)
 

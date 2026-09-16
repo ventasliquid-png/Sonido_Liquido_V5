@@ -1985,3 +1985,38 @@ refleja el remito recién creado — pedido #10 quedó con 140/170 entregado y B
 Causa probable: la guarda de Card #125 lee `PedidoItem.cantidad_entregada` y deja
 cacheada la colección `remitos_items` vacía; el recálculo hace flush + query sin expirar
 ese atributo.
+
+## S866 (Lite) — Remitos: fuga de rollback, renglón cero y la quinta ruta de Bits 20/21
+
+Tres correcciones sobre `backend/remitos/service.py`, verificadas en vivo en D y B con
+reproducción real del fallo antes y después, y limpieza a línea base.
+
+**Bloque 1 — fuga de rollback (`870894fd` / `ac464d0`).** `IngestaService.approve`
+(`ingesta/service.py:113-122`) atrapa cualquier excepción y comitea **la misma sesión**
+para marcar el raw como `ERROR`. Ese commit arrastra todo lo que se hubiera flusheado antes
+del `raise`, así que un rechazo dejaba escrito lo que decía rechazar. Es el único punto del
+backend que comitea dentro de un `except` (verificado sobre todo `backend/`), pero envuelve
+justo a la función con más guardas del sistema. Se agregó `db.rollback()` explícito antes de
+las 7 guardas afectadas (líneas 282, 297, 309, 336, 345, 408, 425). Probado: un `409
+CANTIDAD_EXCEDE_PEDIDO` sobre un pedido `PENDIENTE` lo dejaba en `FACTURADO`; ahora queda en
+`PENDIENTE`. El caso `NUMERO_COMPROBANTE_REQUERIDO` en `modo_cuarentena` —que dejaba Pedido
+fantasma **más** Producto `VS9999` huérfano— también quedó limpio.
+
+**Bloque 2 — las otras dos puertas de renglón cero (`dd1eb4c0` / `ef08320`).** El fix de
+renglón cero de la ingesta cubría un solo camino de tres. Se cerraron: `create_manual` con
+`items: []` (devolvía 200 y creaba remito + pedido fantasma) y `PATCH /remitos/{id}` con
+`items: []` (vaciaba un remito existente sin borrarlo, alcanzable desde el modal de edición).
+Ambas rechazan con `RENGLON_CERO`. No hizo falta `db.rollback()` acá: ninguno de los dos
+routers comitea dentro de su `except` y las guardas disparan antes del único `db.commit()`
+—verificado leyendo el router, no asumido.
+
+**Bloque 3.1 — Bits 20/21 en `create_puente_factura` (`727dd912` / `d65c281`).** Quinta ruta
+sin recálculo, en las dos ramas de salida. Existe desde `67b06853` (2026-04-22), o sea que la
+auditoría de S839 que concluyó "la deuda no era una sino cuatro rutas" no la vio. Verificado:
+pedido cubierto al 100% por este camino enciende Bit 21 (antes quedaba en 0); caso parcial
+enciende Bit 20.
+
+**Pendiente del mismo bloque (3.2):** `create_puente_factura` sigue renumerando un 0015 ya
+impreso a 0016 y copiando la cantidad del pedido en vez de la de la factura. No se tocó
+porque la decisión del 16/09 —abandonar el 0016— cambia el alcance: ver Card #138 y
+`ESTUDIO_DISCOVERY_BAS_S866.md` §4-bis, bloques T1-T7.

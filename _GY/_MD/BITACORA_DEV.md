@@ -1,4 +1,8 @@
-﻿## SESION 865 (CA) — 2026-09-14: D detrás de B/P en Ingesta corregido (`ebdb72e4`) + base CA = OF — NOMINAL — D:ebdb72e4 B:c4d5429 | Semáforo CS: AMARILLO (heredado) | PIN 1974 | Lite
+﻿## SESION 866 (OF) — 2026-09-15/16: Bloques 1/2/3 de la auditoría de Remitos (rollback en guardas de ingesta, renglón cero, Bits 20/21 en `create_puente_factura`) + auditoría Lácteos contra P real (3 facturas con CAE ausentes de V5) + decisión de abandonar el 0016 (plan T1-T7, Card #138) — NOMINAL — D:727dd912 B:d65c281 | Semáforo CS: AMARILLO | PIN 1974 | Lite
+
+---
+
+## SESION 865 (CA) — 2026-09-14: D detrás de B/P en Ingesta corregido (`ebdb72e4`) + base CA = OF — NOMINAL — D:ebdb72e4 B:c4d5429 | Semáforo CS: AMARILLO (heredado) | PIN 1974 | Lite
 
 ---
 

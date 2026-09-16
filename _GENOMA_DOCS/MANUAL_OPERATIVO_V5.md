@@ -1106,3 +1106,20 @@ Corregido — ahora el orden alfabético trata igual a una letra con acento y si
 
 Sin cambios visibles para el operador en producción (el ajuste de Ingesta de esta sesión
 iguala D a lo que P ya tenía desde S864).
+
+## S866 — Remitos: ahora el sistema frena antes, no después
+
+Tres cambios que el operador puede notar, todos en la misma dirección: **cuando algo está
+mal, el sistema lo rechaza en el momento en vez de guardar un documento a medias.**
+
+- **Un remito no puede quedar sin renglones.** Si al crear un Remito Manual, o al editar uno
+  existente, quedan cero ítems, la operación se rechaza con el aviso `RENGLON_CERO` en lugar
+  de guardar un remito vacío. Antes se podía vaciar un remito desde el modal de edición
+  (borrar todos los renglones y guardar) y el remito quedaba existiendo, sin contenido.
+- **Un rechazo en la Ingesta ya no deja el pedido tocado.** Antes, cuando la ingesta de una
+  factura se rechazaba porque las cantidades excedían lo pedido, el mensaje era correcto
+  ("corrija el pedido y reintente") pero el pedido ya había cambiado de estado por detrás.
+  Ahora un rechazo no deja ningún rastro: el pedido queda exactamente como estaba.
+- **El estado de entrega del pedido se actualiza también al facturar.** Había un camino
+  —sellar una factura y generar el remito desde ahí— en el que el pedido no actualizaba sus
+  marcas de "entregado parcial" / "entregado completo". Ese camino ya las actualiza.
