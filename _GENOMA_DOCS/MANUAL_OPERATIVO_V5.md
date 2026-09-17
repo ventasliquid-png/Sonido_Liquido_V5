@@ -1123,3 +1123,36 @@ mal, el sistema lo rechaza en el momento en vez de guardar un documento a medias
 - **El estado de entrega del pedido se actualiza también al facturar.** Había un camino
   —sellar una factura y generar el remito desde ahí— en el que el pedido no actualizaba sus
   marcas de "entregado parcial" / "entregado completo". Ese camino ya las actualiza.
+
+## S866 (registrada el 17/09) — Pantalla nueva: Reporte de Entregas
+
+**Dónde está:** menú **PEDIDOS → Reporte de Entregas**. En producción está disponible desde el
+16/09.
+
+**Para qué sirve:** ver, para cada cliente y cada OC, cuánto se pidió, cuánto ya salió y cuánto
+falta, y con qué remitos salió. Reemplaza el seguimiento a mano (o de memoria) de las OC que se
+entregan en varias partes.
+
+**Cómo se lee:**
+- La lista va de lo general a lo particular: **Cliente → OC → Pedido → Producto**.
+- Cada producto muestra tres columnas: **Pedido** (lo que pidió el cliente), **Entregado** (lo que
+  ya salió con remito) y **Pendiente** (lo que falta).
+- Tocando un producto se despliegan **los remitos** con los que salió, con su fecha y cantidad.
+- Los pedidos sin OC cargada aparecen agrupados bajo "(sin OC)".
+
+**Cómo se busca:**
+- El buscador de arriba acepta **cliente, número de OC o producto**.
+- Los campos de fecha **desde / hasta** acotan el período.
+- La casilla de **incluir anulados** suma los remitos anulados (por defecto no se cuentan).
+
+**El cartel amarillo de anomalías.** Si arriba aparece "N anomalía(s) detectada(s)", tocándolo se
+ve la lista. No son errores de la pantalla: son datos que conviene revisar.
+- *"Remito X no tiene ítems cargados"*: existe el remito pero sin renglones. No suma entregas.
+- *"Remito X apunta a un pedido inexistente"*: el pedido del remito fue borrado.
+- *"Número X repetido en N remitos"*: el mismo número de remito se cargó más de una vez.
+- *"Pedido #N: …"* (sobre-entrega): figura entregado más de lo pedido en algún renglón.
+- *"OC X aparece en los pedidos …"*: la misma OC se cargó en más de un pedido. Al lado de esa OC
+  aparece además la etiqueta **"OC repetida en otro pedido"**.
+
+Ante una anomalía, **no corregir a mano desde otra pantalla**: avisar a Carlos, porque algunos de
+estos casos se reparan con backup previo.

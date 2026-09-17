@@ -3,7 +3,7 @@
 
 > Protocolo exclusivo para entorno D (desarrollo).
 > Para P ver: C:\dev\v5-ls-Tom\OMEGA.md
-> **Versión:** 3.3 — 2026-07-15
+> **Versión:** 3.4 — 2026-09-17
 > **Dictamen:** Nike Arq 5.5 — Redacción: Carlos + Claude Sonnet 4.6
 
 ---
@@ -68,17 +68,43 @@ Si no devuelve `WAL checkpoint OK` → STOP. No exportar.
 
 ## FASE 1B.2 — ROTACIÓN DE BACKUPS (BACKUPS_DB)
 
-Ejecutar:
+Ejecutar la versión del Silo (Card #137, S868):
 ```python
-python scripts/backup_db.py
+python "Q:\Mi unidad\V5_Silo_Claudeackup_db.py"
 ```
-Rota MAESTRO/DESARROLLO en Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\ROTATIVO
+*`scripts/backup_db.py` de D es solo un delegador que llama a la del Silo; no tiene lógica propia. Desde S868
+copia las bases con la API de backup de SQLite, así que incluye lo que esté en el `-wal`.*
+
+> ⚠ **MAESTRO no respalda producción (verificado en S868).** En OF y en CA, MAESTRO resuelve a la base
+> local de B (`C:\dev5-ls-Tom\current\V5_LS_MASTER.db`), no a la de P. Los 5 slots rotativos y el
+> histórico tenían 57 pedidos (hasta el #73) mientras producción tenía 97 (hasta el #113). Pendiente
+> abierto en `SESION_NEXT.md`: resolver cómo se respalda la base real de P.
+
+Rota MAESTRO/DESARROLLO/BOARD en Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\ROTATIVO
 según esquema dinámico de cascada (slots 1-3: ventana rodante de últimos
 3 días; slot 4: hereda de slot 3 cuando pasaron >=14 días desde su última
 actualización o está vacío; slot 5: hereda de slot 4 cuando pasaron >=35
 días desde su última actualización o está vacío).
 
 Si falla → [WARN] Error en rotación de backups. No bloquea el cierre.
+
+---
+
+## FASE 1B.3 — COPIA DE PRODUCCIÓN (S868, pedido de Carlos: "al cierre de cada sesión")
+
+Mientras no exista un backup periódico sobre la base real de P (Card #95), **cada OMEGA saca una copia de
+producción al Silo:**
+```cmd
+python "Q:\Mi unidad\V5_Silo_Claudeackup_produccion.py"
+```
+Solo lectura sobre P: copia por red el `.db` y el `-wal`, verifica que no hayan cambiado durante la copia
+(reintenta si alguien estaba cargando), arma la copia con la API de backup de SQLite y corre
+`PRAGMA integrity_check`. Si P no cambió desde la última copia, no guarda otra. Guarda en
+`BACKUPS_DB\PRODUCCION_P\` y no borra copias viejas (avisa si pasan de 15; decide Carlos).
+
+- **P no accesible por red** (típico desde CA): lo informa y el cierre sigue, pero va a la bitácora como fila ⚠.
+- **Error de integridad o de copia:** no guarda nada. Se registra y se avisa a Carlos.
+- **FASE 1D lo controla:** si P es accesible y tiene datos más nuevos que la última copia, el cotejo da FAIL.
 
 ---
 
@@ -90,6 +116,38 @@ Durante el cierre, el script OMEGA generará automáticamente un Excel Espejo de
 Card #93-bis). En entorno TOM, el archivo se guarda en `Silo\P\` (la carpeta sigue al dato
 de producción, no al código que lo genera — S850).
 Esto crea un snapshot histórico de los pedidos que sirve como red de seguridad visual antes del cierre de sesión. Si ocurre un error generando el Excel, OMEGA arrojará un `[WARN] Error generando Espejo Excel`, el cual debe ser reportado.
+
+---
+
+## FASE 1D — COTEJO DE CIERRE (S868, obligatorio en ambos perfiles)
+
+Antes de escribir una sola línea de FASE 2:
+
+```cmd
+python "Q:\Mi unidad\V5_Silo_Claude\pendientes.py" cierre --maquina {OF|CA}
+```
+
+*Cubre la parte de **registro** de la Card #114. La validación de lo hecho **contra la doctrina**
+(dictámenes escritos, cards cerradas con evidencia real, bits contra su definición) sigue abierta
+en esa card.*
+
+Solo lectura. Coteja:
+- Cada `P(n)` de la tabla "Pendientes al arranque" de la bitácora (ALFA FASE 0-bis) tiene estado en
+  la columna `Cierre`: **RESUELTO** (con fila o hash) · **SIGUE** · **DESCARTADO** (solo por decisión
+  de Carlos).
+- **Todos** los commits de D y de B desde el hash del OMEGA anterior de esta máquina
+  (`git log <hash>..HEAD`, **nunca** `git log -N`) tienen su fila en la bitácora.
+- El hash **real** de P, leído en P.
+- Entradas del INBOX sin archivar.
+- Board: cards mencionadas hoy sin actualizar, cards creadas hoy parecidas a una abierta, y cards
+  abiertas mencionadas en commits (¿resueltas y no cerradas?).
+
+**FAIL → no se escribe nada de FASE 2** hasta resolverlo con Carlos (completar filas, marcar
+estados). Los `⚠ REVISAR` se miran uno por uno con Carlos: no bloquean, pero no se ignoran.
+
+*Por qué:* en S866 el cierre se escribió de memoria. `git log --oneline -5` dejó afuera tres pares
+de commits, y un pendiente 🔴 se borró de `SESION_NEXT.md` sin respuesta
+(`AUDITORIA_CA_CIERRE_S866.md`).
 
 ---
 
@@ -132,8 +190,10 @@ nunca se recortan, solo se recorta la prosa discursiva dirigida a lectura humana
 Regla de Oro: No decir "voy a actualizar". Presentar texto exacto.
 
 - [ ] **SESION_NEXT.md** (`Q:\Mi unidad\V5_Silo_Claude\SESION_NEXT.md`):
-  **CHECKBOX OBLIGATORIO** — Sobrescribir con el estado actual de la mesa:
-  - Vaciar tareas resueltas
+  **CHECKBOX OBLIGATORIO** — **Editar el vigente, nunca reescribirlo de memoria** (S868):
+  - Quitar solo lo que en FASE 1D quedó RESUELTO (citando fila o hash) o DESCARTADO por Carlos
+  - Lo que quedó SIGUE, se queda tal cual
+  - Agregar los pendientes nuevos del día
   - Documentar próxima tarea concreta
   - Anotar pendientes Nike
   - Registrar callejones explorados si los hubo
@@ -167,6 +227,9 @@ Regla de Oro: No decir "voy a actualizar". Presentar texto exacto.
   - `omega_cerrado: true`
   - `fecha_ultimo_omega`: hoy
   - `hash_D` y `hash_P`: hashes del commit de cierre
+  - `ultimo_hash_B_en_P`: el hash **leído en P** (lo muestra `pendientes.py`), nunca el de los
+    registros (S868: se registró `8bd8d51` cuando P ya estaba en `d65c281`)
+  - `ultimo_barrido_board`: fecha, si hubo barrido semanal del Board en la sesión
   - `commits_sin_push_D/P`: 0 (tras push exitoso)
   - `system_flags`: encender Bits 60+61+62 (ESPEJO_TOTAL) si las
     4 capas de la Trinidad se actualizaron correctamente.
@@ -257,6 +320,8 @@ Crea una "caja negra" inmutable del estado local exacto.
 
 ### PASO 5C — Autorización y Push
 El commit de OMEGA **incluye siempre** `BITACORA_VIVA.md` archivada y `SISTEMA_STATUS.json` actualizado.
+**La leyenda `(PIN 1974)` va solo si Carlos escribió el PIN para este OMEGA en esta sesión** (ALFA,
+Convención PIN).
 ```cmd
 # [PROHIBIDO] git add . — siempre explícito
 git add [archivo1] [archivo2] ... OMEGA.md SISTEMA_STATUS.json
@@ -306,6 +371,11 @@ git log prod/main -n 1 --format="%h - %s"
 ```
 Registrar en BITACORA_VIVA. Reportar **"SESIÓN CLAUSURADA CON ÉXITO"** con hashes de ambos remotos.
 
+### PASO 6D — Push a producción (S868)
+Si en la sesión hubo push a `prod/main`: **avisar a Carlos que entra a producción en el próximo
+arranque de P** (autopull + `auto_migrar.py` + rebuild del frontend), y dejarlo en la bitácora. Si P
+está accesible por red, verificar después del arranque que su `HEAD` sea el esperado.
+
 ---
 
 ## FASE 7 — HIGIENE PROFILÁCTICA ANTIGRAVITY (OBLIGATORIA)
@@ -318,8 +388,8 @@ Qué NO toca: User\, Workspaces\, Preferences.
 
 ---
 
-*Última actualización: 2026-07-15 — OF*
-*Reemplaza: OMEGA.md (V3.2)*
+*Última actualización: 2026-09-17 — OF (S868)*
+*Reemplaza: OMEGA.md (V3.3)*
 *Versión 3.2 — S841-OF — Perfiles Completo/Lite (Bit 19), Bits 26-28 en actualización de
 system_flags, CONTEXTO_CS/ + DESTILADO CS como ítem obligatorio de FASE 2, fix diagnóstico
 actualizar_card000.py en verificación.*
@@ -328,3 +398,9 @@ locales de D y B, que habían divergido en direcciones opuestas (la del Silo ten
 contenido de S841 que D nunca recibió; la de D tenía el fix de FASE 6 de Card #88 que nunca
 llegó al Silo). FASE 6 reescrita con verificación multi-remoto (Pasos 6A/6B/6C). FASE 1C
 actualizada: entorno auto-detectado sin flag, TOM guarda en Silo\P\.*
+*Versión 3.4 — S868-OF (2026-09-17), a partir de la auditoría de CA al cierre S866 y aprobado por
+Carlos — FASE 1D: cotejo de cierre con `pendientes.py cierre` (pendientes del día con estado,
+commits desde el OMEGA anterior sin `-N`, hash real de P, INBOX, Board). SESION_NEXT se edita, no
+se reescribe de memoria. `ultimo_hash_B_en_P` leído en P, `ultimo_barrido_board`. PIN solo si fue
+dado. Paso 6D: push a prod = despliegue. Cubre la parte de registro de la Card #114; la validación
+contra doctrina sigue abierta.*

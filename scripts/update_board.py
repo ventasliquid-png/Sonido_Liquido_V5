@@ -27,7 +27,10 @@ SHEET_NAME = "Board V5"
 
 
 DIRECT_FIELDS = ("Título", "Tipo", "Prioridad", "Módulo", "Versión", "Estado",
-                  "Fecha_cierre", "Depende_de", "Fecha_creacion")
+                  "Fecha_cierre", "Depende_de", "Fecha_creacion",
+                  # Ranking (S868): el barrido los carga con Q:\...\V5_Silo_Claude\board_barrido.py,
+                  # que valida la escala y los temas. Acá solo se escriben tal cual.
+                  "Toca", "Temas", "Daña", "Repite", "Bloquea", "Redescubierta")
 
 
 def _get_col_map(ws):
@@ -46,7 +49,8 @@ def aplicar_actualizaciones(updates: dict) -> int:
     """
     updates: {card_id: {campo: valor, ...}}
     Campos directos (sobrescriben): Título, Tipo, Prioridad, Módulo, Versión,
-    Estado, Fecha_cierre, Depende_de, Fecha_creacion.
+    Estado, Fecha_cierre, Depende_de, Fecha_creacion, Toca, Temas, Daña, Repite,
+    Bloquea, Redescubierta.
     Campos especiales sobre Comentarios (se pueden combinar, se aplican en
     este orden): "Comentarios_replace": (viejo, nuevo) substring dentro del
     comentario existente; "Comentarios_prepend": texto antes del existente;
@@ -93,7 +97,8 @@ def aplicar_actualizaciones(updates: dict) -> int:
 
 def agregar_cards(cards: list) -> int:
     """
-    cards: lista de dicts con las 11 columnas del Board (ID incluido).
+    cards: lista de dicts con las columnas del Board (ID incluido; desde S868 tambien Toca, Temas,
+    Daña, Repite, Bloquea y Redescubierta -- una card nace rankeada, ver ALFA.md).
     Agrega filas nuevas al final de "Board V5". No toca filas existentes.
     """
     wb = openpyxl.load_workbook(FILE_PATH)

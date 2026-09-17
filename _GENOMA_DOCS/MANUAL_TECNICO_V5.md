@@ -2020,3 +2020,37 @@ enciende Bit 20.
 impreso a 0016 y copiando la cantidad del pedido en vez de la de la factura. No se tocó
 porque la decisión del 16/09 —abandonar el 0016— cambia el alcance: ver Card #138 y
 `ESTUDIO_DISCOVERY_BAS_S866.md` §4-bis, bloques T1-T7.
+
+## S866 (registrada el 17/09, retroactiva por auditoría de CA) — Card #136 y Reporte de Entregas
+
+Dos entregas del 15/09 a la mañana que no quedaron en la entrada S866 de arriba. Detalle y
+evidencia en `AUDITORIA_CA_CIERRE_S866.md` §9 (R1, R2).
+
+**Card #136 — Bits 20/21 tras vincular por Ingesta (D `b1bd43f9` / B `72333d9`).** La guarda de la
+Card #125 lee `PedidoItem.cantidad_entregada` antes de crear el remito, y SQLAlchemy cachea la
+relación `remitos_items` vacía. Como el `RemitoItem` nuevo se crea con `pedido_item_id` a mano (no
+por la relación), ese caché no se invalida, y `_recalcular_bits_entrega` hacía `flush()` + query sobre
+el mismo objeto cacheado: `cantidad_entregada` daba 0 y los bits nunca prendían. Fix:
+`db.expire_all()` después del `flush()`, dentro de la función, así cubre a todos sus llamadores
+(`create_manual`, `update_remito`, `create_from_ingestion`, `create_puente_factura`,
+`DELETE /remitos/{id}`). Verificado en vivo en D (pedido #10) y B (pedido #73), y en P con datos
+reales: remito `0016-00002601` (16/09 11:04) con bits correctos.
+
+**Reporte de Entregas (D `845a0664`, `60e27308`, `c6140913` / B `c6b4c79`, `77a4d29`, `6dcf5ba`).**
+- Backend: `GET /remitos/entregas` → `RemitosService.get_entregas` (`backend/remitos/service.py`),
+  ruta declarada **antes** de `GET /{remito_id}` (mismo shape de path; FastAPI resuelve por orden).
+  Filtros opcionales `cliente_id`, `desde`, `hasta`, `producto_id`, `oc`, `incluir_anulados`.
+  Devuelve filas planas (una por renglón de remito, más los renglones de pedido sin entrega) y una
+  lista `anomalias`: `REMITO_SIN_RENGLONES`, `REMITO_SIN_PEDIDO`, `NUMERO_LEGAL_DUPLICADO`,
+  `SOBRE_ENTREGA`, `OC_EN_VARIOS_PEDIDOS`.
+- Frontend: `views/Logistica/EntregasView.vue`, ruta `EntregasReport`, link en el grupo PEDIDOS del
+  sidebar. Agrupa del lado del cliente en Cliente → OC → Pedido → Producto.
+- Bug corregido en el camino: `new Date('2026-09-15')` se interpreta como UTC y en Argentina mostraba
+  el día anterior; la fecha se parsea a mano.
+- Pendiente (Card #139): verificación en vivo en P. `SOBRE_ENTREGA` y `OC_EN_VARIOS_PEDIDOS` todavía
+  no se dispararon sobre un caso real.
+
+**Nota de despliegue que salió de esta auditoría:** P hace `git pull prod main` en cada arranque
+(`LANZAR_V5_SOBERANA.bat`) y `scripts/ARRANQUE_V5.bat` corre `auto_migrar.py`, recompila el
+frontend si cambió el código y levanta uvicorn en el puerto 8090. **Un push a `prod/main` se
+despliega solo en el próximo arranque de producción.**
