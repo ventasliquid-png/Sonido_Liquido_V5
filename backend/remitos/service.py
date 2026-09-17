@@ -377,12 +377,21 @@ class RemitosService:
                         )
                     )
                 pendiente = target.cantidad - target.cantidad_entregada
-                if p_item.cantidad > pendiente + 0.001:  # tolerancia de redondeo flotante
+                # [T5, S868] En VINCULAR_PARCIAL la cantidad que cuenta contra el pendiente es
+                # la que efectivamente se remite hoy (cantidad_remitir, decidida en el asistente
+                # de la ingesta), no la facturada -- son documentos distintos a propósito: la
+                # factura puede cubrir más de lo que se despacha en este viaje. En los otros
+                # modos (VINCULAR_EXISTENTE/CUMPLIDO) sigue sin existir esa separación: ahí la
+                # factura debe cerrar exactamente el pendiente del pedido.
+                cantidad_check = p_item.cantidad
+                if payload.modo_ingesta == "VINCULAR_PARCIAL" and p_item.cantidad_remitir is not None:
+                    cantidad_check = p_item.cantidad_remitir
+                if cantidad_check > pendiente + 0.001:  # tolerancia de redondeo flotante
                     db.rollback()  # [FIX Bloque 1] misma razón que arriba
                     raise HTTPException(
                         status_code=409,
                         detail=(
-                            f"CANTIDAD_EXCEDE_PEDIDO: '{p_item.descripcion}' trae {p_item.cantidad}, "
+                            f"CANTIDAD_EXCEDE_PEDIDO: '{p_item.descripcion}' trae {cantidad_check}, "
                             f"pero el Pedido #{nuevo_pedido.id} solo tiene {pendiente} pendiente. "
                             f"Actualice el Pedido antes de continuar."
                         )
@@ -507,14 +516,18 @@ class RemitosService:
                     print(f"[REMITO-CRITICAL] ERROR DE INTEGRIDAD: Producto {p_item.producto_id} no pertenece al Pedido Original. Omitiendo asociación.")
                     continue
 
+                # [T5, S868] cantidad_remitir (del asistente) manda si vino; si no, comportamiento
+                # previo (remitir lo mismo que la factura). El FacturaItem del espejo, más abajo,
+                # sigue usando p_item.cantidad sin tocar -- es lo que la factura real dice.
+                cantidad_remito = p_item.cantidad_remitir if p_item.cantidad_remitir is not None else p_item.cantidad
                 r_item = models.RemitoItem(
                     remito_id=remito.id,
                     pedido_item_id=target_p_item.id,
-                    cantidad=p_item.cantidad
+                    cantidad=cantidad_remito
                 )
                 db.add(r_item)
                 remito_items_creados += 1
-                print(f"[REMITO-TRACE] Item parcial vinculado: Remito {remito.id} -> PedidoItem {target_p_item.id} ({p_item.cantidad} uds)")
+                print(f"[REMITO-TRACE] Item parcial vinculado: Remito {remito.id} -> PedidoItem {target_p_item.id} ({cantidad_remito} uds, factura decía {p_item.cantidad})")
 
             # Encender VINCULAR_PARCIAL (Bit 11) en el Remito
             remito.flags_estado = (remito.flags_estado or 0) | int(RemitoFlags.VINCULAR_PARCIAL)

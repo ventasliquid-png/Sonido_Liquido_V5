@@ -629,6 +629,16 @@
         @cancel="onItemResolutionModalCancel"
     />
 
+    <!-- ASISTENTE DE ENTREGA PARCIAL [T5, S868]: pedido/remitido/pendiente/factura dice,
+         cantidad a remitir editable, antes de generar el remito. -->
+    <AsistenteEntregaParcial
+        v-if="showAsistenteEntrega"
+        :pedido="selectedPedidoObj"
+        :items-factura="itemsFacturaParaAsistente"
+        @confirmado="onAsistenteEntregaConfirmado"
+        @cancel="onAsistenteEntregaCancelado"
+    />
+
     <!-- IDENTITY DISCREPANCY MODAL -->
     <Teleport to="body">
         <div v-if="showIdentityModal" class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
@@ -729,6 +739,7 @@ import { usePedidosStore } from '@/stores/pedidos';
 import ClientCanvas from '../Hawe/ClientCanvas.vue';
 import SmartSelect from '@/components/ui/SmartSelect.vue';
 import IngestaItemModal from '@/views/Ventas/components/IngestaItemModal.vue';
+import AsistenteEntregaParcial from './components/AsistenteEntregaParcial.vue';
 import api from '@/services/api';
 
 const router = useRouter();
@@ -753,6 +764,10 @@ const showItemResolutionModal = ref(false);
 const itemsForResolutionModal = ref([]);
 const pendingAutoResolved = ref([]);
 const pendingUnresolved = ref([]);
+
+// [T5, S868] Asistente de entrega parcial -- ver finalizeValidation más abajo.
+const showAsistenteEntrega = ref(false);
+const pendingResolvedItems = ref([]);
 
 // Mismo criterio que PedidoList.vue (tieneEntregasParciales): por cantidades reales
 // entregadas a nivel renglón, no por el Bit 20 (flags_estado) -- ese bit puede
@@ -1310,45 +1325,50 @@ const validateAndProceed = async () => {
 };
 
 // Paso 2 (corre directo, o después de resolver a mano en el modal):
-// chequea saldo pendiente por producto_id y recién ahí genera el remito.
+// [T5, S868] Antes bloqueaba con un mensaje de texto si algún renglón excedía el pendiente
+// (comparando contra pItem.cantidad, no contra el pendiente real -- cantidad_pendiente no
+// existe en PedidoItemResponse, así que esa comparación nunca restaba lo ya entregado).
+// Ahora muestra el asistente ANTES de confirmar: pedido/remitido/pendiente/factura dice por
+// renglón, con la cantidad a remitir editable (aporte de Carlos, ESTUDIO_DISCOVERY_BAS_S866.md
+// §4-bis) -- el operador decide con el panorama completo en vez de reintentar a ciegas.
 const finalizeValidation = async (allResolved) => {
-    const pedido = selectedPedidoObj.value;
-
-    const pendingMap = {};
-    for (const pItem of pedido.items || []) {
-        const qty = pItem.cantidad_pendiente !== undefined ? pItem.cantidad_pendiente : pItem.cantidad;
-        pendingMap[pItem.producto_id] = (pendingMap[pItem.producto_id] || 0) + parseFloat(qty);
-    }
-
-    let isDiscrepancy = false;
-    let motivos = [];
-    const resolvedItems = [];
-
-    for (const { rItem, producto_id: pid } of allResolved) {
-        const reqQty = parseFloat(rItem.cantidad);
-        if (!pid || !pendingMap[pid] || reqQty > pendingMap[pid]) {
-            isDiscrepancy = true;
-            motivos.push(`Exceso de cantidad: ${rItem.descripcion} (Fac: ${reqQty}, Ped: ${pendingMap[pid] || 0})`);
-        } else {
-            pendingMap[pid] -= reqQty;
-        }
-
-        resolvedItems.push({
-            ...rItem,
-            producto_id: pid
-        });
-    }
-
-    if (isDiscrepancy) {
-        const errorMsg = "⛔ BLOQUEO DE INGESTA\nLas reglas de negocio indican que la Factura no puede exceder al Pedido ni inventar renglones.\nERRORES ENCONTRADOS:\n- " + motivos.join("\n- ");
-        error.value = errorMsg;
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-        notification.add('Validación Exitosa. Generando remito...', 'success');
-        parsedData.value.items = resolvedItems;
-        await confirmIngesta();
-    }
+    pendingResolvedItems.value = allResolved; // [{ rItem, producto_id }]
+    showAsistenteEntrega.value = true;
 };
+
+const onAsistenteEntregaConfirmado = async (ajustes) => {
+    // ajustes: [{ producto_id, cantidad_remitir }] -- solo renglones con algo a remitir
+    showAsistenteEntrega.value = false;
+    const porProducto = new Map(ajustes.map(a => [String(a.producto_id), a.cantidad_remitir]));
+    const items = pendingResolvedItems.value
+        .filter(({ producto_id }) => porProducto.has(String(producto_id)))
+        .map(({ rItem, producto_id }) => ({
+            ...rItem,
+            producto_id,
+            cantidad_remitir: porProducto.get(String(producto_id)),
+        }));
+    pendingResolvedItems.value = [];
+    if (items.length === 0) {
+        notification.add('No se seleccionó ninguna cantidad a remitir.', 'warning');
+        return;
+    }
+    notification.add('Generando remito...', 'success');
+    parsedData.value.items = items;
+    await confirmIngesta();
+};
+
+const onAsistenteEntregaCancelado = () => {
+    showAsistenteEntrega.value = false;
+    pendingResolvedItems.value = [];
+};
+
+const itemsFacturaParaAsistente = computed(() =>
+    pendingResolvedItems.value.map(({ rItem, producto_id }) => ({
+        producto_id,
+        cantidad: rItem.cantidad,
+        descripcion: rItem.descripcion,
+    }))
+);
 
 const onItemResolutionModalResolved = async (resolvedFromModal) => {
     // resolvedFromModal viene en el mismo orden que itemsForResolutionModal (=> mismo orden que pendingUnresolved.value)
@@ -1406,6 +1426,9 @@ const confirmIngesta = async () => {
             items: parsedData.value.items.map(item => ({
                 descripcion: item.descripcion,
                 cantidad: parseFloat(item.cantidad),
+                // [T5, S868] Si el asistente de entrega parcial ajustó la cantidad a remitir,
+                // viaja separada -- "cantidad" sigue siendo lo que dice la factura (fiscal).
+                cantidad_remitir: item.cantidad_remitir != null ? parseFloat(item.cantidad_remitir) : undefined,
                 precio_unitario: parseFloat(item.precio_unitario || item.precio || 0.0),
                 codigo: item.codigo || item.sku || null,
                 producto_id: item.producto_id || null

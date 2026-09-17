@@ -107,7 +107,12 @@ class IngestionFactura(BaseModel):
 class IngestionItem(BaseModel):
     codigo: Optional[Union[str, int]] = None
     descripcion: str
-    cantidad: float
+    cantidad: float  # lo que dice la factura -- dato fiscal, va tal cual al FacturaItem espejo
+    # [T5, S868] Asistente de entrega al confirmar la ingesta (ESTUDIO_DISCOVERY_BAS_S866.md
+    # §4-bis, aporte de Carlos): cuánto se despacha en ESTE remito, si es distinto de lo
+    # facturado (ej. factura por 120, entrega de 40 por semana). None = comportamiento
+    # previo, se remite lo mismo que dice la factura.
+    cantidad_remitir: Optional[float] = None
     precio_unitario: Optional[float] = None
     subtotal: Optional[float] = None
     alicuota_iva: Optional[float] = 21.0
