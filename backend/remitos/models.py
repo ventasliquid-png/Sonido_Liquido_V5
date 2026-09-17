@@ -68,6 +68,36 @@ class Remito(Base):
     def razon_social(self):
         return self.pedido.cliente.razon_social if self.pedido and self.pedido.cliente else "Desconocido"
 
+    def _factura_de_referencia(self):
+        """La factura que ampara este remito, leída del vínculo facturas_remitos.
+
+        [S868, regla de Carlos 17/09] El remito no tiene CAE propio ni se le escribe uno: lo
+        único que muestra es la referencia a una factura que existe y está vinculada (la de la
+        ingesta), con el CAE de esa factura. Sin factura, nada. Facturas anuladas o sin número
+        no cuentan. Sin accesos que puedan tirar AttributeError (Card #119: Pydantic los
+        enmascara).
+        """
+        for vinculo in self.vinculos_facturas or []:
+            factura = vinculo.factura
+            if factura is None or factura.punto_venta is None or factura.numero_comprobante is None:
+                continue
+            if str(factura.estado or "").upper().startswith("ANULAD"):
+                continue
+            return factura
+        return None
+
+    @property
+    def factura_vinculada(self):
+        """Número de la factura de referencia ("0001-00002533") o None."""
+        factura = self._factura_de_referencia()
+        return factura.numero_completo if factura else None
+
+    @property
+    def factura_vinculada_cae(self):
+        """CAE de la factura de referencia, leído de la factura (nunca de remitos.cae) o None."""
+        factura = self._factura_de_referencia()
+        return (factura.cae or None) if factura else None
+
     def __repr__(self):
         return f"<Remito(id={self.id}, estado='{self.estado}')>"
 

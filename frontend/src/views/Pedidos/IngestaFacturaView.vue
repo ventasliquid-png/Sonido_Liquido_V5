@@ -255,8 +255,10 @@
                                  </p>
                                  <p v-else class="text-[10px] text-blue-500/50 font-mono italic mt-1">Soberanía Total: Edite si el OCR falló.</p>
                                  <div class="mt-3 p-2 bg-blue-500/5 border border-blue-500/20 rounded-lg animate-pulse" v-if="parsedData.factura.numero">
-                                     <span class="text-[9px] uppercase font-bold text-blue-400/50 block mb-1">Remito Resultante (Serie 0016)</span>
-                                     <span class="text-lg font-mono font-black text-emerald-400">0016-{{ (parsedData.factura.numero.split('-')[1] || parsedData.factura.numero.split(' ')[1] || parsedData.factura.numero).trim().padStart(8, '0') }}</span>
+                                     <!-- [T6, S868] El remito ya no copia el número de la factura: sale del talonario 0015 al confirmar -->
+                                     <span class="text-[9px] uppercase font-bold text-blue-400/50 block mb-1">Remito Resultante (Serie 0015)</span>
+                                     <span class="text-lg font-mono font-black text-emerald-400">Número automático al confirmar</span>
+                                     <span class="text-[10px] font-mono text-blue-300/70 block mt-1">Corresponde a Factura {{ parsedData.factura.numero }}</span>
                                  </div>
                             </div>
                             <div class="text-right flex flex-col items-end gap-2">
@@ -1413,7 +1415,7 @@ const confirmIngesta = async () => {
             valor_declarado: valor_declarado.value,
             nuevo_domicilio: selectedAddressId.value === 'ADD_NEW' ? newAddress.value : null,
             audit_log: auditLog.value,
-            // [S865-CA] VINCULAR_PARCIAL: el 0016 se arma con los renglones de la factura.
+            // [S865-CA] VINCULAR_PARCIAL: el remito (0015 desde S868) se arma con los renglones de la factura.
             // VINCULAR_EXISTENTE copiaba las cantidades del Pedido (caso real: factura 2600,
             // 20 facturados -> 80 remitidos). finalizeValidation seteaba PARCIAL en
             // parsedData.modo_ingesta, pero este payload nunca lo leía. Igual que B/P

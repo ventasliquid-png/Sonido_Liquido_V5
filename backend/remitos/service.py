@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import or_, text
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException
 
@@ -24,6 +24,43 @@ class RemitosService:
         lookup = name.strip()
         cond = db.query(CondicionIva).filter(CondicionIva.nombre.ilike(f"%{lookup}%")).first()
         return cond.id if cond else None
+
+    @staticmethod
+    def _siguiente_numero_0015(db: Session) -> str:
+        """Próximo número del talonario 0015. Única puerta para numerar un remito.
+
+        [Bloque T7, plan "el 0015 como único talonario" -- ESTUDIO_DISCOVERY_BAS_S866.md
+        §4-bis, S868] Antes de leer el último número toma el lock de escritura de SQLite con
+        un UPDATE que no cambia filas: hasta el commit o rollback de esta sesión ningún otro
+        remito se graba, así que dos altas simultáneas no leen el mismo último número. Vale
+        entre hilos y entre procesos, y un rollback no deja huecos. El que llama hace commit
+        en la misma sesión. Probado el 17/09 sobre una copia de la base: con el cálculo
+        anterior, 12 altas simultáneas salieron las 12 con el mismo número.
+        """
+        db.execute(text("UPDATE remitos SET numero_legal = numero_legal WHERE 0"))
+        numeros = []
+        for (numero,) in db.query(models.Remito.numero_legal).filter(models.Remito.numero_legal.like("0015-%")):
+            try:
+                numeros.append(int(numero.split("-")[-1]))
+            except ValueError:
+                # Un número mal formado no reinicia la cuenta (antes volvía a 3010 y duplicaba).
+                print(f"[NUMERACION 0015] Ignorado número mal formado: {numero!r}")
+        return f"0015-{max(numeros + [3009]) + 1:08d}"
+
+    @staticmethod
+    def _partes_numero_factura(numero: Optional[str]):
+        """(punto_venta, numero_comprobante) de "0001-00002536", "0001 00002536" o "2536".
+        Punto de venta None si el texto trae solo el número; (None, None) si no se entiende."""
+        texto = (numero or "").strip()
+        partes = texto.split("-") if "-" in texto else texto.split()
+        try:
+            if len(partes) >= 2:
+                return int(partes[0]), int(partes[-1])
+            if len(partes) == 1 and partes[0].isdigit():
+                return None, int(partes[0])
+        except ValueError:
+            pass
+        return None, None
 
     @staticmethod
     def _recalcular_bits_entrega(db: Session, pedido) -> None:
@@ -68,34 +105,26 @@ class RemitosService:
         original_invoice = (payload.factura.numero or "").strip()
         print(f"[DEBUG INGESTA] Original Invoice from Payload: '{original_invoice}'")
         
-        numero_legal = ""
-        # [V5.7 Robustness] Handle both "XXXX-YYYYYYYY" and "XXXX YYYYYYYY" or just "YYYYYYYY"
-        if "-" in original_invoice:
-            parts = original_invoice.split("-")
-            if len(parts) >= 2:
-                nc_f = str(parts[1]).strip().zfill(8)
-                numero_legal = f"0016-{nc_f}"
-                print(f"[DEBUG INGESTA] Resolved Numero Legal (Dash Path): {numero_legal}")
-        elif " " in original_invoice:
-            parts = original_invoice.split()
-            if len(parts) >= 2:
-                nc_f = str(parts[-1]).strip().zfill(8)
-                numero_legal = f"0016-{nc_f}"
-                print(f"[DEBUG INGESTA] Resolved Numero Legal (Space Path): {numero_legal}")
-        elif original_invoice and original_invoice.isdigit():
-             # Pure number - likely just the sequential part
-             numero_legal = f"0016-{original_invoice.strip().zfill(8)}"
-             print(f"[DEBUG INGESTA] Resolved Numero Legal (Digit Path): {numero_legal}")
-        
-        if not numero_legal:
+        # [T2, S868 -- plan "el 0015 como único talonario"] El número del remito ya no sale de la
+        # factura: se pide al talonario 0015 justo antes de crear el remito (paso 5). Del número
+        # de la factura quedan los controles anti-duplicado y la referencia (vínculo a la factura
+        # espejo, que el remito imprime como "Corresponde a").
+        pv, nc = RemitosService._partes_numero_factura(original_invoice)
+        if nc is None:
             print(f"[DEBUG INGESTA] No valid pattern found in invoice '{original_invoice}'")
-        
-        # Guard 1: Existing Remito (Committed)
-        if numero_legal:
-            existing_remito = db.query(models.Remito).filter(models.Remito.numero_legal == numero_legal).first()
+
+        # Guard 1 (histórico): hasta el 17/09 la ingesta numeraba el remito 0016-{nro de factura}.
+        # Esos remitos siguen existiendo (en poder de clientes, algunos sin factura espejo): si
+        # hay uno con el número de esta factura, la factura ya se ingresó. Cubre también el
+        # formato viejo 0016-00001-000025xx. Ningún remito nuevo nace 0016.
+        if nc is not None:
+            existing_remito = db.query(models.Remito).filter(or_(
+                models.Remito.numero_legal == f"0016-{nc:08d}",
+                models.Remito.numero_legal.like(f"0016-%-{nc:08d}"),
+            )).first()
             if existing_remito:
-                print(f"[INGESTA] Bloqueo: Remito {numero_legal} ya existe.")
-                raise HTTPException(status_code=409, detail=f"FACTURA_DUPLICADA: El remito {numero_legal} ya existe.")
+                print(f"[INGESTA] Bloqueo: Remito {existing_remito.numero_legal} ya existe.")
+                raise HTTPException(status_code=409, detail=f"FACTURA_DUPLICADA: El remito {existing_remito.numero_legal} ya existe.")
         
         # Guard 2: Existing Pedido (Prevent Ghosting during slow transactions)
         if original_invoice:
@@ -106,21 +135,17 @@ class RemitosService:
                 raise HTTPException(status_code=409, detail=f"FACTURA_DUPLICADA: La factura {original_invoice} ya está vinculada al pedido #{existing_pedido.id}.")
 
         # Guard 3: Existing Factura (Fiscal Mirror)
-        if original_invoice and "-" in original_invoice:
-            try:
-                parts = original_invoice.split("-")
-                pv, nc = int(parts[0]), int(parts[1])
-                from backend.facturacion.models import Factura
-                existing_factura = db.query(Factura).filter(
-                    Factura.punto_venta == pv,
-                    Factura.numero_comprobante == nc
-                ).first()
-                if existing_factura:
-                    raise HTTPException(status_code=409, detail=f"FACTURA_DUPLICADA: La factura fiscal {original_invoice} ya existe en el sistema.")
-            except HTTPException:
-                raise
-            except (ValueError, IndexError):
-                pass
+        # [S868, paso 2 del plan de remitos] Vale para los tres formatos del número. Antes solo
+        # miraba "0001-00002536": con "0001 00002536" o "2536" una factura ya cargada pasaba este
+        # control. Con T2 es el control principal. Solo con el número (sin punto de venta)
+        # compara por número, como hacía el Guard 1.
+        if nc is not None:
+            from backend.facturacion.models import Factura
+            filtro_factura = db.query(Factura).filter(Factura.numero_comprobante == nc)
+            if pv is not None:
+                filtro_factura = filtro_factura.filter(Factura.punto_venta == pv)
+            if filtro_factura.first():
+                raise HTTPException(status_code=409, detail=f"FACTURA_DUPLICADA: La factura fiscal {original_invoice} ya existe en el sistema.")
 
             
         # 1. FIND CLIENT (Anti-Duplication Strategy)
@@ -431,9 +456,9 @@ class RemitosService:
             except:
                 pass
         
-        # [V5] Mirror Numbering: Strict AFIP Compliance (Doctrina)
-        if not numero_legal:
-            # Si llegamos aquí sin numero_legal, el OCR falló y es un error crítico.
+        # Sin número de factura legible no hay ingesta (ni referencia ni control de duplicados).
+        if nc is None:
+            # Si llegamos aquí sin número de factura, el OCR falló y es un error crítico.
             print(f"[DEBUG INGESTA] Numero Legal was empty. Raising explicit error.")
             # [FIX Bloque 1] rollback explícito -- este es justo el punto donde, en
             # modo_cuarentena, ya se habían creado y flusheado el Pedido fantasma,
@@ -445,10 +470,13 @@ class RemitosService:
                 detail="NUMERO_COMPROBANTE_REQUERIDO: No se pudo extraer el número de factura del PDF. Verifique el archivo."
             )
         
-        print(f"[DEBUG INGESTA] Final Numero Legal from Parser: {numero_legal}")
-
         if not domicilio:
             domicilio = db.query(Domicilio).first()
+
+        # [T2 + T7, S868] Número del talonario 0015, con lock hasta el commit de
+        # IngestaService.approve. Se pide acá, después de todas las validaciones.
+        numero_legal = RemitosService._siguiente_numero_0015(db)
+        print(f"[DEBUG INGESTA] Remito {numero_legal} para la factura {original_invoice}")
 
         is_cuarentena = getattr(payload, 'modo_cuarentena', False)
         remito = models.Remito(
@@ -457,8 +485,8 @@ class RemitosService:
             transporte_id=transporte_id,
             estado="BORRADOR",
             aprobado_para_despacho=False if is_cuarentena else True,
-            cae=payload.factura.cae,
-            vto_cae=vto_cae_date,
+            # [S868, regla de Carlos] Sin CAE en el remito: el CAE queda en la factura espejo y
+            # el remito la referencia por el vínculo facturas_remitos (Remito.factura_vinculada).
             numero_legal=numero_legal,
             bultos=payload.bultos,
             valor_declarado=payload.valor_declarado
@@ -566,15 +594,11 @@ class RemitosService:
             # Semántica sellada en Sesión 800-OF
             mirror_flags = 4227083
 
-            # Extraer punto venta y numero (Formato XXXX-YYYYYYYY)
-            pv = 0
-            nc = 0
-            try:
-                parts = payload.factura.numero.split("-")
-                if len(parts) == 2:
-                    pv = int(parts[0])
-                    nc = int(parts[1])
-            except: pass
+            # Punto de venta y número: los mismos que usaron los controles de arriba
+            # (_partes_numero_factura, tres formatos). [S868] Antes solo entendía "XXXX-YYYYYYYY" y
+            # con otro formato grababa la factura espejo como 0000-00000000; ahora esa es la
+            # referencia que imprime el remito. Solo con el número, el punto de venta queda vacío
+            # y el remito no muestra referencia (Remito.factura_vinculada exige ambos).
 
             # Determinar tipo comprobante preliminar
             cond_iva = (payload.cliente.condicion_iva or "").upper()
@@ -715,19 +739,8 @@ class RemitosService:
              if not cliente:
                   raise ValueError(f"No se encontró/creó cliente.")
 
-        # 2. CALCULATE NEXT 0015- NUMBER
-        last_remito = db.query(models.Remito).filter(models.Remito.numero_legal.like("0015-%")).order_by(models.Remito.numero_legal.desc()).first()
-
-        next_val = 3010
-        if last_remito and last_remito.numero_legal:
-             try:
-                  current_str = last_remito.numero_legal.split("-")[-1]
-                  next_val = int(current_str) + 1
-             except:
-                  next_val = 3010
-
-        if next_val < 3010: next_val = 3010
-        numero_legal = f"0015-{str(next_val).zfill(8)}"
+        # 2. CALCULATE NEXT 0015- NUMBER (con lock hasta el commit del final -- T7, S868)
+        numero_legal = RemitosService._siguiente_numero_0015(db)
 
 
         # 3. CREATE GHOST PEDIDO (Solo si no existe)
@@ -960,7 +973,9 @@ class RemitosService:
                     db.add(new_r_item)
 
         # 4. Actualizar campos básicos
-        exclude_fields = {"items", "nuevo_domicilio", "cliente_id"}
+        # [S868, regla de Carlos] cae/vto_cae no se editan: un CAE tipeado en un remito es un CAE
+        # inventado. La referencia a la factura sale del vínculo, no de un campo del remito.
+        exclude_fields = {"items", "nuevo_domicilio", "cliente_id", "cae", "vto_cae"}
         update_data = payload.dict(exclude_unset=True, exclude=exclude_fields)
         for key, value in update_data.items():
             setattr(remito, key, value)
@@ -991,15 +1006,6 @@ class RemitosService:
         if not pedido:
             raise ValueError("Factura sin pedido táctico origen.")
 
-        def _numero_legal_arca(factura):
-            if factura.numero_comprobante is not None:
-                # [V5.2 OMEGA] Estandarización a 2 partes (Prefix 0016- para automático)
-                nc = str(factura.numero_comprobante).zfill(8)
-                return f"0016-{nc}"
-            
-            raise ValueError("NUMERO_COMPROBANTE_REQUERIDO: La factura fiscal no tiene número asignado.")
-
-
         def _vincular_factura_remito(db, factura, remito):
             vinculo = db.query(FacturaRemito).filter(
                 FacturaRemito.factura_id == factura.id,
@@ -1012,13 +1018,17 @@ class RemitosService:
                     flags_estado=1
                 ))
 
-        # 1. Si ya existe un remito en el pedido, inyectar CAE y vincular N:M
+        # 1. Si ya existe un remito en el pedido, vincular N:M
         remito_existente = db.query(models.Remito).filter(models.Remito.pedido_id == pedido.id).first()
         if remito_existente:
-            remito_existente.cae = factura.cae
-            remito_existente.vto_cae = factura.cae_vencimiento
-            if not remito_existente.numero_legal or "0015" in remito_existente.numero_legal:
-                remito_existente.numero_legal = _numero_legal_arca(factura)
+            # [S868, paso 1 del plan "el 0015 como único talonario"] Antes esta rama copiaba el
+            # CAE de la factura al remito y, si era un 0015, lo RENUMERABA a 0016 con el número
+            # de la factura: el remito impreso que viajó con la mercadería desaparecía del
+            # sistema. Ahora conserva su número y no recibe el CAE, que es de la factura
+            # (RemitoTemplate.vue imprime el CAE que encuentre en el remito). La relación con la
+            # factura queda en facturas_remitos. Probado el 17/09 sobre una copia de la base.
+            if not remito_existente.numero_legal:
+                remito_existente.numero_legal = RemitosService._siguiente_numero_0015(db)
             db.add(remito_existente)
             _vincular_factura_remito(db, factura, remito_existente)
             # [Bloque 3, doctrina "Remitos Chequeables"] Esta rama no cambia
@@ -1031,6 +1041,11 @@ class RemitosService:
             return remito_existente
 
         # 2. Si no existe, crearlo fresco (Flujo RAR Asíncrono)
+        # [T2, S868] El número del remito ya no se deriva de la factura (0016-{nro}): sale del
+        # talonario 0015 y la factura se referencia por el vínculo. Se mantiene la exigencia de
+        # factura numerada que antes venía de ese cálculo.
+        if factura.numero_comprobante is None:
+            raise ValueError("NUMERO_COMPROBANTE_REQUERIDO: La factura fiscal no tiene número asignado.")
         transporte_id = pedido.transporte_id
         if not transporte_id:
             transporte = db.query(EmpresaTransporte).filter(EmpresaTransporte.flags_estado.op('&')(2) != 0).first()
@@ -1047,9 +1062,8 @@ class RemitosService:
             transporte_id=transporte_id,
             estado="BORRADOR",
             aprobado_para_despacho=True,
-            cae=factura.cae,
-            vto_cae=factura.cae_vencimiento,
-            numero_legal=_numero_legal_arca(factura),
+            # [S868, regla de Carlos] Sin CAE en el remito (es de la factura, que queda vinculada).
+            numero_legal=RemitosService._siguiente_numero_0015(db),  # [T2 + T7, S868]
             bultos=int(pedido.bultos) if hasattr(pedido, 'bultos') and pedido.bultos else 1,
             valor_declarado=factura.total or 0.0
         )

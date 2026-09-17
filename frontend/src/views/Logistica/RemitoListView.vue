@@ -74,7 +74,7 @@
                     </div>
                 </div>
 
-                <div class="w-32 text-center text-blue-200/40">CAE</div>
+                <div class="w-32 text-center text-blue-200/40">Factura</div>
 
                 <!-- Columna Estado -->
                 <div class="w-32 text-center cursor-pointer hover:text-blue-300 transition-colors flex items-center justify-center gap-2 group/h" @click="toggleSort('estado')">
@@ -113,9 +113,9 @@
                     </div>
                 </div>
 
-                <!-- CAE -->
+                <!-- Factura vinculada [S868: el remito no tiene CAE; se muestra la factura que lo ampara, si existe] -->
                 <div class="w-32 text-center font-mono text-[11px] text-blue-200/60">
-                    {{ remito.cae || '-' }}
+                    {{ remito.factura_vinculada || '-' }}
                 </div>
                 
                 <!-- Status Badge -->
@@ -307,18 +307,11 @@
                 </div>
 
                 <!-- SECTION: LEGAL & AFIP -->
-                <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                <!-- [S868] Sin CAE editable: un CAE tipeado en un remito es un CAE inventado -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <div class="space-y-1 col-span-2">
                         <label class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Número</label>
                         <input v-model="editForm.numero_legal" readonly class="w-full bg-slate-900/50 border border-blue-900/40 rounded-xl px-4 py-3 text-xs text-slate-300 font-mono" />
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">CAE</label>
-                        <input v-model="editForm.cae" class="w-full bg-slate-900 border border-blue-900/40 rounded-xl px-4 py-3 text-sm text-white" />
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Vto CAE</label>
-                        <input v-model="editForm.vto_cae" type="date" class="w-full bg-slate-900 border border-blue-900/40 rounded-xl px-4 py-3 text-sm text-white" />
                     </div>
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Bultos</label>
@@ -394,8 +387,6 @@ const tempOC = ref('')
 const editForm = reactive({
     cliente_id: null,
     numero_legal: '',
-    cae: '',
-    vto_cae: '',
     transporte_id: null,
     domicilio_entrega_id: null,
     bultos: 1,
@@ -452,8 +443,6 @@ const openEditModal = async (remito) => {
     editingRemito.value = { ...remito };
     editForm.cliente_id = c_id;
     editForm.numero_legal = remito.numero_legal || '';
-    editForm.cae = remito.cae || '';
-    editForm.vto_cae = remito.vto_cae ? new Date(remito.vto_cae).toISOString().split('T')[0] : '';
     editForm.transporte_id = remito.transporte_id;
     editForm.domicilio_entrega_id = remito.domicilio_entrega_id;
     editForm.bultos = remito.bultos || 1;

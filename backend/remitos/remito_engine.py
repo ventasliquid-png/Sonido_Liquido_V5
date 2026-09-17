@@ -23,6 +23,7 @@ class PDFRemito(FPDF):
         self.copy_symbol = "*"
         self.remito_numero = None # Nuevo: Numero de Remito
         self.factura_vinculada = None # nuevo: Referencia a Factura
+        self.factura_vinculada_cae = None # [S868] CAE de la factura de referencia (se imprime junto a ella)
         self.cae = None # nuevo: CAE de Factura
         self.vto_cae = None # nuevo: Vencimiento CAE
         self.qrcode_url = None # nuevo: URL para QR Datos ARCA
@@ -116,6 +117,15 @@ class PDFRemito(FPDF):
                 
                 self.set_font('Arial', 'B', 10)
                 self.cell(40, 6, str(self.factura_vinculada).replace("—", "-"), 0, 0, 'L')
+
+                # [S868, regla de Carlos] El CAE va como dato de la factura, debajo de la
+                # referencia: el remito no tiene CAE propio.
+                if self.factura_vinculada_cae:
+                    self.set_xy(130, 40)
+                    self.set_font('Arial', '', 6)
+                    self.cell(20, 5, "CAE de la factura:", 0, 0, 'R')
+                    self.set_font('Arial', 'B', 8)
+                    self.cell(40, 5, str(self.factura_vinculada_cae), 0, 0, 'L')
 
         # 5. Leyenda Vertical Izquierda (Sobre-escribir imagen)
         # Tapamos lo viejo (Extendemos desde el borde superior hasta abajo para asegurar limpieza)
@@ -371,21 +381,19 @@ class PDFRemito(FPDF):
 def generar_remito_pdf(cliente_data, items, is_preview=False, output_path="remito_final.pdf", numero_remito=None, cae=None, vto_cae=None, qr_url=None):
     """
     Genera el PDF con las 3 copias.
-    Preserva el prefijo de serie del numero_remito: 0015=Manual, 0016=ARCA.
+    Normaliza el número solo si trae una serie conocida: 0015 (único talonario) o 0016 (histórico).
     """
     if numero_remito:
-        # Preservar prefijo de serie (0015=Manual, 0016=ARCA/Ingesta)
+        # [T3, S868] Antes un número sin serie, o con "0001" (el punto de venta de la factura),
+        # se imprimía como 0016: una serie que el remito no tenía. Ahora se imprime tal cual.
         s = numero_remito.replace("-", "")
-        known_prefixes = ("0015", "0016", "0001")
-        prefix = "0016"
-        for p in known_prefixes:
-            if s.startswith(p):
-                prefix = p if p != "0001" else "0016"
+        for prefix in ("0015", "0016"):
+            if s.startswith(prefix) and len(s) > 4:
                 s = s[4:]
+                if len(s) > 8:
+                    s = s[-8:]
+                numero_remito = f"{prefix}-{s.zfill(8)}"
                 break
-        if len(s) > 8:
-             s = s[-8:]
-        numero_remito = f"{prefix}-{s.zfill(8)}"
 
     pdf = PDFRemito()
     pdf.is_preview = is_preview
@@ -395,6 +403,7 @@ def generar_remito_pdf(cliente_data, items, is_preview=False, output_path="remit
     # [V5] Pass Invoice Ref and ARCA data to PDF Object
     if cliente_data:
         pdf.factura_vinculada = cliente_data.get('factura_vinculada')
+        pdf.factura_vinculada_cae = cliente_data.get('factura_vinculada_cae')
         pdf.vto_cae = vto_cae or cliente_data.get('vto_cae')
         pdf.cae = cae or cliente_data.get('cae')
         pdf.qrcode_url = qr_url

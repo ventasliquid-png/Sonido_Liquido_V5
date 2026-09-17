@@ -5,13 +5,6 @@
 import api from './api';
 
 export default {
-    /**
-     * Crea un nuevo remito (Cabecera)
-     * @param {Object} data { pedido_id, domicilio_entrega_id, transporte_id, items: [], ... }
-     */
-    createRemito(data) {
-        return api.post('/remitos/', data);
-    },
 
     /**
      * Lista todos los remitos del sistema

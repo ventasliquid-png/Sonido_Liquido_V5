@@ -93,7 +93,9 @@
         <!-- ACTION BAR -->
         <div class="flex justify-between items-end">
            <h2 class="text-xl font-semibold text-blue-400">Viajes Activos (Remitos)</h2>
-           <button @click="showNewRemitoModal = true" 
+           <!-- [S868] Un remito nuevo se emite en Remito Manual (con renglones y número 0015). El modal que
+                estaba acá creaba un remito vacío contra POST /remitos/, que no existe (y renglón cero es imposible). -->
+           <button @click="$router.push({ name: 'ManualRemito', query: { cliente_id: idCliente, pedido_id: localPedido.id } })"
              class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg hover:shadow-blue-500/20 transition flex items-center gap-2">
              <i class="fas fa-plus"></i> Nuevo Remito
            </button>
@@ -174,61 +176,6 @@
       </div>
     </div>
 
-    <!-- MODAL NEW REMITO -->
-    <div v-if="showNewRemitoModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-       <div class="bg-slate-800 p-6 rounded-2xl w-full max-w-md shadow-2xl border border-slate-700">
-          <h3 class="text-xl font-bold text-white mb-4">Nuevo Viaje (Remito)</h3>
-          
-          <div class="space-y-4">
-             <!-- [V7] Manual Remito Support -->
-             <div class="bg-slate-900/50 p-3 rounded border border-slate-700/50">
-                 <p class="text-xs text-blue-400 font-bold mb-2 uppercase">Identificación Oficial (Opcional)</p>
-                 <div class="grid grid-cols-2 gap-3">
-                     <div>
-                        <label class="text-[10px] text-slate-500 uppercase">Número Legal</label>
-                        <input v-model="newRemitoForm.numero_legal" placeholder="0001-00001234" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm">
-                     </div>
-                     <div>
-                        <label class="text-[10px] text-slate-500 uppercase">CAE (AFIP)</label>
-                        <input v-model="newRemitoForm.cae" placeholder="71234567890123" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm">
-                     </div>
-                 </div>
-                 <div v-if="newRemitoForm.cae" class="mt-2">
-                    <label class="text-[10px] text-slate-500 uppercase">Vencimiento CAE</label>
-                    <input type="date" v-model="newRemitoForm.vto_cae" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white text-sm">
-                 </div>
-             </div>
-
-             <div>
-                <label class="text-xs text-slate-400 uppercase font-bold">Dirección de Entrega</label>
-                <select v-model="newRemitoForm.domicilio_entrega_id" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white mt-1">
-                   <option v-for="d in clientDomicilios" :key="d.id" :value="d.id">{{ d.direccion }} - {{ d.localidad }}</option>
-                </select>
-             </div>
-             
-             <div>
-                <label class="text-xs text-slate-400 uppercase font-bold">Transporte</label>
-                <select v-model="newRemitoForm.transporte_id" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white mt-1">
-                   <option v-for="t in logisticaStore.transportOptions" :key="t.id" :value="t.id">{{ t.nombre }}</option>
-                </select>
-             </div>
-
-             <div class="flex items-center gap-2 pt-2">
-                <input type="checkbox" v-model="newRemitoForm.aprobado_para_despacho" id="approve" class="rounded bg-slate-900 border-slate-700 text-blue-600">
-                <label for="approve" class="text-sm text-slate-300">Aprobar para despacho inmediato (Gatekeeper Bypass)</label>
-             </div>
-          </div>
-
-          <div class="flex justify-end gap-3 mt-6">
-             <button @click="showNewRemitoModal = false" class="text-slate-400 hover:text-white px-4 py-2">Cancelar</button>
-             <button @click="saveNewRemito" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2">
-                <i v-if="newRemitoForm.cae" class="fas fa-check-circle"></i>
-                {{ newRemitoForm.cae ? 'Registrar Oficial' : 'Crear Borrador' }}
-             </button>
-          </div>
-       </div>
-    </div>
-
     <!-- MODAL ADD ITEM -->
     <div v-if="showAddItemModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
        <div class="bg-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl border border-slate-700">
@@ -283,18 +230,7 @@ const error = ref(null);
 const clientDomicilios = ref([]);
 
 // Modals
-const showNewRemitoModal = ref(false);
 const showAddItemModal = ref(false);
-
-// Forms
-const newRemitoForm = ref({
-    domicilio_entrega_id: null,
-    transporte_id: null,
-    aprobado_para_despacho: true,
-    numero_legal: '',
-    cae: '',
-    vto_cae: ''
-});
 
 // Drag & Drop
 const dragItem = ref(null);
@@ -334,13 +270,11 @@ async function loadData(id) {
         await logisticaStore.fetchAllNodos(); 
         
         // 4. Client Domicilios
-        if (localPedido.value.cliente_id) {
-             const resClient = await api.get(`/clientes/${localPedido.value.cliente_id}`);
+        // [S868] GET /pedidos/{id} devuelve el cliente anidado, no cliente_id: con el campo viejo
+        // esto nunca entraba y la pantalla mostraba "Dirección Desconocida".
+        if (idCliente.value) {
+             const resClient = await api.get(`/clientes/${idCliente.value}`);
              clientDomicilios.value = resClient.data.domicilios || [];
-             
-             // Defaults for new form
-             newRemitoForm.value.domicilio_entrega_id = localPedido.value.domicilio_entrega_id;
-             newRemitoForm.value.transporte_id = localPedido.value.transporte_id;
         }
 
     } catch (e) {
@@ -352,8 +286,12 @@ async function loadData(id) {
 
 // Helpers
 const getAddressLabel = (id) => {
+   // [S868] El domicilio viene con calle/numero/localidad (o resumen), no con "direccion":
+   // con el campo viejo la pantalla mostraba "undefined (Localidad)".
    const dom = clientDomicilios.value.find(d => d.id === id);
-   return dom ? `${dom.direccion} (${dom.localidad})` : 'Dirección Desconocida';
+   if (!dom) return 'Dirección Desconocida';
+   const calle = dom.resumen || [dom.calle, dom.numero].filter(Boolean).join(' ') || 'Sin calle';
+   return dom.localidad ? `${calle} (${dom.localidad})` : calle;
 };
 
 const getTransportLabel = (id) => {
@@ -367,6 +305,9 @@ const getProductName = (pedidoItemId) => {
    return item?.producto?.nombre || 'Producto Desconocido';
 };
 
+// [S868] El pedido trae el cliente anidado; algunas respuestas viejas traían cliente_id suelto.
+const idCliente = computed(() => localPedido.value?.cliente?.id || localPedido.value?.cliente_id || null);
+
 const getStatusClass = (status) => {
    switch(status) {
       case 'BORRADOR': return 'bg-slate-700 text-slate-300 border-slate-600';
@@ -377,35 +318,6 @@ const getStatusClass = (status) => {
 };
 
 // Remito Actions
-const saveNewRemito = async () => {
-   if (!newRemitoForm.value.domicilio_entrega_id) return alert("Seleccione dirección");
-   if (!newRemitoForm.value.transporte_id) return alert("Seleccione transporte");
-   
-   // [GATEKEEPER SECURITY V7]
-   // Validar si la OC está aprobada para logística
-   if (!localPedido.value.liberado_despacho) {
-       // Si no está liberado, forzar bloqueo a menos que tenga permisos de override (Gatekeeper Bypass Checkbox)
-       // El checkbox 'aprobado_para_despacho' en el form permite el override si el usuario tiene rol.
-       // Por ahora solo advertimos visualmente en el UI, pero si el usuario desmarca el check, nace bloqueado.
-       // La lógica de negocio real del Gatekeeper: Si PedidoNO Liberado -> Remito Nace Bloqueado (False)
-       if (!newRemitoForm.value.aprobado_para_despacho) {
-           // OK, nace bloqueado.
-       } else {
-           // Usuario intenta "Forzar" aprobación.
-           if (!confirm("⚠️ ALERTA DE SEGURIDAD\n\nEl pedido NO está liberado para despacho (Semáforo Financiero).\n¿Confirma forzar la aprobación de este remito?")) {
-               return;
-           }
-       }
-   }
-   
-   await remitosStore.createRemito({
-      pedido_id: localPedido.value.id,
-      items: [],
-      ...newRemitoForm.value
-   });
-   showNewRemitoModal.value = false;
-};
-
 const tryDespachar = async (remito) => {
    if (!confirm("¿Confirmar salida física de mercadería? Esto descontará stock.")) return;
    await remitosStore.despacharRemito(remito.id);

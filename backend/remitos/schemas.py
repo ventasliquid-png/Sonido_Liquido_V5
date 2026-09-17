@@ -83,6 +83,8 @@ class RemitoResponse(RemitoBase):
     # [V5] Extra info from models.py properties
     razon_social: Optional[str] = None
     cliente_id: Optional[UUID] = None
+    factura_vinculada: Optional[str] = None  # [S868] referencia a la factura, desde el vínculo (no hay CAE del remito)
+    factura_vinculada_cae: Optional[str] = None  # [S868] CAE de esa factura, leído de la factura
     
     class Config:
         from_attributes = True

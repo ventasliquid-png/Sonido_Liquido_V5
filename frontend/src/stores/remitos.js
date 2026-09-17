@@ -44,21 +44,8 @@ export const useRemitosStore = defineStore('remitos', () => {
         }
     }
 
-    async function createRemito(data) {
-        loading.value = true;
-        error.value = null;
-        try {
-            const response = await remitosService.createRemito(data);
-            remitos.value.push(response.data);
-            return response.data;
-        } catch (err) {
-            console.error("Error creating remito:", err);
-            error.value = err.response?.data?.detail || "Error al crear remito.";
-            throw err;
-        } finally {
-            loading.value = false;
-        }
-    }
+    // [S868] Sin createRemito: llamaba a POST /remitos/, que no existe. Los remitos se crean en
+    // /remitos/manual (Remito Manual), por la ingesta o por el puente desde la factura.
 
     async function despacharRemito(remitoId) {
         loading.value = true;
@@ -160,7 +147,6 @@ export const useRemitosStore = defineStore('remitos', () => {
         error,
         fetchRemitos,
         fetchAllRemitos,
-        createRemito,
         despacharRemito,
         updateRemito,
         addItemToRemito,

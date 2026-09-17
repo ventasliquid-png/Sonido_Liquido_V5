@@ -49,9 +49,9 @@
                         <p><span class="font-bold">N°:</span> {{ propRemito.numero_legal || '------' }}</p>
                         <p><span class="font-bold">Fecha Emisión:</span> {{ formatDate(propRemito.fecha_salida || new Date()) }}</p>
                         <p><span class="font-bold">Ref. Pedido:</span> #{{ pedido?.id }} (OC: {{ pedido?.oc || 'S/D' }})</p>
-                        <p v-if="propRemito.cae" class="text-xs mt-1 font-mono">
-                           CAE: {{ propRemito.cae }} <br> 
-                           Vto: {{ formatDate(propRemito.vto_cae) }}
+                        <!-- [S868] El remito no tiene CAE propio: referencia a la factura vinculada, si existe, con el CAE de esa factura -->
+                        <p v-if="propRemito.factura_vinculada" class="text-xs mt-1 font-mono">
+                           Corresponde a Factura {{ propRemito.factura_vinculada }}<span v-if="propRemito.factura_vinculada_cae">, CAE {{ propRemito.factura_vinculada_cae }}</span>
                         </p>
                     </div>
                 </div>

@@ -141,30 +141,15 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
                 "unidad": "UN" # Default
             })
 
-        # Determine if it's a manual remito (0015- prefix)
-        # 0015: Manual (Rosa/Blanco sin intervención fiscal directa en este paso)
-        # 0016: Ingesta (Mirror de factura con CAE)
-        is_manual = str(remito.numero_legal or "").startswith("0015")
-        
-        cae_val = getattr(remito, 'cae', None) if not is_manual else None
-        vto_cae_val = getattr(remito, 'vto_cae', None) if not is_manual else None
-
-        # [BUG 2 FIX] Prioritize DB Link over Pedido.Nota
-        factura_vinculada_str = ""
-        if remito.vinculos_facturas:
-            # Usar la primera factura vinculada
-            factura_vinculada_str = remito.vinculos_facturas[0].factura.numero_completo
-        elif remito.pedido.nota:
-            import re
-            # Buscar patrón XXXX-YYYYYYYY en la nota
-            match = re.search(r'(\d{4,5}-\d{8})', remito.pedido.nota)
-            if match:
-                factura_vinculada_str = match.group(1)
-            elif remito.pedido.nota.startswith("Ingesta Automática Factura: "):
-                # Solo limpiar el prefijo conocido -- si la nota no es de este tipo
-                # (ej: avisos de duplicado u otras notas de sistema), no hay factura
-                # que mostrar, dejar factura_vinculada_str vacío.
-                factura_vinculada_str = remito.pedido.nota.replace("Ingesta Automática Factura: ", "")[:20]
+        # [S868, regla de Carlos 17/09] El remito no tiene CAE propio: nunca se imprime remitos.cae
+        # ni el bloque de validación ARCA del pie. Lo que sí imprime es la referencia a la factura
+        # cuando existe y está vinculada, con el CAE de esa factura leído de la factura
+        # (Remito.factura_vinculada / factura_vinculada_cae). Antes se decidía por el prefijo
+        # 0015/0016, y sin vínculo se sacaba el número de la nota del pedido con una regex: una
+        # referencia a una factura que podía no existir.
+        cae_val = None
+        vto_cae_val = None
+        factura_vinculada_str = remito.factura_vinculada or ""
 
         cliente_data = {
             "razon_social": cliente.razon_social,
@@ -172,6 +157,7 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
             "domicilio_fiscal": remito.domicilio_entrega.resumen if remito.domicilio_entrega else cliente.domicilio_fiscal_resumen or "SIN DOMICILIO FISCAL",
             "condicion_iva": "RESPONSABLE INSCRIPTO", # Default for now
             "factura_vinculada": factura_vinculada_str,
+            "factura_vinculada_cae": remito.factura_vinculada_cae,
             "cae": cae_val,
             "vto_cae": vto_cae_val.strftime("%d/%m/%Y") if vto_cae_val else None,
             "bultos": getattr(remito, 'bultos', 1),
