@@ -85,6 +85,7 @@ class RemitoResponse(RemitoBase):
     cliente_id: Optional[UUID] = None
     factura_vinculada: Optional[str] = None  # [S868] referencia a la factura, desde el vínculo (no hay CAE del remito)
     factura_vinculada_cae: Optional[str] = None  # [S868] CAE de esa factura, leído de la factura
+    desfacturado: bool = False  # [T4, S868] Bit 41 -- estuvo facturado y se desfacturó (cicatriz)
     
     class Config:
         from_attributes = True
