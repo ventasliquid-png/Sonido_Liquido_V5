@@ -70,13 +70,13 @@ Si no devuelve `WAL checkpoint OK` → STOP. No exportar.
 
 Ejecutar la versión del Silo (Card #137, S868):
 ```python
-python "Q:\Mi unidad\V5_Silo_Claudeackup_db.py"
+python "Q:\Mi unidad\V5_Silo_Claude\backup_db.py"
 ```
 *`scripts/backup_db.py` de D es solo un delegador que llama a la del Silo; no tiene lógica propia. Desde S868
 copia las bases con la API de backup de SQLite, así que incluye lo que esté en el `-wal`.*
 
 > ⚠ **MAESTRO no respalda producción (verificado en S868).** En OF y en CA, MAESTRO resuelve a la base
-> local de B (`C:\dev5-ls-Tom\current\V5_LS_MASTER.db`), no a la de P. Los 5 slots rotativos y el
+> local de B (`C:\dev\v5-ls-Tom\current\V5_LS_MASTER.db`), no a la de P. Los 5 slots rotativos y el
 > histórico tenían 57 pedidos (hasta el #73) mientras producción tenía 97 (hasta el #113). Pendiente
 > abierto en `SESION_NEXT.md`: resolver cómo se respalda la base real de P.
 
@@ -95,7 +95,7 @@ Si falla → [WARN] Error en rotación de backups. No bloquea el cierre.
 Mientras no exista un backup periódico sobre la base real de P (Card #95), **cada OMEGA saca una copia de
 producción al Silo:**
 ```cmd
-python "Q:\Mi unidad\V5_Silo_Claudeackup_produccion.py"
+python "Q:\Mi unidad\V5_Silo_Claude\backup_produccion.py"
 ```
 Solo lectura sobre P: copia por red el `.db` y el `-wal`, verifica que no hayan cambiado durante la copia
 (reintenta si alguien estaba cargando), arma la copia con la API de backup de SQLite y corre

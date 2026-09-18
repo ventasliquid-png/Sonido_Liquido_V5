@@ -2054,3 +2054,57 @@ reales: remito `0016-00002601` (16/09 11:04) con bits correctos.
 (`LANZAR_V5_SOBERANA.bat`) y `scripts/ARRANQUE_V5.bat` corre `auto_migrar.py`, recompila el
 frontend si cambió el código y levanta uvicorn en el puerto 8090. **Un push a `prod/main` se
 despliega solo en el próximo arranque de producción.**
+
+
+### Sesión 867 CA (2026-09-16/17) — sin cambios
+
+OMEGA Lite: revisión de la auditoría de CA al cierre S866 y de la respuesta de OF. Sin cambios
+de código ni de datos en esta sesión; nada que documentar en este manual.
+
+
+### Sesión 868 OF (2026-09-17/18) — Remitos (Card #138, T1–T7) y T4 retirado
+
+> Estado: D y B, **no en producción**. Frontend de T5 sólo en D. Diseño completo, doctrina y hallazgos
+> con archivo y línea en `Q:\Mi unidad\V5_Silo_Claude\DISENO_MODULO_REMITO_S868.md`.
+
+**Numeración (T2 + T7).** `RemitosService._siguiente_numero_0015(db)` es la única puerta de numeración:
+toma un lock de escritura de SQLite (un UPDATE sin filas) antes de leer el máximo, así dos altas
+simultáneas no reciben el mismo número. La usan ingesta, puente y manual. Probado: 40 altas simultáneas
+dan 40 números distintos (antes, 24).
+
+**Remito sin CAE propio (T1).** `Remito.factura_vinculada` y `Remito.factura_vinculada_cae` son
+properties calculadas desde `facturas_remitos` (`_factura_de_referencia`), que ignoran facturas en
+estado `ANULAD*` y sin número. El remito nunca recibe CAE: ni la ingesta ni el puente lo copian, y
+`PATCH /remitos/{id}` ignora `cae`/`vto_cae`. Las columnas `remitos.cae`/`vto_cae` siguen en la base con
+datos viejos, sin mostrarse.
+
+**PDF (T3).** `remito_engine.generar_remito_pdf` sólo normaliza series conocidas (0015/0016): un número
+sin serie, o con el punto de venta de una factura, ya no se imprime como 0016. Se retiró el bloque ARCA
+del pie (QR y "CAE N").
+
+**Puente desde factura.** `create_puente_factura` ya no renumera un 0015 a 0016 ni copia el CAE al
+remito existente. Resuelve el pendiente del Bloque 3.2 anotado más arriba en este manual.
+
+**T5 — cantidad facturada vs. remitida.** `IngestionItem.cantidad_remitir`, opcional. En
+`VINCULAR_PARCIAL` la cantidad que cuenta contra el pendiente del renglón es la remitida, no la
+facturada; `None` conserva el comportamiento anterior. La cantidad facturada va tal cual al
+`FacturaItem` espejo.
+
+**T4 retirado.** `PATCH /facturacion/{id}/anular` y el Bit 41 `REMITO_DESFACTURADO` se implementaron y
+se revirtieron el mismo día (revert D `7b4cc63c`, B `68b92db`). Código recuperable con
+`git cherry-pick t4-original`. **El Bit 41 de `RemitoFlags` está reservado: no reutilizar.**
+
+**Defectos conocidos, sin corregir** (detalle en el documento de diseño):
+- De las cuatro funciones que crean remitos, sólo `create_from_ingestion` valida contra el pendiente del
+  renglón. `create_manual` compara contra la cantidad total y crea renglones a precio $0 si no reconoce
+  el producto; `update_remito` asigna cantidades sin validar; `create_puente_factura` copia la cantidad
+  total del pedido y después prende el Bit 21. Card #125 (redescubierta).
+- `update_remito` (`service.py:909`): la guarda de "sólo BORRADOR" se saltea si el payload trae
+  `estado`, que es justo como se marca ENTREGADO. Con `cliente_id` cambia el cliente del pedido.
+- `despachar_remito` no chequea `aprobado_para_despacho`.
+- Matcher de ingesta: toma el primer renglón con el mismo `producto_id`; si un pedido tiene el mismo
+  producto en dos renglones, toda entrega cae en el primero.
+- Lado fiscal: `FacturaItem.pedido_item_id` es nullable, `PedidoItem` no tiene relación inversa hacia
+  sus facturas, no existe `cantidad_facturada`; el Bit 22 no tiene escritor ni lector y el Bit 23 sólo
+  se prende en pedidos `ES_NO_COMERCIAL`.
+- `sellar_factura` no corrige `tipo_comprobante`: facturas con CAE real quedan como `PRESUPUESTO_X`.

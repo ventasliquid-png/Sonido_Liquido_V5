@@ -1946,7 +1946,7 @@ Debido a la reestructuraciÃ³n profunda de los protocolos de arranque, se dio d
 *   **Doctrina:** 'La AnticipaciÃ³n es la Clave de la Victoria.'
 
 ### Hito 3: Inicio de Operaciones TÃ¡cticas
-La rama 5.5-rescate-jueves fue fusionada en main y eliminada. Se creÃ³ la rama tÃ¡ctica 5.6-contactos-agenda.
+La rama v5.5-rescate-jueves fue fusionada en main y eliminada. Se creÃ³ la rama tÃ¡ctica v5.6-contactos-agenda.
 *   **MisiÃ³n:** Implementar UX de Agenda en Ficha Cliente e integraciÃ³n Google.
 
 **Estado:** SISTEMA NOMINAL V14. LISTO PARA OPERACIONES.
@@ -2474,3 +2474,30 @@ sin confirmar terminado. Cierre Lite deliberado con contexto al 80%, antes de en
 la reconciliación D↔B completa — `PLAN_RECONCILIACION_D_B_2026-09-03.md` escrito como
 briefing para la próxima sesión.
 **Estado:** NOMINAL GOLD. D:39cfde8a B:c7b57da. PIN: 1974.
+
+
+# 2026-09-16/17 — Sesión 867 (CA, Lite)
+S867 — sin cambios de código ni de base en esta máquina. Revisión de la auditoría de CA al
+cierre S866 y de la respuesta de OF (AUDITORIA_CA_CIERRE_S866.md §9): verificado donde fue
+posible, H4 propio refutado con evidencia, A9 confirmada. Siete observaciones dejadas para OF
+en INBOX [2026-09-17 noche] (detalle en BITACORA_VIVA.md del Silo y CAJA_NEGRA.md).
+**Estado:** NOMINAL GOLD. D:fac3fbf2 B:d65c281. PIN: (sin cambios, sin commit).
+
+
+# 2026-09-17/18 — Sesión 868 (OF, Completo)
+**Hito:** el plan de remitos de la Card #138 quedó implementado en D y B (salvo T4, que se retiró), y el
+módulo Remito tiene por primera vez su doctrina escrita: `DISENO_MODULO_REMITO_S868.md` en el Silo.
+- **Remitos T1/T2/T3/T6/T7** (`04f8ac3f`, B `5d812fb`): talonario único 0015 con lock de escritura; el
+  remito no tiene CAE propio y muestra la referencia a su factura; el PDF sólo normaliza series conocidas.
+- **T5** (`fac3fbf2`, B `b1a0be0` sólo backend): asistente de entrega parcial al ingestar; separa cantidad
+  facturada de cantidad remitida.
+- **Nike** (18/09): deroga el 0016 como número de factura, canoniza la referencia al CAE, asigna el Bit 41.
+- **T4 implementado y retirado el mismo día** (`4e81bcd0` → revert `7b4cc63c`; B `9318c5e` → `68b92db`):
+  la cicatriz tapaba la falta del acumulador `cantidad_facturada`. Tag `t4-original`; Bit 41 reservado
+  (`3ec9b04f`, B `fe0c930`).
+- **Auditoría:** sólo 1 de las 4 puertas que crean remitos valida contra el pendiente (Card #125
+  redescubierta); la mitad fiscal del circuito está declarada pero vacía (Bits 22/23).
+- **Protocolo:** revisión de CA procesada (7 puntos), `pendientes.py` corregido dos veces, Card #137 cerrada.
+- **Bug de herramientas** sin corregir: `board_barrido.py` escribe fechas `dd/mm` y `pendientes.py` busca
+  ISO, así que el cotejo marca como "sin actualizar hoy" toda card tocada con la herramienta oficial.
+**Estado:** NOMINAL GOLD. D:3ec9b04f B:fe0c930 (sin push a prod). PIN: 1974.

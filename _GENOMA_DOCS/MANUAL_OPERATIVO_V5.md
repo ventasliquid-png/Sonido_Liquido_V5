@@ -1156,3 +1156,37 @@ ve la lista. No son errores de la pantalla: son datos que conviene revisar.
 
 Ante una anomalía, **no corregir a mano desde otra pantalla**: avisar a Carlos, porque algunos de
 estos casos se reparan con backup previo.
+
+
+### Sesión 867 CA (2026-09-16/17) — sin cambios
+
+OMEGA Lite: revisión de la auditoría de CA al cierre S866. Sin cambios de código ni de datos
+en esta sesión; nada que documentar en este manual.
+
+
+### Sesión 868 OF (2026-09-17/18) — Remitos: talonario único 0015, referencia a la factura y entrega parcial al ingestar
+
+> ⚠ **Disponible en desarrollo (D) y en B. NO desplegado en producción al cierre de esta sesión:**
+> Tomy no lo ve hasta que Carlos decida el pase. El asistente de entrega parcial (último punto) está
+> sólo en D: su pantalla todavía no se pasó a B.
+
+**Un solo talonario de remitos: 0015.** Los remitos nuevos —manuales, por ingesta de factura o
+generados después de sellar una factura— salen todos con numeración 0015. La serie 0016 deja de
+emitirse. Los 0016 ya emitidos quedan como están: son papel en poder de los clientes.
+
+**El remito ya no muestra un CAE propio.** Cuando el remito tiene una factura vinculada, el PDF y la
+lista de remitos muestran la referencia *"Corresponde a Factura 0001-00002533, CAE ..."*. El CAE es de
+la factura, no del remito. Si no hay factura vinculada, no aparece ningún CAE. En Logística, la columna
+"CAE" de la lista de remitos pasó a llamarse "Factura", y el formulario de edición ya no tiene campos de
+CAE ni de vencimiento (antes se podía tipear uno a mano, y quedaba grabado).
+
+**Botón "Nuevo Remito" en Logística:** ahora lleva a Remito Manual con el cliente y el pedido ya
+elegidos. El formulario anterior no funcionaba.
+
+**Ingesta de factura con pedido vinculado — asistente de entrega.** Al confirmar aparece una tabla por
+renglón: *pedido / ya remitido / pendiente / la factura dice / a remitir ahora*. La columna "a remitir
+ahora" viene completa y se puede bajar, nunca por encima del pendiente. Sirve para facturar todo y
+entregar por partes: por ejemplo, facturar 120 y entregar 40 por semana. La factura queda con lo que
+dice la factura; el remito, con lo que realmente sale.
+
+**No existe "Anular Factura".** Se construyó y se retiró el mismo día (18/09). No buscarla.

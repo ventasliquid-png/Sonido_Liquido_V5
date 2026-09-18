@@ -1,4 +1,33 @@
-﻿Sesion actual: 866
+﻿Sesion actual: 868
+
+# CAJA NEGRA: OMEGA Completo - Remitos T1/T2/T3/T5/T7 en D y B, T4 implementado y retirado el mismo dia, anclaje de diseno del modulo Remito - S868 (2026-09-17/18, OF)
+
+Sesion 868 OF, dos dias. Hash D: 3ec9b04f | Hash B: fe0c930 (local, 5 commits sin push a prod: el despliegue lo decide Carlos) | Hash P: d65c281 (no verificado el 18/09, P inaccesible por red). Estado: NOMINAL (13/13). Semaforo CS: AMARILLO (heredado). Agentes: CC, Carlos, Nike (consulta del 18/09).
+- 17/09: respuesta a la auditoria de CA sobre el cierre S866; ALFA V3.9 / OMEGA V3.4 con cotejo de cierre (pendientes.py cierre); ranking del Board y backup_db.py de D convertido en delegador (ef617fd1, Card #137).
+- 17/09: plan de remitos de la Card #138 en D. T1: el remito no tiene CAE propio, muestra "Corresponde a Factura N, CAE X" leido de facturas_remitos. T2+T7: 0015 unico talonario, _siguiente_numero_0015 con lock de escritura. T3 y T6 (04f8ac3f). T5: asistente de entrega parcial al ingestar (fac3fbf2). Portado a B: 5d812fb y b1a0be0 -- T5 solo backend; su pantalla no se porto por el drift de arquitectura de IngestaFacturaView.vue en B.
+- 18/09: revision de CC en CA, siete puntos: caracteres de control en OMEGA.md/bitacora/auditoria, pendientes.py cierre ahora distingue maquina, hash_p() ya no revienta sin P. Card #137 cerrada.
+- 18/09: consulta a Nike: deroga "Entrelazamiento Arcuantico" (0016 = numero de factura), canoniza la referencia al CAE de la factura y asigna el Bit 41 de RemitoFlags para T4.
+- 18/09: T4 implementado y probado (anular factura + Bit 41 REMITO_DESFACTURADO) y REVERTIDO el mismo dia tras una charla de diseno con Carlos: la cicatriz existia solo porque falta el acumulador cantidad_facturada, y estado=ANULADA no puede representar una NC parcial. D 4e81bcd0 -> revert 7b4cc63c; B 9318c5e -> revert 68b92db. Nada se borro: tag t4-original. Bit 41 quemado (D 3ec9b04f, B fe0c930). Nunca llego a prod.
+- 18/09: auditoria de las 4 puertas que crean remitos -- solo la ingesta valida contra el pendiente; las otras tres adaptan el pedido al remito. Mitad fiscal declarada pero vacia (Bit 22 sin escritor ni lector; Bit 23 solo en rosa: un pedido blanco no puede cerrarse solo). 7 facturas con CAE real quedaron tipo PRESUPUESTO_X. Card #125 redescubierta; posible primer dano real en produccion: SOBRE_ENTREGA en el pedido #72 (A3), sin verificar.
+- 18/09: DISENO_MODULO_REMITO_S868.md en el Silo, punto de anclaje de la doctrina del modulo Remito: tres momentos con congelamiento en la conformacion, cantidad_recibida, NC y ND, no existe "puerta 4", una sola validacion, registrar el copiado a ARCA.
+- Numeracion: varios artefactos del 18/09 dicen "S869" por error (commits de revert, comentario del Bit 41, un backup del Board). Todo pertenece a la 868; la 869 queda para la sesion siguiente.
+- session_counter.json restaurado a 857: los arranques de un backend de prueba lo habian pisado con 1 (Card #106, vuelta 2).
+
+---
+
+# CAJA NEGRA: OMEGA Lite - revision de la auditoria del cierre S866, sin cambios de codigo ni de base - S867 (2026-09-16/17, CA)
+
+Sesion 867 CA. Hash D: fac3fbf2 (pull) | Hash B: d65c281 (pull, sin cambios propios) | Hash P: d65c281 (sin cambios). Estado: NOMINAL (13/13). Semaforo CS: AMARILLO (heredado). Agentes: CC, Carlos.
+- Carlos le pidio a CA revisar como OF resolvio los pendientes de AUDITORIA_CA_CIERRE_S866.md. Respuesta de OF en su Seccion 9 verificada donde fue posible: #136 cerrada, #139 creada, 8 marcas de SUPERADO, 5 filas retroactivas en el informe S866, ALFA V3.9 / OMEGA V3.4.
+- H4 de la propia auditoria de CA (P segun figuraba en 8bd8d51) quedo refutado con evidencia real (P estaba en d65c281 desde el 16/09 11:01) -- registrado por la misma CA.
+- A9 comprobada desde CA: los 5 slots MAESTRO y el HISTORICO tienen 57 pedidos, P tiene 97 -- confirma el hallazgo de OF.
+- Base de desarrollo de CA NO reemplazada: DESARROLLO_01.db de OF (16/09) solo suma restos de prueba de la Card A1 sobre la base de CA.
+- Cotejo de cierre (pendientes.py) evaluo por error la sesion 868 de OF en vez de la propia 867 (bug real: bloque_sesion_actual tomaba el primer encabezado del archivo sin mirar de quien era) -- cerrada con cotejo manual, aprobado por Carlos con PIN. Corregido hoy, ver bitacora de la 868/869.
+- Bit 28 (P_DIVERGE) verificado apagado por OF en P (17/09).
+- Siete observaciones para OF sobre la sesion 868, dejadas en INBOX [2026-09-17 noche] (caracteres de control en OMEGA.md/bitacora/auditoria por rutas Windows en strings Python sin raw; el bug de bloque_sesion_actual; filas de bitacora atrasadas respecto de los commits reales; A4/Card #137 aparentemente resuelto sin cerrar en la tabla; el criterio del CAE pendiente de confirmar si Nike lo libero; base de CA sin reemplazar; numeracion de sesion y esta misma entrada de cierre).
+- Sin cambios de codigo ni de base en esta maquina esta sesion.
+
+---
 
 # CAJA NEGRA: OMEGA Lite - Bloques 1/2/3 de la auditoria de Remitos + auditoria Lacteos contra P real + decision de abandonar el 0016 - S866 (2026-09-15/16, OF)
 
