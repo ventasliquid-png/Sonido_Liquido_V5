@@ -149,7 +149,7 @@
             </div>
             
             <!-- VISTA SELLADA -->
-            <div v-if="selectedFactura.estado === 'AUTORIZADA_AFIP' || selectedFactura.estado === 'LIQUIDADA_MANUAL'" class="bg-gray-800 border-t border-gray-700 p-6 flex flex-col items-center justify-center text-center">
+            <div v-if="selectedFactura.estado === 'AUTORIZADA_AFIP'" class="bg-gray-800 border-t border-gray-700 p-6 flex flex-col items-center justify-center text-center">
                 <div class="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center text-green-500 mb-3 text-3xl">
                   <i class="fas fa-check-circle"></i>
                 </div>
@@ -158,19 +158,6 @@
                   COMPROBANTE: {{ String(selectedFactura.punto_venta || 0).padStart(4, '0') }}-{{ String(selectedFactura.numero_comprobante || 0).padStart(8, '0') }} <br>
                   CAE: {{ selectedFactura.cae }} | Vto: {{ selectedFactura.vto_cae }}
                 </div>
-                <!-- [T4, S868] Anular: fiscal, irreversible, exige nota forense -->
-                <button @click="showAnularModal = true" class="mt-4 text-xs text-red-400/70 hover:text-red-400 border border-red-900/40 hover:border-red-500/60 rounded px-3 py-1.5 transition">
-                  <i class="fas fa-ban mr-1"></i> Anular Factura
-                </button>
-            </div>
-
-            <!-- VISTA ANULADA -->
-            <div v-if="selectedFactura.estado === 'ANULADA'" class="bg-gray-800 border-t border-red-900/40 p-6 flex flex-col items-center justify-center text-center">
-                <div class="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center text-red-500 mb-3 text-3xl">
-                  <i class="fas fa-ban"></i>
-                </div>
-                <h4 class="font-bold text-red-400">Factura Anulada</h4>
-                <p class="text-xs text-gray-500 mt-2 max-w-md whitespace-pre-line">{{ selectedFactura.notas_auditoria }}</p>
             </div>
 
           </div>
@@ -213,32 +200,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Modal Anular Factura [T4, S868] -->
-    <div v-if="showAnularModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div class="bg-[#0a0f1a] border border-red-500/50 rounded-xl p-8 w-[550px] shadow-[0_0_50px_rgba(239,68,68,0.2)]">
-        <h3 class="text-xl font-bold text-white mb-2"><i class="fas fa-ban text-red-400 mr-3"></i> Anular Factura</h3>
-        <p class="text-gray-400 text-sm mb-6 leading-relaxed">
-          Acción irreversible. La factura pasa a estado ANULADA y el/los remito(s) vinculados quedan marcados como desfacturados. Indique el motivo (obligatorio).
-        </p>
-
-        <textarea
-          v-model="motivoAnular"
-          rows="3"
-          placeholder="Ej: Nota de Crédito por devolución total, error de carga de CAE, etc."
-          class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm focus:border-red-500 focus:outline-none placeholder-gray-600 mb-6"
-        ></textarea>
-
-        <div class="flex justify-end gap-3">
-          <button @click="showAnularModal = false; motivoAnular = ''" class="px-4 py-2 rounded text-sm text-gray-400 hover:text-white transition">
-            Cancelar
-          </button>
-          <button @click="anularFactura" :disabled="isAnulando || !motivoAnular.trim()" class="bg-red-600 hover:bg-red-500 px-6 py-2 rounded text-sm font-medium transition disabled:opacity-50">
-            <i class="fas fa-ban mr-2"></i> Confirmar Anulación
-          </button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -253,9 +214,6 @@ const facturas = ref([]);
 const selectedFactura = ref(null);
 const isSealing = ref(false);
 const showLogisticsModal = ref(false);
-const showAnularModal = ref(false);
-const motivoAnular = ref('');
-const isAnulando = ref(false);
 
 const selloData = ref({
   punto_venta: null,
@@ -355,32 +313,6 @@ const resolveLogistics = async (decision) => {
     showLogisticsModal.value = false;
 };
 
-const anularFactura = async () => {
-  if (!motivoAnular.value.trim()) {
-    return notificationStore.add('Debe indicar el motivo de la anulación.', 'warning');
-  }
-
-  isAnulando.value = true;
-  try {
-    const { data } = await api.patch(`/facturacion/${selectedFactura.value.id}/anular`, {
-      motivo: motivoAnular.value.trim()
-    });
-
-    selectedFactura.value = data;
-
-    const ix = facturas.value.findIndex(x => x.id === data.id);
-    if (ix !== -1) facturas.value[ix] = data;
-
-    showAnularModal.value = false;
-    motivoAnular.value = '';
-    notificationStore.add('Factura anulada.', 'success');
-  } catch (e) {
-    notificationStore.add('Error al anular factura: ' + (e.response?.data?.detail || e.message), 'error');
-  } finally {
-    isAnulando.value = false;
-  }
-};
-
 // Utilities
 const copy = async (text) => {
   try {
@@ -409,7 +341,6 @@ const getStatusColor = (status) => {
     case 'BORRADOR': return 'text-yellow-500';
     case 'LIQUIDADA_MANUAL': return 'text-orange-400';
     case 'AUTORIZADA_AFIP': return 'text-green-500 font-bold';
-    case 'ANULADA': return 'text-red-500 font-bold';
     default: return 'text-gray-400';
   }
 };

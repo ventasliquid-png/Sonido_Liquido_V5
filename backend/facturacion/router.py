@@ -34,16 +34,6 @@ def sellar_factura(factura_id: str, payload: schemas.FacturaUpdate, db: Session 
     """
     return service.FacturacionService.sellar_factura(db, factura_id, payload)
 
-@router.patch("/{factura_id}/anular", response_model=schemas.FacturaResponse)
-def anular_factura(factura_id: str, payload: schemas.FacturaAnularPayload, db: Session = Depends(get_db)):
-    """
-    [T4, S868] Anula una factura ya sellada/liquidada ("hacéme NC y te lo pago en negro", error de
-    carga). Requiere nota forense. El/los remito(s) vinculados quedan marcados con la cicatriz
-    REMITO_DESFACTURADO (Bit 41) y dejan de mostrar la referencia a esta factura -- sin borrar el
-    vínculo, que queda como registro histórico.
-    """
-    return service.FacturacionService.anular_factura(db, factura_id, payload)
-
 @router.get("/", response_model=List[schemas.FacturaResponse])
 def listar_facturas(
     limit: int = 50, 

@@ -50,18 +50,12 @@ class FacturaUpdate(BaseModel):
     punto_venta: Optional[int] = None
     numero_comprobante: Optional[int] = None
 
-class FacturaAnularPayload(BaseModel):
-    """[T4, S868] Nota forense obligatoria -- por qué se anula (NC financiera, error de carga, etc.).
-    Mismo criterio que otras acciones irreversibles del sistema (ej. CIERRE_CON_AJUSTE)."""
-    motivo: str
-
 class FacturaResponse(FacturaBase):
     id: UUID
     cae: Optional[str]
     cae_vencimiento: Optional[date]
     created_at: datetime
     items: List[FacturaItemResponse]
-    notas_auditoria: Optional[str] = None  # [T4, S868] incluye la nota forense de anulación
 
     # Aditional data could be added for frontend rendering (cliente name, etc)
     model_config = ConfigDict(from_attributes=True)

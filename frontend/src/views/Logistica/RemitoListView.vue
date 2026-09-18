@@ -116,12 +116,6 @@
                 <!-- Factura vinculada [S868: el remito no tiene CAE; se muestra la factura que lo ampara, si existe] -->
                 <div class="w-32 text-center font-mono text-[11px] text-blue-200/60">
                     {{ remito.factura_vinculada || '-' }}
-                    <!-- [T4, S868] Cicatriz forense: estuvo facturado y la factura se anuló -->
-                    <div v-if="remito.desfacturado" class="mt-0.5">
-                        <span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-red-500/10 border border-red-500/30 text-red-400">
-                            Desfacturado
-                        </span>
-                    </div>
                 </div>
                 
                 <!-- Status Badge -->

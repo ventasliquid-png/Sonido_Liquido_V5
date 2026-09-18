@@ -4,7 +4,6 @@ from datetime import datetime
 from sqlalchemy import Column, Integer, String, Boolean, Enum, ForeignKey, Float, DateTime
 from sqlalchemy.orm import relationship
 from backend.core.database import Base, GUID
-from backend.remitos.constants import RemitoFlags
 
 class Remito(Base):
     """
@@ -98,13 +97,6 @@ class Remito(Base):
         """CAE de la factura de referencia, leído de la factura (nunca de remitos.cae) o None."""
         factura = self._factura_de_referencia()
         return (factura.cae or None) if factura else None
-
-    @property
-    def desfacturado(self) -> bool:
-        """[T4, S868 -- dictamen de Nike] True si este remito estuvo vinculado a una factura que
-        después se anuló (RemitoFlags.REMITO_DESFACTURADO, Bit 41). Cicatriz irreversible: sigue
-        en True aunque el remito no tenga hoy ninguna referencia vigente (factura_vinculada None)."""
-        return bool((self.flags_estado or 0) & int(RemitoFlags.REMITO_DESFACTURADO))
 
     def __repr__(self):
         return f"<Remito(id={self.id}, estado='{self.estado}')>"

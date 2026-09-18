@@ -2,13 +2,12 @@
 from sqlalchemy.orm import Session, joinedload
 from fastapi import HTTPException
 from typing import List, Optional
-from datetime import datetime, timezone
+from datetime import datetime
 import uuid
 
 from backend.facturacion import models, schemas
 from backend.pedidos.models import Pedido
 from backend.remitos.models import Remito
-from backend.remitos.constants import RemitoFlags
 
 class FacturacionService:
 
@@ -153,46 +152,4 @@ class FacturacionService:
 
         db.commit()
         db.refresh(factura)
-        return factura
-
-    @staticmethod
-    def anular_factura(db: Session, factura_id: str, payload: schemas.FacturaAnularPayload) -> models.Factura:
-        """
-        [T4, S868 -- dictamen de Nike] "Facturado -> no facturable" (NC financiera, error de carga,
-        "hacéme NC y te lo pago en negro"): la factura se marca ANULADA. El vínculo en
-        facturas_remitos NUNCA se borra (trazabilidad) -- con la factura anulada,
-        Remito.factura_vinculada ya deja de mostrarla sola (filtra por estado), así que el remito
-        "vuelve a pendiente" sin tocar una sola fila de facturas_remitos.
-
-        Además enciende, una sola vez y para siempre, RemitoFlags.REMITO_DESFACTURADO (Bit 41,
-        asignado por Nike) en cada remito que estuvo vinculado a esta factura -- la cicatriz que
-        distingue "nació no facturable" de "estuvo facturado y se desfacturó".
-        """
-        factura = FacturacionService.get_factura(db, factura_id)
-
-        if factura.estado == "ANULADA":
-            raise HTTPException(status_code=409, detail="La factura ya está anulada.")
-        if not payload.motivo.strip():
-            raise HTTPException(status_code=400, detail="Falta el motivo de la anulación (nota forense).")
-
-        estado_previo = factura.estado
-        factura.estado = "ANULADA"
-        nota = f"[ANULADA {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}, era {estado_previo}] {payload.motivo.strip()}"
-        factura.notas_auditoria = f"{factura.notas_auditoria}\n{nota}" if factura.notas_auditoria else nota
-        db.add(factura)
-
-        remitos_marcados = 0
-        for vinculo in factura.vinculos_remitos:
-            remito = vinculo.remito
-            if remito is None:
-                continue
-            flags = remito.flags_estado or 0
-            if not (flags & int(RemitoFlags.REMITO_DESFACTURADO)):
-                remito.flags_estado = flags | int(RemitoFlags.REMITO_DESFACTURADO)
-                db.add(remito)
-                remitos_marcados += 1
-
-        db.commit()
-        db.refresh(factura)
-        print(f"[FACTURACION] Factura {factura.id} anulada. Remitos marcados REMITO_DESFACTURADO: {remitos_marcados}")
         return factura
