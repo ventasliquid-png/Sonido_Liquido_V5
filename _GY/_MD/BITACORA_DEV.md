@@ -1,4 +1,8 @@
-﻿## SESION 866 (OF) — 2026-09-15/16: Bloques 1/2/3 de la auditoría de Remitos (rollback en guardas de ingesta, renglón cero, Bits 20/21 en `create_puente_factura`) + auditoría Lácteos contra P real (3 facturas con CAE ausentes de V5) + decisión de abandonar el 0016 (plan T1-T7, Card #138) — NOMINAL — D:727dd912 B:d65c281 | Semáforo CS: AMARILLO | PIN 1974 | Lite
+﻿## SESION 869 (CA) — 2026-09-19/20: doctrina del circuito PR cerrada, sin código — `DISENO_CIRCUITO_PR_S869.md` (651 líneas) + `INFORME_IMPLEMENTACION_PR_S869.md` (plano para OF). El PR es la tabla `Remito` con el nacimiento adelantado y el número atrasado; cuatro cantidades por renglón; los estados se calculan; el PR se congela al despachar; rosa es el circuito espejo. 4 hallazgos verificados sin corregir (anular un remito borra la entrega; `create_manual` sin guarda y ampliando el pedido solo; `despachar_remito` ignora `aprobado_para_despacho`; `_factura_de_referencia` devuelve solo la primera). Pull de los 5 commits de la S868 durante el cierre, con PIN — NOMINAL — D:3660310c B:d65c281 P:no accesible | Semáforo CS: AMARILLO
+
+---
+
+## SESION 866 (OF) — 2026-09-15/16: Bloques 1/2/3 de la auditoría de Remitos (rollback en guardas de ingesta, renglón cero, Bits 20/21 en `create_puente_factura`) + auditoría Lácteos contra P real (3 facturas con CAE ausentes de V5) + decisión de abandonar el 0016 (plan T1-T7, Card #138) — NOMINAL — D:727dd912 B:d65c281 | Semáforo CS: AMARILLO | PIN 1974 | Lite
 
 ---
 
