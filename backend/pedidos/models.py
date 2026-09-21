@@ -56,7 +56,8 @@ class Pedido(Base):
     
     # Relaciones
     cliente = relationship("Cliente", back_populates="pedidos")
-    items = relationship("PedidoItem", back_populates="pedido", cascade="all, delete-orphan")
+    # Sin order_by, SQLite devuelve los renglones según el plan de la consulta, no en orden de carga.
+    items = relationship("PedidoItem", back_populates="pedido", cascade="all, delete-orphan", order_by="PedidoItem.id")
     domicilio_entrega = relationship("Domicilio")
     transporte = relationship("EmpresaTransporte")
     comprador = relationship("Vinculo", foreign_keys=[comprador_id])

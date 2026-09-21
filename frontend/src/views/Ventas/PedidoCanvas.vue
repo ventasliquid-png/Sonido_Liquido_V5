@@ -307,8 +307,8 @@
             </header>
 
             <!-- SECTION 2: BODY (Grid Productos) -->
-            <main class="flex-1 overflow-visible p-2 flex flex-col relative z-50">
-                <div class="bg-black/30 rounded-xl border border-white/5 overflow-visible flex-1 flex flex-col relative">
+            <main class="flex-1 min-h-0 overflow-visible p-2 flex flex-col relative z-50">
+                <div class="bg-black/30 rounded-xl border border-white/5 overflow-visible flex-1 min-h-0 flex flex-col relative">
                     
                     <!-- Table Header -->
                     <div class="shrink-0 grid grid-cols-12 bg-white/5 px-4 py-3 gap-2 border-b border-white/5 text-[10px] font-bold uppercase tracking-widest text-gray-400">
