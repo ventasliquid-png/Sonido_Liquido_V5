@@ -1042,6 +1042,7 @@ const checkClientSync = async () => {
 };
 
 const loadPedido = async (id) => {
+    isHydratingPedido.value = true; // [FIX S870] guardia H1, ver declaración de isHydratingPedido
     try {
         notificationStore.add('Cargando pedido...', 'info');
         const res = await api.get(`/pedidos/${id}`);
@@ -1056,6 +1057,10 @@ const loadPedido = async (id) => {
         flagsEstadoPedido.value = p.flags_estado || 0;
         isCircuitoNegro.value = (BigInt(p.flags_estado || 0) & (1n << 12n)) !== 0n;
         isNoComercial.value = (BigInt(p.flags_estado || 0) & (1n << 11n)) !== 0n;
+        // [FIX S870] H4: loadPedido nunca hidrataba esto -- fechaEntrega quedaba en '' y
+        // savePedido() (ver payload.fecha_compromiso) la mandaba como null en CUALQUIER
+        // guardado, incluso uno que no tocaba la fecha, borrando la entrega comprometida.
+        fechaEntrega.value = p.fecha_compromiso ? p.fecha_compromiso.split('T')[0] : '';
         omitirOC.value = !!p.flags_estado && (p.flags_estado & 64) ? false : false; // Placeholder if we had oc_override in DB, but for now just load OC
         // TODO: Handle Order Status specifically if needed (locked state?)
 
@@ -1110,6 +1115,12 @@ const loadPedido = async (id) => {
     } catch (e) {
         console.error(e);
         notificationStore.add('Error cargando pedido: ' + e.message, 'error');
+    } finally {
+        // [FIX S870] guardia H1: recién acá se apaga, después de que el/los watcher(s) --
+        // que corren en un microtask posterior a las asignaciones de arriba -- ya vieron el
+        // guard prendido y salieron sin escribir.
+        await nextTick();
+        isHydratingPedido.value = false;
     }
 };
 
@@ -1153,6 +1164,13 @@ const statusBadgeClasses = computed(() => {
 });
 const isCircuitoNegro = ref(false);
 const isNoComercial = ref(false);
+// [FIX S870] Guardia de hidratación (H1): loadPedido() asigna isCircuitoNegro/isNoComercial
+// para reflejar el estado real del pedido, y watch() -- sin flush:'sync' -- corre en un
+// microtask posterior, no en la misma línea. Se prende al principio de loadPedido y se apaga
+// recién después de un await nextTick(), para que el microtask del watcher ya haya corrido
+// (y visto el guard prendido) antes de que se apague. Apagarlo en la misma línea de la
+// asignación no alcanza: el watcher todavía no se disparó y el PATCH sale igual.
+const isHydratingPedido = ref(false);
 const omitirOC = ref(false); // [V5.5] Flag for OC bypass
 const nroOC = ref(''); // [V5.5] OC Number
 const pedidoOrigenMigracionId = ref(null); // [V5.9] Doctrina Inmutabilidad
@@ -1307,6 +1325,7 @@ watch(clienteSeleccionado, (newVal) => {
 // mutaba estado local y dependía de que "Guardar Pedido" lo persistiera, pero el PATCH
 // genérico nunca declaró flags_estado en su schema y lo descartaba en silencio.
 watch(isCircuitoNegro, async (val) => {
+    if (isHydratingPedido.value) return; // [FIX S870] H1: loadPedido está hidratando, no es un toggle real
     const pid = route.params.id;
     if (pid) {
         let res;
@@ -1343,6 +1362,7 @@ watch(isCircuitoNegro, async (val) => {
 
 // Watch ES_NO_COMERCIAL: en pedido existente llama al endpoint (para nota forense al apagar)
 watch(isNoComercial, async (val) => {
+    if (isHydratingPedido.value) return; // [FIX S870] H1: mismo guard, mismo motivo que watch(isCircuitoNegro)
     const pid = route.params.id;
     if (pid) {
         // Al convertir a COMERCIAL: flush de precios actuales antes de que la guardia los consulte
@@ -2264,6 +2284,12 @@ const resetPedido = async (skipConfirm = false) => {
     notas.value = '';
     descuentoGlobalPorcentaje.value = '';
     descuentoGlobalValor.value = '';
+    // [FIX S870] H4: loadPedido ahora hidrata estos tres desde el pedido cargado (antes no lo
+    // hacía y por eso resetPedido nunca necesitó limpiarlos) -- sin este reset, "Resetear"
+    // después de ver un pedido con fecha/OC comprometida se las pasaría a un pedido nuevo.
+    fechaEntrega.value = '';
+    nroOC.value = '';
+    omitirOC.value = false;
     
     // Fetch new ID
     try {
