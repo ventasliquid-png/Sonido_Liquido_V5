@@ -20,6 +20,9 @@
                     </h1>
                 </div>
                 <div class="flex gap-3">
+                    <button v-if="clienteSeleccionado" @click="cabeceraPlegada = !cabeceraPlegada" class="text-gray-400 hover:text-white font-bold flex items-center gap-2 transition-colors uppercase tracking-wider text-xs border border-white/10 px-3 py-1 rounded bg-white/5 hover:bg-white/10">
+                        <i :class="cabeceraVisible ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i> {{ cabeceraVisible ? 'Plegar cabecera' : 'Ver cabecera' }}
+                    </button>
                     <button v-if="route.params.id" @click="$router.push({ name: 'PedidoLogistica', params: { id: route.params.id } })" class="text-blue-500 hover:text-blue-400 font-bold flex items-center gap-2 transition-colors uppercase tracking-wider text-xs border border-blue-500/30 px-3 py-1 rounded bg-blue-500/10 hover:bg-blue-500/20">
                         <i class="fas fa-truck-loading"></i> Entregas (Split)
                     </button>
@@ -52,8 +55,30 @@
                      :class="showCostDrawer ? 'mr-96' : ''">
 
             <!-- SECTION 1: HEADER (Refinado: Dense Mode) -->
-            <header class="shrink-0 p-5 border-b border-white/10 bg-black/10 backdrop-blur-md relative z-10 space-y-4">
-                
+            <header :class="['shrink-0 border-b border-white/10 bg-black/10 backdrop-blur-md relative z-10', cabeceraVisible ? 'p-5' : 'px-5 py-2']">
+
+                <!-- CABECERA PLEGADA: resumen en dos líneas, un click la despliega -->
+                <div v-show="!cabeceraVisible" @click="cabeceraPlegada = false" class="cursor-pointer space-y-1 text-xs" title="Click para editar la cabecera">
+                    <div class="flex flex-wrap items-baseline gap-x-5 gap-y-1">
+                        <span class="font-mono font-bold text-emerald-400">#{{ nroPedido }}</span>
+                        <span class="text-gray-300">{{ fechaCorta(fechaPedido) }}</span>
+                        <span class="text-sm font-bold text-white">{{ clienteSeleccionado?.razon_social }}</span>
+                        <span class="font-mono text-gray-400">{{ clienteSeleccionado?.cuit }}</span>
+                        <span><span class="text-gray-500">OC:</span> <span class="text-white">{{ nroOC || '—' }}</span></span>
+                        <span><span class="text-gray-500">Entrega est.:</span> <span class="text-white">{{ fechaCorta(fechaEntrega) }}</span></span>
+                        <span v-if="clienteSeleccionado && !clientValidation.valid" class="font-bold uppercase text-amber-500"><i class="fas fa-exclamation-triangle"></i> Faltan: {{ clientValidation.missing.join(', ') }}</span>
+                        <span v-if="!isOCValid" class="font-bold uppercase text-cyan-400"><i class="fas fa-exclamation-triangle"></i> OC requerida</span>
+                        <span class="ml-auto text-gray-500 hover:text-white"><i class="fas fa-pen"></i> Editar cabecera</span>
+                    </div>
+                    <div class="flex flex-wrap items-baseline gap-x-5 gap-y-1 text-gray-400">
+                        <span><i class="fas fa-shipping-fast text-blue-400/60"></i> {{ resumenCabecera.domicilio }}</span>
+                        <span><i class="fas fa-truck text-purple-400/60"></i> {{ resumenCabecera.transporte }}</span>
+                        <span><i class="fas fa-user-check text-emerald-400/60"></i> Comprador: {{ resumenCabecera.comprador }}</span>
+                        <span><i class="fas fa-dolly text-amber-400/60"></i> Contacto: {{ resumenCabecera.contacto }}</span>
+                    </div>
+                </div>
+
+                <div v-show="cabeceraVisible" class="space-y-4">
                 <!-- ROW 1: PRIMARY DATA -->
                 <div class="grid grid-cols-12 gap-4 items-center">
                     
@@ -302,6 +327,7 @@
                             </div>
                         </div>
                     </div>
+                </div>
                 </div>
 
             </header>
@@ -1079,6 +1105,7 @@ const loadPedido = async (id) => {
         }
 
         notificationStore.add('Pedido cargado para edición.', 'success');
+        cabeceraPlegada.value = true;
 
     } catch (e) {
         console.error(e);
@@ -1224,6 +1251,22 @@ const clientAddresses = computed(() => {
 
 const availableTransportes = computed(() => {
     return maestrosStore.transportes || [];
+});
+
+// Cabecera plegable (S870): abierta ocupa media pantalla. Sin cliente se muestra siempre, porque ahí se elige.
+const cabeceraPlegada = ref(false);
+const cabeceraVisible = computed(() => !cabeceraPlegada.value || !clienteSeleccionado.value);
+const fechaCorta = (iso) => iso ? iso.split('-').reverse().join('/') : '—';
+const resumenCabecera = computed(() => {
+    const dom = clientAddresses.value.find(d => d.id === selectedDomicilioId.value);
+    const transporte = availableTransportes.value.find(t => t.id === selectedTransporteId.value);
+    const vinculo = (id) => vinculosCliente.value.find(v => v.id === id)?.nombre_completo;
+    return {
+        domicilio: dom ? `${dom.calle || ''} ${dom.numero || ''}${dom.localidad ? ` (${dom.localidad})` : ''}` : 'Entrega sin definir',
+        transporte: transporte?.nombre || 'Sin transporte',
+        comprador: vinculo(selectedCompradorId.value) || 'Sin especificar',
+        contacto: vinculo(selectedContactoEntregaId.value) || 'Sin especificar',
+    };
 });
 
 // Watch for client change to set defaults
@@ -2049,8 +2092,9 @@ const commitRow = () => {
         descuento_porcentaje: Number(payload.descuento_porcentaje || 0),
         descuento_valor: Number(payload.descuento_valor || 0),
         total: Number(payload.total)
-    }); 
-    
+    });
+    if (items.value.length === 1) cabeceraPlegada.value = true; // con el primer renglón la cabecera ya está hecha
+
     // Reset but keep some logical defaults if needed
     newItem.value = {
         sku: '',
@@ -2216,6 +2260,7 @@ const resetPedido = async (skipConfirm = false) => {
     clienteSeleccionado.value = null;
     busquedaCliente.value = '';
     items.value = [];
+    cabeceraPlegada.value = false;
     notas.value = '';
     descuentoGlobalPorcentaje.value = '';
     descuentoGlobalValor.value = '';
