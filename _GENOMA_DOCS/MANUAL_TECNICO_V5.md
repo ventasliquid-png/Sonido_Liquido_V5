@@ -2108,3 +2108,27 @@ se revirtieron el mismo día (revert D `7b4cc63c`, B `68b92db`). Código recuper
   sus facturas, no existe `cantidad_facturada`; el Bit 22 no tiene escritor ni lector y el Bit 23 sólo
   se prende en pedidos `ES_NO_COMERCIAL`.
 - `sellar_factura` no corrige `tipo_comprobante`: facturas con CAE real quedan como `PRESUPUESTO_X`.
+
+---
+
+## S870 (Lite) — `PedidoCanvas.vue`: guard de hidratación (H1) y `fechaEntrega` silenciosa (H4)
+
+**H1 — escritura al abrir un pedido interno.** `loadPedido()` asigna `isCircuitoNegro`/`isNoComercial`
+desde `flags_estado` para reflejar el pedido cargado; `watch()` (flush por defecto, no `sync`) corre en
+un microtask posterior a esa asignación, no en la misma línea, y no distinguía "esto es la carga" de
+"esto lo tocó el usuario" — cualquier pedido interno/Rosa disparaba `PATCH /circuito-bipolar` (que
+`commit()`ea y recalcula `total` sin condición) solo por abrirse. Fix: `isHydratingPedido` (ref), prendido
+al principio de `loadPedido()` y apagado recién tras `await nextTick()` — apagarlo en la misma línea de
+la asignación no alcanza, el watcher todavía no corrió. Mismo guard en `watch(isNoComercial)`.
+
+**H4 — `fecha_compromiso` se pierde en cualquier guardado.** `loadPedido()` nunca hidrataba
+`fechaEntrega` desde `p.fecha_compromiso` (quedaba en `''`, su default); `savePedido()` siempre manda
+`payload.fecha_compromiso = fechaEntrega.value ? ... : null`, sin condición. El backend usa
+`exclude_unset=True`, pero el campo cuenta como "seteado" porque el frontend lo manda igual. Fix: una
+línea en `loadPedido()` (mismo patrón que `fechaPedido`) + reset en `resetPedido()` (que antes no
+necesitaba limpiar `fechaEntrega`, `nroOC` ni `omitirOC` porque nunca se hidrataban de verdad).
+
+Los dos confirmados en vivo contra copia aislada de `pilot_v5x.db` (backend/frontend en 8099/5199,
+nunca la base viva): H1 abriendo el pedido #47 (Bit12 ON) en el navegador real, sin `PATCH
+/circuito-bipolar` en el log; H4 abriendo el #2 (`fecha_compromiso=2026-03-31`), guardando sin tocar la
+fecha, y la fecha sobreviviendo. D `a0b4bb30` → B `0ac2aee` → `prod/main`.

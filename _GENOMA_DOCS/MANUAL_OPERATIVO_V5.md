@@ -1190,3 +1190,21 @@ entregar por partes: por ejemplo, facturar 120 y entregar 40 por semana. La fact
 dice la factura; el remito, con lo que realmente sale.
 
 **No existe "Anular Factura".** Se construyó y se retiró el mismo día (18/09). No buscarla.
+
+---
+
+## S870 (Lite) — Pantalla de Pedido: cabecera plegable, pie fijo, y la fecha de entrega ya no se pierde
+
+**Cabecera plegable.** Al abrir un pedido existente, la cabecera (datos del cliente, OC, entrega
+estimada, transporte, comprador, contacto) queda plegada en un resumen de dos líneas — antes ocupaba
+tanto lugar que, en pantallas chicas, la lista de renglones quedaba con apenas unos píxeles visibles.
+Se despliega con el botón "Ver cabecera" o haciendo click en el resumen. En un pedido nuevo se pliega
+sola al cargar el primer renglón.
+
+**El pie de totales ya no desaparece** con muchos renglones, y **los renglones salen en el orden en
+que se cargaron** (antes salían reordenados por producto).
+
+**La fecha de "Entrega est." ya no se borra al guardar.** Antes, editar y guardar un pedido —aunque no
+se tocara esa fecha— la dejaba en blanco. Corregido: ahora se conserva salvo que se la cambie a
+propósito. Si notaste fechas de entrega comprometida que "desaparecían solas" en pedidos guardados
+antes de hoy (22/09), no fue un error de carga.

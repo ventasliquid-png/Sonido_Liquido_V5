@@ -1,4 +1,19 @@
-﻿Sesion actual: 869
+﻿Sesion actual: 870
+
+# CAJA NEGRA: OMEGA Lite - Mision P cerrada, H1/H4 corregidos y desplegados, H3 diagnosticado - S870
+
+Sesion 870 OF, dos jornadas y dos agentes (21-22/09: CC en Opus el 21, relevo a CC en Sonnet el 22 por credito, mismo numero de sesion, sin OMEGA de por medio). Hash D al cierre: a0b4bb30 | Hash B: 0ac2aee (= prod/main) | Hash P: 6fe98f8 (confirmado por Carlos con capturas; el ultimo push 0ac2aee con H1/H4 todavia no lo tomo P). Estado: NOMINAL (canario GOLD, WAL OK). Semaforo CS: AMARILLO (heredado, sin CS presente).
+- **Mision P (cabecera plegable + pie fijo):** pull limpio a 6fe98f8 confirmado por Carlos con capturas en produccion real. Cierra el ciclo de PedidoCanvas.vue empezado el 21/09.
+- **H1 (traspaso S870, seccion 3):** abrir un pedido interno/Rosa escribia en la base solo por mirarlo -- watch(isCircuitoNegro) no distinguia hidratacion de toggle real, disparaba PATCH /circuito-bipolar con un commit() real que recalcula el total sin condicion. Confirmado en vivo contra copia aislada de pilot_v5x.db (nunca la viva, MD5 sin cambios): abri el pedido #47 en el navegador real, log del backend sin ningun PATCH. Arreglo: guard isHydratingPedido, prendido al principio de loadPedido y apagado recien tras await nextTick() -- el watch corre en un microtask posterior a la asignacion sincronica, apagarlo en la misma linea no alcanza. Mismo guard en watch(isNoComercial).
+- **H4 (traspaso S870, seccion 3):** guardar cualquier pedido con fecha de entrega comprometida se la borraba -- loadPedido nunca hidrataba fechaEntrega desde fecha_compromiso, savePedido la mandaba como null en CUALQUIER guardado. Confirmado en vivo: pedido #2 (fecha_compromiso=2026-03-31) mostro la fecha al abrir, Guardar Pedido sin tocarla, la fecha sobrevivio. Arreglo de una linea + reset en resetPedido (fechaEntrega, y de paso nroOC/omitirOC que tenian el mismo agujero).
+- Ambos con PIN 1974: D a0b4bb30, pase quirurgico a B por 7 bloques del diff (CRLF preservado, compila), B 0ac2aee, push a prod/main.
+- De paso, se desplegaron a produccion los 6 commits de remitos T1-T3/T5/T4-revert/Bit41 de la S868 que quedaban en B sin pushear desde el 18/09 (push d65c281 -> 41495bb, autorizado por Carlos con el comando allowlisteado) -- falta avisar a Tomy del talonario unico 0015.
+- **H3 (traspaso S870, seccion 3, hoy con hallazgo nuevo):** el espejo Excel/espejo_mt.py de P no escribe al Silo desde el 3/9. Primera hipotesis (cuenta de Google Drive o mapeo de Q: rotos por la migracion a Windows 11) DESCARTADA con evidencia real: Carlos mando capturas de la PC de Tomy, Q: esta montado y Drive sincroniza bien. Causa real encontrada por evidencia de log: ESPEJO_MT/log_ejecuciones.txt tiene un OK cada 30 min sin cortes hasta el 3/9 10:34:04 y ahi para en seco, cero entradas despues -- no es que el script falle, es que dejo de dispararse. Python 3.12 del .bat verificado que existe en P (carpeta reconstruida el mismo 3/9). Diagnostico: la tarea del Programador de Tareas de Windows que lo disparaba cada 30 min no sobrevivio la reinstalacion limpia. Correccion propia registrada (la hipotesis de Drive era incorrecta, corregida en la bitacora antes de pasar instrucciones equivocadas a Tomy). Prompt entregado a una sesion de Tomy en P al cierre, sin confirmar todavia.
+- Pantalla "Extracto" pedida por Carlos (modal Copiar, texto plano formato espejo sin costos) -- diseno decidido, mockup pendiente, no se llego a armar.
+- FASE 1D (cotejo de cierre): PASS con avisos (INBOX 11 sin archivar, Card #138 abierta pero mencionada en 4 commits -- queda abierta a proposito, es card paraguas).
+- FASE 1B.3: dos copias de produccion tomadas hoy (arranque y cierre), integras, verificadas por MD5.
+
+---
 
 # CAJA NEGRA: OMEGA Lite - doctrina del circuito PR cerrada, sin una linea de codigo - S869
 
