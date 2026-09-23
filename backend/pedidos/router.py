@@ -837,7 +837,7 @@ def update_pedido(
         for rid in removed_ids:
             old_item = existing_items[rid]
             entregado = sum(
-                ri.cantidad for ri in old_item.remitos_items
+                ri.cantidad_remitida for ri in old_item.remitos_items
                 if ri.remito and ri.remito.estado != "ANULADO"
             )
             if entregado > 0:
@@ -1047,7 +1047,7 @@ def update_pedido_item(
     # [LOGISTICA V7] Ajustar Reserva si cambia cantidad
     if "cantidad" in update_data:
         entregado = sum(
-            ri.cantidad for ri in item.remitos_items
+            ri.cantidad_remitida for ri in item.remitos_items
             if ri.remito and ri.remito.estado != "ANULADO"
         )
         if update_data["cantidad"] < entregado:

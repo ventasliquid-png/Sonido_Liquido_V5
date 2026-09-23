@@ -146,7 +146,7 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
             items.append({
                 "codigo": codigo,
                 "descripcion": desc,
-                "cantidad": r_item.cantidad,
+                "cantidad": r_item.cantidad_remitida,
                 "unidad": "UN" # Default
             })
 

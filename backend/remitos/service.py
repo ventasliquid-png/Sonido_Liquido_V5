@@ -48,6 +48,25 @@ class RemitosService:
         return f"0015-{max(numeros + [3009]) + 1:08d}"
 
     @staticmethod
+    def _siguiente_numero_17(db: Session) -> str:
+        """Próximo número del talonario 17 (rosa impreso y huérfanos, Circuito 17).
+
+        [Etapa 1, DISENO_CIRCUITO_17_S870.md §3-4] Calcada de _siguiente_numero_0015 -- mismo
+        lock de escritura hasta el commit del que llama, misma tolerancia a números mal
+        formados. A1 confirmada por Carlos: una sola serie para rosa y huérfanos juntos, sin
+        segunda secuencia -- pedido_id (presente o no) ya distingue un caso del otro. Talonario
+        nuevo, sin legado que preservar: arranca en 1.
+        """
+        db.execute(text("UPDATE remitos SET numero_legal = numero_legal WHERE 0"))
+        numeros = []
+        for (numero,) in db.query(models.Remito.numero_legal).filter(models.Remito.numero_legal.like("17-%")):
+            try:
+                numeros.append(int(numero.split("-")[-1]))
+            except ValueError:
+                print(f"[NUMERACION 17] Ignorado número mal formado: {numero!r}")
+        return f"17-{max(numeros + [0]) + 1:08d}"
+
+    @staticmethod
     def _partes_numero_factura(numero: Optional[str]):
         """(punto_venta, numero_comprobante) de "0001-00002536", "0001 00002536" o "2536".
         Punto de venta None si el texto trae solo el número; (None, None) si no se entiende."""
@@ -523,7 +542,10 @@ class RemitosService:
                 r_item = models.RemitoItem(
                     remito_id=remito.id,
                     pedido_item_id=target_p_item.id,
-                    cantidad=cantidad_remito
+                    # [Etapa 1] declarada=remitida acá: esta etapa no cambia comportamiento,
+                    # todavía no existe un "armado" que las distinga (eso es la Etapa 4).
+                    cantidad_declarada=cantidad_remito,
+                    cantidad_remitida=cantidad_remito
                 )
                 db.add(r_item)
                 remito_items_creados += 1
@@ -544,7 +566,8 @@ class RemitosService:
                 r_item = models.RemitoItem(
                     remito_id=remito.id,
                     pedido_item_id=p_item.id,
-                    cantidad=p_item.cantidad
+                    cantidad_declarada=p_item.cantidad,
+                    cantidad_remitida=p_item.cantidad
                 )
                 db.add(r_item)
                 remito_items_creados += 1
@@ -895,7 +918,8 @@ class RemitosService:
             r_item = models.RemitoItem(
                 remito_id=remito.id,
                 pedido_item_id=p_item["pi_id"],
-                cantidad=p_item["cantidad"]
+                cantidad_declarada=p_item["cantidad"],
+                cantidad_remitida=p_item["cantidad"]
             )
             db.add(r_item)
 
@@ -966,7 +990,10 @@ class RemitosService:
                     # Actualizar existente
                     r_item = next((i for i in remito.items if i.id == p_item_data.id), None)
                     if r_item:
-                        r_item.cantidad = p_item_data.cantidad
+                        # [Etapa 1] Se edita lo remitido, no lo declarado -- la foto del
+                        # armado original queda como estaba (todavía no es un dato relevante
+                        # antes de la Etapa 4, pero no hay motivo para tocarla acá).
+                        r_item.cantidad_remitida = p_item_data.cantidad
                         # Actualizar nota en el pedido_item si es manual
                         if p_item_data.descripcion and r_item.pedido_item:
                             r_item.pedido_item.nota = p_item_data.descripcion
@@ -990,7 +1017,8 @@ class RemitosService:
                     new_r_item = models.RemitoItem(
                         remito_id=remito.id,
                         pedido_item_id=new_p_item.id,
-                        cantidad=p_item_data.cantidad
+                        cantidad_declarada=p_item_data.cantidad,
+                        cantidad_remitida=p_item_data.cantidad
                     )
                     db.add(new_r_item)
 
@@ -1096,7 +1124,8 @@ class RemitosService:
             db.add(models.RemitoItem(
                 remito_id=remito.id,
                 pedido_item_id=p_item.id,
-                cantidad=p_item.cantidad
+                cantidad_declarada=p_item.cantidad,
+                cantidad_remitida=p_item.cantidad
             ))
 
         _vincular_factura_remito(db, factura, remito)
@@ -1240,7 +1269,7 @@ class RemitosService:
                     "remito_id": str(remito.id),
                     "remito_estado": remito.estado,
                     "fecha_documento": fecha_doc.isoformat() if fecha_doc else None,
-                    "cantidad_remitida": ri.cantidad,
+                    "cantidad_remitida": ri.cantidad_remitida,
                     "factura": _facturas_str(remito.id) or None,
                 })
                 filas.append(fila)
@@ -1268,7 +1297,7 @@ class RemitosService:
         # SOBRE_ENTREGA y OC_EN_VARIOS_PEDIDOS — derivadas del set ya filtrado por
         # cliente/producto/oc (tiene sentido acotarlas al mismo universo de la consulta).
         for p_item in pedido_items:
-            entregado = sum(ri.cantidad for ri in remito_items_by_pedido_item_id.get(p_item.id, []))
+            entregado = sum(ri.cantidad_remitida for ri in remito_items_by_pedido_item_id.get(p_item.id, []))
             if entregado > p_item.cantidad:
                 anomalias.append({
                     "tipo": "SOBRE_ENTREGA",

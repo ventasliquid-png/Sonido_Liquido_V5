@@ -25,7 +25,17 @@ class Pedido(Base):
     fecha_vencimiento = Column(Date, nullable=True) # V6 MUDANZA — Vigencia presupuesto (default: fecha+10 días si ES_PRESUPUESTO)
     liberado_despacho = Column(Boolean, default=False)
     oc = Column(String, nullable=True) # Orden de Compra
-    
+
+    # [Etapa 1, Circuito PR -- BIBLIOTECA_NIKE.md Modulo 2, "Como referencia un pedido a otro
+    # por causa de una OC"] Relacion causal de derivacion, OPCIONAL -- a diferencia de
+    # Cliente.cliente_origen_id (linaje inmutable, nunca NULL), acá NULL es el caso normal
+    # (~95% de los pedidos son autonomos). Un id real = este pedido deriva de otro, con motivo.
+    # Integer, no GUID -- Pedido.id es Integer (verificado, no todos los modelos usan GUID).
+    pedido_origen_id = Column(Integer, ForeignKey("pedidos.id"), nullable=True, default=None)
+    # AMPLIACION / REEMPLAZO / COMPENSACION / CLON / OFICIALIZACION. String simple, no ENUM de
+    # base -- permite sumar un sexto motivo sin migracion; se valida en la capa de aplicacion.
+    motivo_relacion_oc = Column(String, nullable=True, default=None)
+
     # Descuento Global
     descuento_global_porcentaje = Column(Float, default=0.0)
     descuento_global_importe = Column(Float, default=0.0)
@@ -88,4 +98,4 @@ class PedidoItem(Base):
     @property
     def cantidad_entregada(self) -> float:
         # Runtime calculation of delivered quantity
-        return sum(ri.cantidad for ri in self.remitos_items if ri.remito and ri.remito.estado != "ANULADO")
+        return sum(ri.cantidad_remitida for ri in self.remitos_items if ri.remito and ri.remito.estado != "ANULADO")

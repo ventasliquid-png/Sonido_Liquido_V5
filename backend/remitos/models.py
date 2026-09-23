@@ -15,8 +15,17 @@ class Remito(Base):
     id = Column(GUID(), primary_key=True, default=uuid.uuid4, index=True)
     
     # Vínculo Comercial
-    pedido_id = Column(Integer, ForeignKey("pedidos.id"), nullable=False, index=True)
-    
+    # [Etapa 1, Circuito 17 -- DISENO_CIRCUITO_17_S870.md §3] nullable desde acá: presente =
+    # PR comercializable (blanco o rosa); ausente = huérfano (prueba de movimiento sin pedido).
+    # Ningún código de hoy crea un Remito sin pedido_id -- este cambio es inerte hasta que la
+    # Etapa 4 construya el flujo que sí lo hace.
+    pedido_id = Column(Integer, ForeignKey("pedidos.id"), nullable=True, index=True)
+
+    # [Etapa 1, Circuito 17 -- DISENO_CIRCUITO_17_S870.md §6] Por qué existe un movimiento sin
+    # pedido (feria, muestra, devolución a proveedor...). Solo tiene sentido cuando pedido_id es
+    # NULL. Taxonomía deliberadamente abierta (texto libre, no enum) -- ver A2/A4 de ese diseño.
+    motivo = Column(String, nullable=True)
+
     # Destino Físico (Sobrescribe al Pedido si es split)
     domicilio_entrega_id = Column(GUID(), ForeignKey("domicilios.id"), nullable=False)
     
@@ -114,18 +123,94 @@ class RemitoItem(Base):
     
     # Trazabilidad Absoluta: Qué renglón del pedido estoy entregando
     pedido_item_id = Column(Integer, ForeignKey("pedidos_items.id"), nullable=False)
-    
-    # Cantidad Física en este viaje
-    cantidad = Column(Float, default=0.0)
-    
+
+    # [Etapa 1 -- INFORME_IMPLEMENTACION_PR_S869.md §4.1, dictamen Nike] Las cuatro cantidades
+    # del PR. "cantidad_remitida" es la columna "cantidad" de siempre, renombrada -- admite
+    # negativo (devolución, Etapa 6). "cantidad_declarada" es la foto del pedido al armar el PR
+    # (Etapa 4 la empieza a poblar distinto de remitida; hasta entonces valen lo mismo).
+    # "cantidad_recibida" NULL = "llegó lo que salió" (S868 §2.5). "cantidad_facturada" NULL =
+    # no aplica/rosa/fuera de lo fiscal, 0 = aplica y pendiente -- nunca confundir los dos.
+    cantidad_declarada = Column(Float, nullable=False, default=0.0)
+    cantidad_remitida = Column(Float, default=0.0)
+    cantidad_recibida = Column(Float, nullable=True)
+    cantidad_facturada = Column(Float, nullable=True)
+
     # Relaciones
     remito = relationship("Remito", back_populates="items")
     pedido_item = relationship("PedidoItem", back_populates="remitos_items")
-    
+    notas = relationship("RemitoNota", back_populates="remito_item")
+
+    @property
+    def cantidad(self):
+        """Alias de compatibilidad hacia atrás -- Etapa 1 no cambia el contrato de la API.
+
+        RemitoItemResponse (schemas.py, from_attributes=True) todavía serializa "cantidad";
+        este alias evita romper esa respuesta y cualquier consumidor del frontend mientras el
+        contrato no se actualice a propósito (etapa futura, coordinada con el frontend).
+        """
+        return self.cantidad_remitida
+
     @property
     def descripcion_display(self):
         if not self.pedido_item: return "Ítem"
         return self.pedido_item.producto.nombre if self.pedido_item.producto else (self.pedido_item.nota or "Ítem")
 
     def __repr__(self):
-        return f"<RemitoItem(cant={self.cantidad})>"
+        return f"<RemitoItem(cant_remitida={self.cantidad_remitida})>"
+
+
+class RemitoNota(Base):
+    """Novedad fechada sobre un remito o un renglón -- acumulativa, nunca editable.
+
+    [Etapa 1 -- INFORME_IMPLEMENTACION_PR_S869.md §4.1, dictamen Nike Módulo 2] Un objeto cuya
+    razón de ser es la responsabilidad de una persona (quién dijo qué, y cuándo) no es un bit:
+    es una tabla hija relacional. Corregir no es sobrescribir (S869 §1.2): una nota nueva no
+    pisa la anterior.
+    """
+    __tablename__ = "remitos_notas"
+
+    id = Column(Integer, primary_key=True, index=True)
+    remito_id = Column(GUID(), ForeignKey("remitos.id"), nullable=False)
+    remito_item_id = Column(Integer, ForeignKey("remitos_items.id"), nullable=True)
+    fecha = Column(DateTime, default=datetime.now)
+    # [Nota de tipo, verificado contra backend/auth/models.py] Usuario.id es Integer, no GUID
+    # -- a diferencia de Cliente/Domicilio/Remito, auth quedó con PK numérica.
+    autor_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
+    texto = Column(String, nullable=False)
+    # [DISENO_CIRCUITO_17_S870.md §4.3] Foto del remito firmado, o de una guía de transporte
+    # externa. Mismo patrón que Factura.pdf_path (facturacion/models.py) -- ruta/URL simple, sin
+    # tabla de adjuntos aparte.
+    foto_path = Column(String, nullable=True)
+
+    remito = relationship("Remito")
+    remito_item = relationship("RemitoItem", back_populates="notas")
+
+    def __repr__(self):
+        return f"<RemitoNota(remito_id={self.remito_id})>"
+
+
+class HuerfanoDestino(Base):
+    """Evento de reconciliación de un huérfano (Remito sin pedido, Circuito 17).
+
+    [Etapa 1 -- DISENO_CIRCUITO_17_S870.md §5, dictamen Nike Módulo 2] Un huérfano no reconcilia
+    contra una promesa (no hay "declarada"): reconcilia contra lo que salió, repartido en
+    destinos. Cumplido = reingresó + se_perdio + se_comercializo == remitida. Tabla de eventos,
+    igual que RemitoNota -- nunca se anula el huérfano para cerrarlo, se le cuelgan destinos.
+    """
+    __tablename__ = "huerfano_destinos"
+
+    id = Column(Integer, primary_key=True, index=True)
+    huerfano_item_id = Column(Integer, ForeignKey("remitos_items.id"), nullable=False)
+    fecha = Column(DateTime, default=datetime.now)
+    # Enum cerrado (a diferencia de Remito.motivo, que es texto libre) -- DISENO_CIRCUITO_17_S870.md §5.
+    tipo = Column(Enum("reingreso", "perdida", "comercializado", name="huerfano_destino_tipo"), nullable=False)
+    cantidad = Column(Float, nullable=False)
+    # id del pedido nuevo que absorbió la mercadería, solo si tipo == "comercializado".
+    referencia = Column(Integer, ForeignKey("pedidos.id"), nullable=True)
+    # Usuario.id es Integer (ver nota en RemitoNota).
+    autor_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
+
+    huerfano_item = relationship("RemitoItem")
+
+    def __repr__(self):
+        return f"<HuerfanoDestino(tipo='{self.tipo}', cantidad={self.cantidad})>"
