@@ -784,27 +784,36 @@ class RemitosService:
                   target_pi = next((pi for pi in original_items if pi.producto.nombre == item.descripcion or (item.codigo_visual and pi.producto.codigo_visual == item.codigo_visual)), None)
                   
                   if target_pi:
+                       # [Card #125, misma guarda que create_from_ingestion -- DISENO_CIRCUITO_PR_S869.md
+                       # §9.5 / INFORME_IMPLEMENTACION_PR_S869.md §8.2] Antes solo la ingesta comparaba
+                       # contra el pendiente; el 0015 manual aceptaba cualquier cantidad.
+                       pendiente = target_pi.cantidad - target_pi.cantidad_entregada
+                       if item.cantidad > pendiente + 0.001:  # tolerancia de redondeo flotante
+                            db.rollback()
+                            raise HTTPException(
+                                status_code=409,
+                                detail=(
+                                    f"CANTIDAD_EXCEDE_PEDIDO: '{item.descripcion}' trae {item.cantidad}, "
+                                    f"pero el Pedido #{nuevo_pedido.id} solo tiene {pendiente} pendiente. "
+                                    f"Actualice el Pedido antes de continuar."
+                                )
+                            )
                        if item.cantidad < target_pi.cantidad:
                             is_partial = True
                        pedido_items_mapped.append({"pi_id": target_pi.id, "cantidad": item.cantidad})
                   else:
-                       # Agregado manualmente en remito
-                       producto = db.query(Producto).filter(Producto.nombre == item.descripcion).first()
-                       if not producto and item.codigo_visual:
-                            producto = db.query(Producto).filter(Producto.codigo_visual == item.codigo_visual).first()
-                       if not producto:
-                            producto = db.query(Producto).filter(Producto.nombre.ilike("%VARIOS%")).first()
-                       
-                       new_p_item = PedidoItem(
-                           pedido_id=nuevo_pedido.id,
-                           producto_id=producto.id if producto else 1,
-                           cantidad=item.cantidad,
-                           precio_unitario=0.0,
-                           nota="Agregado en Remito Manual"
+                       # [Card #125, decisión de Carlos 20/09 -- DISENO_CIRCUITO_PR_S869.md §9.5]
+                       # El 0015 manual solo puede crear ítems nuevos en un pedido creado desde cero
+                       # (rama "Ghost Pedido" más abajo). Con pedido_id existente, un renglón que no
+                       # matchea se rechaza -- antes se agregaba en silencio al pedido ajeno.
+                       db.rollback()
+                       raise HTTPException(
+                           status_code=409,
+                           detail=(
+                               f"RENGLON_AJENO_AL_PEDIDO: '{item.descripcion}' no está cargado en "
+                               f"el Pedido #{nuevo_pedido.id}. Actualice el Pedido antes de continuar."
+                           )
                        )
-                       db.add(new_p_item)
-                       db.flush()
-                       pedido_items_mapped.append({"pi_id": new_p_item.id, "cantidad": item.cantidad})
 
              # Revisar si quedaron items fuera (envío parcial)
              enviados_ids = [pi["pi_id"] for pi in pedido_items_mapped]

@@ -320,7 +320,13 @@ const getStatusClass = (status) => {
 // Remito Actions
 const tryDespachar = async (remito) => {
    if (!confirm("¿Confirmar salida física de mercadería? Esto descontará stock.")) return;
-   await remitosStore.despacharRemito(remito.id);
+   try {
+      await remitosStore.despacharRemito(remito.id);
+   } catch (err) {
+      // [DISENO_CIRCUITO_PR_S869.md §9.3] El backend ahora rechaza el despacho si
+      // aprobado_para_despacho es false; sin este catch el error quedaba sin mostrarse.
+      alert(remitosStore.error || "No se pudo despachar el remito.");
+   }
 };
 
 const openPrint = (remito) => {

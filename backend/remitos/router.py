@@ -88,7 +88,16 @@ def despachar_remito(remito_id: str, db: Session = Depends(get_db)):
     remito = db.query(models.Remito).filter(models.Remito.id == remito_id).first()
     if not remito:
         raise HTTPException(status_code=404, detail="Remito no encontrado")
-    
+
+    # [DISENO_CIRCUITO_PR_S869.md §9.3 / §2.4] El modelo documenta aprobado_para_despacho
+    # como "GATEKEEPER FINANCIERO": si es False, Depósito no puede pasar a EN_CAMINO. Antes
+    # este endpoint no lo consultaba -- la compuerta estaba escrita pero no enchufada.
+    if not remito.aprobado_para_despacho:
+        raise HTTPException(
+            status_code=409,
+            detail="DESPACHO_NO_APROBADO: el remito no está aprobado para despacho."
+        )
+
     remito.estado = "EN_CAMINO"
     remito.fecha_salida = datetime.now()
     db.commit()
