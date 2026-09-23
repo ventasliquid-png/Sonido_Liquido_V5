@@ -1,3 +1,18 @@
+# 2026-09-23 (Sesión 871 OF — Circuito PR, Etapa 0 y Etapa 1)
+- **Estado**: NOMINAL GOLD. **Hash D**: 8b52990c | **Hash B/prod**: 0ac2aee | **Hash P**: 6fe98f8
+- Etapa 0 (commit `a9c7477d`): guardas de cantidad y de despacho en el módulo Remitos.
+- Etapa 1 (commit `8b52990c`): migración de esquema completa del Circuito PR (cuatro cantidades
+  por renglón de remito, notas, huérfanos del Circuito 17, referencia causal entre pedidos),
+  aplicada a la base real de D con backup y verificación.
+- Detalle completo en `BITACORA_VIVA.md` Sesión 871 / `INFORMES_HISTORICOS/2026-09-23_S871_OF.md`.
+- **Nota de honestidad, no de esta sesión:** este archivo no se actualizaba desde el 2026-06-05 —
+  casi cuatro meses de sesiones reales (S823 en adelante, ver `BITACORA_VIVA.md` e
+  `INFORMES_HISTORICOS/`) no tienen entrada acá. El tracking real se mudó a `BITACORA_VIVA.md` +
+  `INFORMES_HISTORICOS/` en algún momento de ese período sin que se actualizara `OMEGA.md` para
+  quitar este archivo de la lista, o sin que ninguna sesión lo marcara. No reconstruyo el hueco
+  (sería inventar contenido) — lo dejo anotado para que Carlos decida si este archivo se
+  discontinúa formalmente o se retoma.
+
 # 2026-06-05 (Hotfix 822.1 OF — Pantalla negra Nuevo Pedido)
 - **Estado**: **NOMINAL GOLD**.
 - **Hash D**: 34a918fc | **Hash P**: 7ee67b3

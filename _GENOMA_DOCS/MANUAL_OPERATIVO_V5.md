@@ -1208,3 +1208,17 @@ que se cargaron** (antes salían reordenados por producto).
 se tocara esa fecha— la dejaba en blanco. Corregido: ahora se conserva salvo que se la cambie a
 propósito. Si notaste fechas de entrega comprometida que "desaparecían solas" en pedidos guardados
 antes de hoy (22/09), no fue un error de carga.
+
+## Sesión 871 (23/09) — dos avisos nuevos en Logística/Remitos
+
+**El remito manual (0015) ahora puede rechazar la carga.** Si se carga una cantidad mayor a la que
+todavía falta del pedido, o un producto que no está en el pedido, el sistema va a avisar y no va a
+dejar seguir — antes lo aceptaba en silencio y podía agregar un renglón inventado al pedido sin que
+nadie lo notara.
+
+**"Despachar" en Logística ahora puede fallar con un aviso.** Si un remito no está aprobado para
+despacho, al apretar Despachar va a aparecer un mensaje explicando por qué — antes el botón no hacía
+nada visible y no quedaba claro qué había pasado.
+
+Sin cambios en pantallas de pedidos, facturación o clientes esta sesión — el resto del trabajo fue de
+modelo de datos, sin superficie visible todavía (Circuito PR, ver `PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md`).

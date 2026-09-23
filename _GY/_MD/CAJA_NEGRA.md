@@ -1,4 +1,20 @@
-﻿Sesion actual: 870
+﻿Sesion actual: 871
+
+# CAJA NEGRA: OMEGA Lite - Circuito PR, Etapa 0 y Etapa 1 implementadas - S871
+
+Sesion 871 OF, sin FASE 0-bis de ALFA (arranco de un traspaso pegado en chat). Hash D al cierre: 8b52990c | Hash B: 0ac2aee (= prod/main, sin cambios) | Hash P: 6fe98f8 (sin cambios). Estado: NOMINAL (canario GOLD, WAL OK). Semaforo CS: AMARILLO (heredado, sin CS presente).
+- **Circuito PR/OC cerrado en diseno:** INFORME_IMPLEMENTACION_PR_S869_ANEXO_OC_S870.md (la OC, caso real F-2600), CONSULTA_NIKE_circuito_PR_2026-09-23.md (9 puntos, contestada por Nike con Sello de Oro el mismo dia en BIBLIOTECA_NIKE.md Modulo 2), PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md (9 etapas, mapeadas contra el orden de trabajo de CA).
+- **Etapa 0 (commit a9c7477d):** guardas CANTIDAD_EXCEDE_PEDIDO/RENGLON_AJENO_AL_PEDIDO en create_manual (antes un renglon ajeno se agregaba en silencio al pedido), DESPACHO_NO_APROBADO en despachar_remito (antes el gatekeeper financiero del modelo no se consultaba). Verificado 6/6 contra copia descartable.
+- **Etapa 1 (commit 8b52990c):** RemitoItem con cuatro cantidades (cantidad -> cantidad_remitida + declarada/recibida/facturada, alias de compatibilidad para no romper la API), RemitoNota, HuerfanoDestino (Circuito 17), Remito.pedido_id nullable + motivo, RemitoFlags.CIRCUITO_ROSA, Pedido.pedido_origen_id/motivo_relacion_oc. Migracion real scripts/migrate_041_circuito_pr_schema.py aplicada a pilot_v5x.db de D con MD5+backup antes/despues (a0ee4c2e...->3ebe4828...), conteos identicos (remitos 16, remitos_items 31, pedidos 47). Verificado 15/15 contra copia y otra vez contra la base real ya migrada.
+- **Trampa de SQLite encontrada y corregida:** ALTER TABLE RENAME TO reescribe en texto las FK de las tablas hijas hacia el nombre viejo -- PRAGMA legacy_alter_table=ON durante el rename lo evita. Puede afectar tambien a migrate_v8_hybrid_client.py (no verificado, no es de esta sesion).
+- **Contradiccion real en el dictamen de Nike, encontrada dos veces, corregida por Nike las dos:** primero el tipo de pedido_origen_id (UUID vs Integer, Pedido.id no usa GUID), despues su regla de nulabilidad (contradecia la Doctrina de Linaje de Identidad ya canonizada de Cliente.cliente_origen_id) -- resuelta en dialogo socratico: Cliente es linaje inmutable (nunca NULL), Pedido es relacion causal opcional (NULL = caso normal).
+- B y P sin tocar: decision explicita de Carlos, las 9 etapas se desarrollan enteras en D hasta estar completas y estables.
+- Ambos commits con PIN 1974, ambos en origin/main.
+- FASE 1D (cotejo de cierre, a mano -- sin tabla de pendientes al arranque porque no hubo ALFA): 2 commits desde el ultimo OMEGA (4fb0f750), ambos de esta sesion, ninguno sin fila en BV.
+- FASE 1B.3: P no accesible por red (esperado, no bloquea).
+- Carry-over de S870 sin resolver, esta sesion no los toco: confirmar que P tomo 0ac2aee, hostname de MT, mockup de Extracto.
+
+---
 
 # CAJA NEGRA: OMEGA Lite - Mision P cerrada, H1/H4 corregidos y desplegados, H3 diagnosticado - S870
 

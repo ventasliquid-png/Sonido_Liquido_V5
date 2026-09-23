@@ -2132,3 +2132,21 @@ Los dos confirmados en vivo contra copia aislada de `pilot_v5x.db` (backend/fron
 nunca la base viva): H1 abriendo el pedido #47 (Bit12 ON) en el navegador real, sin `PATCH
 /circuito-bipolar` en el log; H4 abriendo el #2 (`fecha_compromiso=2026-03-31`), guardando sin tocar la
 fecha, y la fecha sobreviviendo. D `a0b4bb30` → B `0ac2aee` → `prod/main`.
+
+## Sesión 871 (23/09) — Circuito PR, Etapa 0 y Etapa 1
+
+Migración de esquema completa en `backend/remitos/models.py`, `backend/remitos/constants.py` y
+`backend/pedidos/models.py` (detalle completo en `PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md`,
+`scripts/migrate_041_circuito_pr_schema.py`):
+
+- `RemitoItem.cantidad` renombrada a `cantidad_remitida` + `cantidad_declarada` (NOT NULL),
+  `cantidad_recibida`/`cantidad_facturada` (nullable). **Alias de compatibilidad:** `RemitoItem.cantidad`
+  sigue existiendo como `@property` — `RemitoItemResponse` (Pydantic `from_attributes`) sigue
+  serializando `cantidad` sin cambios, el frontend no necesitó tocarse.
+- `RemitoNota` y `HuerfanoDestino` (tablas nuevas), `Remito.pedido_id` ahora `nullable=True` +
+  `Remito.motivo`, `RemitoFlags.ES_LIBRE` renombrado a `CIRCUITO_ROSA` (mismo bit).
+- `Pedido.pedido_origen_id` (Integer, FK autorreferenciada, nullable) + `Pedido.motivo_relacion_oc`.
+- Guardas nuevas (Etapa 0): `create_manual` valida cantidad y renglón contra el pendiente del pedido;
+  `despachar_remito` exige `aprobado_para_despacho`.
+- Cualquier código nuevo que lea/escriba cantidades de remito debe usar `cantidad_remitida`
+  directamente, no el alias `cantidad` (que es solo para no romper serializaciones existentes).
