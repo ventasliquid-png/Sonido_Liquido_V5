@@ -711,80 +711,19 @@ class RemitosService:
             raise HTTPException(status_code=500, detail=f"Error interno en el procesamiento: {str(ex)}")
 
     @staticmethod
-    def _armar_remito_huerfano(db: Session, payload: schemas.ArmarRemitoPayload):
-        """Arma un PR sin pedido -- Circuito 17, Etapa 4-bis (migrate_042_huerfano_producto_id.py).
-
-        [DISENO_CIRCUITO_17_S870.md §6, decisión de Carlos 24/09] motivo obligatorio: sin pedido
-        del que colgar el movimiento, motivo es el único registro de por qué existe. Domicilio y
-        transporte también obligatorios en el payload -- no hay pedido del que heredarlos (a
-        diferencia de la rama con pedido, más abajo). Cada renglón se identifica por producto_id
-        (FK real, nunca texto libre -- ver nota de RemitoItem.producto_id en models.py), no por
-        pedido_item_id: no hay ningún pedido_item que pueda existir acá.
-        """
-        if not payload.motivo:
-            raise ValueError("MOTIVO_REQUERIDO: un remito huérfano (sin pedido) necesita un motivo.")
-        if not payload.domicilio_entrega_id or not payload.transporte_id:
-            raise ValueError(
-                "Un remito huérfano necesita domicilio de entrega y transporte explícitos -- "
-                "no hay pedido del que heredarlos."
-            )
-        if not payload.items:
-            raise ValueError("RENGLON_CERO: El remito debe tener al menos un ítem.")
-
-        remito = models.Remito(
-            pedido_id=None,
-            motivo=payload.motivo,
-            domicilio_entrega_id=payload.domicilio_entrega_id,
-            transporte_id=payload.transporte_id,
-            estado="BORRADOR",
-            aprobado_para_despacho=False,
-            numero_legal=None,
-            flags_estado=0,
-        )
-        db.add(remito)
-        db.flush()
-
-        for item_payload in payload.items:
-            if not item_payload.producto_id:
-                db.rollback()
-                raise HTTPException(
-                    status_code=409,
-                    detail="PRODUCTO_REQUERIDO: cada renglón de un huérfano necesita producto_id -- no hay pedido del que heredar el ítem.",
-                )
-            producto = db.query(Producto).filter(Producto.id == item_payload.producto_id).first()
-            if not producto:
-                db.rollback()
-                raise HTTPException(
-                    status_code=409,
-                    detail=f"PRODUCTO_INEXISTENTE: no existe el producto #{item_payload.producto_id}.",
-                )
-            db.add(models.RemitoItem(
-                remito_id=remito.id,
-                producto_id=producto.id,
-                # [Etapa 4-bis] Un huérfano no tiene "pendiente" del que sacar una foto -- no
-                # hay pedido. declarada = remitida acá, igual que en create_manual/ingesta.
-                cantidad_declarada=item_payload.cantidad,
-                cantidad_remitida=item_payload.cantidad,
-            ))
-
-        db.commit()
-        db.refresh(remito)
-        return remito
-
-    @staticmethod
     def armar_remito(db: Session, payload: schemas.ArmarRemitoPayload):
-        """Arma un PR -- primera pantalla de la Etapa 4 (D3).
+        """Arma un PR desde un pedido existente -- primera pantalla de la Etapa 4 (D3).
 
         [PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §6] A diferencia de create_manual
         (texto libre, matchea o rechaza), acá los renglones se ELIGEN de la lista del pedido por
         pedido_item_id -- no hay nada que matchear ni ningún PedidoItem que se pueda crear.
 
-        [Etapa 4-bis] pedido_id ausente delega en _armar_remito_huerfano (Circuito 17) --
-        habilitado por migrate_042_huerfano_producto_id.py, decisión de Carlos 24/09.
+        NO cubre la rama huérfano (Circuito 17, pedido_id None): RemitoItem.pedido_item_id sigue
+        siendo nullable=False hoy, y un huérfano no tiene pedido del que sacar un pedido_item_id.
+        Habilitarlo requiere una migración nueva (pedido_item_id nullable + una forma de decir
+        "qué producto y cuánto" sin pedido detrás) -- es un cambio de esquema, no de código, y
+        queda fuera de esta etapa hasta que Carlos y/o Nike lo resuelvan.
         """
-        if payload.pedido_id is None:
-            return RemitosService._armar_remito_huerfano(db, payload)
-
         pedido = db.query(Pedido).filter(Pedido.id == payload.pedido_id).first()
         if not pedido:
             raise HTTPException(status_code=404, detail="Pedido no encontrado")
