@@ -985,11 +985,26 @@ class RemitosService:
                     db.delete(r_item)
 
             # B. Actualizar o Crear ítems
+            # [Card #125, guarda pendiente desde la auditoría S868, cerrada hoy -- mismo patrón
+            # que create_manual/create_from_ingestion desde la Etapa 0] Ni la rama de edición ni
+            # la de alta tenían guarda contra el pendiente del pedido.
+            from backend.productos.models import Producto
             for p_item_data in payload.items:
                 if p_item_data.id:
                     # Actualizar existente
                     r_item = next((i for i in remito.items if i.id == p_item_data.id), None)
                     if r_item:
+                        pi = r_item.pedido_item
+                        # Pendiente sin contar la contribución actual de este mismo renglón --
+                        # si no se resta, un remito editándose a sí mismo siempre "excede".
+                        pendiente_sin_este = pi.cantidad - (pi.cantidad_entregada - r_item.cantidad_remitida)
+                        if p_item_data.cantidad > pendiente_sin_este + 0.001:
+                            raise ValueError(
+                                f"CANTIDAD_EXCEDE_PEDIDO: '{p_item_data.descripcion or pi.producto.nombre}' "
+                                f"pasaría a {p_item_data.cantidad}, pero el Pedido #{pi.pedido_id} solo "
+                                f"tiene {pendiente_sin_este} pendiente (sin contar este mismo renglón). "
+                                f"Actualice el Pedido antes de continuar."
+                            )
                         # [Etapa 1] Se edita lo remitido, no lo declarado -- la foto del
                         # armado original queda como estaba (todavía no es un dato relevante
                         # antes de la Etapa 4, pero no hay motivo para tocarla acá).
@@ -1000,27 +1015,43 @@ class RemitosService:
                             db.add(r_item.pedido_item)
                         db.add(r_item)
                 else:
-                    # Crear nuevo ítem (Ghost Style)
-                    from backend.productos.models import Producto
-                    prod_v = db.query(Producto).filter(Producto.nombre.ilike("%VARIOS%")).first()
-                    
-                    new_p_item = PedidoItem(
-                        pedido_id=remito.pedido_id,
-                        producto_id=prod_v.id if prod_v else 1,
-                        cantidad=p_item_data.cantidad,
-                        nota=p_item_data.descripcion or "Agregado en Edición",
-                        precio_unitario=0.0
-                    )
-                    db.add(new_p_item)
-                    db.flush()
-
+                    # Ítem nuevo en un remito existente -- nunca crea un PedidoItem fantasma
+                    # (doctrina de la Etapa 0: el remito solo puede crear ítems nuevos en un
+                    # pedido creado desde cero, y acá el pedido ya existe). Matchea contra los
+                    # renglones que el pedido ya tiene, por pedido_item_id si vino, si no por
+                    # nombre de producto (mismo matcher que create_manual).
+                    pedido_items = remito.pedido.items
+                    target_pi = None
+                    if p_item_data.pedido_item_id:
+                        target_pi = next((pi for pi in pedido_items if pi.id == p_item_data.pedido_item_id), None)
+                    if not target_pi and p_item_data.descripcion:
+                        target_pi = next(
+                            (pi for pi in pedido_items if pi.producto and pi.producto.nombre == p_item_data.descripcion),
+                            None
+                        )
+                    if not target_pi:
+                        raise ValueError(
+                            f"RENGLON_AJENO_AL_PEDIDO: '{p_item_data.descripcion or '(sin descripción)'}' "
+                            f"no está cargado en el Pedido #{remito.pedido_id}. Actualice el Pedido antes "
+                            f"de continuar."
+                        )
+                    pendiente = target_pi.cantidad - target_pi.cantidad_entregada
+                    if p_item_data.cantidad > pendiente + 0.001:
+                        raise ValueError(
+                            f"CANTIDAD_EXCEDE_PEDIDO: '{p_item_data.descripcion}' trae {p_item_data.cantidad}, "
+                            f"pero el Pedido #{remito.pedido_id} solo tiene {pendiente} pendiente. "
+                            f"Actualice el Pedido antes de continuar."
+                        )
                     new_r_item = models.RemitoItem(
                         remito_id=remito.id,
-                        pedido_item_id=new_p_item.id,
+                        pedido_item_id=target_pi.id,
                         cantidad_declarada=p_item_data.cantidad,
                         cantidad_remitida=p_item_data.cantidad
                     )
                     db.add(new_r_item)
+                    if p_item_data.descripcion:
+                        target_pi.nota = p_item_data.descripcion
+                        db.add(target_pi)
 
         # 4. Actualizar campos básicos
         # [S868, regla de Carlos] cae/vto_cae no se editan: un CAE tipeado en un remito es un CAE
