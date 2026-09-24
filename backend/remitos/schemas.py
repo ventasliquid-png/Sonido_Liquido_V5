@@ -81,8 +81,10 @@ class DespacharPayload(BaseModel):
 
 class RemitoResponse(RemitoBase):
     id: UUID
-    # [Etapa 4] Optional desde acá -- Remito.pedido_id es nullable desde la Etapa 1 (huérfanos,
-    # Circuito 17); sin este cambio, serializar un huérfano rompía la validación de Pydantic.
+    # [Etapa 4] Optional acá aunque Remito.pedido_id vuelva a ser NOT NULL en el modelo
+    # (migrate_043_revertir_huerfano_pedido_id.py) -- bug real e independiente detectado en el
+    # prompt de Etapa 4 (el modelo ya podía ser None en ese momento y el schema no lo admitía),
+    # más seguro dejarlo Optional en la respuesta que reintroducirlo como int obligatorio.
     pedido_id: Optional[int] = None
     fecha_creacion: datetime
     items: List[RemitoItemResponse] = []
@@ -153,8 +155,9 @@ class ArmarRemitoItemPayload(BaseModel):
 
 class ArmarRemitoPayload(BaseModel):
     """[Etapa 4, PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §6] Pantalla de armado (D3,
-    primera pantalla). pedido_id obligatorio -- la rama huérfano (pedido_id None, Circuito 17)
-    queda fuera de esta etapa, ver nota en RemitosService.armar_remito."""
+    primera pantalla). pedido_id siempre obligatorio -- un movimiento sin pedido comercial
+    (feria, muestra, merma) se resuelve armando un Pedido con PedidoFlags.ES_NO_COMERCIAL
+    primero (DISENO_PEDIDO_NO_COMERCIAL_S873_2026-09-24.md), no con una rama especial acá."""
     pedido_id: int
     domicilio_entrega_id: Optional[UUID] = None
     transporte_id: Optional[UUID] = None

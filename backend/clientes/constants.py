@@ -38,7 +38,13 @@ class ClientFlags:
     # Bit 7 (128): IS_PROSPECT (Aspirante sin movimientos)
     IS_PROSPECT = 128
 
-    
+    # Bit 8 (256): IS_TECHNICAL_ACCOUNT -- cuenta técnica de doble uso (Descarte/Mermas/Muestras),
+    # no un cliente comercial real. [DISENO_PEDIDO_NO_COMERCIAL_S873_2026-09-24.md, dictamen Nike]
+    # Un Pedido con PedidoFlags.ES_NO_COMERCIAL apunta a un cliente real (doble uso, ej. Coalix) o
+    # a una de estas cuentas técnicas -- primer bit libre después de IS_PROSPECT, canonizado hoy.
+    IS_TECHNICAL_ACCOUNT = 256
+
+
     # --- [NIVELES COMBINADOS] ---
     LEVEL_NEW = 15    # 1+2+4+8 (Sin actividad, Validado V14 - habilitado para hard_delete)
     LEVEL_HISTORY = 13 # 1+4+8 (Con actividad, Validado V14 - bloqueado para hard_delete)

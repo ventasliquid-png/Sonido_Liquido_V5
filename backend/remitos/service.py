@@ -49,13 +49,14 @@ class RemitosService:
 
     @staticmethod
     def _siguiente_numero_17(db: Session) -> str:
-        """Próximo número del talonario 17 (rosa impreso y huérfanos, Circuito 17).
+        """Próximo número del talonario 17 (rosa y no comercial, Circuito 17).
 
         [Etapa 1, DISENO_CIRCUITO_17_S870.md §3-4] Calcada de _siguiente_numero_0015 -- mismo
         lock de escritura hasta el commit del que llama, misma tolerancia a números mal
-        formados. A1 confirmada por Carlos: una sola serie para rosa y huérfanos juntos, sin
-        segunda secuencia -- pedido_id (presente o no) ya distingue un caso del otro. Talonario
-        nuevo, sin legado que preservar: arranca en 1.
+        formados. A1 confirmada por Carlos: una sola serie para rosa y no comercial juntos, sin
+        segunda secuencia -- el bit (CIRCUITO_ROSA en el remito, o ES_NO_COMERCIAL en el pedido)
+        distingue un caso del otro, ver get_remito_pdf. Talonario nuevo, sin legado que
+        preservar: arranca en 1.
         """
         db.execute(text("UPDATE remitos SET numero_legal = numero_legal WHERE 0"))
         numeros = []
@@ -718,11 +719,12 @@ class RemitosService:
         (texto libre, matchea o rechaza), acá los renglones se ELIGEN de la lista del pedido por
         pedido_item_id -- no hay nada que matchear ni ningún PedidoItem que se pueda crear.
 
-        NO cubre la rama huérfano (Circuito 17, pedido_id None): RemitoItem.pedido_item_id sigue
-        siendo nullable=False hoy, y un huérfano no tiene pedido del que sacar un pedido_item_id.
-        Habilitarlo requiere una migración nueva (pedido_item_id nullable + una forma de decir
-        "qué producto y cuánto" sin pedido detrás) -- es un cambio de esquema, no de código, y
-        queda fuera de esta etapa hasta que Carlos y/o Nike lo resuelvan.
+        No hay rama especial para un movimiento sin pedido comercial (feria, muestra, merma):
+        se resuelve armando primero un Pedido con PedidoFlags.ES_NO_COMERCIAL contra un cliente
+        real o técnico, y esta misma función arma el PR después, sin cambios -- decisión de
+        Carlos + Nike, DISENO_PEDIDO_NO_COMERCIAL_S873_2026-09-24.md. (Se probó brevemente un
+        diseño alternativo, "Remito sin Pedido" con pedido_item_id/producto_id nullable en
+        RemitoItem -- revertido el mismo día, ver migrate_043_revertir_huerfano_pedido_id.py.)
         """
         pedido = db.query(Pedido).filter(Pedido.id == payload.pedido_id).first()
         if not pedido:

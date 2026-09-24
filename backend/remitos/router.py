@@ -133,9 +133,14 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
         if not remito.numero_legal:
             from backend.remitos.service import RemitosService
             from backend.remitos.constants import RemitoFlags
+            from backend.pedidos.constants import PedidoFlags
             es_rosa = bool((remito.flags_estado or 0) & int(RemitoFlags.CIRCUITO_ROSA))
+            # [DISENO_PEDIDO_NO_COMERCIAL_S873_2026-09-24.md] "Una sola serie para rosa y no
+            # comerciales juntos" -- un Pedido con ES_NO_COMERCIAL numera por el 17 igual que un
+            # rosa, sea cual sea el cliente (real o técnico) que tenga detrás.
+            es_no_comercial = bool(remito.pedido and (remito.pedido.flags_estado or 0) & int(PedidoFlags.ES_NO_COMERCIAL))
             remito.numero_legal = (
-                RemitosService._siguiente_numero_17(db) if es_rosa
+                RemitosService._siguiente_numero_17(db) if (es_rosa or es_no_comercial)
                 else RemitosService._siguiente_numero_0015(db)
             )
             db.add(remito)
@@ -363,8 +368,8 @@ def create_manual_remito(payload: schemas.ManualRemitoPayload, db: Session = Dep
 def armar_remito(payload: schemas.ArmarRemitoPayload, db: Session = Depends(get_db)):
     """[Etapa 4, PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §6] Arma un PR desde un pedido
     existente -- pantalla de armado (D3, primera pantalla). Renglones elegidos por
-    pedido_item_id, nunca texto libre. No cubre huérfanos (Circuito 17): ver docstring de
-    RemitosService.armar_remito.
+    pedido_item_id, nunca texto libre. Un movimiento sin pedido comercial se arma igual, contra
+    un Pedido con PedidoFlags.ES_NO_COMERCIAL -- ver docstring de RemitosService.armar_remito.
     """
     try:
         from backend.remitos.service import RemitosService
