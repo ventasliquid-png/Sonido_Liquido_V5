@@ -74,6 +74,11 @@ class RemitoUpdate(BaseModel):
     valor_declarado: Optional[float] = None
     items: Optional[List[RemitoItemUpdate]] = None
 
+class DespacharPayload(BaseModel):
+    """[Etapa 3] Los bultos se fijan al despachar -- opcional: si ya venían de la Etapa 4
+    (armado) o de una edición previa, no hace falta volver a mandarlos."""
+    bultos: Optional[int] = None
+
 class RemitoResponse(RemitoBase):
     id: UUID
     pedido_id: int

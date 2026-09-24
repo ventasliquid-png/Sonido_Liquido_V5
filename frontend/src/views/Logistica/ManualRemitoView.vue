@@ -746,14 +746,19 @@ const emitirRemito = async () => {
         const payload = { ...form, items: itemsPayload };
         const res = await api.post('/remitos/manual', payload);
         const remito = res.data;
-        ultimoNumeroLegal.value = remito.numero_legal;
-        notificationStore.add(`Remito ${remito.numero_legal} emitido con éxito.`, 'success');
-        
-        // [GY-FIX] Robust PDF URL resolution
-        // Use relative path to leverage Vite Proxy which we know is working for other API calls
-        const pdfUrl = `/remitos/${remito.id}/pdf`;
-        window.open(pdfUrl, '_blank');
-        
+
+        // [Etapa 3, PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §5] El número ya no se asigna
+        // al crear -- lo asigna /pdf al "imprimir" (aditivo, mismo que create_manual dejó de
+        // numerar eager). remito.numero_legal viene None acá; hay que pedir el PDF primero
+        // (dispara la numeración del lado del backend) y recién ahí mostrar el número real.
+        const pdfResponse = await api.get(`/remitos/${remito.id}/pdf`, { responseType: 'blob' });
+        const pdfBlobUrl = window.URL.createObjectURL(new Blob([pdfResponse.data], { type: 'application/pdf' }));
+        window.open(pdfBlobUrl, '_blank');
+
+        const { data: remitoActualizado } = await api.get(`/remitos/${remito.id}`);
+        ultimoNumeroLegal.value = remitoActualizado.numero_legal;
+        notificationStore.add(`Remito ${remitoActualizado.numero_legal} emitido con éxito.`, 'success');
+
         // Ask if want to reset? For now just reset
         resetForm();
     } catch (e) {

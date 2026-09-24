@@ -775,9 +775,13 @@ class RemitosService:
              if not cliente:
                   raise ValueError(f"No se encontró/creó cliente.")
 
-        # 2. CALCULATE NEXT 0015- NUMBER (con lock hasta el commit del final -- T7, S868)
-        numero_legal = RemitosService._siguiente_numero_0015(db)
-
+        # [Etapa 3, PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §5] El número se asigna al
+        # imprimir, no al crear -- INFORME_IMPLEMENTACION_PR_S869.md §1.3: "con eso el '0017
+        # impreso' es imposible por construcción, no por convención". Antes se numeraba acá,
+        # eager, en la creación -- eso hacía que el remito naciera ya "impreso" sin haber pasado
+        # por get_remito_pdf, y volvía inalcanzable la guarda de despachar-sin-imprimir. Ahora
+        # queda None hasta que se imprima (mismo lock de _siguiente_numero_0015, en ese momento).
+        numero_legal = None
 
         # 3. CREATE GHOST PEDIDO (Solo si no existe)
         if not nuevo_pedido:

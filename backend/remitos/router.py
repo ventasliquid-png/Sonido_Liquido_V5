@@ -81,9 +81,9 @@ def get_remitos_por_pedido(pedido_id: int, db: Session = Depends(get_db)):
     return db.query(models.Remito).filter(models.Remito.pedido_id == pedido_id).all()
 
 @router.post("/{remito_id}/despachar", response_model=schemas.RemitoResponse)
-def despachar_remito(remito_id: str, db: Session = Depends(get_db)):
+def despachar_remito(remito_id: str, payload: schemas.DespacharPayload = schemas.DespacharPayload(), db: Session = Depends(get_db)):
     """
-    Cambia el estado del remito a EN_CAMINO y marca la fecha de salida.
+    Cambia el estado del remito a EN_CAMINO, marca la fecha de salida y fija los bultos.
     """
     remito = db.query(models.Remito).filter(models.Remito.id == remito_id).first()
     if not remito:
@@ -98,8 +98,20 @@ def despachar_remito(remito_id: str, db: Session = Depends(get_db)):
             detail="DESPACHO_NO_APROBADO: el remito no está aprobado para despacho."
         )
 
+    # [Etapa 3, PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §5] "Despachar" exige que ya esté
+    # impreso -- no se puede despachar algo que nunca se imprimió. Imprimir y despachar quedan
+    # como dos acciones separadas y secuenciales (corrección de Carlos: Tomy imprime con
+    # anticipación, el transporte puede pasar días después).
+    if not remito.numero_legal:
+        raise HTTPException(
+            status_code=409,
+            detail="REMITO_SIN_IMPRIMIR: el remito todavía no tiene número asignado -- imprimalo antes de despachar."
+        )
+
     remito.estado = "EN_CAMINO"
     remito.fecha_salida = datetime.now()
+    if payload.bultos is not None:
+        remito.bultos = payload.bultos
     db.commit()
     db.refresh(remito)
     return remito
@@ -113,7 +125,23 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
         remito = db.query(models.Remito).filter(models.Remito.id == remito_id).first()
         if not remito:
             raise HTTPException(status_code=404, detail="Remito no encontrado")
-        
+
+        # [Etapa 3, PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §5] "Imprimir" es la acción que
+        # numera -- no cambia el estado, el remito puede seguir en BORRADOR con número asignado,
+        # esperando a que el transporte pase. Idempotente: si ya tiene número (reimpresión), no
+        # se vuelve a numerar.
+        if not remito.numero_legal:
+            from backend.remitos.service import RemitosService
+            from backend.remitos.constants import RemitoFlags
+            es_rosa = bool((remito.flags_estado or 0) & int(RemitoFlags.CIRCUITO_ROSA))
+            remito.numero_legal = (
+                RemitosService._siguiente_numero_17(db) if es_rosa
+                else RemitosService._siguiente_numero_0015(db)
+            )
+            db.add(remito)
+            db.commit()
+            db.refresh(remito)
+
         # Preparar datos para el motor
         if not remito.pedido:
             raise HTTPException(

@@ -124,6 +124,9 @@
                       <span v-if="!remito.aprobado_para_despacho" class="ml-2 text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded border border-red-500/30">
                          <i class="fas fa-lock"></i> Bloqueado
                       </span>
+                      <span v-else-if="!remito.numero_legal" class="ml-2 text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded border border-amber-500/30">
+                         <i class="fas fa-file-pdf"></i> Sin numerar — generá el PDF Legal antes de despachar
+                      </span>
                    </h3>
                    <div class="flex gap-4 text-sm text-slate-400 mt-1">
                       <p><i class="fas fa-map-marker-alt"></i> {{ getAddressLabel(remito.domicilio_entrega_id) }}</p>
@@ -139,7 +142,7 @@
                    </span>
                 </div>
                 <div class="flex flex-col items-end gap-1">
-                    <div v-if="remito.estado === 'BORRADOR' && remito.aprobado_para_despacho">
+                    <div v-if="remito.estado === 'BORRADOR' && remito.aprobado_para_despacho && remito.numero_legal">
                        <button @click="tryDespachar(remito)" class="text-xs bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded transition w-full">
                           <i class="fas fa-paper-plane mr-1"></i> Despachar
                        </button>

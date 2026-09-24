@@ -33,9 +33,10 @@ export default {
     /**
      * Despacha un remito (Cambio de estado y stock físico)
      * @param {String} remitoId UUID
+     * @param {Number|null} bultos Opcional -- [Etapa 3] si no se manda, conserva el valor que ya tenía
      */
-    despacharRemito(remitoId) {
-        return api.post(`/remitos/${remitoId}/despachar`);
+    despacharRemito(remitoId, bultos = null) {
+        return api.post(`/remitos/${remitoId}/despachar`, { bultos });
     },
 
     /**
