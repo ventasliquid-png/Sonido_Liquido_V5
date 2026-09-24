@@ -121,8 +121,19 @@ class RemitoItem(Base):
     
     remito_id = Column(GUID(), ForeignKey("remitos.id"), nullable=False)
     
-    # Trazabilidad Absoluta: Qué renglón del pedido estoy entregando
-    pedido_item_id = Column(Integer, ForeignKey("pedidos_items.id"), nullable=False)
+    # Trazabilidad Absoluta: Qué renglón del pedido estoy entregando.
+    # [Etapa 4-bis, migrate_042_huerfano_producto_id.py] nullable desde acá -- un huérfano
+    # (Circuito 17, Remito.pedido_id None) no tiene pedido del que sacar un pedido_item_id.
+    pedido_item_id = Column(Integer, ForeignKey("pedidos_items.id"), nullable=True)
+
+    # [Etapa 4-bis, decisión de Carlos 24/09] Solo tiene sentido cuando pedido_item_id es NULL
+    # (huérfano). FK a un producto real del catálogo -- nunca texto libre, para no reabrir el
+    # agujero "Ghost Style" que la guarda de Card #125 ya cerró en update_remito (addendum
+    # Etapa 0): un huérfano sigue siendo mercadería real (HuerfanoDestino rastrea cantidades que
+    # después reingresan o se comercializan), tiene que apuntar a un producto del catálogo.
+    # Regla de aplicación (no CHECK de base): pedido_item_id XOR producto_id, nunca los dos,
+    # nunca ninguno -- validada en RemitosService.armar_remito.
+    producto_id = Column(Integer, ForeignKey("productos.id"), nullable=True)
 
     # [Etapa 1 -- INFORME_IMPLEMENTACION_PR_S869.md §4.1, dictamen Nike] Las cuatro cantidades
     # del PR. "cantidad_remitida" es la columna "cantidad" de siempre, renombrada -- admite
@@ -138,6 +149,7 @@ class RemitoItem(Base):
     # Relaciones
     remito = relationship("Remito", back_populates="items")
     pedido_item = relationship("PedidoItem", back_populates="remitos_items")
+    producto = relationship("Producto")
     notas = relationship("RemitoNota", back_populates="remito_item")
 
     @property
@@ -152,8 +164,12 @@ class RemitoItem(Base):
 
     @property
     def descripcion_display(self):
-        if not self.pedido_item: return "Ítem"
-        return self.pedido_item.producto.nombre if self.pedido_item.producto else (self.pedido_item.nota or "Ítem")
+        if self.pedido_item:
+            return self.pedido_item.producto.nombre if self.pedido_item.producto else (self.pedido_item.nota or "Ítem")
+        # [Etapa 4-bis] Huérfano: no hay pedido_item, el producto se lee directo de producto_id.
+        if self.producto:
+            return self.producto.nombre
+        return "Ítem"
 
     def __repr__(self):
         return f"<RemitoItem(cant_remitida={self.cantidad_remitida})>"

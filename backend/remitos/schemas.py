@@ -21,11 +21,14 @@ class PedidoItemMinimal(BaseModel):
 class RemitoItemResponse(RemitoItemBase):
     id: int
     remito_id: UUID
-    pedido_item_id: int
+    # [Etapa 4-bis] Optional desde acá -- un renglón huérfano no tiene pedido_item_id (tiene
+    # producto_id en su lugar). Ver migrate_042_huerfano_producto_id.py.
+    pedido_item_id: Optional[int] = None
+    producto_id: Optional[int] = None
     cantidad: float
     # Nested info for the UI (Populated from models.py properties)
     descripcion_display: Optional[str] = "Ítem"
-    
+
     class Config:
         from_attributes = True
 
@@ -147,15 +150,26 @@ class ManualRemitoItem(BaseModel):
 
 class ArmarRemitoItemPayload(BaseModel):
     """[Etapa 4] Elegido de la lista del pedido -- nunca texto libre, a diferencia del 0015
-    manual (ManualRemitoItem). pedido_item_id es la única forma de identificar el renglón."""
-    pedido_item_id: int
+    manual (ManualRemitoItem). pedido_item_id identifica el renglón cuando hay pedido.
+
+    [Etapa 4-bis] producto_id identifica el renglón cuando NO hay pedido (huérfano, Circuito
+    17) -- ahí no existe ningún pedido_item_id posible. Exactamente uno de los dos debe venir
+    (XOR), nunca los dos, nunca ninguno -- validado en RemitosService.armar_remito según si
+    ArmarRemitoPayload.pedido_id vino o no."""
+    pedido_item_id: Optional[int] = None
+    producto_id: Optional[int] = None
     cantidad: float
 
 class ArmarRemitoPayload(BaseModel):
     """[Etapa 4, PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §6] Pantalla de armado (D3,
-    primera pantalla). pedido_id obligatorio -- la rama huérfano (pedido_id None, Circuito 17)
-    queda fuera de esta etapa, ver nota en RemitosService.armar_remito."""
-    pedido_id: int
+    primera pantalla).
+
+    [Etapa 4-bis] pedido_id ahora Optional: ausente = huérfano (Circuito 17, sin pedido). En
+    ese caso motivo es obligatorio (Remito.motivo -- "por qué existe un movimiento sin
+    pedido") y domicilio_entrega_id/transporte_id también, porque no hay pedido del que
+    heredarlos -- ver RemitosService.armar_remito."""
+    pedido_id: Optional[int] = None
+    motivo: Optional[str] = None
     domicilio_entrega_id: Optional[UUID] = None
     transporte_id: Optional[UUID] = None
     items: List[ArmarRemitoItemPayload]

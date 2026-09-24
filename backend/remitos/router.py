@@ -134,8 +134,12 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
             from backend.remitos.service import RemitosService
             from backend.remitos.constants import RemitoFlags
             es_rosa = bool((remito.flags_estado or 0) & int(RemitoFlags.CIRCUITO_ROSA))
+            # [Etapa 4-bis, DISENO_CIRCUITO_17_S870.md §3-4] "Una sola serie para rosa y
+            # huérfanos juntos" -- un huérfano (pedido_id None) numera por el 17 aunque no
+            # tenga el bit rosa prendido, igual que un rosa con pedido.
+            usa_serie_17 = es_rosa or remito.pedido_id is None
             remito.numero_legal = (
-                RemitosService._siguiente_numero_17(db) if es_rosa
+                RemitosService._siguiente_numero_17(db) if usa_serie_17
                 else RemitosService._siguiente_numero_0015(db)
             )
             db.add(remito)
@@ -143,34 +147,52 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
             db.refresh(remito)
 
         # Preparar datos para el motor
-        if not remito.pedido:
-            raise HTTPException(
-                status_code=400, 
-                detail="Remito sin pedido vinculado"
-            )
+        # [Etapa 4-bis] Un huérfano (pedido_id None) no tiene pedido ni cliente -- rama propia,
+        # sin la validación de abajo que los exige para un PR comercial.
+        if remito.pedido_id is not None:
+            if not remito.pedido:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Remito sin pedido vinculado"
+                )
 
-        cliente = remito.pedido.cliente
+            cliente = remito.pedido.cliente
 
-        if not cliente:
-            raise HTTPException(
-                status_code=400, 
-                detail="Pedido sin cliente vinculado"
-            )
+            if not cliente:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Pedido sin cliente vinculado"
+                )
+            razon_social = cliente.razon_social
+            cuit = cliente.cuit
+            referencia_str = f"Pedido #{remito.pedido_id} (OC: {remito.pedido.oc or 'S/D'})"
+            observaciones = remito.pedido.nota or ""
+        else:
+            cliente = None
+            razon_social = f"SIN CLIENTE (HUÉRFANO) -- {remito.motivo or 'S/D'}"
+            cuit = ""
+            referencia_str = f"Movimiento sin pedido -- {remito.motivo or 'S/D'}"
+            observaciones = remito.motivo or ""
+
         items = []
         for r_item in remito.items:
             p_item = r_item.pedido_item
-            
+
             # [FIX] Defensivo por si el p_item fue borrado (FK suelta) o no tiene producto
             codigo = ""
             desc = "ÍTEM DESCONOCIDO"
-            
+
             if p_item:
                 if p_item.producto:
                     codigo = p_item.producto.codigo_visual or ""
                     desc = p_item.producto.nombre or p_item.nota or "ÍTEM"
                 else:
                     desc = p_item.nota or "ÍTEM MANUAL"
-                    
+            elif r_item.producto:
+                # [Etapa 4-bis] Huérfano: no hay pedido_item, el producto sale de producto_id.
+                codigo = r_item.producto.codigo_visual or ""
+                desc = r_item.producto.nombre or "ÍTEM"
+
             items.append({
                 "codigo": codigo,
                 "descripcion": desc,
@@ -195,12 +217,12 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
         # entre en el talonario 0015 preimpreso -- el campo REF ya tenía posición y tamaño de
         # fuente calculados de antes, pero vale un chequeo de impresión real antes de confiar en
         # que el texto no se superpone a nada del papel preimpreso.
-        referencia_str = f"Pedido #{remito.pedido_id} (OC: {remito.pedido.oc or 'S/D'})"
-
+        # [Etapa 4-bis] razon_social/cuit/referencia_str/observaciones ya vienen resueltos arriba
+        # (rama pedido vs. rama huérfano).
         cliente_data = {
-            "razon_social": cliente.razon_social,
-            "cuit": cliente.cuit,
-            "domicilio_fiscal": remito.domicilio_entrega.resumen if remito.domicilio_entrega else cliente.domicilio_fiscal_resumen or "SIN DOMICILIO FISCAL",
+            "razon_social": razon_social,
+            "cuit": cuit,
+            "domicilio_fiscal": remito.domicilio_entrega.resumen if remito.domicilio_entrega else (cliente.domicilio_fiscal_resumen if cliente else None) or "SIN DOMICILIO FISCAL",
             "condicion_iva": "RESPONSABLE INSCRIPTO", # Default for now
             "referencia": referencia_str,
             "factura_vinculada": factura_vinculada_str,
@@ -209,7 +231,7 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
             "vto_cae": vto_cae_val.strftime("%d/%m/%Y") if vto_cae_val else None,
             "bultos": getattr(remito, 'bultos', 1),
             "valor_declarado": getattr(remito, 'valor_declarado', 0.0),
-            "observaciones": remito.pedido.nota or ""
+            "observaciones": observaciones
         }
         
         from .remito_engine import generar_remito_pdf
