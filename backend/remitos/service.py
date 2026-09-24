@@ -711,6 +711,94 @@ class RemitosService:
             raise HTTPException(status_code=500, detail=f"Error interno en el procesamiento: {str(ex)}")
 
     @staticmethod
+    def armar_remito(db: Session, payload: schemas.ArmarRemitoPayload):
+        """Arma un PR desde un pedido existente -- primera pantalla de la Etapa 4 (D3).
+
+        [PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §6] A diferencia de create_manual
+        (texto libre, matchea o rechaza), acá los renglones se ELIGEN de la lista del pedido por
+        pedido_item_id -- no hay nada que matchear ni ningún PedidoItem que se pueda crear.
+
+        NO cubre la rama huérfano (Circuito 17, pedido_id None): RemitoItem.pedido_item_id sigue
+        siendo nullable=False hoy, y un huérfano no tiene pedido del que sacar un pedido_item_id.
+        Habilitarlo requiere una migración nueva (pedido_item_id nullable + una forma de decir
+        "qué producto y cuánto" sin pedido detrás) -- es un cambio de esquema, no de código, y
+        queda fuera de esta etapa hasta que Carlos y/o Nike lo resuelvan.
+        """
+        pedido = db.query(Pedido).filter(Pedido.id == payload.pedido_id).first()
+        if not pedido:
+            raise HTTPException(status_code=404, detail="Pedido no encontrado")
+
+        if not payload.items:
+            raise ValueError("RENGLON_CERO: El remito debe tener al menos un ítem.")
+
+        domicilio_entrega_id = payload.domicilio_entrega_id or pedido.domicilio_entrega_id
+        transporte_id = payload.transporte_id or pedido.transporte_id
+        if not domicilio_entrega_id or not transporte_id:
+            raise ValueError("No se pudo determinar un domicilio de entrega o un transporte válido para el remito.")
+
+        # [Etapa 4, punto 2] Congelamiento de color: se lee el Bit 12 (NO_FISCAL_FORCE, "Circuito
+        # Negro"/Lista 2 -- lo que la doctrina llama Rosa) del pedido AHORA, una sola vez, y se
+        # graba en el propio flags_estado del PR. Nunca se vuelve a leer del pedido después de
+        # este momento, aunque el pedido cambie de color más tarde (permutación Blanco↔Rosa,
+        # todavía sin diseñar -- DISENO_MODULO_REMITO_S868.md §4.2).
+        from backend.pedidos.constants import PedidoFlags
+        es_rosa = bool((pedido.flags_estado or 0) & int(PedidoFlags.NO_FISCAL_FORCE))
+        flags_remito = int(RemitoFlags.CIRCUITO_ROSA) if es_rosa else 0
+
+        remito = models.Remito(
+            pedido_id=pedido.id,
+            domicilio_entrega_id=domicilio_entrega_id,
+            transporte_id=transporte_id,
+            estado="BORRADOR",
+            # [Modelo, "GATEKEEPER FINANCIERO"] "Hereda del Pedido o se setea manual" -- el campo
+            # equivalente en Pedido es liberado_despacho.
+            aprobado_para_despacho=pedido.liberado_despacho,
+            # [Etapa 3] numero_legal queda None -- se asigna al imprimir, no al armar.
+            numero_legal=None,
+            flags_estado=flags_remito,
+        )
+        db.add(remito)
+        db.flush()
+
+        pedido_items_por_id = {pi.id: pi for pi in pedido.items}
+        for item_payload in payload.items:
+            pedido_item = pedido_items_por_id.get(item_payload.pedido_item_id)
+            if not pedido_item:
+                db.rollback()
+                raise HTTPException(
+                    status_code=409,
+                    detail=(
+                        f"RENGLON_AJENO_AL_PEDIDO: el renglón #{item_payload.pedido_item_id} no "
+                        f"pertenece al Pedido #{pedido.id}."
+                    )
+                )
+            # [Etapa 4, punto 1] cantidad_declarada = foto del PENDIENTE al armar (no lo que se
+            # remite ahora) -- así un PR parcial sigue diciendo cuánto quedaba debiéndose en el
+            # momento en que se armó, no se sobreescribe con lo que efectivamente salió.
+            pendiente = pedido_item.cantidad - pedido_item.cantidad_entregada
+            if item_payload.cantidad > pendiente + 0.001:
+                db.rollback()
+                raise HTTPException(
+                    status_code=409,
+                    detail=(
+                        f"CANTIDAD_EXCEDE_PEDIDO: '{pedido_item.producto.nombre if pedido_item.producto else pedido_item.id}' "
+                        f"trae {item_payload.cantidad}, pero el Pedido #{pedido.id} solo tiene "
+                        f"{pendiente} pendiente. Actualice el Pedido antes de continuar."
+                    )
+                )
+            db.add(models.RemitoItem(
+                remito_id=remito.id,
+                pedido_item_id=pedido_item.id,
+                cantidad_declarada=pendiente,
+                cantidad_remitida=item_payload.cantidad,
+            ))
+
+        RemitosService._recalcular_bits_entrega(db, pedido)
+        db.commit()
+        db.refresh(remito)
+        return remito
+
+    @staticmethod
     def create_manual(db: Session, payload: schemas.ManualRemitoPayload):
         """
         Creates a Manual Remito (Rosa/Blanco) from Frontend data.

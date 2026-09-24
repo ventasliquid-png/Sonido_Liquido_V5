@@ -188,11 +188,21 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
         vto_cae_val = None
         factura_vinculada_str = remito.factura_vinculada or ""
 
+        # [Etapa 4, D5 + cabo suelto del anexo de OC -- PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md
+        # §6] remito_engine.py ya tiene un campo "referencia" dibujado (REF:, cerca del domicilio)
+        # pero nadie lo poblaba -- RemitoTemplate.vue sí mostraba "Ref. Pedido: #{id} (OC: {oc})",
+        # mismo formato acá para que las dos vistas digan lo mismo. Condicionado por Carlos a que
+        # entre en el talonario 0015 preimpreso -- el campo REF ya tenía posición y tamaño de
+        # fuente calculados de antes, pero vale un chequeo de impresión real antes de confiar en
+        # que el texto no se superpone a nada del papel preimpreso.
+        referencia_str = f"Pedido #{remito.pedido_id} (OC: {remito.pedido.oc or 'S/D'})"
+
         cliente_data = {
             "razon_social": cliente.razon_social,
             "cuit": cliente.cuit,
             "domicilio_fiscal": remito.domicilio_entrega.resumen if remito.domicilio_entrega else cliente.domicilio_fiscal_resumen or "SIN DOMICILIO FISCAL",
             "condicion_iva": "RESPONSABLE INSCRIPTO", # Default for now
+            "referencia": referencia_str,
             "factura_vinculada": factura_vinculada_str,
             "factura_vinculada_cae": remito.factura_vinculada_cae,
             "cae": cae_val,
@@ -345,6 +355,26 @@ def create_manual_remito(payload: schemas.ManualRemitoPayload, db: Session = Dep
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
         print(f"Error creating Manual Remito: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+
+@router.post("/armar", response_model=schemas.RemitoResponse)
+def armar_remito(payload: schemas.ArmarRemitoPayload, db: Session = Depends(get_db)):
+    """[Etapa 4, PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §6] Arma un PR desde un pedido
+    existente -- pantalla de armado (D3, primera pantalla). Renglones elegidos por
+    pedido_item_id, nunca texto libre. No cubre huérfanos (Circuito 17): ver docstring de
+    RemitosService.armar_remito.
+    """
+    try:
+        from backend.remitos.service import RemitosService
+        return RemitosService.armar_remito(db, payload)
+    except HTTPException:
+        raise
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        print(f"Error armando Remito: {e}")
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")

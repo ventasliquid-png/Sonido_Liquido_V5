@@ -95,10 +95,20 @@
            <h2 class="text-xl font-semibold text-blue-400">Viajes Activos (Remitos)</h2>
            <!-- [S868] Un remito nuevo se emite en Remito Manual (con renglones y número 0015). El modal que
                 estaba acá creaba un remito vacío contra POST /remitos/, que no existe (y renglón cero es imposible). -->
-           <button @click="$router.push({ name: 'ManualRemito', query: { cliente_id: idCliente, pedido_id: localPedido.id } })"
-             class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg hover:shadow-blue-500/20 transition flex items-center gap-2">
-             <i class="fas fa-plus"></i> Nuevo Remito
-           </button>
+           <div class="flex gap-2">
+              <!-- [Etapa 4, PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §6] Pantalla de armado
+                   (D3, primera pantalla): elige renglones del pedido por pedido_item_id, nunca
+                   texto libre -- a diferencia de "Nuevo Remito" (0015 manual, sigue vivo para
+                   casos que no matcheen contra el catálogo). -->
+              <button @click="openArmarModal" :disabled="itemsPendientes.length === 0"
+                class="bg-amber-600 hover:bg-amber-500 disabled:bg-slate-700 disabled:cursor-not-allowed disabled:text-slate-500 text-white px-4 py-2 rounded-lg shadow-lg hover:shadow-amber-500/20 transition flex items-center gap-2">
+                <i class="fas fa-layer-group"></i> Armar PR
+              </button>
+              <button @click="$router.push({ name: 'ManualRemito', query: { cliente_id: idCliente, pedido_id: localPedido.id } })"
+                class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg hover:shadow-blue-500/20 transition flex items-center gap-2">
+                <i class="fas fa-plus"></i> Nuevo Remito (manual)
+              </button>
+           </div>
         </div>
 
         <!-- REMITOS LIST -->
@@ -198,6 +208,43 @@
        </div>
     </div>
 
+    <!-- MODAL ARMAR PR [Etapa 4] -->
+    <div v-if="showArmarModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+       <div class="bg-slate-800 p-6 rounded-2xl w-full max-w-lg shadow-2xl border border-slate-700">
+          <h3 class="text-lg font-bold text-white mb-1"><i class="fas fa-layer-group mr-2 text-amber-400"></i>Armar PR</h3>
+          <p class="text-xs text-slate-400 mb-4">
+             Elegí los renglones del pedido y la cantidad a remitir. El número se asigna recién al
+             imprimir, no ahora.
+          </p>
+
+          <div class="max-h-80 overflow-y-auto space-y-2 pr-1">
+             <div v-for="sel in armarSeleccion" :key="sel.pedido_item_id"
+                  class="flex items-center gap-3 bg-slate-900/50 border border-slate-700 rounded-lg p-3"
+                  :class="{'opacity-50': !sel.marcado}">
+                <input type="checkbox" v-model="sel.marcado" class="w-4 h-4 accent-amber-500">
+                <div class="flex-1 min-w-0">
+                   <p class="text-sm text-white truncate">{{ sel.producto_nombre }}</p>
+                   <p class="text-[10px] text-slate-500 uppercase">Pendiente: {{ sel.cantidad_pendiente }}</p>
+                </div>
+                <input type="number" v-model.number="sel.cantidad" :max="sel.cantidad_pendiente" min="0.01"
+                       :disabled="!sel.marcado"
+                       class="w-24 bg-slate-900 border border-slate-700 rounded p-2 text-right text-white font-mono focus:border-amber-500 outline-none disabled:opacity-40">
+             </div>
+             <div v-if="armarSeleccion.length === 0" class="text-center py-6 text-slate-500 text-sm">
+                No hay renglones pendientes en este pedido.
+             </div>
+          </div>
+
+          <div class="flex justify-end gap-3 mt-6">
+             <button @click="cancelArmar" class="text-slate-400 hover:text-white px-4 py-2">Cancelar</button>
+             <button @click="confirmArmar" :disabled="!armarSeleccion.some(s => s.marcado)"
+                     class="bg-amber-600 hover:bg-amber-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg font-bold">
+                Armar
+             </button>
+          </div>
+       </div>
+    </div>
+
     <!-- REMITO PRINT MDOAL -->
     <RemitoTemplate 
         v-if="printRemitoData" 
@@ -234,6 +281,8 @@ const clientDomicilios = ref([]);
 
 // Modals
 const showAddItemModal = ref(false);
+const showArmarModal = ref(false); // [Etapa 4]
+const armarSeleccion = ref([]); // [Etapa 4]
 
 // Drag & Drop
 const dragItem = ref(null);
@@ -334,6 +383,57 @@ const tryDespachar = async (remito) => {
 
 const openPrint = (remito) => {
     printRemitoData.value = remito;
+};
+
+// [Etapa 4] Pantalla de armado (D3, primera pantalla)
+const openArmarModal = () => {
+    armarSeleccion.value = itemsPendientes.value.map(item => ({
+        pedido_item_id: item.id,
+        producto_nombre: item.producto?.nombre || 'Ítem',
+        cantidad_pendiente: item.cantidad_pendiente,
+        cantidad: item.cantidad_pendiente,
+        marcado: false,
+    }));
+    showArmarModal.value = true;
+};
+
+const cancelArmar = () => {
+    showArmarModal.value = false;
+    armarSeleccion.value = [];
+};
+
+const confirmArmar = async () => {
+    const elegidos = armarSeleccion.value.filter(s => s.marcado);
+    if (elegidos.length === 0) return;
+
+    // [Etapa 4, punto 5 -- confirmación obligatoria en parciales, sin gradación por tamaño]
+    // Si algún renglón elegido no completa el pendiente, no alcanza con un clic: hay que
+    // escribir la cantidad pendiente para confirmar. Se corta todo el armado si cualquiera
+    // de las confirmaciones se cancela o no coincide -- no se arma "lo que sí se confirmó".
+    for (const sel of elegidos) {
+        if (sel.cantidad < sel.cantidad_pendiente) {
+            const tecleado = prompt(
+                `"${sel.producto_nombre}" queda con ${sel.cantidad_pendiente - sel.cantidad} pendiente ` +
+                `(de ${sel.cantidad_pendiente}). Escribí ${sel.cantidad_pendiente} para confirmar que ` +
+                `armás este PR parcial.`
+            );
+            if (tecleado === null || Number(tecleado) !== sel.cantidad_pendiente) {
+                alert('Armado cancelado: la cantidad pendiente no coincidió.');
+                return;
+            }
+        }
+    }
+
+    try {
+        await remitosStore.armarRemito({
+            pedido_id: localPedido.value.id,
+            items: elegidos.map(s => ({ pedido_item_id: s.pedido_item_id, cantidad: s.cantidad })),
+        });
+        showArmarModal.value = false;
+        armarSeleccion.value = [];
+    } catch (err) {
+        alert(remitosStore.error || 'No se pudo armar el remito.');
+    }
 };
 
 // Drag & Drop Logic

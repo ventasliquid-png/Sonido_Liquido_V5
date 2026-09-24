@@ -66,6 +66,22 @@ export const useRemitosStore = defineStore('remitos', () => {
         }
     }
 
+    // [Etapa 4] Arma un PR nuevo desde el pedido actual -- pantalla de armado (D3, primera
+    // pantalla). A diferencia de create_manual, los renglones se eligen por pedido_item_id.
+    async function armarRemito(payload) {
+        loading.value = true;
+        try {
+            const res = await remitosService.armarRemito(payload);
+            remitos.value.push(res.data);
+            return res.data;
+        } catch (err) {
+            error.value = err.response?.data?.detail || "Error al armar el remito.";
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    }
+
     async function addItemToRemito(remitoId, itemData) {
         loading.value = true;
         try {
@@ -151,6 +167,7 @@ export const useRemitosStore = defineStore('remitos', () => {
         despacharRemito,
         updateRemito,
         addItemToRemito,
+        armarRemito,
         itemsPendientes
     };
 });

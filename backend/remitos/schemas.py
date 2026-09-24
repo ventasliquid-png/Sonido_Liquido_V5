@@ -81,7 +81,9 @@ class DespacharPayload(BaseModel):
 
 class RemitoResponse(RemitoBase):
     id: UUID
-    pedido_id: int
+    # [Etapa 4] Optional desde acá -- Remito.pedido_id es nullable desde la Etapa 1 (huérfanos,
+    # Circuito 17); sin este cambio, serializar un huérfano rompía la validación de Pydantic.
+    pedido_id: Optional[int] = None
     fecha_creacion: datetime
     items: List[RemitoItemResponse] = []
     
@@ -142,6 +144,21 @@ class ManualRemitoItem(BaseModel):
     descripcion: str
     cantidad: float
     codigo_visual: Optional[str] = None
+
+class ArmarRemitoItemPayload(BaseModel):
+    """[Etapa 4] Elegido de la lista del pedido -- nunca texto libre, a diferencia del 0015
+    manual (ManualRemitoItem). pedido_item_id es la única forma de identificar el renglón."""
+    pedido_item_id: int
+    cantidad: float
+
+class ArmarRemitoPayload(BaseModel):
+    """[Etapa 4, PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §6] Pantalla de armado (D3,
+    primera pantalla). pedido_id obligatorio -- la rama huérfano (pedido_id None, Circuito 17)
+    queda fuera de esta etapa, ver nota en RemitosService.armar_remito."""
+    pedido_id: int
+    domicilio_entrega_id: Optional[UUID] = None
+    transporte_id: Optional[UUID] = None
+    items: List[ArmarRemitoItemPayload]
 
 class ManualRemitoPayload(BaseModel):
     pedido_id: Optional[int] = None # ID de pedido existente (Nuevo)

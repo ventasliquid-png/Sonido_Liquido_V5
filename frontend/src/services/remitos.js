@@ -56,6 +56,15 @@ export default {
         return api.post(`/remitos/${remitoId}/items`, itemData);
     },
 
+    /**
+     * [Etapa 4] Arma un PR desde un pedido existente -- renglones elegidos por pedido_item_id,
+     * nunca texto libre (a diferencia de createManual/0015 manual).
+     * @param {Object} payload { pedido_id, domicilio_entrega_id?, transporte_id?, items: [{pedido_item_id, cantidad}] }
+     */
+    armarRemito(payload) {
+        return api.post('/remitos/armar', payload);
+    },
+
     uploadInvoice(formData) {
         return api.post('/remitos/ingesta-pdf', formData, {
             headers: {
