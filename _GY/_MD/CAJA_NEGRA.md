@@ -1,4 +1,20 @@
-﻿Sesion actual: 872
+﻿Sesion actual: 873
+
+# CAJA NEGRA: OMEGA Lite - Circuito PR Etapa 0/3/4, giro huerfano->ES_NO_COMERCIAL - S873
+
+CORRECCION PROPIA (encontrada durante este mismo cierre): buena parte de esta entrada se escribio primero bajo la identidad CA, por asumir sin verificar que esta sesion continuaba directo la 872. Verificado antes de commitear: .gy_identity de este checkout dice OF, y E:\Backup_PreWin11\dev\Sonido_Liquido_V5 (el mismo backup congelado que la propia sesion 871, genuinamente OF, ya habia identificado como de esta maquina) existe aca. Corregido a OF debajo.
+
+Sesion 873 OF, un dia (24/09). Hash D: b4d6230d (commits: 454cc951, 5a805d82, c435b8d7, 1ccfa0cf, 93790033, b4d6230d) | Hash B: sin tocar | Hash P: no accesible desde OF. Estado: NOMINAL (canario GOLD, WAL OK). Semaforo CS: AMARILLO (heredado). Sesion sin FASE 0-bis de ALFA (continuacion de conversacion tras compactacion por limite de contexto).
+- Etapa 0 addendum (454cc951): guarda de la Card #125 sumada a update_remito, misma doctrina que create_manual/create_from_ingestion desde la Etapa 0. Etapa 3 (5a805d82): imprimir/despachar como acciones separadas, numero_legal se asigna al imprimir -- hallazgo real de paso, create_manual numeraba en la creacion, contradecia la doctrina y volvia intestable el propio test de la etapa. Etapa 4 (c435b8d7): pantalla de armado del PR (POST /remitos/armar), congela color al armar sin releer despues, numero atrasado, confirmacion obligatoria de parciales en el frontend -- verificado en navegador contra copia aislada (numero_legal NULL al armar, 0015-00003016 recien al pedir el PDF).
+- GIRO DE DISEÑO EL MISMO DIA: Etapa 4-bis armo la rama huerfano como "Remito sin Pedido" (pedido_item_id nullable + producto_id, migracion 042, commit 1ccfa0cf) y la probo (15 checks + PDF de punta a punta). Carlos + Nike decidieron el mismo dia (Sello de Oro, tres vueltas) que un huerfano no es un caso especial de Remito, es un Pedido con PedidoFlags.ES_NO_COMERCIAL (bit ya existente) -- reemplazo completo: revert limpio (git revert, commit 93790033, no reescritura a mano) + migracion 043 (Remito.pedido_id vuelve a NOT NULL, DROP huerfano_destinos) + ClientFlags.IS_TECHNICAL_ACCOUNT nuevo (commit b4d6230d). Ninguna migracion de hoy (042 ni 043) corrio contra pilot_v5x.db real -- 042 descartada del camino, 043 queda para el proximo arranque via auto_migrar.py.
+- DOS VECES esta sesion se recibio un mensaje de otra sesion (la Arquitecta, canal directo NS-OF) reportando que "Carlos ya confirmo" un cambio de alcance -- las dos veces se le pregunto a Carlos directo en esta conversacion antes de actuar (el giro de diseno del huerfano, y el corte logico para el cierre OMEGA), sin tomar el reporte de la otra sesion como autorizacion valida por si solo.
+- PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md actualizado (backup previo en BACKUPS_DB/): bloque de estado en la seccion de Etapa 4 con los tres hashes del giro, "Rama huerfano" marcada [RETIRADA 24/09] sin borrar el texto original, HuerfanoDestino sacada de la descripcion de Etapa 5, punto de sesion autenticada actualizado con verificacion real de la Arquitecta (get_current_user/get_current_active_user existen mas cero usos en remitos/pedidos router).
+- FASE 1D: FAIL con explicacion, aceptado -- 7 hashes de B marcados por el cotejo son sesiones ya cerradas del 17-22/09 (saga Card #138), verificados con git log antes de descartarlos como falso positivo conocido de la herramienta (mismo defecto que P11/A11).
+- FASE 1B.3: P no accesible desde OF, misma constante de siempre.
+
+---
+
+Sesion actual: 872
 
 # CAJA NEGRA: OMEGA Lite - auditoria de la Etapa 0/1 del circuito PR, sin codigo ni cambios de base - S872
 

@@ -1222,3 +1222,21 @@ nada visible y no quedaba claro qué había pasado.
 
 Sin cambios en pantallas de pedidos, facturación o clientes esta sesión — el resto del trabajo fue de
 modelo de datos, sin superficie visible todavía (Circuito PR, ver `PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md`).
+
+## Sesión 873 (24/09) — Logística: "Imprimir" y "Despachar" separados, y el nuevo botón "Armar PR"
+
+**Imprimir y Despachar ahora son dos acciones distintas.** Antes "Despachar" hacía las dos cosas
+juntas. Ahora "Imprimir" genera el PDF y le asigna el número al remito (no cambia nada más, el
+remito puede seguir esperando el transporte varios días con el número ya puesto). "Despachar"
+queda deshabilitado hasta que el remito esté impreso — no se puede despachar algo que nunca se
+imprimió.
+
+**Botón nuevo en Logística: "Armar PR".** Desde la pantalla de logística de un pedido, además de
+"Nuevo Remito (manual)" ahora hay "Armar PR": abre un modal con los renglones pendientes del
+pedido, cada uno con un checkbox y la cantidad a remitir. Si se elige una cantidad menor a la que
+falta del renglón, el sistema pide escribir la cantidad pendiente para confirmar que el envío
+parcial es a propósito — no deja pasar con un clic solo. El remito que se arma así no tiene número
+hasta que se imprime, igual que cualquier otro.
+
+**El renglón agregado a mano en un remito existente (`RemitoListView.vue`) ahora también se
+valida contra el pedido** — la misma guarda que ya tenía la carga inicial del remito manual.

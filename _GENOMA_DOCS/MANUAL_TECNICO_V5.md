@@ -2150,3 +2150,38 @@ Migración de esquema completa en `backend/remitos/models.py`, `backend/remitos/
   `despachar_remito` exige `aprobado_para_despacho`.
 - Cualquier código nuevo que lea/escriba cantidades de remito debe usar `cantidad_remitida`
   directamente, no el alias `cantidad` (que es solo para no romper serializaciones existentes).
+
+## Sesión 873 (24/09) — Circuito PR: Etapa 0 addendum, Etapa 3, Etapa 4, y el giro huérfano→ES_NO_COMERCIAL
+
+**Etapa 0 addendum (`454cc951`):** `update_remito` gana la misma guarda de la Card #125 que ya
+tenían `create_manual`/`create_from_ingestion` — editar valida `CANTIDAD_EXCEDE_PEDIDO`
+descontando la propia contribución del ítem; ítem nuevo matchea por `pedido_item_id` o nombre en
+vez de crear un `PedidoItem` fantasma (rama "Ghost Style" retirada).
+
+**Etapa 3 (`5a805d82`):** `GET /remitos/{id}/pdf` numera (`numero_legal`) al imprimir, no al
+crear — `_siguiente_numero_0015`/`_siguiente_numero_17` según `RemitoFlags.CIRCUITO_ROSA`. `POST
+/remitos/{id}/despachar` exige `numero_legal IS NOT NULL` además de `aprobado_para_despacho`,
+acepta `bultos` (`DespacharPayload`). `create_manual` dejó de numerar en la creación (bug real:
+contradecía la doctrina "número atrasado" y volvía intestable el propio test de esta etapa).
+
+**Etapa 4 (`c435b8d7`):** `POST /remitos/armar` + `RemitosService.armar_remito` — congela
+`RemitoFlags.CIRCUITO_ROSA` leyendo `PedidoFlags.NO_FISCAL_FORCE` del pedido una sola vez al
+armar (nunca se vuelve a leer); `RemitoItem.cantidad_declarada` = pendiente al armar,
+`cantidad_remitida` = elegida. `RemitoResponse.pedido_id` pasa a `Optional[int]` (bug real,
+independiente de huérfanos). `remito_engine.py` imprime "Ref. Pedido #N (OC: ...)" reusando el
+campo `referencia` ya dibujado.
+
+**Giro de diseño el mismo día — huérfano deja de ser "Remito sin Pedido":** Etapa 4-bis
+(`1ccfa0cf`) había implementado `RemitoItem.pedido_item_id` nullable + `producto_id` (migración
+`042`) y `_armar_remito_huerfano`. Decisión de Carlos + Nike (Sello de Oro, tres vueltas,
+`DISENO_PEDIDO_NO_COMERCIAL_S873_2026-09-24.md`): reemplazado por un `Pedido` normal con
+`PedidoFlags.ES_NO_COMERCIAL` (bit ya existente, sin bit nuevo). Revertido con `git revert`
+(`93790033`) — código y migración `042` fuera, `042` nunca llegó a aplicarse a la base real.
+Migración `043_revertir_huerfano_pedido_id.py` (`b4d6230d`): `Remito.pedido_id` vuelve a
+`NOT NULL` (reconstrucción de tabla, guarda de seguridad propia que verifica 0 filas huérfanas
+antes de tocar nada), `DROP TABLE huerfano_destinos`. `HuerfanoDestino` fuera del modelo.
+`ClientFlags.IS_TECHNICAL_ACCOUNT` (Bit 8, 256) nuevo, para cuentas técnicas de doble uso
+(Descarte/Mermas/Muestras). `get_remito_pdf`: elección de talonario 17 pasa de
+`pedido_id is None` a `pedido.flags_estado & PedidoFlags.ES_NO_COMERCIAL`. Ninguna migración de
+hoy (`042` ni `043`) corrió contra `pilot_v5x.db` real — quedan para el próximo arranque vía
+`auto_migrar.py`.
