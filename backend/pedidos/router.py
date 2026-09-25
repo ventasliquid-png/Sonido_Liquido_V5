@@ -18,6 +18,8 @@ from backend.clientes.models import Cliente
 from backend.productos.models import Producto
 from backend.pedidos.constants import PedidoFlags as PF, STATE_MASK
 from backend.clientes.constants import ClientFlags
+from backend.auth.dependencies import get_current_active_user
+from backend.auth.models import Usuario
 
 router = APIRouter(
     prefix="/pedidos",
@@ -1029,9 +1031,10 @@ def add_pedido_item(
 
 @router.patch("/items/{item_id}", response_model=schemas.PedidoResponse)
 def update_pedido_item(
-    item_id: int, 
+    item_id: int,
     item_update: schemas.PedidoItemUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_active_user)
 ):
     """
     Actualiza un item de pedido (cantidad, precio) y recalcula el total del pedido.
@@ -1042,7 +1045,7 @@ def update_pedido_item(
 
     # Update fields
     update_data = item_update.dict(exclude_unset=True)
-    usuario = update_data.pop("usuario", None) or "Sistema"
+    usuario = current_user.username
 
     # [LOGISTICA V7] Ajustar Reserva si cambia cantidad
     if "cantidad" in update_data:
@@ -1345,7 +1348,12 @@ def toggle_circuito_bipolar(pedido_id: int, req: BipolarRequest, db: Session = D
 
 
 @router.patch("/{pedido_id}/no-comercial", response_model=schemas.PedidoResponse)
-def toggle_no_comercial(pedido_id: int, req: schemas.NoComercialRequest, db: Session = Depends(get_db)):
+def toggle_no_comercial(
+    pedido_id: int,
+    req: schemas.NoComercialRequest,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_active_user)
+):
     """
     Alterna ES_NO_COMERCIAL (Bit 11 — muestras/uso interno).
     Al apagar: inyecta nota forense y reinicia Bit 23 (FULL_INVOICED).
@@ -1380,7 +1388,7 @@ def toggle_no_comercial(pedido_id: int, req: schemas.NoComercialRequest, db: Ses
         current_flags &= ~PF.ES_NO_COMERCIAL.value
         current_flags &= ~PF.FULL_INVOICED.value
         ts = datetime.now().strftime("%Y-%m-%d %H:%M")
-        nota_forense = f"\n[SISTEMA] Mutación ES_NO_COMERCIAL → Comercial. Bit 23 reiniciado. {ts} {req.usuario}"
+        nota_forense = f"\n[SISTEMA] Mutación ES_NO_COMERCIAL → Comercial. Bit 23 reiniciado. {ts} {current_user.username}"
         pedido.nota = (pedido.nota or "") + nota_forense
 
     pedido.flags_estado = current_flags

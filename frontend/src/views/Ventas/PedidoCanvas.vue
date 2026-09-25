@@ -2387,7 +2387,7 @@ const confirmEditCantidad = async (index) => {
 
     try {
         const pedidoActualizado = await pedidosStore.updatePedidoItem(
-            route.params.id, item.pedido_item_id, { cantidad: nuevaCantidad, usuario: 'Operador' }
+            route.params.id, item.pedido_item_id, { cantidad: nuevaCantidad }
         );
         const itemActualizado = pedidoActualizado.items.find(i => i.id === item.pedido_item_id);
         if (itemActualizado) {
