@@ -23,11 +23,38 @@ class RemitoItemResponse(RemitoItemBase):
     remito_id: UUID
     pedido_item_id: int
     cantidad: float
+    # [Etapa 5] Expuesto para la validación de techo agregado -- ver RemitosService.set_cantidad_recibida.
+    cantidad_recibida: Optional[float] = None
     # Nested info for the UI (Populated from models.py properties)
     descripcion_display: Optional[str] = "Ítem"
-    
+
     class Config:
         from_attributes = True
+
+# --- NOTAS (Etapa 5) ---
+class RemitoNotaCreate(BaseModel):
+    """[Etapa 5] `remito_item_id` opcional -- ausente = nota sobre el remito entero, presente =
+    sobre un renglón puntual. `autor` nunca viene acá: sale de la sesión autenticada
+    (Depends(get_current_active_user), mismo patrón que update_pedido_item/toggle_no_comercial)."""
+    remito_item_id: Optional[int] = None
+    texto: str
+
+class RemitoNotaResponse(BaseModel):
+    id: int
+    remito_id: UUID
+    remito_item_id: Optional[int] = None
+    fecha: datetime
+    autor_id: Optional[int] = None
+    autor_username: Optional[str] = None
+    texto: str
+    foto_path: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+# --- CANTIDAD RECIBIDA (Etapa 5) ---
+class CantidadRecibidaUpdate(BaseModel):
+    cantidad_recibida: float
 
 # --- HEADER ---
 class RemitoBase(BaseModel):

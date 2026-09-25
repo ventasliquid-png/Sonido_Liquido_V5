@@ -7,6 +7,8 @@ from typing import List, Optional
 from backend.core.database import get_db
 from .pdf_parser import process_pdf_ingestion
 from backend.remitos import schemas, models
+from backend.auth.dependencies import get_current_active_user
+from backend.auth.models import Usuario
 
 router = APIRouter(
     prefix="/remitos",
@@ -380,6 +382,77 @@ def armar_remito(payload: schemas.ArmarRemitoPayload, db: Session = Depends(get_
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
         print(f"Error armando Remito: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+
+@router.post("/{remito_id}/notas", response_model=schemas.RemitoNotaResponse)
+def crear_nota(
+    remito_id: str,
+    payload: schemas.RemitoNotaCreate,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_active_user)
+):
+    """[Etapa 5, PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §7] Novedad fechada sobre un
+    remito o un renglón puntual -- acumulativa, nunca editable (doctrina en el docstring de
+    RemitoNota). El autor sale siempre de la sesión autenticada, nunca del payload -- mismo
+    patrón que update_pedido_item/toggle_no_comercial.
+    """
+    remito = db.query(models.Remito).filter(models.Remito.id == remito_id).first()
+    if not remito:
+        raise HTTPException(status_code=404, detail="Remito no encontrado")
+
+    if payload.remito_item_id is not None:
+        item = next((i for i in remito.items if i.id == payload.remito_item_id), None)
+        if not item:
+            raise HTTPException(
+                status_code=409,
+                detail=f"RENGLON_AJENO_AL_REMITO: el renglón #{payload.remito_item_id} no pertenece al Remito {remito_id}."
+            )
+
+    nota = models.RemitoNota(
+        remito_id=remito_id,
+        remito_item_id=payload.remito_item_id,
+        texto=payload.texto,
+        autor_id=current_user.id,
+    )
+    db.add(nota)
+    db.commit()
+    db.refresh(nota)
+    return nota
+
+@router.get("/{remito_id}/notas", response_model=List[schemas.RemitoNotaResponse])
+def listar_notas(remito_id: str, db: Session = Depends(get_db)):
+    """[Etapa 5] Notas de un remito, más viejas primero -- lectura, sin sesión requerida."""
+    remito = db.query(models.Remito).filter(models.Remito.id == remito_id).first()
+    if not remito:
+        raise HTTPException(status_code=404, detail="Remito no encontrado")
+
+    return (
+        db.query(models.RemitoNota)
+        .filter(models.RemitoNota.remito_id == remito_id)
+        .order_by(models.RemitoNota.fecha)
+        .all()
+    )
+
+@router.patch("/items/{remito_item_id}/recibido", response_model=schemas.RemitoItemResponse)
+def actualizar_cantidad_recibida(
+    remito_item_id: int,
+    payload: schemas.CantidadRecibidaUpdate,
+    db: Session = Depends(get_db)
+):
+    """[Etapa 5, dictamen Nike "Homologación de Techo y Reasignación en Puerta"] Ver docstring de
+    RemitosService.set_cantidad_recibida para la regla completa (techo agregado por PedidoItem,
+    no comparación renglón a renglón)."""
+    try:
+        from backend.remitos.service import RemitosService
+        return RemitosService.set_cantidad_recibida(db, remito_item_id, payload.cantidad_recibida)
+    except HTTPException:
+        raise
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        print(f"Error actualizando cantidad_recibida: {e}")
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")

@@ -185,6 +185,13 @@ class RemitoNota(Base):
 
     remito = relationship("Remito")
     remito_item = relationship("RemitoItem", back_populates="notas")
+    # [Etapa 5] Mismo patrón que Cliente.vendedor (clientes/models.py) para referenciar
+    # Usuario desde otro módulo.
+    autor = relationship("Usuario")
+
+    @property
+    def autor_username(self):
+        return self.autor.username if self.autor else None
 
     def __repr__(self):
         return f"<RemitoNota(remito_id={self.remito_id})>"
