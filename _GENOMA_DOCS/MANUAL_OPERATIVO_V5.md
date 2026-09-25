@@ -1223,6 +1223,12 @@ nada visible y no quedaba claro qué había pasado.
 Sin cambios en pantallas de pedidos, facturación o clientes esta sesión — el resto del trabajo fue de
 modelo de datos, sin superficie visible todavía (Circuito PR, ver `PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md`).
 
+## Sesión 874 (25/09) — sin cambios visibles al operador
+
+Etapa 5 del Circuito PR (notas de remito con autor real, y validación de cuánto llegó
+efectivamente contra lo autorizado por el pedido) quedó lista en el backend, pero todavía no
+tiene pantalla propia — no hay nada nuevo que un operador vea o pueda tocar todavía.
+
 ## Sesión 873 (24/09) — Logística: "Imprimir" y "Despachar" separados, y el nuevo botón "Armar PR"
 
 **Imprimir y Despachar ahora son dos acciones distintas.** Antes "Despachar" hacía las dos cosas

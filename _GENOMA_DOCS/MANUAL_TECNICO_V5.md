@@ -2151,6 +2151,24 @@ Migración de esquema completa en `backend/remitos/models.py`, `backend/remitos/
 - Cualquier código nuevo que lea/escriba cantidades de remito debe usar `cantidad_remitida`
   directamente, no el alias `cantidad` (que es solo para no romper serializaciones existentes).
 
+## Sesión 874 (25/09) — Circuito PR: Etapa 5 (`RemitoNota` + techo agregado de `cantidad_recibida`)
+
+**`cb6ef8f1`:** `update_pedido_item`/`toggle_no_comercial` ganan `current_user: Usuario =
+Depends(get_current_active_user)` — las notas forenses de `CIERRE_CON_AJUSTE` y mutación a
+Comercial pasan a usar `current_user.username`, no un string del payload (`usuario`, default
+`"Sistema"`, retirado de `PedidoItemUpdate`/`NoComercialRequest`).
+
+**`eb60af31`:** `RemitoNota` (`autor = relationship("Usuario")`, `autor_id` siempre de
+`current_user.id`) con `POST`/`GET /remitos/{id}/notas` — `remito_item_id` opcional, valida que
+el renglón pertenezca al remito (409 `RENGLON_AJENO_AL_REMITO`). `RemitosService.
+set_cantidad_recibida` + `PATCH /remitos/items/{id}/recibido`: el techo es `SUM(cantidad_recibida)`
+de todos los remitos que entregan el mismo `PedidoItem`, no la comparación renglón a renglón
+(Dictamen de Homologación de Techo y Reasignación en Puerta, Nike) — 409
+`CANTIDAD_RECIBIDA_EXCEDE_PEDIDO` si se supera. Un renglón sin reconciliar cuenta como 0 en este
+gatekeeper, nunca como el fallback de reporting "NULL = llegó lo que salió" (S868 §2.5) — usar
+ese fallback ahí fue el primer intento y rechazaba el propio caso Lácteos/Gelato obligatorio, ver
+`SESION_NEXT.md` → Callejones explorados del 25/09.
+
 ## Sesión 873 (24/09) — Circuito PR: Etapa 0 addendum, Etapa 3, Etapa 4, y el giro huérfano→ES_NO_COMERCIAL
 
 **Etapa 0 addendum (`454cc951`):** `update_remito` gana la misma guarda de la Card #125 que ya

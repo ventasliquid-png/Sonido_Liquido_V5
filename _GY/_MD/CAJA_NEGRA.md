@@ -1,4 +1,20 @@
-﻿Sesion actual: 873
+﻿Sesion actual: 874
+
+# CAJA NEGRA: OMEGA Lite - Circuito PR Etapa 5 (RemitoNota + techo agregado cantidad_recibida) - S874
+
+Sesion 874 OF, continuacion directa de la conversacion de la 873 tras su propio cierre OMEGA (sin FASE 0-bis de ALFA propia, mismo patron ya aceptado en S869/S871). Hash D: eb60af31 (commits de codigo: cb6ef8f1, eb60af31; esta entrada de burocracia se commitea junto con el cierre) | Hash B: sin tocar (0ac2aee) | Hash P: no accesible desde OF. Estado: NOMINAL (canario GOLD 13, WAL OK). Semaforo CS: AMARILLO (heredado, sin CS presente).
+- Prerrequisito de Etapa 5 (cb6ef8f1): update_pedido_item/toggle_no_comercial tomaban la identidad de un string del payload/frontend para su nota forense ("Sistema"/"Operador") -- cableado a current_user.username via Depends(get_current_active_user), campo usuario retirado de los dos schemas y del frontend.
+- Etapa 5 (eb60af31): RemitoNota (POST/GET /remitos/{id}/notas, autoria siempre de current_user.id, nunca del payload; renglon ajeno rechazado con 409) + techo agregado de cantidad_recibida (RemitosService.set_cantidad_recibida, PATCH /remitos/items/{id}/recibido) -- SUM por PedidoItem a traves de todos sus remitos, no comparacion renglon a renglon (Dictamen de Homologacion de Techo y Reasignacion en Puerta, Nike, ratificado 25/09).
+- Bug real encontrado y corregido en la propia prueba, antes de reportar o commitear: la primera version del gatekeeper usaba el fallback de reporting "NULL = llego lo que salio" (S868 par.2.5) para sumar renglones sin reconciliar -- eso rechazaba el primer paso legitimo del caso Lacteos/Gelato que el propio dictamen existe para permitir. Corregido: sin reconciliar cuenta como 0 en este gatekeeper especifico, no como remitida. Verificado con dos scripts contra copias descartables (caso Lacteos/Gelato exacto, 409 al superar el techo, idempotencia, notas) y FastAPI TestClient (401/200 en auth) -- base viva sin tocar en todo momento.
+- Mensaje cruzado de la Arquitecta (canal directo NS-OF) reportando que "Carlos ya dio el PIN" en su propia sesion para este commit -- no aceptado como autorizacion: se le pidio a Carlos su palabra directa en esta conversacion antes de commitear, sin excepcion aunque la Arquitecta ya hubiera verificado el codigo linea por linea (lo cual hizo, y coincidio).
+- PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md actualizado (S1, S7, S11) marcando la Etapa 5 hecha con el hash de cierre.
+- FASE 1D: FAIL con explicacion, aceptado -- encabezado sin tabla de Pendientes al arranque (sesion sin ALFA propia) y los dos commits de esta sesion sin fila en la bitacora al momento del cotejo, resuelto con este mismo cierre (Sesion 874 en BITACORA_VIVA.md).
+- FASE 1B.3: P no accesible desde OF, misma constante de siempre.
+- INBOX con 14 entradas sin archivar (la mas vieja del 10/07) -- registrado para Carlos, no bloquea.
+
+---
+
+Sesion actual: 873
 
 # CAJA NEGRA: OMEGA Lite - Circuito PR Etapa 0/3/4, giro huerfano->ES_NO_COMERCIAL - S873
 
