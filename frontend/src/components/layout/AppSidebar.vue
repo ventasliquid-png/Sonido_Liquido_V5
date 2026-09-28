@@ -197,8 +197,30 @@
 
         <div v-show="expandedGroups.includes('INTEL')" class="pl-4 space-y-1">
             <a href="#" @click.prevent="navigate('data-cleaner')" class="nav-item-sub" :class="{ 'active-link-indigo': isActive('data-cleaner') }">
-                <i class="fas fa-broom w-4"></i> 
+                <i class="fas fa-broom w-4"></i>
                 <span>Depurador de Datos</span>
+            </a>
+        </div>
+      </div>
+
+      <!-- INFORMES Group (S875) -->
+      <div class="space-y-1">
+        <button
+            @click="toggleGroup('INFORMES')"
+            class="w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-all duration-200"
+            :class="isGroupActive('INFORMES') || expandedGroups.includes('INFORMES') ? 'bg-sky-900/20 border-sky-500/30' : 'bg-transparent border-transparent hover:bg-white/5'"
+        >
+             <span class="flex items-center gap-3 text-sky-400 font-bold tracking-wide text-sm">
+                <i class="fas fa-chart-column w-5 text-center" :class="isGroupActive('INFORMES') ? 'text-sky-400' : 'text-sky-500/50'"></i>
+                INFORMES
+            </span>
+            <i class="fas fa-chevron-right text-xs transition-transform duration-200" :class="expandedGroups.includes('INFORMES') ? 'rotate-90 text-sky-400' : 'text-white/20'"></i>
+        </button>
+
+        <div v-show="expandedGroups.includes('INFORMES')" class="pl-4 space-y-1">
+            <a href="#" @click.prevent="navigate('InformeRemitos')" class="nav-item-sub" :class="{ 'active-link-sky': isActive('InformeRemitos') }">
+                <i class="fas fa-truck w-4"></i>
+                <span>Remitos por fecha/cliente</span>
             </a>
         </div>
       </div>
@@ -269,6 +291,7 @@ const isGroupActive = (group) => {
     if (group === 'MAESTROS') return ['Contactos', 'Transportes', 'CanteraExplorer', 'MasterTools', 'AddressHub'].includes(route.name)
     if (group === 'PEDIDOS') return ['PedidoList', 'TacticalLoader', 'IngestaFactura', 'RemitoList', 'ManualRemito', 'FacturacionDashboard', 'EntregasReport'].includes(route.name)
     if (group === 'INTEL') return ['data-cleaner'].includes(route.name)
+    if (group === 'INFORMES') return ['InformeRemitos'].includes(route.name)
     return false
 }
 
@@ -282,7 +305,7 @@ const toggleGroup = (group) => {
 }
 
 const autoExpand = () => {
-    ['CLIENTES', 'PRODUCTOS', 'MAESTROS', 'PEDIDOS'].forEach(group => {
+    ['CLIENTES', 'PRODUCTOS', 'MAESTROS', 'PEDIDOS', 'INFORMES'].forEach(group => {
         if (isGroupActive(group) && !expandedGroups.value.includes(group)) {
             expandedGroups.value.push(group)
         }
@@ -328,5 +351,8 @@ const handleDepositosClick = () => {
 }
 .active-link-indigo {
     @apply text-indigo-200 bg-indigo-900/10 border-indigo-400 font-bold;
+}
+.active-link-sky {
+    @apply text-sky-200 bg-sky-900/10 border-sky-400 font-bold;
 }
 </style>

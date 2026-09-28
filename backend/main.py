@@ -108,7 +108,8 @@ from backend.proveedores.router import router as proveedores_router
 from backend.data_intel.router import router as data_intel_router
 from backend.pedidos.router import router as pedidos_router 
 from backend.cantera.router import router as cantera_router
-from backend.remitos.router import router as remitos_router 
+from backend.remitos.router import router as remitos_router
+from backend.informes.router import router as informes_router
 from backend.contactos.router import router as contactos_router
 from backend.stats.router import router as stats_router
 from backend.facturacion.router import router as facturacion_router
@@ -413,6 +414,7 @@ app.include_router(data_intel_router)
 app.include_router(pedidos_router) 
 app.include_router(cantera_router)
 app.include_router(remitos_router) # [GY-V7] PDF Ingestion
+app.include_router(informes_router) # [S875] Módulo Informes
 app.include_router(google_mock_router) # [GY-V14] Mock Sync
 app.include_router(stats_router)
 app.include_router(contactos_router)
