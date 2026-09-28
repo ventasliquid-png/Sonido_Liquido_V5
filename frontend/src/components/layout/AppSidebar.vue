@@ -234,6 +234,10 @@
                 <i class="fas fa-comment-dots w-4"></i>
                 <span>Pedidos con notas relevantes</span>
             </a>
+            <a href="#" @click.prevent="navigate('InformeBuscarNotas')" class="nav-item-sub" :class="{ 'active-link-sky': isActive('InformeBuscarNotas') }">
+                <i class="fas fa-magnifying-glass w-4"></i>
+                <span>Buscar en notas</span>
+            </a>
         </div>
       </div>
 
@@ -303,7 +307,7 @@ const isGroupActive = (group) => {
     if (group === 'MAESTROS') return ['Contactos', 'Transportes', 'CanteraExplorer', 'MasterTools', 'AddressHub'].includes(route.name)
     if (group === 'PEDIDOS') return ['PedidoList', 'TacticalLoader', 'IngestaFactura', 'RemitoList', 'ManualRemito', 'FacturacionDashboard', 'EntregasReport'].includes(route.name)
     if (group === 'INTEL') return ['data-cleaner'].includes(route.name)
-    if (group === 'INFORMES') return ['InformeRemitos', 'InformePedidosPendiente', 'InformePedidosOc', 'InformeNotasPedidos'].includes(route.name)
+    if (group === 'INFORMES') return ['InformeRemitos', 'InformePedidosPendiente', 'InformePedidosOc', 'InformeNotasPedidos', 'InformeBuscarNotas'].includes(route.name)
     return false
 }
 
