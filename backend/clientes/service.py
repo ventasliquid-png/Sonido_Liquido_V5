@@ -383,22 +383,26 @@ class ClienteService:
         is_formal = (db_cliente.flags_estado & 15) in [13, 15]
         is_generic = db_cliente.cuit in ['00000000000', '11111111119', '11111111111', '99999999999']
         is_cf = False
-        is_cf = False
-        is_cliente_interno = False
         if db_cliente.condicion_iva and db_cliente.condicion_iva.nombre:
             if "CONSUMIDOR FINAL" in db_cliente.condicion_iva.nombre.upper():
                 is_cf = True
-            # [S875, traspaso AG punto A] Condición de IVA dedicada para Rosa "puro" -- Bit
-            # OPERATOR_OK incondicional, sin depender de CUIT ni segmento (Rossini: CF con
-            # CUIT genérico no alcanzaba, un cliente marcado así explícitamente nunca depende
-            # de esa inferencia).
-            if db_cliente.condicion_iva.nombre.upper() == "CLIENTE INTERNO":
-                is_cliente_interno = True
 
         # --- [REGLA 1 — Nike 806] CONSUMIDOR FINAL FORZADO GOLD ---
         # CUIT 00000000000 nace Blanco Virgen (15) — nunca infiere Rosa
         if db_cliente.cuit == '00000000000' and not (db_cliente.flags_estado & ClientFlags.GOLD_ARCA):
             db_cliente.flags_estado |= ClientFlags.GOLD_ARCA
+
+        # --- [REGLA 1-bis — S875] CUIT RESERVADO 11111111111 = ROSA FORZADO, sin excepción ---
+        # Reemplaza el mecanismo de "Cliente Interno" (condición de IVA nueva) que se probó y
+        # se revirtió el mismo día -- nunca llegó a correr contra la base real (mismo patrón que
+        # la Etapa 4-bis del Circuito PR). Diseño final, dos CUIT reservados con significado
+        # fijo, sin inferencia ni segmento de por medio: 11111111119 sigue siendo Consumidor
+        # Final/Blanco (sin cambios); 11111111111 pasa a significar Rosa siempre. El operador
+        # nunca tipea ninguno de los dos a mano -- el frontend los escribe por detrás según un
+        # botón/radio con palabras, un solo dígito de diferencia entre ambos es invitación al
+        # error si se tipea (Carlos).
+        if db_cliente.cuit == '11111111111':
+            db_cliente.flags_estado |= ClientFlags.OPERATOR_OK
 
         # --- [ARLEQUÍN V2] INFERENCIA AUTOMÁTICA DE CLIENTE ROSA ---
         # Si no es Gold (Bit 2 apagado) + tiene segmento + sin CUIT real → sello Rosa (Bit 4)
@@ -409,7 +413,7 @@ class ClienteService:
             # tiene >=10 caracteres y pasaba como CUIT real -- nunca prendía OPERATOR_OK. is_generic
             # ya se calculaba arriba para POWER_PINK; faltaba cruzarla acá.
             has_real_cuit = bool(db_cliente.cuit and len(db_cliente.cuit.strip()) >= 10 and not is_generic)
-            if is_cliente_interno or (has_segmento and not has_real_cuit):
+            if has_segmento and not has_real_cuit:
                 db_cliente.flags_estado |= ClientFlags.OPERATOR_OK
             # Si consigue CUIT real pero aún sin Gold, no quitamos el sello Rosa
             # (la transición Rosa→Blanco requiere acción explícita del operador)

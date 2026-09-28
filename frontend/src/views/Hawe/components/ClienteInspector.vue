@@ -245,6 +245,25 @@
                                     <i class="fas fa-stamp text-[10px]"></i>
                                  </button>
                              </div>
+                             <!-- [S875] Sin CUIT: elegir por palabras, nunca tipear 11111111119/11111111111 a mano -->
+                             <div v-if="!form.cuit" class="flex gap-1 mt-1">
+                                 <button
+                                    type="button"
+                                    @click="elegirTipoSinCuit('CF')"
+                                    class="flex-1 px-1 py-0.5 rounded border text-[8px] font-bold uppercase bg-white/5 border-white/10 text-white/40 hover:bg-emerald-500/10 hover:border-emerald-500/40 hover:text-emerald-300 transition-all"
+                                    title="Sin CUIT real, venta al público"
+                                >
+                                    Consumidor Final
+                                 </button>
+                                 <button
+                                    type="button"
+                                    @click="elegirTipoSinCuit('ROSA')"
+                                    class="flex-1 px-1 py-0.5 rounded border text-[8px] font-bold uppercase bg-white/5 border-white/10 text-white/40 hover:bg-fuchsia-500/10 hover:border-fuchsia-500/40 hover:text-fuchsia-300 transition-all"
+                                    title="Sin CUIT real, cliente Rosa/informal"
+                                >
+                                    Cliente Rosa
+                                 </button>
+                             </div>
                     </div>
 
                     <!-- Condicion IVA (20 chars approx) -->
@@ -622,7 +641,8 @@ const saving = ref(false)
 const GENERIC_CUITS = ['00000000000', '99999999999', '11111111111', '11111111119']
 const commonCuitNames = {
     '11111111119': 'CONSUMIDOR FINAL GENERICO',
-    '00000000000': 'CONSUMIDOR FINAL'
+    '00000000000': 'CONSUMIDOR FINAL',
+    '11111111111': 'CLIENTE ROSA / INFORMAL'
 }
 
 // 🧬 ENIGMA BLUEPRINT: CONSTANTS
@@ -916,6 +936,18 @@ const aplicarRosaManual = () => {
     }
 }
 // ----------------------------
+
+// [S875] Cuando el CUIT queda vacío, el operador elige por palabras en vez de tipear uno de
+// los dos números reservados a mano -- un solo dígito de diferencia entre 11111111119
+// (Consumidor Final) y 11111111111 (Rosa) es invitación al error si se escribe (Carlos). El
+// backend deriva el sello Rosa de este CUIT en _audit_sovereignty, no hay bit que tocar acá.
+const elegirTipoSinCuit = (tipo) => {
+    const cuit = tipo === 'ROSA' ? '11111111111' : '11111111119'
+    form.value.cuit = cuit
+    if (!form.value.razon_social) {
+        form.value.razon_social = commonCuitNames[cuit]
+    }
+}
 
 const selectExistingClient = (clientSummary) => {
     if(confirm(`¿Desea descartar el alta y cargar el cliente "${clientSummary.razon_social}"?`)) {
