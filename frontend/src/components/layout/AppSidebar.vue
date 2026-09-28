@@ -238,6 +238,14 @@
                 <i class="fas fa-magnifying-glass w-4"></i>
                 <span>Buscar en notas</span>
             </a>
+            <a href="#" @click.prevent="navigate('InformeAbcClientes')" class="nav-item-sub" :class="{ 'active-link-sky': isActive('InformeAbcClientes') }">
+                <i class="fas fa-ranking-star w-4"></i>
+                <span>ABC de clientes</span>
+            </a>
+            <a href="#" @click.prevent="navigate('InformeAbcProductos')" class="nav-item-sub" :class="{ 'active-link-sky': isActive('InformeAbcProductos') }">
+                <i class="fas fa-boxes-stacked w-4"></i>
+                <span>ABC de productos</span>
+            </a>
         </div>
       </div>
 
@@ -307,7 +315,7 @@ const isGroupActive = (group) => {
     if (group === 'MAESTROS') return ['Contactos', 'Transportes', 'CanteraExplorer', 'MasterTools', 'AddressHub'].includes(route.name)
     if (group === 'PEDIDOS') return ['PedidoList', 'TacticalLoader', 'IngestaFactura', 'RemitoList', 'ManualRemito', 'FacturacionDashboard', 'EntregasReport'].includes(route.name)
     if (group === 'INTEL') return ['data-cleaner'].includes(route.name)
-    if (group === 'INFORMES') return ['InformeRemitos', 'InformePedidosPendiente', 'InformePedidosOc', 'InformeNotasPedidos', 'InformeBuscarNotas'].includes(route.name)
+    if (group === 'INFORMES') return ['InformeRemitos', 'InformePedidosPendiente', 'InformePedidosOc', 'InformeNotasPedidos', 'InformeBuscarNotas', 'InformeAbcClientes', 'InformeAbcProductos'].includes(route.name)
     return false
 }
 

@@ -167,6 +167,16 @@ const routes = [
                 component: () => import('../views/Informes/BuscarNotasListado.vue')
             },
             {
+                path: 'informes/abc-clientes',
+                name: 'InformeAbcClientes',
+                component: () => import('../views/Informes/AbcClientesListado.vue')
+            },
+            {
+                path: 'informes/abc-productos',
+                name: 'InformeAbcProductos',
+                component: () => import('../views/Informes/AbcProductosListado.vue')
+            },
+            {
                 path: 'domicilios',
                 name: 'AddressHub',
                 component: () => import('../views/Maestros/AddressHubView.vue')

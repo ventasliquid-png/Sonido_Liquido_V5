@@ -1,7 +1,8 @@
 # backend/informes/router.py
 """
-[S875, DISENO_MODULO_INFORMES_S875_2026-09-26.md] Módulo Informes -- Nivel 1 (Listados).
-Capa de consulta, solo lectura -- no escribe RemitoNota ni cantidad_recibida.
+[S875, DISENO_MODULO_INFORMES_S875_2026-09-26.md] Módulo Informes -- Nivel 1 (Listados) y
+Nivel 2 (Análisis/ABC). Capa de consulta, solo lectura -- no escribe RemitoNota ni
+cantidad_recibida.
 """
 from datetime import datetime
 from typing import Optional
@@ -423,5 +424,197 @@ def informe_buscar_notas_export(
             formato, "Buscar en notas", COLUMNAS_BUSCAR_NOTAS, filas,
             formato_linea=_formato_linea_buscar_notas,
         )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# --- Nivel 2, ABC de clientes -- retoma el pedido del 13/09 (ANALISIS_MODULO_ESTADISTICAS_
+# S864.md), ahora con piso real (cantidad_entregada confiable). "Venta" en $ neto, por las dos
+# medidas que Carlos eligio (2026-09-28): entregado y facturado, por separado -- Rosa nunca
+# factura por diseno, mezclar las dos en una sola columna la dejaria siempre en 0. Cortes
+# estandar 80/95% (S864 §5 Q3). ---
+
+COLUMNAS_ABC_CLIENTES = [
+    {"key": "cliente", "label": "Cliente", "width": 30},
+    {"key": "neto_entregado", "label": "$ Entregado (neto)", "width": 16},
+    {"key": "clase_entregado", "label": "Clase (entregado)", "width": 10},
+    {"key": "pct_acum_entregado", "label": "% acum. entregado", "width": 12},
+    {"key": "neto_facturado", "label": "$ Facturado (neto, AFIP)", "width": 18},
+    {"key": "clase_facturado", "label": "Clase (facturado)", "width": 10},
+    {"key": "pct_acum_facturado", "label": "% acum. facturado", "width": 12},
+]
+
+
+def _clasificar_abc(valores_por_id: dict) -> dict:
+    """Clase A/B/C por corte estandar de % acumulado (80/95), orden descendente por monto
+    (S864 §5 Q3, §7.3). Devuelve {id: (clase, pct_acumulado)}."""
+    total = sum(valores_por_id.values())
+    resultado = {}
+    acumulado = 0.0
+    for id_, monto in sorted(valores_por_id.items(), key=lambda kv: kv[1], reverse=True):
+        acumulado += monto
+        pct = (acumulado / total * 100) if total else 0.0
+        clase = "A" if pct <= 80 else ("B" if pct <= 95 else "C")
+        resultado[id_] = (clase, round(pct, 1))
+    return resultado
+
+
+def _filas_abc_clientes(db: Session):
+    from sqlalchemy.orm import joinedload
+    from backend.pedidos.models import Pedido, PedidoItem
+    from backend.facturacion.models import Factura
+    from backend.clientes.models import Cliente
+
+    # --- Entregado: subtotal de linea (ya neto, con descuento de renglon) prorrateado por lo
+    # efectivamente entregado -- mismo dato que ya usa el Informe B (cantidad_entregada), no
+    # se inventa un precio nuevo. ---
+    entregado_por_cliente: dict = {}
+    items = (
+        db.query(PedidoItem)
+        .join(Pedido, PedidoItem.pedido_id == Pedido.id)
+        .filter(Pedido.estado != "ANULADO")
+        .options(joinedload(PedidoItem.pedido))
+        .all()
+    )
+    for item in items:
+        pedido = item.pedido
+        if not pedido or not item.cantidad:
+            continue
+        neto_item = (item.subtotal / item.cantidad) * item.cantidad_entregada
+        entregado_por_cliente[pedido.cliente_id] = entregado_por_cliente.get(pedido.cliente_id, 0.0) + neto_item
+
+    # --- Facturado: solo AUTORIZADA_AFIP -- BORRADOR/PRESUPUESTO_X no son un hecho fiscal real
+    # (S864 §2.5). Neto = gravado + exento, nunca el total con IVA (S864 §2.4). ---
+    facturado_por_cliente: dict = {}
+    for factura in db.query(Factura).filter(Factura.estado == "AUTORIZADA_AFIP").all():
+        neto = (factura.neto_gravado or 0.0) + (factura.exento or 0.0)
+        facturado_por_cliente[factura.cliente_id] = facturado_por_cliente.get(factura.cliente_id, 0.0) + neto
+
+    clases_entregado = _clasificar_abc(entregado_por_cliente)
+    clases_facturado = _clasificar_abc(facturado_por_cliente)
+
+    todos_ids = set(entregado_por_cliente) | set(facturado_por_cliente)
+    clientes = {c.id: c.razon_social for c in db.query(Cliente).filter(Cliente.id.in_(todos_ids)).all()} if todos_ids else {}
+
+    filas = []
+    for cid in todos_ids:
+        clase_e, pct_e = clases_entregado.get(cid, ("C", 0.0))
+        clase_f, pct_f = clases_facturado.get(cid, ("C", 0.0))
+        filas.append({
+            "cliente": clientes.get(cid, "(desconocido)"),
+            "neto_entregado": round(entregado_por_cliente.get(cid, 0.0), 2),
+            "clase_entregado": clase_e,
+            "pct_acum_entregado": pct_e,
+            "neto_facturado": round(facturado_por_cliente.get(cid, 0.0), 2),
+            "clase_facturado": clase_f,
+            "pct_acum_facturado": pct_f,
+        })
+    filas.sort(key=lambda f: f["neto_entregado"], reverse=True)
+    return filas
+
+
+@router.get("/abc-clientes")
+def informe_abc_clientes(db: Session = Depends(get_db)):
+    """Nivel 2 -- ranking de clientes por $ neto, en dos medidas independientes (entregado y
+    facturado). Un cliente Rosa aparece con $ facturado en 0 y clase C ahi -- correcto, no un
+    error: Rosa no factura por diseno (paga primero, recibe despues)."""
+    filas = _filas_abc_clientes(db)
+    return {"columnas": COLUMNAS_ABC_CLIENTES, "filas": filas}
+
+
+@router.get("/abc-clientes/export")
+def informe_abc_clientes_export(formato: str, db: Session = Depends(get_db)):
+    filas = _filas_abc_clientes(db)
+    try:
+        return exportar(formato, "ABC de clientes", COLUMNAS_ABC_CLIENTES, filas)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# --- Nivel 2, ABC de productos -- retoma S864 §7.4: dos rankings por CANTIDAD DISTINTA, no por
+# $ (a diferencia del ABC de clientes de arriba). "Compra" = pedido firme, mismo criterio que ya
+# usa el resto de este router (Pedido.estado != ANULADO) -- no depende de si se entrego o
+# facturo, porque acá no se suma plata, se cuentan relaciones. ---
+
+COLUMNAS_ABC_PRODUCTOS_POR_PRODUCTO = [
+    {"key": "producto", "label": "Producto", "width": 30},
+    {"key": "clientes_distintos", "label": "Clientes distintos", "width": 14},
+    {"key": "clientes", "label": "Clientes", "width": 60},
+]
+
+COLUMNAS_ABC_PRODUCTOS_POR_CLIENTE = [
+    {"key": "cliente", "label": "Cliente", "width": 30},
+    {"key": "productos_distintos", "label": "Productos distintos", "width": 14},
+    {"key": "productos", "label": "Productos", "width": 60},
+]
+
+
+def _pares_producto_cliente(db: Session):
+    from backend.pedidos.models import Pedido, PedidoItem
+
+    return (
+        db.query(PedidoItem.producto_id, Pedido.cliente_id)
+        .join(Pedido, PedidoItem.pedido_id == Pedido.id)
+        .filter(Pedido.estado != "ANULADO", PedidoItem.producto_id.isnot(None))
+        .distinct()
+        .all()
+    )
+
+
+def _filas_abc_productos(db: Session, vista: str):
+    from backend.productos.models import Producto
+    from backend.clientes.models import Cliente
+
+    pares = _pares_producto_cliente(db)
+    productos = {p.id: p.nombre for p in db.query(Producto).all()}
+    clientes = {c.id: c.razon_social for c in db.query(Cliente).all()}
+
+    if vista == "cliente":
+        por_cliente: dict = {}
+        for producto_id, cliente_id in pares:
+            por_cliente.setdefault(cliente_id, set()).add(producto_id)
+        filas = [
+            {
+                "cliente": clientes.get(cid, "(desconocido)"),
+                "productos_distintos": len(prods),
+                "productos": ", ".join(sorted(productos.get(pid, "(desconocido)") for pid in prods)),
+            }
+            for cid, prods in por_cliente.items()
+        ]
+        filas.sort(key=lambda f: f["productos_distintos"], reverse=True)
+        return filas
+
+    por_producto: dict = {}
+    for producto_id, cliente_id in pares:
+        por_producto.setdefault(producto_id, set()).add(cliente_id)
+    filas = [
+        {
+            "producto": productos.get(pid, "(desconocido)"),
+            "clientes_distintos": len(clis),
+            "clientes": ", ".join(sorted(clientes.get(cid, "(desconocido)") for cid in clis)),
+        }
+        for pid, clis in por_producto.items()
+    ]
+    filas.sort(key=lambda f: f["clientes_distintos"], reverse=True)
+    return filas
+
+
+@router.get("/abc-productos")
+def informe_abc_productos(vista: str = "producto", db: Session = Depends(get_db)):
+    """Nivel 2 -- S864 §7.4: 'producto' (a cuantos clientes distintos se les vendio cada
+    producto) o 'cliente' (cuantos productos distintos compra cada cliente). 'Compra' = pedido
+    firme, igual criterio que el resto del router (Pedido.estado != ANULADO)."""
+    columnas = COLUMNAS_ABC_PRODUCTOS_POR_CLIENTE if vista == "cliente" else COLUMNAS_ABC_PRODUCTOS_POR_PRODUCTO
+    filas = _filas_abc_productos(db, vista)
+    return {"columnas": columnas, "filas": filas}
+
+
+@router.get("/abc-productos/export")
+def informe_abc_productos_export(formato: str, vista: str = "producto", db: Session = Depends(get_db)):
+    columnas = COLUMNAS_ABC_PRODUCTOS_POR_CLIENTE if vista == "cliente" else COLUMNAS_ABC_PRODUCTOS_POR_PRODUCTO
+    filas = _filas_abc_productos(db, vista)
+    titulo = "ABC de productos (por cliente)" if vista == "cliente" else "ABC de productos (por producto)"
+    try:
+        return exportar(formato, titulo, columnas, filas)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
