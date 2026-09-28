@@ -104,6 +104,14 @@
                 class="bg-amber-600 hover:bg-amber-500 disabled:bg-slate-700 disabled:cursor-not-allowed disabled:text-slate-500 text-white px-4 py-2 rounded-lg shadow-lg hover:shadow-amber-500/20 transition flex items-center gap-2">
                 <i class="fas fa-layer-group"></i> Armar PR
               </button>
+              <!-- [Etapa 6, PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §8] Devolución = PR de
+                   signo negativo, mismo endpoint que "Armar PR" (armarRemito) pero con cantidad
+                   negativa -- sale de lo YA ENTREGADO, no de lo pendiente, por eso es un pool
+                   distinto (itemsConEntrega, no itemsPendientes). -->
+              <button @click="openDevolucionModal" :disabled="itemsConEntrega.length === 0"
+                class="bg-rose-700 hover:bg-rose-600 disabled:bg-slate-700 disabled:cursor-not-allowed disabled:text-slate-500 text-white px-4 py-2 rounded-lg shadow-lg hover:shadow-rose-500/20 transition flex items-center gap-2">
+                <i class="fas fa-rotate-left"></i> Registrar Devolución
+              </button>
               <button @click="$router.push({ name: 'ManualRemito', query: { cliente_id: idCliente, pedido_id: localPedido.id } })"
                 class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg hover:shadow-blue-500/20 transition flex items-center gap-2">
                 <i class="fas fa-plus"></i> Nuevo Remito (manual)
@@ -175,10 +183,13 @@
              </p>
              <div v-else class="space-y-2">
                 <div v-for="rItem in remito.items" :key="rItem.id" class="flex justify-between items-center text-sm bg-slate-800 p-2 rounded border border-slate-700">
-                   <span class="text-slate-300">
+                   <span class="text-slate-300 flex items-center gap-2">
+                      <span v-if="rItem.cantidad < 0" class="text-[9px] font-bold uppercase bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded">
+                         <i class="fas fa-rotate-left"></i> Devolución
+                      </span>
                       {{ getProductName(rItem.pedido_item_id) }}
                    </span>
-                   <span class="font-mono font-bold text-blue-300">
+                   <span class="font-mono font-bold" :class="rItem.cantidad < 0 ? 'text-rose-400' : 'text-blue-300'">
                       {{ rItem.cantidad }} un.
                    </span>
                 </div>
@@ -245,8 +256,46 @@
        </div>
     </div>
 
+    <!-- MODAL REGISTRAR DEVOLUCIÓN [Etapa 6] -->
+    <div v-if="showDevolucionModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+       <div class="bg-slate-800 p-6 rounded-2xl w-full max-w-lg shadow-2xl border border-rose-900/50">
+          <h3 class="text-lg font-bold text-white mb-1"><i class="fas fa-rotate-left mr-2 text-rose-400"></i>Registrar Devolución</h3>
+          <p class="text-xs text-slate-400 mb-4">
+             Elegí los renglones que vuelven y cuánto. Descompleta lo entregado -- el renglón
+             vuelve a quedar pendiente por esa cantidad. Genera un remito nuevo (0015), nunca
+             edita uno ya emitido.
+          </p>
+
+          <div class="max-h-80 overflow-y-auto space-y-2 pr-1">
+             <div v-for="sel in devolucionSeleccion" :key="sel.pedido_item_id"
+                  class="flex items-center gap-3 bg-slate-900/50 border border-slate-700 rounded-lg p-3"
+                  :class="{'opacity-50': !sel.marcado}">
+                <input type="checkbox" v-model="sel.marcado" class="w-4 h-4 accent-rose-500">
+                <div class="flex-1 min-w-0">
+                   <p class="text-sm text-white truncate">{{ sel.producto_nombre }}</p>
+                   <p class="text-[10px] text-slate-500 uppercase">Entregado (neto): {{ sel.cantidad_entregada }}</p>
+                </div>
+                <input type="number" v-model.number="sel.cantidad" :max="sel.cantidad_entregada" min="0.01"
+                       :disabled="!sel.marcado"
+                       class="w-24 bg-slate-900 border border-slate-700 rounded p-2 text-right text-white font-mono focus:border-rose-500 outline-none disabled:opacity-40">
+             </div>
+             <div v-if="devolucionSeleccion.length === 0" class="text-center py-6 text-slate-500 text-sm">
+                No hay renglones con algo entregado en este pedido.
+             </div>
+          </div>
+
+          <div class="flex justify-end gap-3 mt-6">
+             <button @click="cancelDevolucion" class="text-slate-400 hover:text-white px-4 py-2">Cancelar</button>
+             <button @click="confirmDevolucion" :disabled="!devolucionSeleccion.some(s => s.marcado)"
+                     class="bg-rose-700 hover:bg-rose-600 disabled:bg-slate-700 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg font-bold">
+                Registrar
+             </button>
+          </div>
+       </div>
+    </div>
+
     <!-- REMITO PRINT MDOAL -->
-    <RemitoTemplate 
+    <RemitoTemplate
         v-if="printRemitoData" 
         :propRemito="printRemitoData"
         :pedido="localPedido"
@@ -283,6 +332,8 @@ const clientDomicilios = ref([]);
 const showAddItemModal = ref(false);
 const showArmarModal = ref(false); // [Etapa 4]
 const armarSeleccion = ref([]); // [Etapa 4]
+const showDevolucionModal = ref(false); // [Etapa 6]
+const devolucionSeleccion = ref([]); // [Etapa 6]
 
 // Drag & Drop
 const dragItem = ref(null);
@@ -293,6 +344,12 @@ const printRemitoData = ref(null);
 // --- Computed ---
 const itemsPendientes = computed(() => remitosStore.itemsPendientes);
 const remitos = computed(() => remitosStore.remitos);
+// [Etapa 6] Pool de una devolución: renglones con algo entregado (neto), a diferencia de
+// itemsPendientes (renglones con saldo a favor del cliente) -- un renglón CUMPLIDO no tiene
+// pendiente pero sí puede tener devolución.
+const itemsConEntrega = computed(() =>
+  (localPedido.value?.items || []).filter(i => (i.cantidad_entregada || 0) > 0)
+);
 
 // --- Methods ---
 
@@ -433,6 +490,43 @@ const confirmArmar = async () => {
         armarSeleccion.value = [];
     } catch (err) {
         alert(remitosStore.error || 'No se pudo armar el remito.');
+    }
+};
+
+// [Etapa 6] Registrar Devolución -- mismo endpoint que "Armar PR" (armarRemito), cantidad
+// negativa en vez de un flujo aparte (PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §8).
+const openDevolucionModal = () => {
+    devolucionSeleccion.value = itemsConEntrega.value.map(item => ({
+        pedido_item_id: item.id,
+        producto_nombre: item.producto?.nombre || item.nota || 'Ítem',
+        cantidad_entregada: item.cantidad_entregada,
+        cantidad: item.cantidad_entregada,
+        marcado: false,
+    }));
+    showDevolucionModal.value = true;
+};
+
+const cancelDevolucion = () => {
+    showDevolucionModal.value = false;
+    devolucionSeleccion.value = [];
+};
+
+const confirmDevolucion = async () => {
+    const elegidos = devolucionSeleccion.value.filter(s => s.marcado);
+    if (elegidos.length === 0) return;
+
+    try {
+        await remitosStore.armarRemito({
+            pedido_id: localPedido.value.id,
+            // Signo negativo: es lo único que distingue una devolución de un PR normal en el
+            // mismo endpoint -- ver guarda DEVOLUCION_EXCEDE_ENTREGADO en el backend.
+            items: elegidos.map(s => ({ pedido_item_id: s.pedido_item_id, cantidad: -Math.abs(s.cantidad) })),
+        });
+        showDevolucionModal.value = false;
+        devolucionSeleccion.value = [];
+        await loadData(localPedido.value.id);
+    } catch (err) {
+        alert(remitosStore.error || 'No se pudo registrar la devolución.');
     }
 };
 

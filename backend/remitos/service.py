@@ -725,6 +725,14 @@ class RemitosService:
         Carlos + Nike, DISENO_PEDIDO_NO_COMERCIAL_S873_2026-09-24.md. (Se probó brevemente un
         diseño alternativo, "Remito sin Pedido" con pedido_item_id/producto_id nullable en
         RemitoItem -- revertido el mismo día, ver migrate_043_revertir_huerfano_pedido_id.py.)
+
+        [Etapa 6, §8] Tampoco hay rama especial para la devolución: mismo endpoint, mismo
+        schema, `cantidad` negativa en vez de una entidad aparte -- ver la guarda
+        DEVOLUCION_EXCEDE_ENTREGADO más abajo. No hace falta tocar `cantidad_entregada`
+        (`PedidoItem.cantidad_entregada`, `pedidos/models.py`) ni ningún lector aguas abajo
+        (saldoRenglon/estadoRenglon en el frontend, Informe A/B): esa resta ya sumaba
+        `RemitoItem.cantidad_remitida` de TODOS los remitos no anulados, así que una devolución
+        se descuenta sola con el signo, sin ningún cambio de código en esos puntos.
         """
         pedido = db.query(Pedido).filter(Pedido.id == payload.pedido_id).first()
         if not pedido:
@@ -774,6 +782,33 @@ class RemitosService:
                         f"pertenece al Pedido #{pedido.id}."
                     )
                 )
+            if item_payload.cantidad < 0:
+                # [Etapa 6, PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §8] Devolución = PR de
+                # signo negativo, no una entidad aparte. El único candado es que no se puede
+                # devolver más de lo que efectivamente salió (neto, ya descontando devoluciones
+                # previas) -- "cantidad_entregada" ya es esa resta.
+                entregado = pedido_item.cantidad_entregada
+                if abs(item_payload.cantidad) > entregado + 0.001:
+                    db.rollback()
+                    raise HTTPException(
+                        status_code=409,
+                        detail=(
+                            f"DEVOLUCION_EXCEDE_ENTREGADO: '{pedido_item.producto.nombre if pedido_item.producto else pedido_item.id}' "
+                            f"pretende devolver {abs(item_payload.cantidad)}, pero el Pedido #{pedido.id} "
+                            f"solo tiene {entregado} entregado (neto) en ese renglón."
+                        )
+                    )
+                db.add(models.RemitoItem(
+                    remito_id=remito.id,
+                    pedido_item_id=pedido_item.id,
+                    # Declarado = remitido acá: no hay "pendiente que se debía" para una
+                    # devolución, es simétrico (mismo criterio que antes de la Etapa 4, cuando
+                    # declarado y remitido todavía valían lo mismo).
+                    cantidad_declarada=item_payload.cantidad,
+                    cantidad_remitida=item_payload.cantidad,
+                ))
+                continue
+
             # [Etapa 4, punto 1] cantidad_declarada = foto del PENDIENTE al armar (no lo que se
             # remite ahora) -- así un PR parcial sigue diciendo cuánto quedaba debiéndose en el
             # momento en que se armó, no se sobreescribe con lo que efectivamente salió.
