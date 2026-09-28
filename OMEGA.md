@@ -3,7 +3,7 @@
 
 > Protocolo exclusivo para entorno D (desarrollo).
 > Para P ver: C:\dev\v5-ls-Tom\OMEGA.md
-> **Versión:** 3.4 — 2026-09-17
+> **Versión:** 3.5 — 2026-09-28
 > **Dictamen:** Nike Arq 5.5 — Redacción: Carlos + Claude Sonnet 4.6
 
 ---
@@ -21,16 +21,24 @@ automática tiene validez.
 
 ## FASE 1 — AUDITORÍA DE SALUD
 
-Canario obligatorio antes de cerrar:
+Canario obligatorio antes de cerrar. Correr desde la raíz del entorno (`C:\dev\Sonido_Liquido_V5`
+en D, `C:\dev\v5-ls-Tom` en B/P) — el entorno (TOM/DEV) y la ruta real de la base se
+auto-detectan leyendo `DATABASE_URL` de `.env`/`current/.env` vía `scripts/_env_db.py`, igual
+que ya usan `exportar_pedidos_excel.py` y `canario_v2.py` (Card #93-bis). **Nunca hardcodear
+`pilot_v5x.db`** — Card #118: la versión anterior lo tenía fijo, y esa ruta no existe en P/MT
+(mismo patrón de raíz que mató el backend de Tomy en S851 vía el `canario_v2.py` legacy de B):
 ```python
 python -c "
-import sqlite3
-conn = sqlite3.connect('pilot_v5x.db')
+import sys, os, sqlite3
+sys.path.insert(0, os.path.join(os.getcwd(), 'scripts'))
+from _env_db import detectar_entorno_db
+db_path, entorno = detectar_entorno_db()
+conn = sqlite3.connect(db_path)
 cur = conn.cursor()
 cur.execute(\"SELECT id, flags_estado FROM clientes WHERE id = 'e1be0585cd3443efa33204d00e199c4e'\")
 row = cur.fetchone()
 flags = row[1] if row else 0
-print(row, '-> OK' if (flags & 13) == 13 else '-> STOP')
+print(f'{entorno} {db_path}', row, '-> OK' if (flags & 13) == 13 else '-> STOP')
 conn.close()
 "
 ```
@@ -52,14 +60,18 @@ Si no es NOMINAL:
 
 ## FASE 1B — WAL CHECKPOINT (antes de exportar DB al Drive)
 
-Ejecutar SIEMPRE antes de copiar `pilot_v5x.db` al Drive:
+Ejecutar SIEMPRE antes de copiar la base real al Drive — mismo auto-detect de entorno que FASE 1
+(Card #118, no hardcodear `pilot_v5x.db`):
 ```python
 python -c "
-import sqlite3
-conn = sqlite3.connect('pilot_v5x.db')
+import sys, os, sqlite3
+sys.path.insert(0, os.path.join(os.getcwd(), 'scripts'))
+from _env_db import detectar_entorno_db
+db_path, entorno = detectar_entorno_db()
+conn = sqlite3.connect(db_path)
 conn.execute('PRAGMA wal_checkpoint(FULL)')
 conn.close()
-print('WAL checkpoint OK')
+print(f'WAL checkpoint OK ({entorno} {db_path})')
 "
 ```
 Si no devuelve `WAL checkpoint OK` → STOP. No exportar.
@@ -388,8 +400,18 @@ Qué NO toca: User\, Workspaces\, Preferences.
 
 ---
 
-*Última actualización: 2026-09-17 — OF (S868)*
-*Reemplaza: OMEGA.md (V3.3)*
+*Última actualización: 2026-09-28 — OF (S875)*
+*Reemplaza: OMEGA.md (V3.4)*
+*Versión 3.5 — S875-OF (2026-09-28), Card #118 — FASE 1 y FASE 1B tenían `pilot_v5x.db`
+hardcodeado (la ruta de D) en las tres copias vivas del protocolo (Silo, D, B). Migradas a
+`scripts/_env_db.py::detectar_entorno_db()`, el mismo mecanismo que ya usan
+`exportar_pedidos_excel.py` y `canario_v2.py` (Card #93-bis) — mismo patrón de raíz que el
+`canario_v2.py` legacy que mató el backend de Tomy en S851. Verificado corriendo ambos
+snippets nuevos de punta a punta contra D (entorno DEV) y contra B (entorno TOM,
+`V5_LS_MASTER.db`), en los dos casos con el canario real en verde. Hallazgo aparte, sin
+tocar hoy: `current/OMEGA.md` en B es una tercera copia, V2.2 de 2026-05-04 — no recibió
+ninguna actualización desde entonces (le faltan FASE 1B.2/1B.3/1C/1D, perfiles Completo/Lite,
+CONTEXTO_CS). Reportado a Carlos como hallazgo separado, no incluido en este fix.*
 *Versión 3.2 — S841-OF — Perfiles Completo/Lite (Bit 19), Bits 26-28 en actualización de
 system_flags, CONTEXTO_CS/ + DESTILADO CS como ítem obligatorio de FASE 2, fix diagnóstico
 actualizar_card000.py en verificación.*
