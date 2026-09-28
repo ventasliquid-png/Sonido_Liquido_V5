@@ -94,3 +94,134 @@ def informe_remitos_export(
         return exportar(formato, "Remitos por fecha o cliente", COLUMNAS_REMITOS, filas)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+# --- Informe B: pedidos con pendiente -- resta calculada (PedidoItem.cantidad_entregada,
+# @property), nunca los Bits 20/21 (Etapa 2 del Circuito PR: todo lector pasa a la resta). ---
+
+COLUMNAS_PEDIDOS_PENDIENTE = [
+    {"key": "pedido_id", "label": "Pedido", "width": 10},
+    {"key": "cliente", "label": "Cliente", "width": 30},
+    {"key": "fecha_pedido", "label": "Fecha", "width": 14},
+    {"key": "oc", "label": "OC", "width": 14},
+    {"key": "renglon", "label": "Renglón", "width": 30},
+    {"key": "declarado", "label": "Declarado", "width": 12},
+    {"key": "entregado", "label": "Entregado", "width": 12},
+    {"key": "pendiente", "label": "Pendiente", "width": 12},
+]
+
+
+def _filas_informe_pendiente(db: Session, cliente_id: Optional[str], oc: Optional[str]):
+    from sqlalchemy.orm import joinedload
+    from backend.pedidos.models import Pedido, PedidoItem
+
+    query = (
+        db.query(PedidoItem)
+        .join(Pedido, PedidoItem.pedido_id == Pedido.id)
+        .filter(Pedido.estado != "ANULADO")
+        .options(joinedload(PedidoItem.pedido).joinedload(Pedido.cliente), joinedload(PedidoItem.producto))
+    )
+    if cliente_id:
+        query = query.filter(Pedido.cliente_id == cliente_id)
+    if oc:
+        query = query.filter(Pedido.oc.ilike(f"%{oc.strip()}%"))
+
+    filas = []
+    for item in query.all():
+        entregado = item.cantidad_entregada
+        pendiente = item.cantidad - entregado
+        if pendiente <= 0.001:
+            continue
+        pedido = item.pedido
+        cliente = pedido.cliente if pedido else None
+        producto = item.producto
+        filas.append({
+            "pedido_id": pedido.id if pedido else None,
+            "cliente": cliente.razon_social if cliente else None,
+            "fecha_pedido": pedido.fecha.isoformat() if pedido and pedido.fecha else None,
+            "oc": pedido.oc if pedido else None,
+            "renglon": producto.nombre if producto else (item.nota or "Ítem"),
+            "declarado": item.cantidad,
+            "entregado": entregado,
+            "pendiente": pendiente,
+        })
+    return filas
+
+
+@router.get("/pedidos-pendiente")
+def informe_pedidos_pendiente(
+    cliente_id: Optional[str] = None,
+    oc: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    filas = _filas_informe_pendiente(db, cliente_id, oc)
+    return {"columnas": COLUMNAS_PEDIDOS_PENDIENTE, "filas": filas}
+
+
+@router.get("/pedidos-pendiente/export")
+def informe_pedidos_pendiente_export(
+    formato: str,
+    cliente_id: Optional[str] = None,
+    oc: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    filas = _filas_informe_pendiente(db, cliente_id, oc)
+    try:
+        return exportar(formato, "Pedidos con pendiente", COLUMNAS_PEDIDOS_PENDIENTE, filas)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# --- Informe C: pedidos con OC -- filtro directo Pedido.oc IS NOT NULL. No confundir con
+# pedido_origen_id/motivo_relacion_oc (vínculo pedido->pedido del Circuito PR, otro campo). ---
+
+COLUMNAS_PEDIDOS_OC = [
+    {"key": "pedido_id", "label": "Pedido", "width": 10},
+    {"key": "cliente", "label": "Cliente", "width": 30},
+    {"key": "fecha_pedido", "label": "Fecha", "width": 14},
+    {"key": "oc", "label": "OC", "width": 16},
+    {"key": "estado", "label": "Estado", "width": 14},
+    {"key": "total", "label": "Total", "width": 14},
+]
+
+
+def _filas_informe_oc(db: Session, cliente_id: Optional[str]):
+    from sqlalchemy.orm import joinedload
+    from backend.pedidos.models import Pedido
+
+    query = (
+        db.query(Pedido)
+        .filter(Pedido.oc.isnot(None), Pedido.oc != "")
+        .options(joinedload(Pedido.cliente))
+        .order_by(Pedido.fecha.desc())
+    )
+    if cliente_id:
+        query = query.filter(Pedido.cliente_id == cliente_id)
+
+    filas = []
+    for pedido in query.all():
+        cliente = pedido.cliente
+        filas.append({
+            "pedido_id": pedido.id,
+            "cliente": cliente.razon_social if cliente else None,
+            "fecha_pedido": pedido.fecha.isoformat() if pedido.fecha else None,
+            "oc": pedido.oc,
+            "estado": pedido.estado,
+            "total": pedido.total,
+        })
+    return filas
+
+
+@router.get("/pedidos-oc")
+def informe_pedidos_oc(cliente_id: Optional[str] = None, db: Session = Depends(get_db)):
+    filas = _filas_informe_oc(db, cliente_id)
+    return {"columnas": COLUMNAS_PEDIDOS_OC, "filas": filas}
+
+
+@router.get("/pedidos-oc/export")
+def informe_pedidos_oc_export(formato: str, cliente_id: Optional[str] = None, db: Session = Depends(get_db)):
+    filas = _filas_informe_oc(db, cliente_id)
+    try:
+        return exportar(formato, "Pedidos con OC", COLUMNAS_PEDIDOS_OC, filas)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

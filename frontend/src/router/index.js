@@ -147,6 +147,16 @@ const routes = [
                 component: () => import('../views/Informes/RemitosListado.vue')
             },
             {
+                path: 'informes/pedidos-pendiente',
+                name: 'InformePedidosPendiente',
+                component: () => import('../views/Informes/PedidosPendienteListado.vue')
+            },
+            {
+                path: 'informes/pedidos-oc',
+                name: 'InformePedidosOc',
+                component: () => import('../views/Informes/PedidosOcListado.vue')
+            },
+            {
                 path: 'domicilios',
                 name: 'AddressHub',
                 component: () => import('../views/Maestros/AddressHubView.vue')
