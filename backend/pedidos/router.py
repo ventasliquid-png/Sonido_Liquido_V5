@@ -220,10 +220,11 @@ def create_pedido_tactico(
                 "SUBTOTAL": subtotal
             })
             
-            # [LOGISTICA V7] Registrar Reserva de Stock
-            if producto.stock_reservado is None: 
-                producto.stock_reservado = Decimal("0.0")
-            producto.stock_reservado += Decimal(str(item.cantidad))
+            # [LOGISTICA V7] Registrar Reserva de Stock -- [S875, punto E] SERVICIO no reserva
+            if producto.tipo_producto != 'SERVICIO':
+                if producto.stock_reservado is None:
+                    producto.stock_reservado = Decimal("0.0")
+                producto.stock_reservado += Decimal(str(item.cantidad))
 
         # 4. Actualizar Total (Restando descuento global y aplicando IVA si corresponde)
         raw_neto = total_pedido - (nuevo_pedido.descuento_global_importe or 0.0)
@@ -802,7 +803,7 @@ def update_pedido(
                 # Renglón existente: ACTUALIZAR IN PLACE (preserva el id -> RemitoItem intacto)
                 seen_ids.add(it_id)
                 diff = Decimal(str(it['cantidad'])) - Decimal(str(existing_item.cantidad))
-                if diff != 0:
+                if diff != 0 and producto.tipo_producto != 'SERVICIO':
                     if producto.stock_reservado is None: producto.stock_reservado = Decimal("0.0")
                     producto.stock_reservado += diff
 
@@ -827,9 +828,10 @@ def update_pedido(
                 )
                 db.add(new_item)
 
-                # [LOGISTICA V7] Reserva de Stock (Nuevo Item)
-                if producto.stock_reservado is None: producto.stock_reservado = Decimal("0.0")
-                producto.stock_reservado += Decimal(str(it['cantidad']))
+                # [LOGISTICA V7] Reserva de Stock (Nuevo Item) -- [S875, punto E] SERVICIO no reserva
+                if producto.tipo_producto != 'SERVICIO':
+                    if producto.stock_reservado is None: producto.stock_reservado = Decimal("0.0")
+                    producto.stock_reservado += Decimal(str(it['cantidad']))
 
         # Renglones que estaban y ya no vienen en el array: solo se pueden borrar
         # si nunca tuvieron entrega real -- si tienen, es un intento de borrar
@@ -849,7 +851,7 @@ def update_pedido(
                     detail=f"No se puede eliminar el renglón '{descripcion}': ya tiene {entregado} unidades entregadas."
                 )
             prod = old_item.producto
-            if prod and prod.stock_reservado is not None:
+            if prod and prod.stock_reservado is not None and prod.tipo_producto != 'SERVICIO':
                 prod.stock_reservado -= Decimal(str(old_item.cantidad))
             db.query(RemitoItem).filter(RemitoItem.pedido_item_id == rid).delete(synchronize_session=False)
             db.delete(old_item)
@@ -1003,10 +1005,11 @@ def add_pedido_item(
     )
     db.add(new_item)
     
-    # [LOGISTICA V7] Incrementar Reserva
-    if producto.stock_reservado is None:
-        producto.stock_reservado = Decimal("0.0")
-    producto.stock_reservado += Decimal(str(item_create.cantidad))
+    # [LOGISTICA V7] Incrementar Reserva -- [S875, punto E] SERVICIO no reserva
+    if producto.tipo_producto != 'SERVICIO':
+        if producto.stock_reservado is None:
+            producto.stock_reservado = Decimal("0.0")
+        producto.stock_reservado += Decimal(str(item_create.cantidad))
     
     # Update Total (Recalculate with IVA logic)
     raw_neto = sum(i.subtotal for i in pedido.items) - (pedido.descuento_global_importe or 0.0)
@@ -1080,8 +1083,9 @@ def update_pedido_item(
             db.add(pedido)
 
         prod = item.producto
-        if prod.stock_reservado is None: prod.stock_reservado = Decimal("0.0")
-        prod.stock_reservado += Decimal(str(diff))
+        if prod.tipo_producto != 'SERVICIO':
+            if prod.stock_reservado is None: prod.stock_reservado = Decimal("0.0")
+            prod.stock_reservado += Decimal(str(diff))
 
     for key, value in update_data.items():
         setattr(item, key, value)
@@ -1131,9 +1135,9 @@ def delete_pedido_item(item_id: int, db: Session = Depends(get_db)):
     # Recalculating is safer.
     pedido = item.pedido
     
-    # [LOGISTICA V7] Liberar Reserva
+    # [LOGISTICA V7] Liberar Reserva -- [S875, punto E] SERVICIO nunca reservó
     prod = item.producto
-    if prod.stock_reservado is not None:
+    if prod.stock_reservado is not None and prod.tipo_producto != 'SERVICIO':
         prod.stock_reservado -= Decimal(str(item.cantidad))
         
     # [CASCADE FIX] Limpiar RemitoItems vinculados antes del hard-delete
@@ -1196,10 +1200,11 @@ def clone_pedido(pedido_id: int, db: Session = Depends(get_db)):
         )
         db.add(new_item)
         
-        # [LOGISTICA V7] Reserva de Stock
+        # [LOGISTICA V7] Reserva de Stock -- [S875, punto E] SERVICIO no reserva
         prod = item.producto
-        if prod.stock_reservado is None: prod.stock_reservado = Decimal("0.0")
-        prod.stock_reservado += Decimal(str(item.cantidad))
+        if prod.tipo_producto != 'SERVICIO':
+            if prod.stock_reservado is None: prod.stock_reservado = Decimal("0.0")
+            prod.stock_reservado += Decimal(str(item.cantidad))
         
     db.commit()
     
@@ -1229,10 +1234,10 @@ def delete_pedido(pedido_id: int, db: Session = Depends(get_db)):
     if not pedido:
         raise HTTPException(status_code=404, detail="Pedido no encontrado")
     
-    # [LOGISTICA V7] Liberar Reservas (Phantom Fix)
+    # [LOGISTICA V7] Liberar Reservas (Phantom Fix) -- [S875, punto E] SERVICIO nunca reservó
     for item in pedido.items:
         prod = item.producto
-        if prod.stock_reservado is not None:
+        if prod.stock_reservado is not None and prod.tipo_producto != 'SERVICIO':
             prod.stock_reservado -= Decimal(str(item.cantidad))
             
     db.delete(pedido)

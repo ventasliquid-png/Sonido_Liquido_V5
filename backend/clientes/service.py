@@ -384,9 +384,16 @@ class ClienteService:
         is_generic = db_cliente.cuit in ['00000000000', '11111111119', '11111111111', '99999999999']
         is_cf = False
         is_cf = False
+        is_cliente_interno = False
         if db_cliente.condicion_iva and db_cliente.condicion_iva.nombre:
             if "CONSUMIDOR FINAL" in db_cliente.condicion_iva.nombre.upper():
                 is_cf = True
+            # [S875, traspaso AG punto A] Condición de IVA dedicada para Rosa "puro" -- Bit
+            # OPERATOR_OK incondicional, sin depender de CUIT ni segmento (Rossini: CF con
+            # CUIT genérico no alcanzaba, un cliente marcado así explícitamente nunca depende
+            # de esa inferencia).
+            if db_cliente.condicion_iva.nombre.upper() == "CLIENTE INTERNO":
+                is_cliente_interno = True
 
         # --- [REGLA 1 — Nike 806] CONSUMIDOR FINAL FORZADO GOLD ---
         # CUIT 00000000000 nace Blanco Virgen (15) — nunca infiere Rosa
@@ -398,8 +405,11 @@ class ClienteService:
         # Transición Amarillo→Rosa irreversible mientras no tenga CUIT.
         # Si tiene Bit 2 (Gold/Blanco) nunca se toca Bit 4.
         if not (db_cliente.flags_estado & ClientFlags.GOLD_ARCA):
-            has_real_cuit = bool(db_cliente.cuit and len(db_cliente.cuit.strip()) >= 10)
-            if has_segmento and not has_real_cuit:
+            # [Fix S875, traspaso AG punto B] un CUIT genérico de contingencia (11111111119, etc.)
+            # tiene >=10 caracteres y pasaba como CUIT real -- nunca prendía OPERATOR_OK. is_generic
+            # ya se calculaba arriba para POWER_PINK; faltaba cruzarla acá.
+            has_real_cuit = bool(db_cliente.cuit and len(db_cliente.cuit.strip()) >= 10 and not is_generic)
+            if is_cliente_interno or (has_segmento and not has_real_cuit):
                 db_cliente.flags_estado |= ClientFlags.OPERATOR_OK
             # Si consigue CUIT real pero aún sin Gold, no quitamos el sello Rosa
             # (la transición Rosa→Blanco requiere acción explícita del operador)

@@ -270,15 +270,17 @@
                  <span class="text-[9px] text-white/50 font-bold uppercase">Es Kit / Combo</span>
             </div>
             
-            <div class="shrink-0 pt-1">
-                 <div class="flex items-center gap-2 p-1.5 rounded bg-black/20 border border-white/5 cursor-pointer" @click="localProducto.tipo_producto = localProducto.tipo_producto === 'INSUMO' ? 'VENTA' : 'INSUMO'">
-                      <div class="w-6 h-3 rounded-full relative transition-colors" :class="localProducto.tipo_producto === 'INSUMO' ? 'bg-orange-500' : 'bg-gray-700'">
-                          <div class="absolute top-0.5 left-0.5 w-2 h-2 rounded-full bg-white transition-transform" :class="localProducto.tipo_producto === 'INSUMO' ? 'translate-x-3' : ''"></div>
-                      </div>
-                      <span class="text-[9px] font-bold uppercase" :class="localProducto.tipo_producto === 'INSUMO' ? 'text-orange-400' : 'text-gray-500'">
-                          {{ localProducto.tipo_producto === 'INSUMO' ? 'Insumo' : 'Venta' }}
-                      </span>
-                 </div>
+            <div class="shrink-0 pt-1 space-y-1">
+                 <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Tipo de Producto</label>
+                 <!-- [S875, traspaso AG punto E] Antes era un toggle binario VENTA/INSUMO -- el
+                      modelo (productos/models.py) admite también MATERIA_PRIMA y SERVICIO
+                      (fletes, mano de obra: sin descuento de stock, ver remitos/pedidos). -->
+                 <select v-model="localProducto.tipo_producto" class="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs font-mono focus:border-blue-500/50 focus:outline-none">
+                      <option value="VENTA">Venta</option>
+                      <option value="INSUMO">Insumo</option>
+                      <option value="MATERIA_PRIMA">Materia Prima</option>
+                      <option value="SERVICIO">Servicio (sin stock)</option>
+                 </select>
             </div>
         </section>
 

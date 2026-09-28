@@ -1310,6 +1310,26 @@ class RemitosService:
                 )
             )
 
+        # [S875, traspaso AG punto D / DISENO_MODULO_INFORMES_S875_2026-09-26.md §1.2] Nota
+        # forense automática cuando lo recibido difiere de lo remitido en ESTE remito (el caso
+        # de reasignación en puerta, no el default "llegó lo que salió"). Sin autor -- decisión
+        # de Carlos, punto C diferido: lo que reconstruye el hecho es el papel (número de
+        # remito), no quién lo tipeó. Se dispara solo si el valor efectivamente cambia, para no
+        # repetir la misma nota en un re-guardado idempotente.
+        valor_anterior = remito_item.cantidad_recibida
+        cambia = valor_anterior is None or abs(valor_anterior - cantidad_recibida) > 0.001
+        difiere_de_remitido = abs(cantidad_recibida - remito_item.cantidad_remitida) > 0.001
+        if cambia and difiere_de_remitido:
+            numero = remito_item.remito.numero_legal or "sin número aún"
+            ts = datetime.now().strftime("%Y-%m-%d %H:%M")
+            nota_forense = (
+                f"\n[SISTEMA] Ajustado el {ts}, respaldado en Remito Nº {numero} "
+                f"(cantidad original remitida: {remito_item.cantidad_remitida})."
+            )
+            pedido = pedido_item.pedido
+            pedido.nota = (pedido.nota or "") + nota_forense
+            db.add(pedido)
+
         remito_item.cantidad_recibida = cantidad_recibida
         db.commit()
         db.refresh(remito_item)
