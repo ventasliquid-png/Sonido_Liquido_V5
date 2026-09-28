@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from backend.core.database import get_db
 from backend.informes.export_utils import exportar
+from backend.informes.notas import fragmentos_clasificados, CATEGORIAS_DISPONIBLES
 
 router = APIRouter(
     prefix="/informes",
@@ -223,5 +224,79 @@ def informe_pedidos_oc_export(formato: str, cliente_id: Optional[str] = None, db
     filas = _filas_informe_oc(db, cliente_id)
     try:
         return exportar(formato, "Pedidos con OC", COLUMNAS_PEDIDOS_OC, filas)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# --- Informe D: pedidos con notas relevantes -- mismo informe que "remitos auditables"
+# (Carlos, 27/09): la historia vive en Pedido.nota, no en RemitoNota. Una fila por fragmento
+# (línea) que matchea, no por pedido -- un pedido puede aportar varias filas. ---
+
+COLUMNAS_NOTAS_PEDIDO = [
+    {"key": "pedido_id", "label": "Pedido", "width": 10},
+    {"key": "cliente", "label": "Cliente", "width": 30},
+    {"key": "fecha_pedido", "label": "Fecha Pedido", "width": 14},
+    {"key": "categoria", "label": "Categoría", "width": 20},
+    {"key": "fragmento", "label": "Fragmento", "width": 60},
+]
+
+
+@router.get("/notas-categorias")
+def informe_notas_categorias():
+    """Catálogo de las 7 categorías (6 de sistema + nota humana) para poblar los checkboxes
+    combinables del filtro -- se lee del mismo módulo que clasifica, nunca se hardcodea en dos
+    lugares."""
+    return [{"key": k, "label": l} for k, l in CATEGORIAS_DISPONIBLES]
+
+
+def _filas_informe_notas(db: Session, cliente_id: Optional[str], categorias: Optional[str]):
+    from sqlalchemy.orm import joinedload
+    from backend.pedidos.models import Pedido
+
+    categorias_set = set(categorias.split(",")) if categorias else None
+
+    query = db.query(Pedido).options(joinedload(Pedido.cliente))
+    if cliente_id:
+        query = query.filter(Pedido.cliente_id == cliente_id)
+
+    filas = []
+    for pedido in query.all():
+        for frag in fragmentos_clasificados(pedido.nota):
+            if categorias_set and frag["categoria"] not in categorias_set:
+                continue
+            cliente = pedido.cliente
+            filas.append({
+                "pedido_id": pedido.id,
+                "cliente": cliente.razon_social if cliente else None,
+                "fecha_pedido": pedido.fecha.isoformat() if pedido.fecha else None,
+                "categoria": dict(CATEGORIAS_DISPONIBLES).get(frag["categoria"], frag["categoria"]),
+                "fragmento": frag["texto"],
+            })
+    return filas
+
+
+@router.get("/notas-pedidos")
+def informe_notas_pedidos(
+    cliente_id: Optional[str] = None,
+    categorias: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    """`categorias`: lista separada por comas de claves (ver /notas-categorias). Vacío =
+    todas -- el filtro combina (OR), no excluye (Carlos, 27/09: "un pedido puede tener más de
+    una categoría a la vez")."""
+    filas = _filas_informe_notas(db, cliente_id, categorias)
+    return {"columnas": COLUMNAS_NOTAS_PEDIDO, "filas": filas}
+
+
+@router.get("/notas-pedidos/export")
+def informe_notas_pedidos_export(
+    formato: str,
+    cliente_id: Optional[str] = None,
+    categorias: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    filas = _filas_informe_notas(db, cliente_id, categorias)
+    try:
+        return exportar(formato, "Pedidos con notas relevantes", COLUMNAS_NOTAS_PEDIDO, filas)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
