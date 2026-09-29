@@ -77,6 +77,11 @@ const routes = [
                 component: () => import('../views/Pedidos/IngestaFacturaView.vue')
             },
             {
+                path: 'pedidos/ingesta/conciliar/:rawId',
+                name: 'ConciliarFactura',
+                component: () => import('../views/Pedidos/ConciliarFacturaView.vue')
+            },
+            {
                 path: 'tactico-legacy',
                 name: 'TacticalLoaderLegacy',
                 component: () => import('../views/Ventas/GridLoader.vue')

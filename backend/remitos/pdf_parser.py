@@ -63,6 +63,72 @@ def _iso_date(val: str) -> Optional[str]:
         pass
     return val
 
+# [Etapa 7a] Tabla de comprobantes de AFIP (código -> clase, letra, es FCE MiPyME). Un código
+# fuera de la tabla NO se adivina: queda tipo None + aviso.
+_CODIGOS_AFIP = {
+    1: ("FACTURA", "A", False), 2: ("NOTA_DEBITO", "A", False), 3: ("NOTA_CREDITO", "A", False),
+    6: ("FACTURA", "B", False), 7: ("NOTA_DEBITO", "B", False), 8: ("NOTA_CREDITO", "B", False),
+    11: ("FACTURA", "C", False), 12: ("NOTA_DEBITO", "C", False), 13: ("NOTA_CREDITO", "C", False),
+    51: ("FACTURA", "M", False), 52: ("NOTA_DEBITO", "M", False), 53: ("NOTA_CREDITO", "M", False),
+    201: ("FACTURA", "A", True), 202: ("NOTA_DEBITO", "A", True), 203: ("NOTA_CREDITO", "A", True),
+    206: ("FACTURA", "B", True), 207: ("NOTA_DEBITO", "B", True), 208: ("NOTA_CREDITO", "B", True),
+    211: ("FACTURA", "C", True), 212: ("NOTA_DEBITO", "C", True), 213: ("NOTA_CREDITO", "C", True),
+}
+
+
+def _tipo_canonico(clase: str, letra: str, es_fce: bool) -> str:
+    # FCE numera aparte en AFIP: tiene que ser un tipo distinto para no chocar con la UNIQUE
+    # (tipo_comprobante, punto_venta, numero_comprobante) de Factura.
+    return f"{clase}_FCE_{letra}" if es_fce else f"{clase}_{letra}"
+
+
+def _detectar_tipo_comprobante(text: str) -> dict:
+    """Lee el encabezado de un PDF de ARCA. Señal principal: "COD. NN" (código AFIP). Respaldo:
+    la leyenda ("FACTURA A", "NOTA DE CRÉDITO B"). Si las dos están y no coinciden, manda el
+    código y queda aviso."""
+    encabezado = " | ".join(b.strip() for b in text.split("|")[:10])
+    resultado = {}
+
+    por_codigo = None
+    m_cod = re.search(r'COD\.?\s*(\d{2,3})\b', encabezado, re.IGNORECASE)
+    if m_cod:
+        codigo = int(m_cod.group(1))
+        resultado["codigo_afip"] = m_cod.group(1)
+        por_codigo = _CODIGOS_AFIP.get(codigo)
+        if por_codigo is None:
+            resultado["tipo_warning"] = f"Código AFIP {m_cod.group(1)} fuera de la tabla conocida -- tipo sin determinar."
+
+    por_leyenda = None
+    m_ley = re.search(
+        r'\b(FACTURA|NOTA\s+DE\s+CR[EÉ]DITO|NOTA\s+DE\s+D[EÉ]BITO)\b'
+        r'(\s+DE\s+CR[EÉ]DITO\s+ELECTR[OÓ]NICA[^|]*?)?\s+([ABCM])\b',
+        encabezado, re.IGNORECASE,
+    )
+    if m_ley:
+        palabra = m_ley.group(1).upper()
+        clase = "FACTURA" if palabra.startswith("FACTURA") else (
+            "NOTA_CREDITO" if "CR" in palabra else "NOTA_DEBITO")
+        por_leyenda = (clase, m_ley.group(3).upper(), bool(m_ley.group(2)))
+
+    elegido = por_codigo or por_leyenda
+    if por_codigo and por_leyenda and (por_codigo[0], por_codigo[1]) != (por_leyenda[0], por_leyenda[1]):
+        resultado["tipo_warning"] = (
+            f"El código AFIP dice {por_codigo[0]} {por_codigo[1]} pero la leyenda dice "
+            f"{por_leyenda[0]} {por_leyenda[1]} -- se toma el código."
+        )
+    if elegido:
+        clase, letra, es_fce = elegido
+        resultado.update({
+            "tipo_comprobante": _tipo_canonico(clase, letra, es_fce),
+            "clase_comprobante": clase,
+            "letra": letra,
+            "es_fce": es_fce,
+        })
+    elif "tipo_warning" not in resultado:
+        resultado["tipo_warning"] = "No se pudo determinar el tipo de comprobante (sin código AFIP ni leyenda reconocible)."
+    return resultado
+
+
 def parse_invoice_data(text: str, words_data: list = None) -> dict:
     """
     Parses raw text and word data using Sabueso Zonal Heuristics (V5.5).
@@ -97,6 +163,17 @@ def parse_invoice_data(text: str, words_data: list = None) -> dict:
         if match_lazy:
              data["factura"]["numero"] = f"{match_lazy.group(1).zfill(5)}-{match_lazy.group(2).zfill(8)}"
     
+    # [Etapa 7a] Tipo de comprobante (Factura / NC / ND, letra) -- antes no se leía y el tipo se
+    # adivinaba después por la condición de IVA del cliente (DISENO_CIRCUITO_PR_S869.md §9.3).
+    data["factura"].update(_detectar_tipo_comprobante(text))
+
+    # [Etapa 7a] Fecha de emisión real: en ARCA es la primera fecha después de "Comp. Nro". Hasta
+    # acá no se guardaba en ningún lado y la factura quedaba con la fecha de carga (S864 §2.3).
+    match_fecha = re.search(
+        r'Comp.*?Nro[.\s:|]*\d{4,5}[\s\-]+\d{8}[\s|]*(\d{2}/\d{2}/\d{4})', text, re.IGNORECASE)
+    if match_fecha:
+        data["factura"]["fecha_emision"] = _iso_date(match_fecha.group(1))
+
     match_cae = re.search(r'C\.?A\.?E\.?.*?(?:\:)?.*?(\d{14})', text, re.IGNORECASE)
     if match_cae: data["factura"]["cae"] = match_cae.group(1)
 

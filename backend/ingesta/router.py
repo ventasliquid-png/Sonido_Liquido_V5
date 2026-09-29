@@ -170,6 +170,49 @@ def get_raw_pdf(raw_id: uuid.UUID, db: Session = Depends(get_db)):
         headers={"Content-Disposition": "inline"}
     )
 
+# --- [Etapa 7b] Conciliación factura <-> PR. Camino nuevo; /approve (creador) sigue vivo hasta
+# que este funcione en la operación real (PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §9). ---
+
+from typing import Optional
+from backend.auth.dependencies import get_current_active_user
+from backend.auth import models as auth_models
+from backend.ingesta.conciliador import ConciliadorService
+
+
+class ConciliacionPayload(BaseModel):
+    remito_ids: List[str]
+    emparejamiento: Optional[List[Dict[str, Any]]] = None
+
+
+def _sin_privados(ev: dict) -> dict:
+    return {k: v for k, v in ev.items() if not k.startswith("_")}
+
+
+@router.get("/raw/{raw_id}/conciliacion/candidatos")
+def conciliacion_candidatos(raw_id: uuid.UUID, db: Session = Depends(get_db)):
+    """PR blancos del mismo CUIT con facturación pendiente. Nunca busca por razón social."""
+    return ConciliadorService.candidatos(db, raw_id)
+
+
+@router.post("/raw/{raw_id}/conciliacion/evaluar")
+def conciliacion_evaluar(raw_id: uuid.UUID, payload: ConciliacionPayload, db: Session = Depends(get_db)):
+    """Solo lectura: compara el PDF contra los PR elegidos y clasifica A/B/C. Sin
+    `emparejamiento` sugiere uno; con él, evalúa el que eligió el operador."""
+    return _sin_privados(ConciliadorService.evaluar(db, raw_id, payload.remito_ids, payload.emparejamiento))
+
+
+@router.post("/raw/{raw_id}/conciliacion/confirmar")
+def conciliacion_confirmar(
+    raw_id: uuid.UUID,
+    payload: ConciliacionPayload,
+    db: Session = Depends(get_db),
+    current_user: auth_models.Usuario = Depends(get_current_active_user),
+):
+    if payload.emparejamiento is None:
+        raise HTTPException(status_code=400, detail="EMPAREJAMIENTO_REQUERIDO: confirmá el emparejamiento que evaluaste.")
+    return ConciliadorService.confirmar(db, raw_id, payload.remito_ids, payload.emparejamiento, current_user)
+
+
 class AnularPayload(BaseModel):
     factura_id: uuid.UUID
     pin: str

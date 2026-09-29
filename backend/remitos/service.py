@@ -83,6 +83,20 @@ class RemitosService:
         return None, None
 
     @staticmethod
+    def _facturada_al_nacer(remito, pedido) -> Optional[float]:
+        """[Etapa 7b, dictamen Nike 23/09] Valor inicial de RemitoItem.cantidad_facturada:
+        None = no aplica (rosa o no comercial), 0.0 = aplica y pendiente. Se fija al nacer el
+        renglón y no se vuelve a leer el color del pedido después -- mismo criterio de color
+        congelado que la guarda de impresión. Lee el flag del PR y, además, el bit del pedido en
+        este momento, porque create_manual no congela CIRCUITO_ROSA en el remito."""
+        from backend.pedidos.constants import PedidoFlags
+        flags_pedido = (pedido.flags_estado or 0) if pedido else 0
+        es_rosa = bool((remito.flags_estado or 0) & int(RemitoFlags.CIRCUITO_ROSA)) or bool(
+            flags_pedido & int(PedidoFlags.NO_FISCAL_FORCE))
+        es_no_comercial = bool(flags_pedido & int(PedidoFlags.ES_NO_COMERCIAL))
+        return None if (es_rosa or es_no_comercial) else 0.0
+
+    @staticmethod
     def _recalcular_bits_entrega(db: Session, pedido) -> None:
         """Recalcula Bits 20/21 en el pedido según estado real de entregas.
         OFF/OFF si ninguna entrega, Bit20 si parcial, Bit21 si completa."""
@@ -806,6 +820,7 @@ class RemitosService:
                     # declarado y remitido todavía valían lo mismo).
                     cantidad_declarada=item_payload.cantidad,
                     cantidad_remitida=item_payload.cantidad,
+                    cantidad_facturada=RemitosService._facturada_al_nacer(remito, pedido),
                 ))
                 continue
 
@@ -828,6 +843,7 @@ class RemitosService:
                 pedido_item_id=pedido_item.id,
                 cantidad_declarada=pendiente,
                 cantidad_remitida=item_payload.cantidad,
+                cantidad_facturada=RemitosService._facturada_al_nacer(remito, pedido),
             ))
 
         RemitosService._recalcular_bits_entrega(db, pedido)
@@ -1043,12 +1059,14 @@ class RemitosService:
 
         # 6. CREATE REMITO ITEMS
         print(f"[REMITO-TRACE] Procesando {len(pedido_items_mapped)} items para Remito {remito.id} (Pedido {nuevo_pedido.id})")
+        facturada_inicial = RemitosService._facturada_al_nacer(remito, nuevo_pedido)
         for p_item in pedido_items_mapped:
             r_item = models.RemitoItem(
                 remito_id=remito.id,
                 pedido_item_id=p_item["pi_id"],
                 cantidad_declarada=p_item["cantidad"],
-                cantidad_remitida=p_item["cantidad"]
+                cantidad_remitida=p_item["cantidad"],
+                cantidad_facturada=facturada_inicial,
             )
             db.add(r_item)
 
@@ -1175,7 +1193,8 @@ class RemitosService:
                         remito_id=remito.id,
                         pedido_item_id=target_pi.id,
                         cantidad_declarada=p_item_data.cantidad,
-                        cantidad_remitida=p_item_data.cantidad
+                        cantidad_remitida=p_item_data.cantidad,
+                        cantidad_facturada=RemitosService._facturada_al_nacer(remito, remito.pedido),
                     )
                     db.add(new_r_item)
                     if p_item_data.descripcion:

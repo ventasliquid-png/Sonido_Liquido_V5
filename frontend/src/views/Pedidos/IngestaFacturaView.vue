@@ -233,6 +233,17 @@
 
                 <!-- CONTENT -->
                 <div v-else class="flex-1 flex flex-col min-h-0">
+                    <!-- [Etapa 7b] Camino nuevo: la factura cierra un PR que ya existe. El flujo de abajo
+                         (crea pedido/remito/espejo) sigue vivo hasta que este funcione en la operación real. -->
+                    <div v-if="currentRawId" class="shrink-0 flex items-center justify-between gap-3 px-4 py-2 bg-emerald-900/20 border-b border-emerald-700/40">
+                        <span class="text-[11px] text-emerald-300/80">
+                            <i class="fas fa-scale-balanced mr-1"></i>¿El PR ya está armado? Conciliá esta factura contra él en vez de crear un remito nuevo.
+                        </span>
+                        <button @click="router.push({ name: 'ConciliarFactura', params: { rawId: currentRawId } })"
+                            class="shrink-0 px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-[11px] font-bold uppercase tracking-wide">
+                            Conciliar contra PR
+                        </button>
+                    </div>
                     <div class="flex-1 overflow-y-auto min-h-0 flex flex-col">
                         <!-- Invoice & Client Header (EDITABLE) -->
                         <div class="p-6 bg-slate-800/80 border-b border-slate-700 space-y-6 shrink-0">
