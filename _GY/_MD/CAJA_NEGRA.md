@@ -1,4 +1,22 @@
-﻿Sesion actual: 874
+﻿Sesion actual: 875
+
+# CAJA NEGRA: OMEGA Completo - Informes, Etapas 6 y 7 del Circuito PR (conciliacion, contra natura, NC/ND), parser de ARCA, espejo - S875
+
+Sesion 875 OF, dos dias (28-29/09), NS (CC) + Arq + AG puntual. Hash D: 07202a38 (ultimo commit de codigo; el commit de cierre es el que lo sigue) | Hash B: 5c06a0a local (hotfix del parser, adelantado 1 commit sobre prod/main, SIN push) | Hash P real: de0994d (leido en P).
+- 28/09: traspaso de AG (edd7e598): CUIT generico en _audit_sovereignty, nota forense automatica de ajuste en set_cantidad_recibida (sin autor), SERVICIO sin stock (9 puntos de reserva). Punto C (login en /recibido) diferido por Carlos. "Cliente Interno" (+ migracion 044) reemplazado por dos CUIT reservados (11111111119 Consumidor Final, 11111111111 Rosa) con dos botones en ClienteInspector (a03c0016); la 044 nunca corrio contra una base real.
+- Card #118 (canario hardcodeado a pilot_v5x.db, CRITICA hace 44 dias): FASE 1/1B de OMEGA migradas a scripts/_env_db.py en D (f61739c9) y B (de0994d, ya en prod/main y en P). Card cerrada con hashes.
+- Modulo Informes completo (ada6f74a, a2d74068, adcb339b, 5296f632, bcd59908): motor de exportacion CSV/Excel/PDF/TXT + Informes A-E + ABC de clientes/productos (entregado y facturado como medidas separadas, decision de Carlos).
+- Etapa 6 (7df28df0): devolucion como cantidad negativa en armar_remito, guarda DEVOLUCION_EXCEDE_ENTREGADO, boton "Registrar Devolucion".
+- Etapa 7a+7b (f83534aa): parser detecta tipo de comprobante (COD. AFIP + leyenda) y fecha; conciliador factura<->PR con clases A/B/C (B concilia y anota, decision de Carlos 28/09; C bloquea); cantidad_facturada nace en 0 en el PR blanco (NULL = no aplica). 7c (ce7c2370): factura contra natura, retroactiva o desmadre.
+- Parser H3 (df5744ba en D; 5c06a0a6 en B, rama hotfix-produccion del repo de D llevada a B por fast-forward, SIN push): descripciones partidas de ARCA. Causa real: agrupacion por buckets; tolerancia 3,0 pt medida contra 35 PDFs reales; el gate items_v55 acoplado a _agrupar_por_linea es obligatorio. Produccion YA tiene datos mal por esto (factura 2546): correccion de datos = tarea aparte con backup y PIN.
+- Etapa 7d (d355287c): NC/ND segun dictamen de Nike (29/09): filas de facturas + tabla puente facturas_ajustes (migracion 045), cantidad_facturada nunca se muta (neto = @property), bits 17-20 recalculados por FacturacionService. Bug propio hallado por el test y corregido antes de commitear: db.add(factura) cascadeaba por una coleccion con filas borradas. Sin NC/ND reales en el corpus: pruebas con PDFs sinteticos.
+- Espejo Excel de Pedidos (Card #142, d189d9d2 y 07202a38): pedidos nuevos arriba + banner con entorno y hora. Auditoria del trabajo de AG a pedido de Carlos: Card #142 estaba CERRADA sin commit y decia "(D y P)" cuando produccion no se toco; la corrida manual habia pisado P/PEDIDOS_ESPEJO_TOM.xlsx con una copia del 28/09. Board corregido.
+- Cuatro veces un peer message (Arq) reporto "Carlos ya confirmo/dio el PIN" -- ninguna se acepto como autorizacion; se espero la palabra directa de Carlos (Etapa 6, hotfix para B, inicio y commit de 7d).
+- Modelo: Opus para el diseno de la Etapa 7, Sonnet 5.5 desde el parser (acordado con Arq: ejecutar contra spec verificada = Sonnet; confiar en config/plan externo sin verificar = Opus). El inventario de lectores de la Etapa 8 (Bits 20/21, 0016, camino viejo de ingesta) lo produce Arq; ningun bit se apaga antes.
+- B/P: decision de Carlos (29/09): el push de B a prod/main y el pull en P se hacen manana con el, no hoy; por eso FASE 6B queda como excepcion registrada. Copia de produccion de hoy (FASE 1B.3): datos hasta 29/09 11:32, 103 pedidos, integridad ok.
+- FASE 1D: FAIL inicial resuelto en el momento (11 pendientes con estado, P18 con formato). INBOX con 17 entradas sin archivar -- decision de Carlos en este cierre.
+
+---
 
 # CAJA NEGRA: OMEGA Lite - Circuito PR Etapa 5 (RemitoNota + techo agregado cantidad_recibida) - S874
 

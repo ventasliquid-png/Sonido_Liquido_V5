@@ -1246,3 +1246,16 @@ hasta que se imprime, igual que cualquier otro.
 
 **El renglón agregado a mano en un remito existente (`RemitoListView.vue`) ahora también se
 valida contra el pedido** — la misma guarda que ya tenía la carga inicial del remito manual.
+
+
+## Sesión 875 (28-29/09) — Lo que cambia para quien opera
+
+- **Menú nuevo "INFORMES"** (barra lateral): remitos por fecha y cliente, pedidos con pendiente, pedidos con OC, pedidos con notas relevantes, buscar en notas y los rankings ABC de clientes y de productos. Todos se pueden bajar a CSV, Excel, PDF o TXT.
+- **Registrar una devolución:** en la pantalla de armado de remitos (botón "Registrar Devolución") se elige cuánto vuelve de lo ya entregado; el sistema no deja devolver más de lo entregado. El remito queda con la etiqueta roja DEVOLUCIÓN y la cantidad en negativo, y lo devuelto vuelve a figurar como pendiente de entregar.
+- **Conciliar una factura contra su PR (Ingesta):** al subir la factura de ARCA, la pantalla "Conciliar factura contra PR" ofrece los PR pendientes del mismo CUIT, propone qué renglón de la factura corresponde a cuál del PR (se puede corregir) y muestra las diferencias: **A** informativa; **B** (la factura dice algo distinto al PR) concilia igual y deja una nota [SISTEMA] en el PR; **C** (es de otro cliente) no deja continuar. Al confirmar se registra la factura real y queda vinculada al PR. En este camino la ingesta ya no crea pedidos ni remitos por su cuenta; el camino viejo sigue al lado hasta que este funcione en la operación real.
+- **Factura sin PR ("contra natura"):** en la misma pantalla, "Evaluar contra natura": si el cliente y la mercadería existen se reconstruyen el pedido y el PR marcados como retroactivos; si no, avisa que corresponde una nota de crédito por el total y permite marcarla.
+- **Nota de crédito / nota de débito:** al subir una de ARCA la pantalla cambia sola. Se elige a qué factura(s) ajusta (la nota de débito puede ir suelta, sin factura), se empareja renglón por renglón (los renglones sin par son conceptos de solo monto, como una bonificación) y se confirma. La nota de crédito descuenta lo facturado del PR sin borrar lo que decía la factura original.
+- **Clientes:** dos botones nuevos en la ficha, "Consumidor Final" y "Cliente Rosa"; escriben por detrás el CUIT reservado (nadie tipea esos números).
+- **Productos:** el interruptor Venta/Insumo pasó a un selector "Tipo de Producto" con Venta, Insumo, Materia Prima y Servicio (sin stock). Un producto de tipo Servicio (fletes, mano de obra) no reserva ni descuenta stock.
+- **Excel Espejo de Pedidos:** el pedido más nuevo aparece arriba y la primera fila dice el entorno y la hora de generación (si esa hora es vieja, el archivo es viejo).
+- **A tener en cuenta:** el lector de facturas todavía ignora la bonificación (% Bonif): 4 facturas de Centro Pet muestran un aviso porque la suma de renglones no da el neto.
