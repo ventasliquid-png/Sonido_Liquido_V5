@@ -111,7 +111,7 @@ JOIN pedidos_items pi   ON pi.pedido_id = p.id
 JOIN productos pr       ON pr.id       = pi.producto_id
 LEFT JOIN productos_costos pc ON pc.producto_id = pi.producto_id
 LEFT JOIN tasas_iva t   ON t.id        = pr.tasa_iva_id
-ORDER BY p.id, pi.id
+ORDER BY p.id DESC, pi.id ASC
 """
 
 # ── MOTOR BIPOLAR — IVA ───────────────────────────────────────────────────────
