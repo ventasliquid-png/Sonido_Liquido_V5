@@ -440,7 +440,19 @@ def main():
     for col, width in COL_WIDTHS.items():
         ws.column_dimensions[get_column_letter(col)].width = width
 
-    current_row = 1
+    # ── Fila de título (entorno + timestamp) ──────────────────────────────
+    # Misma que tenía el script de B: la hora de generación a la vista evita confundir un
+    # espejo viejo con uno fresco (dictamen de Arq, 29/09: pestaña dinámica de D + título de B).
+    ts_display = datetime.now().strftime('%d/%m/%Y %H:%M')
+    titulo = f'PEDIDOS ESPEJO — {ENTORNO} — Generado: {ts_display}'
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=NCOLS)
+    tc = ws.cell(row=1, column=1, value=titulo)
+    tc.font      = Font(bold=True, name='Calibri', size=13, color=TX_OSCURO)
+    tc.fill      = PatternFill('solid', fgColor=BG_TITULO)
+    tc.alignment = Alignment(horizontal='center', vertical='center')
+    ws.row_dimensions[1].height = 24
+
+    current_row = 2
 
     for pid in pedido_order:
         p = pedidos[pid]
