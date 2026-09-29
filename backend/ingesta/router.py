@@ -213,6 +213,49 @@ def conciliacion_confirmar(
     return ConciliadorService.confirmar(db, raw_id, payload.remito_ids, payload.emparejamiento, current_user)
 
 
+# --- [Etapa 7c] Facturas contra natura (emitidas en ARCA sin PR previo). ---
+
+from backend.ingesta.contra_natura import ContraNaturaService
+
+
+class ContraNaturaPayload(BaseModel):
+    cliente_id: Optional[str] = None
+    productos: Optional[List[Dict[str, Any]]] = None
+    domicilio_entrega_id: Optional[str] = None
+    transporte_id: Optional[str] = None
+
+
+@router.post("/raw/{raw_id}/contra-natura/evaluar")
+def contra_natura_evaluar(raw_id: uuid.UUID, payload: ContraNaturaPayload, db: Session = Depends(get_db)):
+    """Solo lectura: veredicto RETROACTIVO (cliente y mercadería existen) o DESMADRE."""
+    return _sin_privados(ContraNaturaService.evaluar(
+        db, raw_id, payload.cliente_id, payload.productos, payload.domicilio_entrega_id, payload.transporte_id))
+
+
+@router.post("/raw/{raw_id}/contra-natura/confirmar")
+def contra_natura_confirmar(
+    raw_id: uuid.UUID,
+    payload: ContraNaturaPayload,
+    db: Session = Depends(get_db),
+    current_user: auth_models.Usuario = Depends(get_current_active_user),
+):
+    if payload.productos is None:
+        raise HTTPException(status_code=400, detail="PRODUCTOS_REQUERIDOS: confirmá el producto de cada renglón que evaluaste.")
+    return ContraNaturaService.confirmar(
+        db, raw_id, payload.cliente_id, payload.productos, payload.domicilio_entrega_id,
+        payload.transporte_id, current_user)
+
+
+@router.post("/raw/{raw_id}/contra-natura/marcar-desmadre")
+def contra_natura_marcar_desmadre(
+    raw_id: uuid.UUID,
+    payload: ContraNaturaPayload = ContraNaturaPayload(),
+    db: Session = Depends(get_db),
+    current_user: auth_models.Usuario = Depends(get_current_active_user),
+):
+    return ContraNaturaService.marcar_desmadre(db, raw_id, current_user, payload.cliente_id, payload.productos)
+
+
 class AnularPayload(BaseModel):
     factura_id: uuid.UUID
     pin: str

@@ -244,7 +244,7 @@ COLUMNAS_NOTAS_PEDIDO = [
 
 @router.get("/notas-categorias")
 def informe_notas_categorias():
-    """Catálogo de las 7 categorías (6 de sistema + nota humana) para poblar los checkboxes
+    """Catálogo de categorías (las de sistema catalogadas + sistema sin catalogar + nota humana) para poblar los checkboxes
     combinables del filtro -- se lee del mismo módulo que clasifica, nunca se hardcodea en dos
     lugares."""
     return [{"key": k, "label": l} for k, l in CATEGORIAS_DISPONIBLES]

@@ -6,7 +6,7 @@ relevantes) y el Informe E (buscar en notas), que la reusa tal cual para su fuen
 
 Convención obligatoria desde S875 (Carlos, 27/09): toda nota que escriba el sistema arranca
 exacto con "[SISTEMA] " (corchete, mayúsculas, corchete, espacio). Con eso, humano/sistema se
-resuelve con un solo chequeo, sin lista que mantener. La tabla de 6 de abajo es solo para
+resuelve con un solo chequeo, sin lista que mantener. La tabla de abajo es solo para
 ponerle nombre propio a los tipos ya catalogados -- no hace falta tocarla para que una nota
 de sistema nueva siga contando como sistema.
 """
@@ -25,6 +25,9 @@ CATEGORIAS_SISTEMA = [
     ("ajuste_post_entrega", "[SISTEMA] Ajuste de cantidad post-entrega", "Ajuste post-entrega"),
     ("mutacion_a_comercial", "[SISTEMA] Mutación ES_NO_COMERCIAL → Comercial", "Mutación a Comercial"),
     ("remito_parcial", "[SISTEMA] Remito Parcial", "Remito Parcial"),
+    # [Etapa 7c] ingesta/contra_natura.py -- factura emitida en ARCA sin PR previo, "marcada y
+    # contable" (DISENO_CIRCUITO_PR_S869.md §5.1).
+    ("contra_natura", "[SISTEMA] Pedido reconstruido desde factura", "Contra natura"),
 ]
 CATEGORIA_SISTEMA_OTRO = ("sistema_otro", "Sistema (otro)")
 CATEGORIA_HUMANA = ("nota_humana", "Nota humana")
@@ -34,7 +37,7 @@ CATEGORIAS_DISPONIBLES = [(c[0], c[2]) for c in CATEGORIAS_SISTEMA] + [CATEGORIA
 
 def clasificar_fragmento(fragmento: str) -> str:
     """Devuelve la clave de categoría (ver CATEGORIAS_DISPONIBLES) para una línea de nota ya
-    recortada. No matchea ninguno de los 6 catalogados pero empieza con el marcador -> sistema
+    recortada. No matchea ninguno de los catalogados pero empieza con el marcador -> sistema
     sin catalogar (nunca cae en humana: doctrina S875, el marcador manda, no la tabla)."""
     if not fragmento.startswith(MARCADOR_SISTEMA):
         return CATEGORIA_HUMANA[0]

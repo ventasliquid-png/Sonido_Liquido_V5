@@ -130,6 +130,83 @@
         <section v-if="resultado" class="bg-emerald-900/20 border border-emerald-500/40 rounded-xl p-4 text-sm text-emerald-200">
           <i class="fas fa-circle-check mr-2 text-emerald-400"></i>
           Registrada {{ resultado.tipo_comprobante }} {{ resultado.numero }} y vinculada a {{ resultado.remito_ids.length }} PR.
+          <span v-if="resultado.pedido_id"> Pedido retroactivo #{{ resultado.pedido_id }} (contra natura).</span>
+        </section>
+
+        <!-- [Etapa 7c] CONTRA NATURA: factura emitida en ARCA sin PR previo -->
+        <section v-if="!resultado" class="border-t border-slate-700/60 pt-4 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 class="text-sm font-bold text-white"><i class="fas fa-triangle-exclamation mr-1 text-orange-400"></i>¿La factura no tiene PR? Contra natura</h2>
+              <p class="text-[11px] text-slate-500">Se emitió en ARCA sin pasar por el circuito. Si el cliente y la mercadería existen, se reconstruyen pedido y PR desde el PDF, marcados. Si no, corresponde nota de crédito por el total.</p>
+            </div>
+            <button @click="evaluarCN()" :disabled="cnCargando"
+              class="px-3 py-1.5 rounded-lg border border-orange-500/40 text-orange-300 hover:bg-orange-900/20 text-xs font-bold uppercase tracking-wide">
+              <i class="fas" :class="cnCargando ? 'fa-spinner fa-spin' : 'fa-magnifying-glass'"></i> Evaluar contra natura
+            </button>
+          </div>
+
+          <template v-if="cn">
+            <div class="text-xs rounded-lg px-3 py-2 border font-bold"
+              :class="cn.veredicto === 'RETROACTIVO' ? 'bg-emerald-900/20 border-emerald-600/40 text-emerald-300' : 'bg-red-900/30 border-red-600/40 text-red-300'">
+              {{ cn.veredicto === 'RETROACTIVO' ? 'Se puede reconstruir retroactivo' : 'Desmadre: nota de crédito por el total y rehacer el circuito' }}
+              <ul v-if="cn.motivos_desmadre.length" class="font-normal mt-1 list-disc list-inside">
+                <li v-for="(m, i) in cn.motivos_desmadre" :key="'m' + i">{{ m }}</li>
+              </ul>
+            </div>
+            <ul class="space-y-1">
+              <li v-for="(b, i) in cn.bloqueos" :key="'cb' + i" class="text-xs bg-red-900/30 border border-red-600/40 text-red-300 rounded-lg px-3 py-2"><i class="fas fa-ban mr-1"></i>{{ b }}</li>
+              <li v-for="(a, i) in cn.avisos" :key="'ca' + i" class="text-xs bg-amber-900/20 border border-amber-600/30 text-amber-300 rounded-lg px-3 py-2"><i class="fas fa-circle-exclamation mr-1"></i>{{ a }}</li>
+            </ul>
+
+            <div v-if="cn.clientes.length" class="grid md:grid-cols-3 gap-3 text-xs">
+              <label class="block"><span class="block text-[10px] uppercase text-slate-500 font-bold mb-1">Cliente</span>
+                <select v-model="cnSel.cliente_id" @change="evaluarCN()" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-white">
+                  <option v-for="c in cn.clientes" :key="c.id" :value="c.id">{{ c.razon_social }}</option>
+                </select></label>
+              <label class="block"><span class="block text-[10px] uppercase text-slate-500 font-bold mb-1">Sede de entrega</span>
+                <select v-model="cnSel.domicilio_entrega_id" @change="evaluarCN()" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-white">
+                  <option v-for="d in cn.domicilios" :key="d.id" :value="d.id">{{ d.texto }}</option>
+                </select></label>
+              <label class="block"><span class="block text-[10px] uppercase text-slate-500 font-bold mb-1">Transporte</span>
+                <select v-model="cnSel.transporte_id" @change="evaluarCN()" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-white">
+                  <option :value="null">— elegir —</option>
+                  <option v-for="t in cn.transportes" :key="t.id" :value="t.id">{{ t.nombre }}</option>
+                </select></label>
+            </div>
+
+            <table v-if="cn.renglones.length" class="w-full text-xs">
+              <thead><tr class="text-[10px] uppercase text-slate-500 border-b border-slate-700">
+                <th class="text-left py-1 pr-2">Factura (ARCA)</th><th class="text-right py-1 px-2">Cant.</th>
+                <th class="text-right py-1 px-2">Precio</th><th class="text-left py-1 pl-2">Producto del catálogo</th></tr></thead>
+              <tbody>
+                <tr v-for="r in cn.renglones" :key="r.item_pdf" class="border-b border-slate-800">
+                  <td class="py-1.5 pr-2 text-slate-200">{{ r.descripcion }}</td>
+                  <td class="py-1.5 px-2 text-right font-mono">{{ r.cantidad }}</td>
+                  <td class="py-1.5 px-2 text-right font-mono">{{ moneda(r.precio_unitario) }}</td>
+                  <td class="py-1.5 pl-2"><div class="flex items-center gap-2">
+                    <select :value="r.producto_id ?? ''" @change="cambiarProducto(r.item_pdf, $event.target.value)"
+                      class="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white w-full max-w-xs">
+                      <option value="">— no está en el catálogo —</option>
+                      <option v-for="p in cn.catalogo" :key="p.id" :value="p.id">{{ p.nombre }}</option>
+                    </select>
+                    <span v-if="r.como" class="text-[9px] uppercase px-1.5 py-0.5 rounded bg-slate-700 text-slate-300">{{ r.como }}</span>
+                  </div></td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="flex gap-2">
+              <button v-if="cn.veredicto === 'RETROACTIVO'" @click="confirmarCN" :disabled="!!cn.bloqueos.length || cnCargando"
+                class="px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white text-xs font-bold">
+                <i class="fas fa-rotate-left mr-1"></i> Reconstruir pedido y PR, y registrar la factura
+              </button>
+              <button v-else @click="marcarDesmadre" :disabled="cnCargando || cnMarcado"
+                class="px-4 py-2 rounded-lg bg-red-800 hover:bg-red-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white text-xs font-bold">
+                <i class="fas fa-flag mr-1"></i> {{ cnMarcado ? 'Marcada: falta NC por el total' : 'Marcar como desmadre (falta NC)' }}
+              </button>
+            </div>
+          </template>
         </section>
       </template>
     </main>
@@ -228,6 +305,70 @@ const confirmar = async () => {
     error(e, 'No se pudo conciliar')
   } finally {
     confirmando.value = false
+  }
+}
+
+// [Etapa 7c] Contra natura
+const cn = ref(null)
+const cnCargando = ref(false)
+const cnMarcado = ref(false)
+const cnSel = ref({ cliente_id: null, domicilio_entrega_id: null, transporte_id: null, productos: null })
+
+const cnBody = () => {
+  const b = {}
+  for (const k of ['cliente_id', 'domicilio_entrega_id', 'transporte_id', 'productos']) {
+    if (cnSel.value[k] != null) b[k] = cnSel.value[k]
+  }
+  return b
+}
+
+const evaluarCN = async () => {
+  cnCargando.value = true
+  try {
+    cn.value = (await api.post(`/ingesta/raw/${rawId}/contra-natura/evaluar`, cnBody())).data
+    // Lo que el servidor resolvió (sugerencias incluidas) pasa a ser la selección vigente.
+    cnSel.value.cliente_id = cn.value.cliente_id
+    cnSel.value.domicilio_entrega_id = cn.value.domicilio_entrega_id
+    cnSel.value.transporte_id = cn.value.transporte_id
+    cnSel.value.productos = cn.value.renglones.map(r => ({ item_pdf: r.item_pdf, producto_id: r.producto_id }))
+  } catch (e) {
+    error(e, 'No se pudo evaluar')
+  } finally {
+    cnCargando.value = false
+  }
+}
+
+const cambiarProducto = (i, valor) => {
+  cnSel.value.productos = cnSel.value.productos.map(p =>
+    p.item_pdf === i ? { item_pdf: i, producto_id: valor === '' ? null : Number(valor) } : p)
+  evaluarCN()
+}
+
+const confirmarCN = async () => {
+  if (!confirm('Se va a crear un pedido y un PR retroactivos desde esta factura, marcados como contra natura. ¿Seguir?')) return
+  cnCargando.value = true
+  try {
+    resultado.value = (await api.post(`/ingesta/raw/${rawId}/contra-natura/confirmar`, cnBody())).data
+    notification.add(`Factura ${resultado.value.numero} registrada contra natura (pedido #${resultado.value.pedido_id})`, 'success')
+    cn.value = null
+    await cargar()
+  } catch (e) {
+    error(e, 'No se pudo registrar')
+  } finally {
+    cnCargando.value = false
+  }
+}
+
+const marcarDesmadre = async () => {
+  cnCargando.value = true
+  try {
+    await api.post(`/ingesta/raw/${rawId}/contra-natura/marcar-desmadre`, cnBody())
+    cnMarcado.value = true
+    notification.add('Factura marcada: pendiente nota de crédito por el total', 'success')
+  } catch (e) {
+    error(e, 'No se pudo marcar')
+  } finally {
+    cnCargando.value = false
   }
 }
 

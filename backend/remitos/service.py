@@ -726,8 +726,11 @@ class RemitosService:
             raise HTTPException(status_code=500, detail=f"Error interno en el procesamiento: {str(ex)}")
 
     @staticmethod
-    def armar_remito(db: Session, payload: schemas.ArmarRemitoPayload):
+    def armar_remito(db: Session, payload: schemas.ArmarRemitoPayload, commit: bool = True):
         """Arma un PR desde un pedido existente -- primera pantalla de la Etapa 4 (D3).
+
+        `commit=False` [Etapa 7c]: deja el PR solo flusheado, para que el que llama lo cierre en
+        la misma transacción (pedido retroactivo + PR + factura, todo o nada).
 
         [PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §6] A diferencia de create_manual
         (texto libre, matchea o rechaza), acá los renglones se ELIGEN de la lista del pedido por
@@ -847,6 +850,9 @@ class RemitosService:
             ))
 
         RemitosService._recalcular_bits_entrega(db, pedido)
+        if not commit:
+            db.flush()
+            return remito
         db.commit()
         db.refresh(remito)
         return remito

@@ -401,7 +401,11 @@ class ConciliadorService:
     # ------------------------------------------------------------------ confirmar
 
     @staticmethod
-    def confirmar(db: Session, raw_id, remito_ids: List[str], emparejamiento: List[dict], usuario) -> dict:
+    def confirmar(db: Session, raw_id, remito_ids: List[str], emparejamiento: List[dict], usuario,
+                  contra_natura: bool = False) -> dict:
+        """`contra_natura` [Etapa 7c]: el PR se acaba de reconstruir desde el mismo PDF (factura
+        emitida en ARCA sin PR previo). Se concilia igual, pero queda marcado en la factura y en la
+        auditoría de la ingesta -- "el circuito excepcional se permite, marcado y contable"."""
         from backend.facturacion.models import Factura, FacturaItem, FacturaRemito
         from backend.remitos.models import RemitoNota
         from backend.ingesta.models import FacturasProcesadas
@@ -444,7 +448,11 @@ class ConciliadorService:
             cae=enc["cae"],
             cae_vencimiento=_fecha(enc["vto_cae"]),
             cuit_comprador=enc["cuit"],
-            notas_auditoria=f"CONCILIADA CONTRA PR (Etapa 7b) -- ingesta raw {raw_id}",
+            notas_auditoria=(
+                f"FACTURA CONTRA NATURA: emitida en ARCA sin PR previo; pedido y PR reconstruidos "
+                f"desde el PDF (Etapa 7c) -- ingesta raw {raw_id}" if contra_natura
+                else f"CONCILIADA CONTRA PR (Etapa 7b) -- ingesta raw {raw_id}"
+            ),
         )
         db.add(factura)
         db.flush()
@@ -499,7 +507,7 @@ class ConciliadorService:
             parsed_data_final=json.loads(json.dumps({**ev["_parsed"], "emparejamiento": ev["emparejamiento"],
                                                      "remito_ids": ev["remito_ids"]}, default=str)),
             audit_log={"diferencias": audit, "usuario": getattr(usuario, "username", None)},
-            estado="CONCILIADA",
+            estado="CONTRA_NATURA" if contra_natura else "CONCILIADA",
             processed_at=datetime.now(timezone.utc),
         ))
         raw.audit_status = "PROCESADO"
