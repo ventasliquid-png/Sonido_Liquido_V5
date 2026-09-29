@@ -63,6 +63,35 @@ def _iso_date(val: str) -> Optional[str]:
         pass
     return val
 
+def _agrupar_por_linea(words_data, tolerancia: float = 3.0) -> dict:
+    """Agrupa las palabras en líneas por cercanía REAL de y0, no por una grilla fija.
+
+    [H3, Etapa 7] Antes las líneas se armaban con `round(y0 / 6) * 6`. En los PDF de ARCA la
+    primera línea de la descripción y la fila de números están a ~1,6 pt una de otra (mismo
+    renglón visual); si caen a cada lado de un borde de la grilla quedan en filas distintas y la
+    descripción se pierde o se le pega al renglón vecino (factura 2496: "Guantes de polietileno
+    largo estilo veterinario 90 cm" salía "cm"; factura 2546: "TOALLAS SUPER CORTAS BLANCAS CAJA"
+    se le pegaba al renglón anterior). La tolerancia se mide contra la primera palabra de la
+    fila, sin encadenar.
+
+    Por qué 3,0 pt (medido en 10 PDF reales de ARCA): lo que tiene que fundirse -- primera línea
+    de descripción y fila de números -- difiere 0,4 a 1,6 pt. Lo que tiene que quedar separado --
+    líneas de continuación de la descripción (~9,2 pt) y las filas del encabezado (3,6 a 4,4 pt)
+    -- está a 3,6 pt o más. 3,0 deja >= 1,4 pt de margen de cada lado; 4,0 (la tolerancia que
+    decía el comentario original) caía justo sobre la separación del encabezado y el resultado
+    dependía del ruido de punto flotante del PDF.
+    """
+    lineas = {}
+    y_base = None
+    for w in sorted(words_data, key=lambda w: (w[1], w[0])):
+        x0, y0, x1, y1, val, *_ = w
+        if y_base is None or y0 - y_base > tolerancia:
+            y_base = y0
+            lineas[y_base] = []
+        lineas[y_base].append({"x0": x0, "text": val})
+    return lineas
+
+
 # [Etapa 7a] Tabla de comprobantes de AFIP (código -> clase, letra, es FCE MiPyME). Un código
 # fuera de la tabla NO se adivina: queda tipo None + aviso.
 _CODIGOS_AFIP = {
@@ -230,13 +259,8 @@ def parse_invoice_data(text: str, words_data: list = None) -> dict:
     # --- [SABUESO V5.5 ZONAL ITEMS] ---
     if words_data:
         # 1. Agrupamos palabras por línea (Y0) con tolerancia de 4 pts
-        lines = {}
-        for w in words_data:
-            x0, y0, x1, y1, val, *_ = w
-            y_key = round(y0 / 6) * 6
-            if y_key not in lines: lines[y_key] = []
-            lines[y_key].append({"x0": x0, "text": val})
-        
+        lines = _agrupar_por_linea(words_data)
+
         sorted_y = sorted(lines.keys())
         items_v55 = []
         current_item = None
@@ -248,7 +272,12 @@ def parse_invoice_data(text: str, words_data: list = None) -> dict:
             row_text = " ".join(w["text"] for w in row_words).upper()
             
             # [V5.5] Gate de Salida: Si detectamos el pie de página, cortamos.
-            if table_started and any(term in row_text for term in ["NETO GRAVADO", "TOTAL VTA", "SUBTOTAL", "SON PESOS"]):
+            # [H3, Etapa 7] Solo después del primer renglón: el encabezado de la tabla de ARCA
+            # ocupa tres filas y la segunda dice "Subtotal" -- antes se fundían las tres en una sola
+            # fila (por la grilla de 6 pt) y esto no se notaba; con líneas reales, ese "Subtotal"
+            # cerraba la tabla antes de leer ningún renglón. El pie viene siempre después de los
+            # renglones, el encabezado nunca.
+            if table_started and items_v55 and any(term in row_text for term in ["NETO GRAVADO", "TOTAL VTA", "SUBTOTAL", "SON PESOS"]):
                 table_started = False
                 current_item = None
                 continue
