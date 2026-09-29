@@ -90,12 +90,31 @@ class Factura(Base):
     items = relationship("FacturaItem", back_populates="factura", cascade="all, delete-orphan")
     vinculos_remitos = relationship("FacturaRemito", back_populates="factura", cascade="all, delete-orphan")
 
+    # [Etapa 7d] Ajustes: una NC/ND (esta fila) ajusta 0..n facturas; una factura recibe 0..n ajustes.
+    ajustes_emitidos = relationship(
+        "FacturaAjuste", foreign_keys="FacturaAjuste.factura_nc_nd_id",
+        back_populates="nc_nd", cascade="all, delete-orphan")
+    ajustes_recibidos = relationship(
+        "FacturaAjuste", foreign_keys="FacturaAjuste.factura_ajustada_id", back_populates="ajustada")
+
     __table_args__ = (
         UniqueConstraint(
             'tipo_comprobante', 'punto_venta', 'numero_comprobante',
             name='uq_factura_identificador_afip'
         ),
     )
+
+    @property
+    def comprobantes_ajustados(self):
+        """[Etapa 7d, dictamen Nike] Listado completo de las facturas que esta NC/ND ajusta (una NC
+        de ARCA puede ajustar varias a la vez). Vacío para una factura común o una ND suelta."""
+        return [a.ajustada for a in self.ajustes_emitidos if a.ajustada is not None]
+
+    @property
+    def comprobante_ajustado_principal(self):
+        """El caso normal (~95%, 1:1): la primera factura ajustada, o None."""
+        ajustados = self.comprobantes_ajustados
+        return ajustados[0] if ajustados else None
 
     @property
     def numero_completo(self):
@@ -133,7 +152,40 @@ class FacturaItem(Base):
     # Relaciones
     factura = relationship("Factura", back_populates="items")
     pedido_item = relationship("PedidoItem")
-    remito_item = relationship("RemitoItem")
+    # [Etapa 7d] back_populates: RemitoItem.cantidad_acreditada suma los renglones de NC que apuntan acá.
+    remito_item = relationship("RemitoItem", back_populates="facturas_items")
 
     def __repr__(self):
         return f"<FacturaItem({self.cantidad}x '{self.descripcion}')>"
+
+
+class FacturaAjuste(Base):
+    """
+    [Etapa 7d, dictamen Nike 29/09/2026 (Sello de Oro), BIBLIOTECA_NIKE.md Módulo 2 "¿Cómo se modela
+    NC/ND...?"] Tabla puente entre una NC/ND y la(s) factura(s) que ajusta.
+
+    NO es una FK simple en `facturas`: ARCA permite que una sola NC ajuste varias facturas a la vez
+    (ej. NC global de fin de mes por bonificación de volumen). NC y ND son filas de la misma tabla
+    `facturas`, distinguidas por tipo_comprobante -- esta tabla solo dice a qué ajustan.
+
+    `factura_ajustada_id` es opcional: una ND puede existir "suelta" (intereses por mora, gastos
+    bancarios) y en ese caso queda atribuida solo al cliente de la propia fila de facturas.
+    `monto_aplicado` (nullable): desglose cuando una NC reparte su importe entre varias facturas.
+    """
+    __tablename__ = "facturas_ajustes"
+
+    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
+    factura_nc_nd_id = Column(GUID(), ForeignKey("facturas.id"), nullable=False, index=True)
+    factura_ajustada_id = Column(GUID(), ForeignKey("facturas.id"), nullable=True, index=True)
+    monto_aplicado = Column(Float, nullable=True)
+    fecha_vinculo = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    nc_nd = relationship("Factura", foreign_keys=[factura_nc_nd_id], back_populates="ajustes_emitidos")
+    ajustada = relationship("Factura", foreign_keys=[factura_ajustada_id], back_populates="ajustes_recibidos")
+
+    __table_args__ = (
+        UniqueConstraint('factura_nc_nd_id', 'factura_ajustada_id', name='uq_factura_ajuste'),
+    )
+
+    def __repr__(self):
+        return f"<FacturaAjuste(nc_nd={self.factura_nc_nd_id}, ajustada={self.factura_ajustada_id})>"

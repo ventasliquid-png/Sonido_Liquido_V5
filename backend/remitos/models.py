@@ -140,6 +140,32 @@ class RemitoItem(Base):
     remito = relationship("Remito", back_populates="items")
     pedido_item = relationship("PedidoItem", back_populates="remitos_items")
     notas = relationship("RemitoNota", back_populates="remito_item")
+    # [Etapa 7d] Renglones de factura (y de NC/ND) que apuntan a este renglón del PR.
+    facturas_items = relationship("FacturaItem", back_populates="remito_item")
+
+    @property
+    def cantidad_acreditada(self):
+        """[Etapa 7d, dictamen Nike 29/09] Σ cantidad de los renglones de NOTAS DE CRÉDITO (no
+        anuladas) que apuntan a este renglón. Calculado, nunca persistido. Las ND no cuentan: ajustan
+        importes, no cantidades. Una NC de solo-monto (renglón sin par) no apunta a ningún renglón de PR
+        y por eso no aparece acá -- correcto, no movió cantidades."""
+        from backend.facturacion.constants import es_nota_credito
+        return sum(
+            (fi.cantidad or 0.0)
+            for fi in self.facturas_items
+            if fi.factura is not None
+            and es_nota_credito(fi.factura.tipo_comprobante)
+            and fi.factura.estado != "ANULADA"
+        )
+
+    @property
+    def cantidad_facturada_neta(self):
+        """cantidad_facturada (bruto, inmutable: NUNCA se muta cuando llega una NC) menos lo acreditado
+        por NC. None se preserva: NULL = no aplica (rosa / fuera de lo fiscal), y no se convierte en
+        0 ni en un número negativo (dictamen Nike 23/09: NULL != 0)."""
+        if self.cantidad_facturada is None:
+            return None
+        return self.cantidad_facturada - self.cantidad_acreditada
 
     @property
     def cantidad(self):

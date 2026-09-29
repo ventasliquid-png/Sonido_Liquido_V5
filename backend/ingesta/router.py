@@ -45,6 +45,12 @@ async def upload_raw(file: UploadFile = File(...), db: Session = Depends(get_db)
                     tipo_comprobante = "FACTURA_A"
                 elif "MONOTRIBUTO" in cond_iva:
                     tipo_comprobante = "FACTURA_C"
+                # [Etapa 7d] Una NC/ND numera aparte de las facturas: con el tipo adivinado por la
+                # condición de IVA, una NC cuyo número coincida con una factura mostraría el cartel de
+                # "DOCUMENTO YA PROCESADO" sin serlo. Para las notas se usa el tipo real que leyó el
+                # parser; para las facturas se mantiene la lógica de siempre (sin cambio de comportamiento).
+                if factura_data.get("clase_comprobante") in ("NOTA_CREDITO", "NOTA_DEBITO") and factura_data.get("tipo_comprobante"):
+                    tipo_comprobante = factura_data["tipo_comprobante"]
                 
                 from backend.facturacion.models import Factura
                 from backend.ingesta.models import FacturasProcesadas
@@ -213,6 +219,39 @@ def conciliacion_confirmar(
     return ConciliadorService.confirmar(db, raw_id, payload.remito_ids, payload.emparejamiento, current_user)
 
 
+# --- [Etapa 7d] Notas de crédito / débito: no cierran un PR, ajustan facturas. `candidatos` (arriba) es el
+# mismo punto de entrada que 7b y devuelve modo "AJUSTE" para una NC/ND; evaluar/confirmar son propios
+# porque el objeto que se elige es otro (facturas, no PR). ---
+
+from backend.ingesta.conciliador_ajuste import AjusteService
+
+
+class AjustePayload(BaseModel):
+    factura_ids: List[str] = []
+    emparejamiento: Optional[List[Dict[str, Any]]] = None
+    cliente_id: Optional[str] = None
+    montos: Optional[Dict[str, float]] = None
+
+
+@router.post("/raw/{raw_id}/ajuste/evaluar")
+def ajuste_evaluar(raw_id: uuid.UUID, payload: AjustePayload, db: Session = Depends(get_db)):
+    """Solo lectura: compara la NC/ND contra las facturas elegidas y clasifica A/B/C."""
+    return _sin_privados(AjusteService.evaluar(db, raw_id, payload.factura_ids, payload.emparejamiento, payload.cliente_id))
+
+
+@router.post("/raw/{raw_id}/ajuste/confirmar")
+def ajuste_confirmar(
+    raw_id: uuid.UUID,
+    payload: AjustePayload,
+    db: Session = Depends(get_db),
+    current_user: auth_models.Usuario = Depends(get_current_active_user),
+):
+    if payload.emparejamiento is None:
+        raise HTTPException(status_code=400, detail="EMPAREJAMIENTO_REQUERIDO: confirmá el emparejamiento que evaluaste.")
+    return AjusteService.confirmar(
+        db, raw_id, payload.factura_ids, payload.emparejamiento, current_user, payload.cliente_id, payload.montos)
+
+
 # --- [Etapa 7c] Facturas contra natura (emitidas en ARCA sin PR previo). ---
 
 from backend.ingesta.contra_natura import ContraNaturaService
@@ -274,7 +313,21 @@ def anular_y_reingestar(raw_id: uuid.UUID, payload: AnularPayload, db: Session =
     factura_vieja = db.query(Factura).filter(Factura.id == payload.factura_id).first()
     if not factura_vieja:
         raise HTTPException(status_code=404, detail="Factura a anular no encontrada")
-        
+
+    # [Etapa 7d] Este camino BORRA la factura: si tiene notas de crédito/débito vinculadas (o ella
+    # misma es una nota), quedarían filas de facturas_ajustes apuntando a un comprobante que ya no
+    # existe. Una factura con ajustes no se borra: se corrige con otra nota, no destruyéndola.
+    from sqlalchemy import or_
+    from backend.facturacion.models import FacturaAjuste
+    if db.query(FacturaAjuste.id).filter(or_(
+        FacturaAjuste.factura_ajustada_id == factura_vieja.id,
+        FacturaAjuste.factura_nc_nd_id == factura_vieja.id,
+    )).first():
+        raise HTTPException(
+            status_code=409,
+            detail="FACTURA_CON_AJUSTES: la factura tiene notas de crédito/débito vinculadas -- no se puede "
+                   "borrar. Corresponde emitir otra nota, no destruir el comprobante.")
+
     # 1. Verificar que remito asociado esté en BORRADOR
     linked_remito = None
     if factura_vieja.vinculos_remitos:

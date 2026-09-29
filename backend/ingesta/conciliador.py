@@ -63,6 +63,22 @@ def _fecha(valor: Optional[str]) -> Optional[date]:
     return None
 
 
+def desglose_importes(enc: dict, items_pdf: List[dict]):
+    """Neto, IVA 21 / 10,5, exento, percepciones y total de un comprobante de ARCA. Neto y total los
+    manda ARCA; el IVA sale de los renglones por alícuota, y lo que sobre hasta el total se registra
+    como percepciones. Compartido por la conciliación de facturas (7b) y de NC/ND (7d)."""
+    iva_21 = sum((it.get("subtotal") or 0) * 0.21 for it in items_pdf if abs((it.get("alicuota_iva") or 0) - 21) < EPS)
+    iva_105 = sum((it.get("subtotal") or 0) * 0.105 for it in items_pdf if abs((it.get("alicuota_iva") or 0) - 10.5) < EPS)
+    exento = sum((it.get("subtotal") or 0) for it in items_pdf if abs(it.get("alicuota_iva") or 0) < EPS)
+    neto = enc["total_neto"] if enc["total_neto"] is not None else sum(
+        (it.get("subtotal") or 0) for it in items_pdf if abs(it.get("alicuota_iva") or 0) >= EPS)
+    total = enc["total_final"] if enc["total_final"] is not None else neto + iva_21 + iva_105 + exento
+    percepciones = round(total - neto - iva_21 - iva_105 - exento, 2)
+    if abs(percepciones) < 0.5:
+        percepciones = 0.0
+    return neto, iva_21, iva_105, exento, percepciones, total
+
+
 def _precio_efectivo_pedido(pedido_item) -> Optional[float]:
     """Precio neto por unidad que el pedido tenía para ese renglón, con el descuento de renglón
     incluido (mismo criterio que utils/entregaParcial.js::precioEfectivo, al revés de prioridad:
@@ -96,11 +112,20 @@ class ConciliadorService:
     def _duplicada(db: Session, pv: Optional[int], nc: Optional[int]):
         """Por número, sin importar el tipo: el camino viejo guardaba el tipo adivinado por la
         condición de IVA (a veces PRESUPUESTO_X), así que filtrar por tipo dejaría pasar
-        duplicados reales (mismo criterio que el Guard 3 de create_from_ingestion)."""
+        duplicados reales (mismo criterio que el Guard 3 de create_from_ingestion).
+
+        [Etapa 7d] EXCEPTO las notas de crédito/débito: ARCA las numera aparte de las facturas
+        (una NC A 00001-00000012 y una Factura A 00001-00000012 conviven), así que una NC con el
+        mismo número NO hace duplicada a una factura. Su propio control de duplicado es por
+        (tipo canónico, punto de venta, número) -- ver conciliador_ajuste.py."""
+        from sqlalchemy import or_
         from backend.facturacion.models import Factura
         if nc is None:
             return None
-        q = db.query(Factura).filter(Factura.numero_comprobante == nc)
+        q = db.query(Factura).filter(
+            Factura.numero_comprobante == nc,
+            or_(Factura.tipo_comprobante.is_(None), ~Factura.tipo_comprobante.like("NOTA_%")),
+        )
         if pv is not None:
             q = q.filter(Factura.punto_venta == pv)
         return q.first()
@@ -160,8 +185,8 @@ class ConciliadorService:
             bloqueos.append(f"TIPO_DESCONOCIDO: {enc.get('tipo_warning') or 'no se pudo leer el tipo de comprobante'}")
         elif enc["clase_comprobante"] != "FACTURA":
             bloqueos.append(
-                f"NC_ND_NO_SOPORTADA: el PDF es {enc['tipo_comprobante']}. Las notas de crédito/débito se "
-                f"reciben en la Etapa 7d (esquema pendiente de dictamen de Nike)."
+                f"ES_AJUSTE: el PDF es {enc['tipo_comprobante']}, no una factura. Las notas de crédito/"
+                f"débito se concilian como ajuste de facturas (Etapa 7d), no contra un PR."
             )
         if enc["numero_comprobante"] is None or enc["punto_venta"] is None:
             bloqueos.append("NUMERO_COMPROBANTE_REQUERIDO: no se pudo leer punto de venta y número del PDF.")
@@ -189,6 +214,12 @@ class ConciliadorService:
         from backend.remitos.service import RemitosService
         pv, nc = RemitosService._partes_numero_factura(parsed.get("factura", {}).get("numero"))
         enc = ConciliadorService._encabezado(parsed, pv, nc)
+
+        # [Etapa 7d] Una NC/ND no cierra un PR: ajusta facturas. Mismo punto de entrada y misma
+        # pantalla, pero el objeto a elegir es otro (facturas, no PR) -- ver conciliador_ajuste.py.
+        if enc["clase_comprobante"] in ("NOTA_CREDITO", "NOTA_DEBITO"):
+            from backend.ingesta.conciliador_ajuste import AjusteService
+            return AjusteService.candidatos(db, raw, enc)
 
         bloqueos = ConciliadorService._bloqueos_de_comprobante(db, enc)
         avisos = []
@@ -231,7 +262,7 @@ class ConciliadorService:
             if not prs:
                 avisos.append("SIN_PR_PENDIENTE: el cliente no tiene ningún PR blanco con facturación pendiente.")
 
-        return {"raw_id": str(raw.id), "filename": raw.filename, "factura": enc,
+        return {"modo": "FACTURA", "raw_id": str(raw.id), "filename": raw.filename, "factura": enc,
                 "prs": prs, "bloqueos": bloqueos, "avisos": avisos}
 
     # ------------------------------------------------------------------ evaluar
@@ -419,17 +450,7 @@ class ConciliadorService:
         cliente = remitos[0].pedido.cliente
         pedidos = {r.pedido_id for r in remitos}
 
-        # Desglose: neto y total los manda ARCA; el IVA sale de los renglones por alícuota, y lo
-        # que sobre hasta el total se registra como percepciones.
-        iva_21 = sum((it.get("subtotal") or 0) * 0.21 for it in items_pdf if abs((it.get("alicuota_iva") or 0) - 21) < EPS)
-        iva_105 = sum((it.get("subtotal") or 0) * 0.105 for it in items_pdf if abs((it.get("alicuota_iva") or 0) - 10.5) < EPS)
-        exento = sum((it.get("subtotal") or 0) for it in items_pdf if abs(it.get("alicuota_iva") or 0) < EPS)
-        neto = enc["total_neto"] if enc["total_neto"] is not None else sum(
-            (it.get("subtotal") or 0) for it in items_pdf if abs(it.get("alicuota_iva") or 0) >= EPS)
-        total = enc["total_final"] if enc["total_final"] is not None else neto + iva_21 + iva_105 + exento
-        percepciones = round(total - neto - iva_21 - iva_105 - exento, 2)
-        if abs(percepciones) < 0.5:
-            percepciones = 0.0
+        neto, iva_21, iva_105, exento, percepciones, total = desglose_importes(enc, items_pdf)
 
         factura = Factura(
             cliente_id=cliente.id,

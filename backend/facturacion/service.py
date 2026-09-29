@@ -109,6 +109,145 @@ class FacturacionService:
         db.refresh(factura)
         return factura
 
+    # ------------------------------------------------------------------ [Etapa 7d] NC / ND
+    # Dictamen Nike 29/09 (BIBLIOTECA_NIKE.md, Módulo 2, "¿Cómo se modela NC/ND...?"): misma tabla
+    # `facturas` por tipo_comprobante + tabla puente `facturas_ajustes` + bits 17-20 mantenidos acá.
+
+    @staticmethod
+    def sincronizar_bits_ajuste(db: Session, factura: models.Factura) -> None:
+        """Recalcula ES_NC/ES_ND/TIENE_NC/TIENE_ND de UNA factura desde los datos reales.
+
+        No es un "prender/apagar" a ciegas: cada llamada mira facturas_ajustes y el tipo, así que no
+        puede desincronizarse (la lección de los Bits 20/21 de Pedido, cachés de una resta que se
+        rompieron). Una NC/ND ANULADA no cuenta como ajuste vigente. No hace commit."""
+        from backend.facturacion.constants import FacturaFlags, es_nota_credito, es_nota_debito
+
+        db.flush()
+
+        def hay_ajuste(prefijo: str) -> bool:
+            return db.query(models.FacturaAjuste.id).join(
+                models.Factura, models.FacturaAjuste.factura_nc_nd_id == models.Factura.id
+            ).filter(
+                models.FacturaAjuste.factura_ajustada_id == factura.id,
+                models.Factura.estado != "ANULADA",
+                models.Factura.tipo_comprobante.like(f"{prefijo}%"),
+            ).first() is not None
+
+        quiere = {
+            FacturaFlags.ES_NC: es_nota_credito(factura.tipo_comprobante),
+            FacturaFlags.ES_ND: es_nota_debito(factura.tipo_comprobante),
+            FacturaFlags.TIENE_NC: hay_ajuste("NOTA_CREDITO"),
+            FacturaFlags.TIENE_ND: hay_ajuste("NOTA_DEBITO"),
+        }
+        flags = factura.flags_estado or 0
+        for bit, encendido in quiere.items():
+            flags = (flags | bit) if encendido else (flags & ~bit)
+        if flags != factura.flags_estado:
+            # Sin db.add(): la factura ya es persistente en esta sesión, y un add() cascadea por las
+            # colecciones de ajustes, que pueden tener filas ya borradas (revertir_ajuste).
+            factura.flags_estado = flags
+
+    @staticmethod
+    def registrar_ajuste(
+        db: Session,
+        nc_nd: models.Factura,
+        ajustadas: Optional[List[dict]] = None,
+    ) -> List[models.FacturaAjuste]:
+        """Vincula una NC/ND con las facturas que ajusta y enciende los bits. No hace commit.
+
+        `ajustadas`: [{"factura_id": <uuid|str>, "monto_aplicado": float|None}, ...].
+        - NC: al menos una factura (una NC sin comprobante asociado no tiene qué ajustar).
+        - ND: puede ir SUELTA (lista vacía): intereses por mora, gastos bancarios -- queda una fila con
+          factura_ajustada_id NULL, atribuida solo al cliente de la propia ND (Nike, punto 5).
+        Una factura ajustada no puede ser otra NC, ni estar anulada, ni ser de otro cliente."""
+        from backend.facturacion.constants import es_nota_credito, es_nota_debito
+
+        ajustadas = ajustadas or []
+        if not (es_nota_credito(nc_nd.tipo_comprobante) or es_nota_debito(nc_nd.tipo_comprobante)):
+            raise HTTPException(
+                status_code=409,
+                detail=f"AJUSTE_TIPO_INVALIDO: {nc_nd.tipo_comprobante} no es una nota de crédito ni de débito.")
+        if es_nota_credito(nc_nd.tipo_comprobante) and not ajustadas:
+            raise HTTPException(
+                status_code=409,
+                detail="NC_SIN_FACTURA: una nota de crédito tiene que ajustar al menos una factura "
+                       "(solo la nota de débito puede ir suelta).")
+
+        creadas: List[models.FacturaAjuste] = []
+        vistas = set()
+        objetivos = []
+        for a in ajustadas:
+            try:
+                fid = a["factura_id"] if isinstance(a["factura_id"], uuid.UUID) else uuid.UUID(str(a["factura_id"]))
+            except (ValueError, KeyError):
+                raise HTTPException(status_code=409, detail=f"AJUSTADA_INEXISTENTE: id inválido {a.get('factura_id')!r}.")
+            if fid in vistas:
+                raise HTTPException(status_code=409, detail=f"AJUSTE_DUPLICADO: la factura {fid} está repetida.")
+            vistas.add(fid)
+            destino = db.query(models.Factura).filter(models.Factura.id == fid).first()
+            if destino is None:
+                raise HTTPException(status_code=409, detail=f"AJUSTADA_INEXISTENTE: no existe la factura {fid}.")
+            if destino.id == nc_nd.id:
+                raise HTTPException(status_code=409, detail="AJUSTADA_ES_LA_MISMA: un comprobante no se ajusta a sí mismo.")
+            if es_nota_credito(destino.tipo_comprobante):
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"AJUSTADA_ES_NC: {destino.tipo_comprobante} {destino.numero_completo} es una nota de crédito.")
+            if destino.estado == "ANULADA":
+                raise HTTPException(status_code=409, detail=f"AJUSTADA_ANULADA: {destino.numero_completo} está anulada.")
+            if destino.cliente_id != nc_nd.cliente_id:
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"CLIENTE_DISTINTO: {destino.numero_completo} es de otro cliente que la nota.")
+            if db.query(models.FacturaAjuste.id).filter(
+                models.FacturaAjuste.factura_nc_nd_id == nc_nd.id,
+                models.FacturaAjuste.factura_ajustada_id == destino.id,
+            ).first():
+                raise HTTPException(status_code=409, detail=f"AJUSTE_DUPLICADO: ya existe el vínculo con {destino.numero_completo}.")
+            objetivos.append((destino, a.get("monto_aplicado")))
+
+        if not objetivos:  # ND suelta
+            objetivos = [(None, None)]
+
+        for destino, monto in objetivos:
+            fila = models.FacturaAjuste(
+                factura_nc_nd_id=nc_nd.id,
+                factura_ajustada_id=destino.id if destino is not None else None,
+                monto_aplicado=monto,
+            )
+            db.add(fila)
+            creadas.append(fila)
+        db.flush()
+        # Las filas se crearon por FK, no por la relación: las colecciones ya cargadas quedaron viejas.
+        db.expire(nc_nd, ["ajustes_emitidos"])
+        for destino, _ in objetivos:
+            if destino is not None:
+                db.expire(destino, ["ajustes_recibidos"])
+
+        FacturacionService.sincronizar_bits_ajuste(db, nc_nd)
+        for destino, _ in objetivos:
+            if destino is not None:
+                FacturacionService.sincronizar_bits_ajuste(db, destino)
+        return creadas
+
+    @staticmethod
+    def revertir_ajuste(db: Session, ajuste_id: int) -> None:
+        """Deshace un vínculo NC/ND -> factura y recalcula los bits de las dos puntas. No hace commit.
+        ES_NC/ES_ND de la nota NO se apagan: sigue siendo una nota aunque ya no ajuste nada."""
+        fila = db.query(models.FacturaAjuste).filter(models.FacturaAjuste.id == ajuste_id).first()
+        if fila is None:
+            raise HTTPException(status_code=404, detail="Ajuste no encontrado")
+        nc_nd = fila.nc_nd
+        ajustada = fila.ajustada
+        db.delete(fila)
+        db.flush()
+        db.expire(nc_nd, ["ajustes_emitidos"])
+        if ajustada is not None:
+            db.expire(ajustada, ["ajustes_recibidos"])
+        FacturacionService.sincronizar_bits_ajuste(db, nc_nd)
+        if ajustada is not None:
+            FacturacionService.sincronizar_bits_ajuste(db, ajustada)
+
     @staticmethod
     def get_factura(db: Session, factura_id: str) -> models.Factura:
         factura = db.query(models.Factura).options(

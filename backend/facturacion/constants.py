@@ -24,3 +24,23 @@ class FacturaFlags:
 
     # Bits 22-29: Reservado Módulo Contabilidad (retenciones)
     # Bits 30+: Ultra-reservado
+
+    # [Etapa 7d, dictamen Nike 29/09 "¿Cómo se modela NC/ND..."] Los cuatro bits 17-20 los
+    # mantiene FacturacionService (no solo se derivan): se recalculan desde facturas_ajustes en cada
+    # alta/reversión. ES_NC/ES_ND marcan a la fila misma (tipo NOTA_CREDITO_*/NOTA_DEBITO_*);
+    # TIENE_NC/TIENE_ND marcan a la factura ajustada. OJO: existe un TIENE_NC distinto en
+    # backend/ingesta/constants.py (Bit 2, flags de FacturasProcesadas) -- otro namespace, no
+    # colisiona, pero no son la misma bandera.
+
+
+def es_nota_credito(tipo_comprobante) -> bool:
+    """NOTA_CREDITO_A/B/C/M y las FCE (NOTA_CREDITO_FCE_A...) -- los tipos canónicos del parser (7a)."""
+    return (tipo_comprobante or "").startswith("NOTA_CREDITO")
+
+
+def es_nota_debito(tipo_comprobante) -> bool:
+    return (tipo_comprobante or "").startswith("NOTA_DEBITO")
+
+
+def es_nota_ajuste(tipo_comprobante) -> bool:
+    return es_nota_credito(tipo_comprobante) or es_nota_debito(tipo_comprobante)

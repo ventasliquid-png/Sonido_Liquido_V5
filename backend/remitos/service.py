@@ -175,7 +175,12 @@ class RemitosService:
         # compara por número, como hacía el Guard 1.
         if nc is not None:
             from backend.facturacion.models import Factura
-            filtro_factura = db.query(Factura).filter(Factura.numero_comprobante == nc)
+            # [Etapa 7d] Las NC/ND numeran aparte de las facturas: una nota con el mismo número no hace
+            # duplicada a esta factura.
+            filtro_factura = db.query(Factura).filter(
+                Factura.numero_comprobante == nc,
+                or_(Factura.tipo_comprobante.is_(None), ~Factura.tipo_comprobante.like("NOTA_%")),
+            )
             if pv is not None:
                 filtro_factura = filtro_factura.filter(Factura.punto_venta == pv)
             if filtro_factura.first():

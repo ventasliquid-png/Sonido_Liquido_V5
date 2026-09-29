@@ -10,8 +10,8 @@
 
       <header class="shrink-0 flex flex-wrap gap-4 items-center justify-between border-b border-emerald-900/30 pb-4">
         <div>
-          <h1 class="font-outfit text-xl font-semibold text-white"><i class="fas fa-scale-balanced mr-2 text-emerald-400"></i>Conciliar factura contra PR</h1>
-          <p class="text-xs text-emerald-400/50 font-medium uppercase tracking-wider">La factura cierra un PR que ya existe — no crea pedido ni remito</p>
+          <h1 class="font-outfit text-xl font-semibold text-white"><i class="fas fa-scale-balanced mr-2 text-emerald-400"></i>{{ esAjuste ? 'Conciliar nota de crédito / débito' : 'Conciliar factura contra PR' }}</h1>
+          <p class="text-xs text-emerald-400/50 font-medium uppercase tracking-wider">{{ esAjuste ? 'La nota ajusta una o varias facturas ya registradas — no cierra ningún PR' : 'La factura cierra un PR que ya existe — no crea pedido ni remito' }}</p>
         </div>
         <button @click="$router.push({ name: 'IngestaFactura' })" class="text-xs text-slate-400 hover:text-white">
           <i class="fas fa-arrow-left mr-1"></i> Volver a Ingesta
@@ -48,8 +48,100 @@
           </li>
         </ul>
 
+        <!-- [Etapa 7d] NC / ND: se eligen FACTURAS (no PR) y se empareja renglón por renglón (solo NC) -->
+        <template v-if="esAjuste && !resultado">
+          <section class="space-y-2">
+            <h2 class="text-sm font-bold text-white">
+              1 · {{ esNC ? 'Elegí qué factura(s) acredita esta nota' : 'Elegí qué factura ajusta esta nota (o dejala suelta)' }}
+            </h2>
+            <div v-if="cand.clientes.length > 1 && !ajSel.size" class="text-xs">
+              <span class="block text-[10px] uppercase text-slate-500 font-bold mb-1">Varios clientes comparten este CUIT — ¿a cuál se atribuye?</span>
+              <select v-model="ajCliente" @change="ajEv = null" class="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-white">
+                <option :value="null">— elegir —</option>
+                <option v-for="c in cand.clientes" :key="c.id" :value="c.id">{{ c.razon_social }}</option>
+              </select>
+            </div>
+            <label v-for="f in cand.facturas" :key="f.factura_id"
+              class="flex gap-3 items-start bg-slate-800/40 border rounded-xl p-3 cursor-pointer transition-colors"
+              :class="ajSel.has(f.factura_id) ? 'border-emerald-500/60' : 'border-slate-700 hover:border-slate-500'">
+              <input type="checkbox" class="mt-1 accent-emerald-500" :checked="ajSel.has(f.factura_id)" @change="toggleFactura(f.factura_id)" />
+              <div class="flex-1 min-w-0 text-xs">
+                <div class="flex flex-wrap gap-3 text-white">
+                  <span class="font-mono font-bold">{{ f.tipo_comprobante }} {{ f.numero || 'sin número' }}</span>
+                  <span class="text-slate-400">{{ f.fecha_emision || '—' }}</span>
+                  <span class="text-emerald-300 font-mono">{{ moneda(f.total) }}</span>
+                </div>
+                <div class="mt-1 text-slate-400">
+                  <span v-for="r in f.renglones" :key="r.factura_item_id" class="inline-block mr-3">
+                    {{ r.descripcion }} <b class="text-slate-200">{{ r.cantidad }}</b>
+                    <span v-if="r.disponible != null && r.disponible < r.cantidad" class="text-amber-400"> (quedan {{ r.disponible }})</span>
+                  </span>
+                </div>
+              </div>
+            </label>
+            <p v-if="!cand.facturas.length" class="text-xs text-slate-500">El cliente no tiene facturas con CAE registradas en el sistema.</p>
+            <button @click="evaluarAjuste(null)" :disabled="(esNC && !ajSel.size) || ajEvaluando || !!cand.bloqueos.length"
+              class="px-4 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 disabled:bg-slate-700 disabled:cursor-not-allowed text-white text-xs font-bold uppercase tracking-wide">
+              <i class="fas" :class="ajEvaluando ? 'fa-spinner fa-spin' : 'fa-magnifying-glass'"></i> Comparar
+            </button>
+          </section>
+
+          <section v-if="ajEv" class="space-y-3">
+            <h2 class="text-sm font-bold text-white">2 · {{ esNC ? 'Renglón por renglón' : 'Renglones de la nota de débito' }}</h2>
+            <table class="w-full text-xs">
+              <thead>
+                <tr class="text-[10px] uppercase text-slate-500 border-b border-slate-700">
+                  <th class="text-left py-1 pr-2">Nota (ARCA)</th>
+                  <th class="text-right py-1 px-2">Cant.</th>
+                  <th class="text-right py-1 px-2">Precio</th>
+                  <th v-if="esNC" class="text-left py-1 pl-2">Renglón de la factura que acredita</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(it, i) in ajEv.factura.items" :key="i" class="border-b border-slate-800">
+                  <td class="py-1.5 pr-2 text-slate-200">{{ it.descripcion }}</td>
+                  <td class="py-1.5 px-2 text-right font-mono">{{ it.cantidad }}</td>
+                  <td class="py-1.5 px-2 text-right font-mono">{{ moneda(it.precio_unitario) }}</td>
+                  <td v-if="esNC" class="py-1.5 pl-2">
+                    <div class="flex items-center gap-2">
+                      <select :value="ajParDe(i) ?? ''" @change="cambiarParAjuste(i, $event.target.value)"
+                        class="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white w-full max-w-sm">
+                        <option value="">— sin par (concepto de solo monto) —</option>
+                        <option v-for="r in renglonesElegibles" :key="r.factura_item_id" :value="r.factura_item_id">
+                          {{ r.factura_numero }} · {{ r.descripcion }} · {{ r.cantidad }}{{ r.disponible != null ? ' (quedan ' + r.disponible + ')' : '' }}
+                        </option>
+                      </select>
+                      <span v-if="ajComoDe(i)" class="text-[9px] uppercase px-1.5 py-0.5 rounded bg-slate-700 text-slate-300">{{ ajComoDe(i) }}</span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <ul class="space-y-1">
+              <li v-for="(d, i) in ajEv.diferencias" :key="'ad' + i" class="text-xs rounded-lg px-3 py-2 border flex gap-2" :class="claseEstilo(d.clase)">
+                <span class="font-bold shrink-0 w-16">{{ etiqueta(d.clase) }}</span>
+                <span>{{ d.detalle }}</span>
+              </li>
+            </ul>
+            <ul v-if="ajEv.avisos.length" class="space-y-1">
+              <li v-for="(a, i) in ajEv.avisos" :key="'aa' + i" class="text-xs bg-amber-900/20 border border-amber-600/30 text-amber-300 rounded-lg px-3 py-2">
+                <i class="fas fa-circle-exclamation mr-1"></i>{{ a }}
+              </li>
+            </ul>
+            <p v-if="ajHayClaseB" class="text-[11px] text-amber-400/80">
+              Las diferencias clase B no frenan: la nota se registra igual y queda una nota [SISTEMA] en el PR del renglón acreditado de más.
+            </p>
+
+            <button @click="confirmarAjuste" :disabled="!!ajEv.bloqueos.length || ajConfirmando"
+              class="px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white text-sm font-bold">
+              <i class="fas" :class="ajConfirmando ? 'fa-spinner fa-spin' : 'fa-check'"></i> Confirmar {{ esNC ? 'nota de crédito' : 'nota de débito' }}
+            </button>
+          </section>
+        </template>
+
         <!-- PR CANDIDATOS -->
-        <section v-if="cand.prs.length" class="space-y-2">
+        <section v-if="!esAjuste && cand.prs.length" class="space-y-2">
           <h2 class="text-sm font-bold text-white">1 · Elegí contra qué PR cierra esta factura</h2>
           <label v-for="p in cand.prs" :key="p.remito_id"
             class="flex gap-3 items-start bg-slate-800/40 border rounded-xl p-3 cursor-pointer transition-colors"
@@ -77,7 +169,7 @@
         </section>
 
         <!-- EMPAREJAMIENTO + DIFERENCIAS -->
-        <section v-if="ev" class="space-y-3">
+        <section v-if="!esAjuste && ev" class="space-y-3">
           <h2 class="text-sm font-bold text-white">2 · Renglón por renglón</h2>
           <table class="w-full text-xs">
             <thead>
@@ -129,12 +221,19 @@
         <!-- RESULTADO -->
         <section v-if="resultado" class="bg-emerald-900/20 border border-emerald-500/40 rounded-xl p-4 text-sm text-emerald-200">
           <i class="fas fa-circle-check mr-2 text-emerald-400"></i>
-          Registrada {{ resultado.tipo_comprobante }} {{ resultado.numero }} y vinculada a {{ resultado.remito_ids.length }} PR.
-          <span v-if="resultado.pedido_id"> Pedido retroactivo #{{ resultado.pedido_id }} (contra natura).</span>
+          <template v-if="resultado.facturas_ajustadas">
+            Registrada {{ resultado.tipo_comprobante }} {{ resultado.numero }}
+            <span v-if="resultado.facturas_ajustadas.length">y vinculada a {{ resultado.facturas_ajustadas.length }} factura(s).</span>
+            <span v-else>sin factura asociada (suelta).</span>
+          </template>
+          <template v-else>
+            Registrada {{ resultado.tipo_comprobante }} {{ resultado.numero }} y vinculada a {{ resultado.remito_ids.length }} PR.
+            <span v-if="resultado.pedido_id"> Pedido retroactivo #{{ resultado.pedido_id }} (contra natura).</span>
+          </template>
         </section>
 
         <!-- [Etapa 7c] CONTRA NATURA: factura emitida en ARCA sin PR previo -->
-        <section v-if="!resultado" class="border-t border-slate-700/60 pt-4 space-y-3">
+        <section v-if="!resultado && !esAjuste" class="border-t border-slate-700/60 pt-4 space-y-3">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <div>
               <h2 class="text-sm font-bold text-white"><i class="fas fa-triangle-exclamation mr-1 text-orange-400"></i>¿La factura no tiene PR? Contra natura</h2>
@@ -232,18 +331,34 @@ const evaluando = ref(false)
 const confirmando = ref(false)
 const resultado = ref(null)
 
-const bloqueosVisibles = computed(() => (ev.value ? ev.value.bloqueos : cand.value?.bloqueos) || [])
+// [Etapa 7d] modo AJUSTE: el PDF es una nota de crédito o débito (el servidor lo dice en `candidatos`)
+const esAjuste = computed(() => cand.value?.modo === 'AJUSTE')
+const esNC = computed(() => cand.value?.factura?.clase_comprobante === 'NOTA_CREDITO')
+const ajSel = ref(new Set())
+const ajCliente = ref(null)
+const ajEv = ref(null)
+const ajEmp = ref(null)
+const ajEvaluando = ref(false)
+const ajConfirmando = ref(false)
+const ajHayClaseB = computed(() => ajEv.value?.diferencias.some(d => d.clase === 'B'))
+const renglonesElegibles = computed(() =>
+  (cand.value?.facturas || []).filter(f => ajSel.value.has(f.factura_id))
+    .flatMap(f => f.renglones.map(r => ({ ...r, factura_numero: f.numero || f.tipo_comprobante }))))
+
+const bloqueosVisibles = computed(() =>
+  (esAjuste.value ? (ajEv.value ? ajEv.value.bloqueos : cand.value?.bloqueos) : (ev.value ? ev.value.bloqueos : cand.value?.bloqueos)) || [])
 const hayClaseB = computed(() => ev.value?.diferencias.some(d => d.clase === 'B'))
 
 const moneda = (v) => (v == null ? '—' : Number(v).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' }))
 const ESTILOS = {
+  INFO: 'bg-slate-800/60 border-slate-600/40 text-slate-300',
   A: 'bg-sky-900/20 border-sky-600/30 text-sky-200',
   B: 'bg-amber-900/25 border-amber-500/40 text-amber-200',
   C: 'bg-red-900/30 border-red-600/40 text-red-200',
   PARCIAL: 'bg-slate-800/60 border-slate-600/40 text-slate-300',
   AVISO: 'bg-amber-900/10 border-amber-700/30 text-amber-300/80',
 }
-const ETIQUETAS = { A: 'Clase A', B: 'Clase B', C: 'Clase C', PARCIAL: 'Parcial', AVISO: 'Aviso' }
+const ETIQUETAS = { A: 'Clase A', B: 'Clase B', C: 'Clase C', PARCIAL: 'Parcial', AVISO: 'Aviso', INFO: 'Info' }
 const claseEstilo = (c) => ESTILOS[c] || ESTILOS.AVISO
 const etiqueta = (c) => ETIQUETAS[c] || c
 
@@ -305,6 +420,57 @@ const confirmar = async () => {
     error(e, 'No se pudo conciliar')
   } finally {
     confirmando.value = false
+  }
+}
+
+// [Etapa 7d] NC / ND
+const ajParDe = (i) => ajEmp.value?.find(e => e.item_pdf === i)?.factura_item_id ?? null
+const ajComoDe = (i) => ajEmp.value?.find(e => e.item_pdf === i)?.como ?? null
+
+const toggleFactura = (id) => {
+  if (ajSel.value.has(id)) ajSel.value.delete(id)
+  else ajSel.value.add(id)
+  ajEv.value = null
+  ajEmp.value = null
+}
+
+const evaluarAjuste = async (emp) => {
+  ajEvaluando.value = true
+  try {
+    const body = { factura_ids: [...ajSel.value] }
+    if (emp) body.emparejamiento = emp
+    if (ajCliente.value) body.cliente_id = ajCliente.value
+    ajEv.value = (await api.post(`/ingesta/raw/${rawId}/ajuste/evaluar`, body)).data
+    ajEmp.value = ajEv.value.emparejamiento
+  } catch (e) {
+    error(e, 'No se pudo comparar')
+  } finally {
+    ajEvaluando.value = false
+  }
+}
+
+const cambiarParAjuste = (i, valor) => {
+  const nuevo = ajEmp.value.map(e =>
+    e.item_pdf === i ? { item_pdf: i, factura_item_id: valor === '' ? null : Number(valor), como: 'operador' } : e)
+  evaluarAjuste(nuevo.map(({ item_pdf, factura_item_id }) => ({ item_pdf, factura_item_id })))
+}
+
+const confirmarAjuste = async () => {
+  ajConfirmando.value = true
+  try {
+    const body = {
+      factura_ids: [...ajSel.value],
+      emparejamiento: ajEmp.value.map(({ item_pdf, factura_item_id }) => ({ item_pdf, factura_item_id })),
+    }
+    if (ajCliente.value) body.cliente_id = ajCliente.value
+    resultado.value = (await api.post(`/ingesta/raw/${rawId}/ajuste/confirmar`, body)).data
+    notification.add(`${resultado.value.tipo_comprobante} ${resultado.value.numero} conciliada`, 'success')
+    ajEv.value = null
+    await cargar()
+  } catch (e) {
+    error(e, 'No se pudo conciliar la nota')
+  } finally {
+    ajConfirmando.value = false
   }
 }
 
