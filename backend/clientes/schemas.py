@@ -130,6 +130,15 @@ class DomicilioResponse(BaseModel):
     class Config:
         from_attributes = True
 
+    @field_validator('bit_identidad', 'flags_infra', 'flags_estado', 'flags', mode='before')
+    @classmethod
+    def null_heredado_es_cero(cls, v):
+        # [S876] Base heredada de P: una fila de domicilios quedo con bit_identidad NULL (la columna
+        # no tiene NOT NULL en la base aunque el modelo si) y eso daba 500 en /clientes/hub/list, o sea
+        # toda la pantalla Gestion Domicilios. El dato se sanea con migrate_046; esto evita que otro
+        # NULL heredado vuelva a tirar abajo el listado.
+        return 0 if v is None else v
+
     @model_validator(mode='after')
     def parse_calle_pipe(self) -> 'DomicilioResponse':
         if self.calle and '|' in self.calle:
