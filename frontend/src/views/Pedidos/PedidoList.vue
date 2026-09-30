@@ -388,6 +388,7 @@ import { usePedidosStore } from '@/stores/pedidos'
 import { useNotificationStore } from '@/stores/notification'
 import PedidoInspector from './PedidoInspector.vue'
 import api from '@/services/api'
+import { estadoClase, estadoTexto } from '@/utils/estadosPedido'
 
 const router = useRouter()
 const notificationStore = useNotificationStore()
@@ -524,35 +525,16 @@ const sortedAndFilteredPedidos = computed(() => {
     return result
 })
 
-const getStatusClass = (status) => {
-    switch (status) {
-        case 'PENDIENTE': return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50'
-        case 'BORRADOR': return 'bg-purple-600/20 text-purple-400/50 border-purple-500/20'
-        case 'CUMPLIDO': return 'bg-yellow-500/20 text-yellow-500 border-yellow-500/50'
-        case 'ANULADO': return 'bg-red-500/20 text-red-500 border-red-500/50'
-        case 'PRESUPUESTO': return 'bg-purple-600/40 text-purple-300 border-purple-500/50' 
-        case 'INTERNO': return 'bg-cyan-600/40 text-cyan-300 border-cyan-500/50'
-        default: return 'bg-gray-500/10 text-gray-400 border-gray-500/20'
-    }
-}
-
-const getStatusColorOnly = (status) => {
-    switch (status) {
-        case 'PENDIENTE': return 'text-emerald-400'
-        case 'BORRADOR': return 'text-purple-400/50'
-        case 'CUMPLIDO': return 'text-yellow-500'
-        case 'ANULADO': return 'text-red-500'
-        case 'PRESUPUESTO': return 'text-purple-300' 
-        case 'INTERNO': return 'text-cyan-300'
-        default: return 'text-gray-400'
-    }
-}
+// [S875] La paleta de estados vive en utils/estadosPedido.js (la comparten los informes); acá solo se usa.
+const getStatusClass = estadoClase
+const getStatusColorOnly = estadoTexto
 
 const getStatusBgOnly = (status) => {
     switch (status) {
         case 'PENDIENTE': return 'bg-emerald-500'
         case 'BORRADOR': return 'bg-purple-500'
         case 'CUMPLIDO': return 'bg-yellow-500'
+        case 'FACTURADO': return 'bg-orange-500'
         case 'ANULADO': return 'bg-red-500'
         case 'PRESUPUESTO': return 'bg-purple-500' 
         case 'INTERNO': return 'bg-cyan-500'

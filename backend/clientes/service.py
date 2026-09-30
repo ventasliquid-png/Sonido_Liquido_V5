@@ -12,7 +12,7 @@ from fastapi import HTTPException, status
 from datetime import datetime, timezone
 from backend.clientes.models import Cliente, Domicilio, domicilios_clientes
 from backend.clientes import schemas
-from backend.clientes.constants import ClientFlags
+from backend.clientes.constants import ClientFlags, GENERIC_CUITS
 from backend.agenda import models as agenda_models
 from backend.contactos.models import Vinculo # [V6 Multiplex Sync]
 from backend.pedidos.models import Pedido # [V5.2-FIX] Load Pedido to avoid Mapper Registry KeyError
@@ -24,7 +24,6 @@ class ClienteService:
         try:
             # [V5.6 GOLD - BLINDAJE] Strict Duplicate Prevention
             # GENERIC CUITs are excluded from the block
-            GENERIC_CUITS = ['00000000000', '11111111119', '11111111111', '99999999999']
 
             # [REGLA 2 — Nike 806] CUIT 00000000000 exclusivo MOSTRADOR/GENÉRICO
             if cliente_in.cuit == '00000000000':
@@ -243,7 +242,6 @@ class ClienteService:
                          detail="CUIT reservado: 00000000000 es exclusivo del MOSTRADOR/GENÉRICO."
                      )
              # GENERIC CUITs are always allowed to duplicate
-             GENERIC_CUITS = ['00000000000', '11111111119', '11111111111', '99999999999']
              if update_data['cuit'] not in GENERIC_CUITS:
                  # [Dictamen Nike -- paridad POST/PATCH] Mismo cortafuegos que create_cliente:
                  # "Caso UBA" (entidades grandes que comparten CUIT a propósito) se permite
@@ -356,6 +354,8 @@ class ClienteService:
         ).first()
 
         if not existing:
+            # [S876] El ID apuntaba a una fila que no existia: el vinculo quedaba colgado.
+            ClienteService.ensure_domicilio_oficina(db)
             db.execute(domicilios_clientes.insert().values(
                 cliente_id=str(cliente_id),
                 domicilio_id=DOMICILIO_ROSETI_ID,
@@ -363,6 +363,20 @@ class ClienteService:
                 flags=0,
             ))
             db.flush()
+
+    @staticmethod
+    def ensure_domicilio_oficina(db: Session) -> "Domicilio":
+        """[S876] Devuelve el domicilio de la oficina (Roseti 1482, DOMICILIO_ROSETI_ID), creandolo con
+        sus datos documentados si la base no lo tiene. Es el domicilio de un remito de MOSTRADOR y el que
+        _ensure_domicilio_rosa vincula a un cliente Rosa sin domicilio. Idempotente; solo hace flush, el
+        commit lo cierra quien llama."""
+        from backend.clientes.constants import DOMICILIO_ROSETI_ID, DOMICILIO_ROSETI_DATOS
+        dom = db.query(Domicilio).filter(Domicilio.id == UUID(DOMICILIO_ROSETI_ID)).first()
+        if dom is None:
+            dom = Domicilio(id=UUID(DOMICILIO_ROSETI_ID), **DOMICILIO_ROSETI_DATOS)
+            db.add(dom)
+            db.flush()
+        return dom
 
     @staticmethod
     def _audit_sovereignty(db_cliente: "Cliente"):
@@ -484,7 +498,6 @@ class ClienteService:
         -- esos buckets (Mostrador, contingencia AFIP, Rosa) agrupan clientes sin
         relación real entre sí; marcarlos "hermanos" desnaturalizaría el bit.
         """
-        GENERIC_CUITS = ['00000000000', '11111111119', '11111111111', '99999999999']
         cuit = db_cliente.cuit
         if not cuit or cuit in GENERIC_CUITS:
             return

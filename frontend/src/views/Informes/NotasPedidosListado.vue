@@ -67,7 +67,7 @@
                 Sin notas para estos filtros
               </td>
             </tr>
-            <tr v-for="(fila, i) in filas" :key="i" class="border-b border-blue-900/10 hover:bg-blue-900/10 align-top">
+            <tr v-for="(fila, i) in filas" :key="i" class="border-b border-blue-900/10 hover:bg-blue-900/10 align-top" :class="claseFilaCircuito(fila.circuito)">
               <td v-for="col in columnas" :key="col.key" class="px-3 py-1.5 whitespace-pre-wrap"
                 :class="col.key === 'fragmento' ? 'text-blue-100/80 font-mono' : 'font-mono text-blue-100/90 whitespace-nowrap'">
                 <span v-if="col.key === 'categoria'"
@@ -75,7 +75,7 @@
                   :class="fila[col.key] === 'Nota humana' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-blue-500/20 text-blue-300'">
                   {{ fila[col.key] }}
                 </span>
-                <template v-else>{{ fila[col.key] ?? '-' }}</template>
+                <template v-else><CeldaInforme :columna="col.key" :fila="fila" :valor="fila[col.key]" /></template>
               </td>
             </tr>
           </tbody>
@@ -91,6 +91,8 @@ import api from '@/services/api'
 import { useNotificationStore } from '@/stores/notification'
 import { useClientesStore } from '@/stores/clientes'
 import { useInformeExport } from '@/composables/useInformeExport'
+import { claseFilaCircuito } from '@/utils/estadosPedido'
+import CeldaInforme from '@/components/informes/CeldaInforme.vue'
 
 const notification = useNotificationStore()
 const clientesStore = useClientesStore()

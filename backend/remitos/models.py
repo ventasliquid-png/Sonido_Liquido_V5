@@ -31,8 +31,18 @@ class Remito(Base):
     domicilio_entrega_id = Column(GUID(), ForeignKey("domicilios.id"), nullable=False)
     
     # Ejecutor Logístico
-    transporte_id = Column(GUID(), ForeignKey("empresas_transporte.id"), nullable=False)
-    
+    # [S876, migrate_047] Nullable: una entrega en MOSTRADOR (retiro en planta) o con transporte
+    # propio no tiene empresa de transporte de terceros. FLETE_TERCERO sigue exigiéndolo (lo
+    # valida RemitosService.armar_remito). domicilio_entrega_id NO se vuelve nullable: el mostrador
+    # usa un domicilio real (la oficina, DOMICILIO_ROSETI_ID).
+    transporte_id = Column(GUID(), ForeignKey("empresas_transporte.id"), nullable=True)
+
+    # [S876, migrate_047] Cómo salió ESTA entrega (ver remitos/constants.py MetodoEntrega). Se fija
+    # una sola vez al crear el Remito y nunca se relee en vivo de Domicilio/Pedido: es el hecho
+    # fáctico de la entrega puntual, no la configuración habitual de la dirección
+    # (Domicilio.metodo_entrega/origen_logistico, otra capa que no se toca). NULL = remito anterior.
+    metodo_entrega = Column(String, nullable=True)
+
     # Datos Operativos
     fecha_salida = Column(DateTime, nullable=True) # Cuándo sale efectivamente
     fecha_creacion = Column(DateTime, default=datetime.now)
@@ -135,6 +145,12 @@ class RemitoItem(Base):
     cantidad_remitida = Column(Float, default=0.0)
     cantidad_recibida = Column(Float, nullable=True)
     cantidad_facturada = Column(Float, nullable=True)
+
+    # [S876, migrate_047] Por qué este renglón salió sin ser venta firme (CONSIGNACION,
+    # MUESTRA_SIN_CARGO, GARANTIA_REEMPLAZO; ver remitos/constants.py). NULL = facturable normal.
+    # Es del renglón y no del remito ni del pedido: un mismo envío puede llevar cuatro renglones de
+    # venta firme y uno en consignación. Mientras esté abierto, cantidad_facturada queda en NULL.
+    motivo_no_facturable = Column(String, nullable=True)
 
     # Relaciones
     remito = relationship("Remito", back_populates="items")

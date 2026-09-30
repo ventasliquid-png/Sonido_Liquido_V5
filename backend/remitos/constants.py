@@ -18,3 +18,56 @@ class RemitoFlags(IntFlag):
     # cantidad_facturada del lado fiscal. Cuando ese acumulador exista, un remito
     # desfacturado se detecta solo — no necesita bit. Código recuperable en el
     # tag t4-original.
+
+
+# [S876, PROMPT 2026-09-30_NS_implementar_remito_renglon_S875, Nike "Sello de Oro" en tres
+# rondas] Cómo SALIÓ físicamente la mercadería de ESTE remito. Es el hecho fáctico de esa entrega
+# puntual, congelado al crear el Remito (igual que RemitoFlags.CIRCUITO_ROSA): nunca se relee en
+# vivo de Domicilio ni de Pedido. No es la configuración habitual de una dirección: esa es
+# Domicilio.metodo_entrega / origen_logistico (V5.2 GOLD, clientes/models.py), otra capa, que no
+# se toca ni se fusiona con esta. NULL = remito anterior a esta capa (no se inventa retroactivo).
+class MetodoEntrega:
+    MOSTRADOR         = "MOSTRADOR"          # retiro en planta: sin traslado, sin transporte
+    FLETE_TERCERO     = "FLETE_TERCERO"      # el transportista termina la entrega
+    TRANSPORTE_PROPIO = "TRANSPORTE_PROPIO"
+    MOTO_CADETERIA    = "MOTO_CADETERIA"
+    REMITO_EXTERNO    = "REMITO_EXTERNO"     # viaja con el remito/etiqueta de un tercero (correo, MercadoLibre)
+
+METODOS_ENTREGA = (
+    MetodoEntrega.MOSTRADOR,
+    MetodoEntrega.FLETE_TERCERO,
+    MetodoEntrega.TRANSPORTE_PROPIO,
+    MetodoEntrega.MOTO_CADETERIA,
+    MetodoEntrega.REMITO_EXTERNO,
+)
+
+# Con estos métodos no interviene una empresa de transporte de terceros: Remito.transporte_id
+# puede quedar NULL (migrate_047). Con FLETE_TERCERO (o sin método, el camino de siempre) sigue
+# siendo obligatorio.
+METODOS_SIN_TRANSPORTE = (
+    MetodoEntrega.MOSTRADOR,
+    MetodoEntrega.TRANSPORTE_PROPIO,
+    MetodoEntrega.MOTO_CADETERIA,
+    MetodoEntrega.REMITO_EXTERNO,
+)
+
+
+# [S876] Por qué un RENGLÓN salió sin ser una venta firme. Vive en RemitoItem, no en Remito ni en
+# Pedido: un mismo remito puede llevar renglones de venta firme y uno en consignación a la vez.
+# NULL = facturable normal. Un renglón con motivo nace con cantidad_facturada NULL ("no aplica
+# todavía", dictamen Nike 23/09: NULL != 0) y se resuelve FACTURAR (motivo vuelve a NULL y el
+# renglón entra al camino normal) o con una devolución (PR de cantidad negativa, Etapa 6).
+class MotivoNoFacturable:
+    CONSIGNACION       = "CONSIGNACION"
+    MUESTRA_SIN_CARGO  = "MUESTRA_SIN_CARGO"
+    GARANTIA_REEMPLAZO = "GARANTIA_REEMPLAZO"
+
+MOTIVOS_NO_FACTURABLE = (
+    MotivoNoFacturable.CONSIGNACION,
+    MotivoNoFacturable.MUESTRA_SIN_CARGO,
+    MotivoNoFacturable.GARANTIA_REEMPLAZO,
+)
+
+# Riesgo "Consignación Eterna" (mercadería a prueba que se olvida sin resolver): pedido de Nike,
+# alerta a los 30 días de antigüedad para todo renglón con motivo abierto -- Informes.
+DIAS_ALERTA_NO_FACTURABLE = 30

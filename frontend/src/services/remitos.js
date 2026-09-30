@@ -59,10 +59,30 @@ export default {
     /**
      * [Etapa 4] Arma un PR desde un pedido existente -- renglones elegidos por pedido_item_id,
      * nunca texto libre (a diferencia de createManual/0015 manual).
-     * @param {Object} payload { pedido_id, domicilio_entrega_id?, transporte_id?, items: [{pedido_item_id, cantidad}] }
+     * @param {Object} payload { pedido_id, domicilio_entrega_id?, transporte_id?, metodo_entrega?, items: [{pedido_item_id, cantidad, motivo_no_facturable?}] }
      */
     armarRemito(payload) {
         return api.post('/remitos/armar', payload);
+    },
+
+    /**
+     * [S876] Resuelve un renglón con motivo_no_facturable (consignación, muestra sin cargo, garantía):
+     * FACTURAR lo devuelve al camino normal de facturación. Devolver la mercadería NO pasa por acá: es un
+     * PR de cantidad negativa (armarRemito con cantidad < 0).
+     * @param {Number} remitoItemId
+     */
+    resolverNoFacturable(remitoItemId) {
+        return api.post(`/remitos/items/${remitoItemId}/resolver-no-facturable`, { accion: 'FACTURAR' });
+    },
+
+    /**
+     * [S876] Remito INTERNO (sin número, sin hoja de ruta) para una factura sellada que se entrega en
+     * mostrador o con el remito/etiqueta de un tercero.
+     * @param {String} facturaId UUID
+     * @param {'MOSTRADOR'|'REMITO_EXTERNO'} metodoEntrega
+     */
+    crearRemitoInternoDesdeFactura(facturaId, metodoEntrega) {
+        return api.post(`/remitos/interno/desde_factura/${facturaId}`, null, { params: { metodo_entrega: metodoEntrega } });
     },
 
     uploadInvoice(formData) {

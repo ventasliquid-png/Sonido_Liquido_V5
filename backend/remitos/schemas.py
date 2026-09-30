@@ -25,6 +25,8 @@ class RemitoItemResponse(RemitoItemBase):
     cantidad: float
     # [Etapa 5] Expuesto para la validación de techo agregado -- ver RemitosService.set_cantidad_recibida.
     cantidad_recibida: Optional[float] = None
+    # [S876] Por qué este renglón salió sin ser venta firme (NULL = facturable normal).
+    motivo_no_facturable: Optional[str] = None
     # Nested info for the UI (Populated from models.py properties)
     descripcion_display: Optional[str] = "Ítem"
 
@@ -59,7 +61,10 @@ class CantidadRecibidaUpdate(BaseModel):
 # --- HEADER ---
 class RemitoBase(BaseModel):
     domicilio_entrega_id: UUID
-    transporte_id: UUID
+    # [S876, migrate_047] Opcional: un remito de mostrador o con transporte propio no tiene empresa de
+    # transporte de terceros. metodo_entrega es el hecho fáctico de esta entrega, congelado al crear.
+    transporte_id: Optional[UUID] = None
+    metodo_entrega: Optional[str] = None
     fecha_salida: Optional[datetime] = None
     estado: Optional[str] = "BORRADOR"
     numero_legal: Optional[str] = None
@@ -179,6 +184,9 @@ class ArmarRemitoItemPayload(BaseModel):
     manual (ManualRemitoItem). pedido_item_id es la única forma de identificar el renglón."""
     pedido_item_id: int
     cantidad: float
+    # [S876] CONSIGNACION / MUESTRA_SIN_CARGO / GARANTIA_REEMPLAZO, o ausente = facturable normal.
+    # No aplica a una devolución (cantidad negativa): eso lo valida RemitosService.armar_remito.
+    motivo_no_facturable: Optional[str] = None
 
 class ArmarRemitoPayload(BaseModel):
     """[Etapa 4, PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §6] Pantalla de armado (D3,
@@ -188,7 +196,17 @@ class ArmarRemitoPayload(BaseModel):
     pedido_id: int
     domicilio_entrega_id: Optional[UUID] = None
     transporte_id: Optional[UUID] = None
+    # [S876] MOSTRADOR / FLETE_TERCERO / TRANSPORTE_PROPIO / MOTO_CADETERIA / REMITO_EXTERNO. Ausente =
+    # el camino de siempre (domicilio y transporte del pedido; el remito queda con metodo_entrega NULL).
+    # MOSTRADOR fuerza la oficina como domicilio y deja el transporte vacío.
+    metodo_entrega: Optional[str] = None
     items: List[ArmarRemitoItemPayload]
+
+class ResolverNoFacturablePayload(BaseModel):
+    """[S876] Resolución de un renglón con motivo_no_facturable. Hoy una sola acción: FACTURAR (el motivo
+    vuelve a NULL y el renglón entra al camino normal de facturación). La otra salida, devolver la
+    mercadería, NO pasa por acá: es un PR de cantidad negativa, el mecanismo de la Etapa 6."""
+    accion: str = "FACTURAR"
 
 class ManualRemitoPayload(BaseModel):
     pedido_id: Optional[int] = None # ID de pedido existente (Nuevo)

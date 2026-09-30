@@ -6,7 +6,9 @@ from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException
 
 from backend.remitos import schemas, models
-from backend.remitos.constants import RemitoFlags
+from backend.remitos.constants import (
+    RemitoFlags, MetodoEntrega, METODOS_ENTREGA, METODOS_SIN_TRANSPORTE, MOTIVOS_NO_FACTURABLE,
+)
 from backend.clientes.models import Cliente, Domicilio
 from backend.productos.models import Producto
 from backend.pedidos.models import Pedido, PedidoItem
@@ -50,6 +52,10 @@ class RemitosService:
     @staticmethod
     def _siguiente_numero_17(db: Session) -> str:
         """Próximo número del talonario 17 (rosa y no comercial, Circuito 17).
+
+        [S876] SIN USOS: el 0017 quedó abolido (Carlos + Arq 30/09, prompt de remito/renglón §6) y
+        get_remito_pdf numera todo por el 0015. No había ningún remito con número 17- en D ni en P. Se
+        deja la función, sin llamadores, por si hiciera falta reconstruir el diseño.
 
         [Etapa 1, DISENO_CIRCUITO_17_S870.md §3-4] Calcada de _siguiente_numero_0015 -- mismo
         lock de escritura hasta el commit del que llama, misma tolerancia a números mal
@@ -763,9 +769,38 @@ class RemitosService:
         if not payload.items:
             raise ValueError("RENGLON_CERO: El remito debe tener al menos un ítem.")
 
-        domicilio_entrega_id = payload.domicilio_entrega_id or pedido.domicilio_entrega_id
-        transporte_id = payload.transporte_id or pedido.transporte_id
-        if not domicilio_entrega_id or not transporte_id:
+        # [S876, especificación cerrada Carlos + Arq + Nike 30/09] Cómo sale ESTA entrega: se valida
+        # contra la lista cerrada y se congela en el Remito (igual que CIRCUITO_ROSA, abajo).
+        metodo = (payload.metodo_entrega or "").strip().upper() or None
+        if metodo is not None and metodo not in METODOS_ENTREGA:
+            raise ValueError(
+                f"METODO_ENTREGA_INVALIDO: '{payload.metodo_entrega}' no es un método válido "
+                f"({', '.join(METODOS_ENTREGA)})."
+            )
+
+        if metodo == MetodoEntrega.MOSTRADOR:
+            # Retiro en planta: sin traslado real ni empresa de transporte. El domicilio es la oficina
+            # (DOMICILIO_ROSETI_ID, el mismo patrón de _ensure_domicilio_rosa / LogisticaPanel.vue), no el
+            # del pedido ni el que venga en el payload: la mercadería no sale a ningún lado.
+            from backend.clientes.constants import DOMICILIO_ROSETI_ID
+            ClienteService.ensure_domicilio_oficina(db)
+            domicilio_entrega_id = DOMICILIO_ROSETI_ID
+            transporte_id = None
+        elif metodo in METODOS_SIN_TRANSPORTE:
+            # Transporte propio, moto/cadetería o remito/etiqueta de un tercero: no interviene una
+            # empresa de transporte. Si la pantalla manda una, se respeta; nunca se hereda la del pedido.
+            domicilio_entrega_id = payload.domicilio_entrega_id or pedido.domicilio_entrega_id
+            transporte_id = payload.transporte_id
+        else:
+            # FLETE_TERCERO o sin método (camino de siempre): el transportista termina la entrega,
+            # así que la empresa es obligatoria. Con FLETE_TERCERO el domicilio puede ser el depósito
+            # del transportista (dato real, lo elige la pantalla): llevarlo hasta ahí es el tramo
+            # nuestro y no cambia el método de cara al resultado final.
+            domicilio_entrega_id = payload.domicilio_entrega_id or pedido.domicilio_entrega_id
+            transporte_id = payload.transporte_id or pedido.transporte_id
+            if not transporte_id:
+                raise ValueError("No se pudo determinar un domicilio de entrega o un transporte válido para el remito.")
+        if not domicilio_entrega_id:
             raise ValueError("No se pudo determinar un domicilio de entrega o un transporte válido para el remito.")
 
         # [Etapa 4, punto 2] Congelamiento de color: se lee el Bit 12 (NO_FISCAL_FORCE, "Circuito
@@ -781,6 +816,7 @@ class RemitosService:
             pedido_id=pedido.id,
             domicilio_entrega_id=domicilio_entrega_id,
             transporte_id=transporte_id,
+            metodo_entrega=metodo,
             estado="BORRADOR",
             # [Modelo, "GATEKEEPER FINANCIERO"] "Hereda del Pedido o se setea manual" -- el campo
             # equivalente en Pedido es liberado_despacho.
@@ -804,6 +840,25 @@ class RemitosService:
                         f"pertenece al Pedido #{pedido.id}."
                     )
                 )
+            # [S876] Motivo por renglón: lista cerrada, y no aplica a una devolución (una devolución no
+            # es "mercadería sin facturar": es la salida del mismo renglón en sentido contrario).
+            motivo = (item_payload.motivo_no_facturable or "").strip().upper() or None
+            if motivo is not None:
+                if motivo not in MOTIVOS_NO_FACTURABLE:
+                    db.rollback()
+                    raise HTTPException(
+                        status_code=409,
+                        detail=(
+                            f"MOTIVO_NO_FACTURABLE_INVALIDO: '{item_payload.motivo_no_facturable}' no es un "
+                            f"motivo válido ({', '.join(MOTIVOS_NO_FACTURABLE)})."
+                        )
+                    )
+                if item_payload.cantidad < 0:
+                    db.rollback()
+                    raise HTTPException(
+                        status_code=409,
+                        detail="MOTIVO_EN_DEVOLUCION: una devolución (cantidad negativa) no lleva motivo no facturable."
+                    )
             if item_payload.cantidad < 0:
                 # [Etapa 6, PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §8] Devolución = PR de
                 # signo negativo, no una entidad aparte. El único candado es que no se puede
@@ -851,13 +906,123 @@ class RemitosService:
                 pedido_item_id=pedido_item.id,
                 cantidad_declarada=pendiente,
                 cantidad_remitida=item_payload.cantidad,
-                cantidad_facturada=RemitosService._facturada_al_nacer(remito, pedido),
+                # [S876] Con motivo abierto el renglón nace "no aplica todavía" (NULL, no 0 --
+                # dictamen Nike 23/09): el conciliador no lo ofrece para facturar hasta que se
+                # resuelva (resolver_no_facturable). Sin motivo, como siempre.
+                cantidad_facturada=None if motivo else RemitosService._facturada_al_nacer(remito, pedido),
+                motivo_no_facturable=motivo,
             ))
 
         RemitosService._recalcular_bits_entrega(db, pedido)
         if not commit:
             db.flush()
             return remito
+        db.commit()
+        db.refresh(remito)
+        return remito
+
+    @staticmethod
+    def resolver_no_facturable(db: Session, remito_item_id: int, accion: str = "FACTURAR", autor_id: Optional[int] = None):
+        """[S876] Resuelve un renglón que salió sin ser venta firme (motivo_no_facturable). Única acción
+        acá: FACTURAR -- el motivo vuelve a NULL y cantidad_facturada pasa de "no aplica" (NULL) a "aplica
+        y pendiente" (0.0), igual que cualquier renglón facturable al nacer (_facturada_al_nacer: sigue
+        NULL si el pedido es Rosa o no comercial). Desde ahí sigue el camino normal: el conciliador
+        ya lo ofrece para emparejar con una factura.
+
+        La otra salida, devolver la mercadería, NO pasa por acá: es un PR de cantidad negativa por el
+        mecanismo de la Etapa 6 (armar_remito), sin ningún camino nuevo. Queda una nota [SISTEMA] en el
+        renglón con el motivo que tenía, para que la resolución no sea silenciosa.
+        """
+        if (accion or "").strip().upper() != "FACTURAR":
+            raise ValueError(
+                "ACCION_INVALIDA: la única resolución acá es FACTURAR. Para devolver la mercadería se "
+                "registra una devolución (PR de cantidad negativa)."
+            )
+        item = db.query(models.RemitoItem).filter(models.RemitoItem.id == remito_item_id).first()
+        if not item:
+            raise HTTPException(status_code=404, detail="Renglón de remito no encontrado")
+        remito = item.remito
+        if remito is not None and remito.estado == "ANULADO":
+            raise HTTPException(status_code=409, detail="REMITO_ANULADO: el renglón pertenece a un remito anulado.")
+        if not item.motivo_no_facturable:
+            raise HTTPException(
+                status_code=409,
+                detail=f"RENGLON_SIN_MOTIVO: el renglón #{remito_item_id} ya es facturable, no hay nada que resolver."
+            )
+        motivo_previo = item.motivo_no_facturable
+        item.motivo_no_facturable = None
+        item.cantidad_facturada = RemitosService._facturada_al_nacer(remito, remito.pedido if remito else None)
+        db.add(item)
+        db.add(models.RemitoNota(
+            remito_id=item.remito_id,
+            remito_item_id=item.id,
+            autor_id=autor_id,
+            texto=f"[SISTEMA] Renglón resuelto como facturable (antes: {motivo_previo}). Entra al camino normal de facturación.",
+        ))
+        db.commit()
+        db.refresh(item)
+        return item
+
+    @staticmethod
+    def create_interno_desde_factura(db: Session, factura_id: str, metodo_entrega: str):
+        """[S876] Remito INTERNO para una factura sellada cuya entrega no lleva hoja de ruta: retiro en
+        MOSTRADOR o envío con el remito/etiqueta de un tercero (REMITO_EXTERNO, ej. MercadoLibre).
+        Reemplaza a la salida "Despacho sin Remito Interno" del tablero de facturación, que no creaba
+        nada y por eso la mercadería entregada no contaba en cantidad_entregada (Informes A/B, ABC).
+
+        Nunca asigna número legal: eso pasa recién al imprimir (Etapa 3), y este remito puede no
+        imprimirse jamás. Si el pedido ya tiene un remito vigente no crea otro: solo vincula la factura.
+        Crea el PR por armar_remito (todo lo pendiente del pedido) y vincula la factura en la misma
+        transacción. No marca los renglones como facturados: eso lo hace el conciliador.
+        """
+        import uuid as _uuid
+        from backend.facturacion.models import Factura, FacturaRemito
+
+        metodo = (metodo_entrega or "").strip().upper()
+        if metodo not in (MetodoEntrega.MOSTRADOR, MetodoEntrega.REMITO_EXTERNO):
+            raise ValueError(
+                f"METODO_ENTREGA_INVALIDO: un remito interno desde factura es MOSTRADOR o REMITO_EXTERNO, no '{metodo_entrega}'."
+            )
+        factura = db.query(Factura).filter(Factura.id == _uuid.UUID(factura_id)).first()
+        if not factura:
+            raise ValueError("Factura no encontrada.")
+        pedido = factura.pedido
+        if not pedido:
+            raise ValueError("Factura sin pedido táctico origen.")
+
+        def _vincular(remito):
+            if not db.query(FacturaRemito).filter(
+                FacturaRemito.factura_id == factura.id, FacturaRemito.remito_id == remito.id
+            ).first():
+                db.add(FacturaRemito(factura_id=factura.id, remito_id=remito.id, flags_estado=1))
+
+        vigente = db.query(models.Remito).filter(
+            models.Remito.pedido_id == pedido.id, models.Remito.estado != "ANULADO"
+        ).first()
+        if vigente:
+            _vincular(vigente)
+            db.commit()
+            db.refresh(vigente)
+            return vigente
+
+        pendientes = [
+            schemas.ArmarRemitoItemPayload(pedido_item_id=pi.id, cantidad=pi.cantidad - pi.cantidad_entregada)
+            for pi in pedido.items if pi.cantidad - pi.cantidad_entregada > 0.001
+        ]
+        if not pendientes:
+            raise ValueError("PEDIDO_SIN_PENDIENTE: el pedido no tiene nada pendiente de entregar para remitir.")
+        domicilio_id = None
+        if metodo == MetodoEntrega.REMITO_EXTERNO and not pedido.domicilio_entrega_id:
+            d_fiscal = next((d for d in pedido.cliente.domicilios if d.es_fiscal and d.activo), None)
+            domicilio_id = d_fiscal.id if d_fiscal else (pedido.cliente.domicilios[0].id if pedido.cliente.domicilios else None)
+        remito = RemitosService.armar_remito(
+            db,
+            schemas.ArmarRemitoPayload(
+                pedido_id=pedido.id, metodo_entrega=metodo, items=pendientes, domicilio_entrega_id=domicilio_id
+            ),
+            commit=False,
+        )
+        _vincular(remito)
         db.commit()
         db.refresh(remito)
         return remito

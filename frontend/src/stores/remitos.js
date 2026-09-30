@@ -82,6 +82,21 @@ export const useRemitosStore = defineStore('remitos', () => {
         }
     }
 
+    // [S876] Resuelve un renglón con motivo_no_facturable como FACTURAR y refresca el remito en el store.
+    async function resolverNoFacturable(remitoItemId, pedidoId) {
+        loading.value = true;
+        try {
+            const res = await remitosService.resolverNoFacturable(remitoItemId);
+            await fetchRemitos(pedidoId);
+            return res.data;
+        } catch (err) {
+            error.value = err.response?.data?.detail || "Error al resolver el renglón.";
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    }
+
     async function addItemToRemito(remitoId, itemData) {
         loading.value = true;
         try {
@@ -168,6 +183,7 @@ export const useRemitosStore = defineStore('remitos', () => {
         updateRemito,
         addItemToRemito,
         armarRemito,
+        resolverNoFacturable,
         itemsPendientes
     };
 });

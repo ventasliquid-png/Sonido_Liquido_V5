@@ -54,9 +54,9 @@
                 Sin pedidos con OC para estos filtros
               </td>
             </tr>
-            <tr v-for="(fila, i) in filas" :key="i" class="border-b border-blue-900/10 hover:bg-blue-900/10">
+            <tr v-for="(fila, i) in filas" :key="i" class="border-b border-blue-900/10 hover:bg-blue-900/10" :class="claseFilaCircuito(fila.circuito)">
               <td v-for="col in columnas" :key="col.key" class="px-3 py-1.5 font-mono text-blue-100/90 whitespace-nowrap">
-                {{ fila[col.key] ?? '-' }}
+                <CeldaInforme :columna="col.key" :fila="fila" :valor="fila[col.key]" />
               </td>
             </tr>
           </tbody>
@@ -72,6 +72,8 @@ import api from '@/services/api'
 import { useNotificationStore } from '@/stores/notification'
 import { useClientesStore } from '@/stores/clientes'
 import { useInformeExport } from '@/composables/useInformeExport'
+import { claseFilaCircuito } from '@/utils/estadosPedido'
+import CeldaInforme from '@/components/informes/CeldaInforme.vue'
 
 const notification = useNotificationStore()
 const clientesStore = useClientesStore()

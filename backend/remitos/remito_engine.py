@@ -5,6 +5,9 @@ from datetime import datetime
 import textwrap
 import qrcode
 import tempfile
+import re
+
+from backend.clientes.constants import GENERIC_CUITS
 
 # Color Dominante: Azul Oscuro (#252b75) -> RGB (37, 43, 117)
 COLOR_R = 37
@@ -14,6 +17,13 @@ COLOR_B = 117
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # [ALFA-CA] Usando el recurso local validado de V5
 BG_IMAGE = os.path.join(BASE_DIR, "base_remito_v1.png")
+
+
+def es_cuit_generico(cuit) -> bool:
+    """[S876] True si el CUIT es uno de los genéricos (consumidor final / mostrador / contingencia AFIP:
+    clientes/constants.py GENERIC_CUITS). No identifican a nadie, así que el remito nunca los imprime --
+    ni en Rosa ni en un remito normal. Acepta el CUIT con o sin guiones."""
+    return re.sub(r"\D", "", str(cuit or "")) in GENERIC_CUITS
 
 class PDFRemito(FPDF):
     def __init__(self, orientation='P', unit='mm', format='A4'):
@@ -271,12 +281,15 @@ class PDFRemito(FPDF):
             self.cell(80, 6, line_text, 0)
             
         # CUIT (L19, C52)
+        # [S876] Un CUIT genérico (consumidor final / mostrador) no se imprime: el campo queda en blanco
+        # y la condición de IVA dice Consumidor Final, sea cual sea el remito (no solo Rosa).
         set_bas_xy(19, 52)
-        self.cell(40, 6, str(cliente_data.get('cuit', '')), 0)
+        cuit_generico = es_cuit_generico(cliente_data.get('cuit'))
+        self.cell(40, 6, "" if cuit_generico else str(cliente_data.get('cuit') or ''), 0)
         
         # IVA (L19, C71)
         set_bas_xy(19, 71) 
-        cond_iva = str(cliente_data.get('condicion_iva', ''))
+        cond_iva = "CONSUMIDOR FINAL" if cuit_generico else str(cliente_data.get('condicion_iva', ''))
         if "INSCRIPTO" in cond_iva: cond_iva = "Resp. Inscripto"
         elif "CONSUMIDOR" in cond_iva: cond_iva = "Cons. Final"
         self.cell(40, 6, cond_iva, 0)

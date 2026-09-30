@@ -121,3 +121,24 @@ class SystemFlags:
 # Domicilio plantilla Sonido Líquido (Roseti 1482, CABA)
 # Para clientes Rosa sin domicilio de entrega propio
 DOMICILIO_ROSETI_ID = '59b01b5a-e81a-4e2a-b496-9d65fef9262b'
+
+# [S876] Los datos de esa fila, tal cual los documenta el comentario de arriba y el informe de la
+# sesion 809 (INFORMES_HISTORICOS/2026-05-18_AUDITORIA_CRUZADA_..._ROSETI_809.md: "Roseti 1482 ->
+# direccion de Sonido Liquido. No existia en DB. Creado como domicilio huerfano plantilla"). La fila
+# NO existe hoy ni en D ni en la copia de P: el ID quedaba apuntando a nada. La oficina tambien es el
+# domicilio de los remitos de MOSTRADOR (retiro en planta), asi que ClienteService.ensure_domicilio_oficina
+# la restaura la primera vez que hace falta. Solo estos campos: nada de codigo postal ni telefono, que
+# nadie dejo escritos.
+DOMICILIO_ROSETI_DATOS = {
+    "alias": "Oficina Sonido Liquido (Roseti 1482)",
+    "calle": "Roseti",
+    "numero": "1482",
+    "localidad": "CABA",
+    "provincia_id": "C",
+    "bit_identidad": 1,   # Bit 0 ACTIVO
+}
+
+# [S876] CUIT genericos: no identifican a nadie (consumidor final, mostrador, contingencia AFIP). Antes
+# habia tres copias de esta lista sueltas en clientes/service.py. Un remito con uno de estos CUIT nunca
+# imprime el numero (remitos/remito_engine.py, RemitoTemplate.vue).
+GENERIC_CUITS = ('00000000000', '11111111119', '11111111111', '99999999999')

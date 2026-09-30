@@ -499,6 +499,9 @@ class ConciliadorService:
                 # Lo que dice la factura, aunque supere a lo remitido: el desfase queda a la vista
                 # por la resta hasta que llegue la NC/ND (Clase B, decisión de Carlos 28/09).
                 ri.cantidad_facturada = (ri.cantidad_facturada or 0) + cant
+                # [S876] Si el renglón salió sin ser venta firme (consignación, muestra, garantía) y acá
+                # se factura, deja de serlo: el motivo vuelve a NULL y sigue el camino normal.
+                ri.motivo_no_facturable = None
                 db.add(ri)
 
         # Clase B -> nota [SISTEMA] en el PR (en el renglón cuando la diferencia es de un renglón)

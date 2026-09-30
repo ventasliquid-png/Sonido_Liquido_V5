@@ -67,15 +67,17 @@
                 <div class="border rounded p-3">
                     <h3 class="font-bold uppercase text-xs text-slate-500 mb-2 border-b pb-1">Destinatario</h3>
                     <p class="font-bold text-lg leading-tight mb-1">{{ pedido?.cliente?.razon_social || 'Consumidor Final' }}</p>
-                    <p class="text-slate-600">CUIT: {{ pedido?.cliente?.cuit || '---' }}</p>
+                    <!-- [S876] Un CUIT genérico (consumidor final, mostrador) no se imprime: cualquier remito, no solo Rosa. -->
+                    <p v-if="esCuitGenerico(pedido?.cliente?.cuit)" class="text-slate-600">Consumidor Final</p>
+                    <p v-else class="text-slate-600">CUIT: {{ pedido?.cliente?.cuit || '---' }}</p>
                     <p class="text-slate-600">{{ getFiscalAddress(pedido?.cliente) }}</p>
                 </div>
                 <div class="border rounded p-3 bg-slate-50">
                     <h3 class="font-bold uppercase text-xs text-slate-500 mb-2 border-b pb-1">Lugar de Entrega & Transporte</h3>
-                    <p class="font-bold text-base mb-1"><i class="fas fa-map-marker-alt text-slate-400 mr-1"></i> {{ getDeliveryAddress(propRemito.domicilio_entrega_id) }}</p>
+                    <p class="font-bold text-base mb-1"><i class="fas fa-map-marker-alt text-slate-400 mr-1"></i> {{ getDeliveryAddress(propRemito.domicilio_entrega_id, propRemito.metodo_entrega) }}</p>
                     <p class="mt-2 text-slate-700">
                         <span class="font-bold text-xs uppercase text-slate-500 block">Transportista</span>
-                        {{ getTransportName(propRemito.transporte_id) }}
+                        {{ getTransportName(propRemito.transporte_id, propRemito.metodo_entrega) }}
                     </p>
                 </div>
             </div>
@@ -131,6 +133,8 @@
 
 <script setup>
 import { computed } from 'vue';
+import { esCuitGenerico } from '@/utils/cuit';
+import { metodoCorto, ETIQUETA_OFICINA } from '@/utils/remitoEntrega';
 
 const props = defineProps({
     propRemito: Object,
@@ -159,13 +163,17 @@ const getFiscalAddress = (cliente) => {
     return fiscal ? `${fiscal.direccion} - ${fiscal.localidad} (${fiscal.provincia})` : '---';
 };
 
-const getDeliveryAddress = (id) => {
+const getDeliveryAddress = (id, metodo) => {
+    // [S876] Mostrador: el domicilio es la oficina, que no está entre los domicilios del cliente.
+    if (metodo === 'MOSTRADOR') return ETIQUETA_OFICINA;
     const list = props.clientDomicilios || [];
     const d = list.find(addr => addr.id === id);
     return d ? `${d.direccion}, ${d.localidad}` : 'Dirección Desconocida';
 };
 
-const getTransportName = (id) => {
+const getTransportName = (id, metodo) => {
+    // [S876] Sin empresa de transporte (mostrador, transporte propio...): se dice cómo salió.
+    if (!id) return metodoCorto(metodo) || '---';
     if (!props.logisticaStore || !props.logisticaStore.transportOptions) return '---';
     const t = props.logisticaStore.transportOptions.find(opt => opt.id === id);
     return t ? t.nombre : '---';

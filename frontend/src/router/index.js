@@ -157,6 +157,16 @@ const routes = [
                 component: () => import('../views/Informes/PedidosPendienteListado.vue')
             },
             {
+                path: 'informes/pedidos-sin-remito',
+                name: 'InformePedidosSinRemito',
+                component: () => import('../views/Informes/PedidosSinRemitoListado.vue')
+            },
+            {
+                path: 'informes/renglones-no-facturables',
+                name: 'InformeRenglonesNoFacturables',
+                component: () => import('../views/Informes/RenglonesNoFacturablesListado.vue')
+            },
+            {
                 path: 'informes/pedidos-oc',
                 name: 'InformePedidosOc',
                 component: () => import('../views/Informes/PedidosOcListado.vue')

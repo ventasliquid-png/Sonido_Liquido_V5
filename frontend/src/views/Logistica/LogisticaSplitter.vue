@@ -147,8 +147,13 @@
                       </span>
                    </h3>
                    <div class="flex gap-4 text-sm text-slate-400 mt-1">
-                      <p><i class="fas fa-map-marker-alt"></i> {{ getAddressLabel(remito.domicilio_entrega_id) }}</p>
-                      <p><i class="fas fa-building"></i> {{ getTransportLabel(remito.transporte_id) }}</p>
+                      <p><i class="fas fa-map-marker-alt"></i> {{ remitoDireccionLabel(remito) }}</p>
+                      <p><i class="fas fa-building"></i> {{ remitoTransporteLabel(remito) }}</p>
+                      <!-- [S876] Cómo salió ESTA entrega (congelado al armar). Vacío en remitos anteriores. -->
+                      <p v-if="remito.metodo_entrega" class="text-[10px] font-bold uppercase self-center bg-slate-700/60 text-slate-300 px-2 py-0.5 rounded border border-slate-600"
+                         :title="metodoLabel(remito.metodo_entrega)">
+                         {{ metodoCorto(remito.metodo_entrega) }}
+                      </p>
                    </div>
                 </div>
              </div>
@@ -183,14 +188,27 @@
              </p>
              <div v-else class="space-y-2">
                 <div v-for="rItem in remito.items" :key="rItem.id" class="flex justify-between items-center text-sm bg-slate-800 p-2 rounded border border-slate-700">
-                   <span class="text-slate-300 flex items-center gap-2">
+                   <span class="text-slate-300 flex items-center gap-2 flex-wrap">
                       <span v-if="rItem.cantidad < 0" class="text-[9px] font-bold uppercase bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded">
                          <i class="fas fa-rotate-left"></i> Devolución
                       </span>
+                      <!-- [S876] Salió sin ser venta firme: no entra a facturación hasta resolverlo (Facturar) o devolverlo. -->
+                      <span v-if="rItem.motivo_no_facturable" :class="motivoClase(rItem.motivo_no_facturable)"
+                            class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border"
+                            title="Salió sin ser venta firme. Se resuelve facturándolo (botón Facturar) o con una devolución.">
+                         {{ motivoLabel(rItem.motivo_no_facturable) }}
+                      </span>
                       {{ getProductName(rItem.pedido_item_id) }}
                    </span>
-                   <span class="font-mono font-bold" :class="rItem.cantidad < 0 ? 'text-rose-400' : 'text-blue-300'">
-                      {{ rItem.cantidad }} un.
+                   <span class="flex items-center gap-3">
+                      <button v-if="rItem.motivo_no_facturable && remito.estado !== 'ANULADO'" @click="resolverFacturar(rItem)"
+                              class="text-[10px] font-bold uppercase bg-emerald-600/80 hover:bg-emerald-500 text-white px-2 py-1 rounded transition"
+                              title="Lo vendido pasa a facturable: sigue el camino normal de facturación">
+                         <i class="fas fa-file-invoice-dollar mr-1"></i> Facturar
+                      </button>
+                      <span class="font-mono font-bold" :class="rItem.cantidad < 0 ? 'text-rose-400' : 'text-blue-300'">
+                         {{ rItem.cantidad }} un.
+                      </span>
                    </span>
                 </div>
              </div>
@@ -221,14 +239,44 @@
 
     <!-- MODAL ARMAR PR [Etapa 4] -->
     <div v-if="showArmarModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-       <div class="bg-slate-800 p-6 rounded-2xl w-full max-w-lg shadow-2xl border border-slate-700">
+       <div class="bg-slate-800 p-6 rounded-2xl w-full max-w-2xl shadow-2xl border border-slate-700">
           <h3 class="text-lg font-bold text-white mb-1"><i class="fas fa-layer-group mr-2 text-amber-400"></i>Armar PR</h3>
           <p class="text-xs text-slate-400 mb-4">
-             Elegí los renglones del pedido y la cantidad a remitir. El número se asigna recién al
-             imprimir, no ahora.
+             Elegí cómo sale la entrega, los renglones del pedido y la cantidad a remitir. El número se
+             asigna recién al imprimir, no ahora. Siempre queda registrado el movimiento, se imprima o no el papel.
           </p>
 
-          <div class="max-h-80 overflow-y-auto space-y-2 pr-1">
+          <!-- [S876] Cómo sale ESTA entrega. Se congela al armar el remito. -->
+          <div class="mb-4 p-3 rounded-lg border border-slate-700 bg-slate-900/40 space-y-2">
+             <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Cómo sale la entrega</label>
+             <select v-model="armarMetodo" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:border-amber-500 outline-none">
+                <option value="" disabled>Elegí cómo sale...</option>
+                <option v-for="m in METODOS_ENTREGA" :key="m.value" :value="m.value">{{ m.label }}</option>
+             </select>
+             <p v-if="armarMetodo === 'MOSTRADOR'" class="text-xs text-slate-400">
+                <i class="fas fa-store mr-1"></i> Retiro en planta: sin traslado ni transporte. El domicilio queda en la oficina (Roseti 1482).
+             </p>
+             <template v-else-if="armarMetodo">
+                <div v-if="armarMetodo === 'FLETE_TERCERO'">
+                   <label class="block text-[10px] uppercase text-slate-500 mb-1">Transporte</label>
+                   <select v-model="armarTransporteId" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:border-amber-500 outline-none">
+                      <option value="" disabled>Elegí el transporte...</option>
+                      <option v-for="emp in logisticaStore.empresas" :key="emp.id" :value="emp.id">{{ emp.nombre }}</option>
+                   </select>
+                </div>
+                <div v-if="clientDomicilios.length > 0">
+                   <label class="block text-[10px] uppercase text-slate-500 mb-1">
+                      {{ armarMetodo === 'FLETE_TERCERO' ? 'Domicilio de entrega (o depósito del transportista)' : 'Domicilio de entrega' }}
+                   </label>
+                   <select v-model="armarDomicilioId" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:border-amber-500 outline-none">
+                      <option value="">El del pedido</option>
+                      <option v-for="d in clientDomicilios" :key="d.id" :value="d.id">{{ getAddressLabel(d.id) }}</option>
+                   </select>
+                </div>
+             </template>
+          </div>
+
+          <div class="max-h-72 overflow-y-auto space-y-2 pr-1">
              <div v-for="sel in armarSeleccion" :key="sel.pedido_item_id"
                   class="flex items-center gap-3 bg-slate-900/50 border border-slate-700 rounded-lg p-3"
                   :class="{'opacity-50': !sel.marcado}">
@@ -237,6 +285,14 @@
                    <p class="text-sm text-white truncate">{{ sel.producto_nombre }}</p>
                    <p class="text-[10px] text-slate-500 uppercase">Pendiente: {{ sel.cantidad_pendiente }}</p>
                 </div>
+                <!-- [S876] Por qué sale sin ser venta firme (por renglón: un mismo envío puede llevar renglones de
+                     venta firme y uno en consignación). Vacío = se factura normal. -->
+                <select v-model="sel.motivo" :disabled="!sel.marcado"
+                        title="Si este renglón sale sin ser venta firme, elegí por qué"
+                        class="w-40 bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white focus:border-amber-500 outline-none disabled:opacity-40">
+                   <option value="">Venta firme</option>
+                   <option v-for="mo in MOTIVOS_NO_FACTURABLE" :key="mo.value" :value="mo.value">{{ mo.label }}</option>
+                </select>
                 <input type="number" v-model.number="sel.cantidad" :max="sel.cantidad_pendiente" min="0.01"
                        :disabled="!sel.marcado"
                        class="w-24 bg-slate-900 border border-slate-700 rounded p-2 text-right text-white font-mono focus:border-amber-500 outline-none disabled:opacity-40">
@@ -248,7 +304,7 @@
 
           <div class="flex justify-end gap-3 mt-6">
              <button @click="cancelArmar" class="text-slate-400 hover:text-white px-4 py-2">Cancelar</button>
-             <button @click="confirmArmar" :disabled="!armarSeleccion.some(s => s.marcado)"
+             <button @click="confirmArmar" :disabled="!armarSeleccion.some(s => s.marcado) || !armarMetodo"
                      class="bg-amber-600 hover:bg-amber-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg font-bold">
                 Armar
              </button>
@@ -317,6 +373,10 @@ import { usePedidosStore } from '@/stores/pedidos'; // Assuming this exists to f
 // If not, we might need to fetch manually. Assuming it exists.
 import api from '@/services/api';
 import RemitoTemplate from './components/RemitoTemplate.vue';
+import {
+    METODOS_ENTREGA, MOTIVOS_NO_FACTURABLE, ETIQUETA_OFICINA,
+    metodoCorto, metodoLabel, motivoLabel, motivoClase,
+} from '@/utils/remitoEntrega';
 
 const route = useRoute();
 const remitosStore = useRemitosStore();
@@ -332,6 +392,10 @@ const clientDomicilios = ref([]);
 const showAddItemModal = ref(false);
 const showArmarModal = ref(false); // [Etapa 4]
 const armarSeleccion = ref([]); // [Etapa 4]
+// [S876] Cómo sale la entrega: método (lista cerrada), transporte (solo FLETE_TERCERO) y domicilio.
+const armarMetodo = ref('');
+const armarTransporteId = ref('');
+const armarDomicilioId = ref('');
 const showDevolucionModal = ref(false); // [Etapa 6]
 const devolucionSeleccion = ref([]); // [Etapa 6]
 
@@ -449,19 +513,30 @@ const openArmarModal = () => {
         producto_nombre: item.producto?.nombre || 'Ítem',
         cantidad_pendiente: item.cantidad_pendiente,
         cantidad: item.cantidad_pendiente,
+        motivo: '',
         marcado: false,
     }));
+    // [S876] Un pedido con transporte habitual sugiere FLETE_TERCERO; sin transporte no se adivina
+    // nada: hay que elegir (mostrador, moto, transporte propio...). Es el hecho de esta entrega.
+    armarMetodo.value = localPedido.value?.transporte_id ? 'FLETE_TERCERO' : '';
+    armarTransporteId.value = localPedido.value?.transporte_id || '';
+    armarDomicilioId.value = '';
     showArmarModal.value = true;
 };
 
 const cancelArmar = () => {
     showArmarModal.value = false;
     armarSeleccion.value = [];
+    armarMetodo.value = '';
+    armarTransporteId.value = '';
+    armarDomicilioId.value = '';
 };
 
 const confirmArmar = async () => {
     const elegidos = armarSeleccion.value.filter(s => s.marcado);
     if (elegidos.length === 0) return;
+    if (!armarMetodo.value) { alert('Elegí cómo sale la entrega.'); return; }
+    if (armarMetodo.value === 'FLETE_TERCERO' && !armarTransporteId.value) { alert('Elegí el transporte.'); return; }
 
     // [Etapa 4, punto 5 -- confirmación obligatoria en parciales, sin gradación por tamaño]
     // Si algún renglón elegido no completa el pendiente, no alcanza con un clic: hay que
@@ -482,14 +557,47 @@ const confirmArmar = async () => {
     }
 
     try {
-        await remitosStore.armarRemito({
+        const payload = {
             pedido_id: localPedido.value.id,
-            items: elegidos.map(s => ({ pedido_item_id: s.pedido_item_id, cantidad: s.cantidad })),
-        });
-        showArmarModal.value = false;
-        armarSeleccion.value = [];
+            metodo_entrega: armarMetodo.value,
+            items: elegidos.map(s => ({
+                pedido_item_id: s.pedido_item_id,
+                cantidad: s.cantidad,
+                ...(s.motivo ? { motivo_no_facturable: s.motivo } : {}),
+            })),
+        };
+        // MOSTRADOR no manda domicilio ni transporte: el backend usa la oficina y deja el transporte vacío.
+        if (armarMetodo.value !== 'MOSTRADOR') {
+            if (armarDomicilioId.value) payload.domicilio_entrega_id = armarDomicilioId.value;
+            if (armarMetodo.value === 'FLETE_TERCERO') payload.transporte_id = armarTransporteId.value;
+        }
+        await remitosStore.armarRemito(payload);
+        cancelArmar();
+        // La entrega (sobre todo un retiro en mostrador) cambia lo entregado del pedido: se recarga.
+        await loadData(localPedido.value.id);
     } catch (err) {
         alert(remitosStore.error || 'No se pudo armar el remito.');
+    }
+};
+
+// [S876] Etiquetas del remito. Un remito de mostrador apunta a la oficina, que no figura entre los
+// domicilios del cliente; y uno sin transporte dice cómo salió en vez de "Transporte...".
+const remitoDireccionLabel = (remito) =>
+    remito.metodo_entrega === 'MOSTRADOR' ? ETIQUETA_OFICINA : getAddressLabel(remito.domicilio_entrega_id);
+
+const remitoTransporteLabel = (remito) =>
+    remito.transporte_id ? getTransportLabel(remito.transporte_id) : (metodoCorto(remito.metodo_entrega) || 'Sin transporte');
+
+// [S876] Resolver un renglón que salió sin ser venta firme: FACTURAR lo devuelve al camino normal.
+// La otra salida (devolver la mercadería) es "Registrar Devolución", un PR de cantidad negativa.
+const resolverFacturar = async (rItem) => {
+    const que = `${getProductName(rItem.pedido_item_id)} (${motivoLabel(rItem.motivo_no_facturable)})`;
+    if (!confirm(`"${que}" deja de ser "sin venta firme" y pasa a facturable. Sigue el camino normal de facturación.\n\n` +
+                 `Si en cambio vuelve la mercadería, usá "Registrar Devolución". ¿Lo facturás?`)) return;
+    try {
+        await remitosStore.resolverNoFacturable(rItem.id, localPedido.value.id);
+    } catch (err) {
+        alert(remitosStore.error || 'No se pudo resolver el renglón.');
     }
 };
 

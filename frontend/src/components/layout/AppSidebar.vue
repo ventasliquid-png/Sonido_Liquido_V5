@@ -226,6 +226,14 @@
                 <i class="fas fa-hourglass-half w-4"></i>
                 <span>Pedidos con pendiente</span>
             </a>
+            <a href="#" @click.prevent="navigate('InformePedidosSinRemito')" class="nav-item-sub" :class="{ 'active-link-sky': isActive('InformePedidosSinRemito') }">
+                <i class="fas fa-triangle-exclamation w-4"></i>
+                <span>Pedidos sin remito</span>
+            </a>
+            <a href="#" @click.prevent="navigate('InformeRenglonesNoFacturables')" class="nav-item-sub" :class="{ 'active-link-sky': isActive('InformeRenglonesNoFacturables') }">
+                <i class="fas fa-box-open w-4"></i>
+                <span>Renglones sin venta firme</span>
+            </a>
             <a href="#" @click.prevent="navigate('InformePedidosOc')" class="nav-item-sub" :class="{ 'active-link-sky': isActive('InformePedidosOc') }">
                 <i class="fas fa-file-contract w-4"></i>
                 <span>Pedidos con OC</span>
@@ -315,7 +323,7 @@ const isGroupActive = (group) => {
     if (group === 'MAESTROS') return ['Contactos', 'Transportes', 'CanteraExplorer', 'MasterTools', 'AddressHub'].includes(route.name)
     if (group === 'PEDIDOS') return ['PedidoList', 'TacticalLoader', 'IngestaFactura', 'RemitoList', 'ManualRemito', 'FacturacionDashboard', 'EntregasReport'].includes(route.name)
     if (group === 'INTEL') return ['data-cleaner'].includes(route.name)
-    if (group === 'INFORMES') return ['InformeRemitos', 'InformePedidosPendiente', 'InformePedidosOc', 'InformeNotasPedidos', 'InformeBuscarNotas', 'InformeAbcClientes', 'InformeAbcProductos'].includes(route.name)
+    if (group === 'INFORMES') return ['InformeRemitos', 'InformePedidosPendiente', 'InformePedidosSinRemito', 'InformeRenglonesNoFacturables', 'InformePedidosOc', 'InformeNotasPedidos', 'InformeBuscarNotas', 'InformeAbcClientes', 'InformeAbcProductos'].includes(route.name)
     return false
 }
 

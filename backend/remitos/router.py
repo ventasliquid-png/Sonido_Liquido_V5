@@ -134,17 +134,12 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
         # se vuelve a numerar.
         if not remito.numero_legal:
             from backend.remitos.service import RemitosService
-            from backend.remitos.constants import RemitoFlags
-            from backend.pedidos.constants import PedidoFlags
-            es_rosa = bool((remito.flags_estado or 0) & int(RemitoFlags.CIRCUITO_ROSA))
-            # [DISENO_PEDIDO_NO_COMERCIAL_S873_2026-09-24.md] "Una sola serie para rosa y no
-            # comerciales juntos" -- un Pedido con ES_NO_COMERCIAL numera por el 17 igual que un
-            # rosa, sea cual sea el cliente (real o técnico) que tenga detrás.
-            es_no_comercial = bool(remito.pedido and (remito.pedido.flags_estado or 0) & int(PedidoFlags.ES_NO_COMERCIAL))
-            remito.numero_legal = (
-                RemitosService._siguiente_numero_17(db) if (es_rosa or es_no_comercial)
-                else RemitosService._siguiente_numero_0015(db)
-            )
+            # [S876, decisión de Carlos + Arq 30/09, confirmada en el prompt de remito/renglón §6] El
+            # 0015 es el único talonario vivo y el 0017 queda abolido: ni Rosa ni no comercial numeran
+            # por otra serie. Antes (DISENO_PEDIDO_NO_COMERCIAL_S873) "una sola serie para rosa y no
+            # comerciales juntos" los mandaba al 17. Lo que distingue a un Rosa es que su PDF nunca
+            # muestra precio (el motor no dibuja precios) y que su pedido no se factura.
+            remito.numero_legal = RemitosService._siguiente_numero_0015(db)
             db.add(remito)
             db.commit()
             db.refresh(remito)
@@ -453,6 +448,47 @@ def actualizar_cantidad_recibida(
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
         print(f"Error actualizando cantidad_recibida: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+
+@router.post("/items/{remito_item_id}/resolver-no-facturable", response_model=schemas.RemitoItemResponse)
+def resolver_no_facturable(
+    remito_item_id: int,
+    payload: schemas.ResolverNoFacturablePayload,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_active_user)
+):
+    """[S876] Resuelve un renglón con motivo_no_facturable (consignación, muestra sin cargo, garantía):
+    FACTURAR lo devuelve al camino normal de facturación. Devolver la mercadería no pasa por acá: es un
+    PR de cantidad negativa (POST /remitos/armar). Ver RemitosService.resolver_no_facturable."""
+    try:
+        from backend.remitos.service import RemitosService
+        return RemitosService.resolver_no_facturable(db, remito_item_id, payload.accion, current_user.id)
+    except HTTPException:
+        raise
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        print(f"Error resolviendo renglón no facturable {remito_item_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+
+@router.post("/interno/desde_factura/{factura_id}", response_model=schemas.RemitoResponse)
+def originar_remito_interno_desde_factura(factura_id: str, metodo_entrega: str, db: Session = Depends(get_db)):
+    """[S876] Remito interno (sin número, sin hoja de ruta) para una factura sellada que se entrega en
+    MOSTRADOR o con el remito/etiqueta de un tercero (REMITO_EXTERNO). Siempre queda el movimiento
+    registrado, se imprima o no el papel. Ver RemitosService.create_interno_desde_factura."""
+    try:
+        from backend.remitos.service import RemitosService
+        return RemitosService.create_interno_desde_factura(db, factura_id, metodo_entrega)
+    except HTTPException:
+        raise
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        print(f"Error remito interno desde factura {factura_id}: {e}")
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")

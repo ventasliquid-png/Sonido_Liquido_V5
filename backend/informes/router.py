@@ -23,10 +23,25 @@ router = APIRouter(
 # --- Informe A: remitos por fecha y/o cliente -- misma consulta que ya usa
 # EntregasView.vue (GET /remitos/entregas), acá en forma de tabla plana exportable. ---
 
+def _fecha_corta(valor) -> Optional[str]:
+    """Fecha para el listado: 'AAAA-MM-DD', y con hora solo si la hora dice algo. Los pedidos guardan la
+    fecha como datetime a medianoche y `isoformat()` la mostraba como '2026-09-04T00:00:00'."""
+    if valor is None or valor == "":
+        return None
+    if isinstance(valor, datetime):
+        return valor.strftime("%Y-%m-%d") if (valor.hour, valor.minute, valor.second) == (0, 0, 0) else valor.strftime("%Y-%m-%d %H:%M")
+    texto = str(valor)
+    if len(texto) >= 19 and texto[10] == "T":
+        return texto[:10] if texto[11:19] == "00:00:00" else f"{texto[:10]} {texto[11:16]}"
+    return texto
+
+
 COLUMNAS_REMITOS = [
     {"key": "cliente", "label": "Cliente", "width": 30},
     {"key": "oc", "label": "OC", "width": 14},
     {"key": "pedido_id", "label": "Pedido", "width": 10},
+    {"key": "circuito", "label": "Circuito", "width": 10},
+    {"key": "estado", "label": "Estado", "width": 18},
     {"key": "fecha_pedido", "label": "Fecha Pedido", "width": 14},
     {"key": "producto", "label": "Producto", "width": 30},
     {"key": "cantidad_pedida", "label": "Cant. Pedida", "width": 12},
@@ -35,6 +50,64 @@ COLUMNAS_REMITOS = [
     {"key": "cantidad_remitida", "label": "Cant. Remitida", "width": 14},
     {"key": "factura", "label": "Factura", "width": 16},
 ]
+
+# Cómo se presenta el Informe A (pedido de Carlos, 30/09): el orden se elige al abrir el informe.
+ORDENES_REMITOS = {      # orden -> sentido por defecto
+    "cliente": "asc",    # por cliente (A-Z); dentro de cada uno, por fecha y número de remito
+    "fecha": "desc",     # por fecha de remito, los más recientes arriba
+    "remito": "asc",     # por número de remito
+}
+TITULOS_ORDEN = {
+    "cliente": "por cliente",
+    "fecha": "por fecha de remito",
+    "remito": "por número de remito",
+}
+CIRCUITOS = ("todos", "blanco", "rosa")
+
+
+def _info_pedidos(db: Session, pedido_ids) -> dict:
+    """pedido_id -> {estado_base, circuito, parcial}, con el MISMO criterio que la lista de pedidos
+    (PedidoList.vue): el circuito Rosa es el bit NO_FISCAL_FORCE, y 'parcial' es que algún renglón
+    tenga entrega pero no completa. Una sola consulta para todos los pedidos del informe."""
+    from sqlalchemy.orm import joinedload
+    from backend.pedidos.models import Pedido
+    from backend.pedidos.constants import PedidoFlags
+
+    ids = [i for i in set(pedido_ids) if i is not None]
+    if not ids:
+        return {}
+    info = {}
+    for p in db.query(Pedido).options(joinedload(Pedido.items)).filter(Pedido.id.in_(ids)).all():
+        parcial = any(0 < (i.cantidad_entregada or 0) < (i.cantidad or 0) for i in p.items)
+        rosa = bool((p.flags_estado or 0) & int(PedidoFlags.NO_FISCAL_FORCE))
+        info[p.id] = {"estado_base": p.estado, "parcial": parcial, "circuito": "Rosa" if rosa else "Blanco"}
+    return info
+
+
+def _anotar_pedido(db: Session, filas: list) -> list:
+    """Agrega a cada fila (que trae `pedido_id`) el circuito y el estado del pedido. `estado_base` y
+    `parcial` no son columnas: los usa la pantalla para pintar; `estado` es el texto que se exporta."""
+    info = _info_pedidos(db, [f.get("pedido_id") for f in filas])
+    for f in filas:
+        i = info.get(f.get("pedido_id"))
+        f["circuito"] = i["circuito"] if i else None
+        f["estado_base"] = i["estado_base"] if i else None
+        f["parcial"] = bool(i and i["parcial"])
+        f["estado"] = (f"{i['estado_base']} · PARCIAL" if i["parcial"] else i["estado_base"]) if i else None
+    return filas
+
+
+def _num_remito(numero_legal) -> tuple:
+    """'0016-00002595' -> (2595, 16): primero el NÚMERO, después la serie. Los rangos son disjuntos
+    (el 0016 llega a 2602 y el 0015 arranca en 3010), así que ordenar por número es también
+    ordenar cronológicamente aunque haya dos talonarios."""
+    if not numero_legal:
+        return (-1, -1)
+    partes = str(numero_legal).split("-")
+    try:
+        return (int(partes[-1]), int(partes[0]) if len(partes) > 1 else 0)
+    except ValueError:
+        return (-1, -1)
 
 
 def _filas_informe_remitos(
@@ -45,8 +118,17 @@ def _filas_informe_remitos(
     producto_id: Optional[int],
     oc: Optional[str],
     incluir_anulados: bool,
+    orden: str = "cliente",
+    sentido: Optional[str] = None,
+    circuito: str = "todos",
+    cliente_desde: Optional[str] = None,
+    cliente_hasta: Optional[str] = None,
+    producto_desde: Optional[str] = None,
+    producto_hasta: Optional[str] = None,
+    incluir_sin_remito: bool = False,
 ):
     from backend.remitos.service import RemitosService
+    from backend.productos.models import Producto
 
     resultado = RemitosService.get_entregas(
         db,
@@ -57,43 +139,147 @@ def _filas_informe_remitos(
         oc=oc,
         incluir_anulados=incluir_anulados,
     )
-    return resultado["filas"]
+    filas = []
+    for fila in resultado["filas"]:
+        fila = dict(fila)  # get_entregas también alimenta EntregasView: no se le toca el dato original
+        for clave in ("fecha_pedido", "fecha_documento"):
+            if clave in fila:
+                fila[clave] = _fecha_corta(fila[clave])
+        filas.append(fila)
+
+    # Es un informe de REMITOS: los renglones de pedido que todavía no tienen ninguno (los que get_entregas
+    # agrega de relleno para la pantalla de Entregas) solo entran si se piden. Los pendientes son el Informe B.
+    # Se mira si el REMITO existe (remito_id), no si tiene número: un remito recién armado no lo tiene hasta
+    # que se imprime (número atrasado, Etapa 3/4), y una devolución también nace sin número.
+    if not incluir_sin_remito:
+        filas = [f for f in filas if f.get("remito_id")]
+    for f in filas:
+        if f.get("remito_id") and not f.get("remito"):
+            f["remito"] = "(sin número)"
+
+    _anotar_pedido(db, filas)
+    for f in filas:
+        f["grupo"] = f.get("remito_id") or f"sin-remito-{f.get('pedido_id')}"   # la pantalla arma una caja por grupo
+
+    if circuito != "todos":
+        filas = [f for f in filas if (f.get("circuito") or "").lower() == circuito]
+
+    # Rangos "desde / hasta" (inclusivos). Clientes: por razón social, sin acentos ni mayúsculas, y el
+    # "hasta" cubre todo lo que empieza así ("M" incluye "Mirta Rossini"). Productos: por código visual.
+    if cliente_desde or cliente_hasta:
+        lo = normalizar_texto(cliente_desde) if cliente_desde else None
+        hi = normalizar_texto(cliente_hasta) if cliente_hasta else None
+
+        def _en_rango_cliente(f):
+            n = normalizar_texto(f.get("cliente") or "")
+            return (lo is None or n >= lo) and (hi is None or n <= hi + "￿")
+        filas = [f for f in filas if _en_rango_cliente(f)]
+    if producto_desde or producto_hasta:
+        ids_prod = {f.get("producto_id") for f in filas if f.get("producto_id")}
+        codigos = {p.id: (p.codigo_visual or "").strip().upper()
+                   for p in db.query(Producto).filter(Producto.id.in_(ids_prod))} if ids_prod else {}
+        lo = (producto_desde or "").strip().upper() or None
+        hi = (producto_hasta or "").strip().upper() or None
+
+        def _en_rango_producto(f):
+            c = codigos.get(f.get("producto_id"), "")
+            return bool(c) and (lo is None or c >= lo) and (hi is None or c <= hi + "￿")
+        filas = [f for f in filas if _en_rango_producto(f)]
+
+    # Orden: primero un desempate fijo y ascendente (fecha, nº de remito, pedido, renglón) y después la clave
+    # principal. El sort de Python es estable, así que las filas de un mismo remito quedan juntas (la
+    # pantalla las agrupa en una caja) y el renglón conserva el orden en que se cargó el pedido.
+    sentido = sentido or ORDENES_REMITOS[orden]
+
+    def _fecha_efectiva(f):
+        return f.get("fecha_documento") or f.get("fecha_pedido") or ""
+
+    filas.sort(key=lambda f: (_fecha_efectiva(f), _num_remito(f.get("remito")), f.get("pedido_id") or 0, f.get("pedido_item_id") or 0))
+    principal = {
+        "cliente": lambda f: normalizar_texto(f.get("cliente") or ""),
+        "fecha": _fecha_efectiva,
+        "remito": lambda f: _num_remito(f.get("remito")),
+    }[orden]
+    filas.sort(key=principal, reverse=(sentido == "desc"))
+    return filas
 
 
-@router.get("/remitos")
-def informe_remitos(
+def _filtros_remitos(
     cliente_id: Optional[str] = None,
     desde: Optional[datetime] = None,
     hasta: Optional[datetime] = None,
     producto_id: Optional[int] = None,
     oc: Optional[str] = None,
     incluir_anulados: bool = False,
-    db: Session = Depends(get_db),
-):
+    orden: str = "cliente",
+    sentido: Optional[str] = None,
+    circuito: str = "todos",
+    cliente_desde: Optional[str] = None,
+    cliente_hasta: Optional[str] = None,
+    producto_desde: Optional[str] = None,
+    producto_hasta: Optional[str] = None,
+    incluir_sin_remito: bool = False,
+) -> dict:
+    """Los filtros del Informe A, validados una sola vez para la pantalla y para la exportación."""
+    if orden not in ORDENES_REMITOS:
+        raise HTTPException(status_code=400, detail=f"orden inválido: {orden!r} (cliente | fecha | remito)")
+    if sentido not in (None, "asc", "desc"):
+        raise HTTPException(status_code=400, detail=f"sentido inválido: {sentido!r} (asc | desc)")
+    if circuito not in CIRCUITOS:
+        raise HTTPException(status_code=400, detail=f"circuito inválido: {circuito!r} (todos | blanco | rosa)")
+    return dict(
+        cliente_id=cliente_id, desde=desde, hasta=hasta, producto_id=producto_id, oc=oc,
+        incluir_anulados=incluir_anulados, orden=orden, sentido=sentido, circuito=circuito,
+        cliente_desde=cliente_desde, cliente_hasta=cliente_hasta,
+        producto_desde=producto_desde, producto_hasta=producto_hasta, incluir_sin_remito=incluir_sin_remito,
+    )
+
+
+def _subtitulo_remitos(db: Session, f: dict) -> str:
+    """Los filtros con los que se armó el listado, para que una hoja impresa o un archivo guardado
+    diga de dónde salió."""
+    from backend.clientes.models import Cliente
+
+    sentido = f["sentido"] or ORDENES_REMITOS[f["orden"]]
+    partes = [f"Orden: {TITULOS_ORDEN[f['orden']]} ({'descendente' if sentido == 'desc' else 'ascendente'})"]
+    if f["cliente_id"]:
+        c = db.query(Cliente).filter(Cliente.id == f["cliente_id"]).first()
+        partes.append(f"Cliente: {c.razon_social if c else f['cliente_id']}")
+    if f["cliente_desde"] or f["cliente_hasta"]:
+        partes.append(f"Clientes de {f['cliente_desde'] or '...'} a {f['cliente_hasta'] or '...'}")
+    if f["producto_desde"] or f["producto_hasta"]:
+        partes.append(f"Productos de {f['producto_desde'] or '...'} a {f['producto_hasta'] or '...'}")
+    if f["desde"] or f["hasta"]:
+        partes.append(f"Fechas de {_fecha_corta(f['desde']) or '...'} a {_fecha_corta(f['hasta']) or '...'}")
+    if f["oc"]:
+        partes.append(f"OC: {f['oc']}")
+    if f["circuito"] != "todos":
+        partes.append(f"Circuito: {f['circuito'].capitalize()}")
+    if f["incluir_anulados"]:
+        partes.append("incluye anulados")
+    if f["incluir_sin_remito"]:
+        partes.append("incluye renglones sin remito")
+    return " | ".join(partes)
+
+
+@router.get("/remitos")
+def informe_remitos(filtros: dict = Depends(_filtros_remitos), db: Session = Depends(get_db)):
     """Informe A -- tabla plana para pantalla. Mismos filtros/datos que
     GET /remitos/entregas (EntregasView.vue la usa como árbol; acá es la vista
-    listado, pensada para exportar)."""
-    filas = _filas_informe_remitos(db, cliente_id, desde, hasta, producto_id, oc, incluir_anulados)
+    listado, pensada para exportar), más orden, circuito, rangos y agrupación por remito."""
+    filas = _filas_informe_remitos(db, **filtros)
     return {"columnas": COLUMNAS_REMITOS, "filas": filas}
 
 
 @router.get("/remitos/export")
-def informe_remitos_export(
-    formato: str,
-    cliente_id: Optional[str] = None,
-    desde: Optional[datetime] = None,
-    hasta: Optional[datetime] = None,
-    producto_id: Optional[int] = None,
-    oc: Optional[str] = None,
-    incluir_anulados: bool = False,
-    db: Session = Depends(get_db),
-):
+def informe_remitos_export(formato: str, filtros: dict = Depends(_filtros_remitos), db: Session = Depends(get_db)):
     """Recalcula server-side con los mismos filtros -- nunca confía en filas que
     mande el cliente, para que el archivo exportado sea siempre una consulta
     fresca, no lo que quedó pintado en pantalla."""
-    filas = _filas_informe_remitos(db, cliente_id, desde, hasta, producto_id, oc, incluir_anulados)
+    filas = _filas_informe_remitos(db, **filtros)
     try:
-        return exportar(formato, "Remitos por fecha o cliente", COLUMNAS_REMITOS, filas)
+        return exportar(formato, "Remitos por fecha o cliente", COLUMNAS_REMITOS, filas,
+                        subtitulo=_subtitulo_remitos(db, filtros))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -103,6 +289,8 @@ def informe_remitos_export(
 
 COLUMNAS_PEDIDOS_PENDIENTE = [
     {"key": "pedido_id", "label": "Pedido", "width": 10},
+    {"key": "circuito", "label": "Circuito", "width": 10},
+    {"key": "estado", "label": "Estado", "width": 18},
     {"key": "cliente", "label": "Cliente", "width": 30},
     {"key": "fecha_pedido", "label": "Fecha", "width": 14},
     {"key": "oc", "label": "OC", "width": 14},
@@ -140,14 +328,14 @@ def _filas_informe_pendiente(db: Session, cliente_id: Optional[str], oc: Optiona
         filas.append({
             "pedido_id": pedido.id if pedido else None,
             "cliente": cliente.razon_social if cliente else None,
-            "fecha_pedido": pedido.fecha.isoformat() if pedido and pedido.fecha else None,
+            "fecha_pedido": _fecha_corta(pedido.fecha) if pedido and pedido.fecha else None,
             "oc": pedido.oc if pedido else None,
             "renglon": producto.nombre if producto else (item.nota or "Ítem"),
             "declarado": item.cantidad,
             "entregado": entregado,
             "pendiente": pendiente,
         })
-    return filas
+    return _anotar_pedido(db, filas)
 
 
 @router.get("/pedidos-pendiente")
@@ -182,7 +370,8 @@ COLUMNAS_PEDIDOS_OC = [
     {"key": "cliente", "label": "Cliente", "width": 30},
     {"key": "fecha_pedido", "label": "Fecha", "width": 14},
     {"key": "oc", "label": "OC", "width": 16},
-    {"key": "estado", "label": "Estado", "width": 14},
+    {"key": "circuito", "label": "Circuito", "width": 10},
+    {"key": "estado", "label": "Estado", "width": 18},
     {"key": "total", "label": "Total", "width": 14},
 ]
 
@@ -206,12 +395,11 @@ def _filas_informe_oc(db: Session, cliente_id: Optional[str]):
         filas.append({
             "pedido_id": pedido.id,
             "cliente": cliente.razon_social if cliente else None,
-            "fecha_pedido": pedido.fecha.isoformat() if pedido.fecha else None,
+            "fecha_pedido": _fecha_corta(pedido.fecha) if pedido.fecha else None,
             "oc": pedido.oc,
-            "estado": pedido.estado,
             "total": pedido.total,
         })
-    return filas
+    return _anotar_pedido(db, filas)
 
 
 @router.get("/pedidos-oc")
@@ -235,6 +423,8 @@ def informe_pedidos_oc_export(formato: str, cliente_id: Optional[str] = None, db
 
 COLUMNAS_NOTAS_PEDIDO = [
     {"key": "pedido_id", "label": "Pedido", "width": 10},
+    {"key": "circuito", "label": "Circuito", "width": 10},
+    {"key": "estado", "label": "Estado", "width": 18},
     {"key": "cliente", "label": "Cliente", "width": 30},
     {"key": "fecha_pedido", "label": "Fecha Pedido", "width": 14},
     {"key": "categoria", "label": "Categoría", "width": 20},
@@ -269,11 +459,11 @@ def _filas_informe_notas(db: Session, cliente_id: Optional[str], categorias: Opt
             filas.append({
                 "pedido_id": pedido.id,
                 "cliente": cliente.razon_social if cliente else None,
-                "fecha_pedido": pedido.fecha.isoformat() if pedido.fecha else None,
+                "fecha_pedido": _fecha_corta(pedido.fecha) if pedido.fecha else None,
                 "categoria": dict(CATEGORIAS_DISPONIBLES).get(frag["categoria"], frag["categoria"]),
                 "fragmento": frag["texto"],
             })
-    return filas
+    return _anotar_pedido(db, filas)
 
 
 @router.get("/notas-pedidos")
@@ -311,6 +501,8 @@ def informe_notas_pedidos_export(
 COLUMNAS_BUSCAR_NOTAS = [
     {"key": "origen", "label": "Origen", "width": 10},
     {"key": "pedido_id", "label": "Pedido", "width": 10},
+    {"key": "circuito", "label": "Circuito", "width": 10},
+    {"key": "estado", "label": "Estado", "width": 18},
     {"key": "remito", "label": "Remito", "width": 16},
     {"key": "cliente", "label": "Cliente", "width": 30},
     {"key": "fragmento", "label": "Fragmento", "width": 60},
@@ -375,12 +567,12 @@ def _filas_buscar_notas(db: Session, q: Optional[str], excluir_sistema: bool):
             "remito": remito.numero_legal if remito else None,
             "cliente": nombre_cliente,
             "fragmento": texto,
-            "fecha": nota.fecha.isoformat() if nota.fecha else None,
+            "fecha": _fecha_corta(nota.fecha) if nota.fecha else None,
             "autor": nota.autor_username,
         })
 
     filas.sort(key=lambda f: f["fecha"] or "", reverse=True)
-    return filas
+    return _anotar_pedido(db, filas)
 
 
 def _formato_linea_buscar_notas(fila):
@@ -424,6 +616,337 @@ def informe_buscar_notas_export(
             formato, "Buscar en notas", COLUMNAS_BUSCAR_NOTAS, filas,
             formato_linea=_formato_linea_buscar_notas,
         )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# --- Informe F: pedidos SIN REMITO (prueba funcional 30/09). Hoja de revisión: en la copia de producción 54 de
+# 103 pedidos no tienen ningún remito vigente, y no todos son lo mismo -- los Blancos y los Rosas se separan
+# porque su respaldo es distinto (DISENO_CIRCUITO_PR_S869.md §1.7/§3): el Blanco tiene remito (PR impreso) y
+# factura; el Rosa tiene un PR INTERNO que nunca se imprime ni se liga a una factura (quién, cuándo y qué
+# cantidades, con PIN). Solo lectura: no crea remitos ni cambia estados. ---
+
+COLUMNAS_SIN_REMITO = [
+    {"key": "pedido_id", "label": "Pedido", "width": 9},
+    {"key": "circuito", "label": "Circuito", "width": 10},
+    {"key": "estado", "label": "Estado", "width": 14},
+    {"key": "cliente", "label": "Cliente", "width": 30},
+    {"key": "fecha_pedido", "label": "Fecha", "width": 12},
+    {"key": "antiguedad", "label": "Días", "width": 7},
+    {"key": "oc", "label": "OC", "width": 12},
+    {"key": "renglones", "label": "Renglones", "width": 40},
+    {"key": "total", "label": "Total", "width": 14},
+    {"key": "comprobante", "label": "Comprobante vinculado", "width": 24},
+    {"key": "factura_candidata", "label": "Factura de ARCA candidata", "width": 28},
+    {"key": "observacion", "label": "Qué revisar", "width": 50},
+]
+# Solo en los archivos exportados: tres columnas en blanco para que Carlos marque a mano cada caso.
+COLUMNAS_SIN_REMITO_EXPORT = COLUMNAS_SIN_REMITO + [
+    {"key": "hoja_entrego", "label": "¿Se entregó? (S/N)", "width": 16},
+    {"key": "hoja_accion", "label": "Acción (regularizar / anular / sigue pendiente)", "width": 30},
+    {"key": "hoja_nota", "label": "Nota", "width": 30},
+]
+DIAS_PENDIENTE_VIEJO = 60
+_PRIORIDAD_ESTADO = {"CUMPLIDO": 0, "PENDIENTE": 1, "ANULADO": 3}
+
+
+def _solo_digitos(valor) -> str:
+    return "".join(ch for ch in str(valor or "") if ch.isdigit())
+
+
+def _facturas_arca_en_ingesta(db: Session) -> list:
+    """Las facturas de ARCA que están guardadas como PDF en la ingesta (sin repetir), leídas del JSON que
+    ya guardó el parser: CUIT, número, totales y en qué estado quedó su PDF. Sirve para sugerir, por CUIT y
+    total, cuál podría ser la factura real de un pedido que no tiene remito."""
+    from backend.ingesta.models import FacturasRaw
+
+    vistas, salida = set(), []
+    for raw in db.query(FacturasRaw).all():
+        datos = raw.parsed_data_raw
+        if not isinstance(datos, dict):
+            continue
+        f, cli = datos.get("factura") or {}, datos.get("cliente") or {}
+        numero = f.get("numero")
+        if not numero or numero in vistas:
+            continue
+        vistas.add(numero)
+        salida.append({
+            "numero": numero, "cuit": _solo_digitos(cli.get("cuit")),
+            "neto": f.get("total_neto"), "total": f.get("total_final"), "estado": raw.audit_status,
+        })
+    return salida
+
+
+def _candidata(pedido_total, cuit_cliente, facturas_arca: list) -> Optional[str]:
+    cuit = _solo_digitos(cuit_cliente)
+    if not cuit or not pedido_total:
+        return None
+    hallas = []
+    for x in facturas_arca:
+        if x["cuit"] != cuit:
+            continue
+        for ref in (x["total"], x["neto"]):
+            if ref and abs(ref - pedido_total) <= max(1.0, 0.005 * pedido_total):
+                hallas.append(f"{x['numero']} ({(x['estado'] or '').lower()})")
+                break
+    return "; ".join(hallas) or None
+
+
+def _observacion_sin_remito(estado, circuito, dias, candidata) -> str:
+    if estado == "ANULADO":
+        return "Anulado: no necesita remito."
+    rosa = circuito == "Rosa"
+    if estado == "CUMPLIDO":
+        # Sin afirmar cuál es el respaldo del circuito Rosa (remito 0015, ticket interno...): está en discusión.
+        base = ("Figura cumplido pero no hay ninguna salida registrada: ¿se entregó? Si sí, regularizar con un PR retroactivo"
+                + (" (circuito Rosa: sin factura)." if rosa else " y conciliar su factura real."))
+        if candidata and not rosa:
+            base += " Hay una factura de ARCA candidata en la ingesta."
+        return base
+    if estado == "PENDIENTE":
+        if dias is not None and dias > DIAS_PENDIENTE_VIEJO:
+            return f"Pendiente hace {dias} días sin ninguna salida: ¿se entregó, se anula o sigue de verdad?"
+        return "Pendiente: todavía no se armó la salida (normal)."
+    return "Revisar el estado del pedido."
+
+
+def _filas_sin_remito(db: Session, circuito: str, estado: str, cliente_id: Optional[str], incluir_anulados: bool):
+    from datetime import date
+    from sqlalchemy import and_, exists
+    from sqlalchemy.orm import joinedload
+    from backend.clientes.models import Cliente  # noqa: F401  (relación Pedido.cliente)
+    from backend.facturacion.models import Factura
+    from backend.pedidos.models import Pedido, PedidoItem
+    from backend.remitos.models import Remito
+
+    query = (
+        db.query(Pedido)
+        .options(joinedload(Pedido.cliente), joinedload(Pedido.items).joinedload(PedidoItem.producto))
+        .filter(~exists().where(and_(Remito.pedido_id == Pedido.id, Remito.estado != "ANULADO")))
+    )
+    if cliente_id:
+        query = query.filter(Pedido.cliente_id == cliente_id)
+    if estado != "todos":
+        query = query.filter(Pedido.estado == estado)
+    elif not incluir_anulados:
+        query = query.filter(Pedido.estado != "ANULADO")
+    pedidos = query.all()
+
+    comprobantes: dict = {}
+    if pedidos:
+        # facturas.pedido_id está declarada CHAR(32) en el esquema heredado (D y P) y guarda el número como TEXTO
+        # ('63'), aunque el modelo diga Integer: por eso las claves se comparan como texto en los dos lados.
+        for f in db.query(Factura).filter(Factura.pedido_id.in_([p.id for p in pedidos])).all():
+            comprobantes.setdefault(str(f.pedido_id), []).append(f"{f.tipo_comprobante} {f.estado}")
+    arca = _facturas_arca_en_ingesta(db)
+    hoy = date.today()
+
+    filas = []
+    for p in pedidos:
+        dias = (hoy - p.fecha.date()).days if p.fecha else None
+        renglones = [f"{i.cantidad:g} x {i.producto.nombre if i.producto else (i.nota or 'Ítem')}" for i in p.items]
+        resumen = "; ".join(renglones[:3]) + (f" (+{len(renglones) - 3} más)" if len(renglones) > 3 else "")
+        filas.append({
+            "pedido_id": p.id,
+            "cliente": p.cliente.razon_social if p.cliente else None,
+            "fecha_pedido": _fecha_corta(p.fecha),
+            "antiguedad": dias,
+            "oc": p.oc,
+            "renglones": resumen or "(sin renglones)",
+            "total": p.total,
+            "comprobante": ", ".join(comprobantes.get(str(p.id), [])) or "(ninguno)",
+            "factura_candidata": _candidata(p.total, p.cliente.cuit if p.cliente else None, arca),
+        })
+    _anotar_pedido(db, filas)
+    for f in filas:
+        f["observacion"] = _observacion_sin_remito(f["estado_base"], f["circuito"], f["antiguedad"], f["factura_candidata"])
+    if circuito != "todos":
+        filas = [f for f in filas if (f["circuito"] or "").lower() == circuito]
+    # Orden de revisión: Blancos y después Rosas; dentro de cada uno, primero lo incoherente (CUMPLIDO sin salida),
+    # después los PENDIENTES, y en cada grupo los más viejos primero.
+    filas.sort(key=lambda f: (
+        0 if f["circuito"] == "Blanco" else 1,
+        _PRIORIDAD_ESTADO.get(f["estado_base"], 2),
+        f["fecha_pedido"] or "",
+        f["pedido_id"],
+    ))
+    return filas
+
+
+def _resumen_sin_remito(filas: list) -> dict:
+    por = {}
+    for f in filas:
+        clave = (f["circuito"], f["estado_base"])
+        por[clave] = por.get(clave, 0) + 1
+    return {
+        "total": len(filas),
+        "blanco": sum(1 for f in filas if f["circuito"] == "Blanco"),
+        "rosa": sum(1 for f in filas if f["circuito"] == "Rosa"),
+        "cumplido_sin_salida": sum(1 for f in filas if f["estado_base"] == "CUMPLIDO"),
+        "con_factura_candidata": sum(1 for f in filas if f["factura_candidata"]),
+        "detalle": [{"circuito": c, "estado": e, "cantidad": n} for (c, e), n in sorted(por.items())],
+    }
+
+
+def _filtros_sin_remito(
+    circuito: str = "todos",
+    estado: str = "todos",
+    cliente_id: Optional[str] = None,
+    incluir_anulados: bool = False,
+) -> dict:
+    if circuito not in CIRCUITOS:
+        raise HTTPException(status_code=400, detail=f"circuito inválido: {circuito!r} (todos | blanco | rosa)")
+    estado = "todos" if (estado or "todos").lower() == "todos" else estado.upper()
+    return dict(circuito=circuito, estado=estado, cliente_id=cliente_id, incluir_anulados=incluir_anulados)
+
+
+@router.get("/pedidos-sin-remito")
+def informe_pedidos_sin_remito(filtros: dict = Depends(_filtros_sin_remito), db: Session = Depends(get_db)):
+    filas = _filas_sin_remito(db, **filtros)
+    return {"columnas": COLUMNAS_SIN_REMITO, "filas": filas, "resumen": _resumen_sin_remito(filas)}
+
+
+@router.get("/pedidos-sin-remito/export")
+def informe_pedidos_sin_remito_export(formato: str, filtros: dict = Depends(_filtros_sin_remito), db: Session = Depends(get_db)):
+    filas = _filas_sin_remito(db, **filtros)
+    partes = ["Hoja de revisión: marcar en las tres últimas columnas si se entregó y qué hacer con cada pedido"]
+    if filtros["circuito"] != "todos":
+        partes.append(f"Circuito: {filtros['circuito'].capitalize()}")
+    if filtros["estado"] != "todos":
+        partes.append(f"Estado: {filtros['estado']}")
+    elif filtros["incluir_anulados"]:
+        partes.append("incluye anulados")
+    try:
+        return exportar(formato, "Pedidos sin remito", COLUMNAS_SIN_REMITO_EXPORT, filas, subtitulo=" | ".join(partes))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# --- Informe G: renglones que salieron SIN SER VENTA FIRME (S876) -- consignación, muestra sin cargo, garantía /
+# reemplazo. Es la alerta contra el riesgo "Consignación Eterna" que pidió Nike: mercadería a prueba que sale y
+# se olvida sin resolver. Un renglón está ABIERTO mientras conserva su motivo_no_facturable y sigue afuera (lo
+# entregado neto del renglón del pedido es mayor que cero: si volvió con una devolución, deja de figurar).
+# Se cierra facturándolo (botón Facturar del remito) o devolviéndolo. A los 30 días se marca en alerta. Solo
+# lectura. ---
+
+COLUMNAS_NO_FACTURABLES = [
+    {"key": "pedido_id", "label": "Pedido", "width": 9},
+    {"key": "circuito", "label": "Circuito", "width": 10},
+    {"key": "cliente", "label": "Cliente", "width": 30},
+    {"key": "producto", "label": "Producto", "width": 34},
+    {"key": "cantidad", "label": "Cantidad", "width": 10},
+    {"key": "motivo", "label": "Motivo", "width": 20},
+    {"key": "remito", "label": "Remito", "width": 16},
+    {"key": "entrega", "label": "Entrega", "width": 16},
+    {"key": "desde", "label": "Desde", "width": 12},
+    {"key": "antiguedad", "label": "Días", "width": 7},
+    {"key": "alerta", "label": "Alerta", "width": 26},
+]
+_ETIQUETA_MOTIVO = {
+    "CONSIGNACION": "Consignación",
+    "MUESTRA_SIN_CARGO": "Muestra sin cargo",
+    "GARANTIA_REEMPLAZO": "Garantía / reemplazo",
+}
+_ETIQUETA_METODO = {
+    "MOSTRADOR": "Mostrador",
+    "FLETE_TERCERO": "Flete tercero",
+    "TRANSPORTE_PROPIO": "Transporte propio",
+    "MOTO_CADETERIA": "Moto / cadetería",
+    "REMITO_EXTERNO": "Remito externo",
+}
+
+
+def _filas_no_facturables(db: Session, motivo: str, solo_alerta: bool, cliente_id: Optional[str]):
+    from datetime import date
+    from sqlalchemy.orm import joinedload
+    from backend.clientes.models import Cliente  # noqa: F401  (relación Pedido.cliente)
+    from backend.pedidos.models import Pedido, PedidoItem
+    from backend.remitos.constants import DIAS_ALERTA_NO_FACTURABLE
+    from backend.remitos.models import Remito, RemitoItem
+
+    query = (
+        db.query(RemitoItem)
+        .join(Remito, RemitoItem.remito_id == Remito.id)
+        .options(
+            joinedload(RemitoItem.remito).joinedload(Remito.pedido).joinedload(Pedido.cliente),
+            joinedload(RemitoItem.pedido_item).joinedload(PedidoItem.producto),
+        )
+        .filter(RemitoItem.motivo_no_facturable.isnot(None), Remito.estado != "ANULADO")
+    )
+    if motivo != "todos":
+        query = query.filter(RemitoItem.motivo_no_facturable == motivo)
+    hoy = date.today()
+    filas = []
+    for ri in query.all():
+        remito, pi = ri.remito, ri.pedido_item
+        pedido = remito.pedido if remito else None
+        if cliente_id and (not pedido or str(pedido.cliente_id).replace("-", "") != str(cliente_id).replace("-", "")):
+            continue
+        # Abierto: sigue afuera. Una devolución (PR de cantidad negativa) sobre el mismo renglón del pedido baja
+        # lo entregado neto; si llegó a cero, la mercadería volvió y ya no hay nada que resolver.
+        if (ri.cantidad_remitida or 0) <= 0 or pi is None or (pi.cantidad_entregada or 0) <= 0.001:
+            continue
+        desde = remito.fecha_salida or remito.fecha_creacion
+        dias = (hoy - desde.date()).days if desde else None
+        en_alerta = dias is not None and dias >= DIAS_ALERTA_NO_FACTURABLE
+        if solo_alerta and not en_alerta:
+            continue
+        filas.append({
+            "remito_item_id": ri.id,
+            "pedido_id": remito.pedido_id,
+            "cliente": pedido.cliente.razon_social if pedido and pedido.cliente else None,
+            "producto": pi.producto.nombre if pi.producto else (pi.nota or "Ítem"),
+            "cantidad": ri.cantidad_remitida,
+            "motivo_base": ri.motivo_no_facturable,
+            "motivo": _ETIQUETA_MOTIVO.get(ri.motivo_no_facturable, ri.motivo_no_facturable),
+            "remito": remito.numero_legal or "(sin número)",
+            "entrega": _ETIQUETA_METODO.get(remito.metodo_entrega, "-") if remito.metodo_entrega else "-",
+            "desde": _fecha_corta(desde),
+            "antiguedad": dias,
+            "en_alerta": en_alerta,
+            "alerta": f"ALERTA: {dias} días sin resolver" if en_alerta else "",
+        })
+    _anotar_pedido(db, filas)
+    filas.sort(key=lambda f: (-(f["antiguedad"] if f["antiguedad"] is not None else -1), f["pedido_id"], f["remito_item_id"]))
+    return filas
+
+
+def _resumen_no_facturables(filas: list) -> dict:
+    por = {}
+    for f in filas:
+        por[f["motivo_base"]] = por.get(f["motivo_base"], 0) + 1
+    return {
+        "total": len(filas),
+        "en_alerta": sum(1 for f in filas if f["en_alerta"]),
+        "por_motivo": [{"motivo": _ETIQUETA_MOTIVO.get(m, m), "cantidad": n} for m, n in sorted(por.items())],
+    }
+
+
+def _filtros_no_facturables(motivo: str = "todos", solo_alerta: bool = False, cliente_id: Optional[str] = None) -> dict:
+    from backend.remitos.constants import MOTIVOS_NO_FACTURABLE
+    motivo = "todos" if (motivo or "todos").lower() == "todos" else motivo.upper()
+    if motivo != "todos" and motivo not in MOTIVOS_NO_FACTURABLE:
+        raise HTTPException(status_code=400, detail=f"motivo inválido: {motivo!r} (todos | {' | '.join(MOTIVOS_NO_FACTURABLE)})")
+    return dict(motivo=motivo, solo_alerta=solo_alerta, cliente_id=cliente_id)
+
+
+@router.get("/renglones-no-facturables")
+def informe_renglones_no_facturables(filtros: dict = Depends(_filtros_no_facturables), db: Session = Depends(get_db)):
+    filas = _filas_no_facturables(db, **filtros)
+    return {"columnas": COLUMNAS_NO_FACTURABLES, "filas": filas, "resumen": _resumen_no_facturables(filas)}
+
+
+@router.get("/renglones-no-facturables/export")
+def informe_renglones_no_facturables_export(formato: str, filtros: dict = Depends(_filtros_no_facturables), db: Session = Depends(get_db)):
+    from backend.remitos.constants import DIAS_ALERTA_NO_FACTURABLE
+    filas = _filas_no_facturables(db, **filtros)
+    partes = [f"Renglones que salieron sin ser venta firme y siguen abiertos (alerta a los {DIAS_ALERTA_NO_FACTURABLE} días)"]
+    if filtros["motivo"] != "todos":
+        partes.append(f"Motivo: {_ETIQUETA_MOTIVO.get(filtros['motivo'], filtros['motivo'])}")
+    if filtros["solo_alerta"]:
+        partes.append("solo en alerta")
+    try:
+        return exportar(formato, "Renglones sin venta firme", COLUMNAS_NO_FACTURABLES, filas, subtitulo=" | ".join(partes))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

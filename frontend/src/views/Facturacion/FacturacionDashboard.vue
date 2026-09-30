@@ -188,13 +188,25 @@
             </div>
           </button>
           
-          <button @click="resolveLogistics('NONE')" class="w-full text-left p-5 rounded-xl border-2 border-gray-700/50 hover:border-gray-500 bg-gray-800/20 hover:bg-gray-800/60 transition-all group flex gap-4 items-center">
+          <!-- [S876] Siempre queda el movimiento registrado, se imprima o no el papel: el remito interno no
+               lleva número ni hoja de ruta, pero la mercadería entregada cuenta en los informes. -->
+          <button @click="resolveLogistics('MOSTRADOR')" class="w-full text-left p-5 rounded-xl border-2 border-gray-700/50 hover:border-gray-500 bg-gray-800/20 hover:bg-gray-800/60 transition-all group flex gap-4 items-center">
             <div class="h-10 w-10 shrink-0 bg-gray-800 rounded-full flex items-center justify-center text-gray-500 group-hover:text-white transition-colors">
                 <i class="fas fa-store"></i>
             </div>
             <div>
-                <h4 class="font-bold text-gray-300 group-hover:text-white tracking-wide text-sm mb-1">Despacho sin Remito Interno</h4>
-                <p class="text-xs text-gray-500 line-clamp-2">Para entregas en Mostrador (solo llevan Factura) o ventas de MercadoLibre (viaja con Etiqueta de Correo). No se generará hoja de ruta.</p>
+                <h4 class="font-bold text-gray-300 group-hover:text-white tracking-wide text-sm mb-1">Retiro en Mostrador</h4>
+                <p class="text-xs text-gray-500 line-clamp-2">Se retira en planta (solo lleva Factura). Queda un remito interno sin número ni hoja de ruta, con domicilio en la oficina.</p>
+            </div>
+          </button>
+
+          <button @click="resolveLogistics('REMITO_EXTERNO')" class="w-full text-left p-5 rounded-xl border-2 border-gray-700/50 hover:border-gray-500 bg-gray-800/20 hover:bg-gray-800/60 transition-all group flex gap-4 items-center">
+            <div class="h-10 w-10 shrink-0 bg-gray-800 rounded-full flex items-center justify-center text-gray-500 group-hover:text-white transition-colors">
+                <i class="fas fa-box"></i>
+            </div>
+            <div>
+                <h4 class="font-bold text-gray-300 group-hover:text-white tracking-wide text-sm mb-1">Remito o etiqueta de un tercero</h4>
+                <p class="text-xs text-gray-500 line-clamp-2">Ventas de MercadoLibre o envíos por correo: viaja con la etiqueta del tercero. Queda un remito interno sin número.</p>
             </div>
           </button>
         </div>
@@ -308,7 +320,14 @@ const resolveLogistics = async (decision) => {
             notificationStore.add('Error generando puente logístico: ' + e.message, 'error');
         }
     } else {
-        notificationStore.add('Operación liquidada por mostrador/externo.', 'info');
+        // [S876] MOSTRADOR / REMITO_EXTERNO: antes solo avisaba y no registraba nada, y la mercadería
+        // entregada no contaba en los informes. Ahora crea el remito interno (sin número).
+        try {
+            await api.post(`/remitos/interno/desde_factura/${selectedFactura.value.id}`, null, { params: { metodo_entrega: decision } });
+            notificationStore.add('Entrega registrada: remito interno sin número.', 'success');
+        } catch(e) {
+            notificationStore.add('No se pudo registrar la entrega: ' + (e.response?.data?.detail || e.message), 'error');
+        }
     }
     showLogisticsModal.value = false;
 };
