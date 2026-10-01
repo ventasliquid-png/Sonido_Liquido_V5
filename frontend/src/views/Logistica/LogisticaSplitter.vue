@@ -34,9 +34,13 @@
           <p class="font-bold uppercase tracking-wider text-xs"><i class="fas fa-lock"></i> Bloqueo Financiero Activo</p>
           <p class="text-sm">Este pedido no tiene la marca "Aprobado para Despacho". Los remitos nacerán bloqueados por defecto.</p>
       </div>
-      <button class="text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 px-3 py-1.5 rounded border border-amber-500/30 uppercase font-bold transition">
-          <i class="fas fa-shield-alt"></i> Ver Semáforo
+      <!-- [S876, P16] La compuerta estaba en el modelo pero nadie la accionaba: este botón la acciona y deja quién y cuándo en la nota del pedido. -->
+      <button @click="liberarDespacho" :disabled="liberando" data-accion="liberar-despacho" class="text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 px-3 py-1.5 rounded border border-amber-500/30 uppercase font-bold transition disabled:opacity-50">
+          <i class="fas fa-unlock"></i> {{ liberando ? 'Liberando…' : 'Liberar despacho' }}
       </button>
+    </div>
+    <div v-else-if="localPedido" class="mb-6 text-emerald-400 text-xs uppercase tracking-wider font-bold" data-estado="despacho-liberado">
+      <i class="fas fa-unlock"></i> Despacho liberado
     </div>
 
     <div class="grid grid-cols-12 gap-8" v-if="localPedido">
@@ -489,6 +493,27 @@ const getStatusClass = (status) => {
       case 'ENTREGADO': return 'bg-green-900/50 text-green-300 border-green-500/50';
       default: return 'bg-slate-800 text-slate-400';
    }
+};
+
+// [S876, P16] Liberar el despacho del pedido (compuerta financiera). El servidor aprueba también los PR en borrador ya armados
+// y deja la constancia (usuario y hora) en la nota del pedido; acá se vuelve a cargar todo para que los avisos de bloqueo se apaguen.
+const liberando = ref(false);
+const liberarDespacho = async () => {
+    if (!localPedido.value || liberando.value) return;
+    const bloqueados = (remitosStore.remitos || []).filter(r => r.estado === 'BORRADOR' && !r.aprobado_para_despacho).length;
+    const extra = bloqueados === 1 ? '\n\nEl remito en borrador ya armado de este pedido también queda aprobado.'
+        : bloqueados > 1 ? `\n\nLos ${bloqueados} remitos en borrador ya armados de este pedido también quedan aprobados.` : '';
+    if (!confirm(`¿Liberar el despacho del pedido #${localPedido.value.id}?${extra}\n\nQueda registrado con tu usuario y la hora en la nota del pedido.`)) return;
+    liberando.value = true;
+    error.value = null;
+    try {
+        await api.post(`/pedidos/${localPedido.value.id}/liberar-despacho`);
+        await loadData(localPedido.value.id);
+    } catch (e) {
+        error.value = e.response?.data?.detail || e.message || 'No se pudo liberar el despacho.';
+    } finally {
+        liberando.value = false;
+    }
 };
 
 // Remito Actions

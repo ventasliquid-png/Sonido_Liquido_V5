@@ -1402,3 +1402,52 @@ def toggle_no_comercial(
     return pedido
 
 
+@router.post("/{pedido_id}/liberar-despacho", response_model=schemas.PedidoResponse)
+def liberar_despacho(
+    pedido_id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_active_user)
+):
+    """
+    [S876, P16 -- criterio de Arq y OK de Carlos 01/10] Acciona la compuerta financiera que el modelo traía
+    pero nadie accionaba: marca el pedido como liberado para despacho (liberado_despacho) y deja constancia
+    de quién y cuándo en la nota del pedido (misma regla forense que el cierre con discrepancia).
+
+    Los PR ya armados de este pedido que todavía son BORRADOR y nacieron bloqueados se aprueban junto con
+    el pedido: sin eso el operador liberaría el pedido y tendría que seguir con el mismo bloqueo en los
+    remitos que ya armó. Los PR que ya salieron (EN_CAMINO / ENTREGADO) o están ANULADOS no se tocan.
+
+    Idempotente: si el pedido ya estaba liberado no cambia nada ni agrega otra constancia.
+    La liberación es manual; cuando exista el módulo de cobranzas podrá reemplazar a este botón,
+    porque el campo ya está.
+    """
+    from backend.remitos import models as remitos_models  # import local: remitos ya importa pedidos
+
+    pedido = db.query(models.Pedido).filter(models.Pedido.id == pedido_id).first()
+    if not pedido:
+        raise HTTPException(status_code=404, detail="Pedido no encontrado")
+
+    if pedido.liberado_despacho:
+        return pedido
+
+    bloqueados = (
+        db.query(remitos_models.Remito)
+        .filter(
+            remitos_models.Remito.pedido_id == pedido_id,
+            remitos_models.Remito.estado == "BORRADOR",
+            remitos_models.Remito.aprobado_para_despacho == False,  # noqa: E712
+        )
+        .all()
+    )
+    for remito in bloqueados:
+        remito.aprobado_para_despacho = True
+
+    pedido.liberado_despacho = True
+    ts = datetime.now().strftime("%Y-%m-%d %H:%M")
+    detalle = f" Remitos en borrador aprobados: {len(bloqueados)}." if bloqueados else ""
+    pedido.nota = (pedido.nota or "") + f"\n[SISTEMA] Despacho liberado por {current_user.username}. {ts}.{detalle}"
+    db.commit()
+    db.refresh(pedido)
+    return pedido
+
+
