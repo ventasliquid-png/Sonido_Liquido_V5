@@ -52,20 +52,22 @@
         </div>
       </div>
 
-      <div class="flex-1 overflow-auto mt-3">
+      <div ref="contenedorScroll" class="flex-1 overflow-auto mt-3">
         <div v-if="loading" class="text-center py-10 text-blue-500"><i class="fas fa-spinner fa-spin mr-2"></i> Cargando...</div>
         <div v-else-if="filas.length === 0" class="text-center py-10 text-blue-400/40">Ningún renglón abierto para estos filtros</div>
         <table v-else class="w-full text-xs">
           <thead class="sticky top-0 bg-[#0f172a] z-10">
             <tr class="text-[10px] uppercase tracking-widest text-blue-400/50 border-b border-blue-900/20">
-              <th v-for="col in COLUMNAS_PANTALLA" :key="col.key" class="px-3 py-2 font-bold" :class="col.align === 'right' ? 'text-right' : 'text-left'">{{ col.label }}</th>
+              <th v-for="col in COLUMNAS_PANTALLA" :key="col.key" @click="alternarOrden(col.key)" class="px-3 py-2 font-bold cursor-pointer select-none hover:text-blue-200" :class="col.align === 'right' ? 'text-right' : 'text-left'" :title="tituloOrden(col.label)">{{ col.label }}<span class="ml-1 text-blue-300">{{ indicadorOrden(col.key) }}</span></th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="f in filas" :key="f.remito_item_id" class="border-b border-blue-900/10 hover:bg-blue-900/10 align-top"
+            <tr v-for="f in ordenadas" :key="f.remito_item_id" @dblclick="abrirPedido(f.pedido_id, $event)" class="border-b border-blue-900/10 hover:bg-blue-900/10 align-top"
               :class="[claseFilaCircuito(f.circuito), f.en_alerta ? 'bg-amber-900/10' : '']">
-              <td class="px-3 py-1.5 font-mono">
-                <router-link :to="{ name: 'PedidoLogistica', params: { id: f.pedido_id } }" class="text-blue-300 hover:text-blue-100 underline decoration-dotted" title="Abrir la logística del pedido para facturar o devolver">#{{ f.pedido_id }}</router-link>
+              <td class="px-3 py-1.5 font-mono whitespace-nowrap">
+                <EnlacePedido :pedido-id="f.pedido_id" clase="text-blue-300 hover:text-blue-100 underline decoration-dotted" />
+                <!-- Facturar o devolver el renglón se hace en la logística del pedido. -->
+                <EnlacePedido :pedido-id="f.pedido_id" destino="logistica" clase="ml-2 text-amber-300/80 hover:text-amber-200"><i class="fas fa-truck"></i></EnlacePedido>
               </td>
               <td class="px-3 py-1.5 text-blue-100/90">{{ f.cliente ?? '-' }}</td>
               <td class="px-3 py-1.5 text-blue-100/90">{{ f.producto }}</td>
@@ -92,19 +94,34 @@ import api from '@/services/api'
 import { useNotificationStore } from '@/stores/notification'
 import { useClientesStore } from '@/stores/clientes'
 import { useInformeExport } from '@/composables/useInformeExport'
+import { useAbrirPedido } from '@/composables/useAbrirPedido'
+import { useRefrescoAlGuardarPedido } from '@/composables/useRefrescoAlGuardarPedido'
+import { useOrdenColumnas } from '@/composables/useOrdenColumnas'
+import { useScrollRecordado } from '@/composables/useScrollRecordado'
+import { usePersistirFiltros } from '@/composables/usePersistirFiltros'
 import { claseFilaCircuito } from '@/utils/estadosPedido'
 import { MOTIVOS_NO_FACTURABLE, motivoClase } from '@/utils/remitoEntrega'
 import BuscadorLista from '@/components/informes/BuscadorLista.vue'
+import EnlacePedido from '@/components/informes/EnlacePedido.vue'
 
 const notification = useNotificationStore()
+// [S876] Doble clic en una fila abre el pedido (pestaña nueva).
+const abrirPedido = useAbrirPedido()
+// Al guardar un pedido en otra pestaña, este informe se actualiza solo (sin perder filtros ni scroll).
+useRefrescoAlGuardarPedido(() => cargar({ silencioso: true }))
 const clientesStore = useClientesStore()
 
 const loading = ref(false)
+const contenedorScroll = ref(null)
+useScrollRecordado('no-facturables', contenedorScroll, loading) // vuelve al mismo lugar de la lista
 const filas = ref([])
+const { ordenadas, alternarOrden, indicadorOrden, tituloOrden } = useOrdenColumnas(filas, 'no-facturables')
 const resumen = ref(null)
 const { exportar: exportarArchivo, exportando } = useInformeExport('/informes/renglones-no-facturables/export', 'renglones_sin_venta_firme')
 
 const filtros = reactive({ motivo: 'todos', cliente_id: null, solo_alerta: false })
+// [S876] Recuerda los filtros y el orden mientras dure la pestaña (al volver de otra pantalla quedan como estaban).
+usePersistirFiltros('no-facturables', filtros)
 
 const FORMATOS = [
   { formato: 'csv', label: 'CSV', icono: 'fa-file-csv', clase: 'bg-white/5 border-white/10 text-white/50 hover:border-emerald-500/50 hover:text-emerald-300' },
@@ -132,8 +149,8 @@ const armarParams = () => {
   return params
 }
 
-const cargar = async () => {
-  loading.value = true
+const cargar = async ({ silencioso = false } = {}) => {
+  if (!silencioso) loading.value = true
   try {
     const res = await api.get('/informes/renglones-no-facturables', { params: armarParams() })
     filas.value = res.data.filas || []
@@ -142,7 +159,7 @@ const cargar = async () => {
     console.error(e)
     notification.add('Error cargando el informe: ' + (e.response?.data?.detail || e.message), 'error')
   } finally {
-    loading.value = false
+    if (!silencioso) loading.value = false
   }
 }
 

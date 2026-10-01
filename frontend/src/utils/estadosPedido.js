@@ -6,6 +6,21 @@
 // `default`. Se le asignó NARANJA (Carlos, 30/09): el celeste chocaba con el cian de INTERNO, y el
 // ámbar queda reservado para el cartel PARCIAL.
 
+// Los estados que se pueden ELEGIR a mano: los del menú de estados del Tablero de Pedidos y del selector de los
+// informes. FACTURADO existe como estado pero no se elige a mano. Una sola lista para las dos pantallas.
+export const ESTADOS_PEDIDO_EDITABLES = ['PENDIENTE', 'CUMPLIDO', 'ANULADO', 'PRESUPUESTO', 'INTERNO']
+
+// Tras cambiar el estado de un pedido desde un informe, se actualizan en el lugar TODAS las filas de ese pedido
+// (un pedido sale en varias filas: una por renglón, o una caja por remito), sin recargar el informe ni perder el
+// lugar del scroll. El texto lleva " · PARCIAL" si el pedido tiene entregas parciales, como lo arma el servidor.
+export const aplicarEstadoAFilas = (filas, pedidoId, nuevoEstado) => {
+  for (const f of filas) {
+    if (String(f.pedido_id) !== String(pedidoId)) continue
+    f.estado_base = nuevoEstado
+    f.estado = f.parcial ? `${nuevoEstado} · PARCIAL` : nuevoEstado
+  }
+}
+
 // Cartel del estado (fondo + texto + borde).
 export const estadoClase = (estado) => {
   switch (estado) {

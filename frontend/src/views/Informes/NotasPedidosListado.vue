@@ -49,11 +49,11 @@
           class="text-[11px] text-blue-400/40 hover:text-blue-200 underline ml-1">limpiar</button>
       </div>
 
-      <div class="flex-1 overflow-auto mt-3">
+      <div ref="contenedorScroll" class="flex-1 overflow-auto mt-3">
         <table class="w-full text-xs">
           <thead class="sticky top-0 bg-[#0f172a] z-10">
             <tr class="text-[10px] uppercase tracking-widest text-blue-400/50 border-b border-blue-900/20">
-              <th v-for="col in columnas" :key="col.key" class="text-left px-3 py-2 font-bold">{{ col.label }}</th>
+              <th v-for="col in columnas" :key="col.key" @click="alternarOrden(col.key)" class="text-left px-3 py-2 font-bold cursor-pointer select-none hover:text-blue-200" :title="tituloOrden(col.label)">{{ col.label }}<span class="ml-1 text-blue-300">{{ indicadorOrden(col.key) }}</span></th>
             </tr>
           </thead>
           <tbody>
@@ -67,7 +67,7 @@
                 Sin notas para estos filtros
               </td>
             </tr>
-            <tr v-for="(fila, i) in filas" :key="i" class="border-b border-blue-900/10 hover:bg-blue-900/10 align-top" :class="claseFilaCircuito(fila.circuito)">
+            <tr v-for="(fila, i) in ordenadas" :key="i" @dblclick="abrirPedido(fila.pedido_id, $event)" class="border-b border-blue-900/10 hover:bg-blue-900/10 align-top" :class="claseFilaCircuito(fila.circuito)">
               <td v-for="col in columnas" :key="col.key" class="px-3 py-1.5 whitespace-pre-wrap"
                 :class="col.key === 'fragmento' ? 'text-blue-100/80 font-mono' : 'font-mono text-blue-100/90 whitespace-nowrap'">
                 <span v-if="col.key === 'categoria'"
@@ -75,7 +75,7 @@
                   :class="fila[col.key] === 'Nota humana' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-blue-500/20 text-blue-300'">
                   {{ fila[col.key] }}
                 </span>
-                <template v-else><CeldaInforme :columna="col.key" :fila="fila" :valor="fila[col.key]" /></template>
+                <template v-else><CeldaInforme :columna="col.key" :fila="fila" :valor="fila[col.key]" @estado-cambiado="aplicarEstado" /></template>
               </td>
             </tr>
           </tbody>
@@ -91,17 +91,31 @@ import api from '@/services/api'
 import { useNotificationStore } from '@/stores/notification'
 import { useClientesStore } from '@/stores/clientes'
 import { useInformeExport } from '@/composables/useInformeExport'
+import { useAbrirPedido } from '@/composables/useAbrirPedido'
+import { useRefrescoAlGuardarPedido } from '@/composables/useRefrescoAlGuardarPedido'
+import { useOrdenColumnas } from '@/composables/useOrdenColumnas'
+import { useScrollRecordado } from '@/composables/useScrollRecordado'
+import { usePersistirFiltros } from '@/composables/usePersistirFiltros'
+import { aplicarEstadoAFilas } from '@/utils/estadosPedido'
 import { claseFilaCircuito } from '@/utils/estadosPedido'
 import CeldaInforme from '@/components/informes/CeldaInforme.vue'
 
 const notification = useNotificationStore()
+// [S876] Doble clic en una fila abre el pedido (pestaña nueva); el Estado se cambia desde el informe.
+const abrirPedido = useAbrirPedido()
+// Al guardar un pedido en otra pestaña, este informe se actualiza solo (sin perder filtros ni scroll).
+useRefrescoAlGuardarPedido(() => cargar({ silencioso: true }))
+const aplicarEstado = ({ pedidoId, estado }) => aplicarEstadoAFilas(filas.value, pedidoId, estado)
 const clientesStore = useClientesStore()
 const clientesOrdenados = computed(() =>
   [...clientesStore.clientes].sort((a, b) => (a.razon_social || '').localeCompare(b.razon_social || '', 'es'))
 )
 
 const loading = ref(false)
+const contenedorScroll = ref(null)
+useScrollRecordado('notas', contenedorScroll, loading) // vuelve al mismo lugar de la lista
 const filas = ref([])
+const { ordenadas, alternarOrden, indicadorOrden, tituloOrden } = useOrdenColumnas(filas, 'notas')
 const columnas = ref([])
 const categoriasDisponibles = ref([])
 const categoriasSeleccionadas = ref(new Set())
@@ -110,6 +124,8 @@ const { exportar: exportarArchivo, exportando } = useInformeExport('/informes/no
 const filtros = reactive({
   cliente_id: null,
 })
+// [S876] Recuerda los filtros y el orden mientras dure la pestaña (al volver de otra pantalla quedan como estaban).
+usePersistirFiltros('notas', filtros)
 
 const FORMATOS = [
   { formato: 'csv', label: 'CSV', icono: 'fa-file-csv', clase: 'bg-white/5 border-white/10 text-white/50 hover:border-emerald-500/50 hover:text-emerald-300' },
@@ -140,8 +156,8 @@ const cargarCategorias = async () => {
   }
 }
 
-const cargar = async () => {
-  loading.value = true
+const cargar = async ({ silencioso = false } = {}) => {
+  if (!silencioso) loading.value = true
   try {
     const res = await api.get('/informes/notas-pedidos', { params: armarParams() })
     filas.value = res.data.filas || []
@@ -150,7 +166,7 @@ const cargar = async () => {
     console.error(e)
     notification.add('Error cargando el informe: ' + (e.response?.data?.detail || e.message), 'error')
   } finally {
-    loading.value = false
+    if (!silencioso) loading.value = false
   }
 }
 

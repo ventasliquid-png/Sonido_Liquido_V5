@@ -41,11 +41,11 @@
         <span class="text-[11px] text-blue-400/40 ml-auto">{{ filas.length }} renglón(es) pendiente(s)</span>
       </div>
 
-      <div class="flex-1 overflow-auto mt-3">
+      <div ref="contenedorScroll" class="flex-1 overflow-auto mt-3">
         <table class="w-full text-xs">
           <thead class="sticky top-0 bg-[#0f172a] z-10">
             <tr class="text-[10px] uppercase tracking-widest text-blue-400/50 border-b border-blue-900/20">
-              <th v-for="col in columnas" :key="col.key" class="text-left px-3 py-2 font-bold">{{ col.label }}</th>
+              <th v-for="col in columnas" :key="col.key" @click="alternarOrden(col.key)" class="text-left px-3 py-2 font-bold cursor-pointer select-none hover:text-blue-200" :title="tituloOrden(col.label)">{{ col.label }}<span class="ml-1 text-blue-300">{{ indicadorOrden(col.key) }}</span></th>
             </tr>
           </thead>
           <tbody>
@@ -59,10 +59,10 @@
                 Sin pendientes para estos filtros
               </td>
             </tr>
-            <tr v-for="(fila, i) in filas" :key="i" class="border-b border-blue-900/10 hover:bg-blue-900/10" :class="claseFilaCircuito(fila.circuito)">
+            <tr v-for="(fila, i) in ordenadas" :key="i" @dblclick="abrirPedido(fila.pedido_id, $event)" class="border-b border-blue-900/10 hover:bg-blue-900/10" :class="claseFilaCircuito(fila.circuito)">
               <td v-for="col in columnas" :key="col.key" class="px-3 py-1.5 font-mono text-blue-100/90 whitespace-nowrap"
                 :class="col.key === 'pendiente' ? 'text-amber-400 font-bold' : ''">
-                <CeldaInforme :columna="col.key" :fila="fila" :valor="fila[col.key]" />
+                <CeldaInforme :columna="col.key" :fila="fila" :valor="fila[col.key]" @estado-cambiado="aplicarEstado" />
               </td>
             </tr>
           </tbody>
@@ -78,17 +78,31 @@ import api from '@/services/api'
 import { useNotificationStore } from '@/stores/notification'
 import { useClientesStore } from '@/stores/clientes'
 import { useInformeExport } from '@/composables/useInformeExport'
+import { useAbrirPedido } from '@/composables/useAbrirPedido'
+import { useRefrescoAlGuardarPedido } from '@/composables/useRefrescoAlGuardarPedido'
+import { useOrdenColumnas } from '@/composables/useOrdenColumnas'
+import { useScrollRecordado } from '@/composables/useScrollRecordado'
+import { usePersistirFiltros } from '@/composables/usePersistirFiltros'
+import { aplicarEstadoAFilas } from '@/utils/estadosPedido'
 import { claseFilaCircuito } from '@/utils/estadosPedido'
 import CeldaInforme from '@/components/informes/CeldaInforme.vue'
 
 const notification = useNotificationStore()
+// [S876] Doble clic en una fila abre el pedido (pestaña nueva); el Estado se cambia desde el informe.
+const abrirPedido = useAbrirPedido()
+// Al guardar un pedido en otra pestaña, este informe se actualiza solo (sin perder filtros ni scroll).
+useRefrescoAlGuardarPedido(() => cargar({ silencioso: true }))
+const aplicarEstado = ({ pedidoId, estado }) => aplicarEstadoAFilas(filas.value, pedidoId, estado)
 const clientesStore = useClientesStore()
 const clientesOrdenados = computed(() =>
   [...clientesStore.clientes].sort((a, b) => (a.razon_social || '').localeCompare(b.razon_social || '', 'es'))
 )
 
 const loading = ref(false)
+const contenedorScroll = ref(null)
+useScrollRecordado('pendiente', contenedorScroll, loading) // vuelve al mismo lugar de la lista
 const filas = ref([])
+const { ordenadas, alternarOrden, indicadorOrden, tituloOrden } = useOrdenColumnas(filas, 'pendiente')
 const columnas = ref([])
 const { exportar: exportarArchivo, exportando } = useInformeExport('/informes/pedidos-pendiente/export', 'pedidos_con_pendiente')
 
@@ -96,6 +110,8 @@ const filtros = reactive({
   cliente_id: null,
   oc: '',
 })
+// [S876] Recuerda los filtros y el orden mientras dure la pestaña (al volver de otra pantalla quedan como estaban).
+usePersistirFiltros('pendiente', filtros)
 
 const FORMATOS = [
   { formato: 'csv', label: 'CSV', icono: 'fa-file-csv', clase: 'bg-white/5 border-white/10 text-white/50 hover:border-emerald-500/50 hover:text-emerald-300' },
@@ -111,8 +127,8 @@ const armarParams = () => {
   return params
 }
 
-const cargar = async () => {
-  loading.value = true
+const cargar = async ({ silencioso = false } = {}) => {
+  if (!silencioso) loading.value = true
   try {
     const res = await api.get('/informes/pedidos-pendiente', { params: armarParams() })
     filas.value = res.data.filas || []
@@ -121,7 +137,7 @@ const cargar = async () => {
     console.error(e)
     notification.add('Error cargando el informe: ' + (e.response?.data?.detail || e.message), 'error')
   } finally {
-    loading.value = false
+    if (!silencioso) loading.value = false
   }
 }
 

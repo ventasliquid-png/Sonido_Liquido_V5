@@ -139,10 +139,11 @@
                 <div>
                    <h3 class="font-bold text-lg text-white">
                       Remito #{{ remito.numero_legal || 'BORRADOR' }}
-                      <span v-if="!remito.aprobado_para_despacho" class="ml-2 text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded border border-red-500/30">
+                      <!-- [S876] Estos dos avisos son de un remito todavía BORRADOR: uno de mostrador nace ENTREGADO. -->
+                      <span v-if="remito.estado === 'BORRADOR' && !remito.aprobado_para_despacho" class="ml-2 text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded border border-red-500/30">
                          <i class="fas fa-lock"></i> Bloqueado
                       </span>
-                      <span v-else-if="!remito.numero_legal" class="ml-2 text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded border border-amber-500/30">
+                      <span v-else-if="remito.estado === 'BORRADOR' && !remito.numero_legal" class="ml-2 text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded border border-amber-500/30">
                          <i class="fas fa-file-pdf"></i> Sin numerar — generá el PDF Legal antes de despachar
                       </span>
                    </h3>

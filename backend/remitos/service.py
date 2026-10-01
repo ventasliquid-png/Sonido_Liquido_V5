@@ -812,12 +812,20 @@ class RemitosService:
         es_rosa = bool((pedido.flags_estado or 0) & int(PedidoFlags.NO_FISCAL_FORCE))
         flags_remito = int(RemitoFlags.CIRCUITO_ROSA) if es_rosa else 0
 
+        # [S876, decisión de Arq 30/09, "lo fáctico es regla cero"] Un retiro en MOSTRADOR no tiene viaje:
+        # la mercadería sale en el acto, así que el remito nace ENTREGADO y con fecha de salida ahora. Un
+        # BORRADOR que nunca se imprime quedaría "todavía preparando" para siempre en los informes. Los demás
+        # métodos nacen BORRADOR como siempre (despachar y entregar son acciones posteriores). Un remito de
+        # mostrador no pasa por despachar, o sea que tampoco por la compuerta aprobado_para_despacho.
+        es_mostrador = metodo == MetodoEntrega.MOSTRADOR
+
         remito = models.Remito(
             pedido_id=pedido.id,
             domicilio_entrega_id=domicilio_entrega_id,
             transporte_id=transporte_id,
             metodo_entrega=metodo,
-            estado="BORRADOR",
+            estado="ENTREGADO" if es_mostrador else "BORRADOR",
+            fecha_salida=datetime.now() if es_mostrador else None,
             # [Modelo, "GATEKEEPER FINANCIERO"] "Hereda del Pedido o se setea manual" -- el campo
             # equivalente en Pedido es liberado_despacho.
             aprobado_para_despacho=pedido.liberado_despacho,

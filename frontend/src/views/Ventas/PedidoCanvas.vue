@@ -9,14 +9,13 @@
             <!-- HEADER (Compact Mode) -->
             <div :class="['w-full border-b py-2 px-4 flex justify-between items-center backdrop-blur-sm shrink-0', isCircuitoNegro ? 'bg-pink-950/30 border-pink-500/20' : 'bg-emerald-950/30 border-emerald-500/20']">
                 <div class="flex items-center gap-4">
-                    <button @click="goBack" :class="['transition-colors', isCircuitoNegro ? 'text-pink-500/50 hover:text-pink-400' : 'text-emerald-500/50 hover:text-emerald-400']">
+                    <button @click="intentarSalir" title="Volver (Esc): si hay cambios sin guardar pregunta antes de descartarlos" :class="['transition-colors', isCircuitoNegro ? 'text-pink-500/50 hover:text-pink-400' : 'text-emerald-500/50 hover:text-emerald-400']">
                         <i class="fas fa-arrow-left"></i>
                     </button>
                     <h1 :class="['text-lg font-bold tracking-wider flex items-center gap-3', isCircuitoNegro ? 'text-pink-400' : 'text-emerald-400']">
                         <i class="fas fa-file-invoice"></i> {{ route.params.id ? `FICHA DEL PEDIDO #${route.params.id}` : 'NUEVO PEDIDO' }}
-                        <span v-if="route.params.id" :class="['px-2.5 py-0.5 text-xs font-extrabold tracking-widest rounded-full uppercase border', statusBadgeClasses]">
-                            {{ estadoPedido }}
-                        </span>
+                        <!-- [S876] El estado también se cambia desde la ficha (antes solo se podía desde el listado y los informes). -->
+                        <EstadoEditable v-if="route.params.id" :pedido-id="route.params.id" :estado="estadoPedido" :texto="estadoPedido" @cambiado="alCambiarEstado" />
                     </h1>
                 </div>
                 <div class="flex gap-3">
@@ -350,7 +349,24 @@
 
                     <!-- INLINE ENTRY ROW (Always Visible at Top - Fixed outside scroll) -->
                     <div class="shrink-0 p-2 relative z-[60]">
-                        <div class="grid grid-cols-12 px-4 py-4 gap-2 bg-emerald-500/5 rounded-lg items-center border border-emerald-500/20 shadow-lg relative min-h-[70px]">
+                        <!-- [S876] Renglón en edición: el original queda en la lista y acá se muestran sus valores de referencia. -->
+                        <div v-if="editingIndex !== null && items[editingIndex]" class="mb-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-200 flex flex-wrap items-center gap-x-4 gap-y-1">
+                            <span class="font-bold uppercase tracking-wider"><i class="fas fa-pencil-alt mr-1"></i> Editando el renglón {{ editingIndex + 1 }}</span>
+                            <span>
+                                Original: <b class="text-white font-mono">{{ items[editingIndex].cantidad }}</b> ×
+                                <b class="text-white font-mono">$ {{ Number(items[editingIndex].precio || 0).toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</b>
+                                <span v-if="items[editingIndex].descuento_porcentaje"> (desc. {{ items[editingIndex].descuento_porcentaje }}%)</span>
+                                — {{ items[editingIndex].descripcion }}
+                            </span>
+                            <span class="text-amber-300/70 ml-auto">Enter confirma · Esc cancela y deja el renglón como estaba</span>
+                        </div>
+                        <!-- [S876] Cuerpo de renglones: un renglón elegido con las flechas. -->
+                        <div v-else-if="filaActiva !== null && items[filaActiva]" class="mb-2 px-3 py-1.5 rounded-lg bg-sky-500/10 border border-sky-500/30 text-[11px] text-sky-200 flex flex-wrap items-center gap-x-4 gap-y-1">
+                            <span class="font-bold uppercase tracking-wider"><i class="fas fa-list-ul mr-1"></i> Renglón {{ filaActiva + 1 }} elegido</span>
+                            <span>{{ items[filaActiva].descripcion }}</span>
+                            <span class="text-sky-300/70 ml-auto">↑ ↓ elegir otro · Enter editar · Esc salir de la ficha</span>
+                        </div>
+                        <div @focusin="filaActiva = null" class="grid grid-cols-12 px-4 py-4 gap-2 bg-emerald-500/5 rounded-lg items-center border border-emerald-500/20 shadow-lg relative min-h-[70px]">
                             
                             <!-- Index Placeholder -->
                             <div class="col-span-1 text-center font-bold text-emerald-500/50 text-xs">
@@ -525,8 +541,11 @@
                             <div class="grid grid-cols-12 px-4 py-3 gap-2 bg-white/[0.02] hover:bg-white/5 rounded-lg items-center group transition-colors border border-transparent hover:border-white/5 relative"
                                  :class="{
                                      'bg-red-500/10 border-red-500/30': item.precio === 0 || item.producto_obj?.needs_cost,
-                                     'opacity-40 grayscale-[30%]': estadoRenglon(item) === ESTADO_CUMPLIDO
-                                 }">
+                                     'opacity-40 grayscale-[30%]': estadoRenglon(item) === ESTADO_CUMPLIDO,
+                                     'ring-2 ring-amber-400/70 bg-amber-500/10': editingIndex === index,
+                                     'ring-1 ring-sky-400/70 bg-sky-500/10': filaActiva === index && editingIndex === null
+                                 }"
+                                 :data-renglon-activo="filaActiva === index && editingIndex === null">
 
                                 <!-- Index -->
                                 <div class="col-span-1 text-center font-mono text-gray-500 text-xs select-none">
@@ -544,6 +563,7 @@
                                         <i class="fas" :class="expandedRows.has(index) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
                                     </button>
                                     <span class="text-gray-300 font-medium text-sm truncate block" title="Descripción Inmutable">{{ item.descripcion }}</span>
+                                    <span v-if="editingIndex === index" class="shrink-0 text-[9px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.5 rounded">En edición</span>
                                     
                                     <div v-if="item.producto_obj?.costos?.costo_reposicion === 0" class="shrink-0" title="ALERTA: Costo de Reposición Cero">
                                         <i class="fas fa-exclamation-triangle text-orange-500 animate-pulse"></i>
@@ -883,6 +903,18 @@ const goBack = () => {
         emit('close');
         return;
     }
+    // [S876] Abierto desde un informe (?from=informe): volver regresa al informe, que reaparece con sus filtros, su orden y su posición.
+    // Si esta pestaña se abrió directo (Ctrl+clic, sin pantalla anterior), se intenta cerrarla y, si el navegador no la deja,
+    // se cae al Tablero como antes.
+    if (route.query.from === 'informe') {
+        if (window.history.state?.back) {
+            router.back();
+        } else {
+            window.close();
+            setTimeout(() => router.push({ name: 'PedidoList' }), 300);
+        }
+        return;
+    }
     if (route.query.from === 'ingesta') {
         router.push({ name: 'IngestaFactura' });
     } else {
@@ -892,6 +924,8 @@ const goBack = () => {
 
 // [GY-UX] Modal Imports
 import ClientCanvas from '../Hawe/ClientCanvas.vue';
+import { avisarPedidoActualizado } from '@/utils/canalPedidos'; // [S876] avisa a los informes abiertos que el pedido cambió
+import EstadoEditable from '@/components/informes/EstadoEditable.vue'; // [S876] estado editable en el encabezado de la ficha
 import { shallowRef } from 'vue'; // Optimization
 
 // --- MODAL STATE ---
@@ -1007,8 +1041,15 @@ onMounted(async () => {
         await maestrosStore.fetchTransportes();
     }
     
+    // [S876] Mientras no se haya tocado nada, lo que la ficha complete sola (transporte sugerido, etc.) actualiza la foto de "lo cargado":
+    // no cuenta como cambio del operador. Se crea acá (y no al declarar) porque la función se evalúa al crearse el watch.
+    watch(() => (route.params.id && !isHydratingPedido.value ? instantanea() : null), (nueva) => {
+        if (!huboInteraccion && baselineJSON.value !== null && nueva !== null) baselineJSON.value = nueva;
+    });
+
     // 5. Global Keys
     window.addEventListener('keydown', handleGlobalKeys);
+    ['keydown', 'mousedown', 'input'].forEach((ev) => window.addEventListener(ev, marcarInteraccion, true)); // [S876] ver baselineJSON
     
     // 6. Message Listener for Satellites (V5.6)
     window.addEventListener('message', handleMessage);
@@ -1053,6 +1094,7 @@ const loadPedido = async (id) => {
         estadoPedido.value = p.estado || 'PENDIENTE';
         fechaPedido.value = p.fecha ? p.fecha.split('T')[0] : getLocalDate();
         notas.value = p.nota || '';
+        notasCargadas = notas.value;
         nroOC.value = p.oc || '';
         flagsEstadoPedido.value = p.flags_estado || 0;
         isCircuitoNegro.value = (BigInt(p.flags_estado || 0) & (1n << 12n)) !== 0n;
@@ -1121,11 +1163,16 @@ const loadPedido = async (id) => {
         // guard prendido y salieron sin escribir.
         await nextTick();
         isHydratingPedido.value = false;
+        // [S876] Foto de lo cargado, para saber después si hay cambios sin guardar (se toma cuando los ajustes automáticos ya terminaron).
+        huboInteraccion = false;
+        setTimeout(() => { baselineJSON.value = instantanea(); }, 900);
     }
 };
 
+
 onUnmounted(() => {
     window.removeEventListener('keydown', handleGlobalKeys);
+    ['keydown', 'mousedown', 'input'].forEach((ev) => window.removeEventListener(ev, marcarInteraccion, true));
     window.removeEventListener('focus', checkClientSync);
     pedidosStore.clearIngestaData();
 });
@@ -1601,6 +1648,47 @@ const showClienteResults = ref(false);
 
 const items = ref([]); 
 
+// [S876] Renglón del pedido que se está editando (índice en `items`) o null. El renglón NO se saca de la lista mientras se edita:
+// queda en su lugar, marcado, con sus valores originales a la vista; al confirmar se reemplaza en el mismo lugar y con Escape
+// se cancela y todo queda como estaba. (Antes se sacaba de la lista: no había referencia, no había cómo cancelar, y confirmar lo
+// mandaba al final.)
+const editingIndex = ref(null);
+
+// [S876] Escape en capas (pedido de Carlos, 01/10), de adentro hacia afuera: 1) cierra lo desplegado; 2) cancela la edición del renglón y
+// vuelve al CUERPO de renglones, para elegir otro; 3) estando en el cuerpo (o en cualquier lado, sin edición) sale de la ficha, y si hay
+// cambios sin guardar pregunta "¿Descartamos los cambios?": si NO, se queda en la ficha para salir con F10 o Guardar. La flecha de arriba
+// a la izquierda hace lo mismo que el 3.
+// filaActiva = renglón resaltado en el cuerpo (↑ ↓ para moverse, Enter para editarlo); null = el foco no está en el cuerpo.
+const filaActiva = ref(null);
+
+// Cambios sin guardar: se compara lo que se guardaría (buildPayload, sin la hora, que cambia cada minuto) con una foto tomada cuando la
+// ficha terminó de cargar. Si algo se completa solo en los primeros instantes (transporte sugerido, etc.) y todavía no tocaste nada, la
+// foto se actualiza: esos ajustes no cuentan como cambios tuyos.
+const baselineJSON = ref(null);
+let huboInteraccion = false;
+let notasCargadas = '';
+const marcarInteraccion = () => { huboInteraccion = true; };
+const instantanea = () => {
+    if (!clienteSeleccionado.value) return null;
+    try { return JSON.stringify({ ...buildPayload(), fecha: fechaPedido.value }); } catch (e) { return null; }
+};
+const renglonEnEdicionCambio = () => {
+    if (editingIndex.value === null) return false;
+    const original = items.value[editingIndex.value];
+    if (!original) return false;
+    const huella = (x) => JSON.stringify([x.sku, Number(x.cantidad), Number(x.precio), Number(x.descuento_porcentaje || 0), Number(x.descuento_valor || 0)]);
+    return huella(original) !== huella(newItem.value);
+};
+const hayCambiosSinGuardar = () => {
+    if (renglonEnEdicionCambio()) return true;
+    if (route.params.id) {
+        const ahora = instantanea();
+        return baselineJSON.value !== null && ahora !== null && ahora !== baselineJSON.value;
+    }
+    // Pedido nuevo: hay algo cargado
+    return items.value.length > 0 || String(notas.value || '').trim() !== '' || String(nroOC.value || '').trim() !== '';
+};
+
 // --- STATE: INLINE ENTRY ---
 const newItem = ref({
     sku: '',
@@ -1843,7 +1931,10 @@ const navigateProductResults = (direction) => {
 };
 
 const selectProductHighlighted = () => {
-    if (filteredProductos.value.length) {
+    // [S876] Solo se elige de la lista cuando está a la vista. Antes filteredProductos nunca estaba vacío si el SKU coincidía, y al
+    // editar un renglón el Enter en el SKU volvía a elegir el primer producto parecido: re-cotizaba el precio y ponía la cantidad
+    // en 1 y los descuentos en blanco, o sea que se perdían los valores originales.
+    if (showProductResults.value && filteredProductos.value.length) {
         selectProduct(filteredProductos.value[selectedProductIndex.value]);
     } else {
         // [GY-FIX] Validation: Block exit if product is invalid
@@ -1887,6 +1978,13 @@ const activateSearch = (field) => {
 };
 
 const selectProduct = async (prod) => {
+    const editando = editingIndex.value !== null;
+    // [S876] Editando un renglón y se elige el MISMO producto: no cambia nada (ni precio ni cantidad ni descuentos), se pasa a la cantidad.
+    if (editando && newItem.value.producto_obj?.id === prod.id) {
+        showProductResults.value = false;
+        setTimeout(() => { inputQtyRef.value?.focus(); inputQtyRef.value?.select(); }, 50);
+        return;
+    }
     newItem.value.producto_obj = prod;
     newItem.value.sku = prod.sku; 
     newItem.value.descripcion = prod.nombre;
@@ -1927,10 +2025,11 @@ const selectProduct = async (prod) => {
         notificationStore.add('Seleccione un cliente para cotizar precio exacto', 'info');
     }
 
-    newItem.value.cantidad = 1;
+    // Renglón nuevo: cantidad 1. Editando y se cambió de producto: se conserva la cantidad del renglón (el precio sí se re-cotiza).
+    if (!editando) newItem.value.cantidad = 1;
     newItem.value.descuento_porcentaje = '';
     newItem.value.descuento_valor = '';
-    newItem.value.total = newItem.value.precio; 
+    newItem.value.total = Number(newItem.value.precio || 0) * Number(newItem.value.cantidad || 1);
 
     showProductResults.value = false;
     
@@ -2101,7 +2200,7 @@ const commitRow = () => {
     const payload = { ...newItem.value };
     console.log("Committing Row:", payload);
 
-    items.value.push({ 
+    const renglon = {
         ...payload,
         id: `line_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, // Robust UI Key
         producto_id: payload.producto_obj?.id || payload.producto_id, 
@@ -2112,7 +2211,17 @@ const commitRow = () => {
         descuento_porcentaje: Number(payload.descuento_porcentaje || 0),
         descuento_valor: Number(payload.descuento_valor || 0),
         total: Number(payload.total)
-    });
+    };
+    const editado = editingIndex.value !== null && items.value[editingIndex.value];
+    if (editado) {
+        // [S876] Se reemplaza el renglón EN SU LUGAR (misma posición, misma clave de lista), no se manda al final.
+        const numero = editingIndex.value + 1;
+        items.value.splice(editingIndex.value, 1, { ...renglon, id: editado.id });
+        editingIndex.value = null;
+        notificationStore.add(`Renglón ${numero} actualizado.`, 'success');
+    } else {
+        items.value.push(renglon);
+    }
     if (items.value.length === 1) cabeceraPlegada.value = true; // con el primer renglón la cabecera ya está hecha
 
     // Reset but keep some logical defaults if needed
@@ -2148,14 +2257,11 @@ const editItem = async (index) => {
     const item = items.value[index];
     if (!item) return;
 
-    // 2. Clone data to avoid reactivity issues with splice
+    // 2. Copia de trabajo: el renglón ORIGINAL se queda en la lista, en su lugar y con sus valores a la vista (marcado "En edición"),
+    //    y lo que se modifica es esta copia, en la fila de carga. Si ya se estaba editando otro, se descarta esa edición.
     const itemData = JSON.parse(JSON.stringify(item));
+    editingIndex.value = index;
 
-    // 3. Remove from list (Move to "workbench")
-    items.value.splice(index, 1);
-    
-    // 4. Update newItem state after DOM update to prevent race conditions
-    // (Though strictly not necessary for state, good for finding inputs)
     newItem.value = {
         ...itemData,
         // [GY-FIX] Ensure SKU is explicitly restored to the input model
@@ -2169,9 +2275,8 @@ const editItem = async (index) => {
         producto_obj: itemData.producto_obj || null
     };
 
-    // 5. Build/Focus
+    // 3. Focus
     showProductResults.value = false; // Hide dropdown if it pops up
-    // Ensure the input actually receives the value before focus triggers selection logic
     setTimeout(() => {
         if (inputSkuRef.value) {
             inputSkuRef.value.focus();
@@ -2180,12 +2285,84 @@ const editItem = async (index) => {
     }, 100);
 };
 
+// [S876] Desistir de la edición: la fila de carga se limpia y el renglón queda exactamente como estaba (nunca se tocó).
+// alCuerpo: tras cancelar, el foco pasa al cuerpo de renglones (con ese renglón resaltado) para elegir otro con ↑ ↓ y Enter.
+const cancelEdit = (alCuerpo = true) => {
+    if (editingIndex.value === null) return;
+    const numero = editingIndex.value + 1;
+    const indice = editingIndex.value;
+    editingIndex.value = null;
+    newItem.value = {
+        sku: '', descripcion: '', cantidad: 1, precio: '', descuento_porcentaje: '', descuento_valor: '',
+        total: 0, producto_obj: null, _debug_cotizacion: null
+    };
+    showProductResults.value = false;
+    notificationStore.add(`Edición cancelada: el renglón ${numero} quedó como estaba.`, 'info');
+    if (alCuerpo) entrarAlCuerpo(indice);
+};
+
+// Cuerpo de renglones: resalta un renglón y saca el foco de los campos para que ↑ ↓ y Enter se lean como navegación.
+const entrarAlCuerpo = (indice) => {
+    if (!items.value.length) { filaActiva.value = null; return; }
+    filaActiva.value = Math.min(Math.max(indice ?? 0, 0), items.value.length - 1);
+    document.activeElement?.blur?.();
+    nextTick(() => document.querySelector('[data-renglon-activo="true"]')?.scrollIntoView?.({ block: 'nearest' }));
+};
+
+// Salir de la ficha (Escape o la flecha de arriba): si hay cambios sin guardar se pregunta antes de descartarlos.
+const intentarSalir = () => {
+    if (!props.isModal && hayCambiosSinGuardar()) {
+        // confirm() nativo: Esc = Cancelar (norma del navegador), o sea que Esc dentro de la ventana te deja en la ficha.
+        if (!confirm('Hay cambios sin guardar.\n\n' +
+                     'Aceptar: salís SIN guardar, se descartan los cambios.\n' +
+                     'Cancelar (o Esc): volvés a la ficha con todo como lo dejaste. Para grabar usá F10 o Guardar.')) return;
+    }
+    goBack();
+};
+
+// Cambió el estado del pedido desde la ficha (selector del encabezado): se refresca lo que el servidor pudo tocar (estado, banderas y la
+// nota, donde un cierre con discrepancia deja su constancia) sin pisar lo que ya tenías escrito en la ficha.
+const alCambiarEstado = async (nuevo) => {
+    const habiaCambios = hayCambiosSinGuardar();
+    estadoPedido.value = nuevo;
+    try {
+        const { data: p } = await api.get(`/pedidos/${route.params.id}`);
+        estadoPedido.value = p.estado || nuevo;
+        flagsEstadoPedido.value = p.flags_estado || 0;
+        if (notas.value === notasCargadas) { notas.value = p.nota || ''; notasCargadas = notas.value; }
+    } catch (e) { /* queda el estado elegido; el resto se refresca al recargar */ }
+    avisarPedidoActualizado(route.params.id);
+    if (!habiaCambios) baselineJSON.value = instantanea();
+};
+
 const removeItem = (index) => {
+    // [S876] Si se borra el renglón que se estaba editando, la edición se descarta; si se borra uno anterior, el índice corre uno.
+    if (editingIndex.value !== null) {
+        if (index === editingIndex.value) cancelEdit(false);
+        else if (index < editingIndex.value) editingIndex.value -= 1;
+    }
     items.value.splice(index, 1);
 };
 
 // Global Shortcuts
 const handleGlobalKeys = (e) => {
+    // [S876] Cuerpo de renglones: con el foco fuera de los campos, ↑ ↓ eligen un renglón y Enter lo edita.
+    if (editingIndex.value === null && items.value.length && !showClientModal.value && !showIngestaModal.value
+        && !e.ctrlKey && !e.altKey && !e.metaKey && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter')) {
+        const ae = document.activeElement;
+        const libre = !ae || ae === document.body;
+        if (libre && e.key !== 'Enter') {
+            e.preventDefault();
+            const base = filaActiva.value ?? (e.key === 'ArrowDown' ? -1 : items.value.length);
+            entrarAlCuerpo(base + (e.key === 'ArrowDown' ? 1 : -1));
+            return;
+        }
+        if (libre && e.key === 'Enter' && filaActiva.value !== null) {
+            e.preventDefault();
+            editItem(filaActiva.value);
+            return;
+        }
+    }
     if (e.key === 'F3') {
         e.preventDefault();
         const active = document.activeElement;
@@ -2261,10 +2438,19 @@ const handleGlobalKeys = (e) => {
     }
 
     if (e.key === 'Escape') {
+        // [S876] Escape en capas (de adentro hacia afuera): 1) cierra lo desplegado (resultados, menús); 2) si se estaba editando un renglón,
+        // lo cancela (queda como estaba) y vuelve al cuerpo de renglones; 3) si no, sale de la ficha, preguntando si hay cambios sin guardar.
+        // Si otro elemento ya atendió el Escape (ej. el ajuste de cantidad de un renglón) o hay un modal abierto, no se hace nada más.
+        if (e.defaultPrevented || showClientModal.value || showIngestaModal.value) return;
+        const habiaAlgoAbierto = showClienteResults.value || showProductResults.value || showContextMenu.value || showProductContextMenu.value;
         showClienteResults.value = false;
         showProductResults.value = false;
         showContextMenu.value = false;
         showProductContextMenu.value = false;
+        if (habiaAlgoAbierto) return;
+        if (editingIndex.value !== null) { cancelEdit(); return; }
+        intentarSalir();
+        return;
     }
 };
 
@@ -2280,6 +2466,7 @@ const resetPedido = async (skipConfirm = false) => {
     clienteSeleccionado.value = null;
     busquedaCliente.value = '';
     items.value = [];
+    editingIndex.value = null;
     cabeceraPlegada.value = false;
     notas.value = '';
     descuentoGlobalPorcentaje.value = '';
@@ -2410,6 +2597,10 @@ const savePedido = async (andPrint = false) => {
     }
     if (!clienteSeleccionado.value) return notificationStore.add('Seleccione un cliente.', 'error');
     if (items.value.length === 0) return notificationStore.add('Agregue al menos un producto.', 'error');
+    // [S876] Un renglón en edición todavía no es parte del pedido: guardar ahora lo dejaría con los valores ORIGINALES sin avisar.
+    if (editingIndex.value !== null) {
+        return notificationStore.add('Hay un renglón en edición: confirmalo con Enter o cancelalo con Esc antes de guardar.', 'warning');
+    }
     
     // [DOCTRINA BLANCO ESTRICTO] & Data Consistency
     if (!clientValidation.value.valid) {
@@ -2430,6 +2621,8 @@ const savePedido = async (andPrint = false) => {
         if (route.params.id) {
             await api.patch(`/pedidos/${route.params.id}`, payload);
             notificationStore.add('Pedido guardado exitosamente.', 'success');
+            avisarPedidoActualizado(route.params.id);
+            baselineJSON.value = instantanea(); // [S876] lo guardado pasa a ser el punto de partida
         } else {
             // Verificar duplicados antes de guardar
             const totalEstimado = items.value.reduce((sum, i) => sum + (i.total || 0), 0);

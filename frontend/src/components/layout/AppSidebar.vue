@@ -218,6 +218,17 @@
         </button>
 
         <div v-show="expandedGroups.includes('INFORMES')" class="pl-4 space-y-1">
+            <!-- [S876] Informes es un menú del mismo rango que Pedidos y va a crecer (clientes, facturas...): cada familia
+                 tiene su propio nivel. Hoy hay una sola, "Remitos"; los informes de pedidos, notas y ABC cuelgan de ahí. -->
+            <button
+                @click="toggleGroup('INFORMES_REMITOS')"
+                class="w-full flex items-center justify-between rounded-r-md border-l-2 px-3 py-2 text-sm transition-all duration-200"
+                :class="isGroupActive('INFORMES_REMITOS') ? 'border-sky-400 text-sky-200 bg-sky-900/10 font-bold' : 'border-white/5 text-white/70 hover:bg-white/5 hover:text-white'"
+            >
+                <span class="flex items-center gap-3"><i class="fas fa-dolly w-4"></i> Remitos</span>
+                <i class="fas fa-chevron-right text-[10px] transition-transform duration-200" :class="expandedGroups.includes('INFORMES_REMITOS') ? 'rotate-90 text-sky-400' : 'text-white/20'"></i>
+            </button>
+            <div v-show="expandedGroups.includes('INFORMES_REMITOS')" class="pl-4 space-y-1">
             <a href="#" @click.prevent="navigate('InformeRemitos')" class="nav-item-sub" :class="{ 'active-link-sky': isActive('InformeRemitos') }">
                 <i class="fas fa-truck w-4"></i>
                 <span>Remitos por fecha/cliente</span>
@@ -254,6 +265,7 @@
                 <i class="fas fa-boxes-stacked w-4"></i>
                 <span>ABC de productos</span>
             </a>
+            </div>
         </div>
       </div>
 
@@ -307,7 +319,7 @@ const router = useRouter()
 const route = useRoute()
 const emit = defineEmits(['logout', 'open-command-palette', 'navigate'])
 const notificationStore = useNotificationStore()
-const expandedGroups = ref([])
+const expandedGroups = ref(['INFORMES_REMITOS']) // [S876] el sub-nivel Remitos de Informes arranca abierto
 
 const navigate = (routeName, params = {}) => {
     router.push({ name: routeName, params })
@@ -323,6 +335,7 @@ const isGroupActive = (group) => {
     if (group === 'MAESTROS') return ['Contactos', 'Transportes', 'CanteraExplorer', 'MasterTools', 'AddressHub'].includes(route.name)
     if (group === 'PEDIDOS') return ['PedidoList', 'TacticalLoader', 'IngestaFactura', 'RemitoList', 'ManualRemito', 'FacturacionDashboard', 'EntregasReport'].includes(route.name)
     if (group === 'INTEL') return ['data-cleaner'].includes(route.name)
+    if (group === 'INFORMES_REMITOS') return isGroupActive('INFORMES')
     if (group === 'INFORMES') return ['InformeRemitos', 'InformePedidosPendiente', 'InformePedidosSinRemito', 'InformeRenglonesNoFacturables', 'InformePedidosOc', 'InformeNotasPedidos', 'InformeBuscarNotas', 'InformeAbcClientes', 'InformeAbcProductos'].includes(route.name)
     return false
 }
@@ -337,7 +350,7 @@ const toggleGroup = (group) => {
 }
 
 const autoExpand = () => {
-    ['CLIENTES', 'PRODUCTOS', 'MAESTROS', 'PEDIDOS', 'INFORMES'].forEach(group => {
+    ['CLIENTES', 'PRODUCTOS', 'MAESTROS', 'PEDIDOS', 'INFORMES', 'INFORMES_REMITOS'].forEach(group => {
         if (isGroupActive(group) && !expandedGroups.value.includes(group)) {
             expandedGroups.value.push(group)
         }

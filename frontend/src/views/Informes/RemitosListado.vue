@@ -30,17 +30,19 @@
       <div class="shrink-0 flex flex-wrap items-center gap-3 pt-4">
         <span class="text-[10px] font-bold uppercase text-blue-400/50">Presentar</span>
         <div class="inline-flex rounded-lg border border-blue-900/30 overflow-hidden">
-          <button v-for="o in ORDENES" :key="o.valor" @click="elegirOrden(o.valor)"
-            class="px-3 py-1.5 text-xs font-bold transition-colors"
-            :class="filtros.orden === o.valor ? 'bg-blue-600 text-white' : 'bg-[#02050f] text-blue-300/60 hover:text-blue-100'">
+          <!-- [S876] Cada orden lleva su par de flechitas (arriba = ascendente, abajo = descendente), la prendida es la que rige. Un clic en el
+               orden ya elegido invierte el sentido; un clic en una flecha lo fija. Reemplaza al botón Ascendente / Descendente. -->
+          <button v-for="o in ORDENES" :key="o.valor" @click="clicOrden(o.valor)"
+            class="px-3 py-1.5 text-xs font-bold transition-colors inline-flex items-center gap-2"
+            :class="filtros.orden === o.valor ? 'bg-blue-600 text-white' : 'bg-[#02050f] text-blue-300/60 hover:text-blue-100'"
+            :title="filtros.orden === o.valor ? 'Clic: invertir el sentido (ahora ' + (sentidoEfectivo === 'asc' ? 'ascendente' : 'descendente') + ')' : 'Presentar ' + o.label.toLowerCase()">
             {{ o.label }}
+            <span class="inline-flex flex-col leading-none text-[9px]">
+              <span @click.stop="fijarOrden(o.valor, 'asc')" :class="claseFlecha(o.valor, 'asc')" class="px-0.5 hover:text-white" title="Ascendente (A→Z, más viejos primero)">▲</span>
+              <span @click.stop="fijarOrden(o.valor, 'desc')" :class="claseFlecha(o.valor, 'desc')" class="px-0.5 hover:text-white" title="Descendente (Z→A, más recientes primero)">▼</span>
+            </span>
           </button>
         </div>
-        <button @click="cambiarSentido" class="h-8 px-2.5 rounded-lg border border-blue-900/30 text-xs text-blue-300 hover:border-blue-500/50"
-          :title="sentidoEfectivo === 'asc' ? 'Ascendente (A→Z, más viejos primero). Click para invertir' : 'Descendente (Z→A, más recientes primero). Click para invertir'">
-          <i class="fas" :class="sentidoEfectivo === 'asc' ? 'fa-arrow-down-a-z' : 'fa-arrow-down-z-a'"></i>
-          {{ sentidoEfectivo === 'asc' ? 'Ascendente' : 'Descendente' }}
-        </button>
         <span class="text-[10px] text-blue-400/30">(próximamente: por producto)</span>
 
         <span class="ml-4 text-[10px] font-bold uppercase text-blue-400/50">Circuito</span>
@@ -125,7 +127,7 @@
       </div>
 
       <!-- LISTADO: una caja por remito -->
-      <div class="flex-1 overflow-auto mt-3">
+      <div ref="contenedorScroll" class="flex-1 overflow-auto mt-3">
         <table class="w-full text-xs">
           <thead class="sticky top-0 bg-[#0f172a] z-10">
             <tr class="text-[10px] uppercase tracking-widest text-blue-400/50 border-b border-blue-900/20">
@@ -144,24 +146,30 @@
               <td colspan="3" class="text-center py-10 text-blue-400/40">Sin resultados para estos filtros</td>
             </tr>
             <template v-for="g in grupos" :key="g.id">
-              <tr class="border-t-2 border-blue-800/50 bg-blue-950/40" :class="[claseFilaCircuito(g.cab.circuito), g.cab.remito_estado === 'ANULADO' ? 'opacity-40' : '']">
+              <tr @dblclick="abrirPedido(g.cab.pedido_id, $event)" class="border-t-2 border-blue-800/50 bg-blue-950/40" :class="[claseFilaCircuito(g.cab.circuito), g.cab.remito_estado === 'ANULADO' ? 'opacity-40' : '']">
                 <td colspan="3" class="px-3 py-2">
                   <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
                     <span class="font-mono font-bold text-white text-sm">{{ g.cab.remito_id ? 'Remito ' + g.cab.remito : 'Sin remito' }}</span>
                     <span class="font-mono text-blue-200/80">{{ g.cab.fecha_documento || g.cab.fecha_pedido || '-' }}</span>
                     <span class="font-semibold text-white">{{ g.cab.cliente || '(sin cliente)' }}</span>
                     <span v-if="g.cab.oc" class="text-blue-300/70">OC {{ g.cab.oc }}</span>
-                    <span class="text-blue-300/70">Pedido #{{ g.cab.pedido_id }}</span>
+                    <span class="text-blue-300/70">Pedido
+                      <EnlacePedido v-if="g.cab.pedido_id != null" :pedido-id="g.cab.pedido_id" clase="text-blue-300 hover:text-blue-100 underline decoration-dotted" />
+                      <template v-else>-</template>
+                    </span>
                     <span v-if="g.cab.factura" class="text-blue-300/70">Factura {{ g.cab.factura }}</span>
                     <span v-if="g.cab.remito_estado" class="text-[10px] uppercase text-blue-300/40">remito {{ g.cab.remito_estado }}</span>
-                    <span v-if="g.cab.estado" class="inline-block px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider"
+                    <EstadoEditable v-if="g.cab.estado && g.cab.pedido_id != null" :pedido-id="g.cab.pedido_id" :estado="g.cab.estado_base" :texto="g.cab.estado"
+                      @cambiado="(nuevo) => aplicarEstado({ pedidoId: g.cab.pedido_id, estado: nuevo })" />
+                    <span v-else-if="g.cab.estado" class="inline-block px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider"
                       :class="estadoClase(g.cab.estado_base)">{{ g.cab.estado }}</span>
-                    <span v-if="g.cab.circuito" class="inline-block px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider"
+                    <CircuitoEditable v-if="g.cab.circuito && g.cab.pedido_id != null" :pedido-id="g.cab.pedido_id" :circuito="g.cab.circuito" />
+                    <span v-else-if="g.cab.circuito" class="inline-block px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider"
                       :class="claseCircuito(g.cab.circuito)">{{ g.cab.circuito }}</span>
                   </div>
                 </td>
               </tr>
-              <tr v-for="(f, i) in g.filas" :key="g.id + '-' + i"
+              <tr v-for="(f, i) in g.filas" :key="g.id + '-' + i" @dblclick="abrirPedido(f.pedido_id, $event)"
                 class="border-b border-blue-900/10 hover:bg-blue-900/10"
                 :class="[claseFilaCircuito(f.circuito), f.remito_estado === 'ANULADO' ? 'opacity-40' : '']">
                 <td class="pl-8 pr-3 py-1.5 font-mono text-blue-100/90">{{ f.producto ?? '-' }}</td>
@@ -184,14 +192,29 @@ import { useNotificationStore } from '@/stores/notification'
 import { useClientesStore } from '@/stores/clientes'
 import { useProductosStore } from '@/stores/productos'
 import { useInformeExport } from '@/composables/useInformeExport'
+import { useAbrirPedido } from '@/composables/useAbrirPedido'
+import { useRefrescoAlGuardarPedido } from '@/composables/useRefrescoAlGuardarPedido'
+import { usePersistirFiltros } from '@/composables/usePersistirFiltros'
+import { useScrollRecordado } from '@/composables/useScrollRecordado'
+import { aplicarEstadoAFilas } from '@/utils/estadosPedido'
+import EstadoEditable from '@/components/informes/EstadoEditable.vue'
+import CircuitoEditable from '@/components/informes/CircuitoEditable.vue'
+import EnlacePedido from '@/components/informes/EnlacePedido.vue'
 import { estadoClase, claseFilaCircuito, claseCircuito } from '@/utils/estadosPedido'
 import BuscadorLista from '@/components/informes/BuscadorLista.vue'
 
 const notification = useNotificationStore()
+// [S876] Doble clic en una fila abre el pedido (pestaña nueva); el Estado se cambia desde el informe.
+const abrirPedido = useAbrirPedido()
+// Al guardar un pedido en otra pestaña, este informe se actualiza solo (sin perder filtros ni scroll).
+useRefrescoAlGuardarPedido(() => cargar({ silencioso: true }))
+const aplicarEstado = ({ pedidoId, estado }) => aplicarEstadoAFilas(filas.value, pedidoId, estado)
 const clientesStore = useClientesStore()
 const productosStore = useProductosStore()
 
 const loading = ref(false)
+const contenedorScroll = ref(null)
+useScrollRecordado('remitos', contenedorScroll, loading) // vuelve al mismo lugar de la lista
 const filas = ref([])
 const mostrarRangos = ref(false)
 const { exportar: exportarArchivo, exportando } = useInformeExport('/informes/remitos/export', 'remitos_por_fecha_cliente')
@@ -211,6 +234,8 @@ const filtros = reactive({
   producto_desde: null,
   producto_hasta: null,
 })
+// [S876] Recuerda los filtros y el orden mientras dure la pestaña (al volver de otra pantalla quedan como estaban).
+usePersistirFiltros('remitos', filtros)
 
 const ORDENES = [
   { valor: 'cliente', label: 'Remito / cliente' },
@@ -231,8 +256,18 @@ const FORMATOS = [
 ]
 
 const sentidoEfectivo = computed(() => filtros.sentido ?? SENTIDO_POR_DEFECTO[filtros.orden])
-const elegirOrden = (valor) => { filtros.orden = valor; filtros.sentido = null }
-const cambiarSentido = () => { filtros.sentido = sentidoEfectivo.value === 'asc' ? 'desc' : 'asc' }
+// Un clic en un orden que no estaba elegido lo elige con su sentido de siempre; en el que ya estaba, invierte el sentido.
+const clicOrden = (valor) => {
+  if (filtros.orden !== valor) { filtros.orden = valor; filtros.sentido = null }
+  else filtros.sentido = sentidoEfectivo.value === 'asc' ? 'desc' : 'asc'
+}
+// Un clic en una flecha elige ese orden con ese sentido.
+const fijarOrden = (valor, sentido) => { filtros.orden = valor; filtros.sentido = sentido }
+// La flecha que rige se ve prendida; la otra, apagada (y en un orden no elegido, casi invisibles).
+const claseFlecha = (valor, sentido) => {
+  if (filtros.orden !== valor) return 'text-blue-300/25'
+  return sentidoEfectivo.value === sentido ? 'text-white' : 'text-white/35'
+}
 
 const hayRangos = computed(() => !!(filtros.cliente_desde || filtros.cliente_hasta || filtros.producto_desde || filtros.producto_hasta))
 const sinAcentos = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -293,8 +328,8 @@ const grupos = computed(() => {
   return salida
 })
 
-const cargar = async () => {
-  loading.value = true
+const cargar = async ({ silencioso = false } = {}) => {
+  if (!silencioso) loading.value = true
   try {
     const res = await api.get('/informes/remitos', { params: armarParams() })
     filas.value = res.data.filas || []
@@ -302,7 +337,7 @@ const cargar = async () => {
     console.error(e)
     notification.add('Error cargando el informe: ' + (e.response?.data?.detail || e.message), 'error')
   } finally {
-    loading.value = false
+    if (!silencioso) loading.value = false
   }
 }
 

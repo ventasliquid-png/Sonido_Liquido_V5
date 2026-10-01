@@ -388,7 +388,7 @@ import { usePedidosStore } from '@/stores/pedidos'
 import { useNotificationStore } from '@/stores/notification'
 import PedidoInspector from './PedidoInspector.vue'
 import api from '@/services/api'
-import { estadoClase, estadoTexto } from '@/utils/estadosPedido'
+import { estadoClase, estadoTexto, ESTADOS_PEDIDO_EDITABLES } from '@/utils/estadosPedido'
 
 const router = useRouter()
 const notificationStore = useNotificationStore()
@@ -434,7 +434,7 @@ const handleMouseMove = (e) => {
     mousePos.value = { x: e.clientX, y: e.clientY }
 }
 
-const availableStatuses = ['PENDIENTE', 'CUMPLIDO', 'ANULADO', 'PRESUPUESTO', 'INTERNO']
+const availableStatuses = ESTADOS_PEDIDO_EDITABLES // [S876] la misma lista que el selector de estado de los informes
 
 // Directive for clicking outside
 const vClickOutside = {

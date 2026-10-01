@@ -44,7 +44,7 @@
         <table class="w-full text-xs">
           <thead class="sticky top-0 bg-[#0f172a] z-10">
             <tr class="text-[10px] uppercase tracking-widest text-blue-400/50 border-b border-blue-900/20">
-              <th v-for="col in columnas" :key="col.key" class="text-left px-3 py-2 font-bold">{{ col.label }}</th>
+              <th v-for="col in columnas" :key="col.key" @click="alternarOrden(col.key)" class="text-left px-3 py-2 font-bold cursor-pointer select-none hover:text-blue-200" :title="tituloOrden(col.label)">{{ col.label }}<span class="ml-1 text-blue-300">{{ indicadorOrden(col.key) }}</span></th>
             </tr>
           </thead>
           <tbody>
@@ -63,7 +63,7 @@
                 Sin resultados para "{{ ultimaBusqueda }}"
               </td>
             </tr>
-            <tr v-for="(fila, i) in filas" :key="i" class="border-b border-blue-900/10 hover:bg-blue-900/10 align-top" :class="claseFilaCircuito(fila.circuito)">
+            <tr v-for="(fila, i) in ordenadas" :key="i" @dblclick="abrirPedido(fila.pedido_id, $event)" class="border-b border-blue-900/10 hover:bg-blue-900/10 align-top" :class="claseFilaCircuito(fila.circuito)">
               <td v-for="col in columnas" :key="col.key" class="px-3 py-1.5 whitespace-pre-wrap"
                 :class="col.key === 'fragmento' ? 'text-blue-100/80 font-mono' : 'font-mono text-blue-100/90 whitespace-nowrap'">
                 <span v-if="col.key === 'origen'"
@@ -71,7 +71,7 @@
                   :class="fila[col.key] === 'Remito' ? 'bg-sky-500/20 text-sky-300' : 'bg-blue-500/20 text-blue-300'">
                   {{ fila[col.key] }}
                 </span>
-                <template v-else><CeldaInforme :columna="col.key" :fila="fila" :valor="fila[col.key]" /></template>
+                <template v-else><CeldaInforme :columna="col.key" :fila="fila" :valor="fila[col.key]" @estado-cambiado="aplicarEstado" /></template>
               </td>
             </tr>
           </tbody>
@@ -86,10 +86,18 @@ import { ref } from 'vue'
 import api from '@/services/api'
 import { useNotificationStore } from '@/stores/notification'
 import { useInformeExport } from '@/composables/useInformeExport'
+import { useAbrirPedido } from '@/composables/useAbrirPedido'
+import { useRefrescoAlGuardarPedido } from '@/composables/useRefrescoAlGuardarPedido'
+import { useOrdenColumnas } from '@/composables/useOrdenColumnas'
+import { usePersistirFiltros } from '@/composables/usePersistirFiltros'
+import { aplicarEstadoAFilas } from '@/utils/estadosPedido'
 import { claseFilaCircuito } from '@/utils/estadosPedido'
 import CeldaInforme from '@/components/informes/CeldaInforme.vue'
 
 const notification = useNotificationStore()
+// [S876] Doble clic en una fila abre el pedido (pestaña nueva); el Estado se cambia desde el informe.
+const abrirPedido = useAbrirPedido()
+const aplicarEstado = ({ pedidoId, estado }) => aplicarEstadoAFilas(filas.value, pedidoId, estado)
 
 const q = ref('')
 const excluirSistema = ref(false)
@@ -97,6 +105,7 @@ const loading = ref(false)
 const buscado = ref(false)
 const ultimaBusqueda = ref('')
 const filas = ref([])
+const { ordenadas, alternarOrden, indicadorOrden, tituloOrden } = useOrdenColumnas(filas, 'buscar-notas')
 const columnas = ref([])
 const { exportar: exportarArchivo, exportando } = useInformeExport('/informes/buscar-notas/export', 'buscar_en_notas')
 
@@ -127,4 +136,17 @@ const buscar = async () => {
 }
 
 const exportar = (formato) => exportarArchivo(formato, armarParams())
+
+// [S876] Al guardar un pedido en otra pestaña: repite la ÚLTIMA búsqueda hecha (no lo que se haya tipeado después),
+// sin cartel de carga para no perder el lugar del scroll.
+const refrescar = async () => {
+  if (!buscado.value) return
+  try {
+    const res = await api.get('/informes/buscar-notas', { params: { q: ultimaBusqueda.value, excluir_sistema: excluirSistema.value } })
+    filas.value = res.data.filas || []
+  } catch (e) {
+    console.error(e)
+  }
+}
+useRefrescoAlGuardarPedido(refrescar)
 </script>
