@@ -1259,3 +1259,16 @@ valida contra el pedido** — la misma guarda que ya tenía la carga inicial del
 - **Productos:** el interruptor Venta/Insumo pasó a un selector "Tipo de Producto" con Venta, Insumo, Materia Prima y Servicio (sin stock). Un producto de tipo Servicio (fletes, mano de obra) no reserva ni descuenta stock.
 - **Excel Espejo de Pedidos:** el pedido más nuevo aparece arriba y la primera fila dice el entorno y la hora de generación (si esa hora es vieja, el archivo es viejo).
 - **A tener en cuenta:** el lector de facturas todavía ignora la bonificación (% Bonif): 4 facturas de Centro Pet muestran un aviso porque la suma de renglones no da el neto.
+
+
+## Sesión 876 (30/09 – 01/10) — Lo que cambia para quien opera
+
+- **Informes con vínculo al pedido:** en cualquier informe, un clic en el número de pedido (o doble clic en la fila) abre el pedido en la misma pestaña; la flecha de volver regresa al informe con los mismos filtros, orden y posición. Ctrl + clic lo abre en otra pestaña. Menú INFORMES > Remitos.
+- **Ordenar:** se puede ordenar por cualquier columna de los informes (clic en el encabezado: A-Z, otro clic: Z-A). En el Informe A, los selectores de orden llevan flechitas ▲ ▼.
+- **Estado y Circuito se cambian desde el informe y desde la ficha del pedido:** se elige el valor nuevo; cerrar con discrepancia o pasar de circuito pide confirmación y deja constancia en la nota del pedido.
+- **Informes nuevos:** F "Pedidos sin remito" y G "Renglones no facturables" (avisa los que llevan más de 30 días).
+- **Armar un PR:** se elige el método de entrega (Mostrador, Flete de tercero, Transporte propio, Moto/cadetería, Remito externo). El de Mostrador nace ya ENTREGADO; solo el Flete de tercero pide transporte. Un renglón puede nacer "no facturable" (consignación, muestra sin cargo, garantía/reemplazo) y después se lo pasa a facturable con "Resolver FACTURAR". Todos los remitos impresos salen por el talonario 0015.
+- **Liberar despacho:** en la logística del pedido, el aviso amarillo "Bloqueo financiero" trae el botón **Liberar despacho**. Al confirmarlo, el pedido y sus remitos en borrador quedan aprobados para despachar y en la nota queda quién y cuándo. Hasta que se libere, despachar da error.
+- **Editar un pedido:** al elegir un renglón para editar, el original queda a la vista y al confirmar vuelve a su lugar; Esc cancela la edición. Esc en capas: cierra lo desplegado, después vuelve al cuerpo de renglones y por último sale de la ficha. Si hay cambios sin guardar pregunta: **Aceptar** = salir sin guardar; **Cancelar** (o Esc) = volver a la ficha. El estado del pedido también se cambia desde la ficha.
+- **Excel Espejo de Pedidos:** salen primero los pendientes y, dentro de cada grupo, los más nuevos arriba.
+- **Si después de una actualización el menú o las pantallas no cambian:** apretar Ctrl + Mayús + R en el navegador (el navegador puede guardar la pantalla vieja).

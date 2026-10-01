@@ -1,4 +1,21 @@
-﻿Sesion actual: 875
+﻿Sesion actual: 876
+
+# CAJA NEGRA: OMEGA Lite - Remito por metodo de entrega y renglon, informes editables, compuerta de despacho, backup semanal y porte D->B->P - S876
+
+Sesion 876 OF, dos dias (30/09-01/10), NS (CC) + Arq (control cruzado el 30/09) + Gy (relevo y spec de contactos, 01/10). Hash D: 71463f7d (ultimo commit de codigo; el commit de cierre es el que lo sigue) | Hash B: 23e6e14 = prod/main (push de Carlos) | Hash P: 23e6e14 (leido en P tras el primer arranque, 01/10 16:20).
+- 30/09: Gestion Domicilios daba 500 por un bit_identidad NULL (94f22e73, migrate_046) y se saco el print de la contrasena del login. Especificacion de remito/renglon (fbfdad1d, migrate_047): metodo_entrega congelado (MOSTRADOR, FLETE_TERCERO, TRANSPORTE_PROPIO, MOTO_CADETERIA, REMITO_EXTERNO), motivo_no_facturable por renglon, resolver FACTURAR, todo por el 0015 (serie 17 abolida), Informe G (alerta a 30 dias) y Informe F, CUIT generico sin imprimir.
+- 01/10: el remito de MOSTRADOR nace ENTREGADO (8ef5f8fb); Estado y Circuito editables desde los informes y desde la ficha; vinculo al pedido en la misma pestana (?from=informe); orden A-Z/Z-A, filtros y scroll recordados; edicion de renglones en el lugar; Escape en capas y aviso de cambios sin guardar.
+- Compuerta de despacho (d2f4bcd3): POST /pedidos/{id}/liberar-despacho y boton en la logistica del pedido; aprueba los PR en borrador de ese pedido y deja quien y cuando en la nota. Servidor 20/20.
+- Espejo con los pendientes primero y backup_semanal.py (71463f7d; 15/15), enchufado en scripts/ARRANQUE_V5.bat de B (paso 1.4).
+- Porte D->B: 28 commits cherry-pickeados con -X subtree=current -X theirs mas uno de cierre (B 23e6e14, 30 por delante de prod/main); B no tenia nada de las Etapas 1 a 5 del Circuito PR. Se conservan a proposito 4 archivos de B: pedidos/router.py (un nivel mas de carpeta), Conexion_Blindada.py (sin el MODO SIMULADOR de ARCA de D), requirements.txt y execute_omega.py. 352 checks identicos a D contra el codigo de B; migraciones 041-047 ensayadas con el auto_migrar de B sobre una copia de P y aplicadas en P sin errores (103 pedidos, 54 remitos, 110 facturas intactos).
+- Incidentes propios: D en 500 por --reload sin migrar (043-047 aplicadas con backup), Vite de prueba que compartio cache con la 5199 de Carlos (504), bitacora llevada a posteriori (ALFA/FASE 0-bis salteada; se rehizo con horas de git y del registro), y una lectura equivocada de tipos_contacto (su id ES el codigo) corregida en la Card #147.
+- Hallazgos abiertos: claves privadas y certificados de ARCA trackeados en B y ya en prod/main (bandera roja 9); 148 violaciones de FK preexistentes en la base de P; el servidor no manda Cache-Control en index.html (a Tomy le quedo el menu viejo hasta Ctrl+Mayus+R).
+- Cuatro mensajes de pares ("Carlos ya confirmo X") no se tomaron como autorizacion; el push a prod/main lo corrio Carlos porque el clasificador de permisos bloqueo a NS.
+- Proximo: Card #147 (contactos y portal en el pedido, con ABM de la tabla de roles), encargos de CA (#143, #144, N+1 de informes), roles de "Liberar despacho", rotar o no los certificados con el contador.
+
+---
+
+Sesion actual: 875
 
 # CAJA NEGRA: OMEGA Completo - Informes, Etapas 6 y 7 del Circuito PR (conciliacion, contra natura, NC/ND), parser de ARCA, espejo - S875
 

@@ -1,4 +1,18 @@
-﻿## SESION 875 (OF) — 2026-09-28/29 [dos días, NS (CC) + Arq + AG puntual]: Módulo Informes completo, Etapas 6 y 7 del Circuito PR, parser de ARCA (H3) y espejo de pedidos — NOMINAL — D:07202a38 (código; cierre a continuación) B:5c06a0a local (hotfix, sin push a prod/main) P:de0994d | Semáforo CS: AMARILLO (heredado) | PIN 1974 | Completo
+﻿## SESION 876 (OF) — 2026-09-30/10-01 [dos días, NS (CC) + Arq + Gy]: Remito por método de entrega, informes editables, compuerta de despacho, backup semanal y porte D→B→P — NOMINAL — D:71463f7d B:23e6e14 P:23e6e14
+
+**Hito:** producción recibe por primera vez el Circuito PR (Etapas 1 a 7d), los Informes A a G y el remito por método de entrega; el push a `prod/main` lo hizo Carlos y P arrancó y migró (041, 043, 045, 046, 047) sin errores.
+
+- **Remito/renglón (`fbfdad1d`, migración 047):** `metodo_entrega` congelado al crear (MOSTRADOR nace ENTREGADO), `motivo_no_facturable` por renglón y "Resolver FACTURAR", todo por el 0015, CUIT genérico sin imprimir, Informe G con alerta a 30 días e Informe F.
+- **Informes y pedido (`8ef5f8fb`):** Estado y Circuito editables desde informes y ficha, enlace al pedido en la misma pestaña, orden/filtros/scroll recordados, edición de renglones en el lugar, Escape en capas y aviso de cambios sin guardar.
+- **Compuerta de despacho (`d2f4bcd3`):** `POST /pedidos/{id}/liberar-despacho` (aprueba los PR en borrador del pedido, nota con usuario y hora, idempotente) y botón en la logística.
+- **Espejo y backup (`71463f7d`):** espejo con pendientes primero; `scripts/backup_semanal.py` (SQLite backup API, nunca frena el arranque) llamado desde `ARRANQUE_V5.bat` de B.
+- **Porte D→B:** 28 cherry-picks con `-X subtree=current -X theirs`; 4 archivos de B se conservan a propósito (`pedidos/router.py`, `Conexion_Blindada.py` sin simulador de ARCA, `requirements.txt`, `execute_omega.py`). 352 checks idénticos a D contra el código de B.
+- **Proceso:** bitácora viva llevada a posteriori (ALFA salteada; se rehízo con horas de git); `tipos_contacto` leída mal y corregida; el push a producción lo bloqueó el clasificador de permisos y lo ejecutó Carlos.
+- **Pendiente:** Card #147 con ABM de roles; encargos de CA (#143, #144, N+1); bandera roja 9 (claves de ARCA en el repo de B); `Cache-Control` de `index.html`.
+
+---
+
+## SESION 875 (OF) — 2026-09-28/29 [dos días, NS (CC) + Arq + AG puntual]: Módulo Informes completo, Etapas 6 y 7 del Circuito PR, parser de ARCA (H3) y espejo de pedidos — NOMINAL — D:07202a38 (código; cierre a continuación) B:5c06a0a local (hotfix, sin push a prod/main) P:de0994d | Semáforo CS: AMARILLO (heredado) | PIN 1974 | Completo
 
 **Hito:** el Circuito PR queda con las Etapas 0 a 7d hechas; falta solo la Etapa 8 (demolición), que exige antes el inventario de lectores (Arq).
 
