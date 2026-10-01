@@ -111,8 +111,9 @@ JOIN pedidos_items pi   ON pi.pedido_id = p.id
 JOIN productos pr       ON pr.id       = pi.producto_id
 LEFT JOIN productos_costos pc ON pc.producto_id = pi.producto_id
 LEFT JOIN tasas_iva t   ON t.id        = pr.tasa_iva_id
-ORDER BY p.id DESC, pi.id ASC
+ORDER BY CASE WHEN p.estado = 'PENDIENTE' THEN 0 ELSE 1 END, p.id DESC, pi.id ASC
 """
+# Orden del espejo (Carlos, 01/10): los PENDIENTES arriba y, dentro de cada grupo, los más nuevos primero (Card #142).
 
 # ── MOTOR BIPOLAR — IVA ───────────────────────────────────────────────────────
 NO_FISCAL_FORCE = 4096               # Bit 12 en pedido — Circuito Negro soberano
@@ -397,7 +398,7 @@ def main():
         print('ADVERTENCIA: Sin datos. Archivo no generado.')
         sys.exit(0)
 
-    # Agrupar por pedido (respetando ORDER BY p.id)
+    # Agrupar por pedido (respetando el ORDER BY: pendientes primero, después el resto, ambos del más nuevo al más viejo)
     pedidos = {}
     pedido_order = []
     for r in rows:
