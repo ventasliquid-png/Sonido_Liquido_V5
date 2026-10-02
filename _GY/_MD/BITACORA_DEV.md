@@ -1,4 +1,10 @@
-﻿## SESION 876 (OF) — 2026-09-30/10-01 [dos días, NS (CC) + Arq + Gy]: Remito por método de entrega, informes editables, compuerta de despacho, backup semanal y porte D→B→P — NOMINAL — D:71463f7d B:23e6e14 P:23e6e14
+﻿## SESION 877 (OF) — 2026-10-02 [jornada corta, NS (CC) + Gy]: Board separado en vivo e histórico (Card #148), regla de búsqueda en el histórico y Card #149 — NOMINAL — D:152b0db1 B:23e6e14 P:23e6e14
+
+Sin cambios de código. Card #148: `HISTORICO_FORENSE` (93 cards con sello) y Board vivo de 52 + la #000; `pendientes.py buscar`, ALFA 3.9.1 y README del Silo consultan las dos hojas; 6 superadas de Gy retenidas con evidencia; Card #149 verificada (el «34 sedes con notas» no existe en ninguna base).
+
+---
+
+## SESION 876 (OF) — 2026-09-30/10-01 [dos días, NS (CC) + Arq + Gy]: Remito por método de entrega, informes editables, compuerta de despacho, backup semanal y porte D→B→P — NOMINAL — D:71463f7d B:23e6e14 P:23e6e14
 
 **Hito:** producción recibe por primera vez el Circuito PR (Etapas 1 a 7d), los Informes A a G y el remito por método de entrega; el push a `prod/main` lo hizo Carlos y P arrancó y migró (041, 043, 045, 046, 047) sin errores.
 

@@ -1,4 +1,18 @@
-﻿Sesion actual: 876
+﻿Sesion actual: 877
+
+# CAJA NEGRA: OMEGA Lite - Saneamiento del Board (hoja HISTORICO_FORENSE), regla de busqueda en el historico y Card #149 - S877
+
+Sesion 877 OF, jornada corta (02/10, pocos creditos hasta el martes), NS (CC) + Gy (analisis) con Carlos como cartero. Hash D: 152b0db1 (sin cambios de codigo; el commit de cierre es el que lo sigue) | Hash B: 23e6e14 = prod/main | Hash P: 23e6e14 (sin cambios desde el 01/10 16:20).
+- Card #148: el Board se separa en vivo e historico. Script del Silo board_historico_forense.py (simulacro por defecto; --aplicar hace backup, 17 controles y relectura final con restauracion automatica; idempotente). Primera pasada: 62 cards movidas a HISTORICO_FORENSE (61 cerradas con contenido y la #66) y 4 filas vacias purgadas (#41, #42, #43, #45). Segunda: 31 de las 37 superadas de Gy; 6 retenidas con evidencia en contra de "construida" (#89, #95, #106, #108, #138, #139). Board vivo: 52 cards mas la #000; HISTORICO_FORENSE: 93.
+- pendientes.py buscar busca tambien en HISTORICO_FORENSE; ALFA 3.9.1 y el README del Silo: toda lectura del Board mira las dos hojas y, ante una historica, se crea una card nueva que la cite (Continua #N) en vez de reabrirla.
+- Card #149 (suturas logisticas en Pedido, de Gy) verificada en codigo y datos: el "34 sedes con notas_logistica" no existe en ninguna base (0 de 76 en P, 0 de 56 en D, 0 en las 24 bases del Silo) y no hay contactos con rol LOGISTICA; la sutura 3 depende de la Card #147.
+- Gy respondio la devolucion de la #147 (contacto_responsable_id se retira; ABM de tipos_contacto especificado) y creo Intercambio/Analisis_de_Sistema. Las tildes de Sello_motivo se corrigieron (el JSON llego con "?").
+- Sin cambios de codigo en D ni en B; P sin cambios desde el primer arranque.
+- Proximo: Card #147 primera vuelta (con ABM de roles), encargos de CA (#143, #144, N+1), P24 (Cache-Control de index.html), roles de "Liberar despacho", segunda ronda de superadas.
+
+---
+
+Sesion actual: 876
 
 # CAJA NEGRA: OMEGA Lite - Remito por metodo de entrega y renglon, informes editables, compuerta de despacho, backup semanal y porte D->B->P - S876
 

@@ -2242,3 +2242,7 @@ hoy (`042` ni `043`) corrió contra `pilot_v5x.db` real — quedan para el próx
 **Estructura de B (porte D→B).** El repo de B es `C:\dev\v5-ls-Tom`; la app vive en `current/` y la raíz tiene su propio `scripts/` (ahí `exportar_pedidos_excel.py` y `ARRANQUE_V5.bat`). Un parche de D se aplica con el prefijo `current/` (`-X subtree=current`). Se conservan a propósito en B: `backend/pedidos/router.py` (un `..` más en la ruta del espejo), `backend/modules/sabueso/Conexion_Blindada.py` (sin el MODO SIMULADOR de ARCA que sí tiene D: devuelve un CAE ficticio si falta el certificado y no debe llegar a producción), `backend/requirements.txt` y `scripts/execute_omega.py`.
 
 **Hallazgos.** Claves privadas y certificados de ARCA trackeados en `current/backend/modules/sabueso/certs/` y `current/backend/.env` (y en `backup_today/`), ya en `prod/main`; la base de P trae 148 violaciones de clave foránea preexistentes (`PRAGMA foreign_key_check`, iguales antes y después de migrar); `index.html` se sirve sin `Cache-Control`.
+
+## Sesión 877 (02/10) — sin cambios de código
+
+Sin cambios en D ni en B. Solo herramientas del Silo: `board_historico_forense.py` (Card #148) y `pendientes.py buscar` extendido a la hoja `HISTORICO_FORENSE`.

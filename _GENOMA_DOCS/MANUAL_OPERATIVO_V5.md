@@ -1272,3 +1272,7 @@ valida contra el pedido** — la misma guarda que ya tenía la carga inicial del
 - **Editar un pedido:** al elegir un renglón para editar, el original queda a la vista y al confirmar vuelve a su lugar; Esc cancela la edición. Esc en capas: cierra lo desplegado, después vuelve al cuerpo de renglones y por último sale de la ficha. Si hay cambios sin guardar pregunta: **Aceptar** = salir sin guardar; **Cancelar** (o Esc) = volver a la ficha. El estado del pedido también se cambia desde la ficha.
 - **Excel Espejo de Pedidos:** salen primero los pendientes y, dentro de cada grupo, los más nuevos arriba.
 - **Si después de una actualización el menú o las pantallas no cambian:** apretar Ctrl + Mayús + R en el navegador (el navegador puede guardar la pantalla vieja).
+
+## Sesión 877 (02/10) — sin cambios para quien opera
+
+Sin cambios funcionales visibles: la sesión trabajó el Board y los protocolos, no el sistema.
