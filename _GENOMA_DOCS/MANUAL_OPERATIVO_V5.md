@@ -1276,3 +1276,7 @@ valida contra el pedido** — la misma guarda que ya tenía la carga inicial del
 ## Sesión 877 (02/10) — sin cambios para quien opera
 
 Sin cambios funcionales visibles: la sesión trabajó el Board y los protocolos, no el sistema.
+
+## Sesión 878 (05/10) — Lo que cambia para quien opera
+
+- **Guardar un domicilio fiscal con transporte** (ficha del cliente) ya no da error: arreglado el 500 que le apareció a Tomy al guardar un transporte. Para recibirlo hay que cerrar y volver a lanzar Soberana y apretar Ctrl + Mayús + R en el navegador.

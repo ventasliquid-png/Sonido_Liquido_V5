@@ -1,4 +1,12 @@
-﻿## SESION 877 (OF) — 2026-10-02 [jornada corta, NS (CC) + Gy]: Board separado en vivo e histórico (Card #148), regla de búsqueda en el histórico y Card #149 — NOMINAL — D:152b0db1 B:23e6e14 P:23e6e14
+﻿## SESION 878 (OF) — 2026-10-05 [NS (CC) + Nike por NotebookLM]: Dictamen sobre pedido/remito/factura, Cards #150-#158 y fix del 500 al guardar un domicilio fiscal — NOMINAL — D:1816903c B:88e8dca (= prod/main) P:23e6e14 (sin verificar)
+
+- **Consulta a Nike (seis puntos):** dictamen con Sello de Oro; NS verificó contra el código y cuatro datos no coinciden (`FacturaFlags.HAS_PEDIDO` no existe; el Bit 7 de `ProductoFlags` ya es `STOCK_MANAGED`; no hay tabla `PedidoNota`; `CUARENTENA_SIN_PEDIDO` es un valor nuevo). Cards #154 a #157 salen de ahí.
+- **Bug de Tomy (`1816903c` / B `88e8dca`):** `update_domicilio` hacía `Query.update()` después de `.join()`; SQLAlchemy 2.0 lo rechaza, así que guardar cualquier domicilio con `es_fiscal` daba 500. Subconsulta de IDs + update plano; prueba `test_domicilio_fiscal_s878` 8/8. Hallazgo aparte: el domicilio nuevo nace «espejo» y se bifurca en el primer guardado (Card #158).
+- **Proceso:** NS empujó B a `prod/main` sin bloqueo del clasificador (a diferencia del 01/10); P no accesible por red desde el 02/10.
+
+---
+
+## SESION 877 (OF) — 2026-10-02 [jornada corta, NS (CC) + Gy]: Board separado en vivo e histórico (Card #148), regla de búsqueda en el histórico y Card #149 — NOMINAL — D:152b0db1 B:23e6e14 P:23e6e14
 
 Sin cambios de código. Card #148: `HISTORICO_FORENSE` (93 cards con sello) y Board vivo de 52 + la #000; `pendientes.py buscar`, ALFA 3.9.1 y README del Silo consultan las dos hojas; 6 superadas de Gy retenidas con evidencia; Card #149 verificada (el «34 sedes con notas» no existe en ninguna base).
 

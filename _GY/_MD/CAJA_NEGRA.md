@@ -1,4 +1,18 @@
-﻿Sesion actual: 877
+﻿Sesion actual: 878
+
+# CAJA NEGRA: OMEGA Lite - Consulta a Nike sobre pedido/remito/factura, Cards #150-#158 y fix del 500 al guardar un domicilio fiscal - S878
+
+Sesion 878 OF, 05/10, NS (CC) con Carlos; Nike consultada por el chat de NotebookLM. Hash D: 1816903c (ultimo commit de codigo; el commit de cierre es el que lo sigue) | Hash B: 88e8dca = prod/main (push de NS, sin bloqueo del clasificador) | Hash P: registrado 23e6e14 (P no accesible por red: sin verificar ni copia desde el 01/10).
+- ALFA Lite del lunes: el fin de semana no se movio nada (D = origin/main, B = prod/main, Silo sin cambios).
+- Charla de diseno con Carlos y consulta a Nike (6 puntos, en 5 mensajes cortos; Nike tenia la BIBLIOTECA al 30/09): factura anticipada (facturado por renglon de pedido via FacturaItem.pedido_item_id + propiedades de PedidoItem), factura sin pedido en cuarentena (EN_CUARENTENA Bit 16 + estado categorico), equivalencias de descripcion (tabla producto_equivalencias, una nota por factura), medida estructurada del producto, interfaz Emisor (adapter; servicio web congelado por la DDJJ), guarda cantidad >= max(remitido, facturado). Sello de Oro; NS verifico contra el codigo y 4 datos no coinciden (FacturaFlags.HAS_PEDIDO no existe, el Bit 7 de ProductoFlags ya es STOCK_MANAGED, no hay tabla PedidoNota, CUARENTENA_SIN_PEDIDO es un valor nuevo). Detalle en DICTAMEN_NIKE_facturacion_remito_pedido_2026-10-05.md.
+- Cards: #150 (pedido -> remito -> factura en un solo camino; la regla remito <= pedido ya la hace cumplir armar_remito), #151 (aviso de bultos), #152 (duplicados de producto: el chequeo descarta digitos sueltos y bloquea presentaciones), #153 (medida estructurada), #154 a #157 (dictamen de Nike) y #158 (domicilio nuevo nace espejo y se bifurca).
+- Bug de Tomy: guardar un transporte en un domicilio fiscal daba 500 por Query.update() despues de join() en update_domicilio (SQLAlchemy 2.0). Corregido en D 1816903c (prueba 8/8, hub 10/10) y portado a B 88e8dca (pruebas contra el codigo de B); push a prod/main 23e6e14..88e8dca.
+- Board: segunda pasada ya hecha el 02/10; sin cambios de estructura hoy. Nike: falta pedirle que corrija ES_PACK y selle HAS_PEDIDO.
+- Pendiente: Tomy relanza Soberana y confirma; copia de P cuando vuelva la red; elegir el orden de las Cards (propuesta: #154 y la entrega 1 de la #150).
+
+---
+
+Sesion actual: 877
 
 # CAJA NEGRA: OMEGA Lite - Saneamiento del Board (hoja HISTORICO_FORENSE), regla de busqueda en el historico y Card #149 - S877
 

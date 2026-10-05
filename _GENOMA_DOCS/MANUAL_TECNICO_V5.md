@@ -2246,3 +2246,7 @@ hoy (`042` ni `043`) corrió contra `pilot_v5x.db` real — quedan para el próx
 ## Sesión 877 (02/10) — sin cambios de código
 
 Sin cambios en D ni en B. Solo herramientas del Silo: `board_historico_forense.py` (Card #148) y `pendientes.py buscar` extendido a la hoja `HISTORICO_FORENSE`.
+
+## Sesión 878 (05/10)
+
+**`ClienteService.update_domicilio` (`backend/clientes/service.py`).** La lógica «un solo domicilio fiscal» usaba `db.query(Domicilio).filter(...).join(domicilios_clientes).filter(...).update(...)`: SQLAlchemy 2.0 no admite `Query.update()` después de `.join()` (`InvalidRequestError`), lo que daba 500 al guardar cualquier domicilio con `es_fiscal: true` por el camino sin bifurcación. Ahora se arma una subconsulta con los IDs de los otros domicilios fiscales del cliente y se hace un `update` plano. **Regla para el resto del código:** nada de `.update()`/`.delete()` sobre una query con `join`; usar subconsulta de IDs. **Hallazgo abierto (Card #158):** `domicilios_clientes.flags` tiene por defecto el Bit 21 (espejo, 2097152) y `create_domicilio` no lo pasa, así que el primer guardado con `notas_logistica`/`observaciones` bifurca el domicilio nuevo.
