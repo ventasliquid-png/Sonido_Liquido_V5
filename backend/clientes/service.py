@@ -949,10 +949,18 @@ class ClienteService:
 
         # Enforce Single Fiscal Domicile Logic
         if update_data.get('es_fiscal'):
-            db.query(Domicilio).filter(
+            # [S878] SQLAlchemy 2.0 no admite Query.update() después de .join(): InvalidRequestError y un 500 al guardar
+            # cualquier domicilio fiscal por este camino (le pasó a Tomy al guardar un transporte). Se resuelve con una
+            # subconsulta de IDs de los OTROS domicilios fiscales de este cliente y un update plano.
+            otros_fiscales = db.query(Domicilio.id).join(
+                domicilios_clientes, domicilios_clientes.c.domicilio_id == Domicilio.id
+            ).filter(
+                domicilios_clientes.c.cliente_id == cliente_id,
                 Domicilio.id != domicilio_id,
                 Domicilio.es_fiscal == True
-            ).join(domicilios_clientes).filter(domicilios_clientes.c.cliente_id == cliente_id).update({"es_fiscal": False}, synchronize_session=False)
+            ).subquery()
+            db.query(Domicilio).filter(Domicilio.id.in_(db.query(otros_fiscales.c.id))).update(
+                {"es_fiscal": False}, synchronize_session=False)
         
         # Enforce Single Primary Domicile Logic
         if update_data.get('es_predeterminado'):
