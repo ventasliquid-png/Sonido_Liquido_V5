@@ -8,23 +8,40 @@ import unicodedata
 from backend.productos import models, schemas
 from backend.pricing_engine import calculate_lists
 from backend.productos.constants import ProductoFlags
-from backend.core.utils.text import normalize_name
+from backend.productos.normalizacion import normalizar_producto, similitud, UMBRAL_SUGERENCIA
 
 class ProductoService:
 
-    # normalize_name is imported from backend.core.utils.text (shared with Clientes)
-    # See deuda técnica 2026-05-21: consolidated duplicate code
+    # [#152 S879] Los productos tienen su PROPIA normalizacion (backend/productos/normalizacion.py):
+    # normalize_name es la bolsa de palabras de los clientes y descarta los numeros de un digito y las
+    # letras sueltas, que en un producto son justo lo que distingue la presentacion (5 L / 1 L, talle M / L).
 
     @staticmethod
     def check_duplicate_name(db: Session, name: str, exclude_id: int = None) -> bool:
-        """Verifica si existe un producto con el mismo nombre canónico (BOW)."""
-        canon_name = normalize_name(name)
+        """True si ya existe un producto con la MISMA clave canonica (misma presentacion, mismas medidas)."""
+        canon_name = normalizar_producto(name)
         if not canon_name:
             return False
         query = db.query(models.Producto).filter(models.Producto.nombre_canon == canon_name)
         if exclude_id:
             query = query.filter(models.Producto.id != exclude_id)
         return query.first() is not None
+
+    @staticmethod
+    def buscar_similares(db: Session, name: str, limit: int = 5, exclude_id: int = None):
+        """Sugerencias «¿es este producto?»: mismas medidas EXACTAS (numeros, unidades, talles) y palabras
+        parecidas (tolera errores de tipeo y plurales). No bloquea nada: lo decide quien da de alta."""
+        encontrados = []
+        for pid, sku, nombre, activo in db.query(
+                models.Producto.id, models.Producto.sku, models.Producto.nombre, models.Producto.activo).all():
+            if exclude_id and pid == exclude_id:
+                continue
+            puntaje = similitud(name, nombre)
+            if puntaje >= UMBRAL_SUGERENCIA:
+                encontrados.append({"id": pid, "sku": sku, "nombre": nombre, "activo": bool(activo),
+                                    "similitud": round(puntaje, 3)})
+        encontrados.sort(key=lambda x: (-x["similitud"], x["nombre"]))
+        return encontrados[:limit]
 
     @staticmethod
     def calculate_prices(producto: models.Producto):
@@ -157,7 +174,7 @@ class ProductoService:
         # 2. Crear Producto
         producto_data = prod_in.dict(exclude={'costos'})
         db_producto = models.Producto(**producto_data)
-        db_producto.nombre_canon = normalize_name(prod_in.nombre)  # [ARLEQUÍN V2]
+        db_producto.nombre_canon = normalizar_producto(prod_in.nombre)  # [ARLEQUÍN V2 / #152]
 
         # [AUTO-SKU V5.8]
         if not db_producto.sku:

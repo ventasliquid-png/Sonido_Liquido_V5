@@ -2,7 +2,9 @@ from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, T
 from sqlalchemy.dialects.postgresql import UUID as pgUUID
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.sql import func
+from sqlalchemy import event, inspect as sa_inspect
 from backend.core.database import Base, GUID
+from backend.productos.normalizacion import normalizar_producto
 
 class Rubro(Base):
     __tablename__ = "rubros"
@@ -123,3 +125,17 @@ class ProductoCosto(Base):
     
     # Relaciones
     producto = relationship("Producto", back_populates="costos")
+
+
+# [#152 S879] nombre_canon se mantiene SOLO desde el nombre, en cualquier camino de alta o de cambio de
+# nombre (ABM, fallback de remitos, cantera, data_intel): antes lo llenaba solo create_producto y los
+# productos nacidos por otro lado quedaban invisibles para el chequeo de duplicados.
+@event.listens_for(Producto, "before_insert")
+def _canon_al_insertar(mapper, connection, target):
+    target.nombre_canon = normalizar_producto(target.nombre)
+
+
+@event.listens_for(Producto, "before_update")
+def _canon_al_renombrar(mapper, connection, target):
+    if sa_inspect(target).attrs.nombre.history.has_changes():
+        target.nombre_canon = normalizar_producto(target.nombre)

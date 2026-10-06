@@ -215,6 +215,11 @@ def read_productos(
 def create_producto(producto: schemas.ProductoCreate, db: Session = Depends(get_db)):
     return ProductoService.create_producto(db, producto)
 
+@router.get("/similares")
+def productos_similares(nombre: str, limit: int = 5, exclude_id: Optional[int] = None, db: Session = Depends(get_db)):
+    """Card #152: sugerencias de «¿es este producto?» para un nombre a dar de alta. No bloquea."""
+    return ProductoService.buscar_similares(db, nombre, limit, exclude_id)
+
 @router.get("/{producto_id}", response_model=schemas.ProductoRead)
 def read_producto(producto_id: int, db: Session = Depends(get_db)):
     producto = db.query(models.Producto).options(
