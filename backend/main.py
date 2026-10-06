@@ -444,15 +444,22 @@ async def serve_spa(full_path: str):
          # Si llegamos aquí es porque ningún router de arriba capturó la petición
          raise HTTPException(status_code=404, detail=f"API Endpoint '{full_path}' not found")
 
+    # [P24 S879] index.html referencia los bundles por nombre con hash (/assets/index-XXXX.js): si el navegador
+    # lo guarda en cache despues de un deploy sigue pidiendo el bundle viejo y el operador ve la pantalla
+    # anterior (le paso a Tomy el 02/10: Ctrl+Mayus+R). `no-cache` NO impide guardarlo: obliga a revalidar
+    # con el servidor en cada carga; index.html pesa ~1 KB, asi que reenviarlo entero no cuesta nada.
+    headers_spa = {"Cache-Control": "no-cache"}
+
     # Si existe archivo físico (ej: favicon.ico), servirlo
     posible_archivo = os.path.join(static_dir, full_path)
     if os.path.exists(posible_archivo) and os.path.isfile(posible_archivo):
-        return FileResponse(posible_archivo)
+        es_index = os.path.basename(posible_archivo).lower() == "index.html"
+        return FileResponse(posible_archivo, headers=headers_spa if es_index else None)
 
     # Si no, servir index.html (SPA)
     index_path = os.path.join(static_dir, "index.html")
     if os.path.exists(index_path):
-        return FileResponse(index_path)
+        return FileResponse(index_path, headers=headers_spa)
     
     return {"error": "SPA no compilada. Ejecute 'npm run build' y copie a 'static'."}
 # ------------------------------------
