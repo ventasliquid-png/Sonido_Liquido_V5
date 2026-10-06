@@ -1280,3 +1280,10 @@ Sin cambios funcionales visibles: la sesión trabajó el Board y los protocolos,
 ## Sesión 878 (05/10) — Lo que cambia para quien opera
 
 - **Guardar un domicilio fiscal con transporte** (ficha del cliente) ya no da error: arreglado el 500 que le apareció a Tomy al guardar un transporte. Para recibirlo hay que cerrar y volver a lanzar Soberana y apretar Ctrl + Mayús + R en el navegador.
+
+## Sesión 879 (06/10) — Lo que cambia para quien opera
+
+- **Descuento por renglón (pedido):** la columna ahora es **«Desc $ c/u»**: el descuento en pesos es **por unidad** y el subtotal lo multiplica por la cantidad. Se puede cargar en $ por unidad o en %, y vale lo último que se tipeó: si cambiás la cantidad se conservan el descuento por unidad y el porcentaje; si cambiás el precio se recalcula el que no tipeaste. El porcentaje se guarda a 4 decimales y el importe en centavos.
+- **Bajar la cantidad de un renglón:** el pedido ya no deja bajarla por debajo de lo **remitido** ni de lo **facturado** (neto de notas de crédito). Para bajar una cantidad ya facturada hace falta antes una NC (parcial, solo por lo no entregado). Subirla siempre se puede.
+- **Alta de productos:** «Bidón 5 L» y «Bidón 1 L» (o talle M y talle L) ya no se toman como el mismo producto. Sigue bloqueando el mismo producto escrito de otra forma.
+- **Pantalla vieja tras una actualización:** el navegador ya no debería quedarse con la pantalla anterior; y el lanzador espera a que el sistema responda antes de abrir el navegador. Si igual se ve una pantalla vieja: Ctrl + Mayús + R.

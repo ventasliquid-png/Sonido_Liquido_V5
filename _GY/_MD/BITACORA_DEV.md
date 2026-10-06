@@ -1,4 +1,12 @@
-﻿## SESION 878 (OF) — 2026-10-05 [NS (CC) + Nike por NotebookLM]: Dictamen sobre pedido/remito/factura, Cards #150-#158 y fix del 500 al guardar un domicilio fiscal — NOMINAL — D:1816903c B:88e8dca (= prod/main) P:23e6e14 (sin verificar)
+﻿## SESION 879 (OF) — 2026-10-06 [NS (CC)]: Ola 1 (#152, P24, #154), descuento por unidad (#159) y push a produccion — NOMINAL — D:44e8b278 B:ab2f784 (= prod/main) P:88e8dca (leido; sin deploy todavia)
+
+- **Ola 1:** #152 normalizacion propia de productos + `migrate_048`; P24 `Cache-Control: no-cache` en `index.html` (+ espera a `/health` en el lanzador de B); #154 cantidades por renglon (`backend/pedidos/cantidades.py`), absorcion al armar y guarda de edicion solo ante bajas.
+- **#159:** descuento por renglon por unidad (`backend/pedidos/descuentos.py`, `PedidoCanvas.vue`); la base sigue guardando el total del renglon. Verificado en pantalla sobre una copia de P.
+- **Proceso:** tres tests nuevos corrian contra D por una variable `RAIZ` que el reemplazador de `correr_en_B.py` no cambiaba; corregido y repetidos contra el clon de B (473/473). Push `88e8dca..ab2f784` sin bloqueo del clasificador.
+
+---
+
+## SESION 878 (OF) — 2026-10-05 [NS (CC) + Nike por NotebookLM]: Dictamen sobre pedido/remito/factura, Cards #150-#158 y fix del 500 al guardar un domicilio fiscal — NOMINAL — D:1816903c B:88e8dca (= prod/main) P:23e6e14 (sin verificar)
 
 - **Consulta a Nike (seis puntos):** dictamen con Sello de Oro; NS verificó contra el código y cuatro datos no coinciden (`FacturaFlags.HAS_PEDIDO` no existe; el Bit 7 de `ProductoFlags` ya es `STOCK_MANAGED`; no hay tabla `PedidoNota`; `CUARENTENA_SIN_PEDIDO` es un valor nuevo). Cards #154 a #157 salen de ahí.
 - **Bug de Tomy (`1816903c` / B `88e8dca`):** `update_domicilio` hacía `Query.update()` después de `.join()`; SQLAlchemy 2.0 lo rechaza, así que guardar cualquier domicilio con `es_fiscal` daba 500. Subconsulta de IDs + update plano; prueba `test_domicilio_fiscal_s878` 8/8. Hallazgo aparte: el domicilio nuevo nace «espejo» y se bifurca en el primer guardado (Card #158).

@@ -1,4 +1,16 @@
-﻿Sesion actual: 878
+﻿Sesion actual: 879
+
+# CAJA NEGRA: OMEGA Lite - Ola 1 (#152, P24, #154), descuento por unidad (#159) y push a produccion - S879
+
+Sesion 879 OF, 06/10, NS (CC) con Carlos. Hash D: 44e8b278 (ultimo commit de codigo; el commit de cierre es el que lo sigue) | Hash B: ab2f784 = prod/main (push 88e8dca..ab2f784, PIN de Carlos, sin bloqueo del clasificador) | Hash P: real 88e8dca (leido en P a las 16:00; todavia no tomo el deploy: entra en el proximo arranque de Soberana).
+- Plan de accion (PLAN_DE_ACCION_2026-10-06.md) y Ola 1 completa. #152: normalizacion propia de productos (backend/productos/normalizacion.py: conserva numeros, unidades y talles; normalize_name de clientes intacto), nombre_canon sincronizado por listeners del modelo, GET /productos/similares y migrate_048. P24: index.html con Cache-Control no-cache y, solo en B, el lanzador espera a /health antes de abrir el navegador. #154: PedidoItem con cantidad remitida/facturada/acreditada/neta, facturado_sin_remitir, remitido_sin_facturar y piso de edicion (backend/pedidos/cantidades.py; facturado = solo AUTORIZADA_AFIP, NC restan), absorcion al armar el remito y guarda de edicion en PATCH /pedidos/items y en el Guardar del canvas (solo juzga bajas).
+- #159 (a pedido de Carlos, caso del pedido 122 de Tomy): descuento por renglon por unidad, importe a centavos, porcentaje a 4 decimales, conservado al cambiar la cantidad (backend/pedidos/descuentos.py + PedidoCanvas.vue). Verificado en pantalla sobre una copia de P con un banco propio (8098/5198).
+- Cards #159 y #160 (sustitucion de producto: posicion de NS, no construir todavia). Hallazgo de datos en P: productos #6 y #210 son el mismo guante (el #210 sin uso). Pruebas: 15 pruebas, 473/473, en D y contra el codigo de B.
+- Pendiente: que P tome el deploy y verificarlo (Tomy relanza Soberana + Ctrl+Mayus+R); Board: #152/#154/#159 EN PROGRESO hasta verificar en P.
+
+---
+
+Sesion actual: 878
 
 # CAJA NEGRA: OMEGA Lite - Consulta a Nike sobre pedido/remito/factura, Cards #150-#158 y fix del 500 al guardar un domicilio fiscal - S878
 
