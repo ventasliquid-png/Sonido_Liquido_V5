@@ -99,3 +99,53 @@ class PedidoItem(Base):
     def cantidad_entregada(self) -> float:
         # Runtime calculation of delivered quantity
         return sum(ri.cantidad_remitida for ri in self.remitos_items if ri.remito and ri.remito.estado != "ANULADO")
+
+    # --- [Card #154, S879] Pedido / remitido / facturado del renglon (ver backend/pedidos/cantidades.py) ---
+    # Todo calculado, nunca persistido. Para el balance se usa la cantidad NETA de NC.
+
+    @property
+    def cantidad_remitida(self) -> float:
+        """Σ remitido (remitos no anulados, las devoluciones restan). Es cantidad_entregada con el nombre de la doctrina."""
+        return self.cantidad_entregada
+
+    def _facturado(self):
+        from sqlalchemy.orm import object_session
+        from backend.pedidos.cantidades import facturado_por_renglon
+        db = object_session(self)
+        if db is None or self.id is None:
+            return (0.0, 0.0)
+        return facturado_por_renglon(db, [self.id]).get(self.id, (0.0, 0.0))
+
+    @property
+    def cantidad_facturada(self) -> float:
+        """Σ cantidad de las facturas VIGENTES (AUTORIZADA_AFIP) que apuntan a este renglon, sin las NC."""
+        return self._facturado()[0]
+
+    @property
+    def cantidad_acreditada(self) -> float:
+        """Σ cantidad de las notas de credito vigentes que apuntan a este renglon."""
+        return self._facturado()[1]
+
+    @property
+    def cantidad_facturada_neta(self) -> float:
+        return self.cantidad_facturada - self.cantidad_acreditada
+
+    @property
+    def facturado_sin_remitir(self) -> float:
+        """Facturado (neto) que todavia no salio en ningun remito: la factura se adelanto a la entrega."""
+        return max(0.0, self.cantidad_facturada_neta - self.cantidad_remitida)
+
+    @property
+    def remitido_sin_facturar(self) -> float:
+        """Remitido FACTURABLE (renglones que aplican: cantidad_facturada no NULL, o sea ni rosa ni no comercial
+        ni con motivo abierto) que supera lo facturado (neto)."""
+        facturable = sum(
+            ri.cantidad_remitida for ri in self.remitos_items
+            if ri.remito and ri.remito.estado != "ANULADO" and ri.cantidad_facturada is not None
+        )
+        return max(0.0, facturable - self.cantidad_facturada_neta)
+
+    @property
+    def cantidad_minima_editable(self) -> float:
+        """Piso de la cantidad del renglon: lo remitido o lo facturado (neto), lo que sea mayor."""
+        return max(self.cantidad_remitida, self.cantidad_facturada_neta)

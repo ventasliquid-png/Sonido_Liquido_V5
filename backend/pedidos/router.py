@@ -17,6 +17,7 @@ from backend.pedidos import models, schemas
 from backend.clientes.models import Cliente
 from backend.productos.models import Producto
 from backend.pedidos.constants import PedidoFlags as PF, STATE_MASK
+from backend.pedidos.cantidades import mensaje_baja_de_cantidad, mensaje_baja_de_renglon
 from backend.clientes.constants import ClientFlags
 from backend.auth.dependencies import get_current_active_user
 from backend.auth.models import Usuario
@@ -802,6 +803,10 @@ def update_pedido(
             if existing_item:
                 # Renglón existente: ACTUALIZAR IN PLACE (preserva el id -> RemitoItem intacto)
                 seen_ids.add(it_id)
+                # [Card #154] Guarda de edicion: la cantidad no baja de lo remitido ni de lo facturado (neto de NC).
+                msg_baja = mensaje_baja_de_cantidad(existing_item, it['cantidad'])
+                if msg_baja:
+                    raise HTTPException(status_code=400, detail=f"{existing_item.producto.nombre if existing_item.producto else 'Renglón'}: {msg_baja}")
                 diff = Decimal(str(it['cantidad'])) - Decimal(str(existing_item.cantidad))
                 if diff != 0 and producto.tipo_producto != 'SERVICIO':
                     if producto.stock_reservado is None: producto.stock_reservado = Decimal("0.0")
@@ -850,6 +855,10 @@ def update_pedido(
                     status_code=400,
                     detail=f"No se puede eliminar el renglón '{descripcion}': ya tiene {entregado} unidades entregadas."
                 )
+            msg_fact = mensaje_baja_de_renglon(old_item)  # [Card #154] un comprobante emitido no pierde su renglon
+            if msg_fact:
+                descripcion = old_item.producto.nombre if old_item.producto else f"ítem #{old_item.id}"
+                raise HTTPException(status_code=400, detail=f"{descripcion}: {msg_fact}")
             prod = old_item.producto
             if prod and prod.stock_reservado is not None and prod.tipo_producto != 'SERVICIO':
                 prod.stock_reservado -= Decimal(str(old_item.cantidad))
@@ -1061,6 +1070,10 @@ def update_pedido_item(
                 status_code=400,
                 detail=f"No se puede bajar la cantidad a {update_data['cantidad']}: ya se entregaron {entregado} unidades de este renglón."
             )
+        # [Card #154] Tampoco por debajo de lo facturado (neto de NC): para eso hace falta una NC.
+        msg_facturado = mensaje_baja_de_cantidad(item, update_data["cantidad"])
+        if msg_facturado:
+            raise HTTPException(status_code=400, detail=msg_facturado)
 
         old_qty = item.cantidad
         new_qty = update_data["cantidad"]

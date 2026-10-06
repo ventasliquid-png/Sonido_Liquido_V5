@@ -103,6 +103,17 @@ class RemitosService:
         return None if (es_rosa or es_no_comercial) else 0.0
 
     @staticmethod
+    def _facturada_al_nacer_renglon(remito, pedido, pedido_item, cantidad) -> Optional[float]:
+        """[Card #154, dictamen Nike 05/10] Igual que _facturada_al_nacer, pero si el renglon YA tenia facturado
+        sin remitir (la factura se adelanto a la entrega), el renglon del remito nace absorbiendo esa parte:
+        cantidad_facturada = min(remitida, facturado_sin_remitir). Asi el conciliador no vuelve a ofrecerlo
+        para facturar. NULL (no aplica) y las devoluciones (cantidad <= 0) quedan como siempre."""
+        base = RemitosService._facturada_al_nacer(remito, pedido)
+        if base is None or cantidad is None or cantidad <= 0 or pedido_item is None:
+            return base
+        return max(base, min(cantidad, pedido_item.facturado_sin_remitir))
+
+    @staticmethod
     def _recalcular_bits_entrega(db: Session, pedido) -> None:
         """Recalcula Bits 20/21 en el pedido según estado real de entregas.
         OFF/OFF si ninguna entrega, Bit20 si parcial, Bit21 si completa."""
@@ -917,7 +928,8 @@ class RemitosService:
                 # [S876] Con motivo abierto el renglón nace "no aplica todavía" (NULL, no 0 --
                 # dictamen Nike 23/09): el conciliador no lo ofrece para facturar hasta que se
                 # resuelva (resolver_no_facturable). Sin motivo, como siempre.
-                cantidad_facturada=None if motivo else RemitosService._facturada_al_nacer(remito, pedido),
+                cantidad_facturada=None if motivo else RemitosService._facturada_al_nacer_renglon(
+                    remito, pedido, pedido_item, item_payload.cantidad),
                 motivo_no_facturable=motivo,
             ))
 
@@ -1378,7 +1390,8 @@ class RemitosService:
                         pedido_item_id=target_pi.id,
                         cantidad_declarada=p_item_data.cantidad,
                         cantidad_remitida=p_item_data.cantidad,
-                        cantidad_facturada=RemitosService._facturada_al_nacer(remito, remito.pedido),
+                        cantidad_facturada=RemitosService._facturada_al_nacer_renglon(
+                            remito, remito.pedido, target_pi, p_item_data.cantidad),
                     )
                     db.add(new_r_item)
                     if p_item_data.descripcion:
