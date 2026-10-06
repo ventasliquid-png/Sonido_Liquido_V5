@@ -18,6 +18,7 @@ from backend.clientes.models import Cliente
 from backend.productos.models import Producto
 from backend.pedidos.constants import PedidoFlags as PF, STATE_MASK
 from backend.pedidos.cantidades import mensaje_baja_de_cantidad, mensaje_baja_de_renglon
+from backend.pedidos.descuentos import descuento_normalizado, importe_conservando_unitario
 from backend.clientes.constants import ClientFlags
 from backend.auth.dependencies import get_current_active_user
 from backend.auth.models import Usuario
@@ -196,7 +197,9 @@ def create_pedido_tactico(
             # (mejor recalcular en backend para seguridad).
             # Subtotal = (Precio * Cantidad) - Descuento Importe
             # El descuento importe ya debería ser el absoluto por renglón.
-            subtotal = (precio_final * item.cantidad) - (item.descuento_importe or 0.0)
+            # [Card #159] importe a centavos y porcentaje a 4 decimales (el importe manda).
+            desc_importe, desc_pct = descuento_normalizado(item.descuento_importe, item.descuento_porcentaje)
+            subtotal = (precio_final * item.cantidad) - desc_importe
             total_pedido += subtotal
             
             nuevo_item = models.PedidoItem(
@@ -204,8 +207,8 @@ def create_pedido_tactico(
                 producto_id=item.producto_id,
                 cantidad=item.cantidad,
                 precio_unitario=precio_final,
-                descuento_porcentaje=item.descuento_porcentaje or 0.0,
-                descuento_importe=item.descuento_importe or 0.0,
+                descuento_porcentaje=desc_pct,
+                descuento_importe=desc_importe,
                 subtotal=subtotal,
                 nota="" # Nota por item no está en schema frontend aun
             )
@@ -796,7 +799,9 @@ def update_pedido(
                      detail=f"Producto con ID {it['producto_id']} no encontrado durante la actualización."
                  )
 
-            subtotal = (it['cantidad'] * it['precio_unitario']) - (it.get('descuento_importe') or 0.0)
+            # [Card #159] importe a centavos y porcentaje a 4 decimales (el importe manda).
+            desc_importe, desc_pct = descuento_normalizado(it.get('descuento_importe'), it.get('descuento_porcentaje'))
+            subtotal = (it['cantidad'] * it['precio_unitario']) - desc_importe
             it_id = it.get('id')
             existing_item = existing_items.get(it_id) if it_id else None
 
@@ -815,8 +820,8 @@ def update_pedido(
                 existing_item.producto_id = it['producto_id']
                 existing_item.cantidad = it['cantidad']
                 existing_item.precio_unitario = it['precio_unitario']
-                existing_item.descuento_porcentaje = it.get('descuento_porcentaje') or 0
-                existing_item.descuento_importe = it.get('descuento_importe') or 0
+                existing_item.descuento_porcentaje = desc_pct
+                existing_item.descuento_importe = desc_importe
                 existing_item.subtotal = subtotal
                 existing_item.nota = it.get('nota')
             else:
@@ -826,8 +831,8 @@ def update_pedido(
                     producto_id=it['producto_id'],
                     cantidad=it['cantidad'],
                     precio_unitario=it['precio_unitario'],
-                    descuento_porcentaje=it.get('descuento_porcentaje') or 0,
-                    descuento_importe=it.get('descuento_importe') or 0,
+                    descuento_porcentaje=desc_pct,
+                    descuento_importe=desc_importe,
                     subtotal=subtotal,
                     nota=it.get('nota')
                 )
@@ -1099,6 +1104,18 @@ def update_pedido_item(
         if prod.tipo_producto != 'SERVICIO':
             if prod.stock_reservado is None: prod.stock_reservado = Decimal("0.0")
             prod.stock_reservado += Decimal(str(diff))
+
+    # [Card #159] El descuento se define por unidad: si cambia la cantidad y no mandaron un descuento nuevo,
+    # el total del descuento acompana a la cantidad (antes quedaba fijo y el precio efectivo cambiaba en silencio).
+    if "cantidad" in update_data and "descuento_importe" not in update_data:
+        update_data["descuento_importe"] = importe_conservando_unitario(
+            item.descuento_importe, item.cantidad, update_data["cantidad"])
+    if "descuento_importe" in update_data or "descuento_porcentaje" in update_data:
+        d_imp, d_pct = descuento_normalizado(
+            update_data.get("descuento_importe", item.descuento_importe),
+            update_data.get("descuento_porcentaje", item.descuento_porcentaje))
+        if "descuento_importe" in update_data: update_data["descuento_importe"] = d_imp
+        if "descuento_porcentaje" in update_data: update_data["descuento_porcentaje"] = d_pct
 
     for key, value in update_data.items():
         setattr(item, key, value)

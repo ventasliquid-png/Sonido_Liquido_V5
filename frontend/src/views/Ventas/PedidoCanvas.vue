@@ -343,7 +343,7 @@
                         <div class="col-span-1 text-center">CANTIDAD</div>
                         <div class="col-span-1 text-right">Precio</div>
                         <div class="col-span-1 text-right">Desc %</div>
-                        <div class="col-span-1 text-right">Desc $</div>
+                        <div class="col-span-1 text-right" title="Descuento en pesos POR UNIDAD: el subtotal lo multiplica por la cantidad">Desc $ c/u</div>
                         <div class="col-span-2 text-right">Subtotal</div>
                     </div>
 
@@ -507,8 +507,8 @@
                             <div class="col-span-1 text-right">
                                 <input v-excel type="number" 
                                     ref="inputDescPctRef"
-                                    v-model.number="newItem.descuento_porcentaje" 
-                                    @input="updateRowDescPct"
+                                    v-model.number="newItem.descuento_porcentaje"
+                                    @input="updateRowDescPct" step="any"
                                     @keydown.enter.prevent="commitRow"
                                     placeholder="%"
                                     class="w-full bg-transparent border-b border-emerald-500/30 text-yellow-500 font-mono text-right focus:outline-none focus:border-emerald-500"
@@ -517,10 +517,10 @@
                             <!-- Descuento $ -->
                             <div class="col-span-1 text-right">
                                 <input v-excel type="number" 
-                                    v-model.number="newItem.descuento_valor" 
+                                    v-model.number="newItem.descuento_unit"
                                     @input="updateRowDescVal"
                                     @keydown.enter.prevent="commitRow"
-                                    placeholder="$"
+                                    placeholder="$ c/u" step="any"
                                     class="w-full bg-transparent border-b border-emerald-500/30 text-yellow-500 font-mono text-right focus:outline-none focus:border-emerald-500"
                                 >
                             </div>
@@ -626,18 +626,18 @@
                                <!-- Descuento % (Editable) -->
                                 <div class="col-span-1 text-right">
                                     <input v-excel type="number" 
-                                        :value="item.descuento_porcentaje" 
-                                        @input="(e) => { item.descuento_porcentaje = parseFloat(e.target.value); updateItemDescPct(item); }"
+                                        :value="item.descuento_porcentaje"
+                                        @input="(e) => { item.descuento_porcentaje = e.target.value === '' ? '' : parseFloat(e.target.value); updateItemDescPct(item); }"
                                         @keydown.enter="$event.target.blur()"
                                         class="w-full bg-transparent border-b border-transparent hover:border-white/20 focus:border-emerald-500 text-right font-mono text-yellow-500 text-sm focus:outline-none transition-colors"
-                                        step="0.01"
+                                        step="any"
                                     >
                                 </div>
 
                                 <!-- Descuento $ (Editable - Restored) -->
                                 <div class="col-span-1 text-right">
                                     <input v-excel type="number" 
-                                        v-model.number="item.descuento_valor" 
+                                        v-model.number="item.descuento_unit"
                                         @input="updateItemDescVal(item)"
                                         @keydown.enter="$event.target.blur()"
                                         class="w-full bg-transparent border-b border-transparent hover:border-white/20 focus:border-emerald-500 text-right font-mono text-yellow-500 text-sm focus:outline-none transition-colors"
@@ -1129,6 +1129,8 @@ const loadPedido = async (id) => {
             precio: Number(i.precio_unitario),
             descuento_porcentaje: Number(i.descuento_porcentaje || 0),
             descuento_valor: Number(i.descuento_importe || 0),
+            // [Card #159] descuento por unidad: derivado del total guardado (la base sigue guardando el total del renglon)
+            ...descuentoDeRenglonGuardado(Number(i.cantidad), Number(i.descuento_importe || 0), Number(i.descuento_porcentaje || 0)),
             total: Number(i.subtotal),
             producto_obj: i.producto
         }));
@@ -1697,6 +1699,8 @@ const newItem = ref({
     precio: '',
     descuento_porcentaje: '',
     descuento_valor: '',
+    descuento_unit: '',
+    desc_modo: 'pct',
     total: 0,
     producto_obj: null,
     _debug_cotizacion: null
@@ -2029,6 +2033,8 @@ const selectProduct = async (prod) => {
     if (!editando) newItem.value.cantidad = 1;
     newItem.value.descuento_porcentaje = '';
     newItem.value.descuento_valor = '';
+    newItem.value.descuento_unit = '';
+    newItem.value.desc_modo = 'pct';
     newItem.value.total = Number(newItem.value.precio || 0) * Number(newItem.value.cantidad || 1);
 
     showProductResults.value = false;
@@ -2105,62 +2111,46 @@ const onIngestaCancel = () => {
     router.push({ name: 'IngestaFactura' });
 };
 
-// --- INLINE ROW DISCOUNT HANDLERS ---
-const updateRowDescPct = () => {
-    const gross = (Number(newItem.value.cantidad) || 0) * (Number(newItem.value.precio) || 0);
-    const pct = Number(newItem.value.descuento_porcentaje) || 0;
-    newItem.value.descuento_valor = (gross * pct) / 100;
-    if (newItem.value.descuento_valor === 0) newItem.value.descuento_valor = ''; // Keep UI Clean
-    updateRowTotal();
-};
+// --- DESCUENTO POR RENGLON: POR UNIDAD (Card #159, decision de Carlos 06/10) ---
+// El descuento se define por unidad (en $ por unidad o en %) y el total del renglon es el derivado. Se guarda el
+// total (descuento_valor, a centavos) y el porcentaje a 4 decimales; el $ por unidad (descuento_unit) vive solo en
+// pantalla, con 4 decimales como el formulario de ARCA. Manda lo ultimo que se tipeo (desc_modo): al cambiar la
+// cantidad ambos se conservan; al cambiar el precio se recalcula el que NO se tipeo.
+const r2 = (x) => Math.round((Number(x) + Number.EPSILON) * 100) / 100;
+const r4 = (x) => Math.round((Number(x) + Number.EPSILON) * 10000) / 10000;
 
-const updateRowDescVal = () => {
-    const gross = (Number(newItem.value.cantidad) || 0) * (Number(newItem.value.precio) || 0);
-    const val = Number(newItem.value.descuento_valor) || 0;
-    if (gross > 0) {
-        newItem.value.descuento_porcentaje = (val / gross) * 100;
+const recalcDescuento = (row) => {
+    const q = Number(row.cantidad) || 0;
+    const p = Number(row.precio) || 0;
+    let unit = 0;
+    if (row.desc_modo === 'pct') {
+        const pct = Number(row.descuento_porcentaje) || 0;
+        unit = r4(p * pct / 100);
+        row.descuento_unit = unit || '';
     } else {
-        newItem.value.descuento_porcentaje = '';
+        unit = Number(row.descuento_unit) || 0;
+        row.descuento_porcentaje = (p > 0 && unit) ? r4(unit / p * 100) : '';
     }
-    updateRowTotal();
+    row.descuento_valor = unit ? r2(unit * q) : '';
+    row.total = Math.max(0, q * p - (Number(row.descuento_valor) || 0));
 };
 
-const updateRowTotal = () => {
-    const gross = (Number(newItem.value.cantidad) || 0) * (Number(newItem.value.precio) || 0);
-    const desc = Number(newItem.value.descuento_valor) || 0;
-    newItem.value.total = Math.max(0, gross - desc);
-};
+// Renglon que viene de la base: el $ por unidad se deriva del total guardado; si el porcentaje tiene a lo sumo 2
+// decimales lo mas probable es que lo hayan tipeado como porcentaje, si no, salio de un importe.
+const descuentoDeRenglonGuardado = (cantidad, importe, pct) => ({
+    descuento_unit: (cantidad > 0 && importe) ? r4(importe / cantidad) : '',
+    desc_modo: (pct && r2(pct) === pct) ? 'pct' : 'unit',
+});
+
+// --- INLINE ROW DISCOUNT HANDLERS (fila de carga) ---
+const updateRowDescPct = () => { newItem.value.desc_modo = 'pct'; recalcDescuento(newItem.value); };
+const updateRowDescVal = () => { newItem.value.desc_modo = 'unit'; recalcDescuento(newItem.value); };
+const updateRowTotal = () => recalcDescuento(newItem.value);
 
 // --- SAVED ROW DISCOUNT HANDLERS ---
-const updateItemDescPct = (item) => {
-    const gross = item.cantidad * item.precio;
-    const pct = item.descuento_porcentaje;
-    item.descuento_valor = (gross * pct) / 100;
-    updateItemTotal(item);
-};
-
-const updateItemDescVal = (item) => {
-    const gross = item.cantidad * item.precio;
-    const val = item.descuento_valor;
-    if (gross > 0) {
-        item.descuento_porcentaje = (val / gross) * 100;
-    } else {
-        item.descuento_porcentaje = 0;
-    }
-    updateItemTotal(item);
-};
-
-const updateItemTotal = (item) => {
-    const gross = Number(item.cantidad) * Number(item.precio);
-    const desc = Number(item.descuento_valor || 0);
-    item.total = Math.max(0, gross - desc);
-    // Recalculate percentage just in case price/qty changed but value stayed same?
-    // User preference often: keep % constant or keep $ constant?
-    // Let's keep $ constant for now unless explicitly changed, but update % visualization.
-    if (gross > 0) {
-         item.descuento_porcentaje = (desc / gross) * 100;
-    }
-};
+const updateItemDescPct = (item) => { item.desc_modo = 'pct'; recalcDescuento(item); };
+const updateItemDescVal = (item) => { item.desc_modo = 'unit'; recalcDescuento(item); };
+const updateItemTotal = (item) => recalcDescuento(item);
 
 // --- GLOBAL FOOTER DISCOUNT HANDLERS ---
 // --- GLOBAL FOOTER DISCOUNT HANDLERS ---
@@ -2210,6 +2200,8 @@ const commitRow = () => {
         precio: Number(payload.precio),
         descuento_porcentaje: Number(payload.descuento_porcentaje || 0),
         descuento_valor: Number(payload.descuento_valor || 0),
+        descuento_unit: Number(payload.descuento_unit || 0),
+        desc_modo: payload.desc_modo || 'pct',
         total: Number(payload.total)
     };
     const editado = editingIndex.value !== null && items.value[editingIndex.value];
@@ -2232,6 +2224,8 @@ const commitRow = () => {
         precio: 0,
         descuento_porcentaje: 0,
         descuento_valor: 0,
+        descuento_unit: '',
+        desc_modo: 'pct',
         total: 0,
         producto_obj: null
     };
@@ -2272,6 +2266,7 @@ const editItem = async (index) => {
         // Use empty string for 0 to keep UI clean
         descuento_porcentaje: itemData.descuento_porcentaje || '',
         descuento_valor: itemData.descuento_valor || '',
+        descuento_unit: itemData.descuento_unit || '',
         producto_obj: itemData.producto_obj || null
     };
 
@@ -2293,7 +2288,7 @@ const cancelEdit = (alCuerpo = true) => {
     const indice = editingIndex.value;
     editingIndex.value = null;
     newItem.value = {
-        sku: '', descripcion: '', cantidad: 1, precio: '', descuento_porcentaje: '', descuento_valor: '',
+        sku: '', descripcion: '', cantidad: 1, precio: '', descuento_porcentaje: '', descuento_valor: '', descuento_unit: '', desc_modo: 'pct',
         total: 0, producto_obj: null, _debug_cotizacion: null
     };
     showProductResults.value = false;
@@ -2581,6 +2576,9 @@ const confirmEditCantidad = async (index) => {
             item.cantidad = Number(itemActualizado.cantidad);
             item.cantidad_entregada = Number(itemActualizado.cantidad_entregada || 0);
             item.total = Number(itemActualizado.subtotal);
+            // [Card #159] el servidor conserva el descuento por unidad al cambiar la cantidad: tomar lo que devolvio
+            Object.assign(item, descuentoDeRenglonGuardado(item.cantidad, Number(itemActualizado.descuento_importe || 0), Number(itemActualizado.descuento_porcentaje || 0)),
+                { descuento_valor: Number(itemActualizado.descuento_importe || 0), descuento_porcentaje: Number(itemActualizado.descuento_porcentaje || 0) });
         }
         notas.value = pedidoActualizado.nota || '';
         flagsEstadoPedido.value = Number(pedidoActualizado.flags_estado || 0);
