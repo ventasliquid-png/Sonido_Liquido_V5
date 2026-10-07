@@ -942,9 +942,15 @@ def update_pedido(
     # [V5.9 GOLD] Auto-Sincronización con Facturas en Cuarentena/Borrador
     # Si el usuario corrige el pedido, la factura espejo (mientras sea borrador) debe reflejar el cambio.
     from backend.facturacion.models import Factura, FacturaItem
+    from sqlalchemy import func as _func
+    # [Auditoria CA H1, S881] Una factura que ya trae CAE es un comprobante EMITIDO por ARCA aunque la ingesta vieja
+    # (MODO ESPEJO, remitos/service.py create_from_ingestion) la guarde como BORRADOR: sus renglones son los del PDF,
+    # no los del pedido. Re-clonarlos desde el pedido los pisaba (en P: facturas 2577 y 2597) y dejaba un total que
+    # ya no coincide con el comprobante autorizado. Solo se sincronizan los borradores SIN CAE.
     facturas_borrador = db.query(Factura).filter(
         Factura.pedido_id == pedido_id,
-        Factura.estado == "BORRADOR"
+        Factura.estado == "BORRADOR",
+        _func.coalesce(_func.trim(Factura.cae), "") == ""
     ).all()
     
     for f_borrador in facturas_borrador:
