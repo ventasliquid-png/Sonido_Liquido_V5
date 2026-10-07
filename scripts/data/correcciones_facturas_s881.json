@@ -1,0 +1,1599 @@
+{
+ "generado": "2026-10-07T11:00:10",
+ "base": "PRODUCCION_P_al_20261006_1600.db",
+ "correcciones": [
+  {
+   "pv": 1,
+   "numero": 2533,
+   "cae": "86194643983614",
+   "fecha_emision_arca": "2026-05-08",
+   "antes": {
+    "tipo": "PRESUPUESTO_X",
+    "total": 208000.0,
+    "neto": 0.0,
+    "n_items": 2,
+    "suma_items": 208000.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-05-08",
+    "vto": "2026-05-18",
+    "neto_gravado": 208000.0,
+    "exento": 0,
+    "iva_21": 43680.0,
+    "iva_105": 0.0,
+    "total": 251680.0
+   },
+   "items": [
+    {
+     "descripcion": "Surgibac PA bidón por 5 litros",
+     "cantidad": 2.0,
+     "precio": 50000.0,
+     "alicuota": 21.0,
+     "subtotal": 100000.0,
+     "pedido_item_id": null
+    },
+    {
+     "descripcion": "Surgizime L5 bidón por 5 litros",
+     "cantidad": 2.0,
+     "precio": 54000.0,
+     "alicuota": 21.0,
+     "subtotal": 108000.0,
+     "pedido_item_id": null
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2534,
+   "cae": "86194661827213",
+   "fecha_emision_arca": "2026-05-08",
+   "antes": {
+    "tipo": "PRESUPUESTO_X",
+    "total": 1983600.0,
+    "neto": 0.0,
+    "n_items": 1,
+    "suma_items": 1983600.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-05-08",
+    "vto": "2026-05-18",
+    "neto_gravado": 1983600.0,
+    "exento": 0.0,
+    "iva_21": 416556.0,
+    "iva_105": 0.0,
+    "total": 2400156.0
+   },
+   "items": null,
+   "observacion": "totales tomados del encabezado impreso del PDF (neto + 21 % = total); renglones NO corregidos: los renglones leidos no cierran, revisar a mano (Card #144)"
+  },
+  {
+   "pv": 1,
+   "numero": 2536,
+   "cae": "86195371534242",
+   "fecha_emision_arca": "2026-05-13",
+   "antes": {
+    "tipo": "PRESUPUESTO_X",
+    "total": 132000.0,
+    "neto": 0.0,
+    "n_items": 1,
+    "suma_items": 132000.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-05-13",
+    "vto": "2026-05-23",
+    "neto_gravado": 132000.0,
+    "exento": 0,
+    "iva_21": 27720.0,
+    "iva_105": 0.0,
+    "total": 159720.0
+   },
+   "items": [
+    {
+     "descripcion": "Surgizime E2 bidón x 5 Lts",
+     "cantidad": 3.0,
+     "precio": 44000.0,
+     "alicuota": 21.0,
+     "subtotal": 132000.0,
+     "pedido_item_id": 65
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2537,
+   "cae": "86195382598216",
+   "fecha_emision_arca": "2026-05-13",
+   "antes": {
+    "tipo": "PRESUPUESTO_X",
+    "total": 300000.0,
+    "neto": 0.0,
+    "n_items": 1,
+    "suma_items": 300000.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-05-13",
+    "vto": "2026-05-23",
+    "neto_gravado": 300000.0,
+    "exento": 0,
+    "iva_21": 63000.0,
+    "iva_105": 0.0,
+    "total": 363000.0
+   },
+   "items": [
+    {
+     "descripcion": "Surgibac PA Plus bidon x 5 Lts",
+     "cantidad": 6.0,
+     "precio": 50000.0,
+     "alicuota": 21.0,
+     "subtotal": 300000.0,
+     "pedido_item_id": 67
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2538,
+   "cae": "86205666422750",
+   "fecha_emision_arca": "2026-05-15",
+   "antes": {
+    "tipo": "PRESUPUESTO_X",
+    "total": 94600.0,
+    "neto": 0.0,
+    "n_items": 1,
+    "suma_items": 94600.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-05-15",
+    "vto": "2026-05-25",
+    "neto_gravado": 94600.0,
+    "exento": 0,
+    "iva_21": 19866.0,
+    "iva_105": 0.0,
+    "total": 114466.0
+   },
+   "items": [
+    {
+     "descripcion": "Pack camillero x 2 rollos",
+     "cantidad": 4.0,
+     "precio": 23650.0,
+     "alicuota": 21.0,
+     "subtotal": 94600.0,
+     "pedido_item_id": 69
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2544,
+   "cae": "86217045620654",
+   "fecha_emision_arca": "2026-05-26",
+   "antes": {
+    "tipo": "PRESUPUESTO_X",
+    "total": 112000.0,
+    "neto": 0.0,
+    "n_items": 1,
+    "suma_items": 112000.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-05-26",
+    "vto": "2026-06-05",
+    "neto_gravado": 112000.0,
+    "exento": 0,
+    "iva_21": 23520.0,
+    "iva_105": 0.0,
+    "total": 135520.0
+   },
+   "items": [
+    {
+     "descripcion": "Surgibac G bidon x 5 Lts",
+     "cantidad": 2.0,
+     "precio": 56000.0,
+     "alicuota": 21.0,
+     "subtotal": 112000.0,
+     "pedido_item_id": 72
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2545,
+   "cae": "86227332074344",
+   "fecha_emision_arca": "2026-05-28",
+   "antes": {
+    "tipo": "PRESUPUESTO_X",
+    "total": 282600.0,
+    "neto": 0.0,
+    "n_items": 2,
+    "suma_items": 282600.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-05-28",
+    "vto": "2026-06-07",
+    "neto_gravado": 282600.0,
+    "exento": 0,
+    "iva_21": 59346.0,
+    "iva_105": 0.0,
+    "total": 341946.0
+   },
+   "items": [
+    {
+     "descripcion": "JABON BACTERICIDA BIDON X 5 LTS",
+     "cantidad": 6.0,
+     "precio": 24200.0,
+     "alicuota": 21.0,
+     "subtotal": 145200.0,
+     "pedido_item_id": 73
+    },
+    {
+     "descripcion": "Surgizime O3 bidón 5 litros",
+     "cantidad": 3.0,
+     "precio": 45800.0,
+     "alicuota": 21.0,
+     "subtotal": 137400.0,
+     "pedido_item_id": 74
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2546,
+   "cae": "86228076692816",
+   "fecha_emision_arca": "2026-06-02",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 544000.0,
+    "neto": 449586.77685950417,
+    "n_items": 3,
+    "suma_items": 544000.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-06-02",
+    "vto": "2026-06-12",
+    "neto_gravado": 544000.0,
+    "exento": 0,
+    "iva_21": 114240.0,
+    "iva_105": 0.0,
+    "total": 658240.0
+   },
+   "items": [
+    {
+     "descripcion": "TOALLA 200 MTS X 6",
+     "cantidad": 10.0,
+     "precio": 42350.0,
+     "alicuota": 21.0,
+     "subtotal": 423500.0,
+     "pedido_item_id": null
+    },
+    {
+     "descripcion": "TOALLAS SUPER CORTAS BLANCAS CAJA POR 2500",
+     "cantidad": 1.0,
+     "precio": 33500.0,
+     "alicuota": 21.0,
+     "subtotal": 33500.0,
+     "pedido_item_id": null
+    },
+    {
+     "descripcion": "PAPEL HIGIENICO 122",
+     "cantidad": 3.0,
+     "precio": 29000.0,
+     "alicuota": 21.0,
+     "subtotal": 87000.0,
+     "pedido_item_id": null
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2547,
+   "cae": "86238331218043",
+   "fecha_emision_arca": "2026-06-04",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 88000.0,
+    "neto": 72727.27272727274,
+    "n_items": 1,
+    "suma_items": 88000.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-06-04",
+    "vto": "2026-06-14",
+    "neto_gravado": 88000.0,
+    "exento": 0,
+    "iva_21": 18480.0,
+    "iva_105": 0.0,
+    "total": 106480.0
+   },
+   "items": [
+    {
+     "descripcion": "Cofias",
+     "cantidad": 2000.0,
+     "precio": 44.0,
+     "alicuota": 21.0,
+     "subtotal": 88000.0,
+     "pedido_item_id": null
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2549,
+   "cae": "86238878700280",
+   "fecha_emision_arca": "2026-06-08",
+   "antes": {
+    "tipo": "PRESUPUESTO_X",
+    "total": 2784000.0,
+    "neto": 0.0,
+    "n_items": 1,
+    "suma_items": 2784000.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-06-08",
+    "vto": "2026-06-18",
+    "neto_gravado": 2644800.0,
+    "exento": 0.0,
+    "iva_21": 555408.0,
+    "iva_105": 0.0,
+    "total": 3200208.0
+   },
+   "items": null,
+   "observacion": "totales tomados del encabezado impreso del PDF (neto + 21 % = total); renglones NO corregidos: los renglones leidos no cierran, revisar a mano (Card #144)"
+  },
+  {
+   "pv": 1,
+   "numero": 2551,
+   "cae": "86249326634154",
+   "fecha_emision_arca": "2026-06-11",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 386595.0,
+    "neto": 319500.0,
+    "n_items": 2,
+    "suma_items": 319500.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-06-11",
+    "vto": "2026-06-21",
+    "neto_gravado": 319500.0,
+    "exento": 0,
+    "iva_21": 67095.0,
+    "iva_105": 0.0,
+    "total": 386595.0
+   },
+   "items": [
+    {
+     "descripcion": "Toalla intercalada blanca",
+     "cantidad": 4.0,
+     "precio": 63900.0,
+     "alicuota": 21.0,
+     "subtotal": 255600.0,
+     "pedido_item_id": 97
+    },
+    {
+     "descripcion": "Toalla 200 MTS x 6",
+     "cantidad": 1.0,
+     "precio": 63900.0,
+     "alicuota": 21.0,
+     "subtotal": 63900.0,
+     "pedido_item_id": 98
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2552,
+   "cae": "86249510067290",
+   "fecha_emision_arca": "2026-06-12",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 113000.0,
+    "neto": 93388.42975206612,
+    "n_items": 1,
+    "suma_items": 113000.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-06-12",
+    "vto": "2026-06-22",
+    "neto_gravado": 113000.0,
+    "exento": 0,
+    "iva_21": 23730.0,
+    "iva_105": 0.0,
+    "total": 136730.0
+   },
+   "items": [
+    {
+     "descripcion": "JABON BACTERICIDA BIDON X 5 LTS",
+     "cantidad": 5.0,
+     "precio": 22600.0,
+     "alicuota": 21.0,
+     "subtotal": 113000.0,
+     "pedido_item_id": 102
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2553,
+   "cae": "86249930567411",
+   "fecha_emision_arca": "2026-06-16",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 300000.0,
+    "neto": 247933.88429752068,
+    "n_items": 1,
+    "suma_items": 300000.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-06-16",
+    "vto": "2026-06-26",
+    "neto_gravado": 300000.0,
+    "exento": 0,
+    "iva_21": 63000.0,
+    "iva_105": 0.0,
+    "total": 363000.0
+   },
+   "items": [
+    {
+     "descripcion": "Surgibac PA Plus bidón x 5 Lts",
+     "cantidad": 6.0,
+     "precio": 50000.0,
+     "alicuota": 21.0,
+     "subtotal": 300000.0,
+     "pedido_item_id": 106
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2556,
+   "cae": "86250828172474",
+   "fecha_emision_arca": "2026-06-23",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 154638.0,
+    "neto": 127800.0,
+    "n_items": 1,
+    "suma_items": 127800.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-06-23",
+    "vto": "2026-07-03",
+    "neto_gravado": 127800.0,
+    "exento": 0,
+    "iva_21": 26838.0,
+    "iva_105": 0.0,
+    "total": 154638.0
+   },
+   "items": [
+    {
+     "descripcion": "TOALLAS SUPER CORTAS BLANCAS CAJA POR 2500",
+     "cantidad": 2.0,
+     "precio": 63900.0,
+     "alicuota": 21.0,
+     "subtotal": 127800.0,
+     "pedido_item_id": 115
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2562,
+   "cae": "86272142774696",
+   "fecha_emision_arca": "2026-07-02",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 111400.0,
+    "neto": 92066.11570247934,
+    "n_items": 1,
+    "suma_items": 111400.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-07-02",
+    "vto": "2026-07-12",
+    "neto_gravado": 111400.0,
+    "exento": 0,
+    "iva_21": 23394.0,
+    "iva_105": 0.0,
+    "total": 134794.0
+   },
+   "items": [
+    {
+     "descripcion": "GUANTES VETERINARIOS 90 CM BOLSA X 100 UN",
+     "cantidad": 10.0,
+     "precio": 11140.0,
+     "alicuota": 21.0,
+     "subtotal": 111400.0,
+     "pedido_item_id": 6
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2563,
+   "cae": "86272292805993",
+   "fecha_emision_arca": "2026-07-03",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 1162000.0,
+    "neto": 960330.5785123968,
+    "n_items": 3,
+    "suma_items": 1162000.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-07-03",
+    "vto": "2026-07-13",
+    "neto_gravado": 1162000.0,
+    "exento": 0,
+    "iva_21": 244020.0,
+    "iva_105": 0.0,
+    "total": 1406020.0
+   },
+   "items": [
+    {
+     "descripcion": "Guante nitrilo caja por 100 Talle M",
+     "cantidad": 40.0,
+     "precio": 8950.0,
+     "alicuota": 21.0,
+     "subtotal": 358000.0,
+     "pedido_item_id": 125
+    },
+    {
+     "descripcion": "Guante nitrilo caja por 100 Talle L",
+     "cantidad": 80.0,
+     "precio": 8950.0,
+     "alicuota": 21.0,
+     "subtotal": 716000.0,
+     "pedido_item_id": 124
+    },
+    {
+     "descripcion": "Cofia Descartable",
+     "cantidad": 2000.0,
+     "precio": 44.0,
+     "alicuota": 21.0,
+     "subtotal": 88000.0,
+     "pedido_item_id": 126
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2564,
+   "cae": "86272293260301",
+   "fecha_emision_arca": "2026-07-03",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 150000.0,
+    "neto": 123966.94214876034,
+    "n_items": 1,
+    "suma_items": 150000.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-07-03",
+    "vto": "2026-07-13",
+    "neto_gravado": 150000.0,
+    "exento": 0,
+    "iva_21": 31500.0,
+    "iva_105": 0.0,
+    "total": 181500.0
+   },
+   "items": [
+    {
+     "descripcion": "SURGIBAC PA BIDÓN 5 LITROS",
+     "cantidad": 3.0,
+     "precio": 50000.0,
+     "alicuota": 21.0,
+     "subtotal": 150000.0,
+     "pedido_item_id": 123
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2565,
+   "cae": "86272681377491",
+   "fecha_emision_arca": "2026-07-06",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 508000.0,
+    "neto": 419834.71074380167,
+    "n_items": 4,
+    "suma_items": 508000.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-07-06",
+    "vto": "2026-07-16",
+    "neto_gravado": 508000.0,
+    "exento": 0,
+    "iva_21": 106680.0,
+    "iva_105": 0.0,
+    "total": 614680.0
+   },
+   "items": [
+    {
+     "descripcion": "Barbijo Recto con elástico",
+     "cantidad": 1000.0,
+     "precio": 46.0,
+     "alicuota": 21.0,
+     "subtotal": 46000.0,
+     "pedido_item_id": 131
+    },
+    {
+     "descripcion": "Cofia Descartable",
+     "cantidad": 2000.0,
+     "precio": 44.0,
+     "alicuota": 21.0,
+     "subtotal": 88000.0,
+     "pedido_item_id": 130
+    },
+    {
+     "descripcion": "Guantes nitrilo talle L caja x 100",
+     "cantidad": 20.0,
+     "precio": 8950.0,
+     "alicuota": 21.0,
+     "subtotal": 179000.0,
+     "pedido_item_id": 128
+    },
+    {
+     "descripcion": "GUANTES VETERINARIOS 90 CM BOLSA X 100 UN",
+     "cantidad": 20.0,
+     "precio": 9750.0,
+     "alicuota": 21.0,
+     "subtotal": 195000.0,
+     "pedido_item_id": 129
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2567,
+   "cae": "86283690425250",
+   "fecha_emision_arca": "2026-07-13",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 177600.0,
+    "neto": 0.0,
+    "n_items": 1,
+    "suma_items": 177600.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-07-13",
+    "vto": "2026-07-23",
+    "neto_gravado": 177600.0,
+    "exento": 0,
+    "iva_21": 37296.0,
+    "iva_105": 0.0,
+    "total": 214896.0
+   },
+   "items": [
+    {
+     "descripcion": "Surgizime L5 bidón x 5 Lts",
+     "cantidad": 3.0,
+     "precio": 59200.0,
+     "alicuota": 21.0,
+     "subtotal": 177600.0,
+     "pedido_item_id": 135
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2568,
+   "cae": "86283690938329",
+   "fecha_emision_arca": "2026-07-13",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 118400.0,
+    "neto": 0.0,
+    "n_items": 1,
+    "suma_items": 118400.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-07-13",
+    "vto": "2026-07-23",
+    "neto_gravado": 118400.0,
+    "exento": 0,
+    "iva_21": 24864.0,
+    "iva_105": 0.0,
+    "total": 143264.0
+   },
+   "items": [
+    {
+     "descripcion": "Surgizime L5 bidón x 5 Lts",
+     "cantidad": 2.0,
+     "precio": 59200.0,
+     "alicuota": 21.0,
+     "subtotal": 118400.0,
+     "pedido_item_id": 134
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2569,
+   "cae": "86294264370765",
+   "fecha_emision_arca": "2026-07-17",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 255600.0,
+    "neto": 211239.6694214876,
+    "n_items": 1,
+    "suma_items": 255600.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-07-17",
+    "vto": "2026-07-27",
+    "neto_gravado": 255600.0,
+    "exento": 0,
+    "iva_21": 53676.0,
+    "iva_105": 0.0,
+    "total": 309276.0
+   },
+   "items": [
+    {
+     "descripcion": "TOALLA INTERCALADA BLANCA",
+     "cantidad": 4.0,
+     "precio": 63900.0,
+     "alicuota": 21.0,
+     "subtotal": 255600.0,
+     "pedido_item_id": 136
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2574,
+   "cae": "86305095331736",
+   "fecha_emision_arca": "2026-07-23",
+   "antes": {
+    "tipo": "PRESUPUESTO_X",
+    "total": 2314200.0,
+    "neto": 0.0,
+    "n_items": 1,
+    "suma_items": 2314200.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-07-23",
+    "vto": "2026-08-02",
+    "neto_gravado": 2314200.0,
+    "exento": 0.0,
+    "iva_21": 485982.0,
+    "iva_105": 0.0,
+    "total": 2800182.0
+   },
+   "items": null,
+   "observacion": "totales tomados del encabezado impreso del PDF (neto + 21 % = total); renglones NO corregidos: los renglones leidos no cierran, revisar a mano (Card #144)"
+  },
+  {
+   "pv": 1,
+   "numero": 2577,
+   "cae": "86305752507009",
+   "fecha_emision_arca": "2026-07-28",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 3659040.0,
+    "neto": 3024000.0,
+    "n_items": 3,
+    "suma_items": 3024000.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-07-28",
+    "vto": "2026-08-07",
+    "neto_gravado": 2049000.0,
+    "exento": 0,
+    "iva_21": 430290.0,
+    "iva_105": 0.0,
+    "total": 2479290.0
+   },
+   "items": [
+    {
+     "descripcion": "GUANTES VETERINARIOS 90 CM BOLSA X 100 UN",
+     "cantidad": 100.0,
+     "precio": 9750.0,
+     "alicuota": 21.0,
+     "subtotal": 975000.0,
+     "pedido_item_id": 181
+    },
+    {
+     "descripcion": "Guantes nitrilo talle L caja x 100",
+     "cantidad": 80.0,
+     "precio": 8950.0,
+     "alicuota": 21.0,
+     "subtotal": 716000.0,
+     "pedido_item_id": 180
+    },
+    {
+     "descripcion": "Guantes nitrilo talle M caja x 100",
+     "cantidad": 40.0,
+     "precio": 8950.0,
+     "alicuota": 21.0,
+     "subtotal": 358000.0,
+     "pedido_item_id": 179
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2580,
+   "cae": "86327292107176",
+   "fecha_emision_arca": "2026-08-07",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 444900.0,
+    "neto": 367685.9504132231,
+    "n_items": 2,
+    "suma_items": 444900.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-08-07",
+    "vto": "2026-08-17",
+    "neto_gravado": 444900.0,
+    "exento": 0,
+    "iva_21": 93429.0,
+    "iva_105": 0.0,
+    "total": 538329.0
+   },
+   "items": [
+    {
+     "descripcion": "PAPEL HIGIENICO 122",
+     "cantidad": 1.0,
+     "precio": 38100.0,
+     "alicuota": 21.0,
+     "subtotal": 38100.0,
+     "pedido_item_id": 168
+    },
+    {
+     "descripcion": "TOALLA INTERCALADA BLANCA",
+     "cantidad": 6.0,
+     "precio": 67800.0,
+     "alicuota": 21.0,
+     "subtotal": 406800.0,
+     "pedido_item_id": 169
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2583,
+   "cae": "86327921975704",
+   "fecha_emision_arca": "2026-08-11",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 1184000.0,
+    "neto": 0.0,
+    "n_items": 1,
+    "suma_items": 1184000.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-08-11",
+    "vto": "2026-08-21",
+    "neto_gravado": 1184000.0,
+    "exento": 0,
+    "iva_21": 248640.0,
+    "iva_105": 0.0,
+    "total": 1432640.0
+   },
+   "items": [
+    {
+     "descripcion": "Surgizime L5 bidón x 5 Lts",
+     "cantidad": 20.0,
+     "precio": 59200.0,
+     "alicuota": 21.0,
+     "subtotal": 1184000.0,
+     "pedido_item_id": 166
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2587,
+   "cae": "86338834894731",
+   "fecha_emision_arca": "2026-08-18",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 450000.0,
+    "neto": 0.0,
+    "n_items": 1,
+    "suma_items": 450000.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-08-18",
+    "vto": "2026-08-28",
+    "neto_gravado": 450000.0,
+    "exento": 0,
+    "iva_21": 94500.0,
+    "iva_105": 0.0,
+    "total": 544500.0
+   },
+   "items": [
+    {
+     "descripcion": "Surgibac PA Plus bidón x 5 Lts",
+     "cantidad": 9.0,
+     "precio": 50000.0,
+     "alicuota": 21.0,
+     "subtotal": 450000.0,
+     "pedido_item_id": 186
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2589,
+   "cae": "86349746595764",
+   "fecha_emision_arca": "2026-08-24",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 2784000.0,
+    "neto": 2300826.4462809917,
+    "n_items": 1,
+    "suma_items": 2784000.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-08-24",
+    "vto": "2026-09-03",
+    "neto_gravado": 2644800.0,
+    "exento": 0.0,
+    "iva_21": 555408.0,
+    "iva_105": 0.0,
+    "total": 3200208.0
+   },
+   "items": null,
+   "observacion": "totales tomados del encabezado impreso del PDF (neto + 21 % = total); renglones NO corregidos: los renglones leidos no cierran, revisar a mano (Card #144)"
+  },
+  {
+   "pv": 1,
+   "numero": 2594,
+   "cae": "86361453697862",
+   "fecha_emision_arca": "2026-09-04",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 68700.0,
+    "neto": 56776.85950413223,
+    "n_items": 2,
+    "suma_items": 68700.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-09-04",
+    "vto": "2026-09-14",
+    "neto_gravado": 68700.0,
+    "exento": 0,
+    "iva_21": 14427.0,
+    "iva_105": 0.0,
+    "total": 83127.0
+   },
+   "items": [
+    {
+     "descripcion": "Surgizime L5 bidón x 5 Lts",
+     "cantidad": 1.0,
+     "precio": 54800.0,
+     "alicuota": 21.0,
+     "subtotal": 54800.0,
+     "pedido_item_id": 201
+    },
+    {
+     "descripcion": "Surgizime E2 botella x 1 Lt",
+     "cantidad": 1.0,
+     "precio": 13900.0,
+     "alicuota": 21.0,
+     "subtotal": 13900.0,
+     "pedido_item_id": 202
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2595,
+   "cae": "86361457475615",
+   "fecha_emision_arca": "2026-09-04",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 307800.0,
+    "neto": 254380.1652892562,
+    "n_items": 3,
+    "suma_items": 307800.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-09-04",
+    "vto": "2026-09-14",
+    "neto_gravado": 307800.0,
+    "exento": 0,
+    "iva_21": 64638.0,
+    "iva_105": 0.0,
+    "total": 372438.0
+   },
+   "items": [
+    {
+     "descripcion": "Toalla intercalada blanca",
+     "cantidad": 2.0,
+     "precio": 71200.0,
+     "alicuota": 21.0,
+     "subtotal": 142400.0,
+     "pedido_item_id": 203
+    },
+    {
+     "descripcion": "Toallas 6 x 200 etiqueta naranja",
+     "cantidad": 2.0,
+     "precio": 62700.0,
+     "alicuota": 21.0,
+     "subtotal": 125400.0,
+     "pedido_item_id": null
+    },
+    {
+     "descripcion": "Pack papel higiénico 122",
+     "cantidad": 1.0,
+     "precio": 40000.0,
+     "alicuota": 21.0,
+     "subtotal": 40000.0,
+     "pedido_item_id": 205
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2596,
+   "cae": "86361457836523",
+   "fecha_emision_arca": "2026-09-04",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 427200.0,
+    "neto": 353057.8512396694,
+    "n_items": 1,
+    "suma_items": 427200.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-09-04",
+    "vto": "2026-09-14",
+    "neto_gravado": 427200.0,
+    "exento": 0,
+    "iva_21": 89712.0,
+    "iva_105": 0.0,
+    "total": 516912.0
+   },
+   "items": [
+    {
+     "descripcion": "Toalla intercalada blanca",
+     "cantidad": 6.0,
+     "precio": 71200.0,
+     "alicuota": 21.0,
+     "subtotal": 427200.0,
+     "pedido_item_id": 206
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2597,
+   "cae": "86361907875249",
+   "fecha_emision_arca": "2026-09-07",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 2569798.0,
+    "neto": 2123800.0,
+    "n_items": 1,
+    "suma_items": 2123800.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-09-07",
+    "vto": "2026-09-17",
+    "neto_gravado": 2152500.0,
+    "exento": 0,
+    "iva_21": 452025.0,
+    "iva_105": 0.0,
+    "total": 2604525.0
+   },
+   "items": [
+    {
+     "descripcion": "BOLSA PE 170 X 300 MM EN BOLSA X 7 UN",
+     "cantidad": 1500.0,
+     "precio": 1435.0,
+     "alicuota": 21.0,
+     "subtotal": 2152500.0,
+     "pedido_item_id": 215
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2598,
+   "cae": "86362079368489",
+   "fecha_emision_arca": "2026-09-08",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 360500.0,
+    "neto": 297933.8842975207,
+    "n_items": 3,
+    "suma_items": 360500.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-09-08",
+    "vto": "2026-09-18",
+    "neto_gravado": 360500.0,
+    "exento": 0,
+    "iva_21": 75705.0,
+    "iva_105": 0.0,
+    "total": 436205.0
+   },
+   "items": [
+    {
+     "descripcion": "GUANTES VETERINARIOS 90 CM BOLSA X 100 UN",
+     "cantidad": 10.0,
+     "precio": 9750.0,
+     "alicuota": 21.0,
+     "subtotal": 97500.0,
+     "pedido_item_id": 213
+    },
+    {
+     "descripcion": "Guantes nitrilo talle L caja x 100",
+     "cantidad": 20.0,
+     "precio": 8950.0,
+     "alicuota": 21.0,
+     "subtotal": 179000.0,
+     "pedido_item_id": 212
+    },
+    {
+     "descripcion": "Cofia Descartable",
+     "cantidad": 2000.0,
+     "precio": 42.0,
+     "alicuota": 21.0,
+     "subtotal": 84000.0,
+     "pedido_item_id": 211
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2599,
+   "cae": "86362079833532",
+   "fecha_emision_arca": "2026-09-08",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 176000.0,
+    "neto": 145454.54545454547,
+    "n_items": 1,
+    "suma_items": 176000.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-09-08",
+    "vto": "2026-09-18",
+    "neto_gravado": 176000.0,
+    "exento": 0,
+    "iva_21": 36960.0,
+    "iva_105": 0.0,
+    "total": 212960.0
+   },
+   "items": [
+    {
+     "descripcion": "Cofia descartable",
+     "cantidad": 4000.0,
+     "precio": 44.0,
+     "alicuota": 21.0,
+     "subtotal": 176000.0,
+     "pedido_item_id": 214
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2600,
+   "cae": "86362080287446",
+   "fecha_emision_arca": "2026-09-08",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 1269000.0,
+    "neto": 1048760.3305785125,
+    "n_items": 3,
+    "suma_items": 1269000.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-09-08",
+    "vto": "2026-09-18",
+    "neto_gravado": 1269000.0,
+    "exento": 0,
+    "iva_21": 266490.0,
+    "iva_105": 0.0,
+    "total": 1535490.0
+   },
+   "items": [
+    {
+     "descripcion": "Guante nitrilo caja por 100 Talle M",
+     "cantidad": 40.0,
+     "precio": 8950.0,
+     "alicuota": 21.0,
+     "subtotal": 358000.0,
+     "pedido_item_id": 183
+    },
+    {
+     "descripcion": "Guante nitrilo caja por 100 Talle L",
+     "cantidad": 80.0,
+     "precio": 8950.0,
+     "alicuota": 21.0,
+     "subtotal": 716000.0,
+     "pedido_item_id": 184
+    },
+    {
+     "descripcion": "GUANTES VETERINARIOS 90 CM BOLSA X 100 UN",
+     "cantidad": 20.0,
+     "precio": 9750.0,
+     "alicuota": 21.0,
+     "subtotal": 195000.0,
+     "pedido_item_id": 185
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2601,
+   "cae": "86372567544191",
+   "fecha_emision_arca": "2026-09-11",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 0.0,
+    "neto": 0.0,
+    "n_items": 1,
+    "suma_items": 0.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-09-11",
+    "vto": "2026-09-21",
+    "neto_gravado": 3967200.0,
+    "exento": 0.0,
+    "iva_21": 833112.0,
+    "iva_105": 0.0,
+    "total": 4800312.0
+   },
+   "items": null,
+   "observacion": "totales tomados del encabezado impreso del PDF (neto + 21 % = total); renglones NO corregidos: los renglones leidos no cierran, revisar a mano (Card #144)"
+  },
+  {
+   "pv": 1,
+   "numero": 2602,
+   "cae": "86372941483373",
+   "fecha_emision_arca": "2026-09-14",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 0.0,
+    "neto": 0.0,
+    "n_items": 1,
+    "suma_items": 0.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-09-14",
+    "vto": "2026-09-24",
+    "neto_gravado": 300000.0,
+    "exento": 0,
+    "iva_21": 63000.0,
+    "iva_105": 0.0,
+    "total": 363000.0
+   },
+   "items": [
+    {
+     "descripcion": "Surgibac PA Plus bidón x 5 Lts",
+     "cantidad": 6.0,
+     "precio": 50000.0,
+     "alicuota": 21.0,
+     "subtotal": 300000.0,
+     "pedido_item_id": 218
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2604,
+   "cae": "86383450047893",
+   "fecha_emision_arca": "2026-09-17",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 660000.0,
+    "neto": 0.0,
+    "n_items": 1,
+    "suma_items": 0.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-09-17",
+    "vto": "2026-09-27",
+    "neto_gravado": 660000.0,
+    "exento": 0,
+    "iva_21": 138600.0,
+    "iva_105": 0.0,
+    "total": 798600.0
+   },
+   "items": [
+    {
+     "descripcion": "Surgibac PA Plus bidón x 5 Lts",
+     "cantidad": 12.0,
+     "precio": 55000.0,
+     "alicuota": 21.0,
+     "subtotal": 660000.0,
+     "pedido_item_id": 217
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2605,
+   "cae": "86384033501557",
+   "fecha_emision_arca": "2026-09-21",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 568800.0,
+    "neto": 0.0,
+    "n_items": 2,
+    "suma_items": 0.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-09-21",
+    "vto": "2026-10-01",
+    "neto_gravado": 568800.0,
+    "exento": 0,
+    "iva_21": 119448.0,
+    "iva_105": 0.0,
+    "total": 688248.0
+   },
+   "items": [
+    {
+     "descripcion": "Surgizime O3 botella x 1 Lt",
+     "cantidad": 24.0,
+     "precio": 12100.0,
+     "alicuota": 21.0,
+     "subtotal": 290400.0,
+     "pedido_item_id": 219
+    },
+    {
+     "descripcion": "Surgibac PA Plus botella x 1 Lt",
+     "cantidad": 24.0,
+     "precio": 11600.0,
+     "alicuota": 21.0,
+     "subtotal": 278400.0,
+     "pedido_item_id": 220
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2606,
+   "cae": "86384360343014",
+   "fecha_emision_arca": "2026-09-23",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 484000.0,
+    "neto": 0.0,
+    "n_items": 1,
+    "suma_items": 0.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-09-23",
+    "vto": "2026-10-03",
+    "neto_gravado": 484000.0,
+    "exento": 0,
+    "iva_21": 101640.0,
+    "iva_105": 0.0,
+    "total": 585640.0
+   },
+   "items": [
+    {
+     "descripcion": "Surgizime L5 bidón x 5 Lts",
+     "cantidad": 8.0,
+     "precio": 60500.0,
+     "alicuota": 21.0,
+     "subtotal": 484000.0,
+     "pedido_item_id": 225
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2608,
+   "cae": "86394722666609",
+   "fecha_emision_arca": "2026-09-25",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 0.0,
+    "neto": 0.0,
+    "n_items": 2,
+    "suma_items": 0.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-09-25",
+    "vto": "2026-10-05",
+    "neto_gravado": 208000.0,
+    "exento": 0,
+    "iva_21": 43680.0,
+    "iva_105": 0.0,
+    "total": 251680.0
+   },
+   "items": [
+    {
+     "descripcion": "Surgizime L5 bidón x 5 Lts",
+     "cantidad": 2.0,
+     "precio": 54000.0,
+     "alicuota": 21.0,
+     "subtotal": 108000.0,
+     "pedido_item_id": 228
+    },
+    {
+     "descripcion": "Surgibac PA PLus bidón x 5 Lts",
+     "cantidad": 2.0,
+     "precio": 50000.0,
+     "alicuota": 21.0,
+     "subtotal": 100000.0,
+     "pedido_item_id": 229
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2609,
+   "cae": "86394725368917",
+   "fecha_emision_arca": "2026-09-25",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 0.0,
+    "neto": 0.0,
+    "n_items": 1,
+    "suma_items": 0.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-09-25",
+    "vto": "2026-10-05",
+    "neto_gravado": 94800.0,
+    "exento": 0,
+    "iva_21": 19908.0,
+    "iva_105": 0.0,
+    "total": 114708.0
+   },
+   "items": [
+    {
+     "descripcion": "Alcohol 70 % bidon x 5 Lts",
+     "cantidad": 6.0,
+     "precio": 15800.0,
+     "alicuota": 21.0,
+     "subtotal": 94800.0,
+     "pedido_item_id": 230
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2610,
+   "cae": "86406188427194",
+   "fecha_emision_arca": "2026-10-05",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 700000.0,
+    "neto": 578512.3966942149,
+    "n_items": 1,
+    "suma_items": 700000.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-10-05",
+    "vto": "2026-10-15",
+    "neto_gravado": 700000.0,
+    "exento": 0,
+    "iva_21": 147000.0,
+    "iva_105": 0.0,
+    "total": 847000.0
+   },
+   "items": [
+    {
+     "descripcion": "MANOPLAS DE POLIETILENO DE A PAR",
+     "cantidad": 20000.0,
+     "precio": 35.0,
+     "alicuota": 21.0,
+     "subtotal": 700000.0,
+     "pedido_item_id": 231
+    }
+   ],
+   "observacion": ""
+  },
+  {
+   "pv": 1,
+   "numero": 2611,
+   "cae": "86406195117074",
+   "fecha_emision_arca": "2026-10-05",
+   "antes": {
+    "tipo": "FACTURA_B",
+    "total": 175500.0,
+    "neto": 0.0,
+    "n_items": 1,
+    "suma_items": 175500.0
+   },
+   "despues": {
+    "tipo": "FACTURA_A",
+    "fecha": "2026-10-05",
+    "vto": "2026-10-15",
+    "neto_gravado": 175500.0,
+    "exento": 0,
+    "iva_21": 36855.0,
+    "iva_105": 0.0,
+    "total": 212355.0
+   },
+   "items": [
+    {
+     "descripcion": "JABON BACTERICIDA BIDON X 5 LTS",
+     "cantidad": 6.0,
+     "precio": 29250.0,
+     "alicuota": 21.0,
+     "subtotal": 175500.0,
+     "pedido_item_id": 232
+    }
+   ],
+   "observacion": ""
+  }
+ ]
+}

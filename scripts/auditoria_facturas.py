@@ -87,7 +87,8 @@ def leer_pdf(nombre, contenido):
     except ValueError:
         return None, "numero ilegible"
     items = [{"descripcion": i.get("descripcion") or "", "cantidad": num(i.get("cantidad")) or 0.0,
-              "precio": num(i.get("precio_unitario")) or 0.0, "subtotal": num(i.get("subtotal")) or 0.0} for i in d.get("items") or []]
+              "precio": num(i.get("precio_unitario")) or 0.0, "subtotal": num(i.get("subtotal")) or 0.0,
+              "alicuota": num(i.get("alicuota_iva")) if i.get("alicuota_iva") is not None else 21.0} for i in d.get("items") or []]
     neto, total = num(f.get("total_neto")), num(f.get("total_final"))
     suma = round(sum(i["subtotal"] for i in items), 2)
     avisos = []
@@ -142,7 +143,8 @@ def recolectar_pdf(db, carpetas, desde):
 
 # ------------------------------------------------------------------ lectura de V5
 def leer_v5(db, desde):
-    facturas = {}
+    """-> (facturas por (pv, numero, cae), duplicadas: clave -> lista de registros). Una factura registrada DOS veces en V5 queda en `duplicadas`."""
+    facturas, duplicadas = {}, defaultdict(list)
     for r in db.execute("""select f.id, f.tipo_comprobante, f.estado, f.punto_venta, f.numero_comprobante, f.fecha_emision, f.cae, f.cae_vencimiento,
                                   f.neto_gravado, f.iva_21, f.total, f.pedido_id, c.razon_social, c.cuit
                            from facturas f left join clientes c on c.id = f.cliente_id
@@ -154,11 +156,16 @@ def leer_v5(db, desde):
         fecha = str(r[5] or "")[:10]
         if fecha and fecha < desde:
             continue
-        facturas[(int(r[3] or 0), int(r[4] or 0), str(r[6]).strip())] = {
+        clave_v5 = (int(r[3] or 0), int(r[4] or 0), str(r[6]).strip())
+        registro = {
             "id": fid, "tipo": r[1], "estado": r[2], "pv": r[3], "numero": r[4], "fecha": fecha, "cae": str(r[6]).strip(), "vto": str(r[7] or "")[:10],
             "neto": num(r[8]), "iva": num(r[9]), "total": num(r[10]), "pedido_id": r[11], "receptor": r[12] or "",
             "cuit": re.sub(r"\D", "", str(r[13] or "")), "items": items}
-    return facturas
+        if clave_v5 in facturas:
+            duplicadas[clave_v5] += [registro] if clave_v5 in duplicadas else [facturas[clave_v5], registro]
+        else:
+            facturas[clave_v5] = registro
+    return facturas, dict(duplicadas)
 
 
 def comparar_items(items_pdf, items_v5):
@@ -194,6 +201,34 @@ def auditar_factura(pdf, v5):
         dif.append(("CRITICA", "cliente", f"CUIT ARCA {pdf['cuit']} ({pdf['receptor']}) | V5 {v5['cuit']} ({v5['receptor']})"))
     dif += comparar_items(pdf["items"], v5["items"])
     return dif
+
+
+# ------------------------------------------------------------------ candidatos de pedido para una factura que V5 no tiene
+def pedidos_candidatos(db, pdf, dias=45):
+    """Para una factura emitida que V5 no registra: pedidos del MISMO cliente (por CUIT), cerca en fecha y/o con el mismo total.
+    -> texto corto con hasta 3 candidatos, o '' si no hay ninguno."""
+    if not pdf["cuit"]:
+        return ""
+    clientes = [r[0] for r in db.execute("select id from clientes where replace(replace(coalesce(cuit,''),'-',''),' ','') = ?", (pdf["cuit"],))]
+    if not clientes:
+        return "(el cliente no existe en V5)"
+    try:
+        f0 = datetime.date.fromisoformat(pdf["fecha"])
+    except ValueError:
+        f0 = None
+    cand = []
+    for cid in clientes:
+        for pid, fecha, total, estado in db.execute("select id, fecha, total, estado from pedidos where cliente_id=? and estado != 'ANULADO'", (cid,)):
+            try:
+                d = abs((datetime.date.fromisoformat(str(fecha)[:10]) - f0).days) if f0 else None
+            except ValueError:
+                d = None
+            igual = pdf["total"] is not None and total is not None and abs(float(total) - pdf["total"]) <= 1.0
+            if igual or (d is not None and d <= dias):
+                ya = [r[0] for r in db.execute("select numero_comprobante from facturas where pedido_id=? and cae is not null and trim(cae)!=''", (str(pid),))]
+                cand.append((0 if igual else 1, d if d is not None else 999, pid, fecha, total, estado, ya))
+    cand.sort()
+    return " || ".join(f"pedido #{c[2]} ({str(c[3])[:10]}, ${c[4]:,.0f}, {c[5]}){' TOTAL IGUAL' if c[0] == 0 else ''}{' ya tiene factura ' + ','.join(map(str, c[6])) if c[6] else ''}" for c in cand[:3])
 
 
 # ------------------------------------------------------------------ pedido vs factura
@@ -241,6 +276,70 @@ def auditar_pedidos(db, docs_cruzados):
         for pdf, it in sin_par:
             filas.append((pid, f"{pdf['pv']:05d}-{pdf['numero']:08d}", it["descripcion"], None, it["cantidad"], "SIN_RENGLON_EN_PEDIDO", "renglon de la factura que ningun renglon del pedido explica"))
     return filas
+
+
+# ------------------------------------------------------------------ correcciones (fase APLICAR, como migracion con datos)
+def desglose_iva(items, total_pdf):
+    """Neto gravado, exento e IVA por alicuota calculados con los renglones. -> (dict, coincide_con_el_total_del_pdf)."""
+    neto = sum(i["subtotal"] for i in items if i["alicuota"] > 0)
+    exento = sum(i["subtotal"] for i in items if i["alicuota"] == 0)
+    iva21 = sum(i["subtotal"] for i in items if abs(i["alicuota"] - 21.0) < 0.01) * 0.21
+    iva105 = sum(i["subtotal"] for i in items if abs(i["alicuota"] - 10.5) < 0.01) * 0.105
+    otras = [i for i in items if i["alicuota"] not in (0.0, 21.0, 10.5)]
+    d = {"neto_gravado": round(neto, 2), "exento": round(exento, 2), "iva_21": round(iva21, 2), "iva_105": round(iva105, 2)}
+    total = round(d["neto_gravado"] + d["exento"] + d["iva_21"] + d["iva_105"], 2)
+    d["total"] = total
+    return d, (not otras and total_pdf is not None and abs(total - total_pdf) <= 0.05)
+
+
+def enlazar_renglones(db, pedido_id, items_pdf):
+    """Empareja cada renglon del PDF con UN renglon del pedido (mismo producto: clave canonica o parecido con medidas exactas)."""
+    if pedido_id is None or not str(pedido_id).isdigit():
+        return [None] * len(items_pdf)
+    lineas = [(i, n) for i, n in db.execute(
+        "select pi.id, pr.nombre from pedidos_items pi join productos pr on pr.id = pi.producto_id where pi.pedido_id=? order by pi.id", (int(pedido_id),))]
+    usados, salida = set(), []
+    for it in items_pdf:
+        mejor, mejor_s = None, 0.0
+        for pid, nombre in lineas:
+            if pid in usados:
+                continue
+            s = 1.0 if normalizar_producto(nombre) == normalizar_producto(it["descripcion"]) else similitud(nombre, it["descripcion"])
+            if s > mejor_s:
+                mejor, mejor_s = pid, s
+        if mejor is not None and mejor_s >= UMBRAL_SUGERENCIA:
+            usados.add(mejor)
+            salida.append(mejor)
+        else:
+            salida.append(None)
+    return salida
+
+
+def construir_correccion(db, pdf, v):
+    """Lo que habria que escribir en V5 para que la factura coincida con ARCA. Si algo no cierra, solo cabecera (tipo, fecha, vencimiento) o nada."""
+    despues = {"tipo": pdf["tipo"], "fecha": pdf["fecha"], "vto": pdf["vto"]}
+    nota = []
+    desg, cierra = desglose_iva(pdf["items"], pdf["total"]) if pdf["items"] else ({}, False)
+    items = None
+    if cierra:
+        despues.update(desg)
+        if pdf["confianza"] == "OK":
+            enlaces = enlazar_renglones(db, v["pedido_id"], pdf["items"])
+            items = [{"descripcion": i["descripcion"], "cantidad": i["cantidad"], "precio": i["precio"], "alicuota": i["alicuota"],
+                      "subtotal": i["subtotal"], "pedido_item_id": e} for i, e in zip(pdf["items"], enlaces)]
+        else:
+            nota.append("totales corregidos; renglones NO (lectura del PDF dudosa: " + "; ".join(pdf["avisos"]) + ")")
+    elif pdf["neto"] is not None and pdf["total"] is not None and abs(pdf["neto"] * 1.21 - pdf["total"]) <= 0.05:
+        # Los renglones no cierran (tipicamente por la bonificacion, Card #144) pero el encabezado impreso del PDF si es coherente:
+        # neto + 21 % = total. Se toman los totales impresos; los renglones quedan como estan, a revisar a mano.
+        despues.update({"neto_gravado": round(pdf["neto"], 2), "exento": 0.0, "iva_21": round(pdf["total"] - pdf["neto"], 2), "iva_105": 0.0, "total": round(pdf["total"], 2)})
+        nota.append("totales tomados del encabezado impreso del PDF (neto + 21 % = total); renglones NO corregidos: los renglones leidos no cierran, revisar a mano (Card #144)")
+    else:
+        nota.append("totales y renglones NO corregidos: lo leido del PDF no cierra con el total impreso" if pdf["items"] else "sin renglones legibles: solo cabecera")
+    return {"pv": pdf["pv"], "numero": pdf["numero"], "cae": pdf["cae"], "fecha_emision_arca": pdf["fecha"],
+            "antes": {"tipo": v["tipo"], "total": v["total"], "neto": v["neto"], "n_items": len(v["items"]),
+                      "suma_items": round(sum(i["subtotal"] for i in v["items"]), 2)},
+            "despues": despues, "items": items, "observacion": " | ".join(nota)}
 
 
 # ------------------------------------------------------------------ CSV de ARCA
@@ -297,11 +396,12 @@ def main():
     ap.add_argument("--arca-csv", help="CSV 'Mis Comprobantes Emitidos' de ARCA")
     ap.add_argument("--desde", default="2026-01-01", help="fecha de emision minima (YYYY-MM-DD)")
     ap.add_argument("--salida", required=True, help="Excel de salida")
+    ap.add_argument("--generar-correcciones", metavar="JSON", help="ademas del informe, escribe las correcciones (V5 -> lo que dice ARCA) para la migracion de datos")
     a = ap.parse_args()
 
     db = sqlite3.connect("file:" + os.path.abspath(a.db).replace("\\", "/") + "?mode=ro", uri=True)
     docs, ignorados = recolectar_pdf(db, a.pdf, a.desde)
-    v5 = leer_v5(db, a.desde)
+    v5, duplicadas = leer_v5(db, a.desde)
     por_numero_v5 = defaultdict(list)
     for k, v in v5.items():
         por_numero_v5[(k[0], k[1])].append(v)
@@ -310,6 +410,14 @@ def main():
     usados_v5 = set()
     for clave, pdf in sorted(docs.items(), key=lambda kv: (kv[0][0], kv[0][1])):
         pv, nro, cae = clave
+        if clave in duplicadas:
+            regs = duplicadas[clave]
+            resumen["DUPLICADA_EN_V5"] += 1
+            usados_v5.add(clave)
+            filas.append(("DUPLICADA_EN_V5 (decide Carlos)", f"{pv:05d}-{nro:08d}", pdf["tipo"], pdf["fecha"], pdf["cae"], pdf["receptor"], pdf["total"], "", "", None, None,
+                          "V5 la registra " + str(len(regs)) + " veces: " + " || ".join(f"{r['tipo']}/{r['estado']} pedido {r['pedido_id']} total {r['total']}" for r in regs)
+                          + " | no se corrige ninguna: hay que decidir cual queda", pdf["confianza"], " | ".join(pdf["fuentes"][:3])))
+            continue
         v = v5.get(clave)
         if v is None:
             posibles = por_numero_v5.get((pv, nro), [])
@@ -322,8 +430,12 @@ def main():
             dif = auditar_factura(pdf, v)
         if v is not None:
             usados_v5.add((v["pv"], v["numero"], v["cae"]))
+        extra = ""
         if dif is None:
             resultado = "SOLO_PDF (emitida y V5 no la tiene)"
+            if pdf["fecha"] and v5:
+                f_min = min(x["fecha"] for x in v5.values() if x["fecha"])
+                extra = ("pedidos posibles en V5: " + (pedidos_candidatos(db, pdf) or "ninguno")) if pdf["fecha"] >= f_min else "anterior al primer comprobante de V5"
         elif not dif:
             resultado = "OK"
         else:
@@ -334,13 +446,24 @@ def main():
         resumen[resultado.split(" ")[0]] += 1
         filas.append((resultado, f"{pv:05d}-{nro:08d}", pdf["tipo"], pdf["fecha"], pdf["cae"], pdf["receptor"], pdf["total"],
                       v["estado"] if v else "", v["tipo"] if v else "", v["total"] if v else None, v["pedido_id"] if v else None,
-                      " || ".join(f"[{s}] {c}: {d}" for s, c, d in (dif or [])), pdf["confianza"] + (": " + "; ".join(pdf["avisos"]) if pdf["avisos"] else ""),
+                      (extra + (" || " if extra and dif else "")) + " || ".join(f"[{s}] {c}: {d}" for s, c, d in (dif or [])), pdf["confianza"] + (": " + "; ".join(pdf["avisos"]) if pdf["avisos"] else ""),
                       " | ".join(pdf["fuentes"][:3])))
     solo_v5 = []
     for clave, v in sorted(v5.items(), key=lambda kv: (kv[0][0], kv[0][1])):
         if (v["pv"], v["numero"], v["cae"]) not in usados_v5:
             resumen["SOLO_V5"] += 1
             solo_v5.append((f"{v['pv']:05d}-{v['numero']:08d}", v["tipo"], v["estado"], v["fecha"], v["cae"], v["receptor"], v["total"], v["pedido_id"]))
+
+    if a.generar_correcciones:
+        import json
+        correcciones = [construir_correccion(db, pdf, v) for v, pdf in cruzados if (v["pv"], v["numero"], v["cae"]) == (pdf["pv"], pdf["numero"], pdf["cae"])]
+        with open(a.generar_correcciones, "w", encoding="utf-8") as fh:
+            json.dump({"generado": datetime.datetime.now().isoformat(timespec="seconds"), "base": os.path.basename(a.db), "correcciones": correcciones}, fh, ensure_ascii=False, indent=1)
+        completas = sum(1 for c in correcciones if c["items"] is not None)
+        print(f"correcciones: {len(correcciones)} (con renglones: {completas}; solo cabecera/totales: {len(correcciones) - completas}) -> {a.generar_correcciones}")
+        for c in correcciones:
+            if c["observacion"]:
+                print(f"   {c['pv']:05d}-{c['numero']:08d}: {c['observacion'][:140]}")
 
     filas_ped = auditar_pedidos(db, cruzados)
     arca = []
