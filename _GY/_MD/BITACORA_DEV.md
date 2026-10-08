@@ -1,4 +1,10 @@
-﻿## SESION 879 (OF) — 2026-10-06 [NS (CC)]: Ola 1 (#152, P24, #154), descuento por unidad (#159) y push a produccion — NOMINAL — D:44e8b278 B:ab2f784 (= prod/main) P:88e8dca (leido; sin deploy todavia)
+﻿## SESION 882 (OF) — 2026-10-07/08 [NS (CC)]: saneamiento de facturas/remitos/pedidos de P (049-059), OC en el remito, Cumplimiento de OC y arreglo de la ingesta — NOMINAL — D:@@HASH_D@@ B:2a33e8d (= prod/main) P:2a33e8d
+
+- Migraciones 049-059 (datos de P por migracion), #161, #164, #166, #167; cinco pushes a produccion; conciliaciones con clientes en `Conciliaciones-e-investigaciones/` del Silo.
+
+---
+
+## SESION 879 (OF) — 2026-10-06 [NS (CC)]: Ola 1 (#152, P24, #154), descuento por unidad (#159) y push a produccion — NOMINAL — D:44e8b278 B:ab2f784 (= prod/main) P:88e8dca (leido; sin deploy todavia)
 
 - **Ola 1:** #152 normalizacion propia de productos + `migrate_048`; P24 `Cache-Control: no-cache` en `index.html` (+ espera a `/health` en el lanzador de B); #154 cantidades por renglon (`backend/pedidos/cantidades.py`), absorcion al armar y guarda de edicion solo ante bajas.
 - **#159:** descuento por renglon por unidad (`backend/pedidos/descuentos.py`, `PedidoCanvas.vue`); la base sigue guardando el total del renglon. Verificado en pantalla sobre una copia de P.

@@ -1287,3 +1287,11 @@ Sin cambios funcionales visibles: la sesión trabajó el Board y los protocolos,
 - **Bajar la cantidad de un renglón:** el pedido ya no deja bajarla por debajo de lo **remitido** ni de lo **facturado** (neto de notas de crédito). Para bajar una cantidad ya facturada hace falta antes una NC (parcial, solo por lo no entregado). Subirla siempre se puede.
 - **Alta de productos:** «Bidón 5 L» y «Bidón 1 L» (o talle M y talle L) ya no se toman como el mismo producto. Sigue bloqueando el mismo producto escrito de otra forma.
 - **Pantalla vieja tras una actualización:** el navegador ya no debería quedarse con la pantalla anterior; y el lanzador espera a que el sistema responda antes de abrir el navegador. Si igual se ve una pantalla vieja: Ctrl + Mayús + R.
+
+## Sesión 882 (07-08/10) — Lo que cambia para quien opera
+
+- **Remito:** la **orden de compra del pedido sale impresa sola** en el casillero «ORDEN DE COMPRA N°:» (antes se escribía a mano). Si el pedido no tiene OC, el casillero queda vacío; el campo REF muestra solo «Pedido #N».
+- **Informes → Cumplimiento de OC (pantalla nueva):** por cada renglón de cada OC muestra lo pedido, lo entregado, lo facturado (restando las notas de crédito), lo que falta entregar y lo que falta facturar, con una situación: CERRADA, FALTA ENTREGAR, FALTA FACTURAR, SOBRE-ENTREGADA o SOBRE-FACTURADA. Por defecto muestra solo las abiertas y se exporta a Excel. El Reporte de Entregas ya no muestra pedidos anulados.
+- **Ingesta de facturas:** la factura que se carga desde el PDF de ARCA queda **autorizada** con el tipo (A o B), la fecha, el neto, el IVA, el total y el vencimiento del PDF, enlazada a los renglones del pedido; el remito que genera lleva las cantidades de la factura y no las del pedido. Antes quedaba en borrador, como Factura B y con el total sin IVA.
+- **Borrar un remito** ya no borra la factura si esa factura tiene CAE.
+- **Datos corregidos en producción** (facturas, remitos y pedidos de Lácteos de Poblet, Cassará, Centro Pet, Jomax y Gelato): se aplican solos al relanzar Soberana; no hace falta hacer nada.

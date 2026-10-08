@@ -2262,3 +2262,17 @@ Sin cambios en D ni en B. Solo herramientas del Silo: `board_historico_forense.p
 **SPA / lanzador.** `index.html` se sirve con `Cache-Control: no-cache` (`FileResponse` no contesta 304; pesa ~600 bytes). `scripts/ARRANQUE_V5.bat` (solo B) espera a `/health` hasta 60 s antes de abrir el navegador.
 
 **Banco de pruebas de pantalla.** Backend de copia con `scripts/run_backend_copia.py --db <copia> --port 8098` y Vite con config propia y `cacheDir` fuera de `frontend/` (puerto 5198; no usar 5199/8099). El config no puede importar `vite.config.js` (usa `__dirname`): replicarlo. Las rutas Vue que empiezan con `/pedidos` caen en el proxy del backend: entrar por `/hawe/pedidos/...`. Usuario de banco solo en la copia.
+
+## Sesión 882 (07-08/10) — Saneamiento de la base de P, OC en el remito, Cumplimiento de OC e ingesta
+
+**Datos de P solo por migración.** `scripts/migrate_049` a `059` corrigen o registran facturas, remitos y pedidos de P: idempotentes (marca de nota `[SISTEMA]` o registro en `_migraciones_aplicadas`), SAVEPOINT por caso, guardas que saltan lo que alguien tocó, salen con código 0 y corren después del backup de `auto_migrar`. P no se escribe por la red (SQLite sobre SMB). Los datos que usan viajan en `scripts/data/`.
+
+**Facturado.** `backend/pedidos/cantidades.py` cuenta solo `AUTORIZADA_AFIP` por `FacturaItem.pedido_item_id`; las NC restan, las ND no cuentan. `RemitoItem` tiene tres cantidades: `cantidad_declarada` (impresa), `cantidad_remitida` (la que salió) y `cantidad_recibida`. `delete_remito` no borra la factura espejo si trae CAE.
+
+**Ingesta (Card #164).** `IngestaService.approve` completa `tipo_comprobante`, `fecha_emision`, `total_neto` y `total_final` desde `parsed_data_raw`; `RemitosService.create_from_ingestion` guarda la factura espejo `AUTORIZADA_AFIP` si el CAE son 10–16 dígitos (si no, `BORRADOR`), con tipo y fecha del PDF, importes por `conciliador.desglose_importes`, vencimiento en ISO y renglones enlazados (`_emparejar_renglones_factura`); en los flujos total/existente el remito toma las cantidades de la factura solo en los renglones emparejados.
+
+**OC en el remito.** `remito_engine.py` imprime la OC en x=167,8 mm, y=82,7 mm, ancho 32 mm (letra de 10 a 6 pt, hasta 3 líneas); `get_remito_pdf` manda `oc` y deja REF en `Pedido #N`.
+
+**Cumplimiento de OC.** `GET /informes/cumplimiento-oc` y `/export` (`backend/informes/router.py`, `_filas_cumplimiento_oc`); `get_entregas` excluye pedidos anulados salvo `incluir_anulados`; vista `CumplimientoOcListado.vue` (ruta `informes/cumplimiento-oc`).
+
+**Numeración.** OF y P llevan contadores 0015 separados: el mismo número de remito puede existir en las dos máquinas.
