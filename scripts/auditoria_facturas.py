@@ -367,7 +367,9 @@ def leer_csv_arca(ruta, desde):
     i_fecha, i_tipo, i_pv = col("FECHA"), col("TIPO"), col("PUNTO")
     i_nro = col("NUMERO", "DESDE") if col("NUMERO", "DESDE") is not None else col("NUMERO")
     i_cae = col("AUTORIZ") if col("AUTORIZ") is not None else col("CAE")
-    i_doc, i_den, i_total = col("NRO", "DOC"), col("DENOMINACION"), col("IMP", "TOTAL")
+    # OJO: hay otra columna parecida, "Imp. Neto Gravado Total": el total del comprobante es la que se llama EXACTAMENTE "Imp. Total"
+    i_total = next((i for i, c in enumerate(enc) if c == "IMP. TOTAL"), col("IMP", "TOTAL"))
+    i_doc, i_den = col("NRO", "DOC"), col("DENOMINACION")
     salida = []
     for f in filas[1:]:
         if not f or len(f) <= max(x for x in (i_fecha, i_tipo, i_pv, i_nro, i_cae, i_total) if x is not None):
