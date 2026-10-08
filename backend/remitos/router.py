@@ -197,7 +197,9 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
         # entre en el talonario 0015 preimpreso -- el campo REF ya tenía posición y tamaño de
         # fuente calculados de antes, pero vale un chequeo de impresión real antes de confiar en
         # que el texto no se superpone a nada del papel preimpreso.
-        referencia_str = f"Pedido #{remito.pedido_id} (OC: {remito.pedido.oc or 'S/D'})"
+        # [S882, sugerencia de Tomy 08/10] La OC ya no va en esta linea chica (6 pt, "S/D" cuando no hay): tiene su propio
+        # casillero en el talonario ("ORDEN DE COMPRA N°:", ver "oc" mas abajo y remito_engine.add_content).
+        referencia_str = f"Pedido #{remito.pedido_id}"
 
         cliente_data = {
             "razon_social": cliente.razon_social,
@@ -205,6 +207,7 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
             "domicilio_fiscal": remito.domicilio_entrega.resumen if remito.domicilio_entrega else cliente.domicilio_fiscal_resumen or "SIN DOMICILIO FISCAL",
             "condicion_iva": "RESPONSABLE INSCRIPTO", # Default for now
             "referencia": referencia_str,
+            "oc": remito.pedido.oc or "",   # [S882, sugerencia de Tomy] va al casillero "ORDEN DE COMPRA N°:" del talonario
             "factura_vinculada": factura_vinculada_str,
             "factura_vinculada_cae": remito.factura_vinculada_cae,
             "cae": cae_val,

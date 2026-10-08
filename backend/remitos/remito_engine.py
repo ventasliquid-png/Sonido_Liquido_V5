@@ -314,8 +314,41 @@ class PDFRemito(FPDF):
              set_bas_xy(last_dom_line_idx + 4, 10)
              self.set_font('Arial', '', 6)
              self.cell(100, 4, f"REF: {ref}", 0)
-             
-        self.set_font('Arial', 'B', 10) 
+
+        # [S882, sugerencia de Tomy 08/10] El talonario 0015 preimpreso trae el casillero "ORDEN DE COMPRA N°:" (a la
+        # derecha, bajo CUIT / CARACTER I.V.A.) y Tomy lo escribia a mano aunque el pedido ya tiene la OC. Se imprime
+        # a continuacion de la etiqueta. Posiciones medidas sobre el escaneo del formulario (base_remito_v1.png): la
+        # etiqueta termina en x=166.8 mm y el casillero llega hasta el borde derecho (~201 mm) -> ~32 mm de ancho.
+        # Sin OC no se imprime nada (el casillero queda libre para escribirla a mano si llega despues).
+        oc = self._pdf_safe(str(cliente_data.get('oc') or '').replace("—", "-").strip())
+        if oc:
+            OC_X, OC_Y, OC_ANCHO = 167.8, 82.7, 32.0   # mm; Y = tope de la primera linea (centra con la etiqueta, y~84.6 mm)
+            self.set_font('Arial', 'B', 10)
+            tam = 10
+            while tam > 6 and self.get_string_width(oc) > OC_ANCHO:
+                tam -= 1
+                self.set_font('Arial', 'B', tam)
+            lineas = [oc]
+            if self.get_string_width(oc) > OC_ANCHO:
+                # no entra ni a 6 pt: se parte en renglones de ancho fijo (hasta 3); una OC no se recorta en silencio
+                # salvo que sea absurdamente larga (mas de ~80 caracteres)
+                lineas, actual = [], ""
+                for ch in oc:
+                    if self.get_string_width(actual + ch) > OC_ANCHO:
+                        corte = max(actual.rfind(" "), actual.rfind("-"))      # prefiere cortar en un espacio o guion
+                        if corte > 0:
+                            lineas.append(actual[:corte + 1].rstrip()); actual = actual[corte + 1:] + ch
+                        else:
+                            lineas.append(actual); actual = ch
+                    else:
+                        actual += ch
+                lineas.append(actual)
+                lineas = lineas[:3]
+            for i, txt in enumerate(lineas):
+                self.set_xy(OC_X, OC_Y + i * (tam * 0.4 if len(lineas) > 1 else 0))
+                self.cell(OC_ANCHO, 4, txt, 0)
+
+        self.set_font('Arial', 'B', 10)
 
         # --- CUERPO (L31) ---
         Y_LIMIT = 58 
