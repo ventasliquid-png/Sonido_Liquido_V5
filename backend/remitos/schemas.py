@@ -143,7 +143,14 @@ class IngestionCliente(BaseModel):
 class IngestionFactura(BaseModel):
     numero: Optional[str] = None
     cae: Optional[str] = None
-    vto_cae: Optional[str] = None # String dd/mm/yyyy
+    vto_cae: Optional[str] = None # String dd/mm/yyyy (o AAAA-MM-DD, como lo devuelve el parser)
+    # [S882, Card #164] Datos fiscales que el parser ya leia del PDF de ARCA y la ingesta vieja ignoraba (el MODO ESPEJO inventaba
+    # el tipo desde la condicion de IVA del cliente, ponia la fecha de carga y tomaba el neto como total). IngestaService.approve
+    # los completa desde el raw si la pantalla no los manda.
+    tipo_comprobante: Optional[str] = None     # FACTURA_A / FACTURA_B / FACTURA_C / ...
+    fecha_emision: Optional[str] = None        # AAAA-MM-DD
+    total_neto: Optional[float] = None
+    total_final: Optional[float] = None
 
 class IngestionItem(BaseModel):
     codigo: Optional[Union[str, int]] = None

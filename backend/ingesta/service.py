@@ -71,6 +71,24 @@ class IngestaService:
             from backend.remitos.service import RemitosService
             from backend.remitos.schemas import IngestionPayload
 
+            # [S882, Card #164] La pantalla solo reenvia numero, CAE y vencimiento: tipo, fecha de emision y totales los lee el
+            # parser del PDF y estan guardados en el raw. Se completan desde ahi (sin pisar lo que la pantalla mande).
+            _raw_factura = {}
+            _pd = raw.parsed_data_raw
+            if isinstance(_pd, str):
+                try:
+                    import json as _json
+                    _pd = _json.loads(_pd)
+                except Exception:
+                    _pd = None
+            if isinstance(_pd, dict) and isinstance(_pd.get("factura"), dict):
+                _raw_factura = _pd["factura"]
+            _factura_editada = dict(edited_data.get("factura") or {})
+            for _k in ("tipo_comprobante", "fecha_emision", "total_neto", "total_final"):
+                if _factura_editada.get(_k) in (None, "") and _raw_factura.get(_k) not in (None, ""):
+                    _factura_editada[_k] = _raw_factura[_k]
+            edited_data = {**edited_data, "factura": _factura_editada}
+
             payload = IngestionPayload(**edited_data)
             remito = RemitosService.create_from_ingestion(db, payload)
             remito_id = str(remito.id) if remito else None

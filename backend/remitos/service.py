@@ -148,6 +148,25 @@ class RemitosService:
         db.add(pedido)
 
     @staticmethod
+    def _emparejar_renglones_factura(db: Session, payload, pedido_id) -> dict:
+        """[S882, Card #164] {pedido_item_id: renglon de la factura (IngestionItem)}. Se empareja por producto (el mismo criterio que la guarda de la
+        Card #125); en cuarentena el pedido se armo a partir de la factura, renglon por renglon y en el mismo orden. Los renglones del pedido que la
+        factura no trae no figuran."""
+        items_pedido = db.query(PedidoItem).filter(PedidoItem.pedido_id == pedido_id).order_by(PedidoItem.id).all()
+        if getattr(payload, "modo_cuarentena", False):
+            return {pi.id: it for pi, it in zip(items_pedido, payload.items)}
+        usados, resultado = set(), {}
+        for it in payload.items:
+            if it.producto_id is None:
+                continue
+            for pi in items_pedido:
+                if pi.id not in usados and str(pi.producto_id) == str(it.producto_id):
+                    usados.add(pi.id)
+                    resultado[pi.id] = it
+                    break
+        return resultado
+
+    @staticmethod
     def create_from_ingestion(db: Session, payload: schemas.IngestionPayload):
         """
         Creates a Pedido and Remito from PDF Ingestion Data.
@@ -516,10 +535,14 @@ class RemitosService:
         # 5. CREATE REMITO
         vto_cae_date = None
         if payload.factura.vto_cae:
-            try:
-                vto_cae_date = datetime.strptime(payload.factura.vto_cae, "%d/%m/%Y")
-            except:
-                pass
+            # [S882] El parser entrega AAAA-MM-DD (la pantalla lo reenvia asi) y esto solo entendia dd/mm/aaaa: el vencimiento
+            # de la factura espejo quedaba vacio. Ahora acepta los dos formatos.
+            for _fmt in ("%d/%m/%Y", "%Y-%m-%d"):
+                try:
+                    vto_cae_date = datetime.strptime(payload.factura.vto_cae.strip(), _fmt)
+                    break
+                except Exception:
+                    continue
         
         # Sin número de factura legible no hay ingesta (ni referencia ni control de duplicados).
         if nc is None:
@@ -562,6 +585,9 @@ class RemitosService:
         # 6. CREATE REMITO ITEMS (GY-TRACE)
         print(f"[REMITO-TRACE] Procesando items para Remito {remito.id} (Pedido {nuevo_pedido.id})")
         remito_items_creados = 0
+        # [S882, Card #164] Renglon de la factura <-> renglon del pedido (por producto; en cuarentena el pedido se arma en el mismo orden).
+        # Lo usan los renglones del remito y los de la factura espejo.
+        emparejados = RemitosService._emparejar_renglones_factura(db, payload, nuevo_pedido.id)
         if payload.modo_ingesta == "VINCULAR_PARCIAL":
             # Para despachos parciales, construimos los RemitoItem basados en payload.items
             pedido_items = db.query(PedidoItem).filter(PedidoItem.pedido_id == nuevo_pedido.id).all()
@@ -594,21 +620,31 @@ class RemitosService:
 
         else:
             # Flujo Total / Existente
+            # [S882, Card #164] El remito espejo refleja lo que dice la FACTURA: cada renglon del pedido que la factura trae sale con la
+            # cantidad facturada (o la de cantidad_remitir, si el asistente de entrega la ajusto), NO con la cantidad completa del pedido.
+            # Antes copiaba la del pedido y el remito salia con mas de lo facturado y entregado (Poblet 2576: 100 contra 50; Jomax 2562:
+            # 20 contra 10; el 2577 quedo vacio). Los renglones del pedido que la factura no trae no entran: no son de esta entrega.
             for p_item in pedido_items:
                 # [GY-FIX] Verificación estricta de pertenencia: 1 Remito = 1 Pedido
                 if p_item.pedido_id != nuevo_pedido.id:
                     print(f"[REMITO-CRITICAL] ERROR DE INTEGRIDAD: PedidoItem {p_item.id} (Pedido {p_item.pedido_id}) no coincide con el Pedido del Remito ({nuevo_pedido.id}). Omitiendo asociación.")
                     continue
 
+                linea = emparejados.get(p_item.id)
+                if linea is None:
+                    print(f"[REMITO-TRACE] PedidoItem {p_item.id} no figura en la factura: no entra al remito espejo")
+                    continue
+                cantidad_remito = linea.cantidad_remitir if linea.cantidad_remitir is not None else linea.cantidad
+
                 r_item = models.RemitoItem(
                     remito_id=remito.id,
                     pedido_item_id=p_item.id,
-                    cantidad_declarada=p_item.cantidad,
-                    cantidad_remitida=p_item.cantidad
+                    cantidad_declarada=cantidad_remito,
+                    cantidad_remitida=cantidad_remito
                 )
                 db.add(r_item)
                 remito_items_creados += 1
-                print(f"[REMITO-TRACE] Item vinculado: Remito {remito.id} -> PedidoItem {p_item.id}")
+                print(f"[REMITO-TRACE] Item vinculado: Remito {remito.id} -> PedidoItem {p_item.id} ({cantidad_remito} uds)")
 
         # [Doctrina "Remitos Chequeables", Carlos 2026-09-15] Renglón cero es
         # imposible: ni 0015 ni 0016 pueden existir sin al menos un ítem. Cubre
@@ -673,27 +709,59 @@ class RemitosService:
             # referencia que imprime el remito. Solo con el número, el punto de venta queda vacío
             # y el remito no muestra referencia (Remito.factura_vinculada exige ambos).
 
-            # Determinar tipo comprobante preliminar
-            cond_iva = (payload.cliente.condicion_iva or "").upper()
-            tipo = "FACTURA_B"
-            if "INSCRIPTO" in cond_iva: tipo = "FACTURA_A"
-            elif "MONOTRIBUTO" in cond_iva: tipo = "FACTURA_C"
+            # [S882, Card #164] Tipo, fecha, importes y estado salen del PDF de ARCA (el parser ya los leia y llegan en payload.factura).
+            # Antes: el tipo se inferia del texto de la condicion de IVA del cliente (Factura A como B), la fecha era la de carga, el total era el
+            # neto (o el valor declarado del remito) y el estado quedaba BORRADOR aun con CAE real -- 44 de 44 facturas de P difirieron de ARCA.
+            tipo = (payload.factura.tipo_comprobante or "").strip().upper()
+            if not tipo.startswith("FACTURA_"):
+                # Sin dato del PDF: se infiere como antes
+                cond_iva = (payload.cliente.condicion_iva or "").upper()
+                tipo = "FACTURA_B"
+                if "INSCRIPTO" in cond_iva: tipo = "FACTURA_A"
+                elif "MONOTRIBUTO" in cond_iva: tipo = "FACTURA_C"
+
+            fecha_emision = datetime.now().date()
+            if payload.factura.fecha_emision:
+                try:
+                    fecha_emision = datetime.strptime(payload.factura.fecha_emision.strip()[:10], "%Y-%m-%d").date()
+                except Exception:
+                    pass
+
+            # Con un CAE real es un comprobante autorizado por ARCA (el CAE no se puede regenerar); sin CAE queda en BORRADOR como antes.
+            import re as _re
+            cae_real = bool(_re.fullmatch(r"\d{10,16}", (payload.factura.cae or "").strip()))
+            estado_espejo = "AUTORIZADA_AFIP" if cae_real else "BORRADOR"
+
+            neto_e = iva21_e = iva105_e = exento_e = percep_e = None
+            total_e = payload.valor_declarado or 0.0
+            if payload.factura.total_final is not None:
+                from backend.ingesta.conciliador import desglose_importes
+                _items_pdf = [{"subtotal": (it.subtotal or (it.cantidad * (it.precio_unitario or 0.0))), "alicuota_iva": getattr(it, "alicuota_iva", 21.0)}
+                              for it in payload.items]
+                neto_e, iva21_e, iva105_e, exento_e, percep_e, total_e = desglose_importes(
+                    {"total_neto": payload.factura.total_neto, "total_final": payload.factura.total_final}, _items_pdf)
 
             # Crear Factura Espejo
             factura_mirror = Factura(
                 cliente_id=cliente.id,
                 pedido_id=nuevo_pedido.id,
                 tipo_comprobante=tipo,
-                estado="BORRADOR", 
+                estado=estado_espejo,
                 punto_venta=pv,
                 numero_comprobante=nc,
-                fecha_emision=datetime.now().date(),
-                total=payload.valor_declarado or 0.0,
+                fecha_emision=fecha_emision,
+                total=round(total_e, 2),
                 cae=payload.factura.cae,
                 cae_vencimiento=vto_cae_date,
                 flags_estado=mirror_flags,
-                notas_auditoria="GENERADA POR MODO ESPEJO - INGESTA V2"
+                notas_auditoria="GENERADA POR MODO ESPEJO - INGESTA V2" + (" | [SISTEMA] Datos fiscales leidos del PDF de ARCA (S882)" if payload.factura.total_final is not None else "")
             )
+            if neto_e is not None:
+                factura_mirror.neto_gravado = round(neto_e, 2)
+                factura_mirror.iva_21 = round(iva21_e, 2)
+                factura_mirror.iva_105 = round(iva105_e, 2)
+                factura_mirror.exento = round(exento_e, 2)
+                factura_mirror.percepciones = percep_e
             db.add(factura_mirror)
             db.flush()
             
@@ -706,10 +774,18 @@ class RemitosService:
             
             # Ítems (Copia Fiel del PDF/Conserje)
             total_items_mirror = 0.0
+            db.flush()
+            pedido_item_de = {id(it): pid for pid, it in emparejados.items()}
             for it in payload.items:
                 sub = it.subtotal or (it.cantidad * (it.precio_unitario or 0.0))
+                # [S882, Card #164] Sin pedido_item_id la factura no cuenta como facturado de ningun renglon (backend/pedidos/cantidades.py).
+                pid = pedido_item_de.get(id(it))
+                r_item_mirror = (db.query(models.RemitoItem).filter(models.RemitoItem.remito_id == remito.id, models.RemitoItem.pedido_item_id == pid).first()
+                                 if pid is not None else None)
                 db.add(FacturaItem(
                     factura_id=factura_mirror.id,
+                    pedido_item_id=pid,
+                    remito_item_id=r_item_mirror.id if r_item_mirror is not None else None,
                     descripcion=it.descripcion,
                     cantidad=it.cantidad,
                     precio_unitario_neto=it.precio_unitario,
