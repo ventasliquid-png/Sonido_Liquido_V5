@@ -1621,6 +1621,10 @@ class RemitosService:
                 joinedload(PedidoItem.producto),
             )
         )
+        if not incluir_anulados:
+            # [Card #167, S882] Un pedido anulado (p.ej. un duplicado que dejo la ingesta) no es una demanda: con el, una OC
+            # aparecia "repetida en otro pedido" y con renglones pendientes que ya no se van a entregar.
+            item_query = item_query.filter(Pedido.estado != "ANULADO")
         if cliente_id:
             item_query = item_query.filter(Pedido.cliente_id == cliente_id)
         if producto_id:

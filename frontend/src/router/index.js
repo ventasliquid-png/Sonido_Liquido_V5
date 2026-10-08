@@ -172,6 +172,11 @@ const routes = [
                 component: () => import('../views/Informes/PedidosOcListado.vue')
             },
             {
+                path: 'informes/cumplimiento-oc',
+                name: 'InformeCumplimientoOc',
+                component: () => import('../views/Informes/CumplimientoOcListado.vue')
+            },
+            {
                 path: 'informes/notas-pedidos',
                 name: 'InformeNotasPedidos',
                 component: () => import('../views/Informes/NotasPedidosListado.vue')

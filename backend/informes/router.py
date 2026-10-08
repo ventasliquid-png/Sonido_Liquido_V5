@@ -362,6 +362,122 @@ def informe_pedidos_pendiente_export(
         raise HTTPException(status_code=400, detail=str(e))
 
 
+# --- Informe: cumplimiento de OC (Card #167, S882). Para cada renglón de un pedido con OC: lo pedido, lo entregado (remitos
+# no anulados) y lo facturado (neto de NC, solo facturas AUTORIZADA_AFIP: backend/pedidos/cantidades.py), con lo que falta de cada
+# lado y una SITUACIÓN. Las notas de débito no cuentan: ajustan importes, no cantidades (Card #154, dictamen Nike 05/10); si hay que
+# entregar más, se modifica el pedido y se factura. Los pedidos anulados no entran. ---
+
+COLUMNAS_CUMPLIMIENTO_OC = [
+    {"key": "cliente", "label": "Cliente", "width": 30},
+    {"key": "oc", "label": "OC", "width": 14},
+    {"key": "pedido_id", "label": "Pedido", "width": 10},
+    {"key": "circuito", "label": "Circuito", "width": 10},
+    {"key": "estado", "label": "Estado", "width": 18},
+    {"key": "fecha_pedido", "label": "Fecha", "width": 14},
+    {"key": "renglon", "label": "Renglón", "width": 32},
+    {"key": "pedido", "label": "Pedido (cant.)", "width": 13},
+    {"key": "entregado", "label": "Entregado", "width": 12},
+    {"key": "facturado", "label": "Facturado (neto NC)", "width": 17},
+    {"key": "a_entregar", "label": "A entregar", "width": 12},
+    {"key": "a_facturar", "label": "A facturar", "width": 12},
+    {"key": "situacion", "label": "Situación", "width": 18},
+]
+
+SITUACIONES_CUMPLIMIENTO = ("SOBRE-FACTURADA", "SOBRE-ENTREGADA", "FALTA ENTREGAR", "FALTA FACTURAR", "CERRADA")
+
+
+def _situacion_cumplimiento(pedido: float, entregado: float, facturado: Optional[float]) -> str:
+    """CERRADA = entregado y facturado cubren lo pedido. `facturado` None = el pedido no se factura (circuito Rosa / no comercial):
+    solo se mira la entrega. Prioridad: lo que está de más se muestra antes que lo que falta."""
+    eps = 0.001
+    if facturado is not None and facturado > pedido + eps:
+        return "SOBRE-FACTURADA"
+    if entregado > pedido + eps:
+        return "SOBRE-ENTREGADA"
+    if entregado < pedido - eps:
+        return "FALTA ENTREGAR"
+    if facturado is not None and facturado < pedido - eps:
+        return "FALTA FACTURAR"
+    return "CERRADA"
+
+
+def _filas_cumplimiento_oc(db: Session, cliente_id: Optional[str], oc: Optional[str], solo_abiertas: bool):
+    from sqlalchemy.orm import joinedload
+    from backend.pedidos.models import Pedido, PedidoItem
+    from backend.pedidos.cantidades import facturado_por_renglon
+    from backend.pedidos.constants import PedidoFlags
+
+    query = (
+        db.query(PedidoItem)
+        .join(Pedido, PedidoItem.pedido_id == Pedido.id)
+        .filter(Pedido.estado != "ANULADO", Pedido.oc.isnot(None), Pedido.oc != "")
+        .options(joinedload(PedidoItem.pedido).joinedload(Pedido.cliente), joinedload(PedidoItem.producto))
+        .order_by(Pedido.id, PedidoItem.id)
+    )
+    if cliente_id:
+        query = query.filter(Pedido.cliente_id == cliente_id)
+    if oc:
+        query = query.filter(Pedido.oc.ilike(f"%{oc.strip()}%"))
+    items = query.all()
+    facturado = facturado_por_renglon(db, [i.id for i in items])      # {renglón: (facturada, acreditada)}, una sola consulta
+    no_factura = int(PedidoFlags.NO_FISCAL_FORCE) | int(PedidoFlags.ES_NO_COMERCIAL)
+
+    filas = []
+    for item in items:
+        pedido = item.pedido
+        cliente = pedido.cliente if pedido else None
+        producto = item.producto
+        pedido_cant = item.cantidad or 0.0
+        entregado = item.cantidad_entregada
+        bruta, acreditada = facturado.get(item.id, (0.0, 0.0))
+        neta = bruta - acreditada
+        se_factura = not ((pedido.flags_estado or 0) & no_factura)
+        filas.append({
+            "pedido_id": pedido.id if pedido else None,
+            "cliente": cliente.razon_social if cliente else None,
+            "fecha_pedido": _fecha_corta(pedido.fecha) if pedido and pedido.fecha else None,
+            "oc": pedido.oc if pedido else None,
+            "renglon": producto.nombre if producto else (item.nota or "Ítem"),
+            "pedido": pedido_cant,
+            "entregado": entregado,
+            "facturado": neta if se_factura else None,
+            "a_entregar": max(pedido_cant - entregado, 0.0),
+            "a_facturar": max(pedido_cant - neta, 0.0) if se_factura else None,
+            "situacion": _situacion_cumplimiento(pedido_cant, entregado, neta if se_factura else None),
+        })
+    if solo_abiertas:
+        filas = [f for f in filas if f["situacion"] != "CERRADA"]
+    # un cliente a la vez, y dentro de él cada OC junta (por OC y número de pedido)
+    filas.sort(key=lambda f: (normalizar_texto(f["cliente"] or ""), f["oc"] or "", f["pedido_id"] or 0))
+    return _anotar_pedido(db, filas)
+
+
+@router.get("/cumplimiento-oc")
+def informe_cumplimiento_oc(
+    cliente_id: Optional[str] = None,
+    oc: Optional[str] = None,
+    solo_abiertas: bool = False,
+    db: Session = Depends(get_db),
+):
+    filas = _filas_cumplimiento_oc(db, cliente_id, oc, solo_abiertas)
+    return {"columnas": COLUMNAS_CUMPLIMIENTO_OC, "filas": filas}
+
+
+@router.get("/cumplimiento-oc/export")
+def informe_cumplimiento_oc_export(
+    formato: str,
+    cliente_id: Optional[str] = None,
+    oc: Optional[str] = None,
+    solo_abiertas: bool = False,
+    db: Session = Depends(get_db),
+):
+    filas = _filas_cumplimiento_oc(db, cliente_id, oc, solo_abiertas)
+    try:
+        return exportar(formato, "Cumplimiento de OC", COLUMNAS_CUMPLIMIENTO_OC, filas)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 # --- Informe C: pedidos con OC -- filtro directo Pedido.oc IS NOT NULL. No confundir con
 # pedido_origen_id/motivo_relacion_oc (vínculo pedido->pedido del Circuito PR, otro campo). ---
 

@@ -249,6 +249,10 @@
                 <i class="fas fa-file-contract w-4"></i>
                 <span>Pedidos con OC</span>
             </a>
+            <a href="#" @click.prevent="navigate('InformeCumplimientoOc')" class="nav-item-sub" :class="{ 'active-link-sky': isActive('InformeCumplimientoOc') }">
+                <i class="fas fa-clipboard-check w-4"></i>
+                <span>Cumplimiento de OC</span>
+            </a>
             <a href="#" @click.prevent="navigate('InformeNotasPedidos')" class="nav-item-sub" :class="{ 'active-link-sky': isActive('InformeNotasPedidos') }">
                 <i class="fas fa-comment-dots w-4"></i>
                 <span>Pedidos con notas relevantes</span>
@@ -336,7 +340,7 @@ const isGroupActive = (group) => {
     if (group === 'PEDIDOS') return ['PedidoList', 'TacticalLoader', 'IngestaFactura', 'RemitoList', 'ManualRemito', 'FacturacionDashboard', 'EntregasReport'].includes(route.name)
     if (group === 'INTEL') return ['data-cleaner'].includes(route.name)
     if (group === 'INFORMES_REMITOS') return isGroupActive('INFORMES')
-    if (group === 'INFORMES') return ['InformeRemitos', 'InformePedidosPendiente', 'InformePedidosSinRemito', 'InformeRenglonesNoFacturables', 'InformePedidosOc', 'InformeNotasPedidos', 'InformeBuscarNotas', 'InformeAbcClientes', 'InformeAbcProductos'].includes(route.name)
+    if (group === 'INFORMES') return ['InformeRemitos', 'InformePedidosPendiente', 'InformePedidosSinRemito', 'InformeRenglonesNoFacturables', 'InformePedidosOc', 'InformeCumplimientoOc', 'InformeNotasPedidos', 'InformeBuscarNotas', 'InformeAbcClientes', 'InformeAbcProductos'].includes(route.name)
     return false
 }
 
