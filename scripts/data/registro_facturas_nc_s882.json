@@ -1,0 +1,250 @@
+{
+ "generado": "2026-10-08T15:16:57",
+ "base": "PRODUCCION_P_al_20261008_1224.db",
+ "registrar": [
+  {
+   "pv": 1,
+   "numero": 2500,
+   "cae": "86107091263275",
+   "tipo": "FACTURA_A",
+   "fecha": "2026-03-10",
+   "vto": "2026-03-20",
+   "cuit": "30581050301",
+   "receptor": "LABORATORIO DE MEDICINA S. A.",
+   "pedido_id": "29",
+   "totales": {
+    "neto_gravado": 646900.0,
+    "exento": 0,
+    "iva_21": 135849.0,
+    "iva_105": 0.0,
+    "total": 782749.0
+   },
+   "items": [
+    {
+     "descripcion": "Toalla intercalada blanca",
+     "cantidad": 6.0,
+     "precio": 63900.0,
+     "alicuota": 21.0,
+     "subtotal": 383400.0,
+     "pedido_item_id": 50
+    },
+    {
+     "descripcion": "Papel higienico 122",
+     "cantidad": 1.0,
+     "precio": 35900.0,
+     "alicuota": 21.0,
+     "subtotal": 35900.0,
+     "pedido_item_id": 51
+    },
+    {
+     "descripcion": "Toalla 200 mts x 6",
+     "cantidad": 4.0,
+     "precio": 56900.0,
+     "alicuota": 21.0,
+     "subtotal": 227600.0,
+     "pedido_item_id": 52
+    }
+   ],
+   "fuente": "OF: 30715603973_001_00001_00002500 F LABORATORIO DE MEDICINA S.A..pdf"
+  },
+  {
+   "pv": 1,
+   "numero": 2529,
+   "cae": "86173192319769",
+   "tipo": "FACTURA_A",
+   "fecha": "2026-04-27",
+   "vto": "2026-05-07",
+   "cuit": "30699349603",
+   "receptor": "GELATO SA",
+   "pedido_id": "31",
+   "totales": {
+    "neto_gravado": 416000.0,
+    "exento": 0,
+    "iva_21": 87360.0,
+    "iva_105": 0.0,
+    "total": 503360.0
+   },
+   "items": [
+    {
+     "descripcion": "Barbijo Recto con elástico",
+     "cantidad": 1000.0,
+     "precio": 48.0,
+     "alicuota": 21.0,
+     "subtotal": 48000.0,
+     "pedido_item_id": 57
+    },
+    {
+     "descripcion": "Guantes nitrilo talle L caja x 100",
+     "cantidad": 20.0,
+     "precio": 8650.0,
+     "alicuota": 21.0,
+     "subtotal": 173000.0,
+     "pedido_item_id": 58
+    },
+    {
+     "descripcion": "GUANTES VETERINARIOS 90 CM BOLSA X 100 UN",
+     "cantidad": 20.0,
+     "precio": 9750.0,
+     "alicuota": 21.0,
+     "subtotal": 195000.0,
+     "pedido_item_id": 59
+    }
+   ],
+   "fuente": "OF: 30715603973_001_00001_00002529 Gelato.pdf"
+  },
+  {
+   "pv": 1,
+   "numero": 2531,
+   "cae": "86173197020623",
+   "tipo": "FACTURA_A",
+   "fecha": "2026-04-27",
+   "vto": "2026-05-07",
+   "cuit": "30699349603",
+   "receptor": "GELATO SA",
+   "pedido_id": "31",
+   "totales": {
+    "neto_gravado": 82000.0,
+    "exento": 0,
+    "iva_21": 17220.0,
+    "iva_105": 0.0,
+    "total": 99220.0
+   },
+   "items": [
+    {
+     "descripcion": "Cofias",
+     "cantidad": 2000.0,
+     "precio": 41.0,
+     "alicuota": 21.0,
+     "subtotal": 82000.0,
+     "pedido_item_id": 56
+    }
+   ],
+   "fuente": "OF: 30715603973_001_00001_00002531 Gelato.pdf"
+  },
+  {
+   "pv": 1,
+   "numero": 2582,
+   "cae": "86327862968641",
+   "tipo": "FACTURA_A",
+   "fecha": "2026-08-11",
+   "vto": "2026-08-21",
+   "cuit": "30715138707",
+   "receptor": "CENTRO PET ARGENTINA S.R.L.",
+   "pedido_id": "94",
+   "totales": {
+    "neto_gravado": 1322400.0,
+    "exento": 0.0,
+    "iva_21": 277704.0,
+    "iva_105": 0.0,
+    "total": 1600104.0
+   },
+   "items": [
+    {
+     "descripcion": "Surgizime E2 botella por 1 litro",
+     "cantidad": 120.0,
+     "precio": 11020.0,
+     "alicuota": 21.0,
+     "subtotal": 1322400.0,
+     "pedido_item_id": 174,
+     "nota": "precio neto ya con la bonificacion del 0 % del pedido"
+    }
+   ],
+   "fuente": "OF: 30715603973_001_00001_00002582 Centro Pet.pdf"
+  },
+  {
+   "pv": 1,
+   "numero": 2607,
+   "cae": "86394721677288",
+   "tipo": "FACTURA_A",
+   "fecha": "2026-09-25",
+   "vto": "2026-10-05",
+   "cuit": "20234717910",
+   "receptor": "CARRERAS GREGORIO TOMAS",
+   "pedido_id": "117",
+   "totales": {
+    "neto_gravado": 168000.0,
+    "exento": 0,
+    "iva_21": 35280.0,
+    "iva_105": 0.0,
+    "total": 203280.0
+   },
+   "items": [
+    {
+     "descripcion": "Surgibac G, bidón x 5 Lts",
+     "cantidad": 3.0,
+     "precio": 56000.0,
+     "alicuota": 21.0,
+     "subtotal": 168000.0,
+     "pedido_item_id": 226
+    }
+   ],
+   "fuente": "P: 30715603973_001_00001_00002607 F CARRERAS GREGORIO TOMAS.pdf"
+  }
+ ],
+ "notas_credito": [
+  {
+   "pv": 1,
+   "numero": 72,
+   "cae": "86362085776222",
+   "tipo": "NOTA_CREDITO_A",
+   "fecha": "2026-09-08",
+   "vto": "2026-09-18",
+   "cuit": "30525858274",
+   "receptor": "LABORATORIO PABLO CASSARA S R L",
+   "ajusta": {
+    "pv": 1,
+    "numero": 2597,
+    "cae": "86361907875249"
+   },
+   "totales": {
+    "neto_gravado": 28700.0,
+    "exento": 0.0,
+    "iva_21": 6027.0,
+    "iva_105": 0.0,
+    "total": 34727.0
+   },
+   "motivo": "Diferencia entrega de mercaderia (20 bolsas a $1.435 c/u)",
+   "item": {
+    "descripcion": "Diferencia entrega de mercaderia (20 bolsas a $1.435 c/u)",
+    "cantidad": 20.0,
+    "precio": 1435.0,
+    "alicuota": 21.0,
+    "subtotal": 28700.0,
+    "pedido_item_id": 215
+   },
+   "fuente": "OF: 30715603973_003_00001_00000072 NC LABORATORIO PABLO CASSARA S.R.L._etq (1).pdf"
+  },
+  {
+   "pv": 1,
+   "numero": 73,
+   "cae": "86362092802946",
+   "tipo": "NOTA_CREDITO_A",
+   "fecha": "2026-09-08",
+   "vto": "2026-09-18",
+   "cuit": "30525858274",
+   "receptor": "LABORATORIO PABLO CASSARA S R L",
+   "ajusta": {
+    "pv": 1,
+    "numero": 2597,
+    "cae": "86361907875249"
+   },
+   "totales": {
+    "neto_gravado": 800000.0,
+    "exento": 0.0,
+    "iva_21": 168000.0,
+    "iva_105": 0.0,
+    "total": 968000.0
+   },
+   "motivo": "Adelanto segun F 2570 del 17/07/2026",
+   "item": {
+    "descripcion": "Adelanto segun F 2570 del 17/07/2026",
+    "cantidad": 1.0,
+    "precio": 800000.0,
+    "alicuota": 21.0,
+    "subtotal": 800000.0,
+    "pedido_item_id": null
+   },
+   "fuente": "OF: 30715603973_003_00001_00000073 NC LABORATORIO PABLO CASSARA S.R.L._etq.pdf"
+  }
+ ]
+}
