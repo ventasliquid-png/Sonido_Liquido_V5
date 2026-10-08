@@ -545,11 +545,12 @@ def delete_remito(remito_id: str, db: Session = Depends(get_db)):
     # remito, bloqueando para siempre cualquier reintento de ingesta del mismo
     # numero de factura (choca contra el UNIQUE de facturas). Si la factura sigue
     # en BORRADOR (nunca se convirtio en un comprobante fiscal real), se borra
-    # junto con el remito.
+    # junto con el remito. [S882] Una factura con CAE ES un comprobante real aunque la ingesta vieja la haya
+    # dejado en BORRADOR (el CAE no se puede regenerar): esa no se borra nunca.
     from backend.facturacion.models import Factura, FacturaItem, FacturaRemito
     for vinculo in db.query(FacturaRemito).filter(FacturaRemito.remito_id == remito.id).all():
         factura = db.query(Factura).filter(Factura.id == vinculo.factura_id).first()
-        if factura and factura.estado == "BORRADOR":
+        if factura and factura.estado == "BORRADOR" and not (factura.cae or "").strip():
             db.query(FacturaItem).filter(FacturaItem.factura_id == factura.id).delete()
             db.delete(factura)
 
