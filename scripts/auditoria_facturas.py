@@ -162,7 +162,9 @@ def leer_v5(db, desde):
             "neto": num(r[8]), "iva": num(r[9]), "total": num(r[10]), "pedido_id": r[11], "receptor": r[12] or "",
             "cuit": re.sub(r"\D", "", str(r[13] or "")), "items": items}
         if clave_v5 in facturas:
-            duplicadas[clave_v5] += [registro] if clave_v5 in duplicadas else [facturas[clave_v5], registro]
+            if clave_v5 not in duplicadas:   # (no usar `+=` sobre el defaultdict: crea la clave antes de evaluar la condicion)
+                duplicadas[clave_v5].append(facturas[clave_v5])
+            duplicadas[clave_v5].append(registro)
         else:
             facturas[clave_v5] = registro
     return facturas, dict(duplicadas)

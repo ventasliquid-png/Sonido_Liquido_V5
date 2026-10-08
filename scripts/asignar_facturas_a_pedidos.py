@@ -108,6 +108,7 @@ def main():
     ap.add_argument("--arca-csv")
     ap.add_argument("--desde", default="2026-01-01")
     ap.add_argument("--salida", required=True)
+    ap.add_argument("--generar-migracion", metavar="JSON", help="escribe los datos de la migracion: facturas ALTA a registrar y enlaces ALTA a corregir")
     a = ap.parse_args()
 
     db = sqlite3.connect("file:" + os.path.abspath(a.db).replace("\\", "/") + "?mode=ro", uri=True)
@@ -193,6 +194,13 @@ def main():
                 conf = "BAJA"
             if parecidos and conf == "ALTA":
                 conf = "MEDIA"
+            try:
+                dd = (datetime.date.fromisoformat(doc["fecha"]) - datetime.date.fromisoformat(ped["fecha"])).days
+            except ValueError:
+                dd = 999
+            if conf == "ALTA" and not (-7 <= dd <= 45):
+                conf = "MEDIA"   # el total y el producto coinciden pero la fecha no: tipico de pedidos repetidos o de facturas anuladas por una NC
+                mot = mot + [f"FECHA LEJANA: la factura es {dd:+d} dias respecto del pedido"]
             alts = [f"#{p_['id']} ({s_:.0f})" for s_, m, p_ in cands if p_["id"] != ped["id"]][:3]
             if parecidos:
                 mot = mot + [f"AMBIGUO: pedidos parecidos {', '.join('#' + str(p_['id']) for p_ in parecidos)}; se eligio por fecha"]
@@ -282,6 +290,41 @@ def main():
         for r in arca:
             if (r["pv"], r["numero"], r["cae"]) not in docs:
                 so.append([f"{r['pv']:05d}-{r['numero']:08d}", r["tipo"], r["fecha"], r["cuit"], r["receptor"], r["total"]])
+    if a.generar_migracion:
+        import json
+        registrar, enlaces, omitidas = [], [], []
+        for p_ in propuestas:
+            if p_["es_nc"] or p_["confianza"] != "ALTA" or p_["pedido"] is None:
+                continue
+            doc, ped = p_["doc"], p_["pedido"]
+            if p_["duplicada"]:
+                continue
+            if p_["en_v5"]:
+                if str(p_["link_actual"]) != str(ped["id"]):
+                    enlaces.append({"pv": doc["pv"], "numero": doc["numero"], "cae": doc["cae"], "pedido_actual": str(p_["link_actual"]), "pedido_nuevo": str(ped["id"]),
+                                    "items": [{"descripcion": i["descripcion"], "cantidad": i["cantidad"], "pedido_item_id": e}
+                                              for i, e in zip(doc["items"], af.enlazar_renglones(db, ped["id"], doc["items"]))]})
+                continue
+            desg, cierra = af.desglose_iva(doc["items"], doc["total"]) if doc["items"] else ({}, False)
+            if cierra:
+                tot = desg
+            elif doc["neto"] is not None and doc["total"] is not None and abs(doc["neto"] * 1.21 - doc["total"]) <= 0.05:
+                tot = {"neto_gravado": round(doc["neto"], 2), "exento": 0.0, "iva_21": round(doc["total"] - doc["neto"], 2), "iva_105": 0.0, "total": round(doc["total"], 2)}
+            else:
+                omitidas.append((p_["numero"], "los totales leidos del PDF no cierran"))
+                continue
+            items = None
+            if cierra and doc["confianza"] == "OK":
+                items = [{"descripcion": i["descripcion"], "cantidad": i["cantidad"], "precio": i["precio"], "alicuota": i["alicuota"], "subtotal": i["subtotal"], "pedido_item_id": e}
+                         for i, e in zip(doc["items"], af.enlazar_renglones(db, ped["id"], doc["items"]))]
+            registrar.append({"pv": doc["pv"], "numero": doc["numero"], "cae": doc["cae"], "tipo": doc["tipo"], "fecha": doc["fecha"], "vto": doc["vto"], "cuit": doc["cuit"],
+                              "receptor": doc["receptor"], "pedido_id": str(ped["id"]), "pedido_total": ped["total"], "confianza": p_["confianza"], "puntaje": round(p_["puntaje"]),
+                              "motivos": "; ".join(p_["motivos"]), "totales": tot, "items": items, "fuente": (doc["fuentes"] or [""])[0][:120]})
+        with open(a.generar_migracion, "w", encoding="utf-8") as fh:
+            json.dump({"generado": datetime.datetime.now().isoformat(timespec="seconds"), "base": os.path.basename(a.db), "registrar": registrar, "enlaces": enlaces}, fh, ensure_ascii=False, indent=1)
+        print(f"migracion: registrar {len(registrar)} (con renglones {sum(1 for r in registrar if r['items'])}), enlaces {len(enlaces)}, omitidas {len(omitidas)} -> {a.generar_migracion}")
+        for n, m in omitidas:
+            print(f"   omitida {n}: {m}")
     wb.save(a.salida)
     print(f"comprobantes analizados: {len(propuestas)} | " + " | ".join(f"{k}: {v}" for k, v in sorted(cuenta.items())))
     print(f"pedidos de 2026 sin factura: {len(sin_factura)} | Informe: {a.salida}")

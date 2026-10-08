@@ -1,0 +1,806 @@
+{
+ "generado": "2026-10-08T09:50:24",
+ "base": "PRODUCCION_P_al_20261008_0929.db",
+ "registrar": [
+  {
+   "pv": 1,
+   "numero": 2514,
+   "cae": "86139705410697",
+   "tipo": "FACTURA_A",
+   "fecha": "2026-03-31",
+   "vto": "2026-04-10",
+   "cuit": "30714145351",
+   "receptor": "INAPYR S. R. L.",
+   "pedido_id": "1",
+   "pedido_total": 146410.0,
+   "confianza": "ALTA",
+   "puntaje": 96,
+   "motivos": "1/1 productos; 1 cantidades iguales; total igual; -1 dias",
+   "totales": {
+    "neto_gravado": 121000.0,
+    "exento": 0,
+    "iva_21": 25410.0,
+    "iva_105": 0.0,
+    "total": 146410.0
+   },
+   "items": [
+    {
+     "descripcion": "Surgizime E2 botella x 1 Lt",
+     "cantidad": 10.0,
+     "precio": 12100.0,
+     "alicuota": 21.0,
+     "subtotal": 121000.0,
+     "pedido_item_id": 5
+    }
+   ],
+   "fuente": "P: 30715603973_001_00001_00002514 F INAPYR S. R. L..pdf"
+  },
+  {
+   "pv": 1,
+   "numero": 2519,
+   "cae": "86151088931277",
+   "tipo": "FACTURA_A",
+   "fecha": "2026-04-10",
+   "vto": "2026-04-20",
+   "cuit": "33718103199",
+   "receptor": "SALUD PRIVADA S. R. L.",
+   "pedido_id": "20",
+   "pedido_total": 758670.0,
+   "confianza": "ALTA",
+   "puntaje": 86,
+   "motivos": "1/1 productos; 1 cantidades iguales; total igual; -6 dias",
+   "totales": {
+    "neto_gravado": 627000.0,
+    "exento": 0.0,
+    "iva_21": 131670.0,
+    "iva_105": 0.0,
+    "total": 758670.0
+   },
+   "items": null,
+   "fuente": "OF: 30715603973_001_00001_00002519 Salud Privada.pdf"
+  },
+  {
+   "pv": 1,
+   "numero": 2521,
+   "cae": "86151659441233",
+   "tipo": "FACTURA_A",
+   "fecha": "2026-04-15",
+   "vto": "2026-04-25",
+   "cuit": "30629363765",
+   "receptor": "SANATORIO MATERNO INFANTIL SRL",
+   "pedido_id": "13",
+   "pedido_total": 363000.0,
+   "confianza": "ALTA",
+   "puntaje": 100,
+   "motivos": "1/1 productos; 1 cantidades iguales; total igual; +0 dias",
+   "totales": {
+    "neto_gravado": 300000.0,
+    "exento": 0,
+    "iva_21": 63000.0,
+    "iva_105": 0.0,
+    "total": 363000.0
+   },
+   "items": [
+    {
+     "descripcion": "Surgibac PA bidón por 5 litros",
+     "cantidad": 6.0,
+     "precio": 50000.0,
+     "alicuota": 21.0,
+     "subtotal": 300000.0,
+     "pedido_item_id": 37
+    }
+   ],
+   "fuente": "OF: 30715603973_001_00001_00002521 Sanatorio Materno Infantil.pdf"
+  },
+  {
+   "pv": 1,
+   "numero": 2524,
+   "cae": "86162346135072",
+   "tipo": "FACTURA_A",
+   "fecha": "2026-04-20",
+   "vto": "2026-04-30",
+   "cuit": "30715138707",
+   "receptor": "CENTRO PET ARGENTINA S.R.L.",
+   "pedido_id": "3",
+   "pedido_total": 2400156.0,
+   "confianza": "ALTA",
+   "puntaje": 91,
+   "motivos": "1/1 productos; 1 cantidades iguales; total igual; +33 dias",
+   "totales": {
+    "neto_gravado": 1983600.0,
+    "exento": 0.0,
+    "iva_21": 416556.0,
+    "iva_105": 0.0,
+    "total": 2400156.0
+   },
+   "items": null,
+   "fuente": "P: 30715603973_001_00001_00002524 F CENTRO PET ARGENTINA S.R.L..pdf"
+  },
+  {
+   "pv": 1,
+   "numero": 2526,
+   "cae": "86162466012229",
+   "tipo": "FACTURA_A",
+   "fecha": "2026-04-21",
+   "vto": "2026-05-01",
+   "cuit": "30717179842",
+   "receptor": "GENESIS BAG S.A.",
+   "pedido_id": "24",
+   "pedido_total": 305343.5,
+   "confianza": "ALTA",
+   "puntaje": 100,
+   "motivos": "5/5 productos; 5 cantidades iguales; total igual; +0 dias",
+   "totales": {
+    "neto_gravado": 252350.0,
+    "exento": 0,
+    "iva_21": 52993.5,
+    "iva_105": 0.0,
+    "total": 305343.5
+   },
+   "items": [
+    {
+     "descripcion": "Toalla 200 mts x 6",
+     "cantidad": 3.0,
+     "precio": 42350.0,
+     "alicuota": 21.0,
+     "subtotal": 127050.0,
+     "pedido_item_id": 40
+    },
+    {
+     "descripcion": "Toallas super cortas caja x 2500",
+     "cantidad": 1.0,
+     "precio": 33500.0,
+     "alicuota": 21.0,
+     "subtotal": 33500.0,
+     "pedido_item_id": 41
+    },
+    {
+     "descripcion": "Papel higiénico 122",
+     "cantidad": 1.0,
+     "precio": 29000.0,
+     "alicuota": 21.0,
+     "subtotal": 29000.0,
+     "pedido_item_id": 42
+    },
+    {
+     "descripcion": "Alcohol 70% bidon x 5 Lts",
+     "cantidad": 2.0,
+     "precio": 13500.0,
+     "alicuota": 21.0,
+     "subtotal": 27000.0,
+     "pedido_item_id": 43
+    },
+    {
+     "descripcion": "Alcohol en gel bidon x 5 Lts",
+     "cantidad": 2.0,
+     "precio": 17900.0,
+     "alicuota": 21.0,
+     "subtotal": 35800.0,
+     "pedido_item_id": 44
+    }
+   ],
+   "fuente": "OF: 30715603973_001_00001_00002526 F GENESIS BAG S.A..pdf"
+  },
+  {
+   "pv": 1,
+   "numero": 2527,
+   "cae": "86162606118628",
+   "tipo": "FACTURA_A",
+   "fecha": "2026-04-22",
+   "vto": "2026-05-02",
+   "cuit": "30663253529",
+   "receptor": "PETROPLASTIC S A",
+   "pedido_id": "25",
+   "pedido_total": 3605800.0,
+   "confianza": "ALTA",
+   "puntaje": 100,
+   "motivos": "1/1 productos; 1 cantidades iguales; total igual; +0 dias",
+   "totales": {
+    "neto_gravado": 2980000.0,
+    "exento": 0,
+    "iva_21": 625800.0,
+    "iva_105": 0.0,
+    "total": 3605800.0
+   },
+   "items": [
+    {
+     "descripcion": "BOBINA 300 MTS PACK X 2 UN",
+     "cantidad": 400.0,
+     "precio": 7450.0,
+     "alicuota": 21.0,
+     "subtotal": 2980000.0,
+     "pedido_item_id": 45
+    }
+   ],
+   "fuente": "OF: 30715603973_001_00001_00002527 F PETROPLASTIC S A.pdf"
+  },
+  {
+   "pv": 1,
+   "numero": 2528,
+   "cae": "86172841367910",
+   "tipo": "FACTURA_A",
+   "fecha": "2026-04-24",
+   "vto": "2026-05-04",
+   "cuit": "30611306632",
+   "receptor": "BIOTENK S A",
+   "pedido_id": "28",
+   "pedido_total": 133100.0,
+   "confianza": "ALTA",
+   "puntaje": 100,
+   "motivos": "1/1 productos; 1 cantidades iguales; total igual; +0 dias",
+   "totales": {
+    "neto_gravado": 110000.0,
+    "exento": 0,
+    "iva_21": 23100.0,
+    "iva_105": 0.0,
+    "total": 133100.0
+   },
+   "items": [
+    {
+     "descripcion": "Surgibac PA bidon x 5 Lts",
+     "cantidad": 2.0,
+     "precio": 55000.0,
+     "alicuota": 21.0,
+     "subtotal": 110000.0,
+     "pedido_item_id": 48
+    }
+   ],
+   "fuente": "P: 30715603973_001_00001_00002528 F BIOTENK S A.pdf"
+  },
+  {
+   "pv": 1,
+   "numero": 2530,
+   "cae": "86173192774553",
+   "tipo": "FACTURA_A",
+   "fecha": "2026-04-27",
+   "vto": "2026-05-07",
+   "cuit": "33660726859",
+   "receptor": "LACTEOS DE POBLET SA",
+   "pedido_id": "10",
+   "pedido_total": 1845855.0,
+   "confianza": "ALTA",
+   "puntaje": 96,
+   "motivos": "3/3 productos; 3 cantidades iguales; total igual; +14 dias",
+   "totales": {
+    "neto_gravado": 1525500.0,
+    "exento": 0,
+    "iva_21": 320355.0,
+    "iva_105": 0.0,
+    "total": 1845855.0
+   },
+   "items": [
+    {
+     "descripcion": "Guantes nitrilo talle L caja x 100",
+     "cantidad": 80.0,
+     "precio": 8650.0,
+     "alicuota": 21.0,
+     "subtotal": 692000.0,
+     "pedido_item_id": 18
+    },
+    {
+     "descripcion": "Guante nitrilo caja por 100 Talle M",
+     "cantidad": 40.0,
+     "precio": 8650.0,
+     "alicuota": 21.0,
+     "subtotal": 346000.0,
+     "pedido_item_id": 19
+    },
+    {
+     "descripcion": "GUANTES VETERINARIOS 90 CM BOLSA X 100 UN",
+     "cantidad": 50.0,
+     "precio": 9750.0,
+     "alicuota": 21.0,
+     "subtotal": 487500.0,
+     "pedido_item_id": 20
+    }
+   ],
+   "fuente": "OF: 30715603973_001_00001_00002530 Lacteos 3202.pdf"
+  },
+  {
+   "pv": 1,
+   "numero": 2550,
+   "cae": "86239071456768",
+   "tipo": "FACTURA_A",
+   "fecha": "2026-06-09",
+   "vto": "2026-06-19",
+   "cuit": "30716458799",
+   "receptor": "LUCAS MAXIMILIANO PIÑEYRO, SEBASTIAN VIVACQUA Y JUAN RAMON LOPEZ SOCIEDAD LEY 19550 CAPITULO 1 SECCION IV LOBOS ELEODORO DR. 181 DPTO:2  CAPITAL FEDERAL, CIUDAD DE BUENOS AIRES CONTADO",
+   "pedido_id": "48",
+   "pedido_total": 378972.0,
+   "confianza": "ALTA",
+   "puntaje": 96,
+   "motivos": "1/1 productos; 1 cantidades iguales; total igual; +6 dias",
+   "totales": {
+    "neto_gravado": 313200.0,
+    "exento": 0,
+    "iva_21": 65772.0,
+    "iva_105": 0.0,
+    "total": 378972.0
+   },
+   "items": [
+    {
+     "descripcion": "Jabón Liquid Sound Bac 500 cc",
+     "cantidad": 60.0,
+     "precio": 5220.0,
+     "alicuota": 21.0,
+     "subtotal": 313200.0,
+     "pedido_item_id": 90
+    }
+   ],
+   "fuente": "P: 30715603973_001_00001_00002550 F AMAZING TATTOO.pdf"
+  },
+  {
+   "pv": 1,
+   "numero": 2557,
+   "cae": "86250876010292",
+   "tipo": "FACTURA_A",
+   "fecha": "2026-06-23",
+   "vto": "2026-07-03",
+   "cuit": "30679840114",
+   "receptor": "HONEYMAX S A",
+   "pedido_id": "66",
+   "pedido_total": 353562.0,
+   "confianza": "ALTA",
+   "puntaje": 100,
+   "motivos": "3/3 productos; 3 cantidades iguales; total igual; +0 dias",
+   "totales": {
+    "neto_gravado": 292200.0,
+    "exento": 0,
+    "iva_21": 61362.0,
+    "iva_105": 0.0,
+    "total": 353562.0
+   },
+   "items": [
+    {
+     "descripcion": "TOALLAS SUPER CORTAS BLANCAS CAJA POR 2500",
+     "cantidad": 4.0,
+     "precio": 31800.0,
+     "alicuota": 21.0,
+     "subtotal": 127200.0,
+     "pedido_item_id": 117
+    },
+    {
+     "descripcion": "JABON BACTERICIDA BIDON X 5 LTS",
+     "cantidad": 2.0,
+     "precio": 25400.0,
+     "alicuota": 21.0,
+     "subtotal": 50800.0,
+     "pedido_item_id": 118
+    },
+    {
+     "descripcion": "BOBINA 300 MTS PACK X 2 UN",
+     "cantidad": 2.0,
+     "precio": 57100.0,
+     "alicuota": 21.0,
+     "subtotal": 114200.0,
+     "pedido_item_id": 116
+    }
+   ],
+   "fuente": "P: 30715603973_001_00001_00002557 F HONEYMAX SA.pdf"
+  },
+  {
+   "pv": 1,
+   "numero": 2558,
+   "cae": "86261151168436",
+   "tipo": "FACTURA_A",
+   "fecha": "2026-06-25",
+   "vto": "2026-07-05",
+   "cuit": "30709383724",
+   "receptor": "DOC BAIRES SRL",
+   "pedido_id": "67",
+   "pedido_total": 166254.0,
+   "confianza": "ALTA",
+   "puntaje": 100,
+   "motivos": "1/1 productos; 1 cantidades iguales; total igual; +0 dias",
+   "totales": {
+    "neto_gravado": 137400.0,
+    "exento": 0,
+    "iva_21": 28854.0,
+    "iva_105": 0.0,
+    "total": 166254.0
+   },
+   "items": [
+    {
+     "descripcion": "Surgizime O3 bidón x 5 Lts",
+     "cantidad": 3.0,
+     "precio": 45800.0,
+     "alicuota": 21.0,
+     "subtotal": 137400.0,
+     "pedido_item_id": 119
+    }
+   ],
+   "fuente": "P: 30715603973_001_00001_00002558 F DOC BAIRES SRL.pdf"
+  },
+  {
+   "pv": 1,
+   "numero": 2560,
+   "cae": "86262013082914",
+   "tipo": "FACTURA_A",
+   "fecha": "2026-07-01",
+   "vto": "2026-07-11",
+   "cuit": "30679840114",
+   "receptor": "HONEYMAX S A",
+   "pedido_id": "68",
+   "pedido_total": 827301.2,
+   "confianza": "ALTA",
+   "puntaje": 100,
+   "motivos": "2/2 productos; 2 cantidades iguales; total igual; +0 dias",
+   "totales": {
+    "neto_gravado": 683720.0,
+    "exento": 0,
+    "iva_21": 143581.2,
+    "iva_105": 0.0,
+    "total": 827301.2
+   },
+   "items": [
+    {
+     "descripcion": "Flow 156 bidon x 28 Kg",
+     "cantidad": 1.0,
+     "precio": 248120.0,
+     "alicuota": 21.0,
+     "subtotal": 248120.0,
+     "pedido_item_id": 120
+    },
+    {
+     "descripcion": "2180 Plus Vib Can bidón x 29 Kg",
+     "cantidad": 1.0,
+     "precio": 435600.0,
+     "alicuota": 21.0,
+     "subtotal": 435600.0,
+     "pedido_item_id": 121
+    }
+   ],
+   "fuente": "OF: 30715603973_001_00001_00002560 F HONEYMAX S A.pdf"
+  },
+  {
+   "pv": 1,
+   "numero": 2571,
+   "cae": "86294825363320",
+   "tipo": "FACTURA_A",
+   "fecha": "2026-07-21",
+   "vto": "2026-07-31",
+   "cuit": "30716458799",
+   "receptor": "LUCAS MAXIMILIANO PIÑEYRO, SEBASTIAN VIVACQUA Y JUAN RAMON LOPEZ SOCIEDAD LEY 19550 CAPITULO 1 SECCION IV LOBOS ELEODORO DR. 181 DPTO:2  CAPITAL FEDERAL, CIUDAD DE BUENOS AIRES CONTADO",
+   "pedido_id": "78",
+   "pedido_total": 3789720.0,
+   "confianza": "ALTA",
+   "puntaje": 100,
+   "motivos": "1/1 productos; 1 cantidades iguales; total igual; +0 dias",
+   "totales": {
+    "neto_gravado": 3132000.0,
+    "exento": 0,
+    "iva_21": 657720.0,
+    "iva_105": 0.0,
+    "total": 3789720.0
+   },
+   "items": [
+    {
+     "descripcion": "Jabon Liquid Sound Bac 500 cc",
+     "cantidad": 600.0,
+     "precio": 5220.0,
+     "alicuota": 21.0,
+     "subtotal": 3132000.0,
+     "pedido_item_id": 137
+    }
+   ],
+   "fuente": "OF: 30715603973_001_00001_00002571 F AMAZING TATTOO.pdf"
+  },
+  {
+   "pv": 1,
+   "numero": 2572,
+   "cae": "86294967817972",
+   "tipo": "FACTURA_A",
+   "fecha": "2026-07-22",
+   "vto": "2026-08-01",
+   "cuit": "30709383724",
+   "receptor": "DOC BAIRES SRL",
+   "pedido_id": "80",
+   "pedido_total": 487146.0,
+   "confianza": "ALTA",
+   "puntaje": 100,
+   "motivos": "3/3 productos; 3 cantidades iguales; total igual; +0 dias",
+   "totales": {
+    "neto_gravado": 402600.0,
+    "exento": 0,
+    "iva_21": 84546.0,
+    "iva_105": 0.0,
+    "total": 487146.0
+   },
+   "items": [
+    {
+     "descripcion": "Surgizime E2 bidón 5 litros",
+     "cantidad": 6.0,
+     "precio": 44000.0,
+     "alicuota": 21.0,
+     "subtotal": 264000.0,
+     "pedido_item_id": 139
+    },
+    {
+     "descripcion": "Surgizime O3 bidón 5 litros",
+     "cantidad": 2.0,
+     "precio": 45800.0,
+     "alicuota": 21.0,
+     "subtotal": 91600.0,
+     "pedido_item_id": 140
+    },
+    {
+     "descripcion": "Surgizime L5 bidón 5 litros",
+     "cantidad": 1.0,
+     "precio": 47000.0,
+     "alicuota": 21.0,
+     "subtotal": 47000.0,
+     "pedido_item_id": 141
+    }
+   ],
+   "fuente": "P: 30715603973_001_00001_00002572 F DOC BAIRES SRL.pdf"
+  },
+  {
+   "pv": 1,
+   "numero": 2578,
+   "cae": "86305765953611",
+   "tipo": "FACTURA_A",
+   "fecha": "2026-07-28",
+   "vto": "2026-08-07",
+   "cuit": "30529900747",
+   "receptor": "LABORATORIO DOMINGUEZ S A",
+   "pedido_id": "84",
+   "pedido_total": 60500.0,
+   "confianza": "ALTA",
+   "puntaje": 100,
+   "motivos": "1/1 productos; 1 cantidades iguales; total igual; +0 dias",
+   "totales": {
+    "neto_gravado": 50000.0,
+    "exento": 0,
+    "iva_21": 10500.0,
+    "iva_105": 0.0,
+    "total": 60500.0
+   },
+   "items": [
+    {
+     "descripcion": "Surgibac PA Plus bidón x 5 Lts",
+     "cantidad": 1.0,
+     "precio": 50000.0,
+     "alicuota": 21.0,
+     "subtotal": 50000.0,
+     "pedido_item_id": 147
+    }
+   ],
+   "fuente": "P: 30715603973_001_00001_00002578 F LABORATORIO DOMINGUEZ SA.pdf"
+  },
+  {
+   "pv": 1,
+   "numero": 2579,
+   "cae": "86316798133859",
+   "tipo": "FACTURA_A",
+   "fecha": "2026-08-04",
+   "vto": "2026-08-14",
+   "cuit": "20362621950",
+   "receptor": "CASTRO MATIAS EZEQUIEL",
+   "pedido_id": "89",
+   "pedido_total": 420354.0,
+   "confianza": "ALTA",
+   "puntaje": 100,
+   "motivos": "2/2 productos; 2 cantidades iguales; total igual; +0 dias",
+   "totales": {
+    "neto_gravado": 347400.0,
+    "exento": 0,
+    "iva_21": 72954.0,
+    "iva_105": 0.0,
+    "total": 420354.0
+   },
+   "items": [
+    {
+     "descripcion": "Surgizime O3 bidón x 5 Lts",
+     "cantidad": 6.0,
+     "precio": 45800.0,
+     "alicuota": 21.0,
+     "subtotal": 274800.0,
+     "pedido_item_id": 164
+    },
+    {
+     "descripcion": "Surgizime O3 botella x 1 Lt",
+     "cantidad": 6.0,
+     "precio": 12100.0,
+     "alicuota": 21.0,
+     "subtotal": 72600.0,
+     "pedido_item_id": 165
+    }
+   ],
+   "fuente": "P: 30715603973_001_00001_00002579 F CASTRO MATIAS EZEQUIEL.pdf"
+  },
+  {
+   "pv": 1,
+   "numero": 2581,
+   "cae": "86327292968728",
+   "tipo": "FACTURA_A",
+   "fecha": "2026-08-07",
+   "vto": "2026-08-17",
+   "cuit": "33516033199",
+   "receptor": "ALFAJORES JORGITO S A",
+   "pedido_id": "93",
+   "pedido_total": 172788.0,
+   "confianza": "ALTA",
+   "puntaje": 100,
+   "motivos": "1/1 productos; 1 cantidades iguales; total igual; +0 dias",
+   "totales": {
+    "neto_gravado": 142800.0,
+    "exento": 0,
+    "iva_21": 29988.0,
+    "iva_105": 0.0,
+    "total": 172788.0
+   },
+   "items": [
+    {
+     "descripcion": "GUANTES VETERINARIOS 90 CM BOLSA X 100 UN",
+     "cantidad": 12.0,
+     "precio": 11900.0,
+     "alicuota": 21.0,
+     "subtotal": 142800.0,
+     "pedido_item_id": 170
+    }
+   ],
+   "fuente": "P: 30715603973_001_00001_00002581 F ALFAJORES JORGITO S A.pdf"
+  },
+  {
+   "pv": 1,
+   "numero": 2584,
+   "cae": "86328030976638",
+   "tipo": "FACTURA_A",
+   "fecha": "2026-08-12",
+   "vto": "2026-08-22",
+   "cuit": "30611306632",
+   "receptor": "BIOTENK S A",
+   "pedido_id": "91",
+   "pedido_total": 199650.0,
+   "confianza": "ALTA",
+   "puntaje": 96,
+   "motivos": "1/1 productos; 1 cantidades iguales; total igual; +7 dias",
+   "totales": {
+    "neto_gravado": 165000.0,
+    "exento": 0,
+    "iva_21": 34650.0,
+    "iva_105": 0.0,
+    "total": 199650.0
+   },
+   "items": [
+    {
+     "descripcion": "Surgiba PA bidón por 5 litros",
+     "cantidad": 3.0,
+     "precio": 55000.0,
+     "alicuota": 21.0,
+     "subtotal": 165000.0,
+     "pedido_item_id": 167
+    }
+   ],
+   "fuente": "OF: 30715603973_001_00001_00002584 Biotenk.pdf"
+  },
+  {
+   "pv": 1,
+   "numero": 2588,
+   "cae": "86349358071935",
+   "tipo": "FACTURA_A",
+   "fecha": "2026-08-21",
+   "vto": "2026-08-31",
+   "cuit": "30715849115",
+   "receptor": "CAMPO BIOLOGICO SOCIEDAD POR ACCIONES SIMPLIFICADA RIO TURBIO 420  RIO CUARTO, CÓRDOBA",
+   "pedido_id": "101",
+   "pedido_total": 130922.0,
+   "confianza": "ALTA",
+   "puntaje": 96,
+   "motivos": "2/2 productos; 2 cantidades iguales; total igual; -3 dias",
+   "totales": {
+    "neto_gravado": 108200.0,
+    "exento": 0,
+    "iva_21": 22722.0,
+    "iva_105": 0.0,
+    "total": 130922.0
+   },
+   "items": [
+    {
+     "descripcion": "Surgizime O3 bidón x 5 Lts",
+     "cantidad": 1.0,
+     "precio": 53400.0,
+     "alicuota": 21.0,
+     "subtotal": 53400.0,
+     "pedido_item_id": 188
+    },
+    {
+     "descripcion": "Surgizime L5 bidón x 5 Lts",
+     "cantidad": 1.0,
+     "precio": 54800.0,
+     "alicuota": 21.0,
+     "subtotal": 54800.0,
+     "pedido_item_id": 189
+    }
+   ],
+   "fuente": "P: 30715603973_001_00001_00002588 F CAMPO BIOLOGICO SOCIEDAD POR ACCIONES SIMPLIFICADA.pdf"
+  },
+  {
+   "pv": 1,
+   "numero": 2613,
+   "cae": "86406440220702",
+   "tipo": "FACTURA_A",
+   "fecha": "2026-10-06",
+   "vto": "2026-10-16",
+   "cuit": "30709383724",
+   "receptor": "DOC BAIRES SRL",
+   "pedido_id": "122",
+   "pedido_total": 221672.0,
+   "confianza": "ALTA",
+   "puntaje": 100,
+   "motivos": "2/2 productos; 2 cantidades iguales; total igual; +0 dias",
+   "totales": {
+    "neto_gravado": 183200.0,
+    "exento": 0.0,
+    "iva_21": 38472.0,
+    "iva_105": 0.0,
+    "total": 221672.0
+   },
+   "items": null,
+   "fuente": "P: 30715603973_001_00001_00002613 F DOC BAIRES SRL.pdf"
+  }
+ ],
+ "enlaces": [
+  {
+   "pv": 1,
+   "numero": 2533,
+   "cae": "86194643983614",
+   "pedido_actual": "34",
+   "pedido_nuevo": "33",
+   "items": [
+    {
+     "descripcion": "Surgibac PA bidón por 5 litros",
+     "cantidad": 2.0,
+     "pedido_item_id": 61
+    },
+    {
+     "descripcion": "Surgizime L5 bidón por 5 litros",
+     "cantidad": 2.0,
+     "pedido_item_id": 62
+    }
+   ]
+  },
+  {
+   "pv": 1,
+   "numero": 2538,
+   "cae": "86205666422750",
+   "pedido_actual": "39",
+   "pedido_nuevo": "32",
+   "items": [
+    {
+     "descripcion": "Pack camillero x 2 rollos",
+     "cantidad": 4.0,
+     "pedido_item_id": 60
+    }
+   ]
+  },
+  {
+   "pv": 1,
+   "numero": 2549,
+   "cae": "86238878700280",
+   "pedido_actual": "58",
+   "pedido_nuevo": "53",
+   "items": [
+    {
+     "descripcion": "Surgizime E2 botella x 1 Lt",
+     "cantidad": 240.0,
+     "pedido_item_id": 101
+    }
+   ]
+  },
+  {
+   "pv": 1,
+   "numero": 2562,
+   "cae": "86272142774696",
+   "pedido_actual": "4",
+   "pedido_nuevo": "69",
+   "items": [
+    {
+     "descripcion": "GUANTES VETERINARIOS 90 CM BOLSA X 100 UN",
+     "cantidad": 10.0,
+     "pedido_item_id": 122
+    }
+   ]
+  }
+ ]
+}
