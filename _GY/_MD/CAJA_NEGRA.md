@@ -2,7 +2,7 @@
 
 # CAJA NEGRA: OMEGA Lite - Saneamiento de facturas, remitos y pedidos de P (migraciones 049-059), OC en el remito, Cumplimiento de OC y arreglo de la ingesta - S882
 
-Sesion 882 OF, 07-08/10, NS (CC) con Carlos. Hash D: @@HASH_D@@ (ultimo commit de codigo: dc1fe580) | Hash B: 2a33e8d = prod/main (cinco pushes en dos dias) | P real: 2a33e8d (leido 08/10 17:51).
+Sesion 882 OF, 07-08/10, NS (CC) con Carlos. Hash D: cd894cf0 (ultimo commit de codigo: dc1fe580) | Hash B: 2a33e8d = prod/main (cinco pushes en dos dias) | P real: 2a33e8d (leido 08/10 17:51).
 - Auditoria de CA verificada (H1 con dano real: el espejo de pedidos pisaba renglones de facturas con CAE guardadas como BORRADOR). Hotfix #161 (29ee3b12), herramienta scripts/auditoria_facturas.py contra los PDF y el CSV de ARCA (#164: tipo, total sin IVA, fecha y renglones mal en 44/44) y migraciones 049 a 059 (cada cambio de datos de P viaja como migracion con guardas, SAVEPOINT y backup previo; nunca se escribe P por red).
 - #166: la OC del pedido se imprime en el casillero del remito (remito_engine.py, idea de Tomy). #167: informe Cumplimiento de OC (backend/informes/router.py + CumplimientoOcListado.vue; NC restan, ND no cuentan). #164: IngestaService.approve completa tipo/fecha/neto/total desde el raw y create_from_ingestion guarda la factura espejo AUTORIZADA y el remito con lo facturado; migrate_059 corrige las ya guardadas mal.
 - Conciliaciones con Lacteos de Poblet, Jomax, Cassara, Centro Pet y Gelato (queda saldo de 30 vet de Gelato); documentos en Q:/Mi unidad/V5_Silo_Claude/Conciliaciones-e-investigaciones/.
