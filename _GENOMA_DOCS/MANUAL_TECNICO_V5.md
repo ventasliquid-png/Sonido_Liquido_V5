@@ -2276,3 +2276,17 @@ Sin cambios en D ni en B. Solo herramientas del Silo: `board_historico_forense.p
 **Cumplimiento de OC.** `GET /informes/cumplimiento-oc` y `/export` (`backend/informes/router.py`, `_filas_cumplimiento_oc`); `get_entregas` excluye pedidos anulados salvo `incluir_anulados`; vista `CumplimientoOcListado.vue` (ruta `informes/cumplimiento-oc`).
 
 **Numeración.** OF y P llevan contadores 0015 separados: el mismo número de remito puede existir en las dos máquinas.
+
+## Sesión 883 (09/10) — NC/ND en la ingesta, transportes, alta de pedido y domicilios
+
+**Ingesta.** `IngestaService.approve` rechaza con 409 `NOTA_NO_SE_INGESTA` una NC o ND antes de tocar el raw (`es_nota_de_ajuste` en `backend/ingesta/service.py`, con defensa en `RemitosService.create_from_ingestion` y mensaje en `IngestaFacturaView.vue`).
+
+**Logística.** `POST/PUT/DELETE /logistica/empresas/{id}/domicilios` (Domicilio + `VinculoGeografico` con `entidad_tipo='TRANSPORTE'`, un solo fiscal, baja lógica); `TransporteCanvas.save()` persiste los domicilios (`persistirDomicilios`) y copia el espejo fiscal↔logística (Bit 21, `MIRROR_BIT`). `MOSTRAR_SUCURSALES = false`: una ficha = un punto de despacho. `migrate_060` unifica Expreso Demonte.
+
+**Pedidos.** `PedidoCanvas.vue`: `SelectorInline` «Tipo de alta» (`OPCIONES_ALTA`), el alta manda `estado`; al editar (`route.params.id`) se **omite** `estado` del payload (el PATCH lo respeta y antes pisaba PRESUPUESTO con PENDIENTE).
+
+**Domicilios (Card #158).** `update_domicilio` bifurca (copy-on-write) solo si el vínculo es espejo (Bit 21), las notas cambian de verdad y el domicilio lo usan 2+ clientes; `fork_domicilio` edita en el lugar si el domicilio tiene un solo vínculo; `DomicilioUpdate` acepta `observaciones`; `migrate_061` deja inactivos los repetidos de Centro Pet e INAPYR. **Paso 1 «buscar antes de crear»:** `backend/clientes/direcciones.py` (`partes_de_calle`, `lugar_canonico`, `comparar` → IGUAL / PARECIDA / DISTINTA por piezas: altura, palabras de la calle, iniciales JB = Juan B; ignora tipo de vía, N° y de/la), `ClienteService.buscar_domicilios_similares` (compara las provincias **por nombre**: la tabla `provincias` tiene dos códigos por provincia, B/BA, C/CABA…), `GET /clientes/hub/similares` (solo lectura) y `link_hub_domicilio` (alias `''` = sin alias; `None` conserva «VÍNCULO HUB»). Frontend: `ClientCanvas.preguntarSimilares` + `DomicilioSimilarModal.vue`, que **siempre pregunta**; «Usar esta» se bloquea si el rol pedido no coincide con el de la fila para otros clientes.
+
+**Riesgo abierto (Cards #172 y #173).** `es_fiscal` / `es_entrega` son columnas de la **fila** `domicilios` (marcadas LEGACY), no del vínculo `domicilios_clientes`: dos clientes que comparten una fila comparten el rol, y los cambios directos de rol (leyes de conservación de la ficha, botones del listado) no pasan por la bifurcación. El paso 1 no sube a producción hasta la guardia en el servidor; la regla «Blanco + Responsable Inscripto siempre con fiscal» tampoco la cuida el servidor (4 clientes de P la incumplen).
+
+**Puente a ARCA.** `AfipBridgeService.get_datos_afip(cuit)` → Sabueso (`backend/modules/sabueso/Conexion_Blindada.py`, Padrón A13, con los certificados del repo). Usarlo de solo lectura cambia `backend/modules/sabueso/token_cache.json` (archivo trackeado): restaurarlo con `git checkout --` antes de commitear.

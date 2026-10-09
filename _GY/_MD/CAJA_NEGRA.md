@@ -1,4 +1,17 @@
-﻿Sesion actual: 882
+﻿Sesion actual: 883
+
+# CAJA NEGRA: OMEGA Lite - 409 de NC/ND, transportes (#170), alta Pedido/Presupuesto (#171), domicilios (#158, paso 1 buscar antes de crear) y regla Blanco+RI con fiscal (#172, #173) - S883
+
+Sesion 883 OF, 09/10, NS (CC) con Carlos. Hash D: HASH_CIERRE_883 (ultimo commit de codigo: 3acad8e0) | Hash B: 33a4cc7 = prod/main (tres pushes: 2a33e8d..1c843af..33a4cc7) | P real: 33a4cc7 (leido 09/10 15:11).
+- Ingesta: NC y ND se rechazan con 409 NOTA_NO_SE_INGESTA (ca6703d0 / B 64a5409). Transportes: migrate_060 unifica Expreso Demonte; #170 la direccion de la ficha de un transporte se guarda + espejo Bit 21 + panel de sucursales oculto (f2d1ebfb, e4853ef9 / B adc8c75, 29e16b0), verificada en P. #171 selector Pedido/Presupuesto en el alta y la ficha ya no pisa el estado (5f43e8b0 / B 33a4cc7): falta probarla en P con un presupuesto real.
+- #158: el domicilio nuevo ya no se bifurca al primer guardado, DomicilioUpdate guarda observaciones, migrate_061 (f6339e5b, sin port a B). Paso 1 buscar antes de crear (3acad8e0, sin port): backend/clientes/direcciones.py + GET /clientes/hub/similares + DomicilioSimilarModal.vue, siempre pregunta; probado en pantalla con copia de P. NO sube a produccion hasta la guardia de roles (#172).
+- Decision de Carlos: el rol fiscal/entrega vive en la fila del domicilio y compartirla cruza roles; un cliente Blanco + Responsable Inscripto no puede quedar sin fiscal (4 en P: Gelato, Jomax, Agustin Suarez Cipolletti, Medi Cient). Consultas al Padron A13 por el Puente (solo lectura). Cards nuevas #168, #169, #172, #173.
+- Errores propios corregidos: la prueba en pantalla tipeaba en el campo fiscal (solo lectura) y parecia que el formulario salia en blanco; el comparador tomaba B y BA como provincias distintas.
+- Pendiente: guardia de roles + regla en el servidor + migrate_062 (Gelato, Jomax, Medi Cient; Agustin Suarez a decision de Carlos), luego port y push de f6339e5b y 3acad8e0; verificar #171 en P; #164 con una factura real; Gelato y Lacteos; INBOX con 21 entradas (35 punteros archivados en LEIDOS/ en este cierre); barrido del Board.
+
+---
+
+Sesion actual: 882
 
 # CAJA NEGRA: OMEGA Lite - Saneamiento de facturas, remitos y pedidos de P (migraciones 049-059), OC en el remito, Cumplimiento de OC y arreglo de la ingesta - S882
 

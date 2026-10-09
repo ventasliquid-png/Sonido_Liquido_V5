@@ -1,4 +1,10 @@
-﻿## SESION 882 (OF) — 2026-10-07/08 [NS (CC)]: saneamiento de facturas/remitos/pedidos de P (049-059), OC en el remito, Cumplimiento de OC y arreglo de la ingesta — NOMINAL — D:cd894cf0 B:2a33e8d (= prod/main) P:2a33e8d
+﻿## SESION 883 (OF) — 2026-10-09 [NS (CC)]: 409 de NC/ND, transportes (#170), alta Pedido/Presupuesto (#171), domicilios (#158, paso 1 «buscar antes de crear») y regla Blanco+RI con fiscal (#172, #173) — NOMINAL — D:HASH_CIERRE_883 B:33a4cc7 (= prod/main) P:33a4cc7
+
+- Tres pushes a producción (`2a33e8d..1c843af..33a4cc7`); `f6339e5b` (#158 + `migrate_061`) y `3acad8e0` (paso 1) quedan en D sin port hasta la guardia de roles de domicilio (#172). Cards nuevas #168, #169, #172, #173.
+
+---
+
+## SESION 882 (OF) — 2026-10-07/08 [NS (CC)]: saneamiento de facturas/remitos/pedidos de P (049-059), OC en el remito, Cumplimiento de OC y arreglo de la ingesta — NOMINAL — D:cd894cf0 B:2a33e8d (= prod/main) P:2a33e8d
 
 - Migraciones 049-059 (datos de P por migracion), #161, #164, #166, #167; cinco pushes a produccion; conciliaciones con clientes en `Conciliaciones-e-investigaciones/` del Silo.
 

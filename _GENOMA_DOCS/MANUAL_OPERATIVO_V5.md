@@ -1295,3 +1295,11 @@ Sin cambios funcionales visibles: la sesión trabajó el Board y los protocolos,
 - **Ingesta de facturas:** la factura que se carga desde el PDF de ARCA queda **autorizada** con el tipo (A o B), la fecha, el neto, el IVA, el total y el vencimiento del PDF, enlazada a los renglones del pedido; el remito que genera lleva las cantidades de la factura y no las del pedido. Antes quedaba en borrador, como Factura B y con el total sin IVA.
 - **Borrar un remito** ya no borra la factura si esa factura tiene CAE.
 - **Datos corregidos en producción** (facturas, remitos y pedidos de Lácteos de Poblet, Cassará, Centro Pet, Jomax y Gelato): se aplican solos al relanzar Soberana; no hace falta hacer nada.
+
+## Sesión 883 (09/10) — Lo que cambia para quien opera
+
+- **Alta de un pedido:** arriba hay un selector **«Tipo de alta»** (Pedido / Presupuesto). Antes todo nacía como pedido y había que cambiarlo después. **Guardar la ficha de un presupuesto ya no lo convierte en pedido firme** (antes lo hacía sin avisar). Ya está en producción.
+- **Transportes:** la **dirección que se carga en la ficha de un transporte se guarda** (antes la pantalla decía «Guardado» y la dirección se perdía; el teléfono sí). Una ficha de transporte es **un solo punto de despacho**: si una empresa tiene varias sucursales de recepción (Cruz del Sur Pompeya, Cruz del Sur Mercado Central) se da de alta **una ficha por sucursal**; el panel «Sucursales y destinos» quedó oculto. **Expreso Demonte** quedó en una sola ficha. Ya está en producción.
+- **Ingesta de facturas:** una **nota de crédito o de débito ya no se carga por la ingesta** (se guardaba como si fuera una factura): el sistema avisa que se usa **Conciliar**. Ya está en producción.
+- **Clientes — todavía NO en producción (queda en D hasta la guardia de roles):** al cargar un domicilio nuevo el sistema **busca si ya existe uno igual o parecido** (aunque esté escrito distinto: «Justo, JB Av 687» y «Avenida Juan B Justo N°687») y **siempre pregunta**: usar el que ya existe, crear uno nuevo o cancelar. Nunca los junta solo.
+- **Regla de Carlos:** un cliente **Blanco y Responsable Inscripto no puede quedar sin domicilio fiscal**. Hoy cuatro clientes de producción no lo cumplen (Gelato, Jomax, Agustín Suárez Cipolletti y Medi Cient); se corrigen la semana próxima con una migración. Mientras tanto no hay que hacer nada.
