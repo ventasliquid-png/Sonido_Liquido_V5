@@ -1505,6 +1505,16 @@ const confirmIngesta = async () => {
                 return;
             }
 
+            // [S883, auditoria de CA N1] Una NC o ND no se ingresa como factura: se concilia contra la factura que corrige.
+            // No es un problema de pedido, asi que no se abre el flujo de "elegir/crear pedido".
+            if (detail.includes('NOTA_NO_SE_INGESTA')) {
+                const mensaje = detail.replace(/^NOTA_NO_SE_INGESTA: /, '');
+                notification.add(mensaje, 'error');
+                error.value = mensaje;
+                setTimeout(() => { error.value = ''; }, 12000);
+                return;
+            }
+
             // [Card #125] Renglon ajeno al pedido o cantidad que excede lo pendiente --
             // el pedido YA esta vinculado correctamente, no tiene sentido mandar al
             // operador de vuelta al flujo de "elegir/crear pedido" (handle409NoPedido).

@@ -171,6 +171,14 @@ class RemitosService:
         """
         Creates a Pedido and Remito from PDF Ingestion Data.
         """
+        # [S883, auditoria de CA N1] Defensa en profundidad: una NC o ND no entra por la ingesta creadora (ver IngestaService.approve);
+        # se concilia contra la factura que corrige. Sin esto se guardaria como factura AUTORIZADA con pedido y remito.
+        if str(getattr(payload.factura, "tipo_comprobante", "") or "").upper().startswith(("NOTA_CREDITO", "NOTA_DEBITO")):
+            raise HTTPException(
+                status_code=409,
+                detail="NOTA_NO_SE_INGESTA: Este comprobante es una nota de crédito o de débito y no se ingresa como factura. "
+                       "Use \"Conciliar contra PR\" para aplicarla sobre la factura que corrige.")
+
         # [V5.2 OMEGA] Anti-Zombi: Verify if Remito OR Pedido already exists
         original_invoice = (payload.factura.numero or "").strip()
         print(f"[DEBUG INGESTA] Original Invoice from Payload: '{original_invoice}'")

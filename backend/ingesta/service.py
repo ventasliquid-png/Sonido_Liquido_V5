@@ -3,9 +3,22 @@
 # ------------------------------------------
 import uuid
 from datetime import datetime, timezone
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from backend.ingesta.models import FacturasRaw, FacturasProcesadas
 from backend.ingesta.conserje import ConserjeV2
+
+
+def es_nota_de_ajuste(*facturas) -> bool:
+    """True si alguno de los datos de factura dice que el comprobante es una nota de credito o de debito (clase o tipo)."""
+    for f in facturas:
+        f = f or {}
+        if str(f.get("clase_comprobante") or "").upper() in ("NOTA_CREDITO", "NOTA_DEBITO"):
+            return True
+        if str(f.get("tipo_comprobante") or "").upper().startswith(("NOTA_CREDITO", "NOTA_DEBITO")):
+            return True
+    return False
+
 
 class IngestaService:
     @staticmethod
@@ -61,6 +74,29 @@ class IngestaService:
         if not raw:
             raise ValueError("Factura Raw no encontrada")
 
+        # [S882, Card #164] La pantalla solo reenvia numero, CAE y vencimiento: tipo, fecha de emision y totales los lee el
+        # parser del PDF y estan guardados en el raw. Se completan desde ahi (sin pisar lo que la pantalla mande).
+        _raw_factura = {}
+        _pd = raw.parsed_data_raw
+        if isinstance(_pd, str):
+            try:
+                import json as _json
+                _pd = _json.loads(_pd)
+            except Exception:
+                _pd = None
+        if isinstance(_pd, dict) and isinstance(_pd.get("factura"), dict):
+            _raw_factura = _pd["factura"]
+        _factura_editada = dict(edited_data.get("factura") or {})
+
+        # [S883, auditoria de CA N1] Una NC o ND no se ingesta por este camino: se guardaria como factura A/B/C AUTORIZADA con
+        # pedido y remito (y contaria como facturado). Se rechaza ANTES de tocar el raw; las notas se concilian contra la
+        # factura que corrigen (pantalla "Conciliar contra PR").
+        if es_nota_de_ajuste(_factura_editada, _raw_factura):
+            raise HTTPException(
+                status_code=409,
+                detail="NOTA_NO_SE_INGESTA: Este comprobante es una nota de crédito o de débito y no se ingresa como factura. "
+                       "Use \"Conciliar contra PR\" para aplicarla sobre la factura que corrige.")
+
         # Checkpoint visible: el raw entra en vuelo
         raw.audit_status = "PROCESANDO"
         db.add(raw)
@@ -71,19 +107,6 @@ class IngestaService:
             from backend.remitos.service import RemitosService
             from backend.remitos.schemas import IngestionPayload
 
-            # [S882, Card #164] La pantalla solo reenvia numero, CAE y vencimiento: tipo, fecha de emision y totales los lee el
-            # parser del PDF y estan guardados en el raw. Se completan desde ahi (sin pisar lo que la pantalla mande).
-            _raw_factura = {}
-            _pd = raw.parsed_data_raw
-            if isinstance(_pd, str):
-                try:
-                    import json as _json
-                    _pd = _json.loads(_pd)
-                except Exception:
-                    _pd = None
-            if isinstance(_pd, dict) and isinstance(_pd.get("factura"), dict):
-                _raw_factura = _pd["factura"]
-            _factura_editada = dict(edited_data.get("factura") or {})
             for _k in ("tipo_comprobante", "fecha_emision", "total_neto", "total_final"):
                 if _factura_editada.get(_k) in (None, "") and _raw_factura.get(_k) not in (None, ""):
                     _factura_editada[_k] = _raw_factura[_k]
