@@ -16,6 +16,11 @@
                         <i class="fas fa-file-invoice"></i> {{ route.params.id ? `FICHA DEL PEDIDO #${route.params.id}` : 'NUEVO PEDIDO' }}
                         <!-- [S876] El estado también se cambia desde la ficha (antes solo se podía desde el listado y los informes). -->
                         <EstadoEditable v-if="route.params.id" :pedido-id="route.params.id" :estado="estadoPedido" :texto="estadoPedido" @cambiado="alCambiarEstado" />
+                        <!-- [S883, Card #171] Al CREAR: elegir si es un pedido (PENDIENTE) o un presupuesto. Antes siempre nacía PENDIENTE y había que cambiarlo después desde la ficha o el listado. -->
+                        <SelectorInline v-if="eligeTipoAlta" :opciones="OPCIONES_ALTA" :valor="estadoPedido" :texto="estadoPedido" :clase-badge="estadoClase(estadoPedido)"
+                            etiqueta="Tipo de alta"
+                            titulo="Qué se está cargando: un pedido (PENDIENTE) o un presupuesto (cotización, sin compromiso). Clic o flecha abajo; escribí la inicial para saltar. Se puede cambiar después desde la ficha."
+                            @elegido="elegirTipoAlta" />
                     </h1>
                 </div>
                 <div class="flex gap-3">
@@ -926,6 +931,8 @@ const goBack = () => {
 import ClientCanvas from '../Hawe/ClientCanvas.vue';
 import { avisarPedidoActualizado } from '@/utils/canalPedidos'; // [S876] avisa a los informes abiertos que el pedido cambió
 import EstadoEditable from '@/components/informes/EstadoEditable.vue'; // [S876] estado editable en el encabezado de la ficha
+import SelectorInline from '@/components/informes/SelectorInline.vue'; // [S883, Card #171] el mismo cartel, para elegir el tipo al crear
+import { estadoClase, estadoTexto } from '@/utils/estadosPedido';
 import { shallowRef } from 'vue'; // Optimization
 
 // --- MODAL STATE ---
@@ -1199,6 +1206,12 @@ const estadoPedido = ref('PENDIENTE');
 const flagsEstadoPedido = ref(0);
 
 const isClosedOrder = computed(() => ['CUMPLIDO', 'ANULADO'].includes(estadoPedido.value));
+
+// [S883, Card #171] Tipo de alta: solo PENDIENTE (pedido) o PRESUPUESTO. CUMPLIDO y ANULADO no se ofrecen al crear: el servidor los guardaría con el bit de pedido firme
+// y estado y bits no coincidirían. No aparece al editar (ahí está EstadoEditable), ni en modo migración ni en un pedido que nace de una factura.
+const OPCIONES_ALTA = ['PENDIENTE', 'PRESUPUESTO'].map((e) => ({ value: e, label: e, clase: estadoTexto(e) }));
+const eligeTipoAlta = computed(() => !route.params.id && !pedidoOrigenMigracionId.value && !isFromIngesta.value);
+const elegirTipoAlta = (nuevo) => { estadoPedido.value = nuevo; };
 
 const statusBadgeClasses = computed(() => {
     const status = estadoPedido.value;
@@ -2504,7 +2517,7 @@ const buildPayload = () => {
         cliente_id: clienteSeleccionado.value.id || clienteSeleccionado.value._id,
         fecha: `${fechaPedido.value}T${_pad(_now.getHours())}:${_pad(_now.getMinutes())}:00`,
         nota: notas.value,
-        estado: "PENDIENTE",
+        estado: (!route.params.id && estadoPedido.value === 'PRESUPUESTO') ? 'PRESUPUESTO' : "PENDIENTE", // [S883, Card #171] solo el alta toma el tipo elegido
         oc: nroOC.value.trim(),
         oc_override: omitirOC.value,
         domicilio_entrega_id: selectedDomicilioId.value || null,
@@ -2523,6 +2536,10 @@ const buildPayload = () => {
             nota: i.descripcion // fallback descriptivo
         }))
     };
+
+    // [S883, Card #171] Al EDITAR no se manda el estado: el PATCH lo respeta y antes la ficha mandaba siempre PENDIENTE, con lo que guardar un presupuesto lo
+    // convertía en pedido firme sin avisar. El estado se cambia con el selector de la ficha (EstadoEditable), no al guardar.
+    if (route.params.id) delete basePayload.estado;
 
     // [V5.9 Doctrina Inmutabilidad]
     if (pedidoOrigenMigracionId.value) {
