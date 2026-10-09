@@ -96,6 +96,120 @@ class LogisticaService:
         
         return db_empresa
 
+    # --- Domicilios de la empresa (Address Hub: Domicilio + VinculoGeografico 'TRANSPORTE') [S883, Card #170] ---
+    _CAMPOS_DOMICILIO = ("alias", "calle", "numero", "piso", "depto", "cp", "localidad", "provincia_id", "calle_entrega", "numero_entrega", "piso_entrega",
+                         "depto_entrega", "cp_entrega", "localidad_entrega", "provincia_entrega_id", "maps_link", "notas_logistica", "observaciones")
+
+    @staticmethod
+    def _chequear_provincias(db: Session, datos: dict):
+        from sqlalchemy import text
+        for campo in ("provincia_id", "provincia_entrega_id"):
+            v = datos.get(campo)
+            if v and not db.execute(text("SELECT 1 FROM provincias WHERE id = :i"), {"i": v}).first():
+                raise HTTPException(status_code=400, detail=f"PROVINCIA_INEXISTENTE: no existe la provincia '{v}'.")
+
+    @staticmethod
+    def _vinculo_domicilio(db: Session, empresa_id: UUID, domicilio_id: UUID):
+        from backend.contactos.models import VinculoGeografico
+        return db.query(VinculoGeografico).filter(
+            VinculoGeografico.entidad_tipo == 'TRANSPORTE', VinculoGeografico.entidad_id == empresa_id,
+            VinculoGeografico.domicilio_id == domicilio_id).first()
+
+    @staticmethod
+    def _un_solo_fiscal(db: Session, empresa_id: UUID, excepto_domicilio_id):
+        """Un solo domicilio fiscal por empresa: los otros pierden el bit FISCAL (1) del vínculo y la marca es_fiscal del domicilio."""
+        from backend.contactos.models import VinculoGeografico
+        from backend.clientes.models import Domicilio
+        for vg in db.query(VinculoGeografico).filter(VinculoGeografico.entidad_tipo == 'TRANSPORTE', VinculoGeografico.entidad_id == empresa_id,
+                                                      VinculoGeografico.domicilio_id != excepto_domicilio_id).all():
+            if vg.flags_relacion & 1:
+                vg.flags_relacion = vg.flags_relacion & ~1
+                dom = db.query(Domicilio).filter(Domicilio.id == vg.domicilio_id).first()
+                if dom is not None:
+                    dom.es_fiscal = False
+
+    @staticmethod
+    def create_domicilio_empresa(db: Session, empresa_id: UUID, data: schemas.DomicilioEmpresaWrite):
+        from backend.contactos.models import VinculoGeografico
+        from backend.clientes.models import Domicilio
+        if not LogisticaService.get_empresa(db, empresa_id):
+            raise HTTPException(status_code=404, detail="Empresa de transporte no encontrada")
+        datos = data.model_dump(exclude_unset=True)
+        if not (datos.get("calle") or "").strip():
+            raise HTTPException(status_code=400, detail="CALLE_REQUERIDA: cargá al menos la calle del domicilio.")
+        LogisticaService._chequear_provincias(db, datos)
+        es_fiscal, es_entrega = bool(datos.get("es_fiscal")), datos.get("es_entrega")
+        if not es_fiscal and es_entrega is None:
+            es_entrega = True                       # sin indicación: sede de entrega, como los nodos
+        activo = datos.get("activo") is not False
+        try:
+            dom = Domicilio(activo=activo, is_active=activo, es_fiscal=es_fiscal, es_entrega=bool(es_entrega),
+                            **{c: datos[c] for c in LogisticaService._CAMPOS_DOMICILIO if c in datos})
+            db.add(dom)
+            db.flush()
+            if es_fiscal:
+                LogisticaService._un_solo_fiscal(db, empresa_id, dom.id)
+            vg = VinculoGeografico(entidad_tipo='TRANSPORTE', entidad_id=empresa_id, domicilio_id=dom.id, alias=datos.get("alias"),
+                                   flags_relacion=(1 if es_fiscal else 0) | (2 if es_entrega else 0), activo=activo)
+            db.add(vg)
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
+        db.refresh(vg)
+        return vg
+
+    @staticmethod
+    def update_domicilio_empresa(db: Session, empresa_id: UUID, domicilio_id: UUID, data: schemas.DomicilioEmpresaWrite):
+        from backend.clientes.models import Domicilio
+        vg = LogisticaService._vinculo_domicilio(db, empresa_id, domicilio_id)
+        dom = db.query(Domicilio).filter(Domicilio.id == domicilio_id).first() if vg else None
+        if vg is None or dom is None:
+            raise HTTPException(status_code=404, detail="Domicilio no encontrado para esta empresa de transporte")
+        datos = data.model_dump(exclude_unset=True)
+        if "calle" in datos and not (datos["calle"] or "").strip():
+            raise HTTPException(status_code=400, detail="CALLE_REQUERIDA: el domicilio no puede quedar sin calle.")
+        LogisticaService._chequear_provincias(db, datos)
+        try:
+            for c in LogisticaService._CAMPOS_DOMICILIO:
+                if c in datos:
+                    setattr(dom, c, datos[c])
+            if "alias" in datos:
+                vg.alias = datos["alias"]
+            flags = vg.flags_relacion or 0
+            if datos.get("es_fiscal") is True:
+                LogisticaService._un_solo_fiscal(db, empresa_id, dom.id)
+            if datos.get("es_fiscal") is not None:
+                flags = (flags | 1) if datos["es_fiscal"] else (flags & ~1)
+                dom.es_fiscal = bool(datos["es_fiscal"])
+            if datos.get("es_entrega") is not None:
+                flags = (flags | 2) if datos["es_entrega"] else (flags & ~2)
+                dom.es_entrega = bool(datos["es_entrega"])
+            vg.flags_relacion = flags
+            if datos.get("activo") is not None:
+                vg.activo = dom.activo = dom.is_active = bool(datos["activo"])
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
+        db.refresh(vg)
+        return vg
+
+    @staticmethod
+    def delete_domicilio_empresa(db: Session, empresa_id: UUID, domicilio_id: UUID):
+        """Baja LÓGICA (se puede volver atrás con PUT activo=true): ni el domicilio ni el vínculo se borran."""
+        from backend.clientes.models import Domicilio
+        vg = LogisticaService._vinculo_domicilio(db, empresa_id, domicilio_id)
+        dom = db.query(Domicilio).filter(Domicilio.id == domicilio_id).first() if vg else None
+        if vg is None or dom is None:
+            raise HTTPException(status_code=404, detail="Domicilio no encontrado para esta empresa de transporte")
+        vg.activo = False
+        dom.activo = False
+        dom.is_active = False
+        db.commit()
+        db.refresh(vg)
+        return vg
+
     @staticmethod
     def hard_delete_empresa(db: Session, empresa_id: UUID) -> Optional[models.EmpresaTransporte]:
         """Hard delete. Raises IntegrityError if it has related records."""

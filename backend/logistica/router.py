@@ -66,6 +66,20 @@ def hard_delete_empresa(empresa_id: UUID, db: Session = Depends(get_db)):
             detail="No se puede eliminar la empresa porque tiene registros asociados."
         )
 
+# --- Domicilios de la empresa (Address Hub) [S883, Card #170] ---
+@router.post("/empresas/{empresa_id}/domicilios", response_model=schemas.VinculoGeograficoResponse, status_code=status.HTTP_201_CREATED)
+def create_domicilio_empresa(empresa_id: UUID, domicilio: schemas.DomicilioEmpresaWrite, db: Session = Depends(get_db)):
+    return service.LogisticaService.create_domicilio_empresa(db, empresa_id, domicilio)
+
+@router.put("/empresas/{empresa_id}/domicilios/{domicilio_id}", response_model=schemas.VinculoGeograficoResponse)
+def update_domicilio_empresa(empresa_id: UUID, domicilio_id: UUID, domicilio: schemas.DomicilioEmpresaWrite, db: Session = Depends(get_db)):
+    return service.LogisticaService.update_domicilio_empresa(db, empresa_id, domicilio_id, domicilio)
+
+@router.delete("/empresas/{empresa_id}/domicilios/{domicilio_id}", response_model=schemas.VinculoGeograficoResponse)
+def delete_domicilio_empresa(empresa_id: UUID, domicilio_id: UUID, db: Session = Depends(get_db)):
+    """Baja lógica: el domicilio queda inactivo (se recupera con PUT activo=true)."""
+    return service.LogisticaService.delete_domicilio_empresa(db, empresa_id, domicilio_id)
+
 # --- Vinculos (V6 Multiplex Sync) ---
 
 @router.post("/empresas/{empresa_id}/vinculos", response_model=contactos_schemas.VinculoRead, status_code=status.HTTP_201_CREATED)

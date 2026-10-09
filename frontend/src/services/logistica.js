@@ -11,6 +11,11 @@ export default {
     createEmpresa: (data) => api.post('/logistica/empresas', data),
     updateEmpresa: (id, data) => api.put(`/logistica/empresas/${id}`, data),
 
+    // Domicilios de la empresa (Address Hub) [S883, Card #170]
+    addDomicilioEmpresa: (empresaId, data) => api.post(`/logistica/empresas/${empresaId}/domicilios`, data),
+    updateDomicilioEmpresa: (empresaId, domicilioId, data) => api.put(`/logistica/empresas/${empresaId}/domicilios/${domicilioId}`, data),
+    deleteDomicilioEmpresa: (empresaId, domicilioId) => api.delete(`/logistica/empresas/${empresaId}/domicilios/${domicilioId}`),
+
     // Nodos
     getNodos: (empresaId = null) => {
         const params = {};

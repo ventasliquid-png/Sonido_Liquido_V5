@@ -272,6 +272,7 @@ import { ref, watch, onMounted, computed, nextTick } from 'vue';
 import { useLogisticaStore } from '../../../stores/logistica';
 import { useMaestrosStore } from '../../../stores/maestros';
 import { useNotificationStore } from '../../../stores/notification';
+import logisticaService from '../../../services/logistica'; // [S883, Card #170] domicilios de la empresa; antes no estaba importado
 
 // NOTE: These components must exist in the same directory or be importable
 import TransporteBranches from './TransporteBranches.vue'; 
@@ -317,16 +318,36 @@ const hasFlag = (bit) => {
 };
 
 // --- ADDRESS HUB MAPPING ---
+// [S883, Card #170] Los domicilios de la empresa se guardan por su propio endpoint (POST/PUT/DELETE /logistica/empresas/{id}/domicilios).
+// Antes la ficha solo mandaba la empresa: la dirección se perdía y el sistema decía "guardado". Foto de lo que vino del servidor, para saber qué cambió.
+const domiciliosOriginales = ref(new Map());
+const CAMPOS_DOMICILIO = ['alias', 'calle', 'numero', 'piso', 'depto', 'cp', 'localidad', 'provincia_id', 'calle_entrega', 'numero_entrega', 'piso_entrega',
+    'depto_entrega', 'cp_entrega', 'localidad_entrega', 'provincia_entrega_id', 'maps_link', 'notas_logistica', 'observaciones'];
+const cuerpoDomicilio = (d) => {
+    const cuerpo = {};
+    CAMPOS_DOMICILIO.forEach(c => { cuerpo[c] = (d[c] === '' || d[c] === undefined) ? null : d[c]; });
+    cuerpo.es_fiscal = !!d.es_fiscal;
+    cuerpo.es_entrega = !!d.es_entrega;
+    cuerpo.activo = d.activo !== false;
+    return cuerpo;
+};
+const huellaDomicilio = (d) => JSON.stringify(cuerpoDomicilio(d));
+
 const mapVinculosToDomicilios = () => {
     if (localModel.value.vinculos_geograficos) {
         domicilios.value = localModel.value.vinculos_geograficos.map(vg => ({
             ...vg.domicilio,
-            flags: vg.flags_relacion, 
+            flags: vg.flags_relacion,
+            // la fuente de verdad es el vínculo: bit 1 = fiscal, bit 2 = entrega principal
+            es_fiscal: !!(vg.flags_relacion & 1),
+            es_entrega: !!(vg.flags_relacion & 2),
+            activo: vg.activo !== false && vg.domicilio?.activo !== false,
             is_mirror: !!(localModel.value.flags_estado & 2097152) && vg.flags_relacion === 1
         }));
     } else {
         domicilios.value = [];
     }
+    domiciliosOriginales.value = new Map(domicilios.value.filter(d => d.id).map(d => [d.id, huellaDomicilio(d)]));
 };
 
 const computedFiscalAddress = computed(() => {
@@ -344,7 +365,7 @@ const computedFiscalAddress = computed(() => {
 const openFiscalEditor = () => {
     const fiscal = domicilios.value.find(d => !!(d.flags & 1) || d.es_fiscal);
     if (fiscal) openDomicilioTab(fiscal);
-    else openNewDomicilio();
+    else openNewDomicilio(true);
 };
 
 const openDomicilioTab = (dom) => {
@@ -352,13 +373,15 @@ const openDomicilioTab = (dom) => {
     activeTab.value = 'DOMICILIO';
 };
 
-const openNewDomicilio = () => {
+const openNewDomicilio = (fiscal = false) => {
     selectedDomicilio.value = {
         id: null,
         local_id: Date.now(),
         calle: '',
         localidad: '',
         provincia_id: null,
+        es_fiscal: fiscal === true,
+        es_entrega: true,
         activo: true
     };
     activeTab.value = 'DOMICILIO';
@@ -415,7 +438,7 @@ const handleContactoSaved = async () => {
     
     // Refresh the company data to see the new contact
     try {
-        const updated = await logisticaService.getEmpresaById(localModel.id);
+        const updated = await logisticaService.getEmpresaById(localModel.value.id);
         localModel.value = updated.data;
         mapVinculosToDomicilios();
     } catch (err) {
@@ -430,6 +453,27 @@ watch(() => props.modelValue, (val) => {
 }, { deep: true, immediate: true });
 
 // Methods
+// [S883, Card #170] Altas, cambios y bajas (lógicas) de los domicilios. Cada uno que se guarda se anota (id y foto), así un reintento no repite lo ya hecho.
+const persistirDomicilios = async (empresaId) => {
+    for (const d of domicilios.value) {
+        if (!d.id) {
+            if (!(d.calle || '').trim()) continue; // sin calle no hay domicilio
+            const { data } = await logisticaService.addDomicilioEmpresa(empresaId, cuerpoDomicilio(d));
+            d.id = data.domicilio_id;
+            domiciliosOriginales.value.set(d.id, huellaDomicilio(d));
+        } else if (huellaDomicilio(d) !== domiciliosOriginales.value.get(d.id)) {
+            await logisticaService.updateDomicilioEmpresa(empresaId, d.id, cuerpoDomicilio(d));
+            domiciliosOriginales.value.set(d.id, huellaDomicilio(d));
+        }
+    }
+    for (const id of [...domiciliosOriginales.value.keys()]) {
+        if (!domicilios.value.some(d => d.id === id)) {
+            await logisticaService.deleteDomicilioEmpresa(empresaId, id);
+            domiciliosOriginales.value.delete(id);
+        }
+    }
+};
+
 const save = async () => {
     if (!localModel.value.nombre) {
         notification.add('Razón Social obligatoria', 'error');
@@ -439,15 +483,26 @@ const save = async () => {
     saving.value = true;
     try {
         const payload = { ...localModel.value };
-        
+
         // No more legacy booleans. Backend only expects flags_estado.
 
+        let empresaId = payload.id;
         if (isNew.value) {
-            await logisticaStore.createEmpresa(payload);
+            const creada = await logisticaStore.createEmpresa(payload);
+            empresaId = creada.id;
+            localModel.value.id = empresaId; // si la dirección falla, el reintento actualiza esta empresa y no crea otra
         } else {
             await logisticaStore.updateEmpresa(payload.id, payload);
         }
-        
+
+        try {
+            await persistirDomicilios(empresaId);
+        } catch (e) {
+            console.error(e);
+            notification.add('Se guardaron los datos del transporte, pero la dirección NO: ' + (e.response?.data?.detail || e.message), 'error');
+            return; // la ficha queda abierta para corregir y reintentar
+        }
+
         notification.add('Transporte guardado con éxito', 'success');
         emit('save');
         emit('close');

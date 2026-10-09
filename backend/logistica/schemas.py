@@ -59,6 +59,30 @@ class VinculoGeograficoResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class DomicilioEmpresaWrite(BaseModel):
+    """[S883, Card #170] Domicilio de una empresa de transporte (Domicilio + VinculoGeografico 'TRANSPORTE'). Todo opcional: en el PUT solo cambia lo que viene."""
+    alias: Optional[str] = None
+    calle: Optional[str] = None
+    numero: Optional[str] = None
+    piso: Optional[str] = None
+    depto: Optional[str] = None
+    cp: Optional[str] = None
+    localidad: Optional[str] = None
+    provincia_id: Optional[str] = None
+    calle_entrega: Optional[str] = None
+    numero_entrega: Optional[str] = None
+    piso_entrega: Optional[str] = None
+    depto_entrega: Optional[str] = None
+    cp_entrega: Optional[str] = None
+    localidad_entrega: Optional[str] = None
+    provincia_entrega_id: Optional[str] = None
+    maps_link: Optional[str] = None
+    notas_logistica: Optional[str] = None
+    observaciones: Optional[str] = None
+    es_fiscal: Optional[bool] = None    # bit 1 de flags_relacion (FISCAL)
+    es_entrega: Optional[bool] = None   # bit 2 de flags_relacion (PRINCIPAL_ENTREGA)
+    activo: Optional[bool] = None
+
 class TransporteVinculoResponse(BaseModel):
     id: UUID # Vinculo ID
     persona_id: UUID
