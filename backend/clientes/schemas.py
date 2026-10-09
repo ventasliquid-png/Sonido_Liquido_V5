@@ -70,6 +70,7 @@ class DomicilioUpdate(BaseModel):
     metodo_entrega: Optional[str] = None
     modalidad_envio: Optional[str] = None
     origen_logistico: Optional[str] = None
+    observaciones: Optional[str] = None # [S883] la ficha la manda siempre y el PUT la descartaba en silencio (solo estaba en el alta)
     
     calle_entrega: Optional[str] = None
     numero_entrega: Optional[str] = None

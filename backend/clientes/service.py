@@ -930,9 +930,16 @@ class ClienteService:
 
         # [V5.2.3.1 GOLD] Mirror Break Strategy (Bit 21)
         is_mirror = current_link and (current_link.flags & 2097152) # Bit 21
-        has_note_change = 'notas_logistica' in update_data or 'observaciones' in update_data
+        # [S883, Card #158] La bifurcacion es copy-on-write de un domicilio COMPARTIDO por varios clientes: el cliente que cambia las notas se queda con su
+        # copia y los demas siguen con el original. Antes se bifurcaba con solo MENCIONAR las notas (la ficha las manda siempre, aunque esten vacias) y aunque
+        # el domicilio fuera de un solo cliente: cada primer guardado dejaba un duplicado y un huerfano. Ahora: solo si las notas cambian de verdad y el domicilio
+        # lo usa mas de un cliente; si no, se edita en el lugar.
+        def _txt(v):
+            return (v or '').strip()
+        has_note_change = any(k in update_data and _txt(update_data[k]) != _txt(getattr(db_domicilio, k, None)) for k in ('notas_logistica', 'observaciones'))
+        es_compartido = db.query(domicilios_clientes).filter(domicilios_clientes.c.domicilio_id == domicilio_id).count() > 1
         
-        if is_mirror and has_note_change:
+        if is_mirror and has_note_change and es_compartido:
             # Fork mandatory: Create a copy for this specific client
             print(f"[GOLD] BIFURCACIÓN DETECTADA: SOBERANÍA REQUERIDA PARA {db_domicilio.id}")
             # If the user is editing from a view that only allows "Entrega" update, preserve balance
