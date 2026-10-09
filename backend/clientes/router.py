@@ -293,6 +293,12 @@ def search_hub_domicilios(q: str, db: Session = Depends(get_db)):
     """[V5.2 GOLD] Buscador reactivo en el Hub."""
     return ClienteService.search_hub_domicilios(db, q)
 
+@router.get("/hub/similares")
+def buscar_domicilios_similares(calle: str, numero: str = "", localidad: str = "", provincia_id: Optional[str] = None, es_fiscal: Optional[bool] = None,
+                                excluir_cliente_id: Optional[UUID] = None, db: Session = Depends(get_db)):
+    """[S883, paso 1] ¿Ya existe esta direccion en el Hub, aunque este escrita distinto («Justo, JB Av 687» = «Avenida Juan B Justo N°687»)? Solo lectura: la pantalla siempre le pregunta a una persona."""
+    return ClienteService.buscar_domicilios_similares(db, calle, numero, localidad, provincia_id, es_fiscal, excluir_cliente_id)
+
 @router.post("/hub", response_model=DomicilioResponse, status_code=status.HTTP_201_CREATED)
 def create_hub_domicilio(domicilio: DomicilioCreate, db: Session = Depends(get_db)):
     """[V5.2 GOLD] Crear domicilio soberano."""

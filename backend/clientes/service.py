@@ -1219,6 +1219,24 @@ class ClienteService:
         [V5.2 GOLD] Fork Protocol.
         Clona un domicilio espejado para convertirlo en independiente (Bit 21 OFF).
         """
+        # [S883, Card #158] La bifurcacion es copy-on-write: tiene sentido solo si el domicilio lo usan OTROS clientes. Si es de un solo cliente (el caso de siempre: la pantalla
+        # llama a /fork en cada guardado de un domicilio espejado) no hay a quien aislar: se edita en el lugar y no queda ni un duplicado ni un huerfano.
+        from backend.clientes.models import Domicilio, domicilios_clientes as _dc
+        if db.query(_dc).filter(_dc.c.domicilio_id == domicilio_id).count() <= 1:
+            dom = db.query(Domicilio).filter(Domicilio.id == domicilio_id).first()
+            if dom is not None:
+                columnas = set(Domicilio.__table__.columns.keys()) - {"id", "cliente_id"}
+                for k, v in (new_data or {}).items():
+                    if k in columnas:
+                        setattr(dom, k, v)
+                valores = {"flags": flags}
+                if new_data and new_data.get("alias"):
+                    valores["alias"] = new_data["alias"]
+                db.execute(_dc.update().where(_dc.c.cliente_id == cliente_id, _dc.c.domicilio_id == domicilio_id).values(**valores))
+                db.commit()
+                db.refresh(dom)
+                return dom
+
         # 1. Create Clone
         from backend.clientes.models import Domicilio
         new_dom = Domicilio(**new_data)
@@ -1236,6 +1254,7 @@ class ClienteService:
             ).values(domicilio_id=new_dom.id, flags=flags, alias=new_data.get('alias', 'ENTREGA INDEPENDIENTE'))
         )
         db.commit()
+        db.refresh(new_dom)  # [S883] sin esto la respuesta salia vacia ({}): el commit vence los atributos del objeto
         return new_dom
 
     @staticmethod
@@ -1495,6 +1514,43 @@ class ClienteService:
         return output
 
     @staticmethod
+    def buscar_domicilios_similares(db: Session, calle: str, numero: str = "", localidad: str = "", provincia_id: str = None,
+                                    es_fiscal: bool = None, excluir_cliente_id=None, limite: int = 5) -> list:
+        """[S883, paso 1] Domicilios activos del Hub que son el mismo lugar (IGUAL) o casi (PARECIDA) que la direccion pedida, con quien los usa. Solo lectura.
+        `compatible` dice si el cliente nuevo puede USAR esa fila tal cual: si la usan OTROS clientes y el rol fiscal pedido no coincide con el de la fila, no."""
+        from backend.clientes.models import domicilios_clientes, Cliente
+        from backend.clientes.direcciones import comparar
+        from sqlalchemy import text as _sql
+        # Cada provincia tiene dos codigos en la tabla («B» y «BA» son Buenos Aires): se comparan por NOMBRE, no por codigo.
+        nombre_prov = {r[0]: r[1] for r in db.execute(_sql("select id, nombre from provincias")).fetchall()}
+        prov_de = lambda pid: nombre_prov.get(pid, pid) if pid else None
+        pedida = {"calle": calle, "numero": numero, "localidad": localidad, "provincia_id": prov_de(provincia_id)}
+        excluir = str(excluir_cliente_id).replace("-", "") if excluir_cliente_id else None
+        salida = []
+        for dom in db.query(Domicilio).filter(Domicilio.is_active == True).all():
+            existente = {"calle": dom.calle or dom.calle_entrega, "numero": dom.numero or dom.numero_entrega, "localidad": dom.localidad or dom.localidad_entrega,
+                         "provincia_id": prov_de(dom.provincia_id or dom.provincia_entrega_id)}
+            nivel, razones = comparar(pedida, existente)
+            if nivel == "DISTINTA":
+                continue
+            usuarios = db.query(Cliente.id, Cliente.razon_social).join(domicilios_clientes, Cliente.id == domicilios_clientes.c.cliente_id).filter(
+                domicilios_clientes.c.domicilio_id == dom.id).all()
+            otros = [u for u in usuarios if str(u[0]).replace("-", "") != excluir]
+            compatible, motivo = True, None
+            if otros and es_fiscal is not None and bool(dom.es_fiscal) != bool(es_fiscal):
+                compatible = False
+                motivo = ("es el domicilio fiscal de " if dom.es_fiscal else "es un domicilio de entrega de ") + ", ".join(u[1] for u in otros) + ": usarlo con otro rol lo cambiaría también para ellos"
+            salida.append({
+                "id": str(dom.id), "calle": dom.calle or dom.calle_entrega, "numero": dom.numero or dom.numero_entrega, "localidad": dom.localidad or dom.localidad_entrega,
+                "provincia_id": dom.provincia_id or dom.provincia_entrega_id, "alias": dom.alias, "es_fiscal": bool(dom.es_fiscal), "es_entrega": bool(dom.es_entrega),
+                "nivel": nivel, "razones": razones, "usado_por": [{"id": str(u[0]), "razon_social": u[1]} for u in usuarios],
+                "ya_es_de_este_cliente": bool(excluir) and any(str(u[0]).replace("-", "") == excluir for u in usuarios),
+                "compatible": compatible, "motivo_incompatible": motivo,
+            })
+        salida.sort(key=lambda x: (x["nivel"] != "IGUAL", not x["compatible"], -len(x["usado_por"])))
+        return salida[:limite]
+
+    @staticmethod
     def link_hub_domicilio(db: Session, dom_id: UUID, cliente_id: UUID, alias: str = None, flags: int = 0) -> bool:
         """[V5.2 GOLD] Vincula un cliente a un domicilio existente."""
         from backend.clientes.models import domicilios_clientes
@@ -1519,7 +1575,7 @@ class ClienteService:
             insert(domicilios_clientes).values(
                 cliente_id=cid,
                 domicilio_id=did,
-                alias=alias or "VÍNCULO HUB",
+                alias=alias if alias is not None else "VÍNCULO HUB",   # [S883] '' = «sin alias» (lo pide «usar el domicilio que ya existía»); None conserva la etiqueta de siempre del Hub
                 flags=flags
             )
         )

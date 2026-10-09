@@ -456,6 +456,9 @@
         @close="activeTab = 'CLIENTE'" 
         @saved="handleDomicilioSaved" 
       />
+      <!-- [S883, paso 1] Antes de crear un domicilio: ¿ya existe uno igual o parecido? Siempre pregunta. -->
+      <DomicilioSimilarModal v-if="similarModal.show" :candidatos="similarModal.candidatos" :direccion="similarModal.direccion"
+        @usar="(c) => resolverSimilar('usar', c)" @crear="resolverSimilar('crear')" @cancelar="resolverSimilar('cancelar')" />
       <ContactoForm v-if="showContactoForm" :show="showContactoForm" :clienteId="String(form.id)" :contacto="selectedContacto" @close="showContactoForm = false" @saved="handleContactoSaved" />
 
       <!-- CUIT Conflict Modal (Genoma Bit 5 - MULTI_CUIT) — 3 vías (dictamen Nike S845) -->
@@ -508,7 +511,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useClientesStore } from '../../stores/clientes'
 import { useMaestrosStore } from '../../stores/maestros'
@@ -517,6 +520,7 @@ import canteraService from '../../services/canteraService'
 import clientesService from '../../services/clientes'
 // import DomicilioForm from './components/DomicilioForm.vue'
 import DomicilioSplitCanvas from './components/DomicilioSplitCanvas.vue'
+import DomicilioSimilarModal from './components/DomicilioSimilarModal.vue' // [S883, paso 1] «¿ya existe este domicilio?»
 import AddressSelector from './components/AddressSelector.vue'
 import ContactoForm from './components/ContactoForm.vue'
 import ContactoPopover from './components/ContactoPopover.vue'
@@ -1745,8 +1749,20 @@ const saveCliente = async () => {
         // granular changes with stale data or partial objects.
         // For CREATE, we usually need them.
         if (isNew.value) {
-            payload.domicilios = domicilios.value;
+            // [S883, paso 1] Los domicilios que se eligió «usar el que ya existía» no se crean: se vinculan después de crear el cliente.
+            const aVincular = domicilios.value.filter(d => d.usar_domicilio_id)
+            payload.domicilios = domicilios.value.filter(d => !d.usar_domicilio_id)
             const resCreated = await store.createCliente(payload)
+            if (resCreated?.id && aVincular.length) {
+                for (const d of aVincular) {
+                    try {
+                        await usarDomicilioExistente(resCreated.id, d.usar_domicilio_id, d, d.rolesDeLaFila || {})
+                    } catch (err) {
+                        console.error('No se pudo vincular el domicilio existente', err)
+                        notificationStore.add('El cliente se creó, pero no se pudo vincular un domicilio existente: cargalo de nuevo desde la ficha.', 'warning')
+                    }
+                }
+            }
             emit('save', resCreated || payload)
             notificationStore.add('Cliente creado exitosamente', 'success')
             fetchHermanos()
@@ -1970,6 +1986,52 @@ const handleSegmentoSaved = async () => {
 
 
 
+// --- [S883, Card #158 / paso 1] Buscar antes de crear un domicilio: la persona siempre decide ---
+const similarModal = reactive({ show: false, candidatos: [], direccion: '', resolver: null })
+
+const resolverSimilar = (accion, domicilio = null) => {
+    similarModal.show = false
+    const r = similarModal.resolver
+    similarModal.resolver = null
+    if (r) r({ accion, domicilio })
+}
+
+// Devuelve { accion: 'crear' | 'usar' | 'cancelar', domicilio }. Si no hay parecidos, o la búsqueda falla, devuelve 'crear' sin molestar: el alta nunca queda bloqueada por esto.
+const preguntarSimilares = async (datos) => {
+    const calle = String(datos.calle || datos.calle_entrega || '').trim()
+    if (!calle) return { accion: 'crear' }
+    const numero = String(datos.numero || datos.numero_entrega || '').trim()
+    const localidad = String(datos.localidad || datos.localidad_entrega || '').trim()
+    let candidatos = []
+    try {
+        const { data } = await clientesService.hubSimilares({
+            calle, numero, localidad,
+            provincia_id: datos.provincia_id || datos.provincia_entrega_id || undefined,
+            es_fiscal: datos.es_fiscal === true ? true : (datos.es_fiscal === false ? false : undefined),
+            excluir_cliente_id: (!isNew.value && form.value.id) ? form.value.id : undefined
+        })
+        candidatos = data || []
+    } catch (e) {
+        console.error('[similares] la búsqueda falló: no se bloquea el alta', e)
+        return { accion: 'crear' }
+    }
+    if (candidatos.length === 0) return { accion: 'crear' }
+    similarModal.candidatos = candidatos
+    similarModal.direccion = `${calle} ${numero} ${localidad}`.replace(/\s+/g, ' ').trim()
+    similarModal.show = true
+    return await new Promise((resolve) => { similarModal.resolver = resolve })
+}
+
+// Vincula un cliente a un domicilio que YA existe y le suma los roles que se pidieron (solo los que faltan: no se le quita nada a un domicilio que usan otros).
+const usarDomicilioExistente = async (clienteId, existenteId, pedido, rolesDeLaFila) => {
+    await clientesService.hubLink(existenteId, clienteId, { alias: pedido.alias || '', flags: 2097152 })
+    const roles = {}
+    if (pedido.es_fiscal && !rolesDeLaFila.es_fiscal) roles.es_fiscal = true
+    if (pedido.es_entrega && !rolesDeLaFila.es_entrega) roles.es_entrega = true
+    if (pedido.es_predeterminado) roles.es_predeterminado = true
+    if (Object.keys(roles).length) await store.updateDomicilio(clienteId, existenteId, roles)
+}
+
 const handleDomicilioSaved = async (domicilioData) => {
     try {
         // --- 1. FISCAL CONSERVATION LAWS (Standard Logic) ---
@@ -2076,6 +2138,40 @@ const handleDomicilioSaved = async (domicilioData) => {
             if (domicilioData[key] !== undefined) {
                 payload[key] = domicilioData[key];
             }
+        }
+
+        // [S883, paso 1] Antes de CREAR (no al editar): ¿ya existe este domicilio, aunque esté escrito distinto? Siempre pregunta.
+        const _domId = domicilioData.id
+        const esAlta = isNew.value ? true : !(_domId && String(_domId) !== 'null' && String(_domId) !== 'undefined')
+        if (esAlta && !domicilioData.id && !domicilioData.similares_resuelto && !domicilioData.usar_domicilio_id) {
+            const decision = await preguntarSimilares(payload)
+            if (decision.accion === 'cancelar') {
+                activeTab.value = 'CLIENTE'
+                return
+            }
+            if (decision.accion === 'usar') {
+                const cand = decision.domicilio
+                if (cand.ya_es_de_este_cliente) {
+                    notificationStore.add('Ese domicilio ya estaba cargado en este cliente: no se creó otro.', 'info')
+                    activeTab.value = 'CLIENTE'
+                    return
+                }
+                if (isNew.value) {
+                    // el cliente todavía no existe: se anota cuál usar y se vincula cuando se cree
+                    // se muestra el domicilio que YA existe (tal como está cargado), no lo que se tipeó
+                    domicilios.value.push({ ...payload, ...cand, calle_entrega: cand.calle, numero_entrega: cand.numero, localidad_entrega: cand.localidad, provincia_entrega_id: cand.provincia_id,
+                        usar_domicilio_id: cand.id, id: undefined, local_id: Date.now(), activo: true,
+                        es_fiscal: !!payload.es_fiscal, es_entrega: payload.es_entrega !== false, rolesDeLaFila: { es_fiscal: cand.es_fiscal, es_entrega: cand.es_entrega } })
+                    notificationStore.add('Se va a usar el domicilio que ya existía (se vincula al crear el cliente).', 'info')
+                } else {
+                    await usarDomicilioExistente(form.value.id, cand.id, { ...payload, es_predeterminado: !!domicilioData.es_predeterminado }, { es_fiscal: cand.es_fiscal, es_entrega: cand.es_entrega })
+                    notificationStore.add('Se usó el domicilio que ya existía: queda una sola dirección.', 'success')
+                    await loadCliente(form.value.id)
+                }
+                activeTab.value = 'CLIENTE'
+                return
+            }
+            domicilioData.similares_resuelto = true   // «Es otra»: no se vuelve a preguntar por este mismo domicilio
         }
 
         // Persistence

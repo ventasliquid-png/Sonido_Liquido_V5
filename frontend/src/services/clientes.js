@@ -59,6 +59,10 @@ export default {
     // [V5.2 GOLD] Hub Soberano
     hubList: () => api.get('/clientes/hub/list'),
     hubSearch: (q) => api.get('/clientes/hub/search', { params: { q } }),
+    // [S883, paso 1] ¿ya existe esta dirección en el Hub, aunque esté escrita distinto? (solo lectura; la pantalla siempre pregunta)
+    hubSimilares: (params) => api.get('/clientes/hub/similares', { params }),
+    // Usar un domicilio que ya existe: vincula al cliente (flags 2097152 = espejo: si después alguien cambia las notas se bifurca en vez de pisar al otro cliente)
+    hubLink: (domicilioId, clienteId, params = {}) => api.post(`/clientes/hub/${domicilioId}/links/${clienteId}`, null, { params }),
     hubUpdate: (id, data) => api.put(`/clientes/hub/${id}`, data),
     hubDelete: (id) => api.delete(`/clientes/hub/${id}`),
 
