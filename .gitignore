@@ -102,3 +102,8 @@ ALFA_OLD.md
 
 # Config local de Claude Code (no es del producto; settings.local.json si esta trackeado)
 .claude/launch.json
+
+# Banco de pruebas con una copia de P (herramientas locales de OF, 29/09-01/10; se copian al Silo para CA, no van al repo)
+frontend/vite.config.pcopia.mjs
+scratch/LEVANTAR_COPIA_P.bat
+scripts/run_backend_copia.py
