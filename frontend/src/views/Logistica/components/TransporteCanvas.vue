@@ -163,7 +163,7 @@
             </section>
 
             <!-- RECTANGLE 3: BRANCHES / NODES (Independent Governance) -->
-            <section class="bg-black/20 border border-white/5 rounded-2xl p-5 shadow-inner">
+            <section v-if="MOSTRAR_SUCURSALES" class="bg-black/20 border border-white/5 rounded-2xl p-5 shadow-inner">
                 <div class="flex justify-between items-center mb-4">
                     <div class="flex items-center gap-3">
                         <i class="fas fa-map-marked-alt text-emerald-500"></i>
@@ -320,6 +320,9 @@ const hasFlag = (bit) => {
 // --- ADDRESS HUB MAPPING ---
 // [S883, Card #170] Los domicilios de la empresa se guardan por su propio endpoint (POST/PUT/DELETE /logistica/empresas/{id}/domicilios).
 // Antes la ficha solo mandaba la empresa: la dirección se perdía y el sistema decía "guardado". Foto de lo que vino del servidor, para saber qué cambió.
+const MIRROR_BIT = 2097152; // Bit 21 del vínculo: espejo fiscal <-> logística (igual que en los clientes)
+// [S883] Una ficha de transporte = un punto de despacho; el destino de retiro es del domicilio del cliente. Los nodos (0 en P) quedan ocultos, el código sigue.
+const MOSTRAR_SUCURSALES = false;
 const domiciliosOriginales = ref(new Map());
 const CAMPOS_DOMICILIO = ['alias', 'calle', 'numero', 'piso', 'depto', 'cp', 'localidad', 'provincia_id', 'calle_entrega', 'numero_entrega', 'piso_entrega',
     'depto_entrega', 'cp_entrega', 'localidad_entrega', 'provincia_entrega_id', 'maps_link', 'notas_logistica', 'observaciones'];
@@ -329,6 +332,7 @@ const cuerpoDomicilio = (d) => {
     cuerpo.es_fiscal = !!d.es_fiscal;
     cuerpo.es_entrega = !!d.es_entrega;
     cuerpo.activo = d.activo !== false;
+    cuerpo.espejo = ((d.flags || 0) & MIRROR_BIT) !== 0; // el formulario enciende/apaga este bit con las flechas y al editar a mano la logística
     return cuerpo;
 };
 const huellaDomicilio = (d) => JSON.stringify(cuerpoDomicilio(d));
@@ -342,7 +346,7 @@ const mapVinculosToDomicilios = () => {
             es_fiscal: !!(vg.flags_relacion & 1),
             es_entrega: !!(vg.flags_relacion & 2),
             activo: vg.activo !== false && vg.domicilio?.activo !== false,
-            is_mirror: !!(localModel.value.flags_estado & 2097152) && vg.flags_relacion === 1
+            is_mirror: ((vg.flags_relacion || 0) & MIRROR_BIT) !== 0 || (!!(localModel.value.flags_estado & 2097152) && ((vg.flags_relacion || 0) & 1) === 1)
         }));
     } else {
         domicilios.value = [];
@@ -382,6 +386,7 @@ const openNewDomicilio = (fiscal = false) => {
         provincia_id: null,
         es_fiscal: fiscal === true,
         es_entrega: true,
+        flags: MIRROR_BIT, // como en los clientes: una dirección nueva nace espejada (logística = fiscal) hasta que se edita la logística a mano
         activo: true
     };
     activeTab.value = 'DOMICILIO';

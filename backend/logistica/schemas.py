@@ -81,6 +81,7 @@ class DomicilioEmpresaWrite(BaseModel):
     observaciones: Optional[str] = None
     es_fiscal: Optional[bool] = None    # bit 1 de flags_relacion (FISCAL)
     es_entrega: Optional[bool] = None   # bit 2 de flags_relacion (PRINCIPAL_ENTREGA)
+    espejo: Optional[bool] = None       # bit 21 de flags_relacion (espejo fiscal <-> logistica), igual que en los clientes
     activo: Optional[bool] = None
 
 class TransporteVinculoResponse(BaseModel):

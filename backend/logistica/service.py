@@ -97,6 +97,7 @@ class LogisticaService:
         return db_empresa
 
     # --- Domicilios de la empresa (Address Hub: Domicilio + VinculoGeografico 'TRANSPORTE') [S883, Card #170] ---
+    _BIT_ESPEJO = 1 << 21   # Bit 21 de flags_relacion: espejo fiscal <-> logistica (mismo bit que en domicilios_clientes)
     _CAMPOS_DOMICILIO = ("alias", "calle", "numero", "piso", "depto", "cp", "localidad", "provincia_id", "calle_entrega", "numero_entrega", "piso_entrega",
                          "depto_entrega", "cp_entrega", "localidad_entrega", "provincia_entrega_id", "maps_link", "notas_logistica", "observaciones")
 
@@ -150,7 +151,7 @@ class LogisticaService:
             if es_fiscal:
                 LogisticaService._un_solo_fiscal(db, empresa_id, dom.id)
             vg = VinculoGeografico(entidad_tipo='TRANSPORTE', entidad_id=empresa_id, domicilio_id=dom.id, alias=datos.get("alias"),
-                                   flags_relacion=(1 if es_fiscal else 0) | (2 if es_entrega else 0), activo=activo)
+                                   flags_relacion=(1 if es_fiscal else 0) | (2 if es_entrega else 0) | (LogisticaService._BIT_ESPEJO if datos.get("espejo") else 0), activo=activo)
             db.add(vg)
             db.commit()
         except Exception:
@@ -185,6 +186,8 @@ class LogisticaService:
             if datos.get("es_entrega") is not None:
                 flags = (flags | 2) if datos["es_entrega"] else (flags & ~2)
                 dom.es_entrega = bool(datos["es_entrega"])
+            if datos.get("espejo") is not None:
+                flags = (flags | LogisticaService._BIT_ESPEJO) if datos["espejo"] else (flags & ~LogisticaService._BIT_ESPEJO)
             vg.flags_relacion = flags
             if datos.get("activo") is not None:
                 vg.activo = dom.activo = dom.is_active = bool(datos["activo"])
