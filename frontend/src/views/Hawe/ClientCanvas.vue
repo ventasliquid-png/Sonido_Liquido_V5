@@ -2044,10 +2044,9 @@ const handleDomicilioSaved = async (domicilioData) => {
                  return true; 
              });
              if (existingFiscal) {
+                 // [S885, #172/#173] Solo se refleja en pantalla: el SERVIDOR desmarca el fiscal anterior al marcar el nuevo (sobre una copia propia si lo comparte con otro cliente).
+                 // Antes se mandaba un PUT aparte con es_fiscal=false, que el servidor ahora frena si deja al cliente Blanco + Responsable Inscripto sin fiscal.
                  existingFiscal.es_fiscal = false;
-                 if (existingFiscal.id && !isNew.value) {
-                    store.updateDomicilio(form.value.id, existingFiscal.id, { es_fiscal: false });
-                 }
              }
         }
 
@@ -2060,10 +2059,7 @@ const handleDomicilioSaved = async (domicilioData) => {
                 return true;
             });
             if (existingPrimary) {
-                existingPrimary.es_predeterminado = false;
-                if (existingPrimary.id && !isNew.value) {
-                   store.updateDomicilio(form.value.id, existingPrimary.id, { es_predeterminado: false });
-                }
+                existingPrimary.es_predeterminado = false;   // [S885] igual que el fiscal: el servidor desmarca el predeterminado anterior de este cliente
             }
         }
 
@@ -2211,7 +2207,10 @@ const handleDomicilioSaved = async (domicilioData) => {
         }
     } catch (e) {
         console.error(e);
-        notificationStore.add('Error al guardar domicilio', 'error');
+        // [S885] el servidor frena con 409 «FISCAL_OBLIGATORIO: …» o «ROL_DE_DOMICILIO_COMPARTIDO: …»: se muestra su explicación, no un error genérico
+        const detalle = e?.response?.data?.detail
+        const esAviso = typeof detalle === 'string' && /^(FISCAL_OBLIGATORIO|ROL_DE_DOMICILIO_COMPARTIDO):/.test(detalle)
+        notificationStore.add(esAviso ? detalle.replace(/^[A-Z_]+:\s*/, '') : 'Error al guardar domicilio', 'error');
         await loadCliente(form.value.id);
     }
     activeTab.value = 'CLIENTE';

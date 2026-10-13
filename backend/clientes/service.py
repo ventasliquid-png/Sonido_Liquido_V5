@@ -790,18 +790,13 @@ class ClienteService:
                  raise HTTPException(status_code=400, detail=f"Código de provincia '{prov_id}' inválido")
         
         # Enforce Single Fiscal Domicile Logic
+        # [S885, #172] por los vinculos del cliente (no por el campo legacy cliente_id) y sin pisar a los otros clientes que comparten ese domicilio
         if domicilio_in.es_fiscal:
-            db.query(Domicilio).filter(
-                Domicilio.cliente_id == cliente_id,
-                Domicilio.es_fiscal == True
-            ).update({"es_fiscal": False})
-        
+            ClienteService._desmarcar_otros(db, cliente_id, None, "es_fiscal")
+
         # Enforce Single Primary Domicile Logic
         if domicilio_in.es_predeterminado:
-            db.query(Domicilio).filter(
-                Domicilio.cliente_id == cliente_id,
-                Domicilio.es_predeterminado == True
-            ).update({"es_predeterminado": False})
+            ClienteService._desmarcar_otros(db, cliente_id, None, "es_predeterminado")
 
         # Prepare data
         # [GY-PROTOCOL-PIPE] Logic Fusion directly to Caller
@@ -873,6 +868,136 @@ class ClienteService:
             print(f"❌ ERROR CREATE_DOMICILIO: {str(e)}")
             raise HTTPException(status_code=400, detail=f"Error al guardar domicilio: {str(e)}")
 
+    # --- [S885, Cards #172 y #173] Guardia de roles de los domicilios compartidos y regla «Blanco + Responsable Inscripto siempre con fiscal» ---
+    # El rol (fiscal / entrega / predeterminado) y la baja viven hoy en la FILA del domicilio, no en el vinculo cliente-domicilio. Si dos clientes comparten la fila y uno
+    # cambia el rol, se lo cambia al otro. Mientras los roles no pasen al vinculo (Card #172, pasos 2 y 3), un cambio de rol sobre un domicilio que usa mas de un cliente se
+    # hace sobre una COPIA PROPIA de ese cliente (copy-on-write) y el otro conserva el original.
+    CAMPOS_DEL_CLIENTE = ("es_fiscal", "es_entrega", "es_predeterminado", "activo")
+
+    @staticmethod
+    def _cuantos_clientes_usan(db: Session, domicilio_id) -> int:
+        from backend.clientes.models import domicilios_clientes as _dc
+        return db.query(_dc).filter(_dc.c.domicilio_id == domicilio_id).count()
+
+    @staticmethod
+    def _cambios_de_rol(dom: Domicilio, update_data: dict) -> dict:
+        """De lo que pide el update, lo que REALMENTE cambia un rol o la baja (la ficha manda siempre todos los roles, aunque no cambien)."""
+        cambios = {}
+        for k in ClienteService.CAMPOS_DEL_CLIENTE:
+            if k not in update_data or update_data[k] is None:
+                continue
+            actual = getattr(dom, k, None)
+            if k == "activo" and actual is None:
+                actual = True
+            if bool(update_data[k]) != bool(actual):
+                cambios[k] = bool(update_data[k])
+        return cambios
+
+    @staticmethod
+    def _tiene_fiscal_activo(db: Session, cliente_id) -> bool:
+        from backend.clientes.models import domicilios_clientes as _dc
+        return db.query(Domicilio.id).join(_dc, _dc.c.domicilio_id == Domicilio.id).filter(
+            _dc.c.cliente_id == cliente_id, Domicilio.es_fiscal == True, Domicilio.activo != False).first() is not None
+
+    @staticmethod
+    def _exige_fiscal(db: Session, cliente_id) -> bool:
+        """Regla de Carlos (09/10/2026): un cliente BLANCO (flags_estado & 15 en 13 o 15) y Responsable Inscripto no puede quedar sin domicilio fiscal."""
+        cli = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+        if cli is None:
+            return False
+        blanco = ((cli.flags_estado or 0) & 15) in (13, 15)
+        ri = bool(cli.condicion_iva and "RESPONSABLE INSCRIPTO" in (cli.condicion_iva.nombre or "").upper())
+        return blanco and ri
+
+    @staticmethod
+    def _verificar_fiscal_blanco(db: Session, cliente_id, tenia_fiscal: bool):
+        """Frena la operacion que LE SACA el fiscal a un cliente Blanco + Responsable Inscripto (venga de la pantalla que venga). No frena el resto de las ediciones:
+        un cliente que ya estaba sin fiscal (hoy hay 4 en P, Card #173) puede seguir editando lo demas."""
+        if not tenia_fiscal:
+            return
+        db.flush()
+        if ClienteService._tiene_fiscal_activo(db, cliente_id):
+            return
+        if not ClienteService._exige_fiscal(db, cliente_id):
+            return
+        db.rollback()
+        raise HTTPException(status_code=409, detail="FISCAL_OBLIGATORIO: un cliente Blanco y Responsable Inscripto no puede quedar sin domicilio fiscal activo. Marcá primero otro domicilio como fiscal.")
+
+    @staticmethod
+    def _sincronizar_vinculo_geografico(db: Session, cliente_id, domicilio_id, cambios: dict, nuevo_domicilio_id=None):
+        from backend.contactos.models import VinculoGeografico
+        vg = db.query(VinculoGeografico).filter(
+            VinculoGeografico.entidad_tipo == 'CLIENTE',
+            VinculoGeografico.entidad_id == cliente_id,
+            VinculoGeografico.domicilio_id == domicilio_id
+        ).first()
+        if vg is None:
+            return
+        flags = vg.flags_relacion or 0
+        if 'es_fiscal' in cambios:
+            flags = (flags | 1) if cambios['es_fiscal'] else (flags & ~1)
+        if 'es_predeterminado' in cambios:
+            flags = (flags | 2) if cambios['es_predeterminado'] else (flags & ~2)
+        if 'activo' in cambios:
+            vg.activo = cambios['activo']
+        vg.flags_relacion = flags
+        if nuevo_domicilio_id is not None:
+            vg.domicilio_id = nuevo_domicilio_id
+        db.add(vg)
+
+    @staticmethod
+    def _clonar_para_cliente(db: Session, cliente_id, dom: Domicilio, cambios: dict, flags=None, alias_enlace=None) -> Domicilio:
+        """Copy-on-write COMPLETO: copia TODAS las columnas del domicilio, les aplica `cambios`, y mueve el vinculo de ESTE cliente a la copia. Los demas clientes
+        siguen con el original. No hace commit (lo hace quien llama, despues de verificar la regla del fiscal)."""
+        from backend.clientes.models import domicilios_clientes as _dc
+        columnas = [c for c in Domicilio.__table__.columns.keys() if c != "id"]
+        datos = {c: getattr(dom, c) for c in columnas}
+        for k, v in (cambios or {}).items():
+            if k in datos and k != "cliente_id":
+                datos[k] = v
+        datos["cliente_id"] = cliente_id        # el duenio del campo legacy 1:N pasa a ser quien se queda con la copia
+        nuevo = Domicilio(**datos)
+        nuevo.id = uuid.uuid4()
+        db.add(nuevo)
+        db.flush()
+        valores = {"domicilio_id": nuevo.id}
+        if flags is not None:
+            valores["flags"] = flags
+        if alias_enlace:
+            valores["alias"] = alias_enlace
+        if "es_predeterminado" in (cambios or {}):
+            valores["es_predeterminado"] = bool(cambios["es_predeterminado"])
+        db.execute(_dc.update().where(_dc.c.cliente_id == cliente_id, _dc.c.domicilio_id == dom.id).values(**valores))
+        ClienteService._sincronizar_vinculo_geografico(db, cliente_id, dom.id, cambios or {}, nuevo_domicilio_id=nuevo.id)
+        db.flush()
+        return nuevo
+
+    @staticmethod
+    def _aplicar_rol_para_cliente(db: Session, cliente_id, dom: Domicilio, cambios: dict) -> Domicilio:
+        """Aplica un cambio de rol / baja PARA ESTE CLIENTE: en el lugar si el domicilio es de un solo cliente; sobre una copia propia si lo usan varios."""
+        if ClienteService._cuantos_clientes_usan(db, dom.id) > 1:
+            return ClienteService._clonar_para_cliente(db, cliente_id, dom, cambios)
+        from backend.clientes.models import domicilios_clientes as _dc
+        for k, v in cambios.items():
+            setattr(dom, k, v)
+        if "es_predeterminado" in cambios:
+            db.execute(_dc.update().where(_dc.c.cliente_id == cliente_id, _dc.c.domicilio_id == dom.id).values(es_predeterminado=bool(cambios["es_predeterminado"])))
+        ClienteService._sincronizar_vinculo_geografico(db, cliente_id, dom.id, cambios)
+        db.add(dom)
+        db.flush()
+        return dom
+
+    @staticmethod
+    def _desmarcar_otros(db: Session, cliente_id, conservar_id, campo: str):
+        """«Un solo fiscal» / «un solo predeterminado» POR CLIENTE: desmarca el rol en los OTROS domicilios de este cliente; si alguno lo comparte con otro cliente, se hace sobre una copia propia."""
+        from backend.clientes.models import domicilios_clientes as _dc
+        conservar = str(conservar_id).replace("-", "") if conservar_id is not None else None
+        ids = [r[0] for r in db.query(_dc.c.domicilio_id).filter(_dc.c.cliente_id == cliente_id).all() if str(r[0]).replace("-", "") != conservar]
+        if not ids:
+            return
+        for d in db.query(Domicilio).filter(Domicilio.id.in_(ids), getattr(Domicilio, campo) == True).all():
+            ClienteService._aplicar_rol_para_cliente(db, cliente_id, d, {campo: False})
+
     @staticmethod
     def update_domicilio(db: Session, cliente_id: UUID, domicilio_id: UUID, domicilio_in: schemas.DomicilioUpdate) -> Optional[Domicilio]:
         db_domicilio = db.query(Domicilio).filter(Domicilio.id == domicilio_id).first()
@@ -891,6 +1016,7 @@ class ClienteService:
             return None  # router devolverá 404
 
         update_data = domicilio_in.model_dump(exclude_unset=True)
+        antes_tenia_fiscal = ClienteService._tiene_fiscal_activo(db, cliente_id)   # [S885, #173] para la regla del fiscal de los Blanco + RI
         
         # [GY-PROTOCOL-PIPE DEPRECATED]
         # V7: We now respect the individual fields passed in update_data.
@@ -939,35 +1065,31 @@ class ClienteService:
         has_note_change = any(k in update_data and _txt(update_data[k]) != _txt(getattr(db_domicilio, k, None)) for k in ('notas_logistica', 'observaciones'))
         es_compartido = db.query(domicilios_clientes).filter(domicilios_clientes.c.domicilio_id == domicilio_id).count() > 1
         
-        if is_mirror and has_note_change and es_compartido:
-            # Fork mandatory: Create a copy for this specific client
-            print(f"[GOLD] BIFURCACIÓN DETECTADA: SOBERANÍA REQUERIDA PARA {db_domicilio.id}")
-            # If the user is editing from a view that only allows "Entrega" update, preserve balance
-            forked_data = update_data.copy()
-            # Inherit missing core fields
-            for col in ['calle', 'numero', 'piso', 'depto', 'localidad', 'provincia_id', 'alias', 'bit_identidad', 'flags_infra']:
-                if col not in forked_data:
-                    forked_data[col] = getattr(db_domicilio, col)
-            
-            # [V5.9 GOLD] Preservar Flags (Espejo) en la bifurcación si vienen del frontend
-            target_rel_flags = rel_flags if rel_flags is not None else 0
-            new_dom = ClienteService.fork_domicilio(db, cliente_id, domicilio_id, forked_data, flags=target_rel_flags)
-            return new_dom
+        # [S885, Cards #172/#173] Guardia de roles: cambiar el rol (fiscal / entrega / predeterminado) o dar de baja un domicilio que usan OTROS clientes se hace sobre una copia
+        # propia de este cliente (copy-on-write completo); el otro conserva el original, con su rol. Antes el cambio se escribia en la fila compartida y le cambiaba el rol al otro.
+        cambios_de_rol = ClienteService._cambios_de_rol(db_domicilio, update_data)
+        romper_espejo = bool(is_mirror and has_note_change)
+        if es_compartido and (cambios_de_rol or romper_espejo):
+            print(f"[GOLD] BIFURCACIÓN DETECTADA (copy-on-write): domicilio {db_domicilio.id} compartido; roles que cambian: {sorted(cambios_de_rol)}; notas: {has_note_change}")
+            datos_clon = {k: v for k, v in update_data.items() if k not in ("flags",)}
+            # Notas que cambian en un espejo: se apaga el espejo (como siempre). Solo roles: el vinculo conserva sus flags.
+            flags_enlace = (rel_flags if rel_flags is not None else 0) if romper_espejo else rel_flags
+            nuevo = ClienteService._clonar_para_cliente(db, cliente_id, db_domicilio, datos_clon, flags=flags_enlace)
+            if update_data.get('es_fiscal'):
+                ClienteService._desmarcar_otros(db, cliente_id, nuevo.id, "es_fiscal")
+            if update_data.get('es_predeterminado'):
+                ClienteService._desmarcar_otros(db, cliente_id, nuevo.id, "es_predeterminado")
+            ClienteService._verificar_fiscal_blanco(db, cliente_id, antes_tenia_fiscal)
+            db.commit()
+            db.refresh(nuevo)
+            return nuevo
 
         # Enforce Single Fiscal Domicile Logic
         if update_data.get('es_fiscal'):
-            # [S878] SQLAlchemy 2.0 no admite Query.update() después de .join(): InvalidRequestError y un 500 al guardar
-            # cualquier domicilio fiscal por este camino (le pasó a Tomy al guardar un transporte). Se resuelve con una
-            # subconsulta de IDs de los OTROS domicilios fiscales de este cliente y un update plano.
-            otros_fiscales = db.query(Domicilio.id).join(
-                domicilios_clientes, domicilios_clientes.c.domicilio_id == Domicilio.id
-            ).filter(
-                domicilios_clientes.c.cliente_id == cliente_id,
-                Domicilio.id != domicilio_id,
-                Domicilio.es_fiscal == True
-            ).subquery()
-            db.query(Domicilio).filter(Domicilio.id.in_(db.query(otros_fiscales.c.id))).update(
-                {"es_fiscal": False}, synchronize_session=False)
+            # [S878] SQLAlchemy 2.0 no admite Query.update() después de .join() (500 al guardar un domicilio fiscal).
+            # [S885] Y el update plano pisaba tambien a los OTROS clientes que comparten ese domicilio: ahora cada fiscal anterior se desmarca
+            # para este cliente (sobre una copia propia si lo usa otro cliente).
+            ClienteService._desmarcar_otros(db, cliente_id, domicilio_id, "es_fiscal")
         
         # Enforce Single Primary Domicile Logic
         if update_data.get('es_predeterminado'):
@@ -994,10 +1116,14 @@ class ClienteService:
         
         for key, value in update_data.items():
             setattr(db_domicilio, key, value)
-            
+
         if not db_domicilio.maps_link:
             db_domicilio.maps_link = ClienteService._generate_maps_link(db, db_domicilio)
             db_domicilio.is_maps_manual = False
+
+        if update_data.get('es_predeterminado'):
+            ClienteService._desmarcar_otros(db, cliente_id, domicilio_id, "es_predeterminado")
+        ClienteService._verificar_fiscal_blanco(db, cliente_id, antes_tenia_fiscal)   # [S885, #173] no se le puede sacar el fiscal a un Blanco + RI
 
         db.commit()
         db.refresh(db_domicilio)
@@ -1044,9 +1170,19 @@ class ClienteService:
     def delete_domicilio(db: Session, domicilio_id: UUID, cliente_id: UUID = None):
         db_domicilio = db.query(Domicilio).filter(Domicilio.id == domicilio_id).first()
         if db_domicilio:
+            antes_tenia_fiscal = ClienteService._tiene_fiscal_activo(db, cliente_id) if cliente_id else False
+            if cliente_id and ClienteService._cuantos_clientes_usan(db, domicilio_id) > 1:
+                # [S885, #172] la baja de un domicilio compartido es de ESTE cliente: queda una copia inactiva suya y los otros clientes siguen con el original
+                clon = ClienteService._clonar_para_cliente(db, cliente_id, db_domicilio, {"activo": False})
+                ClienteService._verificar_fiscal_blanco(db, cliente_id, antes_tenia_fiscal)
+                db.commit()
+                db.refresh(clon)
+                return clon
             # Soft Delete the main record
             db_domicilio.activo = False
             db.add(db_domicilio)
+            if cliente_id:
+                ClienteService._verificar_fiscal_blanco(db, cliente_id, antes_tenia_fiscal)   # [S885, #173]
             db.commit()
             db.refresh(db_domicilio)
             
@@ -1222,6 +1358,7 @@ class ClienteService:
         # [S883, Card #158] La bifurcacion es copy-on-write: tiene sentido solo si el domicilio lo usan OTROS clientes. Si es de un solo cliente (el caso de siempre: la pantalla
         # llama a /fork en cada guardado de un domicilio espejado) no hay a quien aislar: se edita en el lugar y no queda ni un duplicado ni un huerfano.
         from backend.clientes.models import Domicilio, domicilios_clientes as _dc
+        antes_tenia_fiscal = ClienteService._tiene_fiscal_activo(db, cliente_id)   # [S885, #173]
         if db.query(_dc).filter(_dc.c.domicilio_id == domicilio_id).count() <= 1:
             dom = db.query(Domicilio).filter(Domicilio.id == domicilio_id).first()
             if dom is not None:
@@ -1233,26 +1370,21 @@ class ClienteService:
                 if new_data and new_data.get("alias"):
                     valores["alias"] = new_data["alias"]
                 db.execute(_dc.update().where(_dc.c.cliente_id == cliente_id, _dc.c.domicilio_id == domicilio_id).values(**valores))
+                if new_data and new_data.get("es_fiscal"):
+                    ClienteService._desmarcar_otros(db, cliente_id, domicilio_id, "es_fiscal")
+                ClienteService._verificar_fiscal_blanco(db, cliente_id, antes_tenia_fiscal)
                 db.commit()
                 db.refresh(dom)
                 return dom
 
-        # 1. Create Clone
-        from backend.clientes.models import Domicilio
-        new_dom = Domicilio(**new_data)
-        new_dom.id = uuid.uuid4()
-        new_dom.is_active = True
-        db.add(new_dom)
-        db.flush()
-        
-        # 2. Update Link (Turn Bit 21 OFF)
-        from backend.clientes.models import domicilios_clientes
-        db.execute(
-            domicilios_clientes.update().where(
-                domicilios_clientes.c.cliente_id == cliente_id,
-                domicilios_clientes.c.domicilio_id == domicilio_id
-            ).values(domicilio_id=new_dom.id, flags=flags, alias=new_data.get('alias', 'ENTREGA INDEPENDIENTE'))
-        )
+        # 1. Copia completa (S885: antes se armaba solo con lo que mandaba la pantalla y perdia el resto de las columnas) + 2. el vinculo de este cliente pasa a la copia (Bit 21 apagado)
+        dom = db.query(Domicilio).filter(Domicilio.id == domicilio_id).first()
+        if dom is None:
+            raise HTTPException(status_code=404, detail="Domicilio no encontrado")
+        new_dom = ClienteService._clonar_para_cliente(db, cliente_id, dom, dict(new_data or {}), flags=flags, alias_enlace=(new_data or {}).get('alias', 'ENTREGA INDEPENDIENTE'))
+        if new_data and new_data.get("es_fiscal"):
+            ClienteService._desmarcar_otros(db, cliente_id, new_dom.id, "es_fiscal")
+        ClienteService._verificar_fiscal_blanco(db, cliente_id, antes_tenia_fiscal)
         db.commit()
         db.refresh(new_dom)  # [S883] sin esto la respuesta salia vacia ({}): el commit vence los atributos del objeto
         return new_dom
@@ -1408,7 +1540,15 @@ class ClienteService:
         if not db_dom: return None
         
         update_data = data.model_dump(exclude_unset=True)
-        
+
+        # [S885, #172] El maestro del Hub edita EL LUGAR para todos los que lo usan; un rol o una baja es de cada cliente y se cambia desde su ficha.
+        cambios_de_rol = ClienteService._cambios_de_rol(db_dom, update_data)
+        if cambios_de_rol and ClienteService._cuantos_clientes_usan(db, dom_id) > 1:
+            raise HTTPException(status_code=409, detail=f"ROL_DE_DOMICILIO_COMPARTIDO: este domicilio lo usan {ClienteService._cuantos_clientes_usan(db, dom_id)} clientes; el rol ({', '.join(sorted(cambios_de_rol))}) se cambia desde la ficha de cada cliente.")
+        for _k in ClienteService.CAMPOS_DEL_CLIENTE:
+            if _k not in cambios_de_rol:
+                update_data.pop(_k, None)   # lo que no cambia no se reescribe
+
         # Check if maps_link is provided manually
         if 'maps_link' in update_data:
             db_dom.is_maps_manual = True
@@ -1527,7 +1667,7 @@ class ClienteService:
         pedida = {"calle": calle, "numero": numero, "localidad": localidad, "provincia_id": prov_de(provincia_id)}
         excluir = str(excluir_cliente_id).replace("-", "") if excluir_cliente_id else None
         salida = []
-        for dom in db.query(Domicilio).filter(Domicilio.is_active == True).all():
+        for dom in db.query(Domicilio).filter(Domicilio.is_active == True, Domicilio.activo != False).all():   # [S885] activo = 0 es la baja desde la ficha
             existente = {"calle": dom.calle or dom.calle_entrega, "numero": dom.numero or dom.numero_entrega, "localidad": dom.localidad or dom.localidad_entrega,
                          "provincia_id": prov_de(dom.provincia_id or dom.provincia_entrega_id)}
             nivel, razones = comparar(pedida, existente)
@@ -1591,12 +1731,14 @@ class ClienteService:
         cid = cliente_id.hex if hasattr(cliente_id, 'hex') else str(cliente_id).replace('-', '')
         did = dom_id.hex if hasattr(dom_id, 'hex') else str(dom_id).replace('-', '')
 
+        antes_tenia_fiscal = ClienteService._tiene_fiscal_activo(db, cid)   # [S885, #173] desvincular el ultimo fiscal de un Blanco + RI tampoco se puede
         res = db.execute(
             delete(domicilios_clientes).where(
                 domicilios_clientes.c.cliente_id == cid,
                 domicilios_clientes.c.domicilio_id == did
             )
         )
+        ClienteService._verificar_fiscal_blanco(db, cid, antes_tenia_fiscal)
         db.commit()
         return res.rowcount > 0
 
