@@ -901,17 +901,16 @@ class ClienteService:
 
     @staticmethod
     def _exige_fiscal(db: Session, cliente_id) -> bool:
-        """Regla de Carlos (09/10/2026): un cliente BLANCO (flags_estado & 15 en 13 o 15) y Responsable Inscripto no puede quedar sin domicilio fiscal."""
+        """Regla de Carlos: todo cliente BLANCO (flags_estado & 15 en 13 o 15) nace con el domicilio fiscal que trae ARCA y el sistema NO puede dejarlo sin fiscal, por definicion
+        (09/10: «Blanco y Responsable Inscripto»; 13/10: «por definicion el sistema no puede borrar domicilio fiscal» -> vale para todo Blanco)."""
         cli = db.query(Cliente).filter(Cliente.id == cliente_id).first()
         if cli is None:
             return False
-        blanco = ((cli.flags_estado or 0) & 15) in (13, 15)
-        ri = bool(cli.condicion_iva and "RESPONSABLE INSCRIPTO" in (cli.condicion_iva.nombre or "").upper())
-        return blanco and ri
+        return ((cli.flags_estado or 0) & 15) in (13, 15)
 
     @staticmethod
     def _verificar_fiscal_blanco(db: Session, cliente_id, tenia_fiscal: bool):
-        """Frena la operacion que LE SACA el fiscal a un cliente Blanco + Responsable Inscripto (venga de la pantalla que venga). No frena el resto de las ediciones:
+        """Frena la operacion que LE SACA el fiscal a un cliente Blanco (venga de la pantalla que venga). No frena el resto de las ediciones:
         un cliente que ya estaba sin fiscal (hoy hay 4 en P, Card #173) puede seguir editando lo demas."""
         if not tenia_fiscal:
             return
@@ -921,7 +920,7 @@ class ClienteService:
         if not ClienteService._exige_fiscal(db, cliente_id):
             return
         db.rollback()
-        raise HTTPException(status_code=409, detail="FISCAL_OBLIGATORIO: un cliente Blanco y Responsable Inscripto no puede quedar sin domicilio fiscal activo. Marcá primero otro domicilio como fiscal.")
+        raise HTTPException(status_code=409, detail="FISCAL_OBLIGATORIO: un cliente Blanco no puede quedar sin domicilio fiscal activo. Marcá primero otro domicilio como fiscal.")
 
     @staticmethod
     def _sincronizar_vinculo_geografico(db: Session, cliente_id, domicilio_id, cambios: dict, nuevo_domicilio_id=None):

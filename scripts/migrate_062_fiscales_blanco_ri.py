@@ -73,15 +73,13 @@ def cliente_activo(cliente_id=None, cuit=None):
 
 
 def marcar_vinculo_fiscal(cliente_id, dom_id):
-    """Deja el vinculo geografico del cliente con ese domicilio con el bit 1 (fiscal); si no existe lo crea."""
+    """Si el cliente YA tiene un vinculo geografico con ese domicilio, le deja el bit 1 (fiscal). NO crea vinculos nuevos: la tabla vinculos_geograficos apunta por clave
+    foranea a «domicilios_legacy» (que ya no existe) y cada fila nueva suma una violacion al foreign_key_check (153 en P hoy); nadie lee esa tabla para el fiscal."""
     if not HAY_VG:
         return
     r = cur.execute("SELECT id, flags_relacion FROM vinculos_geograficos WHERE entidad_tipo = 'CLIENTE' AND entidad_id = ? AND domicilio_id = ?", (cliente_id, dom_id)).fetchone()
     if r:
         cur.execute("UPDATE vinculos_geograficos SET flags_relacion = ?, activo = 1 WHERE id = ?", ((r[1] or 0) | 1, r[0]))
-    else:
-        cur.execute("INSERT INTO vinculos_geograficos (id, entidad_tipo, entidad_id, domicilio_id, alias, flags_relacion, activo, created_at, updated_at) VALUES (?, 'CLIENTE', ?, ?, NULL, 1, 1, datetime('now'), datetime('now'))",
-                    (uuid.uuid4().hex, cliente_id, dom_id))
 
 
 def solo_de(dom_id, cliente_id):
@@ -157,7 +155,6 @@ def medi_cient():
     valores = {k: v for k, v in valores.items() if k in columnas}
     cur.execute(f"INSERT INTO domicilios ({', '.join(valores)}) VALUES ({', '.join('?' * len(valores))})", tuple(valores.values()))
     cur.execute("INSERT INTO domicilios_clientes (cliente_id, domicilio_id, flags, alias, es_predeterminado, created_at) VALUES (?, ?, 2097152, NULL, 0, datetime('now'))", (cli, dom_id))
-    marcar_vinculo_fiscal(cli, dom_id)
     return None
 
 
