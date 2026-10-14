@@ -1,4 +1,4 @@
-﻿## SESION 885 (OF) — 2026-10-13/14 [NS (CC)]: guardia de roles de domicilios (#172), regla «todo Blanco con fiscal» (#173), migrate_062, push a produccion (bd8d969) y poda de Atenea (f380f16a, solo en D) — NOMINAL — D:HASH_CIERRE_885 B:bd8d969 (= prod/main) P:no verificado (Z: caido; ultimo leido 33a4cc7)
+﻿## SESION 885 (OF) — 2026-10-13/14 [NS (CC)]: guardia de roles de domicilios (#172), regla «todo Blanco con fiscal» (#173), migrate_062, push a produccion (bd8d969) y poda de Atenea (f380f16a, solo en D) — NOMINAL — D:8cf2b744 B:bd8d969 (= prod/main) P:no verificado (Z: caido; ultimo leido 33a4cc7)
 
 - Un push a produccion (`33a4cc7..bd8d969`: paso 1 «buscar antes de crear», #158 + `migrate_061`, guardia, regla y `migrate_062`); la poda de Atenea/LangGraph y las Cards #172, #173 y #174 quedaron registradas. Falta verificar en P el deploy.
 
