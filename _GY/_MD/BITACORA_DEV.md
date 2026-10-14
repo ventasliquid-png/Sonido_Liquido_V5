@@ -1,4 +1,10 @@
-﻿## SESION 883 (OF) — 2026-10-09 [NS (CC)]: 409 de NC/ND, transportes (#170), alta Pedido/Presupuesto (#171), domicilios (#158, paso 1 «buscar antes de crear») y regla Blanco+RI con fiscal (#172, #173) — NOMINAL — D:d2f0c15c B:33a4cc7 (= prod/main) P:33a4cc7
+﻿## SESION 885 (OF) — 2026-10-13/14 [NS (CC)]: guardia de roles de domicilios (#172), regla «todo Blanco con fiscal» (#173), migrate_062, push a produccion (bd8d969) y poda de Atenea (f380f16a, solo en D) — NOMINAL — D:HASH_CIERRE_885 B:bd8d969 (= prod/main) P:no verificado (Z: caido; ultimo leido 33a4cc7)
+
+- Un push a produccion (`33a4cc7..bd8d969`: paso 1 «buscar antes de crear», #158 + `migrate_061`, guardia, regla y `migrate_062`); la poda de Atenea/LangGraph y las Cards #172, #173 y #174 quedaron registradas. Falta verificar en P el deploy.
+
+---
+
+## SESION 883 (OF) — 2026-10-09 [NS (CC)]: 409 de NC/ND, transportes (#170), alta Pedido/Presupuesto (#171), domicilios (#158, paso 1 «buscar antes de crear») y regla Blanco+RI con fiscal (#172, #173) — NOMINAL — D:d2f0c15c B:33a4cc7 (= prod/main) P:33a4cc7
 
 - Tres pushes a producción (`2a33e8d..1c843af..33a4cc7`); `f6339e5b` (#158 + `migrate_061`) y `3acad8e0` (paso 1) quedan en D sin port hasta la guardia de roles de domicilio (#172). Cards nuevas #168, #169, #172, #173.
 

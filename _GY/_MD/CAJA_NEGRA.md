@@ -1,4 +1,16 @@
-﻿Sesion actual: 883
+﻿Sesion actual: 885
+
+# CAJA NEGRA: OMEGA Lite - guardia de roles de domicilios (#172), regla todo Blanco con fiscal (#173), migrate_062, push a produccion y poda de Atenea - S885
+
+Sesion 885 OF, 13-14/10, NS (CC) con Carlos. Hash D: HASH_CIERRE_885 (ultimo commit de codigo: f380f16a) | Hash B: bd8d969 = prod/main (un push: 33a4cc7..bd8d969) | P real: NO VERIFICADO (Z: caido al cierre; ultimo leido 33a4cc7 el 14/10 13:06).
+- Guardia de roles (15cac5ef): cambiar el rol o dar de baja un domicilio que usan 2+ clientes = copia completa de ESE cliente (update, alta, baja, DELETE, /fork); un solo fiscal/predeterminado por cliente sin pisar a los otros; el maestro del Hub rechaza (409) cambiar el rol de un domicilio compartido. Regla de Carlos (9f8acb89): todo Blanco conserva un fiscal activo (409 FISCAL_OBLIGATORIO). migrate_062 (3dbcccf3 y 9f8acb89): fiscal para Gelato, Jomax y Medi Cient; Agustin Suarez Cipolletti sin tocar (su CUIT devuelve VIA LONDRA S.A.). Portado a B (bd8d969) y pusheado con 061 y el paso 1.
+- Poda de Atenea/LangGraph (f380f16a, solo en D): main.py 540 -> 307 lineas, AteneaChat.vue, test_simple.py y proxy /atenea fuera; psycopg2 y langgraph no estaban en requirements.txt. Hallazgo: /bypass/check_rubro_deps no funciona nunca (lo tapa el comodin de la SPA) y su unico consumidor es un componente huerfano (Card #174); 15 componentes .vue sin referencia; respaldos versionados con nombres de claves (.env.bak). Atenea conservada: tag atenea-original y carpeta ATENEA_ORIGINAL/ del Silo.
+- Errores propios corregidos: la 062 sumaba 2 violaciones al foreign_key_check (153->155); dije que /bypass estaba en uso y nunca funcionó; la Card #174 partia de un bug visible y era un componente huerfano.
+- Pendiente: verificar en P el deploy de bd8d969 (061 y 062, modal de domicilios, regla del fiscal); #171 con un presupuesto real; decisiones de Carlos (Agustin Suarez, retirar el conjunto muerto de la #174, respaldos versionados, cuando sube la poda de Atenea); roles en el vinculo y unificar repetidos; #164; Gelato y Lacteos; INBOX con 17 entradas (11 punteros archivados); barrido del Board.
+
+---
+
+Sesion actual: 883
 
 # CAJA NEGRA: OMEGA Lite - 409 de NC/ND, transportes (#170), alta Pedido/Presupuesto (#171), domicilios (#158, paso 1 buscar antes de crear) y regla Blanco+RI con fiscal (#172, #173) - S883
 
