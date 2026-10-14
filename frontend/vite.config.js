@@ -30,7 +30,6 @@ export default defineConfig({
       '/openapi.json': { target: 'http://localhost:8080', changeOrigin: true },
       '/remitos': { target: 'http://localhost:8080', changeOrigin: true },
       '/informes': { target: 'http://localhost:8080', changeOrigin: true },
-      '/atenea': { target: 'http://localhost:8080', changeOrigin: true },
       '/cantera': { target: 'http://localhost:8080', changeOrigin: true },
       '/contactos': { target: 'http://localhost:8080', changeOrigin: true },
       '/bridge': { target: 'http://localhost:8080', changeOrigin: true },

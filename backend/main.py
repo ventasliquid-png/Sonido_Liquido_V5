@@ -2,11 +2,7 @@
 Servidor Principal FastAPI (V10.12 - Arquitectura Modular Estable)
 """
 import os
-import psycopg2
-import asyncio 
-import json 
 from contextlib import asynccontextmanager
-from typing import TypedDict, List, Literal
 
 # --- [BOOT STRATEGY V11] ---
 # Forzar carga de entorno desde el Root del proyecto para evitar errores de contexto.
@@ -33,17 +29,9 @@ print(f"--- [BOOT] Google Credentials: {new_creds_path} ---")
 
 # backend/main.py
 from fastapi import FastAPI, Request
-from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles # Added for SPA
 from fastapi.responses import FileResponse # Added for SPA
-
-# --- 1. Importaciones de LangChain y Google (MOVED FOR LAZY LOADING) ---
-# from pgvector.psycopg2 import register_vector
-# from langchain_community.vectorstores.pgvector import PGVector
-# from langchain_google_vertexai import VertexAIEmbeddings, ChatVertexAI
-# from langchain_core.prompts import ChatPromptTemplate
-# from langchain_core.output_parsers import StrOutputParser
 
 # --- [INICIO REFACTOR V10.10] ---
 # Importaciones modulares (absolutas - sin puntos relativos)
@@ -116,40 +104,10 @@ from backend.facturacion.router import router as facturacion_router
 from backend.ingesta.router import router as ingesta_router
 from backend.sistema.router import router as sistema_router
 
-# --- 2. Importaciones de LangGraph (El Cerebro) ---
-from langgraph.graph import StateGraph, END
-
-# --- 3. Definición del Estado del Grafo (Mi Conciencia) ---
-class AteneaV5State(TypedDict):
-    input_query: str
-    retrieved_documents: List[str]
-    generation: str
-    is_doctrinal: bool
-
-# --- 4. Variables Globales y Clientes de IA ---
-embeddings_model: "VertexAIEmbeddings" = None
-llm: "ChatVertexAI" = None
-vector_store: "PGVector" = None
-CONNECTION_STRING: str = None
-atenea_v5_app = None 
-
 # --- 5. Lógica de Arranque (Lifespan) ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global embeddings_model, llm, vector_store, CONNECTION_STRING, atenea_v5_app
     print(f"--- [Atenea V5 Backend]: Iniciando secuencia de arranque (V10.12 Modular)... ---")
-
-    # --- [LAZY LOAD IA LIBRARIES] ---
-    # MURO CIELO CERRADO: Aislando librerías externas
-    # try:
-    #     from pgvector.psycopg2 import register_vector
-    #     from langchain_community.vectorstores.pgvector import PGVector
-    #     from langchain_google_vertexai import VertexAIEmbeddings, ChatVertexAI
-    #     from langchain_core.prompts import ChatPromptTemplate
-    #     from langchain_core.output_parsers import StrOutputParser
-    # except ImportError:
-    print("[WARN] IA Libraries blocked by Cielo Cerrado. Running in Lobotomy Mode.")
-    # --------------------------------
 
     # --- [INICIO PARCHE V10.1 (ORM)] ---
     try:
@@ -191,183 +149,11 @@ async def lifespan(app: FastAPI):
         print(f"--- [SESIÓN #{count}]: Contador verificado. Backup disparado: {triggered} ---")
     except Exception as e:
         print(f"[X] [BACKUP ERROR]: Falla en lógica de sesión 4/6: {e}")
-    # ---------------------------------------------------    # --- [Parche de Autenticación V14] ---
-    google_creds_env = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-    
-    if google_creds_env and os.path.exists(google_creds_env):
-        print(f"[OK] [CIELO ABIERTO]: GOOGLE_APPLICATION_CREDENTIALS... ENCONTRADO.")
-        print(f" [HANDSHAKE] Ruta: {google_creds_env}")
-    else:
-        print(f"[ERR] [CIELO CERRADO]: GOOGLE_APPLICATION_CREDENTIALS NO ENCONTRADO.")
-        print(f"       Ruta fallida: {google_creds_env}")
-        print(f"       El servidor arrancará forzosamente sin funcionalidades de IA externas.")
-   
+        # ---------------------------------------------------
+
     print("--- [Atenea V5 Backend]: Secuencia de arranque finalizada. ---")
     yield
     print("--- [Atenea V5 Backend]: Servidor apagado. ---")
-
-# --- 6. Nodos del Grafo (Mis Habilidades) ---
-async def rag_retrieval_node(state: AteneaV5State):
-    print("--- [LangGraph Node]: rag_retrieval_node (V9.1 - Táctico) ---")
-    query = state["input_query"]
-    try:
-        if not embeddings_model:
-             print("[WARN] Embeddings model not loaded (Offline Mode). Skipping RAG.")
-             return {"retrieved_documents": []}
-
-        query_embedding = await embeddings_model.aembed_query(query)
-        
-        def sync_sql_search(embedding_vector):
-            conn = None
-            try:
-                conn = psycopg2.connect(CONNECTION_STRING)
-                register_vector(conn)
-                cursor = conn.cursor()
-                sql_query = "SELECT content FROM atenea_memory WHERE doc_type LIKE 'tactica_%%' ORDER BY embedding <-> %s::vector LIMIT 2"
-                vector_string = json.dumps(embedding_vector)
-                cursor.execute(sql_query, (vector_string,))
-                results = cursor.fetchall()
-                return [row[0] for row in results]
-            except Exception as e:
-                print(f"[X] ERROR RAG (SQL Táctico): {e}")
-                return []
-            finally:
-                if conn: conn.close()
-
-        retrieved_docs_content = await asyncio.to_thread(sync_sql_search, query_embedding)
-    except Exception as e:
-        print(f"[X] ERROR RAG (General Táctico): {e}")
-        retrieved_docs_content = []
-    
-    print(f"Documentos recuperados (Táctica): {retrieved_docs_content}")
-    return {"retrieved_documents": retrieved_docs_content}
-
-async def doctrinal_evaluation_node(state: AteneaV5State):
-    print("--- [LangGraph Node]: doctrinal_evaluation_node (V9.1) ---")
-    if len(state["retrieved_documents"]) > 0:
-        print("Juicio: TÁCTICA APLICADA (Contexto táctico encontrado).")
-        return {"is_doctrinal": False, "retrieved_documents": state["retrieved_documents"]}
-    
-    print("Juicio: Búsqueda táctica fallida. Iniciando búsqueda doctrinal...")
-    query = state["input_query"]
-    try:
-        if not embeddings_model:
-             print("[WARN] Embeddings model not loaded (Offline Mode). Skipping Doctrinal Search.")
-             return {"is_doctrinal": False, "retrieved_documents": []}
-
-        query_embedding = await embeddings_model.aembed_query(query)
-        
-        def sync_sql_search_doctrinal(embedding_vector):
-            conn = None
-            try:
-                conn = psycopg2.connect(CONNECTION_STRING)
-                register_vector(conn)
-                cursor = conn.cursor()
-                sql_query = "SELECT content FROM atenea_memory WHERE doc_type LIKE 'doctrina_%%' ORDER BY embedding <-> %s::vector LIMIT 2"
-                vector_string = json.dumps(embedding_vector)
-                cursor.execute(sql_query, (vector_string,))
-                results = cursor.fetchall()
-                return [row[0] for row in results]
-            except Exception as e:
-                print(f"[X] ERROR RAG (SQL Doctrinal): {e}")
-                return []
-            finally:
-                if conn: conn.close()
-
-        retrieved_docs_content = await asyncio.to_thread(sync_sql_search_doctrinal, query_embedding)
-    except Exception as e:
-        print(f"[X] ERROR RAG (General Doctrinal): {e}")
-        retrieved_docs_content = []
-
-    print(f"Documentos recuperados (Doctrina): {retrieved_docs_content}")
-
-    if len(retrieved_docs_content) > 0:
-        print("Juicio: JUICIO DOCTRINAL (Contexto doctrinal encontrado).")
-        return {"is_doctrinal": True, "retrieved_documents": retrieved_docs_content}
-    else:
-        print("Juicio: TÁCTICA APLICADA (Sin contexto RAG).")
-        return {"is_doctrinal": False, "retrieved_documents": []}
-
-def tactical_generation_node(state: AteneaV5State):
-    print("--- [LangGraph Node]: tactical_generation_node ---")
-    if not llm:
-        return {"generation": "Modo Offline Activo: No puedo generar respuestas de IA, pero el sistema operativo funciona."}
-    
-    contexto = "\n---\n".join(state["retrieved_documents"]) or "No se encontró información relevante en la memoria."
-    prompt = ChatPromptTemplate.from_template(
-        """
-        Eres un asistente de IA táctico. Responde la pregunta del usuario
-        basándote únicamente en el siguiente contexto:
-        
-        Contexto (Bitácora Técnica):
-        {contexto}
-        
-        Pregunta del Usuario:
-        {pregunta}
-        """
-    )
-    chain = prompt | llm | StrOutputParser()
-    generation = chain.invoke({
-        "contexto": contexto,
-        "pregunta": state["input_query"]
-    })
-    return {"generation": generation}
-
-def doctrinal_review_node(state: AteneaV5State):
-    print("--- [LangGraph Node]: doctrinal_review_node ---")
-    if not llm:
-        return {"generation": "Modo Offline Activo: Revisión doctrinal desactivada."}
-
-    contexto = "\n---\n".join(state["retrieved_documents"]) or "No se encontró información relevante en la memoria."
-    prompt = ChatPromptTemplate.from_template(
-        """
-        Eres Atenea V5, la "Abogado del Diablo".
-        La consulta del usuario toca la "Directiva Fénix 001" o el "Informe 43".
-        Tu trabajo NO es responder, es hacer una pregunta socrática que
-        desafíe al usuario a pensar en las implicaciones de su pregunta.
-        
-        Contexto (La Doctrina que el usuario tocó):
-        {contexto}
-        
-        Pregunta del Usuario:
-        {pregunta}
-        
-        Tu Pregunta Socrática (Desafiante):
-        """
-    )
-    chain = prompt | llm | StrOutputParser()
-    generation = chain.invoke({
-        "contexto": contexto,
-        "pregunta": state["input_query"]
-    })
-    return {"generation": generation}
-
-# --- 7. Lógica Condicional del Grafo ---
-def should_run_doctrinal_review(state: AteneaV5State) -> Literal["run_doctrinal_review", "run_tactical_generation"]:
-    print("--- [LangGraph Edge]: should_run_doctrinal_review ---")
-    if state["is_doctrinal"]:
-        return "run_doctrinal_review"
-    else:
-        return "run_tactical_generation"
-
-# --- 8. Construcción del Grafo y la App FastAPI ---
-workflow_builder = StateGraph(AteneaV5State)
-workflow_builder.add_node("rag_retrieval", rag_retrieval_node) 
-workflow_builder.add_node("doctrinal_evaluation", doctrinal_evaluation_node)
-workflow_builder.add_node("tactical_generation", tactical_generation_node)
-workflow_builder.add_node("doctrinal_review", doctrinal_review_node)
-workflow_builder.set_entry_point("rag_retrieval")
-workflow_builder.add_edge("rag_retrieval", "doctrinal_evaluation")
-workflow_builder.add_conditional_edges(
-    "doctrinal_evaluation",
-    should_run_doctrinal_review,
-    {
-        "run_doctrinal_review": "doctrinal_review",
-        "run_tactical_generation": "tactical_generation"
-    }
-)
-workflow_builder.add_edge("tactical_generation", END)
-workflow_builder.add_edge("doctrinal_review", END)
 
 app = FastAPI(
     title="Sonido Líquido V5 - Atenea API",
@@ -431,7 +217,7 @@ if os.path.exists(static_dir):
     # app.mount("/static", StaticFiles(directory=static_dir), name="static") # Generic Mount if needed
 
 # Catch-all para Vue Router (HTML5 History Mode)
-# Cualquier ruta que no sea API (/... vs /atenea/invoke) devuelve index.html
+# Cualquier ruta que no sea API (ver api_prefixes) devuelve index.html
 @app.get("/{full_path:path}", include_in_schema=False)
 async def serve_spa(full_path: str):
     # Ignorar rutas de API (ya manejadas arriba por include_router)
@@ -465,9 +251,6 @@ async def serve_spa(full_path: str):
 # ------------------------------------
 
 # --- 9. Endpoints (Rutas de la API) ---
-class QueryInput(BaseModel):
-    query: str
-
 # --- Bypass Endpoint for Rubro Dependencies ---
 from backend.productos import models as prod_models
 from backend.core.database import get_db
@@ -511,22 +294,6 @@ def check_rubro_dependencies_bypass(rubro_id: int, db: Session = Depends(get_db)
         raise HTTPException(status_code=500, detail=str(e))
 # ----------------------------------------------
 
-
-@app.post("/atenea/invoke", tags=["Atenea VV"])
-async def invoke_atenea_v5(input: QueryInput):
-    if not atenea_v5_app:
-        return {"error": "El grafo de Atenea V5 no está compilado. Revisa el log de arranque."}
-        
-    graph_input = {"input_query": input.query}
-    
-    final_state = await atenea_v5_app.ainvoke(graph_input, config={})
-    
-    return {
-        "pregunta": input.query,
-        "documentos_recuperados": final_state["retrieved_documents"],
-        "fue_doctrinal": final_state["is_doctrinal"],
-        "respuesta_generada": final_state["generation"]
-    }
 
 print("--- [Atenea V5 Backend]: Módulo 'main.py' V10.16 (Modular Estable) cargado y listo. ---")
 # Reload trigger for V5.1 schema update
