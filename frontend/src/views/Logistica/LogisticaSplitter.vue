@@ -43,6 +43,13 @@
       <i class="fas fa-unlock"></i> Despacho liberado
     </div>
 
+    <!-- [S887] Si el pedido ya está remitido completo, se dice acá (en vez de dejar el botón «Imprimir remito» apagado sin explicación): los remitos están abajo, para reimprimirlos -->
+    <div v-if="localPedido && itemsPendientes.length === 0 && remitos.some(r => r.estado !== 'ANULADO')" data-estado-remito="completo"
+         class="mb-6 bg-emerald-500/10 border-l-4 border-emerald-500 p-4 text-emerald-300">
+      <p class="font-bold uppercase tracking-wider text-xs"><i class="fas fa-check-circle"></i> Este pedido ya está remitido completo</p>
+      <p class="text-sm">Los remitos están a la derecha: desde ahí se reimprimen (mismo número, no se crea otro).</p>
+    </div>
+
     <div class="grid grid-cols-12 gap-8" v-if="localPedido">
       
       <!-- LEFT PANEL: POOL DE PENDIENTES -->
@@ -104,7 +111,7 @@
                    (D3, primera pantalla): elige renglones del pedido por pedido_item_id, nunca
                    texto libre -- a diferencia de "Nuevo Remito" (0015 manual, sigue vivo para
                    casos que no matcheen contra el catálogo). -->
-              <button @click="openArmarModal" :disabled="itemsPendientes.length === 0"
+              <button @click="openArmarModal" :disabled="itemsPendientes.length === 0" :title="itemsPendientes.length === 0 ? 'No queda nada por remitar: el pedido ya está remitido completo' : 'Imprimir el remito de lo que queda por remitar'"
                 class="bg-amber-600 hover:bg-amber-500 disabled:bg-slate-700 disabled:cursor-not-allowed disabled:text-slate-500 text-white px-4 py-2 rounded-lg shadow-lg hover:shadow-amber-500/20 transition flex items-center gap-2">
                 <i class="fas fa-print"></i> Imprimir remito
               </button>

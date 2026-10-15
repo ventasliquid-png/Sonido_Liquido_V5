@@ -58,6 +58,28 @@ def get_entregas(
         incluir_anulados=incluir_anulados,
     )
 
+@router.get("/resumen_por_pedido")
+def resumen_por_pedido(db: Session = Depends(get_db)):
+    """
+    [S887, pedido de Carlos 15/10] Los remitos vigentes (sin anulados) de cada pedido, para que el Tablero de Pedidos
+    muestre si un pedido ya tiene remito y cuál es, sin tener que buscarlo en el listado de Remitos.
+    Devuelve {"<pedido_id>": [{"id", "numero_legal", "estado", "fecha_creacion"}, ...]}; un pedido sin remitos no figura.
+
+    NOTA: va ANTES de GET /{remito_id} (misma forma de path: un solo segmento).
+    """
+    filas = (db.query(models.Remito)
+             .filter(models.Remito.estado != "ANULADO")
+             .order_by(models.Remito.fecha_creacion.asc()).all())
+    salida = {}
+    for r in filas:
+        salida.setdefault(str(r.pedido_id), []).append({
+            "id": r.id,
+            "numero_legal": r.numero_legal,
+            "estado": r.estado,
+            "fecha_creacion": r.fecha_creacion.isoformat() if r.fecha_creacion else None,
+        })
+    return salida
+
 @router.get("/{remito_id}", response_model=schemas.RemitoResponse)
 def get_remito(remito_id: str, db: Session = Depends(get_db)):
     """
@@ -358,6 +380,10 @@ def create_manual_remito(payload: schemas.ManualRemitoPayload, db: Session = Dep
         return remito
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
+    except HTTPException:
+        # [S887] Los frenos del servicio (CANTIDAD_EXCEDE_PEDIDO, RENGLON_AJENO_AL_PEDIDO: 409) llegan tal cual, con su aviso.
+        # Antes el «except Exception» de abajo los convertía en un 500 «Error interno: 409: ...» y el operador veía un error del sistema.
+        raise
     except Exception as e:
         print(f"Error creating Manual Remito: {e}")
         import traceback

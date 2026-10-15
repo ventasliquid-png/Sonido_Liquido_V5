@@ -28,7 +28,7 @@
                         <i :class="cabeceraVisible ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i> {{ cabeceraVisible ? 'Plegar cabecera' : 'Ver cabecera' }}
                     </button>
                     <!-- [S887] «Imprimir remito» lleva a las entregas del pedido con el cuadro «Imprimir remito» ya abierto (el pedido completo, tildado; se puede modificar); «Entregas y remitos» es la misma pantalla sin abrirlo (para ver o reimprimir los remitos ya hechos) -->
-                    <button v-if="route.params.id && !isClosedOrder" @click="$router.push({ name: 'PedidoLogistica', params: { id: route.params.id }, query: { armar: 1 } })" class="text-indigo-300 hover:text-white font-bold flex items-center gap-2 transition-colors uppercase tracking-wider text-xs border border-indigo-400/50 px-3 py-1 rounded bg-indigo-600/30 hover:bg-indigo-600/50" title="Imprimir el remito de este pedido: sale el pedido completo y se puede modificar antes">
+                    <button v-if="route.params.id && !isClosedOrder && renglonesPendientes.length > 0" @click="$router.push({ name: 'PedidoLogistica', params: { id: route.params.id }, query: { armar: 1 } })" class="text-indigo-300 hover:text-white font-bold flex items-center gap-2 transition-colors uppercase tracking-wider text-xs border border-indigo-400/50 px-3 py-1 rounded bg-indigo-600/30 hover:bg-indigo-600/50" title="Imprimir el remito de este pedido: sale el pedido completo y se puede modificar antes">
                         <i class="fas fa-print"></i> Imprimir remito
                     </button>
                     <button v-if="route.params.id" @click="$router.push({ name: 'PedidoLogistica', params: { id: route.params.id } })" class="text-blue-500 hover:text-blue-400 font-bold flex items-center gap-2 transition-colors uppercase tracking-wider text-xs border border-blue-500/30 px-3 py-1 rounded bg-blue-500/10 hover:bg-blue-500/20" title="Ver los remitos y entregas de este pedido, e imprimirlos">
@@ -54,6 +54,25 @@
                     <span>Este pedido está {{ estadoPedido }} y no puede editarse</span>
                 </div>
                 <span class="text-[10px] opacity-70 font-mono tracking-normal normal-case">MODO LECTURA</span>
+            </div>
+
+            <!-- [S887] ¿Ya tiene remito? El pedido es el punto de partida: se ve el remito que existe, se reimprime sin hacer otro, y se avisa si queda algo por remitar -->
+            <div v-if="route.params.id && remitosCargados && remitosDelPedido.length > 0" data-estado-remito="con-remito"
+                 class="px-4 py-2 border-b border-indigo-500/20 bg-indigo-950/40 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs z-20 shrink-0">
+                <span class="font-bold uppercase tracking-wider text-indigo-300"><i class="fas fa-file-lines mr-1"></i>{{ remitosDelPedido.length === 1 ? 'Remito de este pedido' : 'Remitos de este pedido' }}</span>
+                <span v-for="r in remitosDelPedido" :key="r.id" class="flex items-center gap-2">
+                    <span class="font-mono font-bold text-white">{{ r.numero_legal || 'sin numerar' }}</span>
+                    <span class="px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider" :class="claseEstadoRemito(r.estado)">{{ r.estado }}</span>
+                    <button @click="reimprimirRemito(r)" class="text-indigo-200 hover:text-white hover:underline" title="Abre el mismo remito (mismo número); no crea otro">
+                        <i class="fas fa-print mr-1"></i>Reimprimir
+                    </button>
+                </span>
+                <span v-if="renglonesPendientes.length === 0" class="text-emerald-400 font-bold"><i class="fas fa-check mr-1"></i>Pedido remitido completo</span>
+                <span v-else class="text-amber-300 font-bold">Queda pendiente de remitar: {{ renglonesPendientes.length }} renglón{{ renglonesPendientes.length === 1 ? '' : 'es' }}</span>
+            </div>
+            <div v-else-if="route.params.id && remitosCargados && !isClosedOrder" data-estado-remito="sin-remito"
+                 class="px-4 py-1.5 border-b border-white/5 bg-black/20 text-xs text-gray-400 z-20 shrink-0">
+                <i class="fas fa-file-circle-xmark mr-1"></i>Este pedido todavía no tiene remito.
             </div>
 
             <!-- BODY (Existing Content) -->
@@ -937,6 +956,7 @@ import { avisarPedidoActualizado } from '@/utils/canalPedidos'; // [S876] avisa 
 import EstadoEditable from '@/components/informes/EstadoEditable.vue'; // [S876] estado editable en el encabezado de la ficha
 import SelectorInline from '@/components/informes/SelectorInline.vue'; // [S883, Card #171] el mismo cartel, para elegir el tipo al crear
 import { estadoClase, estadoTexto } from '@/utils/estadosPedido';
+import { claseEstadoRemito, traerRemitosDelPedido, imprimirRemitoExistente } from '@/composables/useRemitosDelPedido'; // [S887] ¿ya tiene remito?
 import { shallowRef } from 'vue'; // Optimization
 
 // --- MODAL STATE ---
@@ -1873,6 +1893,17 @@ const renglonesPendientes = computed(() =>
         .map((item, idx) => ({ item, idx, saldo: saldoRenglon(item) }))
         .filter(r => r.saldo > 0)
 );
+
+// [S887, pedido de Carlos 15/10] ¿Este pedido ya tiene remito? El operador arranca por el pedido: acá se ve cuál es (número y estado), se reimprime sin crear otro,
+// y el botón «Imprimir remito» solo aparece si queda algo por remitar.
+const remitosDelPedido = ref([]);
+const remitosCargados = ref(false);
+const cargarRemitosDelPedido = async (id) => {
+    remitosDelPedido.value = id ? await traerRemitosDelPedido(id) : [];
+    remitosCargados.value = true;
+};
+watch(() => route.params.id, (id) => { remitosCargados.value = false; remitosDelPedido.value = []; if (id) cargarRemitosDelPedido(id); }, { immediate: true });
+const reimprimirRemito = (r) => imprimirRemitoExistente(r, () => cargarRemitosDelPedido(route.params.id));
 
 // Check if client is Responsable Inscripto (Bit 40 = 1)
 const isClienteRI = computed(() => {

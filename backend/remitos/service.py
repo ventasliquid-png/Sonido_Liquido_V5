@@ -20,6 +20,22 @@ from backend.clientes.service import ClienteService # [V5.8] Para alta de sedes
 class RemitosService:
     
     @staticmethod
+    def aviso_remitos_del_pedido(db: Session, pedido_id: int) -> str:
+        """[S887, pedido de Carlos 15/10] Cuando se frena un remito porque el pedido ya está remitido (CANTIDAD_EXCEDE_PEDIDO), el aviso dice CUÁL remito ya existe
+        (número, estado y fecha) en vez de mandar al operador a buscarlo en un listado. Devuelve '' si el pedido no tiene remitos vigentes (los anulados no cuentan)."""
+        remitos = (db.query(models.Remito)
+                   .filter(models.Remito.pedido_id == pedido_id, models.Remito.estado != "ANULADO")
+                   .order_by(models.Remito.fecha_creacion.asc()).all())
+        if not remitos:
+            return ""
+        partes = []
+        for r in remitos:
+            fecha = r.fecha_creacion.strftime("%d/%m/%Y") if r.fecha_creacion else "s/f"
+            partes.append(f"{r.numero_legal or 'sin numerar'} ({str(r.estado or '').lower()}, del {fecha})")
+        return (f" El Pedido #{pedido_id} ya tiene remito: {', '.join(partes)}. Abrí «Entregas y remitos» del pedido: "
+                f"si es el que querés mandar, reimprimilo desde ahí en vez de hacer otro.")
+
+    @staticmethod
     def _resolve_iva_condition(db: Session, name: Optional[str]) -> Optional[str]:
         if not name: return None
         # Normalización para búsqueda
@@ -1002,6 +1018,7 @@ class RemitosService:
                         f"CANTIDAD_EXCEDE_PEDIDO: '{pedido_item.producto.nombre if pedido_item.producto else pedido_item.id}' "
                         f"trae {item_payload.cantidad}, pero el Pedido #{pedido.id} solo tiene "
                         f"{pendiente} pendiente. Actualice el Pedido antes de continuar."
+                        + RemitosService.aviso_remitos_del_pedido(db, pedido.id)
                     )
                 )
             db.add(models.RemitoItem(
@@ -1244,6 +1261,7 @@ class RemitosService:
                                     f"CANTIDAD_EXCEDE_PEDIDO: '{item.descripcion}' trae {item.cantidad}, "
                                     f"pero el Pedido #{nuevo_pedido.id} solo tiene {pendiente} pendiente. "
                                     f"Actualice el Pedido antes de continuar."
+                                    + RemitosService.aviso_remitos_del_pedido(db, nuevo_pedido.id)
                                 )
                             )
                        if item.cantidad < target_pi.cantidad:

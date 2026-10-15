@@ -140,6 +140,15 @@
              <span class="text-[10px] text-gray-600 font-mono">{{ itemsAEnviar.length }} ítem(s) a remitir</span>
           </div>
 
+          <!-- [S887] El pedido elegido ya tiene remito: se dice cuál es antes de hacer otro -->
+          <div v-if="form.pedido_id && remitosDelPedido.length" data-aviso="pedido-con-remito"
+               class="flex flex-wrap items-center gap-x-3 gap-y-1 bg-indigo-500/10 border border-indigo-400/30 rounded-xl px-4 py-3 text-xs text-indigo-200">
+            <i class="fas fa-circle-info text-indigo-300"></i>
+            <span class="font-bold">Este pedido ya tiene remito:</span>
+            <span v-for="r in remitosDelPedido" :key="r.id" class="font-mono font-bold text-white">{{ r.numero_legal || 'sin numerar' }} <span class="font-sans font-normal text-indigo-300">({{ (r.estado || '').toLowerCase() }})</span></span>
+            <span>Si es el que querés mandar, reimprimilo desde «Entregas y remitos» del pedido en vez de hacer otro.</span>
+          </div>
+
           <!-- Aviso cuando hay pedido seleccionado: elegí renglones, no todos vienen tildados -->
           <div v-if="form.pedido_id" class="flex items-center justify-between bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
             <div class="flex items-center gap-2 text-xs text-amber-300">
@@ -447,6 +456,7 @@ import ClientCanvas from '../Hawe/ClientCanvas.vue';
 import PedidoCanvas from '../Ventas/PedidoCanvas.vue';
 import api from '@/services/api';
 import { saldoRenglon, estadoRenglon, ESTADO_CUMPLIDO } from '@/utils/entregaParcial';
+import { traerRemitosDelPedido } from '@/composables/useRemitosDelPedido'; // [S887] ¿el pedido ya tiene remito?
 
 const route = useRoute();
 const clientesStore = useClientesStore();
@@ -551,6 +561,10 @@ onMounted(async () => {
 });
 
 // Reactive trigger for client addresses & orders
+// [S887, pedido de Carlos 15/10] Al elegir un pedido, si ya tiene remito se avisa cuál es (antes de armar otro). El servidor igual frena lo que excede el pedido.
+const remitosDelPedido = ref([]);
+watch(() => form.pedido_id, async (id) => { remitosDelPedido.value = id ? await traerRemitosDelPedido(id) : []; }, { immediate: true });
+
 watch(() => form.cliente_id, async (newVal) => {
     if (!newVal) {
         availableAddresses.value = [];

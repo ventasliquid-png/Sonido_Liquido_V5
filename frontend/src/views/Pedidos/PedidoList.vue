@@ -145,7 +145,7 @@
                       <i v-if="sortKey === 'total'" :class="sortOrder === 'asc' ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
                   </div>
                   <div @click="toggleSort('estado')" class="w-32 text-center cursor-pointer hover:text-emerald-500 flex items-center justify-center gap-1">
-                      Estado
+                      Estado · Remito
                       <i v-if="sortKey === 'estado'" :class="sortOrder === 'asc' ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
                   </div>
                   <div class="w-10"></div>
@@ -209,7 +209,7 @@
                   </div>
                   
                   <!-- Status Badge (Interactive Custom Dropdown) -->
-                  <div class="w-32 flex justify-center relative group/status">
+                  <div class="w-32 flex flex-col items-center gap-1 relative group/status">
                       <div class="relative">
                           <button 
                               class="px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border transition-all flex items-center gap-2 shadow-sm"
@@ -243,6 +243,13 @@
                               </button>
                           </div>
                       </div>
+                      <!-- Remito [S887, pedido de Carlos 15/10]: el remito del pedido, debajo del estado (sin columna nueva: el nombre del cliente ya va justo de lugar). «sin remito» solo en pedidos firmes que todavía no salieron. -->
+                      <button v-if="remitosDe(pedido).length" @click.stop="verRemitos(pedido)"
+                              class="flex items-center gap-1 font-mono text-[9px] font-bold text-emerald-100/80 hover:text-white hover:underline"
+                              :title="remitosDe(pedido).map(r => `${r.numero_legal || 'sin numerar'} (${(r.estado || '').toLowerCase()})`).join('\n')">
+                          <i class="fas fa-file-lines text-[8px]" :class="{ 'text-emerald-400': remitosDe(pedido)[0].estado === 'ENTREGADO', 'text-blue-400': remitosDe(pedido)[0].estado === 'EN_CAMINO', 'text-slate-400': remitosDe(pedido)[0].estado === 'BORRADOR' }"></i>{{ remitosDe(pedido)[0].numero_legal || 'sin numerar' }}<span v-if="remitosDe(pedido).length > 1" class="text-emerald-200/50"> +{{ remitosDe(pedido).length - 1 }}</span>
+                      </button>
+                      <span v-else-if="pedido.estado === 'PENDIENTE'" class="text-[9px] font-bold uppercase tracking-wider text-amber-400/80">sin remito</span>
                   </div>
 
                   <div class="w-10 flex justify-end">
@@ -469,9 +476,23 @@ const filters = computed(() => {
     ]
 })
 
+// [S887, pedido de Carlos 15/10] El remito de cada pedido (los anulados no cuentan) va debajo del estado, para verlo sin ir al listado de Remitos.
+const remitosPorPedido = ref({})
+const cargarRemitos = async () => {
+    try {
+        const res = await api.get('/remitos/resumen_por_pedido')
+        remitosPorPedido.value = res.data || {}
+    } catch (e) {
+        remitosPorPedido.value = {}
+    }
+}
+const remitosDe = (pedido) => remitosPorPedido.value[String(pedido.id)] || []
+const verRemitos = (pedido) => router.push({ name: 'PedidoLogistica', params: { id: pedido.id } })
+
 const refresh = async () => {
     const params = { limit: 100 }
     await store.fetchPedidos(params)
+    await cargarRemitos()
 }
 
 const setFilter = (key) => {
