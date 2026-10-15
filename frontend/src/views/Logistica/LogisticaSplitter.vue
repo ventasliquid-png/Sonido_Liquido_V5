@@ -106,7 +106,7 @@
                    casos que no matcheen contra el catálogo). -->
               <button @click="openArmarModal" :disabled="itemsPendientes.length === 0"
                 class="bg-amber-600 hover:bg-amber-500 disabled:bg-slate-700 disabled:cursor-not-allowed disabled:text-slate-500 text-white px-4 py-2 rounded-lg shadow-lg hover:shadow-amber-500/20 transition flex items-center gap-2">
-                <i class="fas fa-layer-group"></i> Armar PR
+                <i class="fas fa-print"></i> Imprimir remito
               </button>
               <!-- [Etapa 6, PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §8] Devolución = PR de
                    signo negativo, mismo endpoint que "Armar PR" (armarRemito) pero con cantidad
@@ -245,10 +245,11 @@
     <!-- MODAL ARMAR PR [Etapa 4] -->
     <div v-if="showArmarModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
        <div class="bg-slate-800 p-6 rounded-2xl w-full max-w-2xl shadow-2xl border border-slate-700">
-          <h3 class="text-lg font-bold text-white mb-1"><i class="fas fa-layer-group mr-2 text-amber-400"></i>Armar PR</h3>
+          <h3 class="text-lg font-bold text-white mb-1"><i class="fas fa-print mr-2 text-amber-400"></i>Imprimir remito</h3>
           <p class="text-xs text-slate-400 mb-4">
-             Elegí cómo sale la entrega, los renglones del pedido y la cantidad a remitir. El número se
-             asigna recién al imprimir, no ahora. Siempre queda registrado el movimiento, se imprima o no el papel.
+             <strong class="text-slate-200">Esto voy a imprimir: el pedido completo.</strong> Si no cambiás nada, el remito es una copia del pedido.
+             Podés modificarlo: destildá un renglón o bajá la cantidad, y lo que no entre queda pendiente para otro remito.
+             Al imprimir se le asigna el próximo número 0015.
           </p>
 
           <!-- [S876] Cómo sale ESTA entrega. Se congela al armar el remito. -->
@@ -308,10 +309,16 @@
           </div>
 
           <div class="flex justify-end gap-3 mt-6">
+             <p v-if="!armarMetodo" class="mr-auto self-center text-xs text-amber-400"><i class="fas fa-arrow-up mr-1"></i> Elegí cómo sale la entrega para poder imprimir</p>
              <button @click="cancelArmar" class="text-slate-400 hover:text-white px-4 py-2">Cancelar</button>
-             <button @click="confirmArmar" :disabled="!armarSeleccion.some(s => s.marcado) || !armarMetodo"
+             <button @click="confirmArmar(false)" :disabled="!armarSeleccion.some(s => s.marcado) || !armarMetodo"
+                     title="Deja el remito armado, sin imprimir ni numerarlo todavía"
+                     class="text-slate-300 hover:text-white border border-slate-600 hover:border-slate-400 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-2 rounded-lg text-sm">
+                Solo armar
+             </button>
+             <button @click="confirmArmar(true)" :disabled="!armarSeleccion.some(s => s.marcado) || !armarMetodo"
                      class="bg-amber-600 hover:bg-amber-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg font-bold">
-                Armar
+                <i class="fas fa-print mr-1"></i> Imprimir remito
              </button>
           </div>
        </div>
@@ -430,7 +437,7 @@ onMounted(async () => {
     }
     
     await loadData(id);
-    // [S887] «Hacer remito» en la ficha del pedido llega con ?armar=1: el cuadro «Armar PR» sale abierto (si hay algo pendiente de remitar)
+    // [S887] «Hacer remito» en la ficha del pedido llega con ?armar=1: el cuadro «Imprimir remito» sale abierto (si hay algo pendiente de remitar)
     if (route.query.armar && itemsPendientes.value.length > 0) openArmarModal();
 });
 
@@ -542,7 +549,7 @@ const openArmarModal = () => {
         cantidad_pendiente: item.cantidad_pendiente,
         cantidad: item.cantidad_pendiente,
         motivo: '',
-        marcado: false,
+        marcado: true, // [S887] por defecto el remito es el pedido completo; el parcial es destildar o bajar la cantidad
     }));
     // [S876] Un pedido con transporte habitual sugiere FLETE_TERCERO; sin transporte no se adivina
     // nada: hay que elegir (mostrador, moto, transporte propio...). Es el hecho de esta entrega.
@@ -560,7 +567,13 @@ const cancelArmar = () => {
     armarDomicilioId.value = '';
 };
 
-const confirmArmar = async () => {
+// [S887] Un remito recién armado se imprime abriendo su PDF (el servidor lo numera con el próximo 0015). Si el navegador bloquea la ventana, se descarga.
+const imprimirArmado = (remito) => {
+    const ventana = window.open(`/remitos/${remito.id}/pdf`, '_blank');
+    if (!ventana) downloadLegalPDF(remito);
+};
+
+const confirmArmar = async (imprimir = false) => {
     const elegidos = armarSeleccion.value.filter(s => s.marcado);
     if (elegidos.length === 0) return;
     if (!armarMetodo.value) { alert('Elegí cómo sale la entrega.'); return; }
@@ -575,7 +588,7 @@ const confirmArmar = async () => {
             const tecleado = prompt(
                 `"${sel.producto_nombre}" queda con ${sel.cantidad_pendiente - sel.cantidad} pendiente ` +
                 `(de ${sel.cantidad_pendiente}). Escribí ${sel.cantidad_pendiente} para confirmar que ` +
-                `armás este PR parcial.`
+                `hacés un remito parcial.`
             );
             if (tecleado === null || Number(tecleado) !== sel.cantidad_pendiente) {
                 alert('Armado cancelado: la cantidad pendiente no coincidió.');
@@ -599,10 +612,13 @@ const confirmArmar = async () => {
             if (armarDomicilioId.value) payload.domicilio_entrega_id = armarDomicilioId.value;
             if (armarMetodo.value === 'FLETE_TERCERO') payload.transporte_id = armarTransporteId.value;
         }
-        await remitosStore.armarRemito(payload);
+        const nuevo = await remitosStore.armarRemito(payload);
         cancelArmar();
+        if (imprimir && nuevo?.id) imprimirArmado(nuevo);
         // La entrega (sobre todo un retiro en mostrador) cambia lo entregado del pedido: se recarga.
         await loadData(localPedido.value.id);
+        // El PDF numera el remito al abrirse: se recarga otra vez para mostrar el número asignado.
+        if (imprimir && nuevo?.id) setTimeout(() => loadData(localPedido.value.id), 1500);
     } catch (err) {
         alert(remitosStore.error || 'No se pudo armar el remito.');
     }

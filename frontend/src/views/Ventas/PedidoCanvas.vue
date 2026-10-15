@@ -27,9 +27,9 @@
                     <button v-if="clienteSeleccionado" @click="cabeceraPlegada = !cabeceraPlegada" class="text-gray-400 hover:text-white font-bold flex items-center gap-2 transition-colors uppercase tracking-wider text-xs border border-white/10 px-3 py-1 rounded bg-white/5 hover:bg-white/10">
                         <i :class="cabeceraVisible ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i> {{ cabeceraVisible ? 'Plegar cabecera' : 'Ver cabecera' }}
                     </button>
-                    <!-- [S887] «Hacer remito» lleva a las entregas del pedido con el cuadro «Armar PR» ya abierto; «Entregas y remitos» es la misma pantalla sin abrirlo (para ver o reimprimir los remitos ya hechos) -->
-                    <button v-if="route.params.id && !isClosedOrder" @click="$router.push({ name: 'PedidoLogistica', params: { id: route.params.id }, query: { armar: 1 } })" class="text-indigo-300 hover:text-white font-bold flex items-center gap-2 transition-colors uppercase tracking-wider text-xs border border-indigo-400/50 px-3 py-1 rounded bg-indigo-600/30 hover:bg-indigo-600/50" title="Armar el remito de este pedido">
-                        <i class="fas fa-clipboard-list"></i> Hacer remito
+                    <!-- [S887] «Imprimir remito» lleva a las entregas del pedido con el cuadro «Imprimir remito» ya abierto (el pedido completo, tildado; se puede modificar); «Entregas y remitos» es la misma pantalla sin abrirlo (para ver o reimprimir los remitos ya hechos) -->
+                    <button v-if="route.params.id && !isClosedOrder" @click="$router.push({ name: 'PedidoLogistica', params: { id: route.params.id }, query: { armar: 1 } })" class="text-indigo-300 hover:text-white font-bold flex items-center gap-2 transition-colors uppercase tracking-wider text-xs border border-indigo-400/50 px-3 py-1 rounded bg-indigo-600/30 hover:bg-indigo-600/50" title="Imprimir el remito de este pedido: sale el pedido completo y se puede modificar antes">
+                        <i class="fas fa-print"></i> Imprimir remito
                     </button>
                     <button v-if="route.params.id" @click="$router.push({ name: 'PedidoLogistica', params: { id: route.params.id } })" class="text-blue-500 hover:text-blue-400 font-bold flex items-center gap-2 transition-colors uppercase tracking-wider text-xs border border-blue-500/30 px-3 py-1 rounded bg-blue-500/10 hover:bg-blue-500/20" title="Ver los remitos y entregas de este pedido, e imprimirlos">
                         <i class="fas fa-truck-loading"></i> Entregas y remitos
