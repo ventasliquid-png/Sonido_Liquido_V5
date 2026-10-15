@@ -22,12 +22,15 @@ Uso: python scripts/exportar_pedidos_excel.py
 import sqlite3
 import os
 import sys
-from datetime import datetime
+import shutil
+from datetime import datetime, date
 
 try:
     import openpyxl
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
     from openpyxl.utils import get_column_letter
+    from openpyxl.chart import PieChart, Reference
+    from openpyxl.chart.label import DataLabelList
 except ImportError:
     print("ERROR: openpyxl no instalado. Ejecutar: pip install openpyxl")
     sys.exit(1)
@@ -368,6 +371,207 @@ def _write_notas_row(ws, row, nota, bg_impar):
     ws.row_dimensions[row].height = 30 if len(texto) > 80 else 16
 
 
+# ── PESTAÑAS MENSUALES (S887, pedido de Carlos 15/10) ──────────────────────────────
+# Una pestaña por cada mes calendario del año en curso: fecha, Nº de pedido, cliente, circuito, estado e importe (el total guardado del pedido, el mismo que usan
+# los informes), con chevrones de filtro/orden en cada columna (AutoFilter: A-Z, Z-A, mayor a menor), verde para Blanco y rosa chicle para Rosa, los totales al
+# pie (se recalculan con lo que el filtro deja visible) y, abajo, la participación por cliente con un gráfico de torta. Sin pedidos anulados.
+BG_MES_BLANCO = '92D050'   # verde fuerte (se ve sobre fondo blanco)
+BG_MES_ROSA   = 'FF85C0'   # rosa chicle
+BG_MES_CAB    = '1F3864'   # azul oscuro de la cabecera
+MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto',
+         'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+COLS_MES = ['Fecha', 'Pedido Nº', 'Cliente', 'Circuito', 'Estado', 'Importe']
+ANCHOS_MES = [13, 11, 44, 11, 16, 20]
+SQL_MESES = """
+SELECT p.id AS pedido_id, p.fecha, COALESCE(p.estado, '') AS estado, p.flags_estado AS pedido_flags,
+       COALESCE(p.total, 0) AS total, c.razon_social
+FROM pedidos p
+JOIN clientes c ON c.id = p.cliente_id
+ORDER BY p.fecha ASC, p.id ASC
+"""
+TOP_CLIENTES_TORTA = 8     # los N clientes más grandes del mes; el resto se agrupa en «Otros»
+
+
+def _fecha_a_date(raw):
+    try:
+        return datetime.strptime(str(raw)[:10], '%Y-%m-%d').date()
+    except Exception:
+        return None
+
+
+def _pedidos_para_meses(db_path):
+    """Pedidos (sin anulados) con fecha válida, como diccionarios."""
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    filas = conn.execute(SQL_MESES).fetchall()
+    conn.close()
+    salida = []
+    for r in filas:
+        pf = r['pedido_flags'] or 0
+        if (pf & ES_ANULADO) or str(r['estado']).upper() == 'ANULADO':
+            continue
+        f = _fecha_a_date(r['fecha'])
+        if f is None:
+            continue
+        salida.append({'id': r['pedido_id'], 'fecha': f, 'cliente': r['razon_social'] or '',
+                       'rosa': bool(pf & NO_FISCAL_FORCE), 'estado': r['estado'] or '', 'importe': float(r['total'] or 0)})
+    return salida
+
+
+def _hoja_mes(wb, anio, mes, pedidos, indice):
+    """Arma la pestaña de un mes. `pedidos` = los pedidos de ese mes, ya sin anulados."""
+    titulo = f'{anio}-{mes:02d} {MESES[mes - 1]}'
+    ws = wb.create_sheet(titulo, indice)
+    ncol = len(COLS_MES)
+    for i, w in enumerate(ANCHOS_MES, 1):
+        ws.column_dimensions[get_column_letter(i)].width = w
+    brd = _border_full('999999')
+
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=ncol)
+    tc = ws.cell(row=1, column=1, value=f'PEDIDOS DE {MESES[mes - 1].upper()} {anio} — {ENTORNO}')
+    tc.font = Font(bold=True, name='Calibri', size=13, color=TX_OSCURO)
+    tc.fill = PatternFill('solid', fgColor=BG_TITULO)
+    tc.alignment = Alignment(horizontal='center', vertical='center')
+    ws.row_dimensions[1].height = 24
+
+    _cell(ws, 2, 1, 'Verde = Blanco', bold=True, bg=BG_MES_BLANCO, font_size=9, halign='center', border=brd)
+    _cell(ws, 2, 2, 'Rosa', bold=True, bg=BG_MES_ROSA, font_size=9, halign='center', border=brd)
+    ws.merge_cells(start_row=2, start_column=3, end_row=2, end_column=ncol)
+    _cell(ws, 2, 3, 'Sin anulados · importe = total del pedido · usá las flechitas de la cabecera para ordenar y filtrar; los totales suman lo que queda visible',
+          italic=True, font_size=9, font_color='595959', wrap=True)
+    ws.row_dimensions[2].height = 26
+
+    for i, nombre in enumerate(COLS_MES, 1):
+        _cell(ws, 3, i, nombre, bold=True, font_color='FFFFFF', bg=BG_MES_CAB, font_size=11,
+              halign='center' if i != 3 else 'left', border=brd)
+    ws.row_dimensions[3].height = 20
+
+    fila = 4
+    primera = fila
+    for p in pedidos:
+        bg = BG_MES_ROSA if p['rosa'] else BG_MES_BLANCO
+        _cell(ws, fila, 1, p['fecha'], bg=bg, halign='center', num_format='dd/mm/yyyy', border=brd)
+        _cell(ws, fila, 2, p['id'], bg=bg, halign='center', border=brd)
+        _cell(ws, fila, 3, p['cliente'], bg=bg, border=brd)
+        _cell(ws, fila, 4, 'Rosa' if p['rosa'] else 'Blanco', bg=bg, halign='center', border=brd)
+        _cell(ws, fila, 5, p['estado'], bg=bg, halign='center', border=brd)
+        _cell(ws, fila, 6, p['importe'], bg=bg, halign='right', num_format=FMT_PESO, border=brd)
+        fila += 1
+    ultima = fila - 1
+    if not pedidos:
+        ws.merge_cells(start_row=4, start_column=1, end_row=4, end_column=ncol)
+        _cell(ws, 4, 1, 'Sin pedidos en el mes', italic=True, halign='center', font_color='595959')
+        ultima = 4
+        fila = 5
+    else:
+        ws.auto_filter.ref = f'A3:F{ultima}'          # los chevrones: ordenar A-Z / Z-A / mayor a menor y filtrar
+    ws.freeze_panes = 'A4'
+
+    # ── totales (SUBTOTAL: se recalculan con las filas que deja visibles el filtro) ──
+    fila += 1
+    rango_f = f'$F${primera}:$F${ultima}'
+    rango_d = f'$D${primera}:$D${ultima}'
+    if pedidos:
+        visibles = f'SUBTOTAL(109,OFFSET($F${primera},ROW({rango_f})-ROW($F${primera}),0))'
+        f_blanco = f'=SUMPRODUCT({visibles}*({rango_d}="Blanco"))'
+        f_rosa = f'=SUMPRODUCT({visibles}*({rango_d}="Rosa"))'
+        f_total = f'=SUBTOTAL(109,{rango_f})'
+        f_cant = f'=SUBTOTAL(103,$B${primera}:$B${ultima})'
+    else:
+        f_blanco = f_rosa = f_total = f_cant = 0
+    filas_tot = [('Pedidos', f_cant, False, '0', BG_FOOTER),
+                 ('Subtotal Blanco', f_blanco, False, FMT_PESO, BG_MES_BLANCO),
+                 ('Subtotal Rosa', f_rosa, False, FMT_PESO, BG_MES_ROSA),
+                 ('TOTAL DEL MES', f_total, True, FMT_PESO, BG_TOTAL)]
+    for etiqueta, valor, negrita, fmt, bg in filas_tot:
+        for c in range(1, ncol + 1):
+            ws.cell(row=fila, column=c).fill = PatternFill('solid', fgColor=bg)
+        _cell(ws, fila, 5, etiqueta, bold=True, bg=bg, halign='right', border=_border_full('888888'))
+        _cell(ws, fila, 6, valor, bold=negrita, bg=bg, halign='right', num_format=fmt, border=_border_full('888888'),
+              font_size=11 if negrita else 10)
+        ws.row_dimensions[fila].height = 18 if negrita else 16
+        fila += 1
+
+    # ── participación por cliente + torta ──
+    if pedidos:
+        por_cliente = {}
+        for p in pedidos:
+            por_cliente[p['cliente']] = por_cliente.get(p['cliente'], 0.0) + p['importe']
+        orden = sorted(por_cliente.items(), key=lambda kv: (-kv[1], kv[0]))
+        if len(orden) > TOP_CLIENTES_TORTA + 1:
+            resto = sum(v for _, v in orden[TOP_CLIENTES_TORTA:])
+            orden = orden[:TOP_CLIENTES_TORTA] + [('Otros', resto)]
+        fila += 1
+        ws.merge_cells(start_row=fila, start_column=1, end_row=fila, end_column=ncol)
+        _cell(ws, fila, 1, 'PARTICIPACIÓN POR CLIENTE (importe del mes)', bold=True, bg=BG_BLOQUE, font_size=11, halign='center',
+              border=brd)
+        fila += 1
+        cab = fila
+        for col, nombre in ((3, 'Cliente'), (5, 'Importe'), (6, '% del mes')):
+            _cell(ws, cab, col, nombre, bold=True, font_color='FFFFFF', bg=BG_MES_CAB, halign='center' if col != 3 else 'left', border=brd)
+        fila += 1
+        ini = fila
+        for nombre, valor in orden:
+            _cell(ws, fila, 3, nombre, border=brd)
+            _cell(ws, fila, 5, round(valor, 2), halign='right', num_format=FMT_PESO, border=brd)
+            fila += 1
+        fin = fila - 1
+        for r in range(ini, fin + 1):
+            _cell(ws, r, 6, f'=IF(SUM($E${ini}:$E${fin})=0,0,E{r}/SUM($E${ini}:$E${fin}))', halign='right', num_format='0.0%', border=brd)
+        torta = PieChart()
+        torta.title = f'Participación por cliente — {MESES[mes - 1]} {anio}'
+        torta.add_data(Reference(ws, min_col=5, min_row=cab, max_row=fin), titles_from_data=True)
+        torta.set_categories(Reference(ws, min_col=3, min_row=ini, max_row=fin))
+        torta.dataLabels = DataLabelList()
+        torta.dataLabels.showPercent = True
+        torta.dataLabels.showVal = False
+        torta.dataLabels.showCatName = False
+        torta.dataLabels.showSerName = False
+        torta.dataLabels.showLegendKey = False
+        torta.height, torta.width = 9.5, 17
+        ws.add_chart(torta, f'A{fin + 2}')
+    return ws
+
+
+def _hojas_mensuales(wb, db_path, hoy=None):
+    """Una pestaña por cada mes del año en curso que tiene pedidos, más el mes en curso (aunque no tenga). El mes más nuevo primero, después de la hoja principal."""
+    hoy = hoy or date.today()
+    pedidos = [p for p in _pedidos_para_meses(db_path) if p['fecha'].year == hoy.year]
+    meses = sorted({p['fecha'].month for p in pedidos} | {hoy.month}, reverse=True)
+    for k, mes in enumerate(meses):
+        _hoja_mes(wb, hoy.year, mes, [p for p in pedidos if p['fecha'].month == mes], 1 + k)
+    return meses
+
+
+def _archivar_si_cambio_de_anio(output, hoy=None):
+    """Al terminar el año el archivo espejo completo se guarda como histórico: si el archivo que hay en disco se generó en un año anterior, se lo copia
+    (antes de pisarlo) a HISTORICO/PEDIDOS_ESPEJO_<ENTORNO>_<año>.xlsx, al lado del archivo. No pisa un histórico ya guardado."""
+    hoy = hoy or date.today()
+    if not os.path.isfile(output):
+        return None
+    try:
+        wb = openpyxl.load_workbook(output, read_only=True)
+        anio = None
+        if '_info' in wb.sheetnames:
+            for k, v in wb['_info'].iter_rows(values_only=True, max_col=2):
+                if k == 'Generado' and v:
+                    anio = int(str(v)[:4])
+        wb.close()
+        if anio is None or anio >= hoy.year:
+            return None
+        carpeta = os.path.join(os.path.dirname(output), 'HISTORICO')
+        destino = os.path.join(carpeta, f'PEDIDOS_ESPEJO_{ENTORNO}_{anio}.xlsx')
+        if os.path.exists(destino):
+            return None
+        os.makedirs(carpeta, exist_ok=True)
+        shutil.copy2(output, destino)
+        print(f'[+] Cambio de año: el espejo de {anio} se guardó como histórico: {destino}')
+        return destino
+    except Exception as e:
+        print(f'[!] No se pudo guardar el histórico del año anterior ({e}); el espejo se genera igual.')
+        return None
+
+
 # ── MAIN ─────────────────────────────────────────────────────────────────────
 def main():
     ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -384,6 +588,8 @@ def main():
         print(f'\nERROR: DB no encontrada: {DB_PATH}')
         print('  Ejecutar desde C:\\dev\\Sonido_Liquido_V5')
         sys.exit(1)
+
+    _archivar_si_cambio_de_anio(OUTPUT)      # S887: al terminar el año, el archivo del año anterior se guarda como histórico antes de pisarlo
 
     # ── Consulta ──────────────────────────────────────────────────────────
     print('[+] Consultando base de datos...')
@@ -518,6 +724,10 @@ def main():
         ws.row_dimensions[current_row].height = 8
         current_row += 1
 
+    # ── Pestañas mensuales (S887) ─────────────────────────────────────────────
+    meses_hechos = _hojas_mensuales(wb, DB_PATH)
+    print(f'[+] Pestañas mensuales: {len(meses_hechos)} ({datetime.now().year})')
+
     # ── Hoja _info ────────────────────────────────────────────────────────
     ws_info = wb.create_sheet('_info')
     info = [
@@ -526,6 +736,7 @@ def main():
         ('Fuente DB',        os.path.abspath(DB_PATH)),
         ('Pedidos',          total_pedidos),
         ('Ítems totales',    total_items),
+        ('Pestañas mensuales', f'{len(meses_hechos)} (año {datetime.now().year}; sin anulados)'),
         ('Script',           'scripts/exportar_pedidos_excel.py'),
         ('Versión',          'V5.6 GOLD'),
     ]
