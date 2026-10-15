@@ -25,7 +25,7 @@
             <input
               v-model="searchQuery"
               type="text"
-              placeholder="Buscar por número o cliente..."
+              placeholder="Buscar por número, pedido o cliente..."
               class="h-9 w-64 rounded-full border border-blue-900/30 bg-[#02050f] pl-10 pr-4 text-sm text-blue-100 placeholder-blue-900/50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
@@ -56,8 +56,17 @@
                     </div>
                 </div>
 
+                <!-- [S887] Columna Pedido: el Nº del pedido al que pertenece el remito -->
+                <div class="w-16 text-center cursor-pointer hover:text-blue-300 transition-colors flex items-center justify-center gap-2 group/h" @click="toggleSort('pedido')">
+                    Pedido
+                    <div class="flex flex-col text-[7px] -space-y-0.5">
+                        <i class="fas fa-chevron-up" :class="sortKey === 'pedido' && sortOrder === 'asc' ? 'text-blue-400' : 'text-blue-900/40'"></i>
+                        <i class="fas fa-chevron-down" :class="sortKey === 'pedido' && sortOrder === 'desc' ? 'text-blue-400' : 'text-blue-900/40'"></i>
+                    </div>
+                </div>
+
                 <!-- Columna Fecha -->
-                <div class="w-28 text-center cursor-pointer hover:text-blue-300 transition-colors flex items-center justify-center gap-2 group/h" @click="toggleSort('fecha')">
+                <div class="w-24 text-center cursor-pointer hover:text-blue-300 transition-colors flex items-center justify-center gap-2 group/h" @click="toggleSort('fecha')">
                     Fecha
                     <div class="flex flex-col text-[7px] -space-y-0.5">
                         <i class="fas fa-chevron-up" :class="sortKey === 'fecha' && sortOrder === 'asc' ? 'text-blue-400' : 'text-blue-900/40'"></i>
@@ -74,10 +83,10 @@
                     </div>
                 </div>
 
-                <div class="w-32 text-center text-blue-200/40">Factura</div>
+                <div class="w-28 text-center text-blue-200/40">Factura</div>
 
                 <!-- Columna Estado -->
-                <div class="w-32 text-center cursor-pointer hover:text-blue-300 transition-colors flex items-center justify-center gap-2 group/h" @click="toggleSort('estado')">
+                <div class="w-28 text-center cursor-pointer hover:text-blue-300 transition-colors flex items-center justify-center gap-2 group/h" @click="toggleSort('estado')">
                     Estado
                     <div class="flex flex-col text-[7px] -space-y-0.5">
                         <i class="fas fa-chevron-up" :class="sortKey === 'estado' && sortOrder === 'asc' ? 'text-blue-400' : 'text-blue-900/40'"></i>
@@ -85,8 +94,8 @@
                     </div>
                 </div>
 
-                <div class="w-20 text-right text-blue-200/40">Items</div>
-                <div class="w-16"></div>
+                <div class="w-14 text-right text-blue-200/40">Items</div>
+                <div class="w-20"></div>
             </div>
 
             <div 
@@ -100,8 +109,17 @@
                     {{ remito.numero_legal || 'BORRADOR' }}
                 </div>
 
+                <!-- Pedido [S887]: columna propia; el clic abre la pantalla de entregas de ese pedido -->
+                <div class="w-16 text-center">
+                    <button
+                        @click.stop="viewPedido(remito.pedido_id)"
+                        class="font-mono text-xs font-bold text-blue-200 hover:text-white hover:underline"
+                        :title="`Ver el pedido ${remito.pedido_id}`"
+                    >#{{ remito.pedido_id }}</button>
+                </div>
+
                 <!-- Fecha -->
-                <div class="w-28 text-center flex flex-col leading-tight">
+                <div class="w-24 text-center flex flex-col leading-tight">
                     <span class="text-xs text-blue-100 font-bold">{{ formatDate(remito.fecha_creacion).split(' ')[0] }}</span>
                 </div>
 
@@ -109,17 +127,16 @@
                 <div class="flex items-center gap-3 flex-1 min-w-0 px-4">
                     <div class="min-w-0 flex-1">
                         <h3 class="font-bold text-blue-50 text-sm truncate group-hover:text-blue-300 transition-colors">{{ remito.razon_social || 'Desconocido' }}</h3>
-                        <p class="text-[10px] text-blue-200/30 font-mono italic">Pedido #{{ remito.pedido_id }}</p>
                     </div>
                 </div>
 
                 <!-- Factura vinculada [S868: el remito no tiene CAE; se muestra la factura que lo ampara, si existe] -->
-                <div class="w-32 text-center font-mono text-[11px] text-blue-200/60">
+                <div class="w-28 text-center font-mono text-[11px] text-blue-200/60">
                     {{ remito.factura_vinculada || '-' }}
                 </div>
                 
                 <!-- Status Badge -->
-                <div class="w-32 flex justify-center">
+                <div class="w-28 flex justify-center">
                     <span 
                         class="px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border transition-all"
                         :class="getStatusClass(remito.estado)"
@@ -129,12 +146,21 @@
                 </div>
 
                 <!-- Items Count -->
-                <div class="w-20 text-right font-mono text-blue-100 font-bold">
+                <div class="w-14 text-right font-mono text-blue-100 font-bold">
                     {{ remito.items?.length || 0 }}
                 </div>
 
                 <!-- Actions -->
-                <div class="w-16 flex justify-end gap-2">
+                <div class="w-20 flex justify-end gap-2">
+                    <!-- [S887] Imprimir directo, sin entrar a la ficha -->
+                    <button
+                        @click.stop="imprimirRemito(remito)"
+                        :disabled="remito.estado === 'ANULADO'"
+                        class="p-2 text-blue-300 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        :title="remito.estado === 'ANULADO' ? 'Remito anulado: no se imprime' : (remito.numero_legal ? 'Imprimir el remito (PDF)' : 'Imprimir el remito: se le asigna el próximo número 0015')"
+                    >
+                        <i class="fas fa-print"></i>
+                    </button>
                     <button 
                         @click="viewPedido(remito.pedido_id)" 
                         class="p-2 text-blue-500/50 hover:text-blue-400 transition-colors"
@@ -546,6 +572,16 @@ const printRemito = (remito) => {
     window.open(pdfUrl, '_blank');
 }
 
+// [S887] Imprimir desde el listado. El PDF numera el remito si todavía no tiene número (el 0015 es el talonario vivo), así que en ese caso se pide
+// confirmación antes de gastar un número; el listado se refresca para mostrar el número asignado.
+const imprimirRemito = (remito) => {
+    if (!remito || !remito.id || remito.estado === 'ANULADO') return;
+    const sinNumero = !remito.numero_legal;
+    if (sinNumero && !confirm('Este remito todavía no tiene número. Al imprimirlo se le asigna el próximo número del talonario 0015. ¿Imprimir?')) return;
+    printRemito(remito);
+    if (sinNumero) setTimeout(refresh, 1500);
+}
+
 const deleteRemito = async (remito) => {
     if (!remito) return;
     if (confirm(`¿Está seguro de eliminar definitivamente el remito ${remito.numero_legal || 'nuevo'} y su pedido asociado?`)) {
@@ -577,7 +613,8 @@ const sortedRemitos = computed(() => {
         items = items.filter(r => {
             const numMatch = (r.numero_legal || '').toLowerCase().includes(query)
             const clientMatch = (r.razon_social || '').toLowerCase().includes(query)
-            return numMatch || clientMatch
+            const pedidoMatch = String(r.pedido_id ?? '') === query.replace(/^#/, '').trim() // [S887] el Nº de pedido, exacto
+            return numMatch || clientMatch || pedidoMatch
         })
     }
 
@@ -596,6 +633,10 @@ const sortedRemitos = computed(() => {
             case 'cliente':
                 valA = a.razon_social || ''
                 valB = b.razon_social || ''
+                break
+            case 'pedido':
+                valA = Number(a.pedido_id) || 0
+                valB = Number(b.pedido_id) || 0
                 break
             case 'estado':
                 valA = a.estado || ''

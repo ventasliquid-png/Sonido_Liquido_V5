@@ -430,6 +430,8 @@ onMounted(async () => {
     }
     
     await loadData(id);
+    // [S887] «Hacer remito» en la ficha del pedido llega con ?armar=1: el cuadro «Armar PR» sale abierto (si hay algo pendiente de remitar)
+    if (route.query.armar && itemsPendientes.value.length > 0) openArmarModal();
 });
 
 async function loadData(id) {
