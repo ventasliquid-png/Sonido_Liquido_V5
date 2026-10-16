@@ -1,4 +1,18 @@
-﻿Sesion actual: 885
+﻿Sesion actual: 887
+
+# CAJA NEGRA: OMEGA Lite - espejo con pestanas por mes, Imprimir remito con el pedido completo, el pedido muestra su remito y consulta a Nike sobre el bit ES_KIT - S887
+
+Sesion 887 OF, 15-16/10, NS (CC) con Carlos. Hash D: HASH_CIERRE_887 (ultimo commit de codigo: e212de11) | Hash B: 8f2e478 = prod/main (dos pushes: bd8d969..5b2c1e3 el 15/10 y 5b2c1e3..8f2e478 el 16/10) | P real: 5b2c1e3 (leido en P el 16/10; 8f2e478 entra al relanzar Soberana).
+- Espejo de pedidos (d0fa4c84 / B 4cc868b, script en la RAIZ de B): una pestana por mes calendario (verde Blanco / rosa chicle Rosa, filtros, totales que siguen al filtro, participacion por cliente con torta, sin anulados) y, al cambiar el ano, copia a HISTORICO/. Verificado en P: 8 pestanas mensuales generadas por MT.
+- Remitos, a partir del pedido 128 de Carlos (a0cd2b81, 5e58ded5, e212de11 / B da9c221, 5b2c1e3, 8f2e478): columna Pedido e impresora en el listado; Imprimir remito = el pedido completo tildado, un clic (PR ya no se ve en esas pantallas: criterio de Carlos, PR es interno); el pedido muestra su remito (ficha, Tablero, entregas, Remito Manual), se reimprime sin crear otro y el freno CANTIDAD_EXCEDE_PEDIDO nombra el remito; GET /remitos/resumen_por_pedido; POST /remitos/manual ya no convierte el 409 en 500. Hallazgos: 0 de 60 remitos de P tienen metodo de entrega; los pedidos 72 y 115 tienen dos remitos vigentes.
+- Nike (16/10, por el chat del cuaderno con la cuenta de Carlos): ratifica PedidoFlags.ES_KIT = 1<<47 (reversible hasta CUMPLIDO/ANULADO; con el bit prendido debe haber descuento global > 0); rectifica su dictamen del 05/10 (ES_PACK = Bit 11, HAS_PEDIDO descartado, notas de sistema nunca en pedido.nota). Se le subieron dos fuentes nuevas (87: destilado de Caja Negra y Bitacora S876-S885; 88: destilado de los manuales). Pide para las sesiones en linea un Documento de Google en Drive sincronizado (falta decidir).
+- Kits: decision de Carlos (16/10): carga a mano + marcar los renglones que componen un kit y prender el bit 47 (Card #177, sin codigo, pendiente de su OK); catalogo de kits y familias de producto (talle, color, precio por variante) diferidos hasta el control de stock (Card #178). Conclusiones en DISENO_KITS_Y_VARIANTES_S887_2026-10-16.md. Cards nuevas: #175 (PR fuera del vocabulario del operador), #176 (registrar la impresion del remito), #177 y #178.
+- Errores propios corregidos: un git push de D sin que Carlos lo pidiera (d0fa4c84, informado); \v en una ruta de Windows rompio launch.json (trampa conocida); dije sin stash y D tiene dos stashes viejos; el diseno inicial de kit con descuento global se diluia con productos extra (Carlos lo detecto).
+- Pendiente: que Tomy relance Soberana y se verifique 8f2e478 en P (franja del remito, Tablero, Imprimir remito); Card #177 (umbral 8% e informe normal vs en kit) y su OK; paso 2 de remitos (#176); decisiones de Carlos sobre el metodo de entrega por defecto y el Documento de Google para Nike; subir a Nike las sesiones S886 y S887; INBOX con 27 entradas sin archivar; barrido del Board; S886 sigue abierta (otra conversacion de OF).
+
+---
+
+Sesion actual: 885
 
 # CAJA NEGRA: OMEGA Lite - guardia de roles de domicilios (#172), regla todo Blanco con fiscal (#173), migrate_062, push a produccion y poda de Atenea - S885
 

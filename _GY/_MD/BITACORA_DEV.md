@@ -1,4 +1,10 @@
-﻿## SESION 885 (OF) — 2026-10-13/14 [NS (CC)]: guardia de roles de domicilios (#172), regla «todo Blanco con fiscal» (#173), migrate_062, push a produccion (bd8d969) y poda de Atenea (f380f16a, solo en D) — NOMINAL — D:8cf2b744 B:bd8d969 (= prod/main) P:no verificado (Z: caido; ultimo leido 33a4cc7)
+﻿## SESION 887 (OF) — 2026-10-15/16 [NS (CC)]: espejo con pestañas por mes, «Imprimir remito» con el pedido completo, el pedido muestra su remito y consulta a Nike sobre el bit ES_KIT — NOMINAL — D:HASH_CIERRE_887 B:8f2e478 (= prod/main) P:5b2c1e3 (8f2e478 entra al relanzar Soberana)
+
+- Cuatro commits de código en D (`d0fa4c84`, `a0cd2b81`, `5e58ded5`, `e212de11`) portados a B (`4cc868b`..`8f2e478`) y pusheados en dos veces (`bd8d969..5b2c1e3` el 15/10, `5b2c1e3..8f2e478` el 16/10); Nike ratificó `PedidoFlags.ES_KIT` = Bit 47 y rectificó `ES_PACK` = Bit 11 (sin código de kits todavía: Cards #177 y #178).
+
+---
+
+## SESION 885 (OF) — 2026-10-13/14 [NS (CC)]: guardia de roles de domicilios (#172), regla «todo Blanco con fiscal» (#173), migrate_062, push a produccion (bd8d969) y poda de Atenea (f380f16a, solo en D) — NOMINAL — D:8cf2b744 B:bd8d969 (= prod/main) P:no verificado (Z: caido; ultimo leido 33a4cc7)
 
 - Un push a produccion (`33a4cc7..bd8d969`: paso 1 «buscar antes de crear», #158 + `migrate_061`, guardia, regla y `migrate_062`); la poda de Atenea/LangGraph y las Cards #172, #173 y #174 quedaron registradas. Falta verificar en P el deploy.
 
