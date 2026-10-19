@@ -185,6 +185,9 @@ class ManualRemitoItem(BaseModel):
     descripcion: str
     cantidad: float
     codigo_visual: Optional[str] = None
+    # [Card #179, S888] Con pedido_id, el renglón del pedido al que corresponde este renglón del remito. Es la única forma de distinguir dos renglones
+    # del MISMO producto (el kit del pedido, Card #177, los usa). Sin él (clientes viejos) el servidor sigue emparejando por nombre o código visual.
+    pedido_item_id: Optional[int] = None
 
 class ArmarRemitoItemPayload(BaseModel):
     """[Etapa 4] Elegido de la lista del pedido -- nunca texto libre, a diferencia del 0015

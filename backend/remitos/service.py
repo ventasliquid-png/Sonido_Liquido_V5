@@ -183,6 +183,27 @@ class RemitosService:
         return resultado
 
     @staticmethod
+    def _renglon_de_la_linea(items_pedido, producto_id, usados):
+        """[Card #179, S888] Renglón del pedido que corresponde a una línea de la factura, por producto. Con dos renglones del mismo producto, cada línea toma el
+        PRIMERO QUE TODAVÍA NO USÓ otra línea (el mismo criterio de _emparejar_renglones_factura); si ya se usaron todos, vuelve al primero (lo de siempre: la
+        guarda de cantidades juzga la suma). El llamador agrega el id a `usados`. None = el pedido no tiene ese producto."""
+        candidatos = [pi for pi in items_pedido if str(pi.producto_id) == str(producto_id)]
+        if not candidatos:
+            return None
+        return next((pi for pi in candidatos if pi.id not in usados), candidatos[0])
+
+    @staticmethod
+    def _renglon_del_item_manual(items_pedido, item, usados):
+        """[Card #179, S888] Renglón del pedido al que corresponde un renglón del remito manual. Si trae pedido_item_id manda ese (None = no es de este pedido);
+        si no, por nombre de producto o código visual y, con renglones repetidos del mismo producto, el primero que todavía no se usó en este remito."""
+        if item.pedido_item_id is not None:
+            return next((pi for pi in items_pedido if pi.id == item.pedido_item_id), None)
+        candidatos = [pi for pi in items_pedido if pi.producto.nombre == item.descripcion or (item.codigo_visual and pi.producto.codigo_visual == item.codigo_visual)]
+        if not candidatos:
+            return None
+        return next((pi for pi in candidatos if pi.id not in usados), candidatos[0])
+
+    @staticmethod
     def create_from_ingestion(db: Session, payload: schemas.IngestionPayload):
         """
         Creates a Pedido and Remito from PDF Ingestion Data.
@@ -457,12 +478,12 @@ class RemitosService:
         if goto_remito:
             pedido_items_check = db.query(PedidoItem).filter(
                 PedidoItem.pedido_id == nuevo_pedido.id
-            ).all()
+            ).order_by(PedidoItem.id).all()
+            # [Card #179, S888] Con dos renglones del mismo producto cada línea de la factura se juzga contra SU renglón (no siempre contra el primero) y las
+            # cantidades que van sumando contra el mismo renglón se acumulan.
+            usados_check, asignado_check = set(), {}
             for p_item in payload.items:
-                target = next(
-                    (pi for pi in pedido_items_check if str(pi.producto_id) == str(p_item.producto_id)),
-                    None
-                )
+                target = RemitosService._renglon_de_la_linea(pedido_items_check, p_item.producto_id, usados_check)
                 if not target:
                     # [FIX Bloque 1] rollback explícito -- sin esto, para VINCULAR_EXISTENTE
                     # el Pedido ya quedaba mutado a estado="FACTURADO" (línea de arriba, ya
@@ -475,7 +496,8 @@ class RemitosService:
                             f"el Pedido #{nuevo_pedido.id}. Actualice el Pedido antes de continuar."
                         )
                     )
-                pendiente = target.cantidad - target.cantidad_entregada
+                usados_check.add(target.id)
+                pendiente = target.cantidad - target.cantidad_entregada - asignado_check.get(target.id, 0.0)
                 # [T5, S868] En VINCULAR_PARCIAL la cantidad que cuenta contra el pendiente es
                 # la que efectivamente se remite hoy (cantidad_remitir, decidida en el asistente
                 # de la ingesta), no la facturada -- son documentos distintos a propósito: la
@@ -495,6 +517,7 @@ class RemitosService:
                             f"Actualice el Pedido antes de continuar."
                         )
                     )
+                asignado_check[target.id] = asignado_check.get(target.id, 0.0) + cantidad_check
 
         if not goto_remito:
             if getattr(payload, 'modo_cuarentena', False):
@@ -614,13 +637,15 @@ class RemitosService:
         emparejados = RemitosService._emparejar_renglones_factura(db, payload, nuevo_pedido.id)
         if payload.modo_ingesta == "VINCULAR_PARCIAL":
             # Para despachos parciales, construimos los RemitoItem basados en payload.items
-            pedido_items = db.query(PedidoItem).filter(PedidoItem.pedido_id == nuevo_pedido.id).all()
+            pedido_items = db.query(PedidoItem).filter(PedidoItem.pedido_id == nuevo_pedido.id).order_by(PedidoItem.id).all()
+            usados_parcial = set()   # [Card #179, S888] dos renglones del mismo producto: cada línea de la factura toma uno distinto
             for p_item in payload.items:
                 # Buscar el PedidoItem que corresponde a este producto
-                target_p_item = next((pi for pi in pedido_items if str(pi.producto_id) == str(p_item.producto_id)), None)
+                target_p_item = RemitosService._renglon_de_la_linea(pedido_items, p_item.producto_id, usados_parcial)
                 if not target_p_item:
                     print(f"[REMITO-CRITICAL] ERROR DE INTEGRIDAD: Producto {p_item.producto_id} no pertenece al Pedido Original. Omitiendo asociación.")
                     continue
+                usados_parcial.add(target_p_item.id)
 
                 # [T5, S868] cantidad_remitir (del asistente) manda si vino; si no, comportamiento
                 # previo (remitir lo mismo que la factura). El FacturaItem del espejo, más abajo,
@@ -1243,16 +1268,18 @@ class RemitosService:
         
         if payload.pedido_id:
              # Asociar a items de pedido existente
-             original_items = db.query(PedidoItem).filter(PedidoItem.pedido_id == nuevo_pedido.id).all()
+             original_items = db.query(PedidoItem).filter(PedidoItem.pedido_id == nuevo_pedido.id).order_by(PedidoItem.id).all()
+             # [Card #179, S888] pedido_item_id manda si viene; sin él, por nombre o código visual y, con renglones repetidos del mismo producto, el primero
+             # que este remito todavía no usó. `asignado` acumula lo que ya tomó cada renglón para que la guarda de cantidades juzgue la suma.
+             asignado = {}
              for item in payload.items:
-                  # Matching by description or cod_visual
-                  target_pi = next((pi for pi in original_items if pi.producto.nombre == item.descripcion or (item.codigo_visual and pi.producto.codigo_visual == item.codigo_visual)), None)
+                  target_pi = RemitosService._renglon_del_item_manual(original_items, item, asignado)
                   
                   if target_pi:
                        # [Card #125, misma guarda que create_from_ingestion -- DISENO_CIRCUITO_PR_S869.md
                        # §9.5 / INFORME_IMPLEMENTACION_PR_S869.md §8.2] Antes solo la ingesta comparaba
                        # contra el pendiente; el 0015 manual aceptaba cualquier cantidad.
-                       pendiente = target_pi.cantidad - target_pi.cantidad_entregada
+                       pendiente = target_pi.cantidad - target_pi.cantidad_entregada - asignado.get(target_pi.id, 0.0)
                        if item.cantidad > pendiente + 0.001:  # tolerancia de redondeo flotante
                             db.rollback()
                             raise HTTPException(
@@ -1264,7 +1291,8 @@ class RemitosService:
                                     + RemitosService.aviso_remitos_del_pedido(db, nuevo_pedido.id)
                                 )
                             )
-                       if item.cantidad < target_pi.cantidad:
+                       asignado[target_pi.id] = asignado.get(target_pi.id, 0.0) + item.cantidad
+                       if asignado[target_pi.id] < target_pi.cantidad:
                             is_partial = True
                        pedido_items_mapped.append({"pi_id": target_pi.id, "cantidad": item.cantidad})
                   else:

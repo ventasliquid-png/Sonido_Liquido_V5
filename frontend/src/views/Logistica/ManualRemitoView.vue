@@ -626,6 +626,7 @@ const onPedidoSelected = () => {
                 const entregada = i.cantidad_entregada || 0;
                 const saldo = saldoRenglon(i);
                 return {
+                    pedido_item_id: i.id,   // [Card #179] el servidor distingue así dos renglones del mismo producto
                     descripcion: i.producto ? i.producto.nombre : (i.nota || 'Ítem de Pedido'),
                     cantidad: saldo,
                     codigo_visual: i.producto ? i.producto.codigo_visual : null,
@@ -756,6 +757,7 @@ const emitirRemito = async () => {
             descripcion: i.descripcion,
             cantidad: i.cantidad,
             codigo_visual: i.codigo_visual || null,
+            pedido_item_id: i.pedido_item_id ?? null,
         }));
         const payload = { ...form, items: itemsPayload };
         const res = await api.post('/remitos/manual', payload);

@@ -1,4 +1,4 @@
-# Pruebas de las sesiones S876 a S887 (44 pruebas, 1.008 comprobaciones)
+# Pruebas de las sesiones S876 a S888 (45 pruebas, 1.029 comprobaciones)
 
 Versionadas en la S888 por la auditoría de CA (H1 y H2 del 15/10): hasta entonces vivían en la carpeta temporal de una sesión de Claude Code y se perdían con ella.
 Son **scripts independientes** (no pytest): cada uno imprime `[OK]`/`[FAIL]` por comprobación y termina con `RESULTADO: n/m checks OK` y código de salida 0 o 1.
@@ -16,4 +16,4 @@ Son **scripts independientes** (no pytest): cada uno imprime `[OK]`/`[FAIL]` por
 - Las pruebas estáticas de pantalla leen los `.vue` de `frontend\src` (en B, de `current\frontend\src`).
 
 ## Qué cubre cada una
-Los nombres llevan la sesión o la Card (`_s876` … `_s887`, `etapa7b`…). Para saber qué verifica una, leer el docstring de su primera línea. Las de la S887: `test_espejo_mensual_s887` (18), `test_remitos_ui_s887` (27), `test_remito_existente_s887` (15) y `test_remito_existente_ui_s887` (17).
+Los nombres llevan la sesión o la Card (`_s876` … `_s887`, `etapa7b`…). Para saber qué verifica una, leer el docstring de su primera línea. Las de la S887: `test_espejo_mensual_s887` (18), `test_remitos_ui_s887` (27), `test_remito_existente_s887` (15) y `test_remito_existente_ui_s887` (17). De la S888: `test_renglones_duplicados_s888` (21; Card #179: dos renglones del mismo producto en el Remito Manual y en la ingesta parcial; agrega renglones a los pedidos 48, 123 y 82 de la copia de P).
