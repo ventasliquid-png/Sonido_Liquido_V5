@@ -1,4 +1,4 @@
-﻿## SESION 888 (OF) — 2026-10-19 [NS (CC)]: kits del pedido paso 1 (servidor), sesión de 7 días con renovación, interruptores sin bucle, #179, el caso Coalix en P y las Cards #180 a #187 — NOMINAL — D:HASH_CIERRE_888 B:dea451b (= prod/main) P:dea451b
+﻿## SESION 888 (OF) — 2026-10-19 [NS (CC)]: kits del pedido paso 1 (servidor), sesión de 7 días con renovación, interruptores sin bucle, #179, el caso Coalix en P y las Cards #180 a #187 — NOMINAL — D:7d2c0223 B:dea451b (= prod/main) P:dea451b
 
 - Cinco commits de código en D (`c4225b96` pruebas y glosario, `31f64d4c` #179, `534a83fc` kits paso 1 + `migrate_063`, `37e476fc` #182, `a88ee7f6` #183); a producción fueron los dos arreglos que pidió la operación real de Carlos con Coalix en P (#182 `a7427cf` y #183 `dea451b`, dos pushes `8f2e478..dea451b`); #179 y los kits siguen solo en D. Nike ratificó el kit v3 y fijó los nombres canónicos (Sello de Oro). Cards #180 a #187 (#182 y #183 cerradas). 49 pruebas en D y 46 contra el código de B.
 
