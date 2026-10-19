@@ -1,4 +1,17 @@
-﻿Sesion actual: 887
+﻿Sesion actual: 888
+
+# CAJA NEGRA: OMEGA Lite - kits del pedido paso 1 (servidor), sesion de 7 dias con renovacion, interruptores sin bucle, #179 y el caso Coalix en P - S888
+
+Sesion 888 OF, 19/10, NS (CC) con Carlos. Hash D: HASH_CIERRE_888 (ultimo commit de codigo: a88ee7f6) | Hash B: dea451b = prod/main (dos pushes: 8f2e478..a7427cf y a7427cf..dea451b) | P real: dea451b (leido en P el 19/10; .build_hash igual). Remito de Coalix rehecho en P (0015-00003030, pedido 136 NO COMERCIAL, 876 unidades, no facturable).
+- Kits (D 534a83fc, solo en D): Nike ratifico el kit v3 (Sello de Oro) y fijo los nombres canonicos (PedidoItem.kit_grupo; PedidoFlags.ES_KIT = bit 47 del PEDIDO; ProductoFlags.IS_KIT bit 6 y ES_PACK bit 11 del PRODUCTO). migrate_063 + kit_grupo 1..99 + bit 47 calculado por el servidor (congelado en CUMPLIDO/ANULADO) + guardas de renglon facturado y pedido de factura + POST /pedidos/kits/reparto (PAREJO/ABSORBE, neto, centavos exactos, advertencia 8%). Todavia SIN pantalla (paso 2: la ventana en la ficha) ni informe normal vs en kit.
+- #179 (D 31f64d4c, solo en D): el Remito Manual y la ingesta parcial distinguen dos renglones del mismo producto (pedido_item_id; primer renglon no usado; la guarda de cantidades acumula).
+- Operacion real de Carlos en P (devolver 876 de Foam a Coalix): #182 (D 37e476fc / B a7427cf): el interruptor COMERCIAL/NO COMERCIAL entraba en un bucle infinito de pedidos si el servidor lo rechazaba (cientos de 401 con la sesion vencida; cada vuelta guardaba el pedido entero); reproducido en D y arreglado. #183 (D a88ee7f6 / B dea451b): la sesion vencida de 25 h no se notaba (el guard solo miraba que hubiera token; solo 9 endpoints piden usuario) y el boton Cerrar Sesion estaba muerto; ahora 7 dias sin uso, renovacion con POST /auth/refresh, cartel, 401 global y boton que cierra.
+- Auditoria de CA (H1, H2, H4, H6): 44 pruebas versionadas en tests/sesiones (D c4225b96), PRODUCTO_IS_KIT retirada, glosario pack/kit; hoy 49 pruebas (1.132 comprobaciones); _esquema_p.copiar_p para las copias de P.
+- Charlas con Carlos: devoluciones y tachaduras (Occam: el remito es historia, devolucion = remito negativo, NC si ya se facturo, cierre con ajuste; Card #180 achicada al neteo del conciliador); notas [SISTEMA] impresas en el remito (#181); remito de traslado y motivos «Devolucion a proveedor / Envio de insumos a proceso» (#185, aprobada) con #186 (bloqueo financiero en no comerciales); «Remito a facturar» DESCARTADO por Carlos.
+- Errores propios corregidos: «corregi» a Nike diciendo que cantidad_facturada no existia (si existe: Nike tenia razon); recomende editar el remito en lugar de borrarlo (la linea nacio facturable: habia que borrar y rehacer con el pedido ya NO COMERCIAL); propuse columnas y motivos de mas para la tachadura (Carlos: Occam); no preveia que sumar la columna al modelo rompia 40 pruebas con copias viejas de P; una comprobacion de test_etapa7d usaba numeros fijos.
+- Pendiente: #185 y #186 (se construyen juntas, mañana); kits paso 2 (ventana en la ficha) e informe; portar #179 y los kits a B con el proximo despliegue (migrate_063 corre sola al relanzar P); #180 (conciliador neto), #181, #184, #187; decisiones de Carlos (MOSTRADOR/GENERICO, #176, metodo de entrega, Documento de Google para Nike); INBOX con 57 entradas; copias de P (21).
+
+Sesion actual: 887
 
 # CAJA NEGRA: OMEGA Lite - espejo con pestanas por mes, Imprimir remito con el pedido completo, el pedido muestra su remito y consulta a Nike sobre el bit ES_KIT - S887
 

@@ -1,4 +1,10 @@
-﻿## SESION 887 (OF) — 2026-10-15/16 [NS (CC)]: espejo con pestañas por mes, «Imprimir remito» con el pedido completo, el pedido muestra su remito y consulta a Nike sobre el bit ES_KIT — NOMINAL — D:b526e447 B:8f2e478 (= prod/main) P:5b2c1e3 (8f2e478 entra al relanzar Soberana)
+﻿## SESION 888 (OF) — 2026-10-19 [NS (CC)]: kits del pedido paso 1 (servidor), sesión de 7 días con renovación, interruptores sin bucle, #179, el caso Coalix en P y las Cards #180 a #187 — NOMINAL — D:HASH_CIERRE_888 B:dea451b (= prod/main) P:dea451b
+
+- Cinco commits de código en D (`c4225b96` pruebas y glosario, `31f64d4c` #179, `534a83fc` kits paso 1 + `migrate_063`, `37e476fc` #182, `a88ee7f6` #183); a producción fueron los dos arreglos que pidió la operación real de Carlos con Coalix en P (#182 `a7427cf` y #183 `dea451b`, dos pushes `8f2e478..dea451b`); #179 y los kits siguen solo en D. Nike ratificó el kit v3 y fijó los nombres canónicos (Sello de Oro). Cards #180 a #187 (#182 y #183 cerradas). 49 pruebas en D y 46 contra el código de B.
+
+---
+
+## SESION 887 (OF) — 2026-10-15/16 [NS (CC)]: espejo con pestañas por mes, «Imprimir remito» con el pedido completo, el pedido muestra su remito y consulta a Nike sobre el bit ES_KIT — NOMINAL — D:b526e447 B:8f2e478 (= prod/main) P:5b2c1e3 (8f2e478 entra al relanzar Soberana)
 
 - Cuatro commits de código en D (`d0fa4c84`, `a0cd2b81`, `5e58ded5`, `e212de11`) portados a B (`4cc868b`..`8f2e478`) y pusheados en dos veces (`bd8d969..5b2c1e3` el 15/10, `5b2c1e3..8f2e478` el 16/10); Nike ratificó `PedidoFlags.ES_KIT` = Bit 47 y rectificó `ES_PACK` = Bit 11 (sin código de kits todavía: Cards #177 y #178).
 
