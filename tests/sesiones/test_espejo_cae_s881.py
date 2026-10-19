@@ -1,6 +1,7 @@
 """Auditoria CA H1 (S881): guardar un pedido NO debe reescribir los renglones de una factura que ya tiene CAE aunque este guardada
 como BORRADOR (ingesta vieja, MODO ESPEJO). Sobre una COPIA de la base de P del 06/10 (35 facturas BORRADOR con CAE reales)."""
 import sys, os, shutil, sqlite3, glob
+from _esquema_p import copiar_p   # [S888] copia la base de P y le asegura la columna pedidos_items.kit_grupo (migrate_063)
 RAIZ = r"C:\dev\Sonido_Liquido_V5"
 sys.path.insert(0, RAIZ); os.chdir(RAIZ)
 from backend.main import app
@@ -13,7 +14,7 @@ from fastapi.testclient import TestClient
 checks = []
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
 TMP = os.path.join(RAIZ, "scratch", "test_espejo_cae_tmp.db")
-shutil.copyfile(r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261008_1224.db", TMP)   # estado ANTES de las migraciones 051-058 (la copia mas nueva ya las tiene)
+copiar_p(r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261008_1224.db", TMP)   # estado ANTES de las migraciones 051-058 (la copia mas nueva ya las tiene)
 eng = create_engine(f"sqlite:///{TMP}"); S = sessionmaker(bind=eng)
 def ov():
     db = S()

@@ -3,6 +3,7 @@ Datos reales de D: pedido #24 (Genesis Bag) == factura ARCA 2526. Las NC/ND son 
 en el corpus): se fabrican a partir del PDF real de la 2526 cambiando leyenda/codigo AFIP/numero (nc_sintetica.py);
 para los casos parciales/excedidos se parchea _parsear (los renglones y totales del PDF) en proceso."""
 import shutil, sys, os, sqlite3, uuid, subprocess, io
+from _esquema_p import copiar_p   # [S888] copia la base de P y le asegura la columna pedidos_items.kit_grupo (migrate_063)
 sys.path.insert(0, r"C:\dev\Sonido_Liquido_V5")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 os.chdir(r"C:\dev\Sonido_Liquido_V5")
@@ -34,7 +35,7 @@ def copia_fresca():
     global engine, Session
     if engine is not None:
         engine.dispose()
-    shutil.copyfile("pilot_v5x.db", SCRATCH)
+    copiar_p("pilot_v5x.db", SCRATCH)
     engine = create_engine(f"sqlite:///{SCRATCH}")
     from backend.core.database import Base
     Base.metadata.create_all(engine)  # lo que hace el arranque del backend: crea facturas_ajustes vacia
@@ -456,7 +457,7 @@ check("NC ANULADA: el neto vuelve a ser la cantidad facturada (la @property la i
 
 # =========================================================== 8. migracion 045
 copia = r"C:\dev\Sonido_Liquido_V5\scratch\pilot_v5x_mig045.db"
-shutil.copyfile("pilot_v5x.db", copia)
+copiar_p("pilot_v5x.db", copia)
 con = sqlite3.connect(copia); con.execute("DROP TABLE IF EXISTS facturas_ajustes"); con.execute("DELETE FROM _migraciones_aplicadas WHERE id='045_facturas_ajustes'"); con.commit(); con.close()
 env = {**os.environ, "DATABASE_URL": f"sqlite:///{copia}"}
 def mig():

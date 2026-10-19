@@ -19,6 +19,7 @@ from backend.productos.models import Producto
 from backend.pedidos.constants import PedidoFlags as PF, STATE_MASK
 from backend.pedidos.cantidades import mensaje_baja_de_cantidad, mensaje_baja_de_renglon
 from backend.pedidos.descuentos import descuento_normalizado, importe_conservando_unitario
+from backend.pedidos import kits as kits_mod
 from backend.clientes.constants import ClientFlags
 from backend.auth.dependencies import get_current_active_user
 from backend.auth.models import Usuario
@@ -210,7 +211,8 @@ def create_pedido_tactico(
                 descuento_porcentaje=desc_pct,
                 descuento_importe=desc_importe,
                 subtotal=subtotal,
-                nota="" # Nota por item no está en schema frontend aun
+                nota="", # Nota por item no está en schema frontend aun
+                kit_grupo=item.kit_grupo
             )
             db.add(nuevo_item)
             
@@ -229,6 +231,9 @@ def create_pedido_tactico(
                 if producto.stock_reservado is None:
                     producto.stock_reservado = Decimal("0.0")
                 producto.stock_reservado += Decimal(str(item.cantidad))
+
+        # [Card #177 v3] El bit ES_KIT lo calcula el servidor: prendido si hay al menos un kit valido (2 o mas renglones con el mismo kit_grupo)
+        kits_mod.sincronizar_bit_kit(db, nuevo_pedido, forzar=True)
 
         # 4. Actualizar Total (Restando descuento global y aplicando IVA si corresponde)
         raw_neto = total_pedido - (nuevo_pedido.descuento_global_importe or 0.0)
@@ -824,6 +829,12 @@ def update_pedido(
                 existing_item.descuento_importe = desc_importe
                 existing_item.subtotal = subtotal
                 existing_item.nota = it.get('nota')
+                # [Card #177 v3] kit_grupo: ausente = no se toca (un front viejo no lo manda); presente y distinto = cambia, salvo renglon facturado o pedido nacido de una factura.
+                if 'kit_grupo' in it and it['kit_grupo'] != existing_item.kit_grupo:
+                    msg_kit = kits_mod.mensaje_kit_bloqueado(existing_item, pedido)
+                    if msg_kit:
+                        raise HTTPException(status_code=400, detail=f"{existing_item.producto.nombre if existing_item.producto else 'Renglón'}: {msg_kit}")
+                    existing_item.kit_grupo = it['kit_grupo']
             else:
                 # Renglón nuevo
                 new_item = models.PedidoItem(
@@ -834,7 +845,8 @@ def update_pedido(
                     descuento_porcentaje=desc_pct,
                     descuento_importe=desc_importe,
                     subtotal=subtotal,
-                    nota=it.get('nota')
+                    nota=it.get('nota'),
+                    kit_grupo=it.get('kit_grupo')
                 )
                 db.add(new_item)
 
@@ -872,6 +884,8 @@ def update_pedido(
 
         # We need to commit the deletes/inserts now so subsequent sum() works if we don't use the list directly
         db.flush()
+        # [Card #177 v3] Altas, bajas y cambios de kit_grupo: el bit ES_KIT sigue a los renglones (congelado si el pedido ya esta CUMPLIDO o ANULADO).
+        kits_mod.sincronizar_bit_kit(db, pedido)
 
         # Bits 20/21 (HAS_PARTIAL_DELIVERY / FULL_DELIVERED) pueden haber quedado
         # obsoletos si se ajustó una cantidad -- recalcular contra la realidad.
@@ -1021,7 +1035,8 @@ def add_pedido_item(
         cantidad=item_create.cantidad,
         precio_unitario=precio_final,
         subtotal=subtotal,
-        nota=item_create.nota or ""
+        nota=item_create.nota or "",
+        kit_grupo=item_create.kit_grupo
     )
     db.add(new_item)
     
@@ -1038,7 +1053,8 @@ def add_pedido_item(
         pedido.total = round(raw_neto * 1.21, 2)
     else:
         pedido.total = round(raw_neto, 2)
-    
+
+    kits_mod.sincronizar_bit_kit(db, pedido)   # [Card #177 v3]
     db.commit()
     
     # Refresh logic to return full PedidoResponse
@@ -1069,6 +1085,12 @@ def update_pedido_item(
     # Update fields
     update_data = item_update.dict(exclude_unset=True)
     usuario = current_user.username
+
+    # [Card #177 v3] El numero de kit no cambia en un renglon facturado ni en un pedido nacido de una factura.
+    if "kit_grupo" in update_data and update_data["kit_grupo"] != item.kit_grupo:
+        msg_kit = kits_mod.mensaje_kit_bloqueado(item)
+        if msg_kit:
+            raise HTTPException(status_code=400, detail=msg_kit)
 
     # [LOGISTICA V7] Ajustar Reserva si cambia cantidad
     if "cantidad" in update_data:
@@ -1143,6 +1165,7 @@ def update_pedido_item(
     # Bits 20/21 pueden haber quedado obsoletos si cambió la cantidad
     from backend.remitos.service import RemitosService
     RemitosService._recalcular_bits_entrega(db, pedido)
+    kits_mod.sincronizar_bit_kit(db, pedido)   # [Card #177 v3]
 
     db.commit()
 
@@ -1181,6 +1204,7 @@ def delete_pedido_item(item_id: int, db: Session = Depends(get_db)):
     db.query(RemitoItem).filter(RemitoItem.pedido_item_id == item_id).delete()
     
     db.delete(item)
+    kits_mod.sincronizar_bit_kit(db, pedido)   # [Card #177 v3] el kit que queda con un solo renglon deja de ser kit
     db.commit()
     
     # Recalculate total with IVA logic
@@ -1232,7 +1256,8 @@ def clone_pedido(pedido_id: int, db: Session = Depends(get_db)):
             descuento_porcentaje=item.descuento_porcentaje,
             descuento_importe=item.descuento_importe,
             nota=item.nota,
-            subtotal=item.subtotal
+            subtotal=item.subtotal,
+            kit_grupo=item.kit_grupo
         )
         db.add(new_item)
         
@@ -1242,6 +1267,7 @@ def clone_pedido(pedido_id: int, db: Session = Depends(get_db)):
             if prod.stock_reservado is None: prod.stock_reservado = Decimal("0.0")
             prod.stock_reservado += Decimal(str(item.cantidad))
         
+    kits_mod.sincronizar_bit_kit(db, new_pedido, forzar=True)   # [Card #177 v3] el clon conserva los kits y su bit
     db.commit()
     
     # Refresh to load relations for response
@@ -1288,6 +1314,22 @@ class CotizacionRequest(BaseModel):
     cliente_id: str
     producto_id: int
     cantidad: float = 1.0
+
+@router.post("/kits/reparto")
+def calcular_reparto_kit(payload: schemas.KitRepartoRequest, db: Session = Depends(get_db)):
+    """[Card #177 v3] Reparte el precio (o el porcentaje) de UN kit entre sus renglones y devuelve, por renglon, el descuento resultante. Solo calcula: no guarda nada; la pantalla
+    muestra el resultado y lo manda con el pedido al guardar. Los renglones ya guardados que tienen factura (o de un pedido nacido de una factura) no entran en un kit: 409."""
+    ids = [i.id for i in payload.items if i.id]
+    if ids:
+        for guardado in db.query(models.PedidoItem).filter(models.PedidoItem.id.in_(ids)).all():
+            msg = kits_mod.mensaje_kit_bloqueado(guardado)
+            if msg:
+                raise HTTPException(status_code=409, detail=msg)
+    try:
+        return kits_mod.calcular_reparto([i.dict() for i in payload.items], precio_kit=payload.precio_kit, porcentaje=payload.porcentaje,
+                                         modo=payload.modo, absorbe_indice=payload.absorbe_indice)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
 @router.post("/cotizar")
 def cotizar_precio(req: CotizacionRequest, db: Session = Depends(get_db)):

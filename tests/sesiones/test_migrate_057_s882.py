@@ -1,5 +1,6 @@
 r"""migrate_057 (S882): remito 0016-2597 (Cassara, OC 19211): impreso 1.500, salieron y se recibieron 1.480. Sobre COPIAS de la base de P del 08/10 12:24 (con 052 y 055)."""
 import sys, os, shutil, sqlite3, subprocess
+from _esquema_p import copiar_p   # [S888] copia la base de P y le asegura la columna pedidos_items.kit_grupo (migrate_063)
 RAIZ = r"C:\dev\Sonido_Liquido_V5"
 sys.path.insert(0, RAIZ); os.chdir(RAIZ)
 from backend.main import app   # carga todos los modelos
@@ -16,7 +17,7 @@ def correr(db, script):
     return r.returncode, r.stdout
 S057 = "migrate_057_remito_2597_cassara_1480.py"
 def copia(n, previas=True):
-    p = os.path.join(RAIZ, "scratch", n); shutil.copyfile(ORIG, p)
+    p = os.path.join(RAIZ, "scratch", n); copiar_p(ORIG, p)
     if previas:
         correr(p, "migrate_052_facturas_con_cae_a_autorizada.py"); correr(p, "migrate_055_facturas_aceptadas_y_nc_cassara.py")
     return p

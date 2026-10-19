@@ -1,6 +1,7 @@
 r"""Card #164 (S882): la ingesta (POST /ingesta/raw/{id}/approve -> MODO ESPEJO) guarda la factura con los datos del PDF de ARCA y el remito con lo facturado.
 Sobre una COPIA de la base de P de las 16:21 (con las migraciones 051-058 ya aplicadas)."""
 import sys, os, shutil, sqlite3, glob, json, uuid
+from _esquema_p import copiar_p   # [S888] copia la base de P y le asegura la columna pedidos_items.kit_grupo (migrate_063)
 RAIZ = r"C:\dev\Sonido_Liquido_V5"
 sys.path.insert(0, RAIZ); os.chdir(RAIZ)
 from backend.main import app
@@ -13,7 +14,7 @@ from fastapi.testclient import TestClient
 checks = []
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
 ORIG = sorted(glob.glob(r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_*.db"))[-1]
-T = os.path.join(RAIZ, "scratch", "test_ingesta_tmp.db"); shutil.copyfile(ORIG, T)
+T = os.path.join(RAIZ, "scratch", "test_ingesta_tmp.db"); copiar_p(ORIG, T)
 eng = create_engine(f"sqlite:///{T}"); S = sessionmaker(bind=eng)
 def ov():
     db = S()

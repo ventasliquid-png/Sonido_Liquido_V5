@@ -1,5 +1,6 @@
 """migrate_050 (S882): registra en V5 las facturas emitidas con pedido ALTA y corrige enlaces. Sobre COPIAS de la base de P del 08/10 (ya con 048 y 049)."""
 import sys, os, shutil, sqlite3, glob, subprocess, json, csv, io, re
+from _esquema_p import copiar_p   # [S888] copia la base de P y le asegura la columna pedidos_items.kit_grupo (migrate_063)
 RAIZ = r"C:\dev\Sonido_Liquido_V5"
 sys.path.insert(0, RAIZ); os.chdir(RAIZ)
 checks = []
@@ -7,7 +8,7 @@ def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"
 SCR = r"C:\Users\Carlos\AppData\Local\Temp\claude\E--Backup-PreWin11\78f9e817-31bc-4751-a881-e0b91a3d502c\scratchpad"
 ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261008_0929.db"   # estado ANTES de la 050 (con 048 y 049); la copia mas nueva ya tiene la 050
 def copia(n):
-    p = os.path.join(RAIZ, "scratch", n); shutil.copyfile(ORIG, p); return p
+    p = os.path.join(RAIZ, "scratch", n); copiar_p(ORIG, p); return p
 def migrar(db):
     env = dict(os.environ, DATABASE_URL="sqlite:///" + db, PYTHONIOENCODING="utf-8")
     r = subprocess.run([sys.executable, os.path.join(RAIZ, "scripts", "migrate_050_facturas_a_pedidos.py")], capture_output=True, text=True, encoding="utf-8", env=env)

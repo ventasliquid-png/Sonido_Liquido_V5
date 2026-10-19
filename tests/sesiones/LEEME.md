@@ -1,4 +1,4 @@
-# Pruebas de las sesiones S876 a S888 (45 pruebas, 1.029 comprobaciones)
+# Pruebas de las sesiones S876 a S888 (47 pruebas, 1.101 comprobaciones)
 
 Versionadas en la S888 por la auditoría de CA (H1 y H2 del 15/10): hasta entonces vivían en la carpeta temporal de una sesión de Claude Code y se perdían con ella.
 Son **scripts independientes** (no pytest): cada uno imprime `[OK]`/`[FAIL]` por comprobación y termina con `RESULTADO: n/m checks OK` y código de salida 0 o 1.
@@ -16,4 +16,7 @@ Son **scripts independientes** (no pytest): cada uno imprime `[OK]`/`[FAIL]` por
 - Las pruebas estáticas de pantalla leen los `.vue` de `frontend\src` (en B, de `current\frontend\src`).
 
 ## Qué cubre cada una
-Los nombres llevan la sesión o la Card (`_s876` … `_s887`, `etapa7b`…). Para saber qué verifica una, leer el docstring de su primera línea. Las de la S887: `test_espejo_mensual_s887` (18), `test_remitos_ui_s887` (27), `test_remito_existente_s887` (15) y `test_remito_existente_ui_s887` (17). De la S888: `test_renglones_duplicados_s888` (21; Card #179: dos renglones del mismo producto en el Remito Manual y en la ingesta parcial; agrega renglones a los pedidos 48, 123 y 82 de la copia de P).
+Los nombres llevan la sesión o la Card (`_s876` … `_s887`, `etapa7b`…). Para saber qué verifica una, leer el docstring de su primera línea. Las de la S887: `test_espejo_mensual_s887` (18), `test_remitos_ui_s887` (27), `test_remito_existente_s887` (15) y `test_remito_existente_ui_s887` (17). De la S888: `test_renglones_duplicados_s888` (21; Card #179: dos renglones del mismo producto en el Remito Manual y en la ingesta parcial; agrega renglones a los pedidos 48, 123 y 82 de la copia de P). Kits del pedido (Card #177 v3): `test_migrate_063_s888` (12; la columna `pedidos_items.kit_grupo`, sobre la copia CRUDA) y `test_kit_grupo_s888` (60; el bit ES_KIT que calcula el servidor, el reparto del precio del kit y las guardas de renglón facturado).
+
+## El ayudante `_esquema_p.py` (S888)
+Cuando el modelo declara una columna nueva, toda consulta ORM sobre una copia VIEJA de P falla con «no such column». Las pruebas que copian una base de P usan `copiar_p(origen, destino)` en vez de `shutil.copyfile`: copia y le agrega a la COPIA las columnas posteriores a ese backup (hoy `pedidos_items.kit_grupo`). Si una migración futura suma una columna al modelo, se agrega a `COLUMNAS_NUEVAS` en ese archivo (una sola vez para todas). Las pruebas de migración parten de la copia cruda a propósito.

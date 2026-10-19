@@ -1,6 +1,7 @@
 """Card #154 (S879): pedido / remitido / facturado por renglon, guarda de edicion y absorcion al armar el remito.
 Sobre una COPIA de la base de P de hoy (datos reales). Nunca toca bases vivas."""
 import sys, os, shutil, re, sqlite3, glob, itertools
+from _esquema_p import copiar_p   # [S888] copia la base de P y le asegura la columna pedidos_items.kit_grupo (migrate_063)
 RAIZ = r"C:\dev\Sonido_Liquido_V5"
 sys.path.insert(0, RAIZ); os.chdir(RAIZ)
 from backend.main import app
@@ -17,7 +18,7 @@ from backend.pedidos.cantidades import facturado_por_renglon
 checks = []
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
 TMP = os.path.join(RAIZ, "scratch", "test_cantidades_tmp.db")
-shutil.copyfile(sorted(glob.glob(r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_*.db"))[-1], TMP)
+copiar_p(sorted(glob.glob(r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_*.db"))[-1], TMP)
 eng = create_engine(f"sqlite:///{TMP}"); S = sessionmaker(bind=eng)
 def ov():
     db = S()

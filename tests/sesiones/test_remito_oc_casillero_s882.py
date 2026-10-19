@@ -1,6 +1,7 @@
 r"""Sugerencia de Tomy (S882): la OC del pedido se imprime en el casillero "ORDEN DE COMPRA N°:" del talonario preimpreso (antes la escribia a mano).
 Motor del PDF + endpoint GET /remitos/{id}/pdf, sobre una COPIA de la base de P."""
 import sys, os, shutil, sqlite3, glob
+from _esquema_p import copiar_p   # [S888] copia la base de P y le asegura la columna pedidos_items.kit_grupo (migrate_063)
 RAIZ = r"C:\dev\Sonido_Liquido_V5"
 sys.path.insert(0, RAIZ); os.chdir(RAIZ)
 from backend.main import app
@@ -64,7 +65,7 @@ check(f"caracteres fuera de latin-1 (raya larga) no rompen el PDF y se imprimen 
 
 # ---- endpoint: GET /remitos/{id}/pdf sobre una copia de P ----
 ORIG = sorted(glob.glob(r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_*.db"))[-1]
-T = os.path.join(RAIZ, "scratch", "test_oc_tmp.db"); shutil.copyfile(ORIG, T)
+T = os.path.join(RAIZ, "scratch", "test_oc_tmp.db"); copiar_p(ORIG, T)
 eng = create_engine(f"sqlite:///{T}"); S = sessionmaker(bind=eng)
 def ov():
     db = S()

@@ -1,6 +1,7 @@
 """Card #152 (S879): duplicados de producto. Normalizacion propia (numeros, unidades, talles), migracion 048 sobre una
 COPIA de la base de P, alta por la API y sugerencias. No toca normalize_name (clientes)."""
 import sys, os, shutil, sqlite3, glob, subprocess
+from _esquema_p import copiar_p   # [S888] copia la base de P y le asegura la columna pedidos_items.kit_grupo (migrate_063)
 RAIZ = r"C:\dev\Sonido_Liquido_V5"
 sys.path.insert(0, RAIZ); os.chdir(RAIZ)
 checks = []
@@ -42,7 +43,7 @@ check("identico -> 1.0", S("Barbijo Cónico", "barbijo conico") == 1.0)
 # ---------- migracion 048 sobre una copia de la base de P ----------
 ult = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261006_1600.db"   # estado ANTES de la 048 (la copia mas nueva de P ya la tiene)
 TMP = os.path.join(RAIZ, "scratch", "test_prod_dup_tmp.db")
-shutil.copyfile(ult, TMP)
+copiar_p(ult, TMP)
 con = sqlite3.connect(TMP)
 nombres0 = con.execute("select id, nombre, sku, rubro_id from productos order by id").fetchall()
 n0 = len(nombres0)

@@ -1,5 +1,6 @@
 r"""migrate_055 (S882): registra las facturas 2500, 2529, 2582 y 2607 en su pedido y las NC 72 y 73 sobre la 2597. Sobre COPIAS de la base de P del 08/10 12:24 (con la 052 aplicada)."""
 import sys, os, shutil, sqlite3, subprocess, json, csv, io, re
+from _esquema_p import copiar_p   # [S888] copia la base de P y le asegura la columna pedidos_items.kit_grupo (migrate_063)
 RAIZ = r"C:\dev\Sonido_Liquido_V5"
 sys.path.insert(0, RAIZ); os.chdir(RAIZ)
 from backend.main import app   # carga todos los modelos
@@ -11,7 +12,7 @@ def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"
 SCR = r"C:\Users\Carlos\AppData\Local\Temp\claude\E--Backup-PreWin11\78f9e817-31bc-4751-a881-e0b91a3d502c\scratchpad"
 ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261008_1224.db"
 def copia(n, con052=True):
-    p = os.path.join(RAIZ, "scratch", n); shutil.copyfile(ORIG, p)
+    p = os.path.join(RAIZ, "scratch", n); copiar_p(ORIG, p)
     if con052: correr(p, "migrate_052_facturas_con_cae_a_autorizada.py")
     return p
 def correr(db, script):

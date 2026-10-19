@@ -2,7 +2,7 @@
 # Versión: V5.6 GOLD | Sincronización: 20260407130827
 # ---------------------------------------------------------
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from typing import List, Optional, Union
 from datetime import datetime
 from uuid import UUID
@@ -17,6 +17,8 @@ class PedidoItemCreate(BaseModel):
     descuento_porcentaje: Optional[float] = 0.0
     descuento_importe: Optional[float] = 0.0
     nota: Optional[str] = None
+    # [Card #177 v3] Número de kit del renglón (1 a 99; ausente = no se toca, null = sin kit). El kit existe con 2 o más renglones del mismo número.
+    kit_grupo: Optional[int] = Field(default=None, ge=1, le=99)
 
 class PedidoItemUpdate(BaseModel):
     cantidad: Optional[float] = None
@@ -24,6 +26,22 @@ class PedidoItemUpdate(BaseModel):
     descuento_porcentaje: Optional[float] = None
     descuento_importe: Optional[float] = None
     nota: Optional[str] = None
+    kit_grupo: Optional[int] = Field(default=None, ge=1, le=99)
+
+class KitRepartoItem(BaseModel):
+    # Renglón del kit tal como está HOY en la pantalla (id solo si ya está guardado). Todo en NETO.
+    id: Optional[int] = None
+    cantidad: float
+    precio_unitario: float
+    descuento_importe: Optional[float] = 0.0
+
+class KitRepartoRequest(BaseModel):
+    # Informar UNO de precio_kit (importe final del conjunto) o porcentaje (rebaja sobre la suma). modo: PAREJO | ABSORBE (con absorbe_indice).
+    items: List[KitRepartoItem]
+    precio_kit: Optional[float] = None
+    porcentaje: Optional[float] = None
+    modo: Optional[str] = "PAREJO"
+    absorbe_indice: Optional[int] = None
 
 class PedidoCreate(BaseModel):
     # [Fallar ruidoso, no en silencio] Un campo que el frontend manda y este

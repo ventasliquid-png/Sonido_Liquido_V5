@@ -2,6 +2,7 @@ r"""S883, Card #158: un domicilio NUEVO de un solo cliente nace con el espejo (B
 y un huerfano. La bifurcacion es copy-on-write de un domicilio COMPARTIDO por varios clientes: solo ahi corresponde, y solo si las notas realmente cambian.
 Sobre una COPIA de la base de P de las 15:51."""
 import sys, os, shutil, sqlite3
+from _esquema_p import copiar_p   # [S888] copia la base de P y le asegura la columna pedidos_items.kit_grupo (migrate_063)
 RAIZ = r"C:\dev\Sonido_Liquido_V5"
 sys.path.insert(0, RAIZ); os.chdir(RAIZ)
 from backend.main import app
@@ -13,7 +14,7 @@ from fastapi.testclient import TestClient
 checks = []
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
 ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261009_1551.db"
-T = os.path.join(RAIZ, "scratch", "test_bifurc_tmp.db"); shutil.copyfile(ORIG, T)
+T = os.path.join(RAIZ, "scratch", "test_bifurc_tmp.db"); copiar_p(ORIG, T)
 eng = create_engine(f"sqlite:///{T}"); S = sessionmaker(bind=eng)
 def ov():
     db = S()

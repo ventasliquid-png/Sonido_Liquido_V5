@@ -2,6 +2,7 @@ r"""S885, Cards #172 y #173: GUARDIA DE ROLES de los domicilios compartidos + re
 Caso de Carlos (09/10): Gelato y Lacteos tienen el MISMO fiscal (Ruta Provincial 36 y 630) y comparten Vuelta de Obligado 1947 como entrega; si Lacteos pasa su fiscal a Obligado, Gelato no se entera.
 Sobre COPIAS de la base de P de las 15:51 (una por grupo de escenarios)."""
 import sys, os, shutil, sqlite3
+from _esquema_p import copiar_p   # [S888] copia la base de P y le asegura la columna pedidos_items.kit_grupo (migrate_063)
 RAIZ = r"C:\dev\Sonido_Liquido_V5"
 sys.path.insert(0, RAIZ); os.chdir(RAIZ)
 from backend.main import app
@@ -23,7 +24,7 @@ def nuevo_banco():
     for suf in ("", "-wal", "-shm"):
         try: os.remove(T + suf)
         except Exception: pass
-    shutil.copyfile(ORIG, T)
+    copiar_p(ORIG, T)
     estado["eng"] = create_engine(f"sqlite:///{T}"); estado["S"] = sessionmaker(bind=estado["eng"])
     def ov():
         db = estado["S"]()

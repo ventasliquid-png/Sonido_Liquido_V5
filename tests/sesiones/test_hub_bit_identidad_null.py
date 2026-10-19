@@ -1,5 +1,6 @@
 """Gestion Domicilios (/clientes/hub/list) con bit_identidad NULL heredado de P. Sobre COPIAS, nunca bases vivas."""
 import sys, os, shutil, sqlite3, subprocess, gc
+from _esquema_p import copiar_p   # [S888] copia la base de P y le asegura la columna pedidos_items.kit_grupo (migrate_063)
 sys.path.insert(0, r"C:\dev\Sonido_Liquido_V5"); os.chdir(r"C:\dev\Sonido_Liquido_V5")
 from backend.main import app
 from backend.core.database import get_db
@@ -12,7 +13,7 @@ def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"
 PRISTINA = r"C:\dev\Sonido_Liquido_V5\scratch\pilot_v5x_P_copia_20260930.db"
 TMP = r"C:\dev\Sonido_Liquido_V5\scratch\test_hub_null_tmp.db"
 ZUV = "8aeb5a99-8c7d-45e5-b382-7d101ef66958"
-shutil.copyfile(PRISTINA, TMP)
+copiar_p(PRISTINA, TMP)
 eng = create_engine(f"sqlite:///{TMP}"); S = sessionmaker(bind=eng)
 def ov():
     db = S()

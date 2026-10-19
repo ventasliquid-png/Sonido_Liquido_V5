@@ -2,6 +2,7 @@
 Datos reales: factura ARCA 2496 (Jorgito, CUIT 33516033199, cliente blanco existente, 6 guantes a
 10900) y 2458 (Ceretti, CUIT fuera del padron de D). Nunca toca la base viva."""
 import shutil, sys, os, sqlite3, uuid
+from _esquema_p import copiar_p   # [S888] copia la base de P y le asegura la columna pedidos_items.kit_grupo (migrate_063)
 sys.path.insert(0, r"C:\dev\Sonido_Liquido_V5")
 os.chdir(r"C:\dev\Sonido_Liquido_V5")
 
@@ -27,7 +28,7 @@ def copia_fresca():
     global engine, Session
     if engine is not None:
         engine.dispose()
-    shutil.copyfile("pilot_v5x.db", SCRATCH)
+    copiar_p("pilot_v5x.db", SCRATCH)
     engine = create_engine(f"sqlite:///{SCRATCH}")
     Session = sessionmaker(bind=engine)
     def override():

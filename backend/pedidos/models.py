@@ -89,6 +89,10 @@ class PedidoItem(Base):
     
     subtotal = Column(Float, default=0.0)
     nota = Column(String, nullable=True)
+
+    # [Card #177 v3, S888, migrate_063] Número de kit del renglón (NULL = sin kit). Etiqueta LOCAL al pedido: no es un SKU ni un contador entre pedidos y el kit no tiene
+    # trazabilidad como ítem. Un kit existe solo si 2 o más renglones del pedido comparten el número (backend/pedidos/kits.py). Único campo de kit del renglón.
+    kit_grupo = Column(Integer, nullable=True)
     
     # Relaciones
     pedido = relationship("Pedido", back_populates="items")

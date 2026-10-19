@@ -1,5 +1,6 @@
 r"""migrate_053 (S882): Poblet, OC 3476 -- facturas 2566 y 2576 en el pedido #72, duplicados del #83 retirados. Sobre COPIAS de la base de P del 08/10 12:24."""
 import sys, os, shutil, sqlite3, subprocess, re
+from _esquema_p import copiar_p   # [S888] copia la base de P y le asegura la columna pedidos_items.kit_grupo (migrate_063)
 RAIZ = r"C:\dev\Sonido_Liquido_V5"
 sys.path.insert(0, RAIZ); os.chdir(RAIZ)
 from backend.main import app   # carga todos los modelos
@@ -10,7 +11,7 @@ checks = []
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
 ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261008_1224.db"
 def copia(n):
-    p = os.path.join(RAIZ, "scratch", n); shutil.copyfile(ORIG, p); return p
+    p = os.path.join(RAIZ, "scratch", n); copiar_p(ORIG, p); return p
 def correr(db, script):
     env = dict(os.environ, DATABASE_URL="sqlite:///" + db, PYTHONIOENCODING="utf-8")
     r = subprocess.run([sys.executable, os.path.join(RAIZ, "scripts", script)], capture_output=True, text=True, encoding="utf-8", env=env)

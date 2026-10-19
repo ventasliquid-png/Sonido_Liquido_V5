@@ -3,11 +3,12 @@ descartable. Nunca toca pilot_v5x.db real. Usa el pedido_item #48 real (pedido #
 cantidad=2.0, ya entregado 2.0/2.0 -- CUMPLIDO) como caso de devolucion parcial y despues
 de exceso."""
 import shutil, sys, os
+from _esquema_p import copiar_p   # [S888] copia la base de P y le asegura la columna pedidos_items.kit_grupo (migrate_063)
 sys.path.insert(0, r"C:\dev\Sonido_Liquido_V5")
 os.chdir(r"C:\dev\Sonido_Liquido_V5")
 
 SCRATCH_DB = r"C:\dev\Sonido_Liquido_V5\scratch\pilot_v5x_etapa6_test.db"
-shutil.copyfile("pilot_v5x.db", SCRATCH_DB)
+copiar_p("pilot_v5x.db", SCRATCH_DB)
 
 checks = []
 def check(desc, cond):

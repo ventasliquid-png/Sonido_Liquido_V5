@@ -1,6 +1,7 @@
 """Informe G -- renglones que salieron SIN SER VENTA FIRME (S876). Sobre una COPIA de la base migrada de P con
 migrate_047 aplicada. Nunca toca bases vivas."""
 import sys, os, shutil, io, gc, sqlite3, subprocess
+from _esquema_p import copiar_p   # [S888] copia la base de P y le asegura la columna pedidos_items.kit_grupo (migrate_063)
 from datetime import datetime, timedelta
 sys.path.insert(0, r"C:\dev\Sonido_Liquido_V5"); os.chdir(r"C:\dev\Sonido_Liquido_V5")
 from backend.main import app
@@ -15,7 +16,7 @@ checks = []
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
 
 TMP = r"C:\dev\Sonido_Liquido_V5\scratch\test_informe_g_tmp.db"
-shutil.copyfile(r"C:\dev\Sonido_Liquido_V5\scratch\pilot_v5x_P_migrada_pre047_20260930.db", TMP)
+copiar_p(r"C:\dev\Sonido_Liquido_V5\scratch\pilot_v5x_P_migrada_pre047_20260930.db", TMP)
 m = subprocess.run([sys.executable, r"scripts\migrate_047_remito_metodo_entrega_renglon_motivo.py"], env=dict(os.environ, DATABASE_URL="sqlite:///" + TMP), capture_output=True, text=True, encoding="utf-8", errors="replace")
 assert m.returncode == 0, m.stdout + m.stderr
 eng = create_engine(f"sqlite:///{TMP}"); S = sessionmaker(bind=eng)

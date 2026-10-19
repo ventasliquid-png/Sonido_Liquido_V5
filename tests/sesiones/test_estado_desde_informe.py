@@ -1,5 +1,6 @@
 """Contrato servidor <-> selector de estado de los informes (S876). Sobre una COPIA de la base migrada de P."""
 import sys, os, shutil, sqlite3, gc
+from _esquema_p import copiar_p   # [S888] copia la base de P y le asegura la columna pedidos_items.kit_grupo (migrate_063)
 sys.path.insert(0, r"C:\dev\Sonido_Liquido_V5"); os.chdir(r"C:\dev\Sonido_Liquido_V5")
 from backend.main import app
 from backend.core.database import get_db
@@ -10,7 +11,7 @@ from fastapi.testclient import TestClient
 checks = []
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
 TMP = r"C:\dev\Sonido_Liquido_V5\scratch\test_estado_informe_tmp.db"
-shutil.copyfile(r"C:\dev\Sonido_Liquido_V5\scratch\pilot_v5x_P_migrada_20260930.db", TMP)
+copiar_p(r"C:\dev\Sonido_Liquido_V5\scratch\pilot_v5x_P_migrada_20260930.db", TMP)
 eng = create_engine(f"sqlite:///{TMP}"); S = sessionmaker(bind=eng)
 def ov():
     db = S()

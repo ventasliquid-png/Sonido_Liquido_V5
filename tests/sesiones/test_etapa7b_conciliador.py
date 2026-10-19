@@ -3,6 +3,7 @@ Nunca toca la base viva. Cada escenario arranca de una copia fresca.
 Datos reales de D: pedido #24 (Genesis Bag, CUIT 30717179842) == factura ARCA 2526 guardada en
 ingesta_facturas_raw (toallas x3 a 42350 + toallas cortas x1 a 33500)."""
 import shutil, sys, os, sqlite3
+from _esquema_p import copiar_p   # [S888] copia la base de P y le asegura la columna pedidos_items.kit_grupo (migrate_063)
 sys.path.insert(0, r"C:\dev\Sonido_Liquido_V5")
 os.chdir(r"C:\dev\Sonido_Liquido_V5")
 
@@ -27,7 +28,7 @@ def copia_fresca():
     global engine
     if engine is not None:
         engine.dispose()
-    shutil.copyfile("pilot_v5x.db", SCRATCH)
+    copiar_p("pilot_v5x.db", SCRATCH)
     engine = create_engine(f"sqlite:///{SCRATCH}")
     Session = sessionmaker(bind=engine)
     def override():

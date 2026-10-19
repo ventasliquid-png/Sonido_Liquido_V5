@@ -66,10 +66,11 @@ class PedidoFlags(IntFlag):
     # Canonizado por Nike (Sello de Oro) S863 (caso OC LPC, tolerancia 7%) —
     # asignado a 46 en vez de 44 por colisión con ES_ENTREGADO (ver arriba).
     CIERRE_CON_AJUSTE  = 1 << 46
-    # Bit 47 — RESERVADO por dictamen de Nike (16/10/2026, Sello de Oro): ES_KIT = 1 << 47 (140737488355328). Calificador ortogonal de la banda 32+, fuera de
-    # STATE_MASK: marca renglones del pedido vendidos juntos como kit (Card #177). REVERSIBLE mientras el pedido no esté CUMPLIDO ni ANULADO (después queda congelado).
-    # Regla que pidió Nike: con ES_KIT prendido debe haber descuento (hoy «descuento global > 0»; la auditoría de CA propone «suma de los descuentos de los renglones del
-    # kit > 0», que hay que volver a consultarle). NO IMPLEMENTADO: no reutilizar este número ni definirlo hasta que se construya la Card #177.
+    # Bit 47 — ES_KIT (140737488355328). Ratificado por Nike (Sello de Oro) el 16/10/2026 y rediseñado el 19/10/2026 (Card #177 v3): el PEDIDO tiene al menos un kit válido
+    # (2 o más renglones con el mismo PedidoItem.kit_grupo). Calificador ortogonal de la banda 32+, fuera de STATE_MASK. Lo calcula el SERVIDOR (backend/pedidos/kits.py,
+    # sincronizar_bit_kit) y nadie lo escribe a mano; reversible mientras el pedido no esté CUMPLIDO ni ANULADO (después queda congelado). Regla: ES_KIT exige al menos un kit
+    # válido; el descuento del kit puede ser 0. NO confundir con ProductoFlags.IS_KIT (bit 6) ni ES_PACK (bit 11), que son del PRODUCTO.
+    ES_KIT             = 1 << 47
 
 # Máscara de estados excluyentes
 STATE_MASK = (

@@ -1,6 +1,7 @@
 r"""Card #167 (S882): informe «Cumplimiento de OC» (GET /informes/cumplimiento-oc) y el Reporte de Entregas sin pedidos anulados.
 Sobre una COPIA de la base de P del 08/10 con las migraciones 051-055 aplicadas."""
 import sys, os, shutil, sqlite3, subprocess, glob, io, csv
+from _esquema_p import copiar_p   # [S888] copia la base de P y le asegura la columna pedidos_items.kit_grupo (migrate_063)
 RAIZ = r"C:\dev\Sonido_Liquido_V5"
 sys.path.insert(0, RAIZ); os.chdir(RAIZ)
 from backend.main import app
@@ -13,7 +14,7 @@ from fastapi.testclient import TestClient
 checks = []
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
 ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261008_1224.db"
-T = os.path.join(RAIZ, "scratch", "test_cumpl_tmp.db"); shutil.copyfile(ORIG, T)
+T = os.path.join(RAIZ, "scratch", "test_cumpl_tmp.db"); copiar_p(ORIG, T)
 for m in ("051_remitos_0016_al_pedido_de_su_factura", "052_facturas_con_cae_a_autorizada", "053_poblet_oc3476_facturas_2566_2576", "054_poblet_oc3502", "055_facturas_aceptadas_y_nc_cassara", "056_centropet_58_duplicado"):
     f = glob.glob(os.path.join(RAIZ, "scripts", f"migrate_{m[:3]}_*.py"))
     if not f: continue

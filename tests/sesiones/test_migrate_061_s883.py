@@ -1,5 +1,6 @@
 r"""migrate_061 (S883, Card #158): deja inactivos los domicilios repetidos de Centro Pet (Vieytes 1549) e INAPYR (Diagonal 74 N° 80). Sobre COPIAS de la base de P de las 15:51."""
 import sys, os, shutil, sqlite3, subprocess
+from _esquema_p import copiar_p   # [S888] copia la base de P y le asegura la columna pedidos_items.kit_grupo (migrate_063)
 RAIZ = r"C:\dev\Sonido_Liquido_V5"
 sys.path.insert(0, RAIZ); os.chdir(RAIZ)
 checks = []
@@ -8,7 +9,7 @@ ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_202
 CP, CP_Q, CP_S = "069bd7c5be294d88a1df92c856239a7f", "dcc423810a45424e8a29202e85b97349", "e1a12cf398264bf7aeb1c5a7ed3f7458"
 IN, IN_Q, IN_S = "65ae103173c04371bdf7f4cd5567598e", "0358b5a6d2ec461caec2c3978930499a", "3d561b71aa15479e914dddfd8fe950d8"
 def copia(n):
-    p = os.path.join(RAIZ, "scratch", n); shutil.copyfile(ORIG, p); return p
+    p = os.path.join(RAIZ, "scratch", n); copiar_p(ORIG, p); return p
 def migrar(db):
     env = dict(os.environ, DATABASE_URL="sqlite:///" + db, PYTHONIOENCODING="utf-8")
     r = subprocess.run([sys.executable, os.path.join(RAIZ, "scripts", "migrate_061_domicilios_repetidos.py")], capture_output=True, text=True, encoding="utf-8", env=env)

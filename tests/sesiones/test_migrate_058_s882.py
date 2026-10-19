@@ -1,5 +1,6 @@
 r"""migrate_058 (S882): remito 0016-2562 de Jomax: del pedido #4 (20) al #69 con 10 bolsas. Sobre COPIAS de la base de P del 08/10 12:24."""
 import sys, os, shutil, sqlite3, subprocess
+from _esquema_p import copiar_p   # [S888] copia la base de P y le asegura la columna pedidos_items.kit_grupo (migrate_063)
 RAIZ = r"C:\dev\Sonido_Liquido_V5"
 sys.path.insert(0, RAIZ); os.chdir(RAIZ)
 from backend.main import app   # carga todos los modelos
@@ -15,7 +16,7 @@ def correr(db, script):
     return r.returncode, r.stdout
 S058, S051 = "migrate_058_remito_2562_jomax_10.py", "migrate_051_remitos_0016_al_pedido_de_su_factura.py"
 def copia(n, previas=("migrate_052_facturas_con_cae_a_autorizada.py",)):
-    p = os.path.join(RAIZ, "scratch", n); shutil.copyfile(ORIG, p)
+    p = os.path.join(RAIZ, "scratch", n); copiar_p(ORIG, p)
     for s in previas: correr(p, s)
     return p
 def q(db, sql, *a):

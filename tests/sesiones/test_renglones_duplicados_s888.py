@@ -5,6 +5,7 @@ en modo VINCULAR_PARCIAL los emparejaban por nombre / producto y caían siempre 
 (3) Ingesta: la guarda de los modos VINCULAR_* y los renglones del remito en VINCULAR_PARCIAL toman, por producto, el primer renglón todavía no usado.
 Sobre una COPIA de la base de P del 15/10 16:01 (se le agregan renglones repetidos a los pedidos 48, 123 y 82)."""
 import sys, os, shutil, sqlite3, json, uuid, io, re
+from _esquema_p import copiar_p   # [S888] copia la base de P y le asegura la columna pedidos_items.kit_grupo (migrate_063)
 RAIZ = r"C:\dev\Sonido_Liquido_V5"
 sys.path.insert(0, RAIZ); os.chdir(RAIZ)
 from backend.main import app
@@ -17,7 +18,7 @@ checks = []
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
 ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261015_1601.db"
 os.makedirs(os.path.join(RAIZ, "scratch"), exist_ok=True)
-T = os.path.join(RAIZ, "scratch", "test_renglones_duplicados_tmp.db"); shutil.copyfile(ORIG, T)
+T = os.path.join(RAIZ, "scratch", "test_renglones_duplicados_tmp.db"); copiar_p(ORIG, T)
 eng = create_engine(f"sqlite:///{T}"); S = sessionmaker(bind=eng)
 def ov():
     db = S()

@@ -1,6 +1,7 @@
 """Card #159 (S879): descuento por renglon por unidad, centavos exactos, porcentaje a 4 decimales y conservado al cambiar la cantidad.
 Sobre una COPIA de la base de P de hoy (datos reales, incluido el pedido 122 de Tomy). Nunca toca bases vivas."""
 import sys, os, shutil, sqlite3, glob
+from _esquema_p import copiar_p   # [S888] copia la base de P y le asegura la columna pedidos_items.kit_grupo (migrate_063)
 RAIZ = r"C:\dev\Sonido_Liquido_V5"
 sys.path.insert(0, RAIZ); os.chdir(RAIZ)
 from backend.main import app
@@ -27,7 +28,7 @@ check("sin descuento previo o sin cantidad previa no inventa nada", importe_cons
 
 # ---------- API sobre la copia de P ----------
 TMP = os.path.join(RAIZ, "scratch", "test_descuento_tmp.db")
-shutil.copyfile(sorted(glob.glob(r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_*.db"))[-1], TMP)
+copiar_p(sorted(glob.glob(r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_*.db"))[-1], TMP)
 eng = create_engine(f"sqlite:///{TMP}"); S = sessionmaker(bind=eng)
 def ov():
     db = S()

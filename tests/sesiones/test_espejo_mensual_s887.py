@@ -2,6 +2,7 @@ r"""S887, pedido de Carlos (15/10): el Excel Espejo de Pedidos suma una pestaña
 filtro/orden, verde para Blanco y rosa chicle para Rosa, totales al pie, participacion por cliente con torta, y al terminar el año el archivo completo se guarda como historico.
 Sobre una COPIA de la base de P del 14/10 17:12; no escribe en el Silo."""
 import sys, os, shutil, sqlite3, importlib, tempfile, filecmp
+from _esquema_p import copiar_p   # [S888] copia la base de P y le asegura la columna pedidos_items.kit_grupo (migrate_063)
 from datetime import date
 sys.path.insert(0, r"C:\dev\Sonido_Liquido_V5\scripts"); os.chdir(r"C:\dev\Sonido_Liquido_V5")
 import openpyxl
@@ -9,7 +10,7 @@ checks = []
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
 TMP = tempfile.mkdtemp(prefix="espejo_mensual_")
 DB = os.path.join(TMP, "copia_P.db")
-shutil.copyfile(r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261014_1712.db", DB)
+copiar_p(r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261014_1712.db", DB)
 m = importlib.import_module("exportar_pedidos_excel")
 NO_FISCAL, ANULADO = 4096, 1 << 35
 con = sqlite3.connect(DB)

@@ -1,5 +1,6 @@
 r"""migrate_060 (S883): unifica las dos fichas de Expreso Demonte del padron de transportes de P. Sobre COPIAS de la base de P de las 17:51 (con las migraciones 051-059 aplicadas)."""
 import sys, os, shutil, sqlite3, subprocess, json
+from _esquema_p import copiar_p   # [S888] copia la base de P y le asegura la columna pedidos_items.kit_grupo (migrate_063)
 RAIZ = r"C:\dev\Sonido_Liquido_V5"
 sys.path.insert(0, RAIZ); os.chdir(RAIZ)
 checks = []
@@ -7,7 +8,7 @@ def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"
 ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261008_1751.db"
 ACT, DUP = "db42f9b049394c16b3ab93e1a3b5f6ae", "b26c8617e8734c2c94194e0ee537ba5a"
 def copia(n):
-    p = os.path.join(RAIZ, "scratch", n); shutil.copyfile(ORIG, p); return p
+    p = os.path.join(RAIZ, "scratch", n); copiar_p(ORIG, p); return p
 def migrar(db):
     env = dict(os.environ, DATABASE_URL="sqlite:///" + db, PYTHONIOENCODING="utf-8")
     r = subprocess.run([sys.executable, os.path.join(RAIZ, "scripts", "migrate_060_unificar_expreso_demonte.py")], capture_output=True, text=True, encoding="utf-8", env=env)
