@@ -24,6 +24,16 @@ DOM = "0358b5a6d2ec461caec2c3978930499a"
 TRANS = "44264d5c43a147d3997fd558d38b3db6"
 BIT_TIENE_NC, BIT_TIENE_ND, BIT_ES_NC, BIT_ES_ND = 1 << 17, 1 << 18, 1 << 19, 1 << 20
 
+# [S888] La comprobación final («la base viva no se tocó») compara contra la base viva AL EMPEZAR esta prueba, no contra números fijos:
+# la base de desarrollo de D cambia legítimamente cuando se le aplican migraciones (el 19/10 las 048-063 le sumaron una factura y la foto
+# fija 47/80/16/31/14/9/4/0 dejó de valer sin que la prueba tocara nada).
+TABLAS_VIVAS = ("pedidos", "pedidos_items", "remitos", "remitos_items", "facturas", "facturas_remitos", "ingesta_facturas_procesadas", "remitos_notas")
+def conteos_vivos():
+    live = sqlite3.connect("pilot_v5x.db")
+    try: return {t: live.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in TABLAS_VIVAS}
+    finally: live.close()
+CONTEOS_AL_EMPEZAR = conteos_vivos()
+
 checks = []
 def check(desc, cond):
     checks.append((desc, bool(cond)))
@@ -485,13 +495,13 @@ check("Migracion 045 despues de create_all (orden inverso): no falla y se regist
 eng2.dispose()
 
 # =========================================================== 9. la base viva no se toco
+conteos = conteos_vivos()
 live = sqlite3.connect("pilot_v5x.db")
-conteos = {t: live.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in ("pedidos", "pedidos_items", "remitos", "remitos_items", "facturas", "facturas_remitos", "ingesta_facturas_procesadas", "remitos_notas")}
 tiene_tabla = live.execute("SELECT COUNT(*) FROM sqlite_master WHERE name='facturas_ajustes'").fetchone()[0]
 live.close()
 print(f"(info) tabla facturas_ajustes en la base viva: {tiene_tabla} -- la crea el arranque del backend, no los tests")
-check(f"Base VIVA sin tocar: 47/80/16/31/14/9/4/0 ({conteos})",
-      list(conteos.values()) == [47, 80, 16, 31, 14, 9, 4, 0])
+check(f"Base VIVA sin tocar: los mismos conteos que al empezar la prueba ({conteos})",
+      conteos == CONTEOS_AL_EMPEZAR)
 
 fallos = [d for d, ok in checks if not ok]
 print(f"\n{len(checks) - len(fallos)}/{len(checks)} checks OK")

@@ -94,6 +94,8 @@ session_counter.json
 
 # Scratch scripts (temporal audit/debug)
 scratch/*.py
+# [S888] copias de las pruebas que arma tests/sesiones/correr_en_B.py para correrlas contra el clon de B
+scratch/en_B/
 exclude_list.txt
 
 # Protocolos locales (ALFA/OMEGA — cada máquina/entorno tiene versión propia)

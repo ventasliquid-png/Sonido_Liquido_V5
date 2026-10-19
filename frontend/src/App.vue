@@ -7,6 +7,7 @@ import { useClientesStore } from './stores/clientes';
 import { useProductosStore } from './stores/productos';
 import { useMaestrosStore } from './stores/maestros';
 import DevBadge from './components/common/DevBadge.vue';
+import AvisoSesion from './components/ui/AvisoSesion.vue'; // [Card #183] «¿Querés seguir?»
 
 const router = useRouter();
 const route = useRoute();
@@ -106,6 +107,7 @@ const logout = () => {
   <div v-if="ready">
     <DevBadge />
     <ToastNotification />
+    <AvisoSesion />
     <!-- GLOBAL SPLASH / BOOT SCREEN -->
     <transition name="fade">
         <div v-if="booting" class="fixed inset-0 z-[100] bg-[#020617] flex flex-col items-center justify-center overflow-hidden">

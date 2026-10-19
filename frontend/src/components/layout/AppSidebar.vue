@@ -290,7 +290,7 @@
     <!-- User Profile -->
     <div 
       class="border-t border-white/10 p-4 cursor-pointer hover:bg-white/5 transition-colors group mt-auto shrink-0"
-      @click="$emit('logout')"
+      @click="salir"
       title="Cerrar Sesión"
     >
       <div class="flex items-center gap-3">
@@ -308,6 +308,7 @@
 </template>
 
 <script setup>
+import { cerrarSesion } from '../../services/sesion' // [Card #183]
 import { useRouter, useRoute } from 'vue-router'
 import { ref, watch, onMounted } from 'vue'
 import { useNotificationStore } from '../../stores/notification'
@@ -322,6 +323,9 @@ const props = defineProps({
 const router = useRouter()
 const route = useRoute()
 const emit = defineEmits(['logout', 'open-command-palette', 'navigate'])
+// [Card #183, S888] Antes el clic solo emitía 'logout' y ninguna pantalla lo escuchaba (HaweLayout monta la barra sin @logout): no pasaba nada.
+// Ahora la barra cierra la sesión ella misma; el evento se sigue emitiendo por si alguien lo escucha.
+const salir = () => { emit('logout'); cerrarSesion(router) }
 const notificationStore = useNotificationStore()
 const expandedGroups = ref(['INFORMES_REMITOS']) // [S876] el sub-nivel Remitos de Informes arranca abierto
 

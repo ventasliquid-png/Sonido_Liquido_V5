@@ -10,6 +10,7 @@ import Login from '../views/Login.vue';
 import HaweLayout from '../layouts/HaweLayout.vue';
 import DataCleaner from '../views/DataIntel/DataCleaner.vue';
 import HaweView from '../views/HaweView.vue';
+import { tokenVencido } from '../services/sesion'; // [Card #183]
 
 const routes = [
     {
@@ -229,6 +230,11 @@ router.beforeEach((to, from, next) => {
     const token = localStorage.getItem('token');
     if (!to.meta.public && !token) {
         next('/login');
+    } else if (!to.meta.public && tokenVencido(token)) {
+        // [Card #183, S888] Antes solo se miraba que EXISTIERA un token: con uno vencido la pantalla dejaba seguir y fallaban en silencio
+        // las acciones que firman con el usuario. Ahora un token vencido lleva al login y, al volver a entrar, a esta misma pantalla.
+        localStorage.removeItem('token');
+        next({ path: '/login', query: { motivo: 'vencida', volver: to.fullPath } });
     } else {
         next();
     }

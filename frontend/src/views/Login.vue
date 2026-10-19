@@ -12,6 +12,9 @@
             </div>
 
             <form @submit.prevent="handleLogin" class="space-y-6">
+                <div v-if="avisoSesion && !error" data-aviso="sesion" class="bg-amber-100 border border-amber-400 text-amber-800 px-4 py-3 rounded relative" role="status">
+                    <span class="block sm:inline">{{ avisoSesion }}</span>
+                </div>
                 <div v-if="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
                     <span class="block sm:inline">{{ error }}</span>
                 </div>
@@ -53,13 +56,19 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+import { destinoSeguro } from '../services/sesion';
 import axios from 'axios';
 import api from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 
 const router = useRouter();
+const route = useRoute();
+// [Card #183, S888] Si se llegó acá porque la sesión venció (o se cerró desde el cartel), se explica y, al entrar, se vuelve a la misma pantalla.
+const avisoSesion = computed(() => route.query.motivo === 'vencida'
+    ? 'Tu sesión venció. Entrá de nuevo y seguís donde estabas.'
+    : (route.query.motivo === 'cerrada' ? 'Cerraste la sesión.' : ''));
 const username = ref('');
 const password = ref('');
 const error = ref('');
@@ -87,8 +96,8 @@ const handleLogin = async () => {
         authStore.setToken(token);
         // Optionally fetch user details here if needed
         
-        // Redirect to home
-        router.push('/');
+        // [Card #183] Vuelve a la pantalla donde estaba (solo rutas internas); si no hay, al inicio.
+        router.push(destinoSeguro(route.query.volver));
         
     } catch (err) {
         console.error(err);

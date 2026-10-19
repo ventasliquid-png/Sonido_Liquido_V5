@@ -22,6 +22,7 @@ from backend.auth import models
 from backend.auth import service
 from backend.auth.schemas import UsuarioCreate, UsuarioOut, Token
 from backend.core.config import ACCESS_TOKEN_EXPIRE_MINUTES
+from backend.auth.dependencies import get_current_active_user
 # --- [FIN REFACTOR V10.10] ---
 router = APIRouter(
     prefix="/auth",
@@ -97,5 +98,16 @@ async def login_for_access_token(
     return {"access_token": access_token, "token_type": "bearer"}
 
 # --- [FIN FASE 10.E] ---
+
+@router.post("/refresh", response_model=Token)
+def renovar_token(current_user: models.Usuario = Depends(get_current_active_user)):
+    """[Card #183, S888] Renueva la sesión: con un token TODAVÍA VÁLIDO de un usuario activo devuelve uno nuevo del mismo usuario,
+    con la duración completa (7 días). La pantalla lo llama sola mientras se usa el sistema (como mucho una vez por hora) y desde el
+    cartel «¿Querés seguir?». Un token vencido o inválido NO se renueva (401): hay que volver a entrar con usuario y contraseña."""
+    access_token = service.create_access_token(
+        data={"sub": current_user.username},
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
 
 print("--- [Atenea V10.E]: Auth/Router (Seguridad y Login) definido. ---")

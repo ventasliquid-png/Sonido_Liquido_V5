@@ -82,7 +82,8 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
         # Si no se define tiempo, usa el por defecto de config.py (30 min)
         expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     
-    to_encode.update({"exp": expire})
+    # [Card #183] iat = cuándo se emitió: la pantalla lo usa para renovar la sesión como mucho una vez por hora mientras se usa.
+    to_encode.update({"exp": expire, "iat": datetime.now(timezone.utc)})
     
     # Firma el token con nuestra SECRET_KEY y Algoritmo
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
