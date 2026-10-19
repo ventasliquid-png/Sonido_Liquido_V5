@@ -32,6 +32,10 @@ class ProductoFlags:
     HAS_SUPPLIER = 32
 
     # Bit 6 (64): KIT (Es un producto compuesto)
+    # GLOSARIO (S888, auditoría de CA H6; definiciones de Carlos 17/10 y dictamen de Nike 16/10):
+    #   PACK = varias unidades del MISMO producto con SKU y precio propios (ej. «Pack papel cocina x6»): ProductoFlags.ES_PACK, Bit 11, RESERVADO (Nike 16/10), todavía sin código (Card #153).
+    #   KIT DE PRODUCTO = un producto que es un conjunto de productos DISTINTOS con precio conjunto: este bit (IS_KIT = 64) y la columna productos.es_kit; hoy solo una tilde sin componentes ni efecto.
+    #   KIT DE PEDIDO = renglones de un pedido que se vendieron juntos como kit (Card #177): PedidoFlags.ES_KIT, Bit 47 del PEDIDO, RESERVADO (Nike 16/10), todavía sin código.
     IS_KIT = 64
 
     # Bit 7 (128): STOCK_CONTROLADO (Participa en control de stock)

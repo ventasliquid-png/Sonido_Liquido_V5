@@ -15,7 +15,7 @@ PRODUCTO_IS_ACTIVE = 1 << 0      # 0x01: Producto vendible
 PRODUCTO_STOCK_CONTROL = 1 << 1  # 0x02: Control de stock estricto
 PRODUCTO_IS_VISIBLE = 1 << 2     # 0x04: Visible en listas públicas/web
 PRODUCTO_CRITICAL_ITEM = 1 << 3  # 0x08: Artículo crítico (Alerta de stock bajo)
-PRODUCTO_IS_KIT = 1 << 4         # 0x10: Es un combo/kit
+# [S888, auditoría de CA H6] PRODUCTO_IS_KIT = 1 << 4 se RETIRÓ: no la usaba nadie y chocaba con HAS_COST (16) de productos/constants.py. El kit de producto es ProductoFlags.IS_KIT = 64.
 PRODUCTO_ALLOW_NEGATIVE = 1 << 5 # 0x20: Permite stock negativo temporal
 PRODUCTO_REQUIRES_BATCH = 1 << 6 # 0x40: Requiere lote/vencimiento
 # RESERVED: 1<<7 to 1<<31

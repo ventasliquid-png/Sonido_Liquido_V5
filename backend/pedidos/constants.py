@@ -66,6 +66,10 @@ class PedidoFlags(IntFlag):
     # Canonizado por Nike (Sello de Oro) S863 (caso OC LPC, tolerancia 7%) —
     # asignado a 46 en vez de 44 por colisión con ES_ENTREGADO (ver arriba).
     CIERRE_CON_AJUSTE  = 1 << 46
+    # Bit 47 — RESERVADO por dictamen de Nike (16/10/2026, Sello de Oro): ES_KIT = 1 << 47 (140737488355328). Calificador ortogonal de la banda 32+, fuera de
+    # STATE_MASK: marca renglones del pedido vendidos juntos como kit (Card #177). REVERSIBLE mientras el pedido no esté CUMPLIDO ni ANULADO (después queda congelado).
+    # Regla que pidió Nike: con ES_KIT prendido debe haber descuento (hoy «descuento global > 0»; la auditoría de CA propone «suma de los descuentos de los renglones del
+    # kit > 0», que hay que volver a consultarle). NO IMPLEMENTADO: no reutilizar este número ni definirlo hasta que se construya la Card #177.
 
 # Máscara de estados excluyentes
 STATE_MASK = (
