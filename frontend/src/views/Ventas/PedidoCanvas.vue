@@ -1257,6 +1257,16 @@ const isNoComercial = ref(false);
 // (y visto el guard prendido) antes de que se apague. Apagarlo en la misma línea de la
 // asignación no alcanza: el watcher todavía no se disparó y el PATCH sale igual.
 const isHydratingPedido = ref(false);
+// [Card #182, S888] Reversión de un interruptor (COMERCIAL/NO COMERCIAL, circuito) cuando el servidor lo rechaza o lo corrige: es una asignación del programa, NO un toggle del operador.
+// Sin esta bandera, la reversión volvía a disparar el mismo watch, que volvía a llamar al servidor con el valor contrario, fallaba, revertía... (con un error persistente, como una
+// sesión vencida, eran ~4 pedidos por segundo y un guardado entero del pedido en cada vuelta, hasta recargar la página). Misma técnica que isHydratingPedido (ver arriba).
+const revirtiendoInterruptor = ref(false);
+const revertirInterruptor = async (interruptor, valor) => {
+    revirtiendoInterruptor.value = true;
+    interruptor.value = valor;
+    await nextTick(); // el watch corre en un microtask posterior: tiene que ver la bandera prendida antes de que se apague
+    revirtiendoInterruptor.value = false;
+};
 const omitirOC = ref(false); // [V5.5] Flag for OC bypass
 const nroOC = ref(''); // [V5.5] OC Number
 const pedidoOrigenMigracionId = ref(null); // [V5.9] Doctrina Inmutabilidad
@@ -1412,6 +1422,7 @@ watch(clienteSeleccionado, (newVal) => {
 // genérico nunca declaró flags_estado en su schema y lo descartaba en silencio.
 watch(isCircuitoNegro, async (val) => {
     if (isHydratingPedido.value) return; // [FIX S870] H1: loadPedido está hidratando, no es un toggle real
+    if (revirtiendoInterruptor.value) return; // [Card #182] es la reversión de un rechazo del servidor, no un toggle del operador
     const pid = route.params.id;
     if (pid) {
         let res;
@@ -1420,7 +1431,7 @@ watch(isCircuitoNegro, async (val) => {
         } catch (e) {
             const msg = e?.response?.data?.detail || 'Error al cambiar el circuito';
             notificationStore.add(msg, 'error');
-            isCircuitoNegro.value = !val;
+            await revertirInterruptor(isCircuitoNegro, !val);
             return;
         }
         // El servidor es la fuente de verdad (ej: Rosa fuerza Lista 2 pese a is_interno=false).
@@ -1432,7 +1443,7 @@ watch(isCircuitoNegro, async (val) => {
         flagsEstadoPedido.value = Number(flagsServidor);
         const estadoReal = (flagsServidor & (1n << 12n)) !== 0n;
         if (estadoReal !== val) {
-            isCircuitoNegro.value = estadoReal;
+            await revertirInterruptor(isCircuitoNegro, estadoReal);
         }
         return;
     }
@@ -1449,6 +1460,7 @@ watch(isCircuitoNegro, async (val) => {
 // Watch ES_NO_COMERCIAL: en pedido existente llama al endpoint (para nota forense al apagar)
 watch(isNoComercial, async (val) => {
     if (isHydratingPedido.value) return; // [FIX S870] H1: mismo guard, mismo motivo que watch(isCircuitoNegro)
+    if (revirtiendoInterruptor.value) return; // [Card #182] es la reversión de un rechazo del servidor, no un toggle del operador
     const pid = route.params.id;
     if (pid) {
         // Al convertir a COMERCIAL: flush de precios actuales antes de que la guardia los consulte
@@ -1457,7 +1469,7 @@ watch(isNoComercial, async (val) => {
                 await api.patch(`/pedidos/${pid}`, buildPayload());
             } catch (saveErr) {
                 notificationStore.add('No se pudieron guardar los precios. Guardá el pedido manualmente y reintentá.', 'error');
-                isNoComercial.value = !val;
+                await revertirInterruptor(isNoComercial, !val);
                 return;
             }
         }
@@ -1466,7 +1478,7 @@ watch(isNoComercial, async (val) => {
         } catch (e) {
             const msg = e?.response?.data?.detail || 'Error al cambiar modo No Comercial';
             notificationStore.add(msg, 'error');
-            isNoComercial.value = !val;
+            await revertirInterruptor(isNoComercial, !val);
             return;
         }
     }
