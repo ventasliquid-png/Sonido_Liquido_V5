@@ -2328,3 +2328,15 @@ Sin cambios en D ni en B. Solo herramientas del Silo: `board_historico_forense.p
 **Pruebas (`tests/sesiones/`, 49 pruebas, 1.132 comprobaciones):** nuevas `test_renglones_duplicados_s888` (21), `test_migrate_063_s888` (12), `test_kit_grupo_s888` (60), `test_interruptores_sin_bucle_s888` (13), `test_sesion_s888` (18). `_esquema_p.py` (`copiar_p`): las pruebas que copian una base de P le agregan a la COPIA las columnas posteriores a ese backup (hoy `kit_grupo`); sin eso toda consulta ORM sobre un backup viejo falla con «no such column». `test_etapa7d` compara la base de desarrollo contra su estado al empezar (no contra números fijos). `.gitignore`: `scratch/en_B/`.
 
 **Cómo leer P desde OF:** ruta UNC `\\192.168.1.2\C\dev\v5-ls-Tom` (no `Z:`, que es solo `Users`); copiar `.db` + `-wal` a una carpeta temporal. El puerto 8090 de P no responde desde OF.
+
+## Sesión 889 (20/10) — Sin cambios de código; diseño de Remitos (Card #188) y hallazgos
+
+Sin commits de código. Diseño en `DISENO_REMITOS_S889.md` (Silo) e informe completo en `INFORMES_HISTORICOS/2026-10-20_S889_OF_REMITOS.md`. Hallazgos verificados en el código, para el plan:
+- `remitos/router.py:229`: el PDF llena el domicilio del **cliente** con `remito.domicilio_entrega.resumen`; en mostrador es la oficina (`DOMICILIO_ROSETI_ID`, `service.py:917`).
+- `Domicilio.resumen` (`clientes/models.py:278`) usa solo los campos fiscales, nunca `calle_entrega`/`localidad_entrega`.
+- `remito_engine.py` no llena el casillero TRANSPORTISTA; la fecha es `datetime.now()` (línea 272) y `get_remito_pdf` pisa `DOCUMENTOS_GENERADOS_RAR/Remitos de salida/remito_<numero>.pdf`: reimprimir cambia fecha y datos. Valor declarado numérico sale `$ 2,980,000.00` (línea 409).
+- `PedidoItem.cantidad_entregada` (`pedidos/models.py:105`) suma todo remito no anulado, borradores incluidos.
+- `RemitosService.update_remito` (`service.py:1415`): con `estado` en el payload edita un remito no borrador, incluso `numero_legal`.
+- `delete_remito` (`router.py:558`) borra un BORRADOR numerado (H8); no existe acción de anular.
+- `create_manual` sin `pedido_id` crea un pedido «fantasma».
+- `_siguiente_numero_17` existe sin llamadores (mecanismo para una segunda serie, útil para el remito interno RI).

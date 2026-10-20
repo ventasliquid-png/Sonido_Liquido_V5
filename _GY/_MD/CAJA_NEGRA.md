@@ -1,4 +1,15 @@
-﻿Sesion actual: 888
+﻿Sesion actual: 889
+
+# CAJA NEGRA: OMEGA Lite - rediseño de Remitos (Card #188, diseño sin codigo) y el remito 3031 de Petroplastic - S889
+
+Sesion 889 OF, 20/10, NS (CC, Opus) con Carlos. Hash D: HASH_CIERRE_889 (sin commits de codigo; ultimo de codigo a88ee7f6) | Hash B: dea451b = prod/main (sin pushes) | P real: dea451b. Copia de P 20/10 14:28 (63 remitos).
+- Diseño de Remitos (Card #188) con Carlos, partiendo de las tareas del operador (se charlo la tarea 1, venta con remito por el total, y el marco general). DECIDIDO: todo remito cuelga de un pedido (N:1); puertas: desde el pedido (100% pendiente, editable), el remito como primer paso (elige o crea el pedido), ingesta (ya exige pedido), no comercial (pedido No Comercial), bandeja de pendientes; sin texto libre (insumos del padron); sin estado «Emitido»; vista previa sin numero; aviso financiero que no bloquea; ciclo de vida: indeterminado sin numero (el PR de la S869, guardado en la base) -> al salir toma numero RI (Rosa, talonario propio) o 0015 (Blanco) -> inmortal (anulado o perdido, nunca borrado) con la imagen de lo impreso guardada; el remito interno es necesario (control de stock; si llega a ARCA se factura). Abiertas B a K (formato RI, fecha anterior, cambios de color Rosa<->Blanco, 0015 salido que se vuelve Rosa).
+- Operacion real: el 0015-00003031 de Petroplastic (#137) salio por «mostrador» con Roseti 1482 debajo del cliente (igual que el 3030 de Coalix); Cruz del Sur no estaba en el padron. PDF rehecho con el motor de P (domicilio Ruta 234 Km 16, Junin de los Andes; 200 bultos; $ 2.980.000,00) y dejado en Descargas de Tomy; la base de P NO se toco (el 3031 sigue MOSTRADOR/ENTREGADO/Roseti: migracion pendiente).
+- 14 hallazgos para el plan (domicilio del cliente, datos de entrega, transportista, imagen guardada, alta de transporte, bultos/valor, Anular, PATCH con numero, borradores que cuentan como entregados, pedido fantasma del Remito Manual). Receta del Manual operativo corregida (H8).
+- Errores propios: dije que el PDF no imprimia el pedido (si lo imprime); propuse guardar el indeterminado solo en la pantalla sin releer la S869; me corri de la charla sobre el Rosa.
+- Pendiente: paquete urgente (domicilio, transportista, imagen guardada + migracion del 3031, antes Cruz del Sur en el padron); tareas 2 a 7 del diseño; propuesta en una pagina; Nike y CA; #129 espera al RI.
+
+Sesion actual: 888
 
 # CAJA NEGRA: OMEGA Lite - kits del pedido paso 1 (servidor), sesion de 7 dias con renovacion, interruptores sin bucle, #179 y el caso Coalix en P - S888
 
