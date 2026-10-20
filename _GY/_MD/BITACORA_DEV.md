@@ -1,4 +1,4 @@
-﻿## SESION 889 (OF) — 2026-10-20 [NS (CC, Opus)]: diseño del rediseño de Remitos (Card #188) con Carlos y la corrección del remito 3031 de Petroplastic — NOMINAL — D:HASH_CIERRE_889 B:dea451b (= prod/main) P:dea451b
+﻿## SESION 889 (OF) — 2026-10-20 [NS (CC, Opus)]: diseño del rediseño de Remitos (Card #188) con Carlos y la corrección del remito 3031 de Petroplastic — NOMINAL — D:aa828acc B:dea451b (= prod/main) P:dea451b
 
 - Sin código. Marco general y ciclo de vida del remito decididos por Carlos (todo remito cuelga de un pedido; indeterminado sin número = el PR de la S869; al salir toma número RI si es Rosa o 0015 si es Blanco; inmortal, con la imagen guardada); remito interno (RI) con talonario propio; 14 hallazgos para el plan (mostrador imprime Roseti como domicilio del cliente, reimprimir cambia fecha y datos, transportista vacío, sin Anular, PATCH que deja cambiar el número). PDF del 3031 rehecho con el motor de P sin tocar su base. Receta del Manual operativo corregida (H8). Informe: `INFORMES_HISTORICOS/2026-10-20_S889_OF_REMITOS.md`.
 
