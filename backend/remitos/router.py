@@ -133,7 +133,9 @@ def despachar_remito(remito_id: str, payload: schemas.DespacharPayload = schemas
         )
 
     remito.estado = "EN_CAMINO"
-    remito.fecha_salida = datetime.now()
+    # [S890, Carlos 21/10] La fecha de salida se fija cuando el remito toma número (get_remito_pdf): despachar no la pisa.
+    if remito.fecha_salida is None:
+        remito.fecha_salida = datetime.now()
     if payload.bultos is not None:
         remito.bultos = payload.bultos
     db.commit()
@@ -162,6 +164,10 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
             # comerciales juntos" los mandaba al 17. Lo que distingue a un Rosa es que su PDF nunca
             # muestra precio (el motor no dibuja precios) y que su pedido no se factura.
             remito.numero_legal = RemitosService._siguiente_numero_0015(db)
+            # [S890, Carlos 21/10] «La fecha del remito es el día que deja de ser un desnumerado y adquiere rango de
+            # remito»: tomar número es salir. Sin fechas nuevas: se usa fecha_salida (un mostrador ya la trae).
+            if remito.fecha_salida is None:
+                remito.fecha_salida = datetime.now()
             db.add(remito)
             db.commit()
             db.refresh(remito)
@@ -229,6 +235,8 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
             "cuit": cliente.cuit,
             # [S890, regla de Carlos 20/10] La dirección del cliente (entrega, fiscal, y la oficina solo si no tiene ninguna).
             "domicilio_fiscal": RemitosService.domicilio_para_el_papel(db, remito),
+            # [S890] La fecha del remito (cuando tomó número); los remitos viejos sin fecha de salida usan la de creación.
+            "fecha": (remito.fecha_salida or remito.fecha_creacion or datetime.now()).strftime("%d/%m/%Y"),
             "condicion_iva": "RESPONSABLE INSCRIPTO", # Default for now
             "referencia": referencia_str,
             "oc": remito.pedido.oc or "",   # [S882, sugerencia de Tomy] va al casillero "ORDEN DE COMPRA N°:" del talonario
@@ -446,6 +454,43 @@ def crear_nota(
     db.commit()
     db.refresh(nota)
     return nota
+
+@router.patch("/{remito_id}/fecha", response_model=schemas.RemitoResponse)
+def cambiar_fecha(
+    remito_id: str,
+    payload: schemas.RemitoFechaUpdate,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_active_user)
+):
+    """[S890, Carlos 20-21/10] La fecha del remito es la del día en que tomó número (fecha_salida, ver get_remito_pdf).
+    Se puede cambiar «por si el papel se perdió o hay que ajustar algo sin perder el remito original»: solo en un remito
+    numerado y no anulado, con motivo, nunca a futuro, y queda una nota [SISTEMA] con la fecha anterior, la nueva,
+    quién y por qué. No se agrega ninguna fecha nueva al modelo («no debemos tener un montón de fechas»)."""
+    remito = db.query(models.Remito).filter(models.Remito.id == remito_id).first()
+    if not remito:
+        raise HTTPException(status_code=404, detail="Remito no encontrado")
+    if not remito.numero_legal:
+        raise HTTPException(status_code=409, detail="REMITO_SIN_NUMERO: la fecha del remito es la del día en que toma número; este todavía no lo tiene.")
+    if remito.estado == "ANULADO":
+        raise HTTPException(status_code=409, detail="REMITO_ANULADO: no se cambia la fecha de un remito anulado.")
+    motivo = (payload.motivo or "").strip()
+    if not motivo:
+        raise HTTPException(status_code=422, detail="MOTIVO_OBLIGATORIO: decí por qué cambia la fecha del remito.")
+    try:
+        nueva = datetime.strptime(payload.fecha.strip()[:10], "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(status_code=422, detail="FECHA_INVALIDA: la fecha va como AAAA-MM-DD.")
+    if nueva.date() > datetime.now().date():
+        raise HTTPException(status_code=422, detail="FECHA_FUTURA: un remito no puede tener fecha posterior a hoy.")
+    anterior = remito.fecha_salida or remito.fecha_creacion
+    hora = anterior.time() if anterior else datetime.now().time()
+    remito.fecha_salida = datetime.combine(nueva.date(), hora)
+    texto = (f"[SISTEMA] Fecha del remito cambiada del {anterior.strftime('%d/%m/%Y') if anterior else 's/f'} "
+             f"al {nueva.strftime('%d/%m/%Y')}. Motivo: {motivo}")
+    db.add(models.RemitoNota(remito_id=remito.id, texto=texto, autor_id=current_user.id))
+    db.commit()
+    db.refresh(remito)
+    return remito
 
 @router.get("/{remito_id}/notas", response_model=List[schemas.RemitoNotaResponse])
 def listar_notas(remito_id: str, db: Session = Depends(get_db)):

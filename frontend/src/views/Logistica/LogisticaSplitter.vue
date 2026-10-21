@@ -331,6 +331,28 @@
        </div>
     </div>
 
+    <!-- [S890, Carlos 21/10] Al terminar el remito aparecen el valor declarado y los bultos (no son casilleros del formulario).
+         Se pueden ignorar: «Cancelar» sigue igual, con 1 bulto y el valor en blanco. -->
+    <div v-if="datosTransporte.visible" data-modal="datos-transporte" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60]">
+       <div class="bg-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl border border-amber-700/50">
+          <h3 class="text-lg font-bold text-white mb-1"><i class="fas fa-boxes-stacked mr-2 text-amber-400"></i>Para el transporte</h3>
+          <p class="text-xs text-slate-400 mb-4">Van impresos en el remito. «Cancelar» sigue con 1 bulto y el valor sugerido.</p>
+          <label class="block text-[10px] uppercase text-slate-500 mb-1">Valor declarado</label>
+          <input v-model="datosTransporte.valor" data-campo="valor-declarado" inputmode="decimal" placeholder="Ej: 2.980.000"
+                 class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white font-mono mb-1 focus:border-amber-500 outline-none" />
+          <p class="text-[11px] text-slate-500 mb-3">Sugerido: el neto de lo que sale, sin impuestos. Se puede cambiar.</p>
+          <label class="block text-[10px] uppercase text-slate-500 mb-1">Bultos</label>
+          <input type="number" min="1" step="1" v-model.number="datosTransporte.bultos" data-campo="bultos"
+                 class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white font-mono mb-5 focus:border-amber-500 outline-none" />
+          <div class="flex justify-end gap-3">
+             <button @click="omitirDatosTransporte" data-accion="omitir-datos" title="Sigue con 1 bulto y el valor sugerido"
+                     class="text-slate-400 hover:text-white px-4 py-2">Cancelar</button>
+             <button @click="aceptarDatosTransporte" data-accion="aceptar-datos"
+                     class="bg-amber-600 hover:bg-amber-500 text-white px-6 py-2 rounded-lg font-bold">Aceptar</button>
+          </div>
+       </div>
+    </div>
+
     <!-- MODAL REGISTRAR DEVOLUCIÓN [Etapa 6] -->
     <div v-if="showDevolucionModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
        <div class="bg-slate-800 p-6 rounded-2xl w-full max-w-lg shadow-2xl border border-rose-900/50">
@@ -384,7 +406,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, reactive, onMounted, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useRemitosStore } from '@/stores/remitos';
 import { useLogisticaStore } from '@/stores/logistica';
@@ -555,6 +577,8 @@ const openArmarModal = () => {
         producto_nombre: item.producto?.nombre || 'Ítem',
         cantidad_pendiente: item.cantidad_pendiente,
         cantidad: item.cantidad_pendiente,
+        // [S890] neto por unidad del renglón (subtotal ya descontado, sin IVA): base del valor declarado sugerido
+        neto_unitario: item.cantidad_original ? (Number(item.subtotal) || 0) / item.cantidad_original : 0,
         motivo: '',
         marcado: true, // [S887] por defecto el remito es el pedido completo; el parcial es destildar o bajar la cantidad
     }));
@@ -604,10 +628,48 @@ const confirmArmar = async (imprimir = false) => {
         }
     }
 
+    // [S890] Al terminar el remito, antes de armarlo, la ventana del valor declarado y los bultos. El valor viene sugerido:
+    // el neto de lo que sale (sin impuestos); si el remito es el pedido completo, es el neto del pedido (Carlos, 21/10).
+    const sugerido = netoDelRemito(elegidos);
+    Object.assign(datosTransporte, { visible: true, bultos: 1, valor: sugerido ? formatoAR(sugerido) : '', sugerido, imprimir, elegidos });
+};
+
+// [S890, Carlos 21/10] «El valor declarado es siempre el del producto antes de los impuestos»: neto de los renglones que salen, con el
+// descuento global del pedido prorrateado. Con el pedido completo da el neto del pedido (suma de subtotales menos el descuento global).
+const netoDelRemito = (elegidos) => {
+    const subtotales = (localPedido.value?.items || []).reduce((a, it) => a + (Number(it.subtotal) || 0), 0);
+    const factor = subtotales > 0 ? (subtotales - (Number(localPedido.value?.descuento_global_importe) || 0)) / subtotales : 1;
+    const neto = elegidos.reduce((a, s) => a + (s.neto_unitario || 0) * (Number(s.cantidad) || 0), 0) * factor;
+    return neto > 0 ? Math.round(neto * 100) / 100 : null;
+};
+const formatoAR = (n) => n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// [S890, Carlos 21/10] Ventana del final del armado. «Cancelar» no corta el remito: sigue con 1 bulto y el valor sugerido.
+const datosTransporte = reactive({ visible: false, bultos: 1, valor: '', sugerido: null, imprimir: false, elegidos: [] });
+// «2.980.000», «2980000,50» o «$ 2.980.000» -> número; vacío o inválido -> null (en blanco en el papel)
+const montoAR = (texto) => {
+    const limpio = String(texto ?? '').replace(/[$\s]/g, '').replace(/\./g, '').replace(',', '.');
+    const n = Number(limpio);
+    return limpio && isFinite(n) && n > 0 ? n : null;
+};
+const aceptarDatosTransporte = () => {
+    const bultos = Number.isInteger(datosTransporte.bultos) && datosTransporte.bultos > 0 ? datosTransporte.bultos : 1;
+    datosTransporte.visible = false;
+    ejecutarArmado(datosTransporte.imprimir, datosTransporte.elegidos, bultos, montoAR(datosTransporte.valor));
+};
+// «Cancelar» = desestimar la ventana: sigue con lo que proponía (1 bulto y el valor sugerido; sin sugerido, en blanco).
+const omitirDatosTransporte = () => {
+    datosTransporte.visible = false;
+    ejecutarArmado(datosTransporte.imprimir, datosTransporte.elegidos, 1, datosTransporte.sugerido);
+};
+
+const ejecutarArmado = async (imprimir, elegidos, bultos, valorDeclarado) => {
     try {
         const payload = {
             pedido_id: localPedido.value.id,
             metodo_entrega: armarMetodo.value,
+            bultos,
+            ...(valorDeclarado ? { valor_declarado: valorDeclarado } : {}),
             items: elegidos.map(s => ({
                 pedido_item_id: s.pedido_item_id,
                 cantidad: s.cantidad,

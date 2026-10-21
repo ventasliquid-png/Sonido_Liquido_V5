@@ -1025,6 +1025,9 @@ class RemitosService:
             # [Etapa 3] numero_legal queda None -- se asigna al imprimir, no al armar.
             numero_legal=None,
             flags_estado=flags_remito,
+            # [S890, Carlos 21/10] De la ventana del final del armado; sin dato: 1 bulto y valor declarado en blanco.
+            bultos=payload.bultos if payload.bultos and payload.bultos > 0 else 1,
+            valor_declarado=payload.valor_declarado if payload.valor_declarado and payload.valor_declarado > 0 else None,
         )
         db.add(remito)
         db.flush()

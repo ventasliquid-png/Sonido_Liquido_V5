@@ -119,8 +119,13 @@
                 </div>
 
                 <!-- Fecha -->
-                <div class="w-24 text-center flex flex-col leading-tight">
-                    <span class="text-xs text-blue-100 font-bold">{{ formatDate(remito.fecha_creacion).split(' ')[0] }}</span>
+                <!-- [S890, Carlos 21/10] La fecha del remito es la del día en que tomó número (fecha_salida); sin número, la de armado.
+                     El lápiz la cambia con motivo (queda una nota [SISTEMA]). -->
+                <div class="w-24 text-center flex items-center justify-center gap-1 leading-tight group/fecha">
+                    <span class="text-xs text-blue-100 font-bold" data-fecha-remito>{{ formatDate(fechaRemito(remito)).split(' ')[0] }}</span>
+                    <button v-if="remito.numero_legal && remito.estado !== 'ANULADO'" @click.stop="abrirCambioFecha(remito)" data-accion="cambiar-fecha"
+                            class="text-[10px] text-blue-500/40 hover:text-blue-300 opacity-0 group-hover/fecha:opacity-100 transition-opacity"
+                            title="Cambiar la fecha del remito (con motivo)"><i class="fas fa-pen"></i></button>
                 </div>
 
                 <!-- Cliente -->
@@ -375,6 +380,25 @@
          </div>
       </div>
 
+      <!-- [S890] Cambiar la fecha de un remito numerado: con motivo, nunca a futuro; queda una nota [SISTEMA] -->
+      <div v-if="cambioFecha.visible" data-modal="cambiar-fecha" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[110] p-4" @click.self="cerrarCambioFecha">
+        <div class="bg-[#0b1220] border border-blue-500/40 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+          <h3 class="text-white font-bold text-lg mb-1">Cambiar la fecha del remito</h3>
+          <p class="text-xs text-blue-300/70 mb-4">{{ cambioFecha.remito?.numero_legal }} · {{ cambioFecha.remito?.razon_social }}. El remito no cambia: solo su fecha, y queda una nota con la fecha anterior y el motivo.</p>
+          <label class="block text-[10px] uppercase tracking-widest text-blue-400 font-bold mb-1">Fecha</label>
+          <input type="date" v-model="cambioFecha.fecha" :max="hoyISO()" data-campo="fecha" class="w-full bg-black/30 border border-blue-900/40 rounded-lg px-3 py-2 text-sm text-white mb-4" />
+          <label class="block text-[10px] uppercase tracking-widest text-blue-400 font-bold mb-1">Motivo</label>
+          <textarea v-model="cambioFecha.motivo" rows="2" data-campo="motivo" placeholder="Por qué cambia la fecha" class="w-full bg-black/30 border border-blue-900/40 rounded-lg px-3 py-2 text-sm text-white mb-5"></textarea>
+          <div class="flex justify-end gap-2">
+            <button @click="cerrarCambioFecha" class="px-4 py-2 rounded-lg text-sm text-blue-300 hover:text-white">Cancelar</button>
+            <button @click="guardarCambioFecha" :disabled="cambioFecha.guardando || !cambioFecha.fecha || !cambioFecha.motivo.trim()" data-accion="guardar-fecha"
+                    class="px-4 py-2 rounded-lg text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-40 disabled:cursor-not-allowed">
+              <i v-if="cambioFecha.guardando" class="fas fa-spinner fa-spin mr-1"></i> Guardar
+            </button>
+          </div>
+        </div>
+      </div>
+
     </main>
   </div>
 </template>
@@ -627,8 +651,8 @@ const sortedRemitos = computed(() => {
                 valB = b.numero_legal || ''
                 break
             case 'fecha':
-                valA = new Date(a.fecha_creacion).getTime()
-                valB = new Date(b.fecha_creacion).getTime()
+                valA = new Date(fechaRemito(a)).getTime()
+                valB = new Date(fechaRemito(b)).getTime()
                 break
             case 'cliente':
                 valA = a.razon_social || ''
@@ -651,6 +675,30 @@ const sortedRemitos = computed(() => {
         return 0
     })
 })
+
+// [S890, Carlos 21/10] La fecha del remito: la del día en que tomó número (fecha_salida); un remito sin número muestra la de armado.
+const fechaRemito = (remito) => (remito.numero_legal && remito.fecha_salida) ? remito.fecha_salida : remito.fecha_creacion
+const hoyISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
+const aISO = (s) => { const d = new Date(s); return isNaN(d) ? hoyISO() : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
+const cambioFecha = reactive({ visible: false, remito: null, fecha: '', motivo: '', guardando: false })
+const abrirCambioFecha = (remito) => {
+    Object.assign(cambioFecha, { visible: true, remito, fecha: aISO(fechaRemito(remito)), motivo: '', guardando: false })
+}
+const cerrarCambioFecha = () => { cambioFecha.visible = false; cambioFecha.remito = null }
+const guardarCambioFecha = async () => {
+    if (!cambioFecha.remito || !cambioFecha.fecha || !cambioFecha.motivo.trim()) return
+    cambioFecha.guardando = true
+    try {
+        await api.patch(`/remitos/${cambioFecha.remito.id}/fecha`, { fecha: cambioFecha.fecha, motivo: cambioFecha.motivo.trim() })
+        notification.add(`Fecha del remito ${cambioFecha.remito.numero_legal} cambiada.`, 'success')
+        cerrarCambioFecha()
+        refresh()
+    } catch (e) {
+        notification.add('No se pudo cambiar la fecha: ' + (e.response?.data?.detail || e.message), 'error')
+    } finally {
+        cambioFecha.guardando = false
+    }
+}
 
 const formatDate = (dateString) => {
     if (!dateString) return '-'

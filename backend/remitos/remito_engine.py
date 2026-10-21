@@ -268,8 +268,10 @@ class PDFRemito(FPDF):
         # --- ENCABEZADO ---
         
         # Fecha (L12, C71)
-        set_bas_xy(12, 71) 
-        fecha_str = datetime.now().strftime("%d/%m/%Y")
+        set_bas_xy(12, 71)
+        # [S890, Carlos 21/10] La fecha del remito es la del día en que tomó número (la manda quien llama, ver
+        # get_remito_pdf). Antes era la del día en que se generaba el PDF: cada reimpresión cambiaba la fecha del papel.
+        fecha_str = cliente_data.get('fecha') or datetime.now().strftime("%d/%m/%Y")
         self.cell(30, 6, fecha_str, 0)
         
         # Nombre (L18, C10)
@@ -406,7 +408,8 @@ class PDFRemito(FPDF):
         if val_raw is not None and val_raw != 0:
             set_bas_xy(64, 25) # Desplazamiento para el dato
             self.set_font('Arial', '', 8)
-            val_text = f"$ {val_raw:,.2f}" if isinstance(val_raw, (int, float)) else str(val_raw)
+            # [S890] Formato argentino ($ 2.980.000,00); antes salía «$ 2,980,000.00».
+            val_text = ("$ " + f"{val_raw:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")) if isinstance(val_raw, (int, float)) else str(val_raw)
             self.cell(40, 5, val_text, 0)
         
         set_bas_xy(64, 45) # Movido a la derecha para no superponer

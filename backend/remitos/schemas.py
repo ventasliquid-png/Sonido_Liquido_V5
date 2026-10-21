@@ -41,6 +41,12 @@ class RemitoNotaCreate(BaseModel):
     remito_item_id: Optional[int] = None
     texto: str
 
+class RemitoFechaUpdate(BaseModel):
+    """[S890, Carlos 20-21/10] Cambiar la fecha de un remito ya numerado (por ejemplo, si el papel se perdió o hay que
+    ajustarla sin perder el remito original). `fecha` es un día (AAAA-MM-DD); `motivo` es obligatorio y queda en la nota."""
+    fecha: str
+    motivo: str
+
 class RemitoNotaResponse(BaseModel):
     id: int
     remito_id: UUID
@@ -211,6 +217,10 @@ class ArmarRemitoPayload(BaseModel):
     # MOSTRADOR fuerza la oficina como domicilio y deja el transporte vacío.
     metodo_entrega: Optional[str] = None
     items: List[ArmarRemitoItemPayload]
+    # [S890, Carlos 21/10] Los pide una ventana al terminar el remito (no casilleros del formulario). El operador puede
+    # ignorarla: sin dato = 1 bulto y valor declarado en blanco. El valor declarado puede no coincidir con el neto del pedido.
+    bultos: Optional[int] = None
+    valor_declarado: Optional[float] = None
 
 class ResolverNoFacturablePayload(BaseModel):
     """[S876] Resolución de un renglón con motivo_no_facturable. Hoy una sola acción: FACTURAR (el motivo

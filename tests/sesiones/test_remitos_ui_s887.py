@@ -24,7 +24,8 @@ check("las entregas abren el cuadro «Imprimir remito» solo con ?armar=1 despu�
 
 # ---- el cuadro: por defecto el remito es el pedido completo (el parcial es la excepción) y se imprime con un clic
 check("el cuadro arma el remito con TODO el pedido tildado y las cantidades completas por defecto",
-      re.search(r"cantidad: item\.cantidad_pendiente,\s*motivo: '',\s*marcado: true,", split) and "marcado: false," not in split[split.index("const openArmarModal"):split.index("const cancelArmar")])
+      # [S890] entre la cantidad y el motivo ahora va el neto por unidad del renglón (base del valor declarado sugerido)
+      re.search(r"cantidad: item\.cantidad_pendiente,(?:\s*//[^\n]*)?(?:\s*neto_unitario:[^\n]*)?\s*motivo: '',\s*marcado: true,", split) and "marcado: false," not in split[split.index("const openArmarModal"):split.index("const cancelArmar")])
 check("el cuadro dice «Esto voy a imprimir: el pedido completo» y que se puede modificar", "Esto voy a imprimir: el pedido completo." in split and "Podés modificarlo" in split and "Imprimir remito</h3>" in split)
 check("el botón principal del cuadro es «Imprimir remito» (arma e imprime) y queda «Solo armar» como secundario",
       "@click=\"confirmArmar(true)\"" in split and "@click=\"confirmArmar(false)\"" in split and "Solo armar" in split and re.search(r"Imprimir remito\s*</button>", split))
@@ -48,7 +49,8 @@ cab = lista[lista.index("<!-- Header Row -->"):lista.index("v-for=\"remito in so
 orden = [cab.index(f"toggleSort('{k}')") for k in ("numero", "pedido", "fecha", "cliente")]
 check("la cabecera tiene la columna «Pedido» ordenable, entre Número y Fecha", orden == sorted(orden) and ">\n                    Pedido\n" in cab)
 fila = lista[lista.index("v-for=\"remito in sortedRemitos\""):lista.index("<!-- Empty State -->")]
-pos = [fila.index(s) for s in ("remito.numero_legal || 'BORRADOR'", "#{{ remito.pedido_id }}", "formatDate(remito.fecha_creacion)", "remito.razon_social || 'Desconocido'")]
+# [S890] la columna Fecha muestra la fecha del remito (fechaRemito: la de cuando tomó número), ya no fecha_creacion
+pos = [fila.index(s) for s in ("remito.numero_legal || 'BORRADOR'", "#{{ remito.pedido_id }}", "formatDate(fechaRemito(remito))", "remito.razon_social || 'Desconocido'")]
 check("cada fila muestra el Nº de pedido en su columna, en el mismo orden que la cabecera (Número, Pedido, Fecha, Cliente)", pos == sorted(pos))
 check("el Nº de pedido ya no va como subtítulo bajo el cliente", "Pedido #{{ remito.pedido_id }}" not in fila)
 check("cada fila tiene un ícono de impresora que no abre el editor (@click.stop) y se apaga en los ANULADOS",
