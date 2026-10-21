@@ -36,6 +36,63 @@ class RemitosService:
                 f"si es el que querés mandar, reimprimilo desde ahí en vez de hacer otro.")
 
     @staticmethod
+    def _texto_domicilio(dom: Domicilio) -> str:
+        """[S890] Texto de un domicilio para el papel. Si tiene una dirección de entrega propia (el juego
+        calle_entrega/localidad_entrega, «V7.2: separada de la fiscal») y es OTRA calle, se imprime esa; si no,
+        la del domicilio (Domicilio.resumen). En P 49 de 55 domicilios repiten la calle en calle_entrega y a 4
+        les falta la localidad_entrega: con esos, la de entrega perdería datos."""
+        calle_ent = (dom.calle_entrega or "").strip()
+        if calle_ent and calle_ent.upper() != (dom.calle or "").strip().upper():
+            numero = f" {dom.numero_entrega}" if dom.numero_entrega else ""
+            piso_depto = ""
+            if dom.piso_entrega or dom.depto_entrega:
+                piso = f"Piso {dom.piso_entrega}" if dom.piso_entrega else ""
+                depto = f"Dto {dom.depto_entrega}" if dom.depto_entrega else ""
+                piso_depto = f" ({piso} {depto})".replace("  ", " ")
+            localidad = f", {dom.localidad_entrega}" if dom.localidad_entrega else ""
+            provincia = ""
+            if dom.provincia_entrega:
+                provincia = f" ({dom.provincia_entrega.nombre})"
+            elif dom.provincia_entrega_id:
+                provincia = f" ({dom.provincia_entrega_id})"
+            cp = f" [CP: {dom.cp_entrega}]" if dom.cp_entrega else ""
+            return f"{calle_ent}{numero}{piso_depto}{localidad}{provincia}{cp}"
+        return dom.resumen
+
+    @staticmethod
+    def domicilio_para_el_papel(db: Session, remito: "models.Remito") -> str:
+        """[S890, regla de Carlos 20/10] El remito impreso muestra la dirección del CLIENTE, aunque retire él o
+        mande a alguien a buscar: 1° la de entrega (la del remito, la del pedido o un domicilio de entrega del
+        cliente, el predeterminado primero), 2° la fiscal, y 3° la oficina (Roseti 1482) SOLO si el cliente no
+        tiene ninguna (consumidor final, casi seguro Rosa). Antes se imprimía el domicilio de entrega del remito
+        tal cual, y un retiro por MOSTRADOR (cuyo domicilio es la oficina) salía con «Roseti 1482» debajo del
+        nombre del cliente (0015-00003030 de Coalix y 0015-00003031 de Petroplastic, 19 y 20/10).
+        El domicilio GUARDADO en el remito no cambia: en mostrador sigue siendo la oficina, que es donde se
+        entregó. Solo cambia lo que dice el papel."""
+        from uuid import UUID
+        from backend.clientes.constants import DOMICILIO_ROSETI_ID
+        oficina = UUID(DOMICILIO_ROSETI_ID).hex
+
+        def es_oficina(dom) -> bool:
+            return dom is not None and UUID(str(dom.id)).hex == oficina
+
+        pedido = remito.pedido
+        cliente = pedido.cliente if pedido else None
+        candidatos = [remito.domicilio_entrega, pedido.domicilio_entrega if pedido else None]
+        if cliente:
+            activos = [d for d in cliente.domicilios if d.activo]
+            candidatos += sorted([d for d in activos if d.es_entrega], key=lambda d: not d.es_predeterminado)
+            candidatos += [d for d in activos if d.es_fiscal]
+        for dom in candidatos:
+            if dom is None or es_oficina(dom):
+                continue
+            texto = RemitosService._texto_domicilio(dom)
+            if texto and texto.strip() != "S/D":
+                return texto
+        dom_oficina = db.query(Domicilio).filter(Domicilio.id == UUID(DOMICILIO_ROSETI_ID)).first()
+        return dom_oficina.resumen if dom_oficina else "SIN DOMICILIO"
+
+    @staticmethod
     def _resolve_iva_condition(db: Session, name: Optional[str]) -> Optional[str]:
         if not name: return None
         # Normalización para búsqueda

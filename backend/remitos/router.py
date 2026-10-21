@@ -223,10 +223,12 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
         # casillero en el talonario ("ORDEN DE COMPRA N°:", ver "oc" mas abajo y remito_engine.add_content).
         referencia_str = f"Pedido #{remito.pedido_id}"
 
+        from backend.remitos.service import RemitosService
         cliente_data = {
             "razon_social": cliente.razon_social,
             "cuit": cliente.cuit,
-            "domicilio_fiscal": remito.domicilio_entrega.resumen if remito.domicilio_entrega else cliente.domicilio_fiscal_resumen or "SIN DOMICILIO FISCAL",
+            # [S890, regla de Carlos 20/10] La dirección del cliente (entrega, fiscal, y la oficina solo si no tiene ninguna).
+            "domicilio_fiscal": RemitosService.domicilio_para_el_papel(db, remito),
             "condicion_iva": "RESPONSABLE INSCRIPTO", # Default for now
             "referencia": referencia_str,
             "oc": remito.pedido.oc or "",   # [S882, sugerencia de Tomy] va al casillero "ORDEN DE COMPRA N°:" del talonario

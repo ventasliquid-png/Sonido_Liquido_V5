@@ -194,7 +194,14 @@ pg = libre(rosa=True, transporte=False, cuit="11111111119")
 rg = armar(pg, "MOSTRADOR").json(); tg = pdf_texto(rg["id"])
 razon_g = q("select c.razon_social from pedidos p join clientes c on c.id=p.cliente_id where p.id=?", pg)[0][0]
 check(f"PDF: cliente con CUIT genérico ({razon_g}, 11111111119) -> el número NO se imprime (ni con guiones) y el nombre sí", not re.search(r"11-?1{8}-?9", tg) and razon_g.upper() in tg)
-check("PDF de mostrador: el domicilio impreso es el de la oficina (Roseti 1482)", "ROSETI 1482" in tg)
+# [S890, regla de Carlos 20/10] Antes el PDF de mostrador imprimía siempre la oficina. Ahora imprime la dirección del cliente (entrega, después fiscal) y la
+# oficina SOLO si el cliente no tiene ninguna (consumidor final, casi seguro Rosa). Detalle en test_direccion_remito_s890.py.
+propios_g = q("""select count(*) from domicilios_clientes dc join domicilios d on d.id=dc.domicilio_id join pedidos p on p.cliente_id=dc.cliente_id
+                 where p.id=? and d.id<>? and d.activo=1 and (d.es_entrega=1 or d.es_fiscal=1)""", pg, OFICINA)[0][0]
+if propios_g:
+    check(f"PDF de mostrador: el cliente tiene {propios_g} domicilio(s) propio(s) -> imprime el suyo, no la oficina (regla S890)", "ROSETI 1482" not in tg)
+else:
+    check("PDF de mostrador: el cliente no tiene domicilio propio (consumidor final) -> recién ahí imprime la oficina, Roseti 1482 (regla S890)", "ROSETI 1482" in tg)
 check("PDF: CUIT genérico -> condición de IVA 'Cons. Final'", "Cons. Final" in tg)
 pn = libre(rosa=False, transporte=False)
 cuit_n = q("select c.cuit from pedidos p join clientes c on c.id=p.cliente_id where p.id=?", pn)[0][0]
