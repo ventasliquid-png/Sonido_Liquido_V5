@@ -1,4 +1,10 @@
-﻿## SESION 889 (OF) — 2026-10-20 [NS (CC, Opus)]: diseño del rediseño de Remitos (Card #188) con Carlos y la corrección del remito 3031 de Petroplastic — NOMINAL — D:aa828acc B:dea451b (= prod/main) P:dea451b
+﻿## SESION 890 (OF) — 2026-10-21 [NS (CC, Opus)]: remitos, paquete 1 en producción (dirección del cliente, fecha del remito, valor declarado y bultos, transportista y web de retiro, el 3031 igual al papel) — NOMINAL — D:HASH_CIERRE_890 B:61b6a2c (= prod/main) P:dea451b (toma 61b6a2c al relanzar)
+
+- Tres commits de código en D (`a7ef8fc3`, `ee9ffeef`, `01d8b57c`) y dos pushes a producción (`dea451b..2b0e672..61b6a2c`) con `migrate_064` (web_retiro) y `migrate_065` (3031 con Cruz del Sur). Carlos: fecha del remito = día en que toma número, valor declarado = neto sin impuestos, genoma del remito en bits y bit de cicatriz «papel distinto» (para Nike). 54 pruebas en D, 51 contra B.
+
+---
+
+## SESION 889 (OF) — 2026-10-20 [NS (CC, Opus)]: diseño del rediseño de Remitos (Card #188) con Carlos y la corrección del remito 3031 de Petroplastic — NOMINAL — D:aa828acc B:dea451b (= prod/main) P:dea451b
 
 - Sin código. Marco general y ciclo de vida del remito decididos por Carlos (todo remito cuelga de un pedido; indeterminado sin número = el PR de la S869; al salir toma número RI si es Rosa o 0015 si es Blanco; inmortal, con la imagen guardada); remito interno (RI) con talonario propio; 14 hallazgos para el plan (mostrador imprime Roseti como domicilio del cliente, reimprimir cambia fecha y datos, transportista vacío, sin Anular, PATCH que deja cambiar el número). PDF del 3031 rehecho con el motor de P sin tocar su base. Receta del Manual operativo corregida (H8). Informe: `INFORMES_HISTORICOS/2026-10-20_S889_OF_REMITOS.md`.
 

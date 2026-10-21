@@ -1343,3 +1343,14 @@ Sin cambios funcionales visibles: la sesión trabajó el Board y los protocolos,
 - **Bultos y valor declarado** hoy solo se cargan desde el **Remito Manual**.
 - **Un pedido Rosa entregado sin remito** (por ejemplo, el #129): no lo pases a Cumplido todavía. Quedaría escrito «entregado 0». Se va a cerrar con el remito interno, que está en diseño.
 - **Un remito con número no se borra** (ver la receta corregida de la sesión 888).
+
+## Sesión 890 (21/10) — Remitos: lo que cambia para quien opera
+
+*En producción desde el 21/10 (`61b6a2c`). Entra en P cuando Tomy relanza Soberana; después, Ctrl + Mayús + R en el navegador. Los avisos de la sesión 889 sobre el mostrador, la reimpresión y los bultos quedan resueltos con esto.*
+
+- **La dirección del remito es la del cliente**, aunque retire él o mande a alguien: primero la **de entrega**, si no la **fiscal**. La de la oficina (Roseti 1482) sale **solo** si el cliente no tiene ninguna (consumidor final, casi siempre Rosa). Vale también para «Retira por mostrador».
+- **La fecha del remito es la del día en que toma número.** Reimprimirlo otro día ya no le cambia la fecha. Si hace falta cambiarla (el papel se perdió, hay que ajustar algo), en **Remitos** pasá el mouse por la fecha y tocá el **lápiz**: pide la fecha nueva y un **motivo**; queda una nota con la fecha anterior. No acepta fechas futuras ni remitos sin número o anulados.
+- **Al terminar «Imprimir remito» aparece la ventana «Para el transporte»**: el **valor declarado** viene sugerido (el neto de lo que sale, sin impuestos; con el pedido completo, el neto del pedido) y se puede cambiar; los **bultos** vienen en 1. «Cancelar» sigue con el valor sugerido y 1 bulto.
+- **El casillero TRANSPORTISTA del remito se llena solo** con la razón social, el CUIT y el domicilio del transporte del padrón. Si no hay empresa de transporte, dice cómo sale («RETIRA EL CLIENTE», «TRANSPORTE PROPIO», «MOTO / CADETERÍA»).
+- **Web para pedir el retiro:** en **Maestros → Transportes** cada transporte tiene el campo «Web para pedir el retiro». En la ventana de «Imprimir remito», al elegir el transporte, el título del recuadro pasa a ser **«Pedir retiro en …»** (abre la página en otra pestaña), con **Copiar**. Al lado está **«Nuevo transporte»**, que abre el padrón en otra pestaña (después tocá ↻ para que aparezca en la lista). La tarjeta de un remito ya armado también tiene **«Pedir retiro»**. Cruz del Sur ya tiene cargada la suya.
+- **El 0015-00003031 (Petroplastic)** quedó igual al papel que imprimió Celtrap: Cruz del Sur, en camino desde el 20/10, 200 bultos, $ 2.980.000. Ya se puede reimprimir desde el sistema.
