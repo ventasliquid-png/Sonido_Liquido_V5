@@ -32,6 +32,8 @@ class EmpresaTransporte(Base):
     
     observaciones = Column(Text, nullable=True)
     web_tracking = Column(String(255), nullable=True)
+    # [S890, migrate_064, Carlos 21/10] Página del transporte para PEDIR EL RETIRO (no la de seguimiento). La ventana del remito la ofrece como enlace y para copiar.
+    web_retiro = Column(String(255), nullable=True)
     telefono_reclamos = Column(String(50), nullable=True)
     
     # [GENOMA 64-bit] Sovereign Flags (64-bit)

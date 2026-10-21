@@ -22,6 +22,7 @@ class EmpresaTransporteBase(BaseModel):
     observaciones: Optional[str] = None
 
     web_tracking: Optional[str] = None
+    web_retiro: Optional[str] = None  # [S890] página para pedir el retiro
     telefono_reclamos: Optional[str] = None
     formato_etiqueta: str = 'PROPIA' # 'PROPIA', 'EXTERNA_PDF'
     flags_estado: int = 3 # Existence + Active
@@ -40,6 +41,7 @@ class EmpresaTransporteUpdate(BaseModel):
     
     observaciones: Optional[str] = None
     web_tracking: Optional[str] = None
+    web_retiro: Optional[str] = None  # [S890]
     telefono_reclamos: Optional[str] = None
     formato_etiqueta: Optional[str] = None
     flags_estado: Optional[int] = None

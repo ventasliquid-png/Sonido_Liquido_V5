@@ -422,6 +422,36 @@ class PDFRemito(FPDF):
             self.set_font('Arial', '', 8)
             self.cell(20, 5, str(bultos_raw), 0)
 
+        # [S890, Carlos 21/10] Casillero TRANSPORTISTA del talonario 0015 (razón social, CUIT, domicilio). Antes nunca se llenaba y Tomy lo escribía a mano.
+        # Posiciones medidas sobre el escaneo del formulario (base_remito_v1.png, que se estira a 210 x 297 mm): «RAZON SOCIAL:» termina en x=66.5 mm
+        # (letras en y 243.3-245.7), «C.U.I.T.:» en x=53.5 mm (y 251.7-254.1), «DOMICILIO:» en x=59.5 mm (y 260.2-262.4); el casillero llega hasta x~125.5 mm
+        # (ahí empieza «Recibí conforme»). Lo que no entra se achica hasta 6 pt y después se corta: nunca invade el casillero de al lado.
+        transp = cliente_data.get('transportista') or {}
+
+        def en_casillero(x, y, ancho, texto):
+            texto = self._pdf_safe(str(texto or '').replace("—", "-").strip())
+            if not texto:
+                return
+            util = ancho - 2 * self.c_margin   # la celda deja un margen a cada lado
+            tam = 9
+            self.set_font('Arial', 'B', tam)
+            while tam > 6 and self.get_string_width(texto) > util:
+                tam -= 1
+                self.set_font('Arial', 'B', tam)
+            if self.get_string_width(texto) > util:
+                while len(texto) > 1 and self.get_string_width(texto) > util:
+                    texto = texto[:-1]
+                corte = texto.rfind(" ")   # se corta en una palabra entera, no a mitad
+                if corte > len(texto) // 2:
+                    texto = texto[:corte]
+                texto = texto.rstrip(" ,-(")
+            self.set_xy(x, y)
+            self.cell(ancho, 4, texto, 0)
+
+        en_casillero(68.0, 242.6, 57.0, transp.get('razon_social'))
+        en_casillero(55.0, 250.9, 70.0, transp.get('cuit'))
+        en_casillero(61.0, 259.3, 64.0, transp.get('domicilio'))
+
         # [V5] Invoice Link (Pie de Página Legal)
         # [SABUESO ORO] Footer handling is now automatic via pdf.footer()
         # and it's called by FPDF on each add_page(). Emptying add_content overlap.

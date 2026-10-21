@@ -267,6 +267,7 @@ const openNewTransporte = () => {
         nombre: '',
         telefono_reclamos: '',
         web_tracking: '',
+        web_retiro: '', // [S890]
         activo: true,
         requiere_carga_web: false,
         servicio_retiro_domicilio: false,

@@ -92,6 +92,33 @@ class RemitosService:
         dom_oficina = db.query(Domicilio).filter(Domicilio.id == UUID(DOMICILIO_ROSETI_ID)).first()
         return dom_oficina.resumen if dom_oficina else "SIN DOMICILIO"
 
+    # [S890, Carlos 21/10] Qué dice el casillero TRANSPORTISTA cuando no interviene una empresa de transporte: el método de la entrega.
+    TRANSPORTISTA_POR_METODO = {
+        "MOSTRADOR": "RETIRA EL CLIENTE",
+        "TRANSPORTE_PROPIO": "TRANSPORTE PROPIO",
+        "MOTO_CADETERIA": "MOTO / CADETERÍA",
+        "REMITO_EXTERNO": "CON REMITO O ETIQUETA DE UN TERCERO",
+    }
+
+    @staticmethod
+    def transportista_para_el_papel(db: Session, remito: "models.Remito") -> dict:
+        """[S890, Carlos 21/10] Datos del casillero TRANSPORTISTA del talonario: razón social, CUIT y domicilio de la empresa de transporte del remito
+        (el domicilio sale de su vínculo geográfico en el Address Hub, el activo más viejo). Sin empresa, la razón social dice el método de la entrega
+        («RETIRA EL CLIENTE», «TRANSPORTE PROPIO»...). Sin empresa ni método (remitos viejos), el casillero queda en blanco."""
+        t = remito.transporte
+        if t is None:
+            texto = RemitosService.TRANSPORTISTA_POR_METODO.get((remito.metodo_entrega or "").upper())
+            return {"razon_social": texto} if texto else {}
+        cuit = "".join(ch for ch in str(t.cuit or "") if ch.isdigit())
+        cuit = f"{cuit[:2]}-{cuit[2:10]}-{cuit[10:]}" if len(cuit) == 11 else (t.cuit or "")
+        domicilio = ""
+        vinculo = (db.query(VinculoGeografico)
+                   .filter(VinculoGeografico.entidad_tipo == "TRANSPORTE", VinculoGeografico.entidad_id == t.id, VinculoGeografico.activo == True)  # noqa: E712
+                   .order_by(VinculoGeografico.created_at.asc()).first())
+        if vinculo is not None and vinculo.domicilio is not None:
+            domicilio = vinculo.domicilio.resumen
+        return {"razon_social": t.nombre, "cuit": cuit, "domicilio": "" if domicilio == "S/D" else domicilio}
+
     @staticmethod
     def _resolve_iva_condition(db: Session, name: Optional[str]) -> Optional[str]:
         if not name: return None

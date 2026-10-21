@@ -160,7 +160,10 @@
                    </h3>
                    <div class="flex gap-4 text-sm text-slate-400 mt-1">
                       <p><i class="fas fa-map-marker-alt"></i> {{ remitoDireccionLabel(remito) }}</p>
-                      <p><i class="fas fa-building"></i> {{ remitoTransporteLabel(remito) }}</p>
+                      <p><i class="fas fa-building"></i> {{ remitoTransporteLabel(remito) }}
+                         <!-- [S890] después de imprimir, el enlace para pedir el retiro al transporte -->
+                         <a v-if="webRetiroDe(remito.transporte_id)" :href="urlWeb(webRetiroDe(remito.transporte_id))" target="_blank" rel="noopener" data-enlace="web-retiro-remito"
+                            class="ml-2 text-[11px] text-amber-400 hover:text-amber-300 underline">Pedir retiro <i class="fas fa-arrow-up-right-from-square text-[9px]"></i></a></p>
                       <!-- [S876] Cómo salió ESTA entrega (congelado al armar). Vacío en remitos anteriores. -->
                       <p v-if="remito.metodo_entrega" class="text-[10px] font-bold uppercase self-center bg-slate-700/60 text-slate-300 px-2 py-0.5 rounded border border-slate-600"
                          :title="metodoLabel(remito.metodo_entrega)">
@@ -271,11 +274,26 @@
              </p>
              <template v-else-if="armarMetodo">
                 <div v-if="armarMetodo === 'FLETE_TERCERO'">
-                   <label class="block text-[10px] uppercase text-slate-500 mb-1">Transporte</label>
+                   <!-- [S890, Carlos 21/10] El título del recuadro es el enlace a la web del transporte para PEDIR EL RETIRO (si está cargada en el padrón),
+                        con un botón para copiarla. «Nuevo transporte» abre el padrón en otra pestaña y ↻ recarga la lista. -->
+                   <div class="flex items-center justify-between mb-1 gap-2">
+                      <a v-if="transporteElegido?.web_retiro" :href="urlWeb(transporteElegido.web_retiro)" target="_blank" rel="noopener" data-enlace="web-retiro"
+                         class="text-[11px] font-bold text-amber-400 hover:text-amber-300 underline truncate" :title="transporteElegido.web_retiro">
+                         Pedir retiro en {{ transporteElegido.nombre }} <i class="fas fa-arrow-up-right-from-square text-[9px]"></i></a>
+                      <label v-else class="block text-[10px] uppercase text-slate-500">Transporte</label>
+                      <span class="flex items-center gap-2 shrink-0 text-[10px]">
+                         <button v-if="transporteElegido?.web_retiro" type="button" @click="copiarWebRetiro" data-accion="copiar-web-retiro"
+                                 class="text-slate-400 hover:text-white" title="Copiar la dirección de la web de retiro"><i class="fas fa-copy"></i> {{ webCopiada ? 'Copiada' : 'Copiar' }}</button>
+                         <button type="button" @click="abrirPadronTransportes" data-accion="nuevo-transporte" class="text-slate-400 hover:text-white"
+                                 title="Abre el padrón de transportes en otra pestaña; después tocá ↻ para que aparezca acá"><i class="fas fa-plus"></i> Nuevo transporte</button>
+                         <button type="button" @click="logisticaStore.fetchEmpresas()" data-accion="recargar-transportes" class="text-slate-400 hover:text-white" title="Recargar la lista de transportes"><i class="fas fa-rotate-right"></i></button>
+                      </span>
+                   </div>
                    <select v-model="armarTransporteId" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:border-amber-500 outline-none">
                       <option value="" disabled>Elegí el transporte...</option>
                       <option v-for="emp in logisticaStore.empresas" :key="emp.id" :value="emp.id">{{ emp.nombre }}</option>
                    </select>
+                   <p v-if="transporteElegido && !transporteElegido.web_retiro" class="text-[11px] text-slate-500 mt-1">Sin web para pedir el retiro: se carga en el padrón de transportes.</p>
                 </div>
                 <div v-if="clientDomicilios.length > 0">
                    <label class="block text-[10px] uppercase text-slate-500 mb-1">
@@ -407,7 +425,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useRemitosStore } from '@/stores/remitos';
 import { useLogisticaStore } from '@/stores/logistica';
 import { usePedidosStore } from '@/stores/pedidos'; // Assuming this exists to fetch full pedido details
@@ -420,6 +438,7 @@ import {
 } from '@/utils/remitoEntrega';
 
 const route = useRoute();
+const router = useRouter(); // [S890] para abrir el padrón de transportes en otra pestaña
 const remitosStore = useRemitosStore();
 const logisticaStore = useLogisticaStore();
 // const pedidosStore = usePedidosStore(); // Let's try to just fetch manually or use store if robust
@@ -692,6 +711,17 @@ const ejecutarArmado = async (imprimir, elegidos, bultos, valorDeclarado) => {
         alert(remitosStore.error || 'No se pudo armar el remito.');
     }
 };
+
+// [S890, Carlos 21/10] Web del transporte para pedir el retiro (padrón: empresas_transporte.web_retiro, migrate_064).
+const transporteElegido = computed(() => logisticaStore.empresas.find(e => e.id === armarTransporteId.value) || null);
+const webRetiroDe = (transporteId) => (logisticaStore.empresas.find(e => e.id === transporteId) || {}).web_retiro || '';
+const urlWeb = (url) => /^https?:\/\//i.test(url || '') ? url : `https://${url}`;
+const webCopiada = ref(false);
+const copiarWebRetiro = async () => {
+    try { await navigator.clipboard.writeText(urlWeb(transporteElegido.value?.web_retiro)); webCopiada.value = true; setTimeout(() => { webCopiada.value = false; }, 1500); }
+    catch (e) { prompt('Copiá la dirección:', urlWeb(transporteElegido.value?.web_retiro)); }
+};
+const abrirPadronTransportes = () => window.open(router.resolve({ name: 'Transportes' }).href, '_blank');
 
 // [S876] Etiquetas del remito. Un remito de mostrador apunta a la oficina, que no figura entre los
 // domicilios del cliente; y uno sin transporte dice cómo salió en vez de "Transporte...".

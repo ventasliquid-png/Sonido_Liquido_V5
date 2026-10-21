@@ -61,7 +61,9 @@ check(f"sin la tabla pedidos_items: avisa, sale 0 y NO queda registrada (se rein
 sys.path.insert(0, os.path.join(RAIZ, "scripts"))
 import auto_migrar
 ids_ = [m for m, _ in auto_migrar.migraciones_disponibles()]
-check("auto_migrar descubre la migracion y es la ultima de la lista", "063_pedidos_items_kit_grupo" in ids_ and ids_[-1] == "063_pedidos_items_kit_grupo")
+# [S890] ya no es la ultima: detras vienen 064 y 065. Lo que importa es que se descubre y corre despues de las anteriores (orden por nombre de archivo).
+check("auto_migrar descubre la migracion y corre despues de la 062 (orden por nombre de archivo)", "063_pedidos_items_kit_grupo" in ids_
+      and ids_.index("063_pedidos_items_kit_grupo") > max(i for i, m in enumerate(ids_) if m.startswith("062_")))
 
 # el codigo de hoy lee la base migrada
 from backend.main import app

@@ -237,6 +237,8 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
             "domicilio_fiscal": RemitosService.domicilio_para_el_papel(db, remito),
             # [S890] La fecha del remito (cuando tomó número); los remitos viejos sin fecha de salida usan la de creación.
             "fecha": (remito.fecha_salida or remito.fecha_creacion or datetime.now()).strftime("%d/%m/%Y"),
+            # [S890] Casillero TRANSPORTISTA: la empresa del remito o, sin empresa, el método de la entrega.
+            "transportista": RemitosService.transportista_para_el_papel(db, remito),
             "condicion_iva": "RESPONSABLE INSCRIPTO", # Default for now
             "referencia": referencia_str,
             "oc": remito.pedido.oc or "",   # [S882, sugerencia de Tomy] va al casillero "ORDEN DE COMPRA N°:" del talonario

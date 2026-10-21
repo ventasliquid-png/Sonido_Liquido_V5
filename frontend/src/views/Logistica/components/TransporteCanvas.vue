@@ -159,6 +159,11 @@
                         <label class="block text-[9px] font-bold text-white/20 uppercase mb-1">Web Tracking</label>
                         <input v-model="localModel.web_tracking" class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:border-amber-500/50 outline-none" placeholder="https://..." />
                     </div>
+                    <!-- [S890, Carlos 21/10] La página del transporte para pedir el retiro: la ventana del remito la ofrece como enlace y para copiar -->
+                    <div class="col-span-12 lg:col-span-3">
+                        <label class="block text-[9px] font-bold text-white/20 uppercase mb-1">Web para pedir el retiro</label>
+                        <input v-model="localModel.web_retiro" data-campo="web-retiro" class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:border-amber-500/50 outline-none" placeholder="https://.../retiro" />
+                    </div>
                 </div>
             </section>
 
