@@ -69,9 +69,13 @@ check(f"al tomar número ({num29}) el remito fija su fecha: fecha_salida = hoy (
 check(f"el PDF imprime esa fecha ({HOY})", HOY in txt)
 # [S891] la fecha del papel es la de EMISIÓN (fecha_emision); la de salida es la física
 q("update remitos set fecha_emision='2026-10-18 10:00:00', fecha_salida='2026-10-18 10:00:00' where id=?", r29)
+txt_primero = txt
 st, txt = pdf(r29)
-check(f"reimprimir otro día NO cambia la fecha del papel: imprime la del remito (18/10/2026), no la de hoy [{st}]", st == 200 and "18/10/2026" in txt and (HOY == "18/10/2026" or HOY not in txt))
+check(f"reimprimir otro día NO cambia la fecha del papel: [S891] es la misma imagen de lo impreso, aunque la base diga otra cosa [{st}]", st == 200 and txt == txt_primero)
 check("reimprimir no lo renumera", q("select numero_legal from remitos where id=?", r29)[0][0] == num29)
+q("update remitos set flags_estado = coalesce(flags_estado, 0) & ~? where id=?", 1 << 44, r29)   # [S891] sin la marca IMPRESO: un papel nuevo
+st, txt = pdf(r29)
+check(f"un papel nuevo imprime la fecha de EMISIÓN del remito (18/10/2026), no la de hoy [{st}]", st == 200 and "18/10/2026" in txt and (HOY == "18/10/2026" or HOY not in txt))
 
 r31 = rid("0015-00003031")
 st, txt = pdf(r31)
@@ -100,6 +104,10 @@ check(f"cambiar la fecha del 3031 al 19/10 [{r.status_code}] -> fecha_salida {fs
 nota = q("select texto, autor_id from remitos_notas where remito_id=? order by id desc limit 1", r31)[0]
 check(f"queda una nota [SISTEMA] con la fecha anterior, la nueva, el motivo y el autor: {nota[0]!r}", q("select count(*) from remitos_notas where remito_id=?", r31)[0][0] == notas_antes + 1
       and nota[0].startswith("[SISTEMA] Fecha del remito cambiada del 20/10/2026 al 19/10/2026. Motivo: El papel se perdió") and nota[1] == 1)
+IMAG = os.path.join(os.path.dirname(SALIDA), "Remitos emitidos")
+check("[S891] la imagen del primer papel del 3031 (20/10) se archiva en Reemplazadas, no se borra, y la nota lo dice",
+      not os.path.exists(os.path.join(IMAG, "remito_0015_00003031.pdf")) and glob.glob(os.path.join(IMAG, "Reemplazadas", "remito_0015_00003031__hasta_*.pdf"))
+      and "quedó archivada (Reemplazadas/remito_0015_00003031__hasta_" in nota[0])
 st, txt = pdf(r31)
 check(f"el PDF imprime la fecha nueva (19/10/2026) [{st}]", st == 200 and "19/10/2026" in txt)
 check("el número y el estado no cambian", q("select numero_legal, estado from remitos where id=?", r31)[0] == ("0015-00003031", "ENTREGADO"))

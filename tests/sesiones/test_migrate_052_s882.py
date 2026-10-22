@@ -92,12 +92,20 @@ class U: id = 1; username = "tmp"; is_active = True
 app.dependency_overrides[get_db] = ov; app.dependency_overrides[get_current_active_user] = lambda: U()
 cli = TestClient(app, raise_server_exceptions=False)
 rid, fid = q(C, "select r.id, f.id from facturas f join facturas_remitos fr on fr.factura_id=f.id join remitos r on r.id=fr.remito_id where f.estado='BORRADOR' and f.cae is not null and trim(f.cae) != '' and r.estado='BORRADOR' and f.numero_comprobante=2551")[0]
+# [S891] el tacho solo descarta remitos SIN número (uno con número se anula): con número da 409; para probar la cascada con la factura se le
+# saca el número en la copia
+def sin_numero(remito_id):
+    con = sqlite3.connect(C); con.execute("update remitos set numero_legal=NULL where id=?", (remito_id,)); con.commit(); con.close()
+r = cli.delete(f"/remitos/{rid}")
+check(f"[S891] con su número 0016-2551 el tacho no lo borra: 409 REMITO_CON_NUMERO [{r.status_code}]", r.status_code == 409 and "REMITO_CON_NUMERO" in r.text)
+sin_numero(rid)
 r = cli.delete(f"/remitos/{rid}")
 check(f"borrar el remito 0016-2551 (BORRADOR) con su factura en BORRADOR pero CON CAE [{r.status_code}]: el remito se va y la factura se QUEDA",
       r.status_code == 200 and not q(C, "select 1 from remitos where id=?", rid) and q(C, "select numero_comprobante, cae from facturas where id=?", fid) != [] and q(C, "select count(*) from facturas_items where factura_id=?", fid)[0][0] >= 1)
 # sin CAE (el espejo legitimo) se sigue borrando como antes
 fila = q(C, "select r.id, f.id from facturas f join facturas_remitos fr on fr.factura_id=f.id join remitos r on r.id=fr.remito_id where f.estado='BORRADOR' and (f.cae is null or trim(f.cae)='') and r.estado='BORRADOR' limit 1")
 if fila:
+    sin_numero(fila[0][0])
     r2 = cli.delete(f"/remitos/{fila[0][0]}")
     check(f"un remito con factura BORRADOR SIN CAE se borra junto con ella, como antes [{r2.status_code}]", r2.status_code == 200 and not q(C, "select 1 from facturas where id=?", fila[0][1]))
 else:
@@ -105,6 +113,7 @@ else:
     con = sqlite3.connect(C)
     rid2, fid2 = con.execute("select r.id, f.id from facturas f join facturas_remitos fr on fr.factura_id=f.id join remitos r on r.id=fr.remito_id where f.estado='BORRADOR' and f.cae is not null and r.estado='BORRADOR' limit 1").fetchone()
     con.execute("update facturas set cae=null where id=?", (fid2,)); con.commit(); con.close()
+    sin_numero(rid2)
     r2 = cli.delete(f"/remitos/{rid2}")
     check(f"(caso armado en la copia) un remito con factura BORRADOR SIN CAE se borra junto con ella, como antes [{r2.status_code}]", r2.status_code == 200 and not q(C, "select 1 from facturas where id=?", fid2))
 del cli; eng.dispose()

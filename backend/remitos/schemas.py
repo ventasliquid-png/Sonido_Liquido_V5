@@ -47,6 +47,10 @@ class RemitoFechaUpdate(BaseModel):
     fecha: str
     motivo: str
 
+class RemitoMotivo(BaseModel):
+    """[S891] Motivo obligatorio para anular un remito o deshacer su anulación (queda en la nota [SISTEMA])."""
+    motivo: str
+
 class RemitoNotaResponse(BaseModel):
     id: int
     remito_id: UUID

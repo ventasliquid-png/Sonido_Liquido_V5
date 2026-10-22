@@ -3,9 +3,12 @@ SCR = os.path.dirname(os.path.abspath(__file__))
 src = open(os.path.join(SCR, "correr_en_B.py"), encoding="utf-8").read()
 pruebas = re.findall(r'\("(test_[a-z0-9_]+\.py)", (\d+)\)', src)
 PY = r"C:\dev\Sonido_Liquido_V5\backend\venv\Scripts\python.exe"
+sys.path.insert(0, SCR)
+from _esquema_p import imagenes_aparte   # [S891] cada prueba con la carpeta de imágenes de remitos vacía
 mal = 0
 for nombre, esperado in pruebas:
-    p = subprocess.run([PY, os.path.join(SCR, nombre)], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=r"C:\dev\Sonido_Liquido_V5", env=dict(os.environ, PYTHONIOENCODING="utf-8"), timeout=900)
+    with imagenes_aparte(r"C:\dev\Sonido_Liquido_V5"):
+        p = subprocess.run([PY, os.path.join(SCR, nombre)], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=r"C:\dev\Sonido_Liquido_V5", env=dict(os.environ, PYTHONIOENCODING="utf-8"), timeout=900)
     m = re.findall(r"(\d+)/(\d+) checks OK", p.stdout + p.stderr)
     ok, tot = (int(m[-1][0]), int(m[-1][1])) if m else (-1, -1)
     estado = "OK " if ok == tot == int(esperado) else "REVISAR"

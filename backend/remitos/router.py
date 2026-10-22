@@ -143,20 +143,40 @@ def despachar_remito(remito_id: str, payload: schemas.DespacharPayload = schemas
     return remito
 
 @router.get("/{remito_id}/pdf")
-def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
+def get_remito_pdf(remito_id: str, vista_previa: bool = False, db: Session = Depends(get_db)):
     """
     Genera y sirve el PDF de un remito.
+
+    [S891, paquete 2, tramo 2 -- reglas de Carlos y Nike del 20 al 22/10]
+    - VISTA PREVIA (`?vista_previa=1`) de un remito SIN número: sale con la marca «VISTA PREVIA - SIN VALIDEZ», no toma número, no
+      se marca impreso ni se guarda. Sirve para revisar dirección, cantidades y bultos antes de gastar el número (lo que habría
+      atajado el 3031). Un remito con número no tiene vista previa: su papel es la imagen guardada.
+    - IMPRIMIR: si no tiene número lo toma (0015). El papel que se genera cuando el remito no tiene imagen guardada queda como LA
+      IMAGEN DE LO IMPRESO (DOCUMENTOS_GENERADOS_RAR/Remitos emitidos/): al tomar número, más tarde si salió sin papel con su
+      número, o la primera vez que se reimprime un remito de antes de esta regla. Desde ahí, REIMPRIMIR entrega siempre esa misma
+      imagen, sin regenerarla: no reprocesa nada y no cambia aunque cambien los datos o las reglas del papel. Cada reimpresión
+      deja una nota [SISTEMA].
+    - La imagen solo se entrega si el remito ya está IMPRESO (bit 44): el primer papel siempre se genera, aunque haya un archivo
+      con ese número (en D lo dejan otras copias de la base). Cambiar la fecha (PATCH /fecha) archiva la imagen: el próximo papel
+      sale con la fecha nueva y pasa a ser la imagen.
     """
+    import os
     try:
         remito = db.query(models.Remito).filter(models.Remito.id == remito_id).first()
         if not remito:
             raise HTTPException(status_code=404, detail="Remito no encontrado")
 
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        carpeta_imagenes = os.path.join(base_dir, "DOCUMENTOS_GENERADOS_RAR", "Remitos emitidos")
+        es_vista_previa = bool(vista_previa) and not remito.numero_legal
+        from backend.remitos.constants import RemitoFlags
+        primer_papel = not (int(remito.flags_estado or 0) & int(RemitoFlags.IMPRESO))
+
         # [Etapa 3, PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §5] "Imprimir" es la acción que
         # numera -- no cambia el estado, el remito puede seguir en BORRADOR con número asignado,
         # esperando a que el transporte pase. Idempotente: si ya tiene número (reimpresión), no
         # se vuelve a numerar.
-        if not remito.numero_legal:
+        if not remito.numero_legal and not es_vista_previa:
             from backend.remitos.service import RemitosService
             # [S876, decisión de Carlos + Arq 30/09, confirmada en el prompt de remito/renglón §6] El
             # 0015 es el único talonario vivo y el 0017 queda abolido: ni Rosa ni no comercial numeran
@@ -169,6 +189,14 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
             db.add(remito)
             db.commit()
             db.refresh(remito)
+
+        # [S891] Reimpresión: un remito ya IMPRESO con imagen guardada recibe esa misma (con su nota) y no se regenera nada.
+        if remito.numero_legal and not es_vista_previa and not primer_papel:
+            imagen = os.path.join(carpeta_imagenes, f"remito_{remito.numero_legal.replace('-', '_')}.pdf")
+            if os.path.exists(imagen):
+                db.add(models.RemitoNota(remito_id=remito.id, texto=f"[SISTEMA] Reimpresión del remito ({datetime.now().strftime('%d/%m/%Y %H:%M')}): la misma imagen de lo impreso."))
+                db.commit()
+                return FileResponse(imagen, media_type='application/pdf', filename=os.path.basename(imagen))
 
         # Preparar datos para el motor
         if not remito.pedido:
@@ -250,12 +278,15 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
         }
         
         from .remito_engine import generar_remito_pdf
-        import os
-        
-        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
         target_dir = os.path.join(base_dir, "DOCUMENTOS_GENERADOS_RAR", "Remitos de salida")
         os.makedirs(target_dir, exist_ok=True)
-        
+
+        if es_vista_previa:
+            vista = os.path.join(target_dir, f"vista_previa_{str(remito.id).replace('-', '')}.pdf")
+            generar_remito_pdf(cliente_data, items, is_preview=True, output_path=vista, numero_remito=None)
+            return FileResponse(vista, media_type='application/pdf', filename="vista_previa_remito.pdf")
+
         safe_num = str(remito.numero_legal or remito_id).replace("-", "_")
         final_filename = f"remito_{safe_num}.pdf"
         final_path = os.path.join(target_dir, final_filename)
@@ -269,20 +300,29 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
             cae=cae_val,
             vto_cae=vto_cae_val.strftime("%d/%m/%Y") if vto_cae_val else None
         )
+        if remito.numero_legal:
+            # [S891] la imagen de lo impreso: este PDF no se vuelve a generar (la vista previa ya salió más arriba)
+            import shutil
+            os.makedirs(carpeta_imagenes, exist_ok=True)
+            shutil.copyfile(final_path, os.path.join(carpeta_imagenes, final_filename))
+            if not primer_papel:
+                db.add(models.RemitoNota(remito_id=remito.id, texto=(
+                    f"[SISTEMA] Reimpresión del remito ({datetime.now().strftime('%d/%m/%Y %H:%M')}): no había imagen guardada (remito impreso "
+                    "antes de guardar imágenes, o con la fecha cambiada); se regeneró con los datos de hoy y desde ahora esta es su imagen.")))
         # [S891, Nike: bit 44 IMPRESO] El remito se imprimió (se generó su PDF) al menos una vez: la marca no se apaga nunca.
         # Un 0015 sin esta marca es una salida sin papel (se fue solo con la factura).
-        from backend.remitos.constants import RemitoFlags
         if not (int(remito.flags_estado or 0) & int(RemitoFlags.IMPRESO)):
             remito.flags_estado = int(remito.flags_estado or 0) | int(RemitoFlags.IMPRESO)
-            db.commit()
+        db.commit()
         return FileResponse(
             final_path, 
             media_type='application/pdf', 
             filename=final_filename
         )
+    except HTTPException:
+        raise
     except Exception as e:
         import traceback
-        import os
         log_path = os.path.join(os.getcwd(), "pdf_error.log")
         with open(log_path, "w") as f_err:
             f_err.write(f"FATAL ERROR: {str(e)}\n")
@@ -497,10 +537,105 @@ def cambiar_fecha(
     remito.fecha_emision = nueva_emision
     texto = (f"[SISTEMA] Fecha del remito cambiada del {anterior.strftime('%d/%m/%Y') if anterior else 's/f'} "
              f"al {nueva.strftime('%d/%m/%Y')}. Motivo: {motivo}")
+    # [S891] el papel cambia de fecha: la imagen guardada se archiva (no se borra) y el próximo papel sale con la fecha nueva
+    import os
+    carpeta = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "DOCUMENTOS_GENERADOS_RAR", "Remitos emitidos")
+    imagen = os.path.join(carpeta, f"remito_{remito.numero_legal.replace('-', '_')}.pdf")
+    if os.path.exists(imagen):
+        archivada = f"remito_{remito.numero_legal.replace('-', '_')}__hasta_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        os.makedirs(os.path.join(carpeta, "Reemplazadas"), exist_ok=True)
+        os.replace(imagen, os.path.join(carpeta, "Reemplazadas", archivada))
+        texto += ("" if texto.endswith(".") else ".") + f" La imagen del papel anterior quedó archivada (Reemplazadas/{archivada}); el próximo papel sale con la fecha nueva."
     db.add(models.RemitoNota(remito_id=remito.id, texto=texto, autor_id=current_user.id))
     db.commit()
     db.refresh(remito)
     return remito
+
+EPS_CANTIDAD = 1e-6
+
+
+@router.post("/{remito_id}/anular", response_model=schemas.RemitoResponse)
+def anular_remito(remito_id: str, payload: schemas.RemitoMotivo, db: Session = Depends(get_db),
+                  current_user: Usuario = Depends(get_current_active_user)):
+    """[S891, Carlos + Nike 22/10] Un remito con número es inmortal: no se borra, se ANULA (el número queda quemado). Con motivo y nota
+    [SISTEMA] con el estado anterior (para poder deshacerlo). Un remito sin número no se anula: se descarta (se borra). Un remito con
+    algo ya facturado no se anula: primero va la nota de crédito. Las cantidades vuelven a quedar pendientes en el pedido."""
+    remito = db.query(models.Remito).filter(models.Remito.id == remito_id).first()
+    if not remito:
+        raise HTTPException(status_code=404, detail="Remito no encontrado")
+    if not remito.numero_legal:
+        raise HTTPException(status_code=409, detail="REMITO_SIN_NUMERO: un remito sin número no se anula, se descarta (tacho).")
+    if remito.estado == "ANULADO":
+        raise HTTPException(status_code=409, detail="REMITO_YA_ANULADO: el remito ya está anulado.")
+    motivo = (payload.motivo or "").strip()
+    if not motivo:
+        raise HTTPException(status_code=422, detail="MOTIVO_OBLIGATORIO: decí por qué se anula el remito.")
+    # facturado = una factura numerada y no anulada lo ampara (vínculo facturas_remitos, la columna FACTURA del listado), o algún renglón
+    # tiene cantidad facturada. En P el vínculo es lo que está cargado; cantidad_facturada casi nunca.
+    factura = remito._factura_de_referencia()
+    if factura is not None or [ri for ri in remito.items if (ri.cantidad_facturada or 0) > EPS_CANTIDAD]:
+        cual = f"la factura {factura.numero_completo}" if factura is not None else "una factura (renglones facturados)"
+        raise HTTPException(status_code=409, detail=(f"REMITO_FACTURADO: el remito está amparado por {cual}; primero va la nota de crédito "
+                                                     "y después se anula."))
+    anterior = remito.estado
+    remito.estado = "ANULADO"
+    db.add(models.RemitoNota(remito_id=remito.id, autor_id=current_user.id,
+                             texto=f"[SISTEMA] Remito anulado (estado anterior: {anterior}). Motivo: {motivo}"))
+    db.flush()
+    from backend.remitos.service import RemitosService
+    if remito.pedido:
+        RemitosService._recalcular_bits_entrega(db, remito.pedido)
+    db.commit()
+    db.refresh(remito)
+    return remito
+
+
+@router.post("/{remito_id}/deshacer-anulacion", response_model=schemas.RemitoResponse)
+def deshacer_anulacion(remito_id: str, payload: schemas.RemitoMotivo, db: Session = Depends(get_db),
+                       current_user: Usuario = Depends(get_current_active_user)):
+    """[S891, Carlos + Nike 22/10] Deshacer una anulación es válido con nota forense, y se BLOQUEA si otro remito ya cubrió esas
+    cantidades (sería contar dos veces una salida física). La guarda es por cantidades, sin campo de vínculo: para cada renglón, lo
+    remitido en remitos vigentes más lo de este remito no puede superar lo pedido. Vuelve al estado que tenía antes de anularse; la
+    cicatriz FUE_ANULADO (bit 43) queda para siempre."""
+    import re
+    remito = db.query(models.Remito).filter(models.Remito.id == remito_id).first()
+    if not remito:
+        raise HTTPException(status_code=404, detail="Remito no encontrado")
+    if remito.estado != "ANULADO":
+        raise HTTPException(status_code=409, detail="REMITO_NO_ANULADO: el remito no está anulado.")
+    motivo = (payload.motivo or "").strip()
+    if not motivo:
+        raise HTTPException(status_code=422, detail="MOTIVO_OBLIGATORIO: decí por qué se deshace la anulación.")
+    choques = []
+    for ri in remito.items:
+        pi = ri.pedido_item
+        if pi is None or (ri.cantidad_remitida or 0) <= EPS_CANTIDAD:
+            continue
+        vigente = pi.cantidad_entregada or 0   # remitos no anulados (este no cuenta: está anulado)
+        if vigente + ri.cantidad_remitida > (pi.cantidad or 0) + EPS_CANTIDAD:
+            cubren = sorted({o.remito.numero_legal or "sin número" for o in pi.remitos_items
+                             if o.remito and o.remito.estado != "ANULADO" and o.remito_id != remito.id})
+            nombre = pi.producto.nombre if pi.producto else (pi.nota or f"renglón {pi.id}")
+            choques.append(f"«{nombre}»: ya lo cubre {', '.join(cubren)} ({vigente:g} de {pi.cantidad:g} remitidos)")
+    if choques:
+        raise HTTPException(status_code=409, detail="REMITO_SUSTITUIDO: no se puede deshacer la anulación porque otro remito ya cubrió esas cantidades: "
+                                                    + "; ".join(choques) + ".")
+    nota_anul = (db.query(models.RemitoNota)
+                 .filter(models.RemitoNota.remito_id == remito.id, models.RemitoNota.texto.like("[SISTEMA] Remito anulado (estado anterior:%"))
+                 .order_by(models.RemitoNota.fecha.desc()).first())
+    m = re.search(r"estado anterior: (\w+)", nota_anul.texto) if nota_anul else None
+    remito.estado = m.group(1) if m and m.group(1) in ("BORRADOR", "EN_CAMINO", "ENTREGADO") else (
+        "ENTREGADO" if remito.metodo_entrega == "MOSTRADOR" else "BORRADOR")
+    db.add(models.RemitoNota(remito_id=remito.id, autor_id=current_user.id,
+                             texto=f"[SISTEMA] Anulación revertida (vuelve a {remito.estado}). Motivo: {motivo}"))
+    db.flush()
+    from backend.remitos.service import RemitosService
+    if remito.pedido:
+        RemitosService._recalcular_bits_entrega(db, remito.pedido)
+    db.commit()
+    db.refresh(remito)
+    return remito
+
 
 @router.get("/{remito_id}/notas", response_model=List[schemas.RemitoNotaResponse])
 def listar_notas(remito_id: str, db: Session = Depends(get_db)):
@@ -623,6 +758,10 @@ def delete_remito(remito_id: str, db: Session = Depends(get_db)):
         
     if remito.estado != "BORRADOR":
         raise HTTPException(status_code=400, detail="Solo se pueden eliminar remitos en estado BORRADOR")
+    # [S891, Carlos + Nike: el remito con número es inmortal] Antes el tacho borraba un BORRADOR aunque ya tuviera número, y el
+    # número se volvía a usar en el remito siguiente (hallazgo H8 de CA, 0015-00003030). Ahora solo se borra lo que no tiene número.
+    if remito.numero_legal:
+        raise HTTPException(status_code=409, detail=f"REMITO_CON_NUMERO: el remito {remito.numero_legal} ya tiene número: no se borra, se anula.")
         
     pedido_id = remito.pedido_id
 

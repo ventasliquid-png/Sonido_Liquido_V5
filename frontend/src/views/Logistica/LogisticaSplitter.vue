@@ -187,7 +187,12 @@
                     </div>
                     <!-- PDF LEGAL BUTTON -->
                     <button @click="downloadLegalPDF(remito)" class="text-xs bg-slate-600 hover:bg-slate-500 text-white px-3 py-1 rounded transition w-full mt-1 border border-slate-500">
-                        <i class="fas fa-file-pdf mr-1"></i> PDF Legal
+                        <i class="fas fa-file-pdf mr-1"></i> {{ impresoRemito(remito) ? 'Reimprimir' : 'Imprimir PDF' }}
+                    </button>
+                    <!-- [S891] Vista previa: solo sin número; no gasta el número ni queda guardada -->
+                    <button v-if="!remito.numero_legal && remito.estado !== 'ANULADO'" @click="vistaPreviaRemito(remito)" data-accion="vista-previa"
+                            class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1 rounded transition w-full border border-slate-600">
+                        <i class="fas fa-eye mr-1"></i> Vista previa
                     </button>
                     <button @click="openPrint(remito)" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1 rounded transition w-full">
                         <i class="fas fa-print mr-1"></i> Imprimir
@@ -621,6 +626,7 @@ const cancelArmar = () => {
 const imprimirArmado = (remito) => {
     const ventana = window.open(`/remitos/${remito.id}/pdf`, '_blank');
     if (!ventana) downloadLegalPDF(remito);
+    else if (localPedido.value?.id) setTimeout(() => remitosStore.fetchRemitos(localPedido.value.id), 1500);   // [S891] número e IMPRESO
 };
 
 const confirmArmar = async (imprimir = false) => {
@@ -711,6 +717,10 @@ const ejecutarArmado = async (imprimir, elegidos, bultos, valorDeclarado) => {
         alert(remitosStore.error || 'No se pudo armar el remito.');
     }
 };
+
+// [S891] Genoma del remito (bits de 64: en JS se leen con aritmética, los operadores de bits son de 32). IMPRESO = bit 44.
+const impresoRemito = (remito) => Math.floor(Number(remito?.flags_estado || 0) / Math.pow(2, 44)) % 2 === 1;
+const vistaPreviaRemito = (remito) => { if (remito?.id) window.open(`/remitos/${remito.id}/pdf?vista_previa=1`, '_blank'); };
 
 // [S890, Carlos 21/10] Web del transporte para pedir el retiro (padrón: empresas_transporte.web_retiro, migrate_064).
 const transporteElegido = computed(() => logisticaStore.empresas.find(e => e.id === armarTransporteId.value) || null);
@@ -834,6 +844,8 @@ const downloadLegalPDF = async (remito) => {
         document.body.appendChild(link);
         link.click();
         link.remove();
+        // [S891] el primer papel le da número y la marca IMPRESO: se recarga para que el botón pase a «Reimprimir»
+        if (!impresoRemito(remito) && localPedido.value?.id) await remitosStore.fetchRemitos(localPedido.value.id);
     } catch (e) {
         console.error("Error downloading PDF", e);
         alert("Error generando PDF Legal: " + (e.response?.data?.detail || e.message));

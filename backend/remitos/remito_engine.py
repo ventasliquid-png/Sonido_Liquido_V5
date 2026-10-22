@@ -97,7 +97,9 @@ class PDFRemito(FPDF):
             self.set_font('Arial', 'B', 50)
             self.set_text_color(200, 200, 200)
             self.rotate(45, 105, 148)
-            self.text(50, 190, "VISTA PREVIA - SIN VALIDEZ")
+            # [S891] centrada en el punto de giro (antes arrancaba en x=50 y el final se salía de la hoja)
+            marca = "VISTA PREVIA - SIN VALIDEZ"
+            self.text(105 - self.get_string_width(marca) / 2, 148 + 6, marca)
             self.rotate(0)
             
         # 3. Leyenda de Copia (Original, Dup, Trip)

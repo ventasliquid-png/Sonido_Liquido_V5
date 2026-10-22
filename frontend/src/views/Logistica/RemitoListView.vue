@@ -95,7 +95,7 @@
                 </div>
 
                 <div class="w-14 text-right text-blue-200/40">Items</div>
-                <div class="w-20"></div>
+                <div class="w-32"></div>
             </div>
 
             <div 
@@ -156,15 +156,30 @@
                 </div>
 
                 <!-- Actions -->
-                <div class="w-20 flex justify-end gap-2">
-                    <!-- [S887] Imprimir directo, sin entrar a la ficha -->
+                <div class="w-32 flex justify-end gap-1">
+                    <!-- [S891] Vista previa: solo un remito SIN número; no gasta el número ni queda guardada -->
+                    <button v-if="!remito.numero_legal && remito.estado !== 'ANULADO'" @click.stop="vistaPrevia(remito)" data-accion="vista-previa"
+                        class="p-2 text-blue-300/70 hover:text-white transition-colors" title="Vista previa (sin número: no gasta el número)">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <!-- [S887] Imprimir directo, sin entrar a la ficha. [S891] Una vez impreso es «Reimprimir»: la misma imagen guardada -->
                     <button
                         @click.stop="imprimirRemito(remito)"
                         :disabled="remito.estado === 'ANULADO'"
+                        :data-accion="impreso(remito) ? 'reimprimir' : 'imprimir'"
                         class="p-2 text-blue-300 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                        :title="remito.estado === 'ANULADO' ? 'Remito anulado: no se imprime' : (remito.numero_legal ? 'Imprimir el remito (PDF)' : 'Imprimir el remito: se le asigna el próximo número 0015')"
+                        :title="remito.estado === 'ANULADO' ? 'Remito anulado: no se imprime' : (impreso(remito) ? 'Reimprimir (la misma imagen de lo impreso)' : (remito.numero_legal ? 'Imprimir el remito (PDF)' : 'Imprimir el remito: se le asigna el próximo número 0015'))"
                     >
-                        <i class="fas fa-print"></i>
+                        <i :class="impreso(remito) ? 'fas fa-copy' : 'fas fa-print'"></i>
+                    </button>
+                    <!-- [S891] Un remito con número no se borra: se anula (con motivo) y se puede deshacer si nadie cubrió esas cantidades -->
+                    <button v-if="remito.numero_legal && remito.estado !== 'ANULADO'" @click.stop="abrirAnulacion(remito, 'anular')" data-accion="anular"
+                        class="p-2 text-red-400/60 hover:text-red-300 transition-colors" title="Anular el remito (el número queda usado)">
+                        <i class="fas fa-ban"></i>
+                    </button>
+                    <button v-if="remito.estado === 'ANULADO'" @click.stop="abrirAnulacion(remito, 'deshacer')" data-accion="deshacer-anulacion"
+                        class="p-2 text-amber-400/70 hover:text-amber-300 transition-colors" title="Deshacer la anulación">
+                        <i class="fas fa-rotate-left"></i>
                     </button>
                     <button 
                         @click="viewPedido(remito.pedido_id)" 
@@ -358,8 +373,8 @@
             <footer class="bg-blue-600/5 p-6 border-t border-blue-500/20 flex flex-wrap justify-between gap-4 shrink-0">
                 <div class="flex gap-2">
                     <button 
-                        @click="deleteRemito(editingRemito)" 
-                        title="Eliminar Remito Permanentemente"
+                        v-if="!editingRemito?.numero_legal" @click="deleteRemito(editingRemito)" 
+                        title="Descartar el remito (no tiene número)"
                         class="px-4 py-2 bg-red-900/50 hover:bg-red-500 text-red-200 hover:text-white font-bold rounded-xl shadow-lg transition-all"
                     >
                         <i class="fas fa-trash-alt"></i>
@@ -378,6 +393,25 @@
                 </div>
             </footer>
          </div>
+      </div>
+
+      <!-- [S891] Anular un remito (con número) o deshacer su anulación: siempre con motivo; queda una nota [SISTEMA] -->
+      <div v-if="anulacion.visible" data-modal="anulacion" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[110] p-4" @click.self="cerrarAnulacion">
+        <div class="bg-[#0b1220] border border-red-500/40 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+          <h3 class="text-white font-bold text-lg mb-1">{{ anulacion.modo === 'anular' ? 'Anular el remito' : 'Deshacer la anulación' }}</h3>
+          <p class="text-xs text-blue-300/70 mb-4" v-if="anulacion.modo === 'anular'">{{ anulacion.remito?.numero_legal }} · {{ anulacion.remito?.razon_social }}. El número queda usado (no se vuelve a dar) y las cantidades vuelven a quedar pendientes en el pedido. Si ya se facturó, primero va la nota de crédito.</p>
+          <p class="text-xs text-blue-300/70 mb-4" v-else>{{ anulacion.remito?.numero_legal }} · {{ anulacion.remito?.razon_social }}. Vuelve al estado que tenía. No se puede si otro remito ya cubrió esas cantidades.</p>
+          <label class="block text-[10px] uppercase tracking-widest text-blue-400 font-bold mb-1">Motivo</label>
+          <textarea v-model="anulacion.motivo" rows="2" data-campo="motivo-anulacion" placeholder="Por qué" class="w-full bg-black/30 border border-blue-900/40 rounded-lg px-3 py-2 text-sm text-white mb-5"></textarea>
+          <div class="flex justify-end gap-2">
+            <button @click="cerrarAnulacion" class="px-4 py-2 rounded-lg text-sm text-blue-300 hover:text-white">Cancelar</button>
+            <button @click="confirmarAnulacion" :disabled="anulacion.guardando || !anulacion.motivo.trim()" data-accion="confirmar-anulacion"
+                    class="px-4 py-2 rounded-lg text-sm font-bold text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                    :class="anulacion.modo === 'anular' ? 'bg-red-600 hover:bg-red-500' : 'bg-amber-600 hover:bg-amber-500'">
+              <i v-if="anulacion.guardando" class="fas fa-spinner fa-spin mr-1"></i> {{ anulacion.modo === 'anular' ? 'Anular' : 'Deshacer' }}
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- [S890] Cambiar la fecha de un remito numerado: con motivo, nunca a futuro; queda una nota [SISTEMA] -->
@@ -484,6 +518,11 @@ const refresh = async () => {
 const openEditModal = async (remito) => {
     if (remito.estado !== 'BORRADOR') {
         notification.add('Solo se pueden editar remitos en estado BORRADOR.', 'warning');
+        return;
+    }
+    // [S891] Un remito con número es inmortal: no se edita. Si está mal, se anula y se hace otro.
+    if (remito.numero_legal) {
+        notification.add(`El remito ${remito.numero_legal} ya tiene número: no se edita. Si está mal, anulalo.`, 'warning');
         return;
     }
 
@@ -596,14 +635,37 @@ const printRemito = (remito) => {
     window.open(pdfUrl, '_blank');
 }
 
+// [S891] Genoma del remito (RemitoFlags, bits de 64): en JS los operadores de bits son de 32, así que se lee con aritmética.
+const tieneBit = (flags, n) => Math.floor(Number(flags || 0) / Math.pow(2, n)) % 2 === 1
+const impreso = (remito) => tieneBit(remito.flags_estado, 44)   // IMPRESO: ya se imprimió alguna vez -> «Reimprimir»
+const vistaPrevia = (remito) => { if (remito && remito.id) window.open(`/remitos/${remito.id}/pdf?vista_previa=1`, '_blank') }
+const anulacion = reactive({ visible: false, modo: 'anular', remito: null, motivo: '', guardando: false })
+const abrirAnulacion = (remito, modo) => Object.assign(anulacion, { visible: true, modo, remito, motivo: '', guardando: false })
+const cerrarAnulacion = () => { anulacion.visible = false; anulacion.remito = null }
+const confirmarAnulacion = async () => {
+    if (!anulacion.remito || !anulacion.motivo.trim()) return
+    anulacion.guardando = true
+    const ruta = anulacion.modo === 'anular' ? 'anular' : 'deshacer-anulacion'
+    try {
+        await api.post(`/remitos/${anulacion.remito.id}/${ruta}`, { motivo: anulacion.motivo.trim() })
+        notification.add(anulacion.modo === 'anular' ? `Remito ${anulacion.remito.numero_legal} anulado.` : `Anulación del ${anulacion.remito.numero_legal} deshecha.`, 'success')
+        cerrarAnulacion()
+        refresh()
+    } catch (e) {
+        notification.add((anulacion.modo === 'anular' ? 'No se pudo anular: ' : 'No se pudo deshacer: ') + (e.response?.data?.detail || e.message), 'error')
+    } finally {
+        anulacion.guardando = false
+    }
+}
+
 // [S887] Imprimir desde el listado. El PDF numera el remito si todavía no tiene número (el 0015 es el talonario vivo), así que en ese caso se pide
 // confirmación antes de gastar un número; el listado se refresca para mostrar el número asignado.
 const imprimirRemito = (remito) => {
     if (!remito || !remito.id || remito.estado === 'ANULADO') return;
     const sinNumero = !remito.numero_legal;
-    if (sinNumero && !confirm('Este remito todavía no tiene número. Al imprimirlo se le asigna el próximo número del talonario 0015. ¿Imprimir?')) return;
+    if (sinNumero && !confirm('Este remito todavía no tiene número. Al imprimirlo se le asigna el próximo número del talonario 0015 y queda guardada la imagen de lo impreso (si querés revisarlo antes, usá la vista previa). ¿Imprimir?')) return;
     printRemito(remito);
-    if (sinNumero) setTimeout(refresh, 1500);
+    if (!impreso(remito)) setTimeout(refresh, 1500);   // [S891] toma número y/o queda IMPRESO: el botón pasa a «Reimprimir»
 }
 
 const deleteRemito = async (remito) => {

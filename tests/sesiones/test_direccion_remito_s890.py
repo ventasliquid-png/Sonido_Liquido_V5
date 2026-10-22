@@ -49,6 +49,8 @@ def pdf_texto(numero):
     if nombre not in tocados:
         tocados.add(nombre)
         if os.path.exists(os.path.join(SALIDA, nombre)): shutil.copyfile(os.path.join(SALIDA, nombre), os.path.join(RESPALDO, nombre))
+    # [S891] cada caso dibuja un papel nuevo: sin la marca IMPRESO (bit 44) el servidor no entrega la imagen guardada del primer papel
+    con = sqlite3.connect(T); con.execute("update remitos set flags_estado = coalesce(flags_estado, 0) & ~? where id=?", (1 << 44, rid)); con.commit(); con.close()
     r = cli.get(f"/remitos/{rid}/pdf")
     if r.status_code != 200: return r.status_code, ""
     out = os.path.join(RESPALDO, "_" + nombre); open(out, "wb").write(r.content)

@@ -57,8 +57,8 @@ check("cada fila tiene un ícono de impresora que no abre el editor (@click.stop
       re.search(r'@click\.stop="imprimirRemito\(remito\)"\s*:disabled="remito\.estado === \'ANULADO\'"[\s\S]{0,900}fa-print', fila))
 anch = lambda s: re.findall(r'^ {16}<div class="(w-\d+)[ "]', s, re.M)
 check(f"las anchuras de las columnas de la cabecera y de las filas coinciden {anch(cab)}", anch(cab) == anch(fila) and len(anch(cab)) == 7)
-check("imprimir un remito sin número pide confirmación (el PDF lo numera con el próximo 0015) y refresca el listado después",
-      "if (sinNumero && !confirm(" in lista and "if (sinNumero) setTimeout(refresh, 1500);" in lista and "próximo número del talonario 0015" in lista)
+check("imprimir un remito sin número pide confirmación (el PDF lo numera con el próximo 0015) y refresca el listado después (S891: también un numerado sin IMPRESO)",
+      "if (sinNumero && !confirm(" in lista and "if (!impreso(remito)) setTimeout(refresh, 1500);" in lista and "próximo número del talonario 0015" in lista)
 check("el PDF que se abre es el mismo que usa el editor: /remitos/<id>/pdf", "const pdfUrl = `/remitos/${remito.id}/pdf`;" in lista and "printRemito(remito);" in lista)
 check("el buscador también encuentra por Nº de pedido (exacto, con o sin #) y el orden por Pedido es numérico",
       "String(r.pedido_id ?? '') === query.replace(/^#/, '').trim()" in lista and "Number(a.pedido_id) || 0" in lista and "Buscar por número, pedido o cliente..." in lista)

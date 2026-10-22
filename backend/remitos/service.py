@@ -1501,6 +1501,10 @@ class RemitosService:
         
         if remito.estado != "BORRADOR" and payload.estado is None:
             raise ValueError("No se puede editar un remito que ya no está en estado BORRADOR.")
+        # [S891, Carlos + Nike: el remito con número es inmortal] Un remito con número no se edita por acá (antes, mandando `estado`,
+        # se podía cambiar hasta el número). La fecha se corrige con PATCH /remitos/{id}/fecha y un error se resuelve anulándolo.
+        if remito.numero_legal:
+            raise ValueError(f"REMITO_EMITIDO: el remito {remito.numero_legal} ya tiene número: no se edita. Si está mal, se anula.")
 
         # [Bloque 2, doctrina "Remitos Chequeables"] Renglón cero imposible --
         # ver AUDITORIA_REMITOS_CHEQUEABLES_S865.md §2.1. Antes de este chequeo,

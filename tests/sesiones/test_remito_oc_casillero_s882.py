@@ -82,7 +82,9 @@ out = os.path.join(TMPDIR, "endpoint_con_oc.pdf"); open(out, "wb").write(r.conte
 txt = "".join(pg.get_text() for pg in fitz.open(out)) if r.status_code == 200 else ""
 check(f"endpoint con OC en el pedido [{r.status_code}]: sale 'OC-7788/2026' en el casillero {[t[1] for t in palabras_en_casillero(out, 0)]}", r.status_code == 200 and "OC-7788/2026" in [t[1] for t in palabras_en_casillero(out, 0)])
 check("la linea REF dice solo el pedido (sin 'OC:' ni 'S/D')", f"REF: Pedido #{pid}" in txt and "OC:" not in txt and "S/D" not in txt)
-con = sqlite3.connect(T); con.execute("update pedidos set oc=NULL where id=?", (pid,)); con.commit(); con.close()
+con = sqlite3.connect(T); con.execute("update pedidos set oc=NULL where id=?", (pid,))
+# [S891] la reimpresión de un remito IMPRESO es la imagen del primer papel: para ver el casillero sin OC se dibuja un papel nuevo
+con.execute("update remitos set flags_estado = coalesce(flags_estado, 0) & ~? where id=?", (1 << 44, rid)); con.commit(); con.close()
 r2 = cli.get(f"/remitos/{rid}/pdf"); out2 = os.path.join(TMPDIR, "endpoint_sin_oc.pdf"); open(out2, "wb").write(r2.content)
 check(f"endpoint sin OC [{r2.status_code}]: el casillero queda libre", r2.status_code == 200 and not palabras_en_casillero(out2))
 check("el remito mantiene su numero 0016-00002551 en el PDF (no se renumera)", "0016-00002551" in "".join(pg.get_text() for pg in fitz.open(out2)))
