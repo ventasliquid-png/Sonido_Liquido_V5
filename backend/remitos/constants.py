@@ -19,6 +19,34 @@ class RemitoFlags(IntFlag):
     # desfacturado se detecta solo — no necesita bit. Código recuperable en el
     # tag t4-original.
 
+    # [S891, Nike Sello de Oro 22/10, tres dictámenes -- CONSULTA_NIKE_genoma_remito_2026-10-22.md] Clase y estado del
+    # remito en el genoma. Los calcula UNA sola función (backend/remitos/genoma.py) a partir de los hechos del remito; nadie
+    # los prende a mano. CIRCUITO_ROSA (bit 4) queda DEPRECADO: lo absorbe la clase INTERNO cuando el Rosa numere por la
+    # serie RI (mientras tanto el código que lo lee sigue igual).
+    # CLASE (excluyente): la numeración dice el color -- Blanco y no comercial SIEMPRE 0015, Rosa SIEMPRE RI.
+    RESERVADO_AJUSTE_STOCK = 1 << 29  # reservado para el futuro documento de ajustes de stock (roturas, mermas, inventario)
+    EGRESO           = 1 << 30  # remito comercial 0015
+    EGRESO_AVIOS     = 1 << 31  # remito no comercial 0015 (avíos, reproceso, muestras)
+    INTERNO          = 1 << 32  # remito interno, serie RI (Rosa)
+    # ESTADO (excluyente). «Activo» no tiene bit: tiene clase y no está ANULADO ni PERDIDO.
+    EMITIDO          = 1 << 33  # tiene número (0015 o RI)
+    ANULADO          = 1 << 35  # simetría con PedidoFlags.ES_ANULADO
+    PERDIDO          = 1 << 36
+    # LOGÍSTICA (excluyente, solo con EMITIDO). Si nadie marca nada se asume RETIRADO en la fecha de emisión.
+    EN_DEPOSITO      = 1 << 37  # emitido, esperando retiro (lo marca el operador)
+    RETIRADO         = 1 << 38  # salió
+    RECIBIDO         = 1 << 39  # entregado / volvió la copia firmada
+    # CALIFICADORES (ortogonales, irreversibles: una vez prendidos no se apagan)
+    DIFERENCIA_RECEPCION = 1 << 42  # el papel volvió distinto a lo emitido (recibido != remitido)
+    FUE_ANULADO      = 1 << 43  # anulado alguna vez (queda aunque se deshaga la anulación)
+    IMPRESO          = 1 << 44  # impreso alguna vez (un 0015 sin este bit = salió solo con la factura)
+    SALIDA_DIFERIDA  = 1 << 45  # la salida física fue posterior a la emisión
+
+
+MASCARA_CLASE = int(RemitoFlags.EGRESO | RemitoFlags.EGRESO_AVIOS | RemitoFlags.INTERNO)
+MASCARA_ESTADO = int(RemitoFlags.EMITIDO | RemitoFlags.ANULADO | RemitoFlags.PERDIDO)
+MASCARA_LOGISTICA = int(RemitoFlags.EN_DEPOSITO | RemitoFlags.RETIRADO | RemitoFlags.RECIBIDO)
+
 
 # [S876, PROMPT 2026-09-30_NS_implementar_remito_renglon_S875, Nike "Sello de Oro" en tres
 # rondas] Cómo SALIÓ físicamente la mercadería de ESTE remito. Es el hecho fáctico de esa entrega

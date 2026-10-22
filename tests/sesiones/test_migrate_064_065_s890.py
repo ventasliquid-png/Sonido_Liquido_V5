@@ -74,7 +74,9 @@ check(f"si el 3031 no es el de Petroplastic (pedido #137): no toca nada y se reg
 sys.path.insert(0, os.path.join(RAIZ, "scripts"))
 import auto_migrar
 ids_ = [m for m, _ in auto_migrar.migraciones_disponibles()]
-check(f"auto_migrar descubre la 064 y la 065, en ese orden (últimas: {ids_[-2:]})", ids_[-2:] == ["064_empresas_transporte_web_retiro", "065_remito_3031_petroplastic"])
+# [S891] ya no son las ultimas (despues viene la 066): lo que importa es que se descubren y la 064 corre antes que la 065
+check(f"auto_migrar descubre la 064 y la 065, en ese orden", "064_empresas_transporte_web_retiro" in ids_ and "065_remito_3031_petroplastic" in ids_
+      and ids_.index("064_empresas_transporte_web_retiro") < ids_.index("065_remito_3031_petroplastic"))
 
 shutil.rmtree(TMP, ignore_errors=True)
 falla = [d for d, ok in checks if not ok]

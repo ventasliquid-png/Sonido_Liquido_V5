@@ -8,7 +8,7 @@ Uso: en vez de shutil.copyfile(origen, destino): copiar_p(origen, destino). Si u
 import shutil
 import sqlite3
 
-COLUMNAS_NUEVAS = [("pedidos_items", "kit_grupo", "INTEGER"), ("empresas_transporte", "web_retiro", "VARCHAR(255)")]    # (tabla, columna, tipo): lo que agregan las migraciones posteriores a las copias mas viejas
+COLUMNAS_NUEVAS = [("pedidos_items", "kit_grupo", "INTEGER"), ("empresas_transporte", "web_retiro", "VARCHAR(255)"), ("remitos", "fecha_emision", "DATETIME")]    # (tabla, columna, tipo): lo que agregan las migraciones posteriores a las copias mas viejas
 
 
 def asegurar_esquema(db_path):

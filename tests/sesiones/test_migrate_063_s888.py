@@ -66,6 +66,10 @@ check("auto_migrar descubre la migracion y corre despues de la 062 (orden por no
       and ids_.index("063_pedidos_items_kit_grupo") > max(i for i, m in enumerate(ids_) if m.startswith("062_")))
 
 # el codigo de hoy lee la base migrada
+# [S891] el modelo de hoy declara ademas columnas de migraciones POSTERIORES a la 063 (web_retiro, fecha_emision): se las agrega
+# _esquema_p a esta copia (kit_grupo ya la puso la 063 y no se toca), igual que en el resto de las pruebas con copias de P.
+from _esquema_p import asegurar_esquema
+asegurar_esquema(A)
 from backend.main import app
 from backend.core.database import get_db
 from backend.auth.dependencies import get_current_active_user

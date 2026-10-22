@@ -119,7 +119,7 @@
                 </div>
 
                 <!-- Fecha -->
-                <!-- [S890, Carlos 21/10] La fecha del remito es la del día en que tomó número (fecha_salida); sin número, la de armado.
+                <!-- [S890, S891] La fecha del remito es la de emisión (el día en que tomó número); sin número, la de armado.
                      El lápiz la cambia con motivo (queda una nota [SISTEMA]). -->
                 <div class="w-24 text-center flex items-center justify-center gap-1 leading-tight group/fecha">
                     <span class="text-xs text-blue-100 font-bold" data-fecha-remito>{{ formatDate(fechaRemito(remito)).split(' ')[0] }}</span>
@@ -676,8 +676,8 @@ const sortedRemitos = computed(() => {
     })
 })
 
-// [S890, Carlos 21/10] La fecha del remito: la del día en que tomó número (fecha_salida); un remito sin número muestra la de armado.
-const fechaRemito = (remito) => (remito.numero_legal && remito.fecha_salida) ? remito.fecha_salida : remito.fecha_creacion
+// [S890, S891] La fecha del remito: la de EMISIÓN (el día en que tomó número); los viejos sin ella, la de salida; sin número, la de armado.
+const fechaRemito = (remito) => remito.numero_legal ? (remito.fecha_emision || remito.fecha_salida || remito.fecha_creacion) : remito.fecha_creacion
 const hoyISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
 const aISO = (s) => { const d = new Date(s); return isNaN(d) ? hoyISO() : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
 const cambioFecha = reactive({ visible: false, remito: null, fecha: '', motivo: '', guardando: false })

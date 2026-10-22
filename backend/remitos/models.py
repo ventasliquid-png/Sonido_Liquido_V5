@@ -46,6 +46,10 @@ class Remito(Base):
     # Datos Operativos
     fecha_salida = Column(DateTime, nullable=True) # Cuándo sale efectivamente
     fecha_creacion = Column(DateTime, default=datetime.now)
+    # [S891, migrate_066, Carlos 22/10] Fecha de EMISIÓN: el día en que el remito toma número (es la fecha del papel, editable con
+    # motivo). Distinta de fecha_salida (la salida física, sentido de la S869): un remito puede imprimirse y quedar en el depósito
+    # esperando al transporte. Si nadie marca otra cosa, la salida se asume en la emisión.
+    fecha_emision = Column(DateTime, nullable=True)
     
     # Estado del Viaje
     # BORRADOR: Preparando
@@ -242,3 +246,37 @@ class RemitoNota(Base):
 # DISENO_CIRCUITO_17_S870.md §5) para reconciliar un "Remito sin Pedido" -- diseño reemplazado
 # por PedidoFlags.ES_NO_COMERCIAL (DISENO_PEDIDO_NO_COMERCIAL_S873_2026-09-24.md). Tabla nunca
 # tuvo lectores ni escritores en código ni filas reales; DROP autorizado por Nike.
+
+
+# [S891, Nike Sello de Oro 22/10] El genoma del remito (clase, estado, logística, calificadores: RemitoFlags 29-45) lo calcula una
+# sola función (backend/remitos/genoma.py) en cada guardado, a partir de los hechos. Acá también se fijan las fechas del momento en
+# que el remito TOMA NÚMERO, venga de donde venga el número (impresión, ingesta, remito manual): emisión = ahora; salida = emisión
+# salvo que esté marcado EN_DEPOSITO (esperando retiro).
+from sqlalchemy import event as _event, inspect as _sa_inspect
+from sqlalchemy.orm import Session as _Session
+
+
+@_event.listens_for(_Session, "before_flush")
+def _genoma_de_remitos(session, flush_context, instances):
+    tocados = []
+    for obj in list(session.new) + list(session.dirty):
+        if isinstance(obj, Remito):
+            r = obj
+        elif isinstance(obj, RemitoItem):
+            r = obj.remito
+        else:
+            continue
+        if r is not None and r not in tocados and r not in session.deleted:
+            tocados.append(r)
+    if not tocados:
+        return
+    from backend.remitos import genoma
+    from backend.remitos.constants import RemitoFlags
+    with session.no_autoflush:
+        for r in tocados:
+            if r.numero_legal and _sa_inspect(r).attrs.numero_legal.history.has_changes():
+                if r.fecha_emision is None:
+                    r.fecha_emision = datetime.now()
+                if r.fecha_salida is None and not (int(r.flags_estado or 0) & int(RemitoFlags.EN_DEPOSITO)):
+                    r.fecha_salida = r.fecha_emision
+            genoma.sincronizar(r)

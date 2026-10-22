@@ -72,6 +72,8 @@ class RemitoBase(BaseModel):
     transporte_id: Optional[UUID] = None
     metodo_entrega: Optional[str] = None
     fecha_salida: Optional[datetime] = None
+    fecha_emision: Optional[datetime] = None  # [S891] el día en que tomó número (fecha del papel)
+    flags_estado: Optional[int] = None        # [S891] genoma (RemitoFlags 29-45): clase, estado, logística, IMPRESO...
     estado: Optional[str] = "BORRADOR"
     numero_legal: Optional[str] = None
     aprobado_para_despacho: bool = False

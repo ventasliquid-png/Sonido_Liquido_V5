@@ -164,10 +164,8 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
             # comerciales juntos" los mandaba al 17. Lo que distingue a un Rosa es que su PDF nunca
             # muestra precio (el motor no dibuja precios) y que su pedido no se factura.
             remito.numero_legal = RemitosService._siguiente_numero_0015(db)
-            # [S890, Carlos 21/10] «La fecha del remito es el día que deja de ser un desnumerado y adquiere rango de
-            # remito»: tomar número es salir. Sin fechas nuevas: se usa fecha_salida (un mostrador ya la trae).
-            if remito.fecha_salida is None:
-                remito.fecha_salida = datetime.now()
+            # [S891] Al tomar número se fijan la fecha de EMISIÓN (la del papel) y, salvo EN_DEPOSITO, la de salida: lo hace el
+            # evento before_flush del modelo (backend/remitos/models.py), igual para cualquier camino que numere.
             db.add(remito)
             db.commit()
             db.refresh(remito)
@@ -235,8 +233,8 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
             "cuit": cliente.cuit,
             # [S890, regla de Carlos 20/10] La dirección del cliente (entrega, fiscal, y la oficina solo si no tiene ninguna).
             "domicilio_fiscal": RemitosService.domicilio_para_el_papel(db, remito),
-            # [S890] La fecha del remito (cuando tomó número); los remitos viejos sin fecha de salida usan la de creación.
-            "fecha": (remito.fecha_salida or remito.fecha_creacion or datetime.now()).strftime("%d/%m/%Y"),
+            # [S891] La fecha del remito = la de EMISIÓN (cuando tomó número); los viejos sin ella, la de salida o la de creación.
+            "fecha": (remito.fecha_emision or remito.fecha_salida or remito.fecha_creacion or datetime.now()).strftime("%d/%m/%Y"),
             # [S890] Casillero TRANSPORTISTA: la empresa del remito o, sin empresa, el método de la entrega.
             "transportista": RemitosService.transportista_para_el_papel(db, remito),
             "condicion_iva": "RESPONSABLE INSCRIPTO", # Default for now
@@ -271,6 +269,12 @@ def get_remito_pdf(remito_id: str, db: Session = Depends(get_db)):
             cae=cae_val,
             vto_cae=vto_cae_val.strftime("%d/%m/%Y") if vto_cae_val else None
         )
+        # [S891, Nike: bit 44 IMPRESO] El remito se imprimió (se generó su PDF) al menos una vez: la marca no se apaga nunca.
+        # Un 0015 sin esta marca es una salida sin papel (se fue solo con la factura).
+        from backend.remitos.constants import RemitoFlags
+        if not (int(remito.flags_estado or 0) & int(RemitoFlags.IMPRESO)):
+            remito.flags_estado = int(remito.flags_estado or 0) | int(RemitoFlags.IMPRESO)
+            db.commit()
         return FileResponse(
             final_path, 
             media_type='application/pdf', 
@@ -464,10 +468,10 @@ def cambiar_fecha(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_active_user)
 ):
-    """[S890, Carlos 20-21/10] La fecha del remito es la del día en que tomó número (fecha_salida, ver get_remito_pdf).
+    """[S890, Carlos 20-21/10; S891] La fecha del remito es la de EMISIÓN (el día en que tomó número: fecha_emision).
     Se puede cambiar «por si el papel se perdió o hay que ajustar algo sin perder el remito original»: solo en un remito
     numerado y no anulado, con motivo, nunca a futuro, y queda una nota [SISTEMA] con la fecha anterior, la nueva,
-    quién y por qué. No se agrega ninguna fecha nueva al modelo («no debemos tener un montón de fechas»)."""
+    quién y por qué. Si la salida física se había asumido en la emisión (mismo día), se mueve con ella."""
     remito = db.query(models.Remito).filter(models.Remito.id == remito_id).first()
     if not remito:
         raise HTTPException(status_code=404, detail="Remito no encontrado")
@@ -484,9 +488,13 @@ def cambiar_fecha(
         raise HTTPException(status_code=422, detail="FECHA_INVALIDA: la fecha va como AAAA-MM-DD.")
     if nueva.date() > datetime.now().date():
         raise HTTPException(status_code=422, detail="FECHA_FUTURA: un remito no puede tener fecha posterior a hoy.")
-    anterior = remito.fecha_salida or remito.fecha_creacion
+    anterior = remito.fecha_emision or remito.fecha_salida or remito.fecha_creacion
     hora = anterior.time() if anterior else datetime.now().time()
-    remito.fecha_salida = datetime.combine(nueva.date(), hora)
+    nueva_emision = datetime.combine(nueva.date(), hora)
+    # la salida asumida en la emisión (mismo día) acompaña el cambio; una salida posterior registrada aparte no se toca
+    if remito.fecha_salida is None or (anterior and remito.fecha_salida.date() == anterior.date()):
+        remito.fecha_salida = nueva_emision
+    remito.fecha_emision = nueva_emision
     texto = (f"[SISTEMA] Fecha del remito cambiada del {anterior.strftime('%d/%m/%Y') if anterior else 's/f'} "
              f"al {nueva.strftime('%d/%m/%Y')}. Motivo: {motivo}")
     db.add(models.RemitoNota(remito_id=remito.id, texto=texto, autor_id=current_user.id))

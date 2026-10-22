@@ -67,7 +67,8 @@ tocados.add(f"remito_{(num29 or '').replace('-', '_')}.pdf")
 fs = fecha_salida(r29)
 check(f"al tomar número ({num29}) el remito fija su fecha: fecha_salida = hoy ({fs}) [{st}]", st == 200 and num29 and fs and fs[:10] == datetime.now().strftime("%Y-%m-%d"))
 check(f"el PDF imprime esa fecha ({HOY})", HOY in txt)
-q("update remitos set fecha_salida='2026-10-18 10:00:00' where id=?", r29)
+# [S891] la fecha del papel es la de EMISIÓN (fecha_emision); la de salida es la física
+q("update remitos set fecha_emision='2026-10-18 10:00:00', fecha_salida='2026-10-18 10:00:00' where id=?", r29)
 st, txt = pdf(r29)
 check(f"reimprimir otro día NO cambia la fecha del papel: imprime la del remito (18/10/2026), no la de hoy [{st}]", st == 200 and "18/10/2026" in txt and (HOY == "18/10/2026" or HOY not in txt))
 check("reimprimir no lo renumera", q("select numero_legal from remitos where id=?", r29)[0][0] == num29)
@@ -119,8 +120,9 @@ check(f"remito inexistente: 404 [{r.status_code}]", r.status_code == 404)
 
 # ---- (5) pantalla (estática)
 v = io.open(os.path.join(RAIZ, "frontend", "src", "views", "Logistica", "RemitoListView.vue"), encoding="utf-8").read()
-check("listado: la columna Fecha muestra la fecha del remito (fecha_salida con número; sin número, la de armado) y ordena por ella",
-      "remito.numero_legal && remito.fecha_salida" in v and "formatDate(fechaRemito(remito))" in v and "new Date(fechaRemito(a))" in v)
+check("listado: la columna Fecha muestra la fecha del remito (con número, la de emisión; sin número, la de armado) y ordena por ella",
+      "remito.numero_legal ? (remito.fecha_emision || remito.fecha_salida || remito.fecha_creacion) : remito.fecha_creacion" in v
+      and "formatDate(fechaRemito(remito))" in v and "new Date(fechaRemito(a))" in v)
 check("listado: lápiz «Cambiar la fecha» solo en remitos numerados no anulados, ventana con fecha (sin futuro) y motivo obligatorio, PATCH /remitos/{id}/fecha",
       "v-if=\"remito.numero_legal && remito.estado !== 'ANULADO'\" @click.stop=\"abrirCambioFecha(remito)\"" in v and ':max="hoyISO()"' in v
       and "!cambioFecha.motivo.trim()" in v and "api.patch(`/remitos/${cambioFecha.remito.id}/fecha`" in v)
