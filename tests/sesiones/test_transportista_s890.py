@@ -19,7 +19,7 @@ import fitz
 checks = []
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
 MM = 72 / 25.4
-ORIG = sorted(glob.glob(r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_*.db"))[-1]
+ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261021_1206.db"   # [S891] fija: la prueba parte de P ANTES de la 064/065 (el 3031 de mostrador, sin webs de retiro); desde el 21/10 noche P ya las tiene
 T = os.path.join(RAIZ, "scratch", "test_transportista_tmp.db"); copiar_p(ORIG, T)
 PY = os.path.join(RAIZ, "backend", "venv", "Scripts", "python.exe")
 r = subprocess.run([PY, "-X", "utf8", os.path.join(RAIZ, "scripts", "migrate_065_remito_3031_petroplastic.py")], capture_output=True, text=True, encoding="utf-8",
