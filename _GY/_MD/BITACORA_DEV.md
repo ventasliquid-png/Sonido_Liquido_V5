@@ -1,4 +1,4 @@
-﻿## SESION 891 (OF) — 2026-10-22 [NS (CC, Opus)]: remitos, paquete 2 en D — el genoma del remito (Nike, Sello de Oro) y el remito con número inmortal — NOMINAL — D:{{HASH_CIERRE_D}} B:61b6a2c (= prod/main) P:61b6a2c
+﻿## SESION 891 (OF) — 2026-10-22 [NS (CC, Opus)]: remitos, paquete 2 en D — el genoma del remito (Nike, Sello de Oro) y el remito con número inmortal — NOMINAL — D:276aab51 B:61b6a2c (= prod/main) P:61b6a2c
 
 - **Hito:** Nike ratificó en tres consultas el genoma del remito (`RemitoFlags` 29-45) y en D quedó construido el paquete 2 hasta el tramo 2, sin desplegar.
   - Tramo 1 `aa02469f`: el genoma lo calcula una sola función (`backend/remitos/genoma.py`) desde el evento `before_flush`; `remitos.fecha_emision`; `migrate_066`.
