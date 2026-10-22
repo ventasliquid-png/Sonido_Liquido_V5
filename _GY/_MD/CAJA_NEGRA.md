@@ -1,4 +1,15 @@
-﻿Sesion actual: 890
+﻿Sesion actual: 891
+
+# CAJA NEGRA: OMEGA Completo - remitos, paquete 2 en D: el genoma del remito (Nike, Sello de Oro) y el remito con numero inmortal (vista previa, imagen de lo impreso, anular y deshacer) - S891
+
+Sesion 891 OF, 22/10, NS (CC, Opus) con Carlos. Hash D: {{HASH_CIERRE_D}} (ultimo de codigo ce8b292c) | Hash B: 61b6a2c = prod/main (sin pushes) | P real: 61b6a2c (leido en P al cierre). Copia de P 22/10 11:10 (65 remitos, hasta el 0015-00003033), tambien como Pilot_2026_10_22_copia.db para CA.
+- Nike (tres consultas desde el navegador integrado, Sello de Oro): RemitoFlags CLASE 30 EGRESO / 31 EGRESO_AVIOS / 32 INTERNO (la decide el color del pedido al salir); ESTADO 33 EMITIDO / 35 ANULADO / 36 PERDIDO; LOGISTICA 37 EN_DEPOSITO / 38 RETIRADO (por defecto) / 39 RECIBIDO; calificadores irreversibles 42 DIFERENCIA_RECEPCION, 43 FUE_ANULADO, 44 IMPRESO, 45 SALIDA_DIFERIDA; 29 RESERVADO_AJUSTE_STOCK; CIRCUITO_ROSA (4) retirado.
+- Decisiones de Carlos: el stock solo lee remitos, nunca facturas; Blanco y no comercial siempre 0015 (salida sin papel = 0015 sin IMPRESO), Rosa siempre RI; fecha de emision (la del papel) separada de la salida fisica (si nadie la marca, salida = emision); estados logisticos en bits; reimpresion identica con registro; los servicios no van en remitos.
+- Tramo 1 (aa02469f): genoma calculado por una sola funcion (backend/remitos/genoma.py) desde el evento before_flush; remitos.fecha_emision; migrate_066. Tramo 2 (b4a1db1d): vista previa sin numero; el primer papel queda como imagen en DOCUMENTOS_GENERADOS_RAR/Remitos emitidos y Reimprimir la entrega igual (nota [SISTEMA]); PATCH /fecha archiva la imagen; anular y deshacer con motivo (409 si esta facturado por facturas_remitos, si no tiene numero o si otro remito cubrio las cantidades); tacho y edicion solo sin numero.
+- Verificado en un banco (copia de P con la 066): el banco encontro la guarda de facturado incompleta (dejo anular el 3032 con su factura 0001-00002619); corregida antes del commit. 56 pruebas, 1.272 comprobaciones; cuatro pruebas de la S890 fijadas a la copia del 21/10 (ce8b292c). Push a origin/main de D; nada a produccion (el paquete 2 sube entero).
+- Pendiente: las 3 preguntas a Carlos (boton Imprimir HTML de RemitoTemplate, imagen del 3031 = PDF de Celtrap, cuantas copias de P conservar); tramo 3 (salida sin papel, «¿salio?», EN_DEPOSITO); serie RI, servicios, #180; despliegue del paquete 2 con el punto 6 (063 y 066 ensayadas sobre la copia del 22/10).
+
+Sesion actual: 890
 
 # CAJA NEGRA: OMEGA Lite - remitos, paquete 1 en produccion (direccion del cliente, fecha del remito, valor declarado y bultos, transportista y web de retiro, el 3031 igual al papel) - S890
 

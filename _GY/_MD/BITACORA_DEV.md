@@ -1,4 +1,16 @@
-﻿## SESION 890 (OF) — 2026-10-21 [NS (CC, Opus)]: remitos, paquete 1 en producción (dirección del cliente, fecha del remito, valor declarado y bultos, transportista y web de retiro, el 3031 igual al papel) — NOMINAL — D:11ed1063 B:61b6a2c (= prod/main) P:dea451b (toma 61b6a2c al relanzar)
+﻿## SESION 891 (OF) — 2026-10-22 [NS (CC, Opus)]: remitos, paquete 2 en D — el genoma del remito (Nike, Sello de Oro) y el remito con número inmortal — NOMINAL — D:{{HASH_CIERRE_D}} B:61b6a2c (= prod/main) P:61b6a2c
+
+- **Hito:** Nike ratificó en tres consultas el genoma del remito (`RemitoFlags` 29-45) y en D quedó construido el paquete 2 hasta el tramo 2, sin desplegar.
+  - Tramo 1 `aa02469f`: el genoma lo calcula una sola función (`backend/remitos/genoma.py`) desde el evento `before_flush`; `remitos.fecha_emision`; `migrate_066`.
+  - Tramo 2 `b4a1db1d`: vista previa sin número; imagen del primer papel y reimpresión idéntica con nota; cambiar la fecha archiva la imagen; Anular y Deshacer con motivo y guardas (facturado, sin número, sustituido por cantidades); tacho y edición solo sin número.
+  - `ce8b292c`: cuatro pruebas de la S890 fijadas a la copia de P del 21/10 (la del 22/10 ya tiene la 064 y la 065).
+- **Decisiones de Carlos:** el stock solo lee remitos; 0015 para todo lo Blanco y no comercial, RI para el Rosa; fecha de emisión aparte de la salida física; estados logísticos en bits; reimpresión idéntica; los servicios no van en remitos.
+- **Hallazgos corregidos antes de commitear:** la imagen se entregaba a cualquier remito con un archivo de su número (la regresión lo mostró con una imagen ajena) y la guarda de «facturado» no veía el vínculo `facturas_remitos` (el banco dejó anular el 3032 con su factura).
+- Copia de P del 22/10 para CA (`Pilot_2026_10_22_copia.db`) con nota en `PROMPTS_TRABAJO`; 063 y 066 ensayadas sobre ella. 56 pruebas, 1.272 comprobaciones, en verde con las copias del 21 y del 22/10. Informe: `INFORMES_HISTORICOS/2026-10-22_S891_OF.md`.
+
+---
+
+## SESION 890 (OF) — 2026-10-21 [NS (CC, Opus)]: remitos, paquete 1 en producción (dirección del cliente, fecha del remito, valor declarado y bultos, transportista y web de retiro, el 3031 igual al papel) — NOMINAL — D:11ed1063 B:61b6a2c (= prod/main) P:dea451b (toma 61b6a2c al relanzar)
 
 - Tres commits de código en D (`a7ef8fc3`, `ee9ffeef`, `01d8b57c`) y dos pushes a producción (`dea451b..2b0e672..61b6a2c`) con `migrate_064` (web_retiro) y `migrate_065` (3031 con Cruz del Sur). Carlos: fecha del remito = día en que toma número, valor declarado = neto sin impuestos, genoma del remito en bits y bit de cicatriz «papel distinto» (para Nike). 54 pruebas en D, 51 contra B.
 

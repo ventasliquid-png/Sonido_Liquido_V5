@@ -1354,3 +1354,7 @@ Sin cambios funcionales visibles: la sesión trabajó el Board y los protocolos,
 - **El casillero TRANSPORTISTA del remito se llena solo** con la razón social, el CUIT y el domicilio del transporte del padrón. Si no hay empresa de transporte, dice cómo sale («RETIRA EL CLIENTE», «TRANSPORTE PROPIO», «MOTO / CADETERÍA»).
 - **Web para pedir el retiro:** en **Maestros → Transportes** cada transporte tiene el campo «Web para pedir el retiro». En la ventana de «Imprimir remito», al elegir el transporte, el título del recuadro pasa a ser **«Pedir retiro en …»** (abre la página en otra pestaña), con **Copiar**. Al lado está **«Nuevo transporte»**, que abre el padrón en otra pestaña (después tocá ↻ para que aparezca en la lista). La tarjeta de un remito ya armado también tiene **«Pedir retiro»**. Cruz del Sur ya tiene cargada la suya.
 - **El 0015-00003031 (Petroplastic)** quedó igual al papel que imprimió Celtrap: Cruz del Sur, en camino desde el 20/10, 200 bultos, $ 2.980.000. Ya se puede reimprimir desde el sistema.
+
+## Sesión 891 (22/10) — sin cambios para quien opera
+
+*Hoy no cambió nada en producción. En desarrollo quedó lo que trae el próximo despliegue de remitos: vista previa sin gastar el número, «Reimprimir» que entrega siempre el mismo papel, y Anular / Deshacer anulación con motivo (un remito con número ya no se borra). Se explica acá cuando suba.*
