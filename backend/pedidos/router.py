@@ -862,20 +862,9 @@ def update_pedido(
         removed_ids = set(existing_items.keys()) - seen_ids
         for rid in removed_ids:
             old_item = existing_items[rid]
-            entregado = sum(
-                ri.cantidad_remitida for ri in old_item.remitos_items
-                if ri.remito and ri.remito.estado != "ANULADO"
-            )
-            if entregado > 0:
-                descripcion = old_item.producto.nombre if old_item.producto else f"ítem #{old_item.id}"
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"No se puede eliminar el renglón '{descripcion}': ya tiene {entregado} unidades entregadas."
-                )
-            msg_fact = mensaje_baja_de_renglon(old_item)  # [Card #154] un comprobante emitido no pierde su renglon
-            if msg_fact:
-                descripcion = old_item.producto.nombre if old_item.producto else f"ítem #{old_item.id}"
-                raise HTTPException(status_code=400, detail=f"{descripcion}: {msg_fact}")
+            motivo = _motivo_para_no_borrar_renglon(old_item)
+            if motivo:
+                raise HTTPException(status_code=400, detail=motivo)
             prod = old_item.producto
             if prod and prod.stock_reservado is not None and prod.tipo_producto != 'SERVICIO':
                 prod.stock_reservado -= Decimal(str(old_item.cantidad))
@@ -1180,6 +1169,29 @@ def update_pedido_item(
         .first()
     )
 
+def _motivo_para_no_borrar_renglon(item):
+    """Por qué no se puede quitar este renglón del pedido, o None si se puede. Una sola regla para el guardado del pedido
+    (renglones que ya no vienen en el array) y para DELETE /pedidos/items/{id} (clic derecho «Eliminar Item» en el Tablero),
+    que hasta la S892 borraba sin mirar nada.
+    - [Pedido Soberano] lo entregado en remitos vigentes no se borra;
+    - [Card #154] un renglón con una factura vigente no se borra (un comprobante emitido no pierde su renglón);
+    - [S892, auditoría de CA de la S891] un renglón que figura en un remito con número, vigente o anulado, tampoco: el remito con
+      número es inmortal y no pierde renglones. Antes se borraban los renglones de los remitos anulados con número."""
+    descripcion = item.producto.nombre if item.producto else f"ítem #{item.id}"
+    entregado = sum(ri.cantidad_remitida for ri in item.remitos_items if ri.remito and ri.remito.estado != "ANULADO")
+    if entregado > 0:
+        return f"No se puede eliminar el renglón '{descripcion}': ya tiene {entregado} unidades entregadas."
+    msg_fact = mensaje_baja_de_renglon(item)
+    if msg_fact:
+        return f"{descripcion}: {msg_fact}"
+    con_numero = sorted({f"{ri.remito.numero_legal} ({ri.remito.estado})" for ri in item.remitos_items
+                         if ri.remito and ri.remito.numero_legal})
+    if con_numero:
+        return (f"No se puede eliminar el renglón '{descripcion}': figura en el remito {', '.join(con_numero)}. Un remito con número "
+                "no pierde renglones; si ya no va, dejá la cantidad en 0.")
+    return None
+
+
 @router.delete("/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_pedido_item(item_id: int, db: Session = Depends(get_db)):
     """
@@ -1188,15 +1200,19 @@ def delete_pedido_item(item_id: int, db: Session = Depends(get_db)):
     item = db.query(models.PedidoItem).filter(models.PedidoItem.id == item_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Item no encontrado")
-    
+    # [S892] las mismas guardas que el guardado del pedido (antes este camino no miraba entregas, facturas ni remitos)
+    motivo = _motivo_para_no_borrar_renglon(item)
+    if motivo:
+        raise HTTPException(status_code=400, detail=motivo)
+
     # Optional logic: recalculate order total? Or assumes frontend/trigger handles it?
     # For now, let's recalculate total explicitly or assume client will reload.
     # Recalculating is safer.
     pedido = item.pedido
-    
+
     # [LOGISTICA V7] Liberar Reserva -- [S875, punto E] SERVICIO nunca reservó
     prod = item.producto
-    if prod.stock_reservado is not None and prod.tipo_producto != 'SERVICIO':
+    if prod and prod.stock_reservado is not None and prod.tipo_producto != 'SERVICIO':
         prod.stock_reservado -= Decimal(str(item.cantidad))
         
     # [CASCADE FIX] Limpiar RemitoItems vinculados antes del hard-delete

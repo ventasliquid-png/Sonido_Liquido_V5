@@ -554,6 +554,38 @@ def cambiar_fecha(
 EPS_CANTIDAD = 1e-6
 
 
+def _pesos(x) -> str:
+    return "$ " + f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def _facturado_vigente(remito) -> list:
+    """[S892, auditoría de CA de la S891] Qué factura todavía ampara al remito, neto de notas de crédito (lista vacía = ninguna).
+    Una NC no borra el vínculo facturas_remitos (es historia); lo que libera al remito es que lo facturado, menos lo acreditado,
+    llegue a cero. Antes la guarda miraba solo el vínculo y un remito facturado quedaba trabado para siempre aunque tuviera su NC.
+    - Si algún renglón tiene lo facturado por renglón (cantidad_facturada > 0, el camino del conciliador nuevo), manda el neto de
+      cada renglón (cantidad_facturada_neta): una NC que acredita esos renglones lo libera aunque la factura abarque otros remitos.
+    - Si no (lo que hay en P: el vínculo existe y cantidad_facturada no está cargada), manda la factura: cada factura vinculada,
+      numerada y no anulada, ampara al remito salvo que sus NC no anuladas (facturas_ajustes) cubran su total."""
+    from backend.facturacion.constants import es_nota_credito
+    renglones = [ri for ri in remito.items if (ri.cantidad_facturada or 0) > EPS_CANTIDAD]
+    if renglones:
+        return [f"«{ri.descripcion_display}» ({ri.cantidad_facturada_neta:g} facturado sin nota de crédito)"
+                for ri in renglones if (ri.cantidad_facturada_neta or 0) > EPS_CANTIDAD]
+    vigentes = []
+    for vinculo in remito.vinculos_facturas or []:
+        f = vinculo.factura
+        if f is None or f.punto_venta is None or f.numero_comprobante is None or str(f.estado or "").upper().startswith("ANULAD"):
+            continue
+        acreditado = sum((a.monto_aplicado if a.monto_aplicado is not None else (a.nc_nd.total or 0))
+                         for a in (f.ajustes_recibidos or [])
+                         if a.nc_nd is not None and es_nota_credito(a.nc_nd.tipo_comprobante)
+                         and not str(a.nc_nd.estado or "").upper().startswith("ANULAD"))
+        if acreditado < (f.total or 0) - 0.01:
+            vigentes.append(f"la factura {f.numero_completo}"
+                            + (f" (notas de crédito por {_pesos(acreditado)} de {_pesos(f.total or 0)})" if acreditado > 0.01 else ""))
+    return vigentes
+
+
 @router.post("/{remito_id}/anular", response_model=schemas.RemitoResponse)
 def anular_remito(remito_id: str, payload: schemas.RemitoMotivo, db: Session = Depends(get_db),
                   current_user: Usuario = Depends(get_current_active_user)):
@@ -570,13 +602,10 @@ def anular_remito(remito_id: str, payload: schemas.RemitoMotivo, db: Session = D
     motivo = (payload.motivo or "").strip()
     if not motivo:
         raise HTTPException(status_code=422, detail="MOTIVO_OBLIGATORIO: decí por qué se anula el remito.")
-    # facturado = una factura numerada y no anulada lo ampara (vínculo facturas_remitos, la columna FACTURA del listado), o algún renglón
-    # tiene cantidad facturada. En P el vínculo es lo que está cargado; cantidad_facturada casi nunca.
-    factura = remito._factura_de_referencia()
-    if factura is not None or [ri for ri in remito.items if (ri.cantidad_facturada or 0) > EPS_CANTIDAD]:
-        cual = f"la factura {factura.numero_completo}" if factura is not None else "una factura (renglones facturados)"
-        raise HTTPException(status_code=409, detail=(f"REMITO_FACTURADO: el remito está amparado por {cual}; primero va la nota de crédito "
-                                                     "y después se anula."))
+    vigente = _facturado_vigente(remito)
+    if vigente:
+        raise HTTPException(status_code=409, detail=(f"REMITO_FACTURADO: el remito está amparado por {'; '.join(vigente)}; primero va la "
+                                                     "nota de crédito por lo que falta y después se anula."))
     anterior = remito.estado
     remito.estado = "ANULADO"
     db.add(models.RemitoNota(remito_id=remito.id, autor_id=current_user.id,

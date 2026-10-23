@@ -705,7 +705,8 @@ const handleDeleteItem = async (itemId) => {
         await store.deletePedidoItem(selectedPedido.value.id, itemId)
         notificationStore.add('Item eliminado', 'success')
     } catch (e) {
-        notificationStore.add('Error eliminando item', 'error')
+        // [S892] el servidor dice por qué no se puede (entregado, facturado o en un remito con número)
+        notificationStore.add('No se pudo eliminar: ' + (e.response?.data?.detail || e.message), 'error')
     }
 }
 
