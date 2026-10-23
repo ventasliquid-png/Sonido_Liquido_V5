@@ -74,6 +74,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { normalizarBusqueda } from '@/utils/texto'
 import { useRouter } from 'vue-router'
 
 const props = defineProps({
@@ -100,11 +101,11 @@ const commands = [
 ]
 
 const filteredCommands = computed(() => {
-    const q = query.value.toLowerCase()
+    const q = normalizarBusqueda(query.value)   // [S892] sin acentos
     let filtered = commands.filter(cmd => 
-        cmd.label.toLowerCase().includes(q) || 
-        cmd.description.toLowerCase().includes(q) ||
-        cmd.group.toLowerCase().includes(q)
+        normalizarBusqueda(cmd.label).includes(q) || 
+        normalizarBusqueda(cmd.description).includes(q) ||
+        normalizarBusqueda(cmd.group).includes(q)
     )
     
     // Assign global index for navigation

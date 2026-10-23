@@ -181,6 +181,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
+import { normalizarBusqueda } from '@/utils/texto';
 import canteraService from '@/services/canteraService';
 import { useNotificationStore } from '@/stores/notification';
 
@@ -206,16 +207,16 @@ const fetchData = async () => {
 
 const filteredItems = computed(() => {
     if (!searchQuery.value) return allItems.value;
-    const q = searchQuery.value.toLowerCase();
+    const q = normalizarBusqueda(searchQuery.value);   // [S892] sin acentos
     if (activeTab.value === 'clientes') {
         return allItems.value.filter(i => 
-            i.razon_social?.toLowerCase().includes(q) || 
+            normalizarBusqueda(i.razon_social).includes(q) || 
             i.cuit?.includes(q)
         );
     } else {
         return allItems.value.filter(i => 
-            i.nombre?.toLowerCase().includes(q) || 
-            i.sku?.toLowerCase().includes(q)
+            normalizarBusqueda(i.nombre).includes(q) || 
+            normalizarBusqueda(i.sku).includes(q)
         );
     }
 });

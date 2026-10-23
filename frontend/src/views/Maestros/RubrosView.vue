@@ -312,6 +312,7 @@
 
 <script setup>
 import { ref, onMounted, computed, onUnmounted } from 'vue';
+import { normalizarBusqueda } from '@/utils/texto';
 import FichaCard from '../../components/hawe/FichaCard.vue';
 import { useProductosStore } from '../../stores/productos.js';
 import { useNotificationStore } from '../../stores/notification.js';
@@ -347,10 +348,10 @@ const filteredRubros = computed(() => {
     
     // Filter Query
     if (searchQuery.value) {
-        const q = searchQuery.value.toLowerCase();
+        const q = normalizarBusqueda(searchQuery.value);   // [S892] sin acentos
         result = result.filter(r => 
-            r.nombre.toLowerCase().includes(q) || 
-            r.codigo.toLowerCase().includes(q)
+            normalizarBusqueda(r.nombre).includes(q) || 
+            normalizarBusqueda(r.codigo).includes(q)
         );
     }
 

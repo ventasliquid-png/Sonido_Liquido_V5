@@ -186,6 +186,7 @@ def get_remito_pdf(remito_id: str, vista_previa: bool = False, db: Session = Dep
             remito.numero_legal = RemitosService._siguiente_numero_0015(db)
             # [S891] Al tomar número se fijan la fecha de EMISIÓN (la del papel) y, salvo EN_DEPOSITO, la de salida: lo hace el
             # evento before_flush del modelo (backend/remitos/models.py), igual para cualquier camino que numere.
+            _aclarar_si_rosa(db, remito)   # [S892] un Rosa con 0015 queda dicho: no se factura
             db.add(remito)
             db.commit()
             db.refresh(remito)
@@ -531,8 +532,11 @@ def cambiar_fecha(
     anterior = remito.fecha_emision or remito.fecha_salida or remito.fecha_creacion
     hora = anterior.time() if anterior else datetime.now().time()
     nueva_emision = datetime.combine(nueva.date(), hora)
-    # la salida asumida en la emisión (mismo día) acompaña el cambio; una salida posterior registrada aparte no se toca
-    if remito.fecha_salida is None or (anterior and remito.fecha_salida.date() == anterior.date()):
+    # la salida asumida en la emisión (mismo día) acompaña el cambio; una salida posterior registrada aparte no se toca, y un remito
+    # que quedó en depósito (bit 37) sigue sin salida: la pone «Retiró el transporte» (S892)
+    from backend.remitos.constants import RemitoFlags
+    en_deposito = bool(int(remito.flags_estado or 0) & int(RemitoFlags.EN_DEPOSITO))
+    if not en_deposito and (remito.fecha_salida is None or (anterior and remito.fecha_salida.date() == anterior.date())):
         remito.fecha_salida = nueva_emision
     remito.fecha_emision = nueva_emision
     texto = (f"[SISTEMA] Fecha del remito cambiada del {anterior.strftime('%d/%m/%Y') if anterior else 's/f'} "
@@ -661,6 +665,120 @@ def deshacer_anulacion(remito_id: str, payload: schemas.RemitoMotivo, db: Sessio
     from backend.remitos.service import RemitosService
     if remito.pedido:
         RemitosService._recalcular_bits_entrega(db, remito.pedido)
+    db.commit()
+    db.refresh(remito)
+    return remito
+
+
+def _dia_del_remito(texto: Optional[str]) -> datetime:
+    """Fecha AAAA-MM-DD de una acción del remito, con la hora de ahora; sin dato, ahora. Nunca a futuro."""
+    if not texto:
+        return datetime.now()
+    try:
+        dia = datetime.strptime(texto.strip()[:10], "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(status_code=422, detail="FECHA_INVALIDA: la fecha va como AAAA-MM-DD.")
+    if dia.date() > datetime.now().date():
+        raise HTTPException(status_code=422, detail="FECHA_FUTURA: no puede ser posterior a hoy.")
+    return datetime.combine(dia.date(), datetime.now().time())
+
+
+NOTA_REMITO_ROSA = "[SISTEMA] Remito de un pedido Rosa: no se factura."
+
+
+def _aclarar_si_rosa(db, remito, autor_id=None) -> None:
+    """[S892, Carlos 23/10] Un pedido Rosa SÍ puede salir con un 0015 (cuando lo despacha un transporte hace falta un remito de verdad), y
+    ese remito es no facturable («quiero que quede aclarado»). Lo es de hecho (cantidad_facturada nace en NULL = no aplica, el conciliador
+    no lo ofrece); esta nota lo deja dicho en el remito la primera vez que toma número, sin esperar a que haya una marca en el genoma."""
+    from backend.pedidos.constants import PedidoFlags
+    if remito.pedido and int(remito.pedido.flags_estado or 0) & int(PedidoFlags.NO_FISCAL_FORCE):
+        db.add(models.RemitoNota(remito_id=remito.id, autor_id=autor_id, texto=NOTA_REMITO_ROSA))
+
+
+@router.post("/{remito_id}/salida-sin-papel", response_model=schemas.RemitoResponse)
+def salida_sin_papel(remito_id: str, payload: schemas.RemitoFechaMotivo = schemas.RemitoFechaMotivo(), db: Session = Depends(get_db),
+                     current_user: Usuario = Depends(get_current_active_user)):
+    """[S892, paquete 2 tramo 3; Carlos + Nike 22/10 y 23/10] La mercadería salió sin remito impreso (se fue con la factura, o el papel no
+    hizo falta). El remito toma su número como si se imprimiera, pero sin papel: queda EMITIDO sin la marca IMPRESO (bit 44), con la
+    salida asumida en la emisión. Si después lo piden, se imprime con ese mismo número y ese primer papel queda como imagen.
+    La fecha del remito es la de la asignación del número, o sea AHORA (Carlos, 23/10: «el remito debe salir con la fecha de confección,
+    que es la de la asignación de número»); si hace falta otra, se cambia después con el lápiz, con motivo y con nota.
+    Cualquier color: un pedido Rosa también puede salir con un 0015 (si lo despacha un transporte hace falta un remito), y queda dicho en
+    el remito que no se factura. «En depósito» y «Retiró el transporte» son modificaciones especiales que hace el operador."""
+    from backend.remitos.service import RemitosService
+    remito = db.query(models.Remito).filter(models.Remito.id == remito_id).first()
+    if not remito:
+        raise HTTPException(status_code=404, detail="Remito no encontrado")
+    if remito.numero_legal:
+        raise HTTPException(status_code=409, detail=f"REMITO_CON_NUMERO: el remito ya tiene número ({remito.numero_legal}): ya salió, con o sin papel.")
+    if remito.estado == "ANULADO":
+        raise HTTPException(status_code=409, detail="REMITO_ANULADO: un remito anulado no sale.")
+    if sum((ri.cantidad_remitida or 0) for ri in remito.items) <= EPS_CANTIDAD:
+        raise HTTPException(status_code=409, detail="REMITO_VACIO: el remito no tiene cantidades.")
+    remito.fecha_emision = datetime.now()   # el evento del modelo pone la salida asumida en esta fecha
+    remito.numero_legal = RemitosService._siguiente_numero_0015(db)
+    motivo = (payload.motivo or "").strip()
+    db.add(models.RemitoNota(remito_id=remito.id, autor_id=current_user.id,
+                             texto=(f"[SISTEMA] Salió sin papel el {remito.fecha_emision.strftime('%d/%m/%Y')}: tomó el número "
+                                    f"{remito.numero_legal} sin imprimirse." + (f" Motivo: {motivo}" if motivo else ""))))
+    _aclarar_si_rosa(db, remito, current_user.id)
+    db.flush()
+    if remito.pedido:
+        RemitosService._recalcular_bits_entrega(db, remito.pedido)
+    db.commit()
+    db.refresh(remito)
+    return remito
+
+
+@router.post("/{remito_id}/en-deposito", response_model=schemas.RemitoResponse)
+def queda_en_deposito(remito_id: str, db: Session = Depends(get_db), current_user: Usuario = Depends(get_current_active_user)):
+    """[S892, paquete 2 tramo 3; caso Rizobacter] El remito tiene número (impreso o sin papel) pero la mercadería sigue en el depósito
+    esperando que la retire el transporte. Se borra la salida que se había asumido en la emisión y queda la marca EN_DEPOSITO (bit 37)
+    hasta «Retiró el transporte». No aplica a un remito en camino o recibido."""
+    from backend.remitos.constants import RemitoFlags
+    remito = db.query(models.Remito).filter(models.Remito.id == remito_id).first()
+    if not remito:
+        raise HTTPException(status_code=404, detail="Remito no encontrado")
+    if not remito.numero_legal:
+        raise HTTPException(status_code=409, detail="REMITO_SIN_NUMERO: un remito sin número todavía no salió: no hace falta marcarlo.")
+    if remito.estado in ("ANULADO", "EN_CAMINO", "ENTREGADO"):
+        raise HTTPException(status_code=409, detail=f"REMITO_{remito.estado}: un remito {remito.estado.lower().replace('_', ' ')} no queda en depósito.")
+    if int(remito.flags_estado or 0) & int(RemitoFlags.EN_DEPOSITO):
+        raise HTTPException(status_code=409, detail="YA_EN_DEPOSITO: el remito ya figura en depósito.")
+    asumida = remito.fecha_salida
+    remito.fecha_salida = None
+    remito.flags_estado = int(remito.flags_estado or 0) | int(RemitoFlags.EN_DEPOSITO)
+    db.add(models.RemitoNota(remito_id=remito.id, autor_id=current_user.id,
+                             texto=("[SISTEMA] Queda en depósito esperando que lo retire el transporte"
+                                    + (f" (se borró la salida asumida del {asumida.strftime('%d/%m/%Y')})." if asumida else "."))))
+    db.commit()
+    db.refresh(remito)
+    return remito
+
+
+@router.post("/{remito_id}/retiro", response_model=schemas.RemitoResponse)
+def retiro_del_transporte(remito_id: str, payload: schemas.RemitoFechaMotivo = schemas.RemitoFechaMotivo(), db: Session = Depends(get_db),
+                          current_user: Usuario = Depends(get_current_active_user)):
+    """[S892, paquete 2 tramo 3] El transporte retiró un remito que estaba en depósito: se registra la salida (hoy o la fecha que se
+    indique, nunca antes de la emisión). Si es un día posterior a la emisión, el genoma marca SALIDA_DIFERIDA (bit 45)."""
+    from backend.remitos.constants import RemitoFlags
+    remito = db.query(models.Remito).filter(models.Remito.id == remito_id).first()
+    if not remito:
+        raise HTTPException(status_code=404, detail="Remito no encontrado")
+    if not (int(remito.flags_estado or 0) & int(RemitoFlags.EN_DEPOSITO)):
+        raise HTTPException(status_code=409, detail="REMITO_NO_EN_DEPOSITO: el remito no figura en depósito.")
+    salida = _dia_del_remito(payload.fecha)
+    if remito.fecha_emision and salida.date() < remito.fecha_emision.date():
+        raise HTTPException(status_code=422, detail=(f"SALIDA_ANTES_DE_EMISION: el remito se emitió el {remito.fecha_emision.strftime('%d/%m/%Y')}; "
+                                                     "no puede haber salido antes."))
+    remito.fecha_salida = salida
+    # se lo llevó el transporte: está en camino (y ya no se puede volver a marcar «en depósito»)
+    paso = ""
+    if remito.estado == "BORRADOR":
+        remito.estado = "EN_CAMINO"
+        paso = " Pasa a EN CAMINO."
+    db.add(models.RemitoNota(remito_id=remito.id, autor_id=current_user.id,
+                             texto=f"[SISTEMA] Retiró el transporte el {salida.strftime('%d/%m/%Y')}.{paso}"))
     db.commit()
     db.refresh(remito)
     return remito

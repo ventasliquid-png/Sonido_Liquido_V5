@@ -196,6 +196,7 @@
 
 <script setup>
 import { ref, onMounted, computed, onUnmounted, watch } from 'vue'
+import { normalizarBusqueda } from '@/utils/texto'
 import { useLogisticaStore } from '../../../stores/logistica'
 import { useMaestrosStore } from '../../../stores/maestros'
 import { useNotificationStore } from '../../../stores/notification'
@@ -248,8 +249,8 @@ const filteredTransportes = computed(() => {
 
     // Filter by Search
     if (searchQuery.value) {
-        const query = searchQuery.value.toLowerCase()
-        result = result.filter(t => t.nombre.toLowerCase().includes(query))
+        const query = normalizarBusqueda(searchQuery.value)   // [S892] sin acentos
+        result = result.filter(t => normalizarBusqueda(t.nombre).includes(query))
     }
 
     return result

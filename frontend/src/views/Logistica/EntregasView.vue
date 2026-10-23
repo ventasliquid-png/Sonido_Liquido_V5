@@ -150,6 +150,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { normalizarBusqueda } from '@/utils/texto'
 import api from '@/services/api'
 import { useNotificationStore } from '@/stores/notification'
 
@@ -210,11 +211,11 @@ const ocConAnomalia = (oc) => ocsRepetidas.value.has((oc || '').trim().toUpperCa
 
 const filasFiltradas = computed(() => {
   if (!searchQuery.value) return filas.value
-  const q = searchQuery.value.toLowerCase()
+  const q = normalizarBusqueda(searchQuery.value)   // [S892] sin acentos
   return filas.value.filter(f =>
-    (f.cliente || '').toLowerCase().includes(q) ||
-    (f.oc || '').toLowerCase().includes(q) ||
-    (f.producto || '').toLowerCase().includes(q)
+    normalizarBusqueda(f.cliente).includes(q) ||
+    normalizarBusqueda(f.oc).includes(q) ||
+    normalizarBusqueda(f.producto).includes(q)
   )
 })
 

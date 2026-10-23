@@ -390,6 +390,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { normalizarBusqueda } from '@/utils/texto'
 import { useRouter } from 'vue-router'
 import { usePedidosStore } from '@/stores/pedidos' 
 import { useNotificationStore } from '@/stores/notification'
@@ -519,10 +520,10 @@ const sortedAndFilteredPedidos = computed(() => {
     }
 
     if (searchQuery.value) {
-        const query = searchQuery.value.toLowerCase()
+        const query = normalizarBusqueda(searchQuery.value)   // [S892] sin acentos: «lacteos» encuentra «Lácteos»
         result = result.filter(p => {
              const idMatch = String(p.id).includes(query)
-            const clientMatch = p.cliente?.razon_social?.toLowerCase().includes(query)
+            const clientMatch = normalizarBusqueda(p.cliente?.razon_social).includes(query)
             return idMatch || clientMatch
         })
     }

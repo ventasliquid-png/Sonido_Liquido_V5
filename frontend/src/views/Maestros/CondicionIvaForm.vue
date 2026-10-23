@@ -4,6 +4,7 @@
 
 <script setup>
 import { ref, reactive, watch, onMounted, onUnmounted, computed } from 'vue';
+import { normalizarBusqueda } from '@/utils/texto';
 import { useMaestrosStore } from '../../stores/maestros';
 import maestrosService from '../../services/maestros';
 import ContextMenu from '../../components/common/ContextMenu.vue';
@@ -40,7 +41,7 @@ const migrationMessage = ref('');
 const condiciones = computed(() => {
     if (!searchTerm.value) return store.condicionesIva;
     return store.condicionesIva.filter(c => 
-        c.nombre.toLowerCase().includes(searchTerm.value.toLowerCase())
+        normalizarBusqueda(c.nombre).includes(normalizarBusqueda(searchTerm.value))   // [S892] sin acentos
     );
 });
 

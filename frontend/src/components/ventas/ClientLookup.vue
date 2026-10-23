@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue';
+import { normalizarBusqueda } from '@/utils/texto';
 
 const props = defineProps({
     show: Boolean,
@@ -18,12 +19,12 @@ const searchInput = ref(null);
 // Filtrado
 const filteredClientes = computed(() => {
     if (!searchQuery.value) return props.clientes.slice(0, 50); // Top 50 default
-    const q = searchQuery.value.toLowerCase();
+    const q = normalizarBusqueda(searchQuery.value);   // [S892] sin acentos
     return props.clientes.filter(c =>
-        (c.razon_social?.toLowerCase().includes(q)) ||
+        (normalizarBusqueda(c.razon_social).includes(q)) ||
         (c.cuit?.includes(q)) ||
-        (c.nombre_fantasia?.toLowerCase().includes(q)) ||
-        (c.contacto_principal_nombre?.toLowerCase().includes(q))
+        (normalizarBusqueda(c.nombre_fantasia).includes(q)) ||
+        (normalizarBusqueda(c.contacto_principal_nombre).includes(q))
     ).slice(0, 50); // Limit results for perf
 });
 

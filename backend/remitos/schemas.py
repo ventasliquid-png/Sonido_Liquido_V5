@@ -51,6 +51,11 @@ class RemitoMotivo(BaseModel):
     """[S891] Motivo obligatorio para anular un remito o deshacer su anulación (queda en la nota [SISTEMA])."""
     motivo: str
 
+class RemitoFechaMotivo(BaseModel):
+    """[S892, tramo 3] «Salió sin papel» y «Retiró el transporte»: fecha AAAA-MM-DD opcional (sin dato, hoy) y motivo opcional."""
+    fecha: Optional[str] = None
+    motivo: Optional[str] = None
+
 class RemitoNotaResponse(BaseModel):
     id: int
     remito_id: UUID

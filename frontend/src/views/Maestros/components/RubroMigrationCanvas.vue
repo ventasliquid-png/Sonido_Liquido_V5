@@ -162,6 +162,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue';
+import { normalizarBusqueda } from '@/utils/texto';
 import { useKeyboardShortcuts } from '../../../composables/useKeyboardShortcuts.js';
 
 const props = defineProps({
@@ -184,13 +185,13 @@ const selectedOrphans = ref([]);
 
 // Filter targets (exclude self and nulls)
 const filteredTargets = computed(() => {
-    const query = searchTarget.value.toLowerCase();
+    const query = normalizarBusqueda(searchTarget.value);   // [S892] sin acentos
     return props.allRubros.filter(r => 
         r.id !== props.sourceRubro.id && // Not self
         !r.padre_id && // Only roots (Rubros) can be parents of Subrubros (simplification for now, or allow n-level?)
                        // If hierarchy is strictly 2-level (Rubro->Subrubro), then target must be a Rubro (Top Level).
                        // We check !padre_id to properly list only potential parents.
-        (r.nombre.toLowerCase().includes(query) || r.codigo.toLowerCase().includes(query))
+        (normalizarBusqueda(r.nombre).includes(query) || normalizarBusqueda(r.codigo).includes(query))
     );
 });
 

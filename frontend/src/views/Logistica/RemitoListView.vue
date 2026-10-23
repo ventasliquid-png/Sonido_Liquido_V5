@@ -95,7 +95,7 @@
                 </div>
 
                 <div class="w-14 text-right text-blue-200/40">Items</div>
-                <div class="w-32"></div>
+                <div class="w-40"></div>
             </div>
 
             <div 
@@ -141,13 +141,15 @@
                 </div>
                 
                 <!-- Status Badge -->
-                <div class="w-28 flex justify-center">
+                <div class="w-28 flex flex-col items-center justify-center">
                     <span 
                         class="px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border transition-all"
                         :class="getStatusClass(remito.estado)"
                     >
                         {{ remito.estado }}
                     </span>
+                    <!-- [S892] impreso (o sin papel) pero todavía en el depósito, esperando que lo retire el transporte -->
+                    <span v-if="enDeposito(remito)" data-marca="en-deposito" class="block mt-1 text-[9px] font-bold uppercase tracking-wider text-amber-300/80">en depósito</span>
                 </div>
 
                 <!-- Items Count -->
@@ -156,7 +158,7 @@
                 </div>
 
                 <!-- Actions -->
-                <div class="w-32 flex justify-end gap-1">
+                <div class="w-40 flex justify-end gap-1">
                     <!-- [S891] Vista previa: solo un remito SIN número; no gasta el número ni queda guardada -->
                     <button v-if="!remito.numero_legal && remito.estado !== 'ANULADO'" @click.stop="vistaPrevia(remito)" data-accion="vista-previa"
                         class="p-2 text-blue-300/70 hover:text-white transition-colors" title="Vista previa (sin número: no gasta el número)">
@@ -171,6 +173,20 @@
                         :title="remito.estado === 'ANULADO' ? 'Remito anulado: no se imprime' : (impreso(remito) ? 'Reimprimir (la misma imagen de lo impreso)' : (remito.numero_legal ? 'Imprimir el remito (PDF)' : 'Imprimir el remito: se le asigna el próximo número 0015'))"
                     >
                         <i :class="impreso(remito) ? 'fas fa-copy' : 'fas fa-print'"></i>
+                    </button>
+                    <!-- [S892] Salió sin papel: toma el número sin imprimir (si después lo piden, se imprime con ese número) -->
+                    <button v-if="!remito.numero_legal && remito.estado !== 'ANULADO'" @click.stop="abrirAccionFecha(remito, 'sin-papel')" data-accion="sin-papel"
+                        class="p-2 text-cyan-300/70 hover:text-white transition-colors" title="Salió sin papel (toma el número sin imprimir)">
+                        <i class="fas fa-file-circle-xmark"></i>
+                    </button>
+                    <!-- [S892] Queda en depósito / Retiró el transporte (caso Rizobacter: impreso y todavía en el depósito) -->
+                    <button v-if="remito.numero_legal && remito.estado === 'BORRADOR' && !enDeposito(remito)" @click.stop="marcarEnDeposito(remito)" data-accion="en-deposito"
+                        class="p-2 text-amber-300/60 hover:text-amber-200 transition-colors" title="Queda en depósito (todavía no lo retiró el transporte)">
+                        <i class="fas fa-warehouse"></i>
+                    </button>
+                    <button v-if="enDeposito(remito)" @click.stop="abrirAccionFecha(remito, 'retiro')" data-accion="retiro"
+                        class="p-2 text-amber-300 hover:text-white transition-colors" title="Retiró el transporte (registra la salida)">
+                        <i class="fas fa-truck-ramp-box"></i>
                     </button>
                     <!-- [S891] Un remito con número no se borra: se anula (con motivo) y se puede deshacer si nadie cubrió esas cantidades -->
                     <button v-if="remito.numero_legal && remito.estado !== 'ANULADO'" @click.stop="abrirAnulacion(remito, 'anular')" data-accion="anular"
@@ -395,6 +411,30 @@
          </div>
       </div>
 
+      <!-- [S892] «Salió sin papel» (la fecha es la de la asignación del número: ahora; Carlos 23/10) y «Retiró el transporte» (fecha del retiro, hoy por defecto, nunca a futuro) -->
+      <div v-if="accionFecha.visible" data-modal="accion-fecha" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[110] p-4" @click.self="cerrarAccionFecha">
+        <div class="bg-[#0b1220] border border-cyan-500/40 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+          <h3 class="text-white font-bold text-lg mb-1">{{ accionFecha.modo === 'sin-papel' ? 'Salió sin papel' : 'Retiró el transporte' }}</h3>
+          <p class="text-xs text-blue-300/70 mb-4" v-if="accionFecha.modo === 'sin-papel'">Pedido #{{ accionFecha.remito?.pedido_id }} · {{ accionFecha.remito?.razon_social }}. El remito toma el próximo número 0015 sin imprimirse, con la fecha de hoy (si hace falta otra, después se cambia con el lápiz). Si después lo piden, se imprime con ese mismo número.</p>
+          <p class="text-xs text-blue-300/70 mb-4" v-else>{{ accionFecha.remito?.numero_legal }} · {{ accionFecha.remito?.razon_social }}. Registra el día en que salió del depósito.</p>
+          <template v-if="accionFecha.modo === 'retiro'">
+            <label class="block text-[10px] uppercase tracking-widest text-blue-400 font-bold mb-1">Fecha del retiro</label>
+            <input type="date" v-model="accionFecha.fecha" :max="hoyISO()" data-campo="fecha-accion" class="w-full bg-black/30 border border-blue-900/40 rounded-lg px-3 py-2 text-sm text-white mb-4" />
+          </template>
+          <template v-if="accionFecha.modo === 'sin-papel'">
+            <label class="block text-[10px] uppercase tracking-widest text-blue-400 font-bold mb-1">Motivo (opcional)</label>
+            <textarea v-model="accionFecha.motivo" rows="2" data-campo="motivo-accion" placeholder="Ej.: salió con la factura" class="w-full bg-black/30 border border-blue-900/40 rounded-lg px-3 py-2 text-sm text-white mb-5"></textarea>
+          </template>
+          <div class="flex justify-end gap-2">
+            <button @click="cerrarAccionFecha" class="px-4 py-2 rounded-lg text-sm text-blue-300 hover:text-white">Cancelar</button>
+            <button @click="confirmarAccionFecha" :disabled="accionFecha.guardando || (accionFecha.modo === 'retiro' && !accionFecha.fecha)" data-accion="confirmar-accion-fecha"
+                    class="px-4 py-2 rounded-lg text-sm font-bold text-white bg-cyan-700 hover:bg-cyan-600 disabled:opacity-40 disabled:cursor-not-allowed">
+              <i v-if="accionFecha.guardando" class="fas fa-spinner fa-spin mr-1"></i> Confirmar
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- [S891] Anular un remito (con número) o deshacer su anulación: siempre con motivo; queda una nota [SISTEMA] -->
       <div v-if="anulacion.visible" data-modal="anulacion" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[110] p-4" @click.self="cerrarAnulacion">
         <div class="bg-[#0b1220] border border-red-500/40 rounded-2xl w-full max-w-md p-6 shadow-2xl">
@@ -439,6 +479,7 @@
 
 <script setup>
 import { ref, onMounted, computed, reactive } from 'vue'
+import { normalizarBusqueda } from '@/utils/texto'
 import { useRouter } from 'vue-router'
 import { useRemitosStore } from '@/stores/remitos'
 import { useMaestrosStore } from '@/stores/maestros'
@@ -658,6 +699,38 @@ const confirmarAnulacion = async () => {
     }
 }
 
+// [S892] Paquete 2, tramo 3: salida sin papel, queda en depósito (bit 37) y retiro del transporte
+const enDeposito = (remito) => tieneBit(remito.flags_estado, 37)
+const accionFecha = reactive({ visible: false, modo: 'sin-papel', remito: null, fecha: '', motivo: '', guardando: false })
+const abrirAccionFecha = (remito, modo) => Object.assign(accionFecha, { visible: true, modo, remito, fecha: hoyISO(), motivo: '', guardando: false })
+const cerrarAccionFecha = () => { accionFecha.visible = false; accionFecha.remito = null }
+const confirmarAccionFecha = async () => {
+    if (!accionFecha.remito || (accionFecha.modo === 'retiro' && !accionFecha.fecha)) return
+    accionFecha.guardando = true
+    const ruta = accionFecha.modo === 'sin-papel' ? 'salida-sin-papel' : 'retiro'
+    try {
+        const cuerpo = accionFecha.modo === 'retiro' ? { fecha: accionFecha.fecha } : { motivo: (accionFecha.motivo || '').trim() || null }
+        const r = await api.post(`/remitos/${accionFecha.remito.id}/${ruta}`, cuerpo)
+        notification.add(accionFecha.modo === 'sin-papel' ? `Salió sin papel: tomó el número ${r.data?.numero_legal || ''}.` : `Retiro registrado (${accionFecha.remito.numero_legal}).`, 'success')
+        cerrarAccionFecha()
+        refresh()
+    } catch (e) {
+        notification.add('No se pudo: ' + (e.response?.data?.detail || e.message), 'error')
+    } finally {
+        accionFecha.guardando = false
+    }
+}
+const marcarEnDeposito = async (remito) => {
+    if (!confirm(`¿El ${remito.numero_legal} queda en el depósito esperando que lo retire el transporte? Se borra la salida que se había asumido al emitirlo.`)) return
+    try {
+        await api.post(`/remitos/${remito.id}/en-deposito`)
+        notification.add(`${remito.numero_legal}: queda en depósito.`, 'success')
+        refresh()
+    } catch (e) {
+        notification.add('No se pudo: ' + (e.response?.data?.detail || e.message), 'error')
+    }
+}
+
 // [S887] Imprimir desde el listado. El PDF numera el remito si todavía no tiene número (el 0015 es el talonario vivo), así que en ese caso se pide
 // confirmación antes de gastar un número; el listado se refresca para mostrar el número asignado.
 const imprimirRemito = (remito) => {
@@ -695,10 +768,10 @@ const sortedRemitos = computed(() => {
     let items = [...store.remitos]
     
     if (searchQuery.value) {
-        const query = searchQuery.value.toLowerCase()
+        const query = normalizarBusqueda(searchQuery.value)   // [S892] sin acentos
         items = items.filter(r => {
-            const numMatch = (r.numero_legal || '').toLowerCase().includes(query)
-            const clientMatch = (r.razon_social || '').toLowerCase().includes(query)
+            const numMatch = normalizarBusqueda(r.numero_legal).includes(query)
+            const clientMatch = normalizarBusqueda(r.razon_social).includes(query)
             const pedidoMatch = String(r.pedido_id ?? '') === query.replace(/^#/, '').trim() // [S887] el Nº de pedido, exacto
             return numMatch || clientMatch || pedidoMatch
         })

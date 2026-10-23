@@ -218,6 +218,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { normalizarBusqueda } from '@/utils/texto'
 
 const props = defineProps({
   domicilios: {
@@ -264,11 +265,11 @@ const secondaryDeliveries = computed(() => {
 
 const filteredSecondary = computed(() => {
   if (!searchQuery.value) return secondaryDeliveries.value
-  const query = searchQuery.value.toLowerCase()
+  const query = normalizarBusqueda(searchQuery.value)   // [S892] sin acentos
   return secondaryDeliveries.value.filter(d => 
-    (d.calle || '').toLowerCase().includes(query) || 
-    (d.alias || '').toLowerCase().includes(query) ||
-    (d.localidad || '').toLowerCase().includes(query)
+    normalizarBusqueda(d.calle).includes(query) || 
+    normalizarBusqueda(d.alias).includes(query) ||
+    normalizarBusqueda(d.localidad).includes(query)
   )
 })
 

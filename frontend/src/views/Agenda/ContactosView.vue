@@ -179,6 +179,7 @@
 
 <script setup>
 import { ref, onMounted, onActivated, computed, watch } from 'vue'
+import { normalizarBusqueda } from '@/utils/texto'
 import { useContactosStore } from '../../stores/contactos' 
 import ContactCanvas from './components/ContactCanvas.vue'
 import AppSidebar from '../../components/layout/AppSidebar.vue'
@@ -220,11 +221,11 @@ onActivated(async () => {
 const filteredContactos = computed(() => {
     let result = allContactos.value
     if (searchQuery.value) {
-        const q = searchQuery.value.toLowerCase()
+        const q = normalizarBusqueda(searchQuery.value)   // [S892] sin acentos
         result = result.filter(c => 
-            c.nombre.toLowerCase().includes(q) || 
-            c.apellido.toLowerCase().includes(q) ||
-            (getDisplayRole(c).toLowerCase().includes(q))
+            normalizarBusqueda(c.nombre).includes(q) || 
+            normalizarBusqueda(c.apellido).includes(q) ||
+            (normalizarBusqueda(getDisplayRole(c)).includes(q))
         )
     }
     return result
