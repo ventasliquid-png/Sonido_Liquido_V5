@@ -2,7 +2,7 @@
 
 # CAJA NEGRA: OMEGA Lite - remitos, paquete 2 en D: correcciones de CA, sin papel / deposito / retiro, busqueda sin acentos y los bits 46 y 47 de Nike - S892
 
-Sesion 892 OF, 23/10, NS (CC, Opus y despues Sonnet 5.5) con Carlos. Hash D: {{HASH_CIERRE_D}} (ultimo de codigo db09c1a7) | Hash B: 61b6a2c = prod/main (sin pushes) | P real: 61b6a2c (leido en P al cierre). Copia de P 23/10 11:30 (123 pedidos hasta el #139, 65 remitos).
+Sesion 892 OF, 23/10, NS (CC, Opus y despues Sonnet 5.5) con Carlos. Hash D: 14655603 (ultimo de codigo db09c1a7) | Hash B: 61b6a2c = prod/main (sin pushes) | P real: 61b6a2c (leido en P al cierre). Copia de P 23/10 11:30 (123 pedidos hasta el #139, 65 remitos).
 - Respuestas de Carlos: el 3031 no guarda el PDF de Celtrap como imagen (nota con el enlace al Drive); copias de P: todas, las de mas de un mes a ARCHIVO; papeles 3017/3019/3020 coinciden; la reimpresion queda sin autor (falta un usuario por persona). Base de desarrollo de D migrada con auto_migrar (PIN): faltaban la 064 y la 066.
 - Correcciones de la auditoria de CA (e58763be): anular un remito facturado mira lo facturado neto de notas de credito (caso real 0016-2597 de Cassara); quitar un renglon del pedido no borra renglones de remitos con numero; DELETE /pedidos/items (clic derecho «Eliminar Item») SI tiene pantalla y borraba sin guardas.
 - Busqueda sin acentos (frontend/src/utils/texto.js) en los 12 buscadores y tramo 3a (cf5b5173): POST /remitos/{id}/salida-sin-papel (0015 sin imprimir, fecha = asignacion del numero), /en-deposito (bit 37) y /retiro (salida, EN_CAMINO, SALIDA_DIFERIDA si otro dia). Un Rosa SI puede tener 0015 (transporte): nota «Remito de un pedido Rosa: no se factura.».
