@@ -15,6 +15,10 @@ Reglas (CONSULTA_NIKE_genoma_remito_2026-10-22.md, DISENO_REMITOS_S889.md):
   fecha de salida -> EN_DEPOSITO; si no -> RETIRADO (Carlos: «si queda en blanco se asume», hasta que exista Stock).
 - CALIFICADORES (irreversibles: nunca se apagan acá): FUE_ANULADO, IMPRESO (lo marca quien imprime), DIFERENCIA_RECEPCION (algún
   renglón con recibido distinto de remitido), SALIDA_DIFERIDA (la salida física es de un día posterior a la emisión).
+- [S892, Nike 23/10] CIRCULACION_ROSA: un 0015 (número que no es RI-) de un pedido Rosa: EGRESO más este bit; no se factura.
+  SALIDA_CONFIRMADA: una persona confirmó que salió: el remito pasó a EN_CAMINO (Despachar, «Retiró el transporte») o a ENTREGADO
+  (mostrador, copia firmada), o el operador lo declaró («Salió sin papel»: lo prende el endpoint). Sin el bit, RETIRADO es la salida
+  asumida al emitir; imprimir NO la confirma. Con RETIRADO sin SALIDA_CONFIRMADA se lee el desfase entre lo contable y el stock.
 """
 from datetime import datetime
 from typing import Optional
@@ -75,6 +79,10 @@ def calcular_flags(flags_actuales, numero_legal, estado, pedido_flags, fecha_emi
         else:
             f |= int(F.RETIRADO)
 
+    if num and not num.startswith("RI-") and rosa:
+        f |= int(F.CIRCULACION_ROSA)
+    if num and est in ("EN_CAMINO", "ENTREGADO"):
+        f |= int(F.SALIDA_CONFIRMADA)
     if impreso:
         f |= int(F.IMPRESO)
     if hay_diferencia_recepcion:
@@ -107,6 +115,7 @@ def describir(flags) -> dict:
     estado = next((n for n, b in (("EMITIDO", F.EMITIDO), ("ANULADO", F.ANULADO), ("PERDIDO", F.PERDIDO)) if f & int(b)), None)
     logistica = next((n for n, b in (("EN_DEPOSITO", F.EN_DEPOSITO), ("RETIRADO", F.RETIRADO), ("RECIBIDO", F.RECIBIDO)) if f & int(b)), None)
     marcas = [n for n, b in (("DIFERENCIA_RECEPCION", F.DIFERENCIA_RECEPCION), ("FUE_ANULADO", F.FUE_ANULADO),
-                             ("IMPRESO", F.IMPRESO), ("SALIDA_DIFERIDA", F.SALIDA_DIFERIDA)) if f & int(b)]
+                             ("IMPRESO", F.IMPRESO), ("SALIDA_DIFERIDA", F.SALIDA_DIFERIDA), ("CIRCULACION_ROSA", F.CIRCULACION_ROSA),
+                             ("SALIDA_CONFIRMADA", F.SALIDA_CONFIRMADA)) if f & int(b)]
     return {"clase": clase, "estado": estado, "logistica": logistica, "marcas": marcas,
             "activo": bool(clase) and not (f & int(F.ANULADO | F.PERDIDO))}

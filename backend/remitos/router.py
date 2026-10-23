@@ -715,8 +715,11 @@ def salida_sin_papel(remito_id: str, payload: schemas.RemitoFechaMotivo = schema
         raise HTTPException(status_code=409, detail="REMITO_ANULADO: un remito anulado no sale.")
     if sum((ri.cantidad_remitida or 0) for ri in remito.items) <= EPS_CANTIDAD:
         raise HTTPException(status_code=409, detail="REMITO_VACIO: el remito no tiene cantidades.")
+    from backend.remitos.constants import RemitoFlags
     remito.fecha_emision = datetime.now()   # el evento del modelo pone la salida asumida en esta fecha
     remito.numero_legal = RemitosService._siguiente_numero_0015(db)
+    # el operador declara que salió: salida CONFIRMADA (Nike, bit 47); la fecha sigue siendo la asumida de la emisión
+    remito.flags_estado = int(remito.flags_estado or 0) | int(RemitoFlags.SALIDA_CONFIRMADA)
     motivo = (payload.motivo or "").strip()
     db.add(models.RemitoNota(remito_id=remito.id, autor_id=current_user.id,
                              texto=(f"[SISTEMA] Salió sin papel el {remito.fecha_emision.strftime('%d/%m/%Y')}: tomó el número "
@@ -772,6 +775,7 @@ def retiro_del_transporte(remito_id: str, payload: schemas.RemitoFechaMotivo = s
         raise HTTPException(status_code=422, detail=(f"SALIDA_ANTES_DE_EMISION: el remito se emitió el {remito.fecha_emision.strftime('%d/%m/%Y')}; "
                                                      "no puede haber salido antes."))
     remito.fecha_salida = salida
+    remito.flags_estado = int(remito.flags_estado or 0) | int(RemitoFlags.SALIDA_CONFIRMADA)   # el operador lo registró (Nike, bit 47)
     # se lo llevó el transporte: está en camino (y ya no se puede volver a marcar «en depósito»)
     paso = ""
     if remito.estado == "BORRADOR":

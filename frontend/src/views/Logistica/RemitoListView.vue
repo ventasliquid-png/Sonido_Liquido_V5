@@ -107,6 +107,9 @@
                 <!-- Numero -->
                 <div class="w-32 font-mono text-blue-400 font-bold text-sm">
                     {{ remito.numero_legal || 'BORRADOR' }}
+                    <!-- [S892, Nike bit 46] un 0015 de un pedido Rosa (lo despacha un transporte): no se factura -->
+                    <span v-if="tieneBit(remito.flags_estado, 46)" data-marca="rosa-no-facturable" title="Remito de un pedido Rosa: no se factura"
+                          class="block text-[9px] font-sans font-bold uppercase tracking-wider text-pink-300/80">Rosa · no se factura</span>
                 </div>
 
                 <!-- Pedido [S887]: columna propia; el clic abre la pantalla de entregas de ese pedido -->

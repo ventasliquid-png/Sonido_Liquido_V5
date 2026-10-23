@@ -41,6 +41,9 @@ class RemitoFlags(IntFlag):
     FUE_ANULADO      = 1 << 43  # anulado alguna vez (queda aunque se deshaga la anulación)
     IMPRESO          = 1 << 44  # impreso alguna vez (un 0015 sin este bit = salió solo con la factura)
     SALIDA_DIFERIDA  = 1 << 45  # la salida física fue posterior a la emisión
+    # [S892, Nike Sello de Oro 23/10] (Ojo: son bits de RemitoFlags; el 47 de PedidoFlags es ES_KIT, otra clase.)
+    CIRCULACION_ROSA = 1 << 46  # un 0015 de un pedido Rosa (cuando lo despacha un transporte hace falta un remito de verdad): nace EGRESO + este bit; no se factura
+    SALIDA_CONFIRMADA = 1 << 47  # una persona (o la guía del transporte, o la copia firmada) confirmó que salió; sin el bit, la salida es la asumida al emitir
 
 
 MASCARA_CLASE = int(RemitoFlags.EGRESO | RemitoFlags.EGRESO_AVIOS | RemitoFlags.INTERNO)
