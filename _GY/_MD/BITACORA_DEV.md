@@ -1,4 +1,10 @@
-﻿## SESION 891 (OF) — 2026-10-22 [NS (CC, Opus)]: remitos, paquete 2 en D — el genoma del remito (Nike, Sello de Oro) y el remito con número inmortal — NOMINAL — D:276aab51 B:61b6a2c (= prod/main) P:61b6a2c
+﻿## SESION 892 (OF) — 2026-10-23 [NS (CC, Opus y Sonnet 5.5)]: remitos, paquete 2 en D — correcciones de CA, sin papel / depósito / retiro, búsqueda sin acentos y los bits 46 y 47 de Nike — NOMINAL — D:{{HASH_CIERRE_D}} B:61b6a2c (= prod/main) P:61b6a2c
+
+- Tres commits de código en D (`e58763be`, `cf5b5173`, `db09c1a7`), sin deploy: anular mira lo facturado neto de NC y los renglones con remito con número no se borran; «Salió sin papel», «Queda en depósito» y «Retiró el transporte»; búsqueda sin acentos en 12 buscadores; bits 46 `CIRCULACION_ROSA` y 47 `SALIDA_CONFIRMADA` (Nike) con `migrate_067`. Un Rosa SÍ puede tener 0015 (transporte). Cards #189 y #190. 60 pruebas, 1.337 comprobaciones. Informe: `INFORMES_HISTORICOS/2026-10-23_S892_OF.md`.
+
+---
+
+## SESION 891 (OF) — 2026-10-22 [NS (CC, Opus)]: remitos, paquete 2 en D — el genoma del remito (Nike, Sello de Oro) y el remito con número inmortal — NOMINAL — D:276aab51 B:61b6a2c (= prod/main) P:61b6a2c
 
 - **Hito:** Nike ratificó en tres consultas el genoma del remito (`RemitoFlags` 29-45) y en D quedó construido el paquete 2 hasta el tramo 2, sin desplegar.
   - Tramo 1 `aa02469f`: el genoma lo calcula una sola función (`backend/remitos/genoma.py`) desde el evento `before_flush`; `remitos.fecha_emision`; `migrate_066`.

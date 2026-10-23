@@ -1,4 +1,17 @@
-﻿Sesion actual: 891
+﻿Sesion actual: 892
+
+# CAJA NEGRA: OMEGA Lite - remitos, paquete 2 en D: correcciones de CA, sin papel / deposito / retiro, busqueda sin acentos y los bits 46 y 47 de Nike - S892
+
+Sesion 892 OF, 23/10, NS (CC, Opus y despues Sonnet 5.5) con Carlos. Hash D: {{HASH_CIERRE_D}} (ultimo de codigo db09c1a7) | Hash B: 61b6a2c = prod/main (sin pushes) | P real: 61b6a2c (leido en P al cierre). Copia de P 23/10 11:30 (123 pedidos hasta el #139, 65 remitos).
+- Respuestas de Carlos: el 3031 no guarda el PDF de Celtrap como imagen (nota con el enlace al Drive); copias de P: todas, las de mas de un mes a ARCHIVO; papeles 3017/3019/3020 coinciden; la reimpresion queda sin autor (falta un usuario por persona). Base de desarrollo de D migrada con auto_migrar (PIN): faltaban la 064 y la 066.
+- Correcciones de la auditoria de CA (e58763be): anular un remito facturado mira lo facturado neto de notas de credito (caso real 0016-2597 de Cassara); quitar un renglon del pedido no borra renglones de remitos con numero; DELETE /pedidos/items (clic derecho «Eliminar Item») SI tiene pantalla y borraba sin guardas.
+- Busqueda sin acentos (frontend/src/utils/texto.js) en los 12 buscadores y tramo 3a (cf5b5173): POST /remitos/{id}/salida-sin-papel (0015 sin imprimir, fecha = asignacion del numero), /en-deposito (bit 37) y /retiro (salida, EN_CAMINO, SALIDA_DIFERIDA si otro dia). Un Rosa SI puede tener 0015 (transporte): nota «Remito de un pedido Rosa: no se factura.».
+- Nike, cuarta consulta (Sello de Oro): bit 46 CIRCULACION_ROSA (un 0015 de un pedido Rosa), bit 47 SALIDA_CONFIRMADA (sin el bit, la salida es la asumida al emitir) y regla por canal (con traslado siempre 0015; mostrador Rosa, RI). Construido en db09c1a7 con migrate_067 y la insignia «Rosa · no se factura».
+- Cards nuevas #189 (fecha de entrega por renglon, caso OC 3777 de Lacteos) y #190 (guia de un transporte de terceros, Via Cargo / Jofre). 60 pruebas, 1.337 comprobaciones.
+- Errores propios: un 409 a los Rosa que nadie pidio; propuse anular y rehacer como RI los 6 Rosa con 0015 (todos con transporte: correctos); llame «Logistica Tactica» a la pantalla «Entregas y remitos»; pise la pestana del cuaderno de Nike al levantar el banco.
+- Pendiente (todo para el lunes 26/10): boton «Imprimir» HTML, nota del 3031, menu propio de Remitos y glosario de nombres, tramo 3b, serie RI, servicios, #180, despliegue del paquete 2 con el punto 6 (063, 066 y 067).
+
+Sesion actual: 891
 
 # CAJA NEGRA: OMEGA Completo - remitos, paquete 2 en D: el genoma del remito (Nike, Sello de Oro) y el remito con numero inmortal (vista previa, imagen de lo impreso, anular y deshacer) - S891
 

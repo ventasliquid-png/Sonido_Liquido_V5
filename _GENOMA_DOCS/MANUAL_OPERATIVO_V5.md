@@ -1358,3 +1358,7 @@ Sin cambios funcionales visibles: la sesión trabajó el Board y los protocolos,
 ## Sesión 891 (22/10) — sin cambios para quien opera
 
 *Hoy no cambió nada en producción. En desarrollo quedó lo que trae el próximo despliegue de remitos: vista previa sin gastar el número, «Reimprimir» que entrega siempre el mismo papel, y Anular / Deshacer anulación con motivo (un remito con número ya no se borra). Se explica acá cuando suba.*
+
+## Sesión 892 (23/10) — sin cambios para quien opera en producción
+
+*Hoy no cambió nada en producción. En desarrollo: las búsquedas ya no distinguen acentos («lacteos» encuentra «Lácteos»; vale cuando suba) y quedaron listas para el próximo despliegue de remitos las acciones «Salió sin papel», «Queda en depósito» y «Retiró el transporte», la marca «Rosa · no se factura» y el freno a borrar renglones de remitos con número. Se explica acá cuando suba.*
