@@ -1362,3 +1362,20 @@ Sin cambios funcionales visibles: la sesión trabajó el Board y los protocolos,
 ## Sesión 892 (23/10) — sin cambios para quien opera en producción
 
 *Hoy no cambió nada en producción. En desarrollo: las búsquedas ya no distinguen acentos («lacteos» encuentra «Lácteos»; vale cuando suba) y quedaron listas para el próximo despliegue de remitos las acciones «Salió sin papel», «Queda en depósito» y «Retiró el transporte», la marca «Rosa · no se factura» y el freno a borrar renglones de remitos con número. Se explica acá cuando suba.*
+
+## Sesión 893 (26/10) — Lo que cambia para quien opera
+
+**Ya está en producción (Tomy: relanzar Soberana y Ctrl + Mayús + R):**
+- **Importar un cliente desde Cantera.** Los clientes viejos de Cantera que no tenían CUIT (82 de 135) ahora se importan: quedan «sin CUIT» y «a revisar». Si el alta se frena (el cliente ya existe, por ejemplo), la pantalla dice el motivo en lugar de «Error al importar».
+- **Dentro de un pedido.** Si en el alta de cliente (F4) elegís uno de Cantera, el cliente **vuelve al pedido** con el aviso «todavía no está consistido: el pedido no sigue hasta completar sus datos». El pedido no guarda hasta que la ficha tenga Condición de IVA, Segmento, Domicilio y CUIT: «Guardar» abre la ficha para completarla.
+- **Ficha del cliente: el buscador de CUIT (mapamundi) y el domicilio.** El mapamundi trae razón social, CUIT, IVA y domicilio fiscal **a la pantalla, sin grabar**. Antes, si guardabas el domicilio, la ficha volvía a los datos viejos. Ahora se conservan, y si quedan datos sin grabar aparece el aviso «El domicilio quedó guardado, pero estos datos del cliente TODAVÍA NO están guardados: …». **Receta:** buscá el CUIT → ajustá y guardá el domicilio → apretá **Actualizar registro** (el Guardar del cliente).
+- **De Rosa a Blanco.** Validar el CUIT con ARCA en la ficha de un cliente Rosa lo deja **Blanco en el mismo registro** (el sistema cambia sus marcas y suelta el sello Rosa). Los pedidos que ya estaban cargados siguen con el circuito con el que nacieron; los nuevos pueden salir Blanco. El botón **Formalizar a Blanco** es otra vía: crea un cliente nuevo atado al Rosa y deja el historial Rosa aparte.
+- ARCA trae la dirección entera en el renglón «Calle»: hay que separarla a mano en calle, número, localidad y CP (el CP de ARCA es el que vale).
+
+**Sube con el próximo despliegue de remitos (todavía solo en desarrollo):**
+- **Remitos tiene su propio menú** (grupo naranja REMITOS): buscar por número («3031», «0015-3031», «#137»), por OC o por cliente; un clic abre la **ficha del remito**.
+- **Desaparece el «Remito Manual».** Todo remito sale de un pedido: **F4** en Remitos pide elegir el pedido; «Imprimir remito» y «Entregas y remitos» arman desde el pedido como siempre.
+- **«Ver el remito»** muestra el papel verdadero en pantalla sin imprimirlo ni gastar el número; el botón «Imprimir» HTML se retiró.
+- **Lo que no salió, se perdió, se rechazó o volvió se corrige por renglón** (ficha del remito → «Corregir lo que pasó»): queda el motivo, el pedido vuelve a deber la diferencia y se reabre si estaba cumplido. «Registrar devolución» es lo mismo que «Volvió». La corrección se deshace con motivo.
+- **Flete a cargo.** El pedido tiene la casilla **«Flete a cargo: nuestro / del cliente»** (por defecto del cliente): si el transporte lo eligió el comprador y se pierde, solo se anota y se factura lo que salió; si el flete es nuestro, la pérdida es nuestra y el pedido vuelve a deber. Se cambia hasta que el pedido tenga remitos vigentes.
+- **«Origen: Despacha / Retira»** ya no está en la ficha del cliente: lo que cuenta es el método de entrega.

@@ -1,4 +1,16 @@
-﻿Sesion actual: 892
+﻿Sesion actual: 893
+
+# CAJA NEGRA: OMEGA Completo - remitos: nodo con su ficha, Remito Manual retirado, correccion por renglon con causa y bits 48 y 49 de Nike (en D); dos arreglos de produccion: importar de Cantera y la ficha del cliente (en P) - S893
+
+Sesion 893 OF, 26/10, NS (CC) con Carlos. Hash D: {{HASH_CIERRE_D}} (ultimo de codigo 568104fd) | Hash B: 35f9f2e = prod/main (dos pushes hoy: 61b6a2c..3ac4e80 y 3ac4e80..35f9f2e) | P real: 35f9f2e (leido en P: git y .build_hash). Ultima copia de P de la jornada en BACKUPS_DB/PRODUCCION_P (126 pedidos hasta el #142, 65 remitos, 147 facturas).
+- Remitos en D, SIN desplegar (3bb64326, 3493863b, c22147bb): nodo Remitos con su ficha (RemitoFicha.vue, /logistica/remitos/:ref; F3 busca por numero, OC o cliente; F4 elige un pedido; F10; ESC); Remito Manual retirado (tag remito-manual-original); correccion por renglon con causa (NO_SALIO, SE_PERDIO, SE_RECHAZO, VOLVIO) con renglon negativo atado al de origen que mueve el pedido; quien carga con la perdida lo decide el bit 48 del PEDIDO (FLETE_A_CARGO_NUESTRO, Nike, Sello de Oro; el 49 REQUIERE_ATENCION solo reservado); «Ver el remito» (pdf?ver=1) reemplaza el dibujo HTML; «Registrar devolucion» fundida con «Volvio»; «Origen: Despacha / Retira» fuera de la ficha del cliente. migrate_068 (remitos.oc) y migrate_069 (corrige_item_id y causa).
+- Produccion (P) 1: importar un cliente de Cantera sin CUIT real ya no da 500 (82 de 135 traian el CUIT marcador 00000000000; caso Ceretti 2098 de Tomy) y, dentro de un pedido, el importado vuelve al pedido «a revisar» y el pedido frena hasta completar la ficha (d2533091 y 3c010479; B 3ac4e80).
+- Produccion (P) 2: la ficha del cliente ya no pierde lo que trae ARCA al guardar un domicilio (la recarga entera pisaba razon social, CUIT e IVA: «dice que lo guarda pero no lo guarda») y avisa que datos faltan guardar (568104fd; B 35f9f2e). Ceretti quedo Blanco en el mismo registro: validar el CUIT con ARCA deja las marcas en 15 y suelta el sello Rosa; «Formalizar» nunca se uso en P.
+- Doctrina de Carlos: F4 da de alta lo que se esta mirando (el F4 del nodo cede ante el campo que lo atiende); Ctrl+K es la paleta de navegacion entre nodos, no un buscador de datos; el flete es del PEDIDO, no del cliente.
+- Errores propios: un parche mio borro 4 controles de una prueba de UI (restaurados y avisado); dos corridas de D y de B a la vez compartiendo carpetas de scratch; propuse un enlace a Contra Natura en el F4 y que Ctrl+K reconozca numeros de remito (descartados por Carlos); imprimi por error la credencial local del banco; dije que validar con ARCA no soltaba el sello Rosa sin haber leido todo el camino (lo corregi); tome «¿no debemos pullear y pushear?» + 1974 como la orden de subir.
+- Pendiente: revision del marco de Remitos (alta unica: faltan la ingesta de factura PDF y el puente RAR-V1, #162); decisiones de Carlos (nota del 3031 con el enlace al Drive, fecha del lapiz hacia adelante, pantalla del bit 49 con CA); H15 de CA y el detalle de «sin papel»; tramo 3b, serie RI, servicios, #180; mejora del mapamundi (separar la direccion de ARCA en calle, numero, localidad y CP); despliegue del paquete grande (063, 066, 067, 068 y 069), que retira el Remito Manual que Tomy usa. Ceretti quedo con el domicilio separado y el CP de ARCA (1431).
+
+Sesion actual: 892
 
 # CAJA NEGRA: OMEGA Lite - remitos, paquete 2 en D: correcciones de CA, sin papel / deposito / retiro, busqueda sin acentos y los bits 46 y 47 de Nike - S892
 

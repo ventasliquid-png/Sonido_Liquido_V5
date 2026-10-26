@@ -1,4 +1,16 @@
-﻿## SESION 892 (OF) — 2026-10-23 [NS (CC, Opus y Sonnet 5.5)]: remitos, paquete 2 en D — correcciones de CA, sin papel / depósito / retiro, búsqueda sin acentos y los bits 46 y 47 de Nike — NOMINAL — D:14655603 B:61b6a2c (= prod/main) P:61b6a2c
+﻿## SESION 893 (OF) — 2026-10-26 [NS (CC)]: remitos — nodo con su ficha, Remito Manual retirado, corrección por renglón con causa y bits 48/49 (en D); y dos arreglos de producción, Cantera y ficha del cliente (en P) — NOMINAL — D:{{HASH_CIERRE_D}} B:35f9f2e (= prod/main) P:35f9f2e
+
+- **Hito:** el nodo Remitos se construyó con Carlos a partir de `MARCO_REMITOS.md` (CA), y la jornada terminó con dos pushes a producción por errores que Tomy y Carlos encontraron en P.
+  - `3bb64326` (D): nodo y ficha del remito (`RemitoFicha.vue`, `GET /remitos/buscar` y `/ficha/{ref}`, `migrate_068`), Remito Manual retirado (tag `remito-manual-original`), corrección por renglón con causa (`POST /remitos/{id}/correccion`, `migrate_069`) y el agujero de `armar` cerrado (5+5 contra 8).
+  - `3493863b` (D): quién carga con la pérdida, «Ver el remito» (`?ver=1`) en lugar del HTML, devolución fundida con «Volvió», y el F4 de la lista que cede ante el campo que lo atiende.
+  - `c22147bb` (D): bits 48 `FLETE_A_CARGO_NUESTRO` y 49 `REQUIERE_ATENCION` de `PedidoFlags` (Nike, Sello de Oro) y «Origen: Despacha / Retira» fuera de la ficha del cliente.
+  - `d2533091` + `3c010479` (D) → `3ac4e80` (B/P): importar de Cantera sin CUIT real (el marcador `00000000000` se importa como «sin CUIT»; los frenos del alta llegan como 400) y, dentro de un pedido, el cliente importado vuelve al pedido «a revisar».
+  - `568104fd` + `b06e97bb` (D) → `35f9f2e` (B/P): la ficha del cliente recarga con `merge` después de grabar un domicilio o un vínculo y avisa qué datos del cliente faltan guardar.
+- **Verificación:** regresión de D completa en D: 68 pruebas, 1.552 comprobaciones, todo en verde (26/10, sobre `b06e97bb`); el arreglo de la ficha reproducido y verificado en un banco con copia de P; P leído por red: HEAD y `.build_hash` en `35f9f2e`, Ceretti grabado como Blanco.
+
+---
+
+## SESION 892 (OF) — 2026-10-23 [NS (CC, Opus y Sonnet 5.5)]: remitos, paquete 2 en D — correcciones de CA, sin papel / depósito / retiro, búsqueda sin acentos y los bits 46 y 47 de Nike — NOMINAL — D:14655603 B:61b6a2c (= prod/main) P:61b6a2c
 
 - Tres commits de código en D (`e58763be`, `cf5b5173`, `db09c1a7`), sin deploy: anular mira lo facturado neto de NC y los renglones con remito con número no se borran; «Salió sin papel», «Queda en depósito» y «Retiró el transporte»; búsqueda sin acentos en 12 buscadores; bits 46 `CIRCULACION_ROSA` y 47 `SALIDA_CONFIRMADA` (Nike) con `migrate_067`. Un Rosa SÍ puede tener 0015 (transporte). Cards #189 y #190. 60 pruebas, 1.337 comprobaciones. Informe: `INFORMES_HISTORICOS/2026-10-23_S892_OF.md`.
 
