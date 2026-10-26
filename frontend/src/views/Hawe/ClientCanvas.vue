@@ -1584,7 +1584,16 @@ const resetForm = () => {
     productosHabituales.value = []
 }
 
+// [S893, Carlos 26/10, Ceretti en P] Nombre con que se le dice al operador cada dato del cliente que quedó sin guardar
+const ETIQUETA_SIN_GUARDAR = {
+    razon_social: 'razón social', cuit: 'CUIT', condicion_iva_id: 'condición de IVA', segmento_id: 'segmento',
+    lista_precios_id: 'lista de precios', vendedor_id: 'vendedor', nombre_fantasia: 'nombre de fantasía'
+}
+
+// Devuelve los datos del cliente que están en pantalla y TODAVÍA no están grabados (distintos de lo que tiene el servidor).
+// Solo hay algo para avisar cuando la recarga es 'merge'; la recarga entera pisa la pantalla con lo grabado.
 const loadCliente = async (id, mode = 'full') => {
+    let sinGuardar = []
     try {
         const client = await store.fetchClienteById(id)
         if (client) {
@@ -1593,7 +1602,9 @@ const loadCliente = async (id, mode = 'full') => {
                 // These are the bits the user often sets but hasn't "Saved" the whole client yet.
                 const preserve = [
                     'condicion_iva_id', 'lista_precios_id', 'segmento_id', 
-                    'vendedor_id', 'razon_social', 'cuit', 'flags_estado'
+                    'vendedor_id', 'razon_social', 'cuit', 'flags_estado',
+                    // [S893] lo que deja la validación de ARCA (estado y fecha) y el nombre de fantasía: sin esto, al guardar el domicilio la ficha volvía a «no validado»
+                    'nombre_fantasia', 'estado_arca', 'datos_arca_last_update'
                 ];
                 
                 const merged = { ...client };
@@ -1602,6 +1613,8 @@ const loadCliente = async (id, mode = 'full') => {
                         merged[key] = form.value[key];
                     }
                 });
+                const vacioANull = (v) => (v === '' || v === undefined) ? null : v   // '' y null son lo mismo: «sin dato»
+                sinGuardar = Object.keys(ETIQUETA_SIN_GUARDAR).filter(k => vacioANull(merged[k]) !== vacioANull(client[k]))
                 form.value = merged;
             } else {
                 form.value = { ...client }
@@ -1617,6 +1630,16 @@ const loadCliente = async (id, mode = 'full') => {
         console.error(e)
         notificationStore.add('Error al cargar cliente', 'error')
     }
+    return sinGuardar
+}
+
+// El domicilio (o el vínculo) se graba por su lado: si en la ficha hay datos del cliente sin guardar, que no parezca que quedó todo grabado.
+// Devuelve true si avisó.
+const avisarSiFaltaGuardar = (sinGuardar) => {
+    if (!sinGuardar || !sinGuardar.length) return false
+    const nombres = sinGuardar.map(k => ETIQUETA_SIN_GUARDAR[k]).join(', ')
+    notificationStore.add(`El domicilio quedó guardado, pero estos datos del cliente TODAVÍA NO están guardados: ${nombres}. Guardá el cliente para que queden.`, 'warning', 10000)
+    return true
 }
 
 const loadCommercialIntel = () => {
@@ -2122,7 +2145,7 @@ const handleDomicilioSaved = async (domicilioData) => {
             await store.updateDomicilio(form.value.id, domicilioData.linked_delivery_id, deliveryPayload);
             
             notificationStore.add('Domicilio Fiscal y de Entrega actualizados', 'success');
-            await loadCliente(form.value.id, 'merge');
+            avisarSiFaltaGuardar(await loadCliente(form.value.id, 'merge'));
             activeTab.value = 'CLIENTE';
             return;
         }
@@ -2172,7 +2195,7 @@ const handleDomicilioSaved = async (domicilioData) => {
                 } else {
                     await usarDomicilioExistente(form.value.id, cand.id, { ...payload, es_predeterminado: !!domicilioData.es_predeterminado }, { es_fiscal: cand.es_fiscal, es_entrega: cand.es_entrega })
                     notificationStore.add('Se usó el domicilio que ya existía: queda una sola dirección.', 'success')
-                    await loadCliente(form.value.id)
+                    avisarSiFaltaGuardar(await loadCliente(form.value.id, 'merge'))
                 }
                 activeTab.value = 'CLIENTE'
                 return
@@ -2212,8 +2235,9 @@ const handleDomicilioSaved = async (domicilioData) => {
                 savedDom = await store.createDomicilio(form.value.id, payload);
             }
             // Sync & Reload
-            await loadCliente(form.value.id);
-            if (!isMirrored) notificationStore.add('Domicilio guardado', 'success');
+            // [S893] 'merge': antes la recarga entera pisaba con lo grabado la razón social, el CUIT y el IVA que el operador acababa de traer de ARCA y todavía no había guardado
+            const sinGuardar = await loadCliente(form.value.id, 'merge');
+            if (!avisarSiFaltaGuardar(sinGuardar) && !isMirrored) notificationStore.add('Domicilio guardado', 'success');
         }
     } catch (e) {
         console.error(e);
@@ -2221,7 +2245,7 @@ const handleDomicilioSaved = async (domicilioData) => {
         const detalle = e?.response?.data?.detail
         const esAviso = typeof detalle === 'string' && /^(FISCAL_OBLIGATORIO|ROL_DE_DOMICILIO_COMPARTIDO):/.test(detalle)
         notificationStore.add(esAviso ? detalle.replace(/^[A-Z_]+:\s*/, '') : 'Error al guardar domicilio', 'error');
-        await loadCliente(form.value.id);
+        await loadCliente(form.value.id, 'merge');
     }
     activeTab.value = 'CLIENTE';
 }
@@ -2231,7 +2255,7 @@ const handleSyncFiscal = async (dom) => {
         snapshot() // Foto previa al desastre
         await store.syncFiscal(form.value.id);
         notificationStore.add('Sincronía Espejo activada (Bit 21 ON)', 'success');
-        await loadCliente(form.value.id);
+        avisarSiFaltaGuardar(await loadCliente(form.value.id, 'merge'));
     } catch (e) {
         console.error(e);
         notificationStore.add('Error al sincronizar con Fiscal', 'error');
@@ -2243,7 +2267,7 @@ const handleDomicilioRestore = async (dom) => {
         if (dom.id) {
             await store.updateDomicilio(form.value.id, dom.id, { activo: true });
             notificationStore.add('Domicilio reactivado', 'success');
-            await loadCliente(form.value.id);
+            avisarSiFaltaGuardar(await loadCliente(form.value.id, 'merge'));
         }
     } catch (e) {
         console.error(e);
@@ -2262,7 +2286,7 @@ const handleDomicilioDelete = async (dom) => {
             // Persisted: soft delete
             await store.updateDomicilio(form.value.id, dom.id, { activo: false });
             notificationStore.add('Domicilio dado de baja', 'info');
-            await loadCliente(form.value.id);
+            avisarSiFaltaGuardar(await loadCliente(form.value.id, 'merge'));
         } else {
             // Local only: remove from array
             const idx = domicilios.value.findIndex(d => d.local_id === dom.local_id);
@@ -2293,7 +2317,7 @@ const deleteContacto = async (c) => {
     try {
         await store.deleteVinculo(form.value.id, c.id)
         notificationStore.add('Vínculo eliminado', 'success')
-        await loadCliente(form.value.id)
+        avisarSiFaltaGuardar(await loadCliente(form.value.id, 'merge'))
     } catch (e) {
         console.error(e)
         notificationStore.add('Error al eliminar vínculo', 'error')
