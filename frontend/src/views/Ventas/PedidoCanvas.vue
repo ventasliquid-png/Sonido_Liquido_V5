@@ -309,6 +309,14 @@
                                 <i class="fas fa-chevron-down text-purple-500/50"></i>
                             </div>
                         </div>
+                        <!-- [S893, Carlos 26/10; Nike bit 48 FLETE_A_CARGO_NUESTRO] Quién carga con lo que se pierde en el camino: del cliente (lo normal) o nuestro (vehículo o moto nuestros, o un
+                             transporte que pagamos nosotros). Es de ESTE pedido (no del cliente) y se puede cambiar hasta que tenga un remito; después queda fijo. -->
+                        <button type="button" @click="isFleteNuestro = !isFleteNuestro" data-accion="flete-a-cargo" :disabled="!clienteSeleccionado"
+                                :title="isFleteNuestro ? 'El flete es NUESTRO: si algo se pierde en el camino lo cargamos nosotros (se factura lo que llegó y el pedido vuelve a deber). Se cambia hasta que el pedido tenga un remito.' : 'El flete es del CLIENTE (retira, su transporte o su moto): si algo se pierde en el camino es suyo (se factura lo que salió). Se cambia hasta que el pedido tenga un remito.'"
+                                class="mt-2 w-full flex items-center justify-center gap-2 rounded-lg border px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-colors disabled:opacity-40"
+                                :class="isFleteNuestro ? 'bg-amber-950/50 text-amber-300 border-amber-500/50 hover:bg-amber-900/40' : 'bg-purple-900/10 text-purple-200/60 border-purple-500/20 hover:border-purple-500/50'">
+                            <i class="fas fa-truck-fast"></i> Flete a cargo: {{ isFleteNuestro ? 'NUESTRO' : 'del cliente' }}
+                        </button>
                     </div>
                 </div>
 
@@ -1130,6 +1138,7 @@ const loadPedido = async (id) => {
         flagsEstadoPedido.value = p.flags_estado || 0;
         isCircuitoNegro.value = (BigInt(p.flags_estado || 0) & (1n << 12n)) !== 0n;
         isNoComercial.value = (BigInt(p.flags_estado || 0) & (1n << 11n)) !== 0n;
+        isFleteNuestro.value = (BigInt(p.flags_estado || 0) & (1n << 48n)) !== 0n;   // [S893] bit 48 FLETE_A_CARGO_NUESTRO
         // [FIX S870] H4: loadPedido nunca hidrataba esto -- fechaEntrega quedaba en '' y
         // savePedido() (ver payload.fecha_compromiso) la mandaba como null en CUALQUIER
         // guardado, incluso uno que no tocaba la fecha, borrando la entrega comprometida.
@@ -1250,6 +1259,7 @@ const statusBadgeClasses = computed(() => {
 });
 const isCircuitoNegro = ref(false);
 const isNoComercial = ref(false);
+const isFleteNuestro = ref(false);   // [S893, Nike bit 48] FLETE_A_CARGO_NUESTRO
 // [FIX S870] Guardia de hidratación (H1): loadPedido() asigna isCircuitoNegro/isNoComercial
 // para reflejar el estado real del pedido, y watch() -- sin flush:'sync' -- corre en un
 // microtask posterior, no en la misma línea. Se prende al principio de loadPedido y se apaga
@@ -1489,6 +1499,25 @@ watch(isNoComercial, async (val) => {
         flags &= ~(1n << 11n);
         flags &= ~(1n << 23n);
     }
+    flagsEstadoPedido.value = Number(flags);
+});
+
+// [S893, Nike bit 48] FLETE_A_CARGO_NUESTRO: en un pedido existente llama al endpoint (rechaza con 409 FLETE_CONGELADO si ya tiene un remito vigente); en uno nuevo viaja en el alta (flete_nuestro).
+watch(isFleteNuestro, async (val) => {
+    if (isHydratingPedido.value) return;
+    if (revirtiendoInterruptor.value) return;
+    const pid = route.params.id;
+    if (pid) {
+        try {
+            await api.patch(`/pedidos/${pid}/flete-a-cargo`, { nuestro: val });
+        } catch (e) {
+            notificationStore.add(e?.response?.data?.detail || 'No se pudo cambiar quién carga con el flete', 'error');
+            await revertirInterruptor(isFleteNuestro, !val);
+            return;
+        }
+    }
+    let flags = BigInt(flagsEstadoPedido.value || 0);
+    if (val) flags |= (1n << 48n); else flags &= ~(1n << 48n);
     flagsEstadoPedido.value = Number(flags);
 });
 
@@ -2726,6 +2755,7 @@ const savePedido = async (andPrint = false) => {
             // El servidor decide — Rosa fuerza Lista 2 sin excepción (con aviso si se intentó
             // Blanco); Blanco respeta este valor libremente.
             payload.is_interno = isCircuitoNegro.value;
+            payload.flete_nuestro = isFleteNuestro.value;   // [S893, Nike bit 48]
 
             const res = await api.post('/pedidos/tactico', payload);
             const savedPedido = res.data;

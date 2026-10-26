@@ -167,7 +167,8 @@ class Cliente(Base):
         """Retorna True si tiene algun domicilio marcado para entrega (Fiscal o Sucursal)"""
         # Nueva logica simplificada por pedido del usuario (Orange Dot = Necesita Entrega, NO Retiro)
         # Se excluye explicitamente 'RETIRO_EN_PLANTA' aunque tenga flag envio=True (casos legacy)
-        return any(d.es_entrega and d.activo and d.origen_logistico != 'RETIRO_EN_PLANTA' for d in self.domicilios)
+        # [S893, Carlos 26/10] «Origen» se retiró de las pantallas: el que retira es el método «Retiro local». origen_logistico se sigue respetando en los datos viejos.
+        return any(d.es_entrega and d.activo and d.metodo_entrega != 'RETIRO_LOCAL' and d.origen_logistico != 'RETIRO_EN_PLANTA' for d in self.domicilios)
 
     @property
     def contacto_principal_nombre(self):

@@ -375,8 +375,8 @@
                             <span v-else class="text-[10px] bg-slate-700 text-white font-bold px-2 py-0.5 rounded border border-slate-600 shadow-sm shadow-black/20">SUCURSAL</span>
                             
                             <!-- Logistics Icon -->
-                            <div v-if="dom.es_entrega" class="ml-2" :title="dom.origen_logistico === 'RETIRO_EN_PLANTA' ? 'Nos Retiran' : 'Despachamos'">
-                                <i v-if="dom.origen_logistico === 'RETIRO_EN_PLANTA'" class="fa-solid fa-truck-pickup text-cyan-400 text-xs"></i>
+                            <div v-if="dom.es_entrega" class="ml-2" :title="dom.metodo_entrega === 'RETIRO_LOCAL' ? 'Nos retiran' : 'Despachamos'">
+                                <i v-if="dom.metodo_entrega === 'RETIRO_LOCAL'" class="fa-solid fa-truck-pickup text-cyan-400 text-xs"></i>
                                 <i v-else class="fa-solid fa-dolly text-emerald-400 text-xs"></i>
                             </div>
                         </div>

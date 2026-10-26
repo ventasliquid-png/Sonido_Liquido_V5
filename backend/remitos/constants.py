@@ -127,16 +127,20 @@ ETIQUETA_CAUSA = {
     CausaCorreccion.SE_PERDIO: "Se perdió",
     CausaCorreccion.SE_RECHAZO: "Se rechazó",
     CausaCorreccion.VOLVIO: "Volvió",
-}# [S893, Carlos 26/10] QUIÉN CARGA CON LA PÉRDIDA según cómo salió la entrega. Con el transporte que eligió el comprador (FLETE_TERCERO), con retiro en mostrador o con su propia
-# guía (REMITO_EXTERNO), la entrega se cumple al dársela a él o a su transporte: lo que se pierde después es un reclamo del comprador al transporte, se factura lo que salió y el pedido
-# NO vuelve a deber. Con flete propio (nuestro vehículo o nuestra moto) la entrega se cumple al llegar: la pérdida es nuestra, se factura lo que llegó y el pedido vuelve a deber.
-# Un remito sin método (anterior a la S876) se toma como entrega por el transporte del pedido, o sea del comprador. Solo afecta a SE_PERDIO: NO_SALIO, SE_RECHAZO y VOLVIO mueven siempre.
+}
+
+# [S893, Carlos 26/10; Nike Sello de Oro 26/10: bit 48 de PedidoFlags] QUIÉN CARGA CON LA PÉRDIDA. Lo decide el PEDIDO: FLETE_A_CARGO_NUESTRO prendido = el flete es nuestro (vehículo o moto nuestros,
+# o un transporte que pagamos nosotros): la pérdida en el camino es nuestra, se factura lo que llegó y el pedido vuelve a deber. Apagado (el normal, y el de todos los pedidos viejos) el flete es del
+# cliente (retira, su transporte, su moto, su plataforma): lo entregado a su transporte ya es suyo, lo que se pierde es un reclamo suyo, se factura lo que salió y el pedido NO vuelve a deber.
+# Además, un remito que salió con TRANSPORTE_PROPIO (nuestro vehículo) es nuestro aunque el bit no esté prendido. «Moto / cadetería» ya no dice nada por sí sola: la moto que manda el cliente es suya.
+# Solo afecta a SE_PERDIO: NO_SALIO, SE_RECHAZO y VOLVIO mueven siempre.
 METODOS_RIESGO_PROPIO = (
     MetodoEntrega.TRANSPORTE_PROPIO,
-    MetodoEntrega.MOTO_CADETERIA,
 )
 
 
-def riesgo_de_la_entrega(metodo_entrega) -> str:
-    """'PROPIO' si la pérdida en el camino es nuestra (flete propio); 'COMPRADOR' en cualquier otro caso (ver METODOS_RIESGO_PROPIO)."""
+def riesgo_de_la_entrega(metodo_entrega, pedido_flags=0) -> str:
+    """'PROPIO' si la pérdida en el camino es nuestra (el pedido tiene prendido FLETE_A_CARGO_NUESTRO, bit 48, o el remito salió con nuestro vehículo); 'COMPRADOR' en cualquier otro caso."""
+    if int(pedido_flags or 0) & (1 << 48):   # PedidoFlags.FLETE_A_CARGO_NUESTRO (no se importa para no cruzar módulos en el arranque)
+        return "PROPIO"
     return "PROPIO" if (metodo_entrega or "").strip().upper() in METODOS_RIESGO_PROPIO else "COMPRADOR"

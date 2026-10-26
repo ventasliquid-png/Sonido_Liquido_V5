@@ -143,6 +143,9 @@ def create_pedido_tactico(
 
         if pedido_data.from_ingesta:
             pedido_flags_inicial |= PF.ORIGEN_FACTURA.value
+
+        if pedido_data.flete_nuestro:   # [S893, Nike 26/10] el flete de este pedido es nuestro (bit 48)
+            pedido_flags_inicial |= PF.FLETE_A_CARGO_NUESTRO.value
             
         estado_inicial_str = (pedido_data.estado or "PENDIENTE").upper()
         if estado_inicial_str == "PRESUPUESTO":
@@ -1491,6 +1494,40 @@ def toggle_no_comercial(
         pedido.nota = (pedido.nota or "") + nota_forense
 
     pedido.flags_estado = current_flags
+    db.commit()
+    db.refresh(pedido)
+    return pedido
+
+
+@router.patch("/{pedido_id}/flete-a-cargo", response_model=schemas.PedidoResponse)
+def flete_a_cargo(
+    pedido_id: int,
+    req: schemas.FleteACargoRequest,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_active_user)
+):
+    """[S893, Carlos 26/10; Nike Sello de Oro 26/10: bit 48] Prende o apaga FLETE_A_CARGO_NUESTRO: quién carga con lo que se pierde en el camino (apagado = el cliente, el normal).
+    Se puede cambiar MIENTRAS EL PEDIDO NO TENGA REMITOS VIGENTES (los anulados no cuentan); después queda congelado (409 FLETE_CONGELADO): un error propio se resuelve con un pedido NUEVO
+    con el bit prendido. Deja una nota [SISTEMA] con quién y cuándo, como el resto de las mutaciones de bits del pedido. Idempotente: pedir lo que ya está no cambia nada."""
+    from backend.remitos.models import Remito
+    pedido = db.query(models.Pedido).filter(models.Pedido.id == pedido_id).first()
+    if not pedido:
+        raise HTTPException(status_code=404, detail="Pedido no encontrado")
+    actual = bool((pedido.flags_estado or 0) & PF.FLETE_A_CARGO_NUESTRO.value)
+    if actual == bool(req.nuestro):
+        return pedido
+    vigentes = db.query(Remito).filter(Remito.pedido_id == pedido_id, Remito.estado != "ANULADO").all()
+    if vigentes:
+        numeros = ", ".join(sorted((r.numero_legal or "sin número") for r in vigentes))
+        raise HTTPException(status_code=409, detail=(
+            f"FLETE_CONGELADO: el pedido #{pedido_id} ya tiene remito ({numeros}): quién carga con el flete no se cambia después de armar el remito. "
+            "Si hubo un error propio, se hace un pedido NUEVO con el flete a cargo nuestro."))
+    if req.nuestro:
+        pedido.flags_estado = (pedido.flags_estado or 0) | PF.FLETE_A_CARGO_NUESTRO.value
+    else:
+        pedido.flags_estado = (pedido.flags_estado or 0) & ~PF.FLETE_A_CARGO_NUESTRO.value
+    ts = datetime.now().strftime("%Y-%m-%d %H:%M")
+    pedido.nota = (pedido.nota or "") + f"\n[SISTEMA] Flete a cargo {'NUESTRO' if req.nuestro else 'del CLIENTE'} (bit 48). {ts} {current_user.username}"
     db.commit()
     db.refresh(pedido)
     return pedido

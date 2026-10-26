@@ -318,7 +318,6 @@ const updateAddress = async (domicilioId) => {
         // [V5.8 POKA-YOKE] Office Observer
         if (isOffice) {
             updateData.metodo_entrega = 'RETIRO_LOCAL';
-            updateData.origen_logistico = 'RETIRO_EN_PLANTA';
             updateData.transporte_id = null; // Colapsar árbol
             notification.add('📍 Roseti Detectado: Modo "Retiro en Planta" activado.', 'info');
         }

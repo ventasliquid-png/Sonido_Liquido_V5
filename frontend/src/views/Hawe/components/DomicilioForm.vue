@@ -50,8 +50,8 @@ const form = reactive({
     activo: true,
     // V5.2 Logistics Strategy
     metodo_entrega: 'TRANSPORTE', // Default
-    modalidad_envio: 'A_DOMICILIO',
-    origen_logistico: 'DESPACHO_NUESTRO'
+    modalidad_envio: 'A_DOMICILIO'
+    // [S893, Carlos 26/10] «Origen: Despacha / Retira» se retiró: repetía «Retiro Local» y no lo leía nadie (el que decide quién carga con lo que no llega es el flete del PEDIDO)
 });
 
 // Load masters on mount if empty
@@ -76,8 +76,7 @@ watch(() => props.domicilio, (newVal) => {
             es_entrega: newVal.es_entrega !== undefined ? newVal.es_entrega : true,
             activo: newVal.activo !== undefined ? newVal.activo : true,
             metodo_entrega: newVal.metodo_entrega || 'TRANSPORTE',
-            modalidad_envio: newVal.modalidad_envio || 'A_DOMICILIO',
-            origen_logistico: newVal.origen_logistico || 'DESPACHO_NUESTRO'
+            modalidad_envio: newVal.modalidad_envio || 'A_DOMICILIO'
         });
     } else {
         // Create mode
@@ -94,8 +93,7 @@ watch(() => props.domicilio, (newVal) => {
             es_entrega: !props.hasFiscal || true, // [GY-UX] If first one, also delivery
             activo: true,
             metodo_entrega: 'TRANSPORTE',
-            modalidad_envio: 'A_DOMICILIO',
-            origen_logistico: 'DESPACHO_NUESTRO'
+            modalidad_envio: 'A_DOMICILIO'
         });
     }
 }, { immediate: true });
@@ -121,16 +119,6 @@ const toggleFiscal = () => {
 }
 
 const handleSave = () => {
-    // Logic Sync: If Retiro Local, set origen_logistico to RETIRO_EN_PLANTA
-    if (form.metodo_entrega === 'RETIRO_LOCAL') {
-        form.origen_logistico = 'RETIRO_EN_PLANTA';
-    } else {
-        // If switching back to delivery, ensure we don't keep RETIRO_EN_PLANTA
-        if (form.origen_logistico === 'RETIRO_EN_PLANTA') {
-            form.origen_logistico = 'DESPACHO_NUESTRO';
-        }
-    }
-
     // [GY-UX] Strict Validation for Data Consistency
     const errors = [];
     if (form.metodo_entrega !== 'RETIRO_LOCAL') {
@@ -444,18 +432,6 @@ onUnmounted(() => {
                                      <div class="flex-1 flex gap-1">
                                         <button type="button" @click="form.modalidad_envio = 'A_DOMICILIO'" class="flex-1 py-1 px-2 rounded border text-[10px] font-bold transition-colors" :class="form.modalidad_envio === 'A_DOMICILIO' ? 'bg-indigo-500/20 border-indigo-500 text-indigo-300' : 'border-white/10 text-white/40'">Dom</button>
                                         <button type="button" @click="form.modalidad_envio = 'A_SUCURSAL'" class="flex-1 py-1 px-2 rounded border text-[10px] font-bold transition-colors" :class="form.modalidad_envio === 'A_SUCURSAL' ? 'bg-indigo-500/20 border-indigo-500 text-indigo-300' : 'border-white/10 text-white/40'">Suc</button>
-                                     </div>
-                                </div>
-                                <!-- Origen Logístico -->
-                                <div class="flex-1 flex gap-2 items-center" :class="form.metodo_entrega !== 'TRANSPORTE' ? 'col-span-2' : ''">
-                                     <label class="text-[10px] font-bold text-white/40 uppercase w-24 shrink-0">Origen</label>
-                                     <div class="flex-1 flex gap-1">
-                                        <button type="button" @click="form.origen_logistico = 'DESPACHO_NUESTRO'" class="flex-1 py-1 px-2 rounded border text-[10px] font-bold transition-colors flex items-center justify-center gap-1" :class="form.origen_logistico === 'DESPACHO_NUESTRO' ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300' : 'border-white/10 text-white/40'">
-                                            <i class="fa-solid fa-dolly"></i> Despacha
-                                        </button>
-                                        <button type="button" @click="form.origen_logistico = 'RETIRO_EN_PLANTA'" class="flex-1 py-1 px-2 rounded border text-[10px] font-bold transition-colors flex items-center justify-center gap-1" :class="form.origen_logistico === 'RETIRO_EN_PLANTA' ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300' : 'border-white/10 text-white/40'">
-                                            <i class="fa-solid fa-truck-pickup"></i> Retira
-                                        </button>
                                      </div>
                                 </div>
                             </div>

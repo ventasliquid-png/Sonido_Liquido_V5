@@ -64,6 +64,9 @@
             <div v-if="!esCorreccion"><label class="etq">Salida</label><div class="val" data-campo="salida">{{ r.fecha_salida ? fechaCorta(r.fecha_salida) : (enDeposito ? 'en depósito' : '—') }}</div></div>
             <div><label class="etq">Armado</label><div class="val">{{ fechaCorta(r.fecha_creacion) }}</div></div>
             <div v-if="!esCorreccion"><label class="etq">Método de entrega</label><div class="val">{{ metodo(r.metodo_entrega) }}</div></div>
+            <!-- [S893, Nike bit 48] Quién carga con lo que se pierde en el camino: lo decide el pedido (FLETE_A_CARGO_NUESTRO) -->
+            <div v-if="!esCorreccion"><label class="etq">Flete a cargo</label>
+              <div class="val" data-campo="flete" :title="r.riesgo_entrega === 'PROPIO' ? 'Si algo se pierde en el camino lo cargamos nosotros: se factura lo que llegó y el pedido vuelve a deber' : 'Si algo se pierde en el camino es del cliente: se factura lo que salió'">{{ r.riesgo_entrega === 'PROPIO' ? 'Nuestro' : 'Del cliente' }}</div></div>
             <div v-if="!esCorreccion" class="col-span-2"><label class="etq">Transporte</label>
               <div class="val truncate">{{ f.transporte ? f.transporte.nombre : '—' }}
                 <a v-if="f.transporte && f.transporte.web_retiro" :href="urlWeb(f.transporte.web_retiro)" target="_blank" rel="noopener" class="ml-2 text-xs text-orange-300 hover:underline" data-vinculo="web-retiro">Pedir retiro ↗</a></div></div>

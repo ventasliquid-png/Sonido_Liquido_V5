@@ -297,8 +297,9 @@ def ficha_remito(ref: str, db: Session = Depends(get_db)):
                    "impreso": "IMPRESO" in g["marcas"], "fecha_creacion": f(r.fecha_creacion), "fecha_emision": f(r.fecha_emision),
                    "fecha_salida": f(r.fecha_salida), "metodo_entrega": r.metodo_entrega, "bultos": r.bultos, "valor_declarado": r.valor_declarado,
                    "oc": r.oc or (ped.oc if ped else None) or None, "aprobado_para_despacho": bool(r.aprobado_para_despacho),
-                   "es_correccion": any(x.corrige_item_id is not None for x in r.items), "riesgo_entrega": riesgo_de_la_entrega(r.metodo_entrega)},
-        "pedido": ({"id": ped.id, "estado": ped.estado, "rosa": bool(pf & int(PedidoFlags.NO_FISCAL_FORCE)), "no_comercial": bool(pf & int(PedidoFlags.ES_NO_COMERCIAL))}
+                   "es_correccion": any(x.corrige_item_id is not None for x in r.items), "riesgo_entrega": riesgo_de_la_entrega(r.metodo_entrega, pf)},
+        "pedido": ({"id": ped.id, "estado": ped.estado, "rosa": bool(pf & int(PedidoFlags.NO_FISCAL_FORCE)), "no_comercial": bool(pf & int(PedidoFlags.ES_NO_COMERCIAL)),
+                    "flete_nuestro": bool(pf & int(PedidoFlags.FLETE_A_CARGO_NUESTRO))}
                    if ped else None),
         "cliente": ({"id": str(cli.id), "razon_social": cli.razon_social, "cuit": cli.cuit} if cli else None),
         "domicilio_entrega": RemitosService.domicilio_para_el_papel(db, r),

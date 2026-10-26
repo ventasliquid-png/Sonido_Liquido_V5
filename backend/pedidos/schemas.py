@@ -78,9 +78,15 @@ class PedidoCreate(BaseModel):
     # Circuito Bipolar en creación — mismo campo que BipolarRequest (/circuito-bipolar).
     # None = no se tocó el toggle (compat con callers viejos, ej. PedidoTacticoView.vue).
     is_interno: Optional[bool] = None
+    # [S893, Nike 26/10: bit 48] Flete a cargo nuestro en el alta (el pedido existente lo cambia PATCH /pedidos/{id}/flete-a-cargo). None/False = flete del cliente.
+    flete_nuestro: Optional[bool] = None
 
 class NoComercialRequest(BaseModel):
     is_no_comercial: bool
+
+class FleteACargoRequest(BaseModel):
+    """[S893, Nike 26/10: bit 48] nuestro=True prende FLETE_A_CARGO_NUESTRO (el flete es nuestro); False lo apaga (flete del cliente, el normal)."""
+    nuestro: bool
 
 class PedidoUpdate(BaseModel):
     # [Fallar ruidoso, no en silencio] Un campo que el frontend manda y este

@@ -2090,7 +2090,7 @@ const handleDomicilioSaved = async (domicilioData) => {
             const deliveryFields = [
                 'calle_entrega', 'numero_entrega', 'piso_entrega', 'depto_entrega', 
                 'cp_entrega', 'localidad_entrega', 'provincia_entrega_id',
-                'metodo_entrega', 'transporte_id', 'modalidad_envio', 'origen_logistico',
+                'metodo_entrega', 'transporte_id', 'modalidad_envio',
                 'notas_logistica', 'observaciones', 'contacto_id', 'maps_link'
             ];
             const deliveryPayload = {};
@@ -2121,7 +2121,7 @@ const handleDomicilioSaved = async (domicilioData) => {
         const allowedFields = [
             'calle', 'numero', 'piso', 'depto', 'cp', 'localidad', 
             'provincia_id', 'transporte_id', 'es_fiscal', 'es_entrega', 'activo',
-            'metodo_entrega', 'modalidad_envio', 'origen_logistico', 'observaciones',
+            'metodo_entrega', 'modalidad_envio', 'observaciones',
             'id', 'cliente_id',
             // Add Delivery Spec functions
             'calle_entrega', 'numero_entrega', 'piso_entrega', 'depto_entrega', 

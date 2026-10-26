@@ -5,7 +5,7 @@ una corrección); (3) el efecto: un renglón negativo atado al de origen, el ped
 origen no cambian; «llegó» y DIFERENCIA_RECEPCION según la causa; notas con autor; (4) la ficha lo muestra; (5) una corrección no se imprime, no se anula por la vía común y se deshace
 con motivo; (6) «Nuevo remito» (F4) elige un pedido: GET /remitos/pedidos-por-remitar.
 (7) [Carlos 26/10] QUIÉN CARGA CON LA PÉRDIDA: con el transporte que eligió el comprador (FLETE_TERCERO), mostrador o su guía (y los remitos sin método) lo que se PIERDE es del comprador: se anota,
-se factura lo que salió y el pedido no vuelve a deber (renglón de corrección con cantidad_remitida en 0); con flete propio (TRANSPORTE_PROPIO, MOTO_CADETERIA) mueve el pedido; no salió todo, se rechazó
+se factura lo que salió y el pedido no vuelve a deber (renglón de corrección con cantidad_remitida en 0); con el flete nuestro (bit 48 FLETE_A_CARGO_NUESTRO del pedido, o un remito con TRANSPORTE_PROPIO) mueve el pedido; no salió todo, se rechazó
 y volvió mueven siempre. Sobre una COPIA de P con migrate_066, 068 y 069."""
 import sys, os, shutil, sqlite3, glob, subprocess
 from _esquema_p import asegurar_esquema, imagenes_aparte
@@ -76,7 +76,7 @@ check("un texto que no existe no trae nada", cli.get("/remitos/pedidos-por-remit
 
 # ---- (2) guardas
 q("update remitos set metodo_entrega='TRANSPORTE_PROPIO' where numero_legal='0015-00003030'")   # en P es mostrador: acá sale con flete propio, para que la pérdida sea NUESTRA
-q("update remitos set metodo_entrega='MOTO_CADETERIA' where numero_legal='0015-00003033'")        # ídem: moto propia
+q("update pedidos set flags_estado = flags_estado | ? where id=(select pedido_id from remitos where numero_legal='0015-00003033')", 1 << 48)   # el flete de ese pedido es NUESTRO (bit 48, Nike 26/10)
 R30, I30 = rid("0015-00003030"), q("select id from remitos_items where remito_id=?", rid("0015-00003030"))[0][0]   # 0015-3030: ENTREGADO, pedido 136 CUMPLIDO, 876
 PI30 = q("select pedido_item_id from remitos_items where id=?", I30)[0][0]
 r = corregir(R30, I30, 800, "SE_ROMPIO")

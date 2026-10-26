@@ -30,7 +30,7 @@ const form = reactive({
     piso: '', depto: '', maps_link: '', notas_logistica: '',
     observaciones: '', contacto_id: null, metodo_entrega: 'TRANSPORTE',
     transporte_id: null, modalidad_envio: 'A_DOMICILIO',
-    origen_logistico: 'DESPACHO_NUESTRO', linked_delivery_id: null,
+    linked_delivery_id: null,
     calle_entrega: '', numero_entrega: '', piso_entrega: '',
     depto_entrega: '', cp_entrega: '', localidad_entrega: '',
     provincia_entrega_id: null,
@@ -83,7 +83,6 @@ watch(() => props.domicilio, (newVal) => {
             metodo_entrega: sourceDelivery.metodo_entrega || 'TRANSPORTE',
             transporte_id: sourceDelivery.transporte_id || null,
             modalidad_envio: sourceDelivery.modalidad_envio || 'A_DOMICILIO',
-            origen_logistico: sourceDelivery.origen_logistico || 'DESPACHO_NUESTRO',
             linked_delivery_id: linkedId,
             flags: sourceDelivery.flags || 0
         });
@@ -110,7 +109,7 @@ watch(() => props.domicilio, (newVal) => {
             piso: '', depto: '', maps_link: '', notas_logistica: '',
             observaciones: '', contacto_id: null, metodo_entrega: 'TRANSPORTE',
             transporte_id: props.defaultTransportId || null, modalidad_envio: 'A_DOMICILIO',
-            origen_logistico: 'DESPACHO_NUESTRO', linked_delivery_id: null,
+            linked_delivery_id: null,
             flags: 2097152 // [V5.9] Default: Mirror ON for new addresses
         });
         Object.keys(dirtyFields).forEach(k => dirtyFields[k] = false);
@@ -520,7 +519,7 @@ onUnmounted(() => {
                             <label class="text-[10px] font-bold text-emerald-200/50 uppercase flex-1">Método de Entrega</label>
                          </div>
                          <div class="flex gap-2">
-                            <button v-for="method in ['TRANSPORTE', 'RETIRO_LOCAL', 'FLETE_MOTO']" :key="method"
+                            <button v-for="method in ['TRANSPORTE', 'RETIRO_LOCAL', 'FLETE_MOTO', 'PLATAFORMA']" :key="method"
                                 @click="form.metodo_entrega = method"
                                 class="flex-1 py-2 rounded-lg border text-[10px] font-bold uppercase transition-colors"
                                 :class="form.metodo_entrega === method ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300' : 'bg-white/5 border-transparent text-white/30 hover:bg-white/10'">
@@ -529,7 +528,7 @@ onUnmounted(() => {
                          </div>
 
                          <!-- Selector Transporte -->
-                         <div v-if="form.metodo_entrega === 'TRANSPORTE'" class="pt-2">
+                         <div v-if="['TRANSPORTE', 'FLETE_MOTO'].includes(form.metodo_entrega)" class="pt-2">
                              <label class="block text-[10px] font-bold text-emerald-200/50 uppercase mb-1">Empresa de Transporte</label>
                              <SmartSelect
                                 v-model="form.transporte_id"

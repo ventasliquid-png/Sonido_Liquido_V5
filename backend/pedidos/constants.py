@@ -71,6 +71,17 @@ class PedidoFlags(IntFlag):
     # sincronizar_bit_kit) y nadie lo escribe a mano; reversible mientras el pedido no esté CUMPLIDO ni ANULADO (después queda congelado). Regla: ES_KIT exige al menos un kit
     # válido; el descuento del kit puede ser 0. NO confundir con ProductoFlags.IS_KIT (bit 6) ni ES_PACK (bit 11), que son del PRODUCTO.
     ES_KIT             = 1 << 47
+    # Bit 48 — FLETE_A_CARGO_NUESTRO (281474976710656). Ratificado por Nike (Sello de Oro) el 26/10/2026 (consulta de Carlos + NS: CONSULTA_NIKE_flete_a_cargo_y_atencion_2026-10-26.md).
+    # Quién carga con lo que se pierde en el camino: apagado (el normal, y el de todos los pedidos viejos) el flete es del cliente (retira, su transporte, su moto): lo entregado a su
+    # transporte ya es suyo, se factura lo que salió y el pedido no vuelve a deber; prendido el flete es nuestro (vehículo o moto nuestros, o un transporte que pagamos nosotros): la
+    # pérdida es nuestra, se factura lo que llegó y el pedido vuelve a deber. Lo prende y apaga una PERSONA (PATCH /pedidos/{id}/flete-a-cargo); ortogonal, fuera de STATE_MASK;
+    # editable mientras el pedido no tenga remitos vigentes y CONGELADO después (un error propio —dimos O3 en vez de E2— se resuelve con un pedido NUEVO con el bit prendido).
+    # El remito lo lee de su pedido: no lleva copia.
+    FLETE_A_CARGO_NUESTRO = 1 << 48
+    # Bit 49 — REQUIERE_ATENCION (562949953421312). Ratificado por Nike (Sello de Oro) el 26/10/2026: «hay que mirar las notas». Lo prende y lo apaga una PERSONA, siempre con una nota que
+    # explica el motivo (al apagar: «[SISTEMA] Atención resuelta por X»); reversible; sin cicatriz «tuvo atención» (Nike: la nota ya lo certifica). Hoy solo está reservado el número:
+    # su pantalla y su endpoint los define Carlos con CA.
+    REQUIERE_ATENCION     = 1 << 49
 
 # Máscara de estados excluyentes
 STATE_MASK = (

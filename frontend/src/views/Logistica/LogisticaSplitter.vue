@@ -268,6 +268,23 @@
                 <option value="" disabled>Elegí cómo sale...</option>
                 <option v-for="m in METODOS_ENTREGA" :key="m.value" :value="m.value">{{ m.label }}</option>
              </select>
+             <!-- [S893, Carlos 26/10; Nike bit 48 FLETE_A_CARGO_NUESTRO] Quién carga con lo que se pierde en el camino. Es del PEDIDO: se elige acá, antes del primer remito, y después queda fijo. -->
+             <div class="flex items-center justify-between gap-2 pt-1" data-bloque="flete-a-cargo">
+                <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400"><i class="fas fa-truck-fast mr-1"></i>Flete a cargo</label>
+                <div class="flex gap-1">
+                   <button type="button" @click="armarFleteNuestro = false" :disabled="fleteCongelado" data-flete="cliente"
+                           class="px-3 py-1 rounded border text-[11px] font-bold transition-colors disabled:cursor-not-allowed"
+                           :class="!armarFleteNuestro ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300' : 'border-slate-700 text-slate-500 hover:text-slate-300'">Del cliente</button>
+                   <button type="button" @click="armarFleteNuestro = true" :disabled="fleteCongelado" data-flete="nuestro"
+                           class="px-3 py-1 rounded border text-[11px] font-bold transition-colors disabled:cursor-not-allowed"
+                           :class="armarFleteNuestro ? 'bg-amber-500/20 border-amber-500 text-amber-300' : 'border-slate-700 text-slate-500 hover:text-slate-300'">Nuestro</button>
+                </div>
+             </div>
+             <p class="text-[11px] text-slate-500" data-campo="flete-ayuda">
+                <template v-if="fleteCongelado">Este pedido ya tiene remito: quién carga con el flete quedó fijo. Si hubo un error nuestro, se hace un pedido nuevo con el flete a cargo nuestro.</template>
+                <template v-else-if="armarFleteNuestro">Si algo se pierde en el camino lo cargamos nosotros: se factura lo que llegó y el pedido vuelve a deber.</template>
+                <template v-else>Si algo se pierde en el camino es del cliente (retira, su transporte o su moto): se factura lo que salió.</template>
+             </p>
              <p v-if="armarMetodo === 'MOSTRADOR'" class="text-xs text-slate-400">
                 <i class="fas fa-store mr-1"></i> Retiro en planta: sin traslado ni transporte. El domicilio queda en la oficina (Roseti 1482).
              </p>
@@ -420,6 +437,9 @@ const showArmarModal = ref(false); // [Etapa 4]
 const armarSeleccion = ref([]); // [Etapa 4]
 // [S876] Cómo sale la entrega: método (lista cerrada), transporte (solo FLETE_TERCERO) y domicilio.
 const armarMetodo = ref('');
+const armarFleteNuestro = ref(false);   // [S893, Nike bit 48] FLETE_A_CARGO_NUESTRO del pedido
+const bitFleteDelPedido = () => Math.floor(Number(localPedido.value?.flags_estado || 0) / Math.pow(2, 48)) % 2 === 1;   // 64 bits: aritmética, no operadores de 32
+const fleteCongelado = computed(() => (remitos.value || []).some((r) => r.estado !== 'ANULADO'));   // con un remito vigente el flete no se cambia
 const armarTransporteId = ref('');
 const armarDomicilioId = ref('');
 const showElegirRemito = ref(false); // [S893] ¿de qué remito volvió?
@@ -566,8 +586,12 @@ const openArmarModal = () => {
     armarMetodo.value = localPedido.value?.transporte_id ? 'FLETE_TERCERO' : '';
     armarTransporteId.value = localPedido.value?.transporte_id || '';
     armarDomicilioId.value = '';
+    armarFleteNuestro.value = bitFleteDelPedido();
     showArmarModal.value = true;
 };
+
+// [S893] Con nuestro vehículo el flete es nuestro: se sugiere (el operador lo puede cambiar mientras el pedido no tenga remito).
+watch(armarMetodo, (m) => { if (m === 'TRANSPORTE_PROPIO' && !fleteCongelado.value) armarFleteNuestro.value = true; });
 
 const cancelArmar = () => {
     showArmarModal.value = false;
@@ -645,6 +669,10 @@ const omitirDatosTransporte = () => {
 
 const ejecutarArmado = async (imprimir, elegidos, bultos, valorDeclarado) => {
     try {
+        // [S893, Nike bit 48] El flete es del PEDIDO: si el operador lo cambió en esta ventana y el pedido todavía no tiene remitos, se guarda antes de armar.
+        if (!fleteCongelado.value && armarFleteNuestro.value !== bitFleteDelPedido()) {
+            await api.patch(`/pedidos/${localPedido.value.id}/flete-a-cargo`, { nuestro: armarFleteNuestro.value });
+        }
         const payload = {
             pedido_id: localPedido.value.id,
             metodo_entrega: armarMetodo.value,
@@ -669,7 +697,7 @@ const ejecutarArmado = async (imprimir, elegidos, bultos, valorDeclarado) => {
         // El PDF numera el remito al abrirse: se recarga otra vez para mostrar el número asignado.
         if (imprimir && nuevo?.id) setTimeout(() => loadData(localPedido.value.id), 1500);
     } catch (err) {
-        alert(remitosStore.error || 'No se pudo armar el remito.');
+        alert(remitosStore.error || err?.response?.data?.detail || 'No se pudo armar el remito.');
     }
 };
 

@@ -1639,7 +1639,7 @@ class RemitosService:
         item_corr.causa = causa
         # [S893, Carlos 26/10] Con el transporte que eligió el comprador (o mostrador, o su guía) lo que se PIERDE en el camino es del comprador: la entrega ya se cumplió, se factura lo
         # que salió y el pedido no vuelve a deber. El renglón queda igual, con cantidad_remitida en 0 y la cantidad corregida en cantidad_declarada (un registro que no mueve nada).
-        mueve = not (causa == CausaCorreccion.SE_PERDIO and riesgo_de_la_entrega(remito_metodo) == "COMPRADOR")
+        mueve = not (causa == CausaCorreccion.SE_PERDIO and riesgo_de_la_entrega(remito_metodo, pedido.flags_estado) == "COMPRADOR")
         if not mueve:
             item_corr.cantidad_remitida = 0.0
             RemitosService._recalcular_bits_entrega(db, pedido)
@@ -1651,7 +1651,7 @@ class RemitosService:
         db.add(models.RemitoNota(
             remito_id=remito_id, remito_item_id=item.id, autor_id=autor_id,
             texto=(f"[CORRECCIÓN] {etiqueta}: de {hoy:g} que quedaban de {producto} quedan {real:g} (-{diferencia:g}). "
-                   + (f"El pedido vuelve a deber {diferencia:g}." if mueve else "La pérdida es del comprador (la entrega salió con su transporte): el pedido sigue entregado y se factura lo que salió.")
+                   + (f"El pedido vuelve a deber {diferencia:g}." if mueve else "La pérdida es del comprador (el flete es del cliente): el pedido sigue entregado y se factura lo que salió.")
                    + (f" {adicional}" if adicional else ""))))
         db.add(models.RemitoNota(
             remito_id=corr.id, remito_item_id=item_corr.id, autor_id=autor_id,
