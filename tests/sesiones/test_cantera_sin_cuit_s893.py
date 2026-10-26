@@ -73,6 +73,12 @@ check("un id que no está en Cantera: 404", cli.post("/bridge/clientes/no-existe
 
 # ---- la pantalla muestra el motivo
 cc = io.open("frontend/src/views/Hawe/ClientCanvas.vue", encoding="utf-8").read()
+check("dentro de un PEDIDO (alta en ventana) el cliente importado de Cantera VUELVE al pedido en vez de llevarlo a la ficha y perder el pedido en curso: avisa que no está consistido y el pedido ya frena con «FALTAN» hasta completarlo",
+      "if (props.isModal) {" in cc and "emit('save', { id: res.data.imported_id, razon_social: canteraClient.razon_social })" in cc and "todavía no está consistido: el pedido no sigue hasta completar sus datos" in cc
+      and "router.replace({ name: 'HaweClientCanvas', params: { id: res.data.imported_id } })" in cc)
+pc = io.open("frontend/src/views/Ventas/PedidoCanvas.vue", encoding="utf-8").read()
+check("y el pedido ya tenía el freno: con un cliente incompleto avisa qué falta y no guarda («Complete la ficha», abre la ficha)",
+      "if (!clientValidation.value.valid) {" in pc and "El cliente no cumple los requisitos para este circuito. Complete la ficha." in pc and "completarFichaCliente();" in pc)
 check("la ficha del cliente muestra el motivo del servidor al fallar la importación (en vez de un «Error al importar» siempre igual)",
       "e?.response?.data?.detail" in cc and "No se pudo importar desde Cantera: ${motivo}" in cc)
 

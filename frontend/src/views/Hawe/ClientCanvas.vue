@@ -1282,6 +1282,14 @@ const importFromCantera = async (canteraClient) => {
         isSearching.value = true
         const res = await canteraService.importCliente(canteraClient.id)
         if (res.data.status === 'success') {
+            if (props.isModal) {
+                // [S893, Carlos 26/10: «el que está en Cantera y no en el padrón consistido: no seguimos hasta consistirlo»] Dentro de un pedido el cliente importado VUELVE AL PEDIDO (antes la pantalla
+                // navegaba a la ficha y el pedido en curso se perdía). Llega «a revisar» y sin sus datos: el pedido avisa qué le falta (Condición IVA, Segmento, Domicilio, CUIT), no deja guardar y su
+                // botón «Completar» abre la ficha para consistirlo.
+                notificationStore.add(`«${canteraClient.razon_social}» estaba en Cantera y todavía no está consistido: el pedido no sigue hasta completar sus datos.`, 'warning')
+                emit('save', { id: res.data.imported_id, razon_social: canteraClient.razon_social })
+                return
+            }
             notificationStore.add(`Cliente importado desde Cantera exitosamente`, 'success')
             router.replace({ name: 'HaweClientCanvas', params: { id: res.data.imported_id } })
         }
