@@ -976,7 +976,10 @@ const armarDesde = (p) => {
     router.push({ name: 'PedidoLogistica', params: { id: p.pedido_id }, query: { armar: 1 } })
 }
 const hayModalAbierto = () => !!(showEditModal.value || accionFecha.visible || anulacion.visible || cambioFecha.visible || elegirPedido.visible)
+// [S893, Carlos 26/10] F4 es ALTA del campo donde estás parado: si el campo ya la atiende (un selector de cliente, de producto…) el evento llega con defaultPrevented y la lista no hace nada;
+// tampoco mientras haya una ventana abierta. Solo si no estás en un campo con alta, F4 es el alta del nodo: un remito nuevo (se elige el pedido).
 const onKeyLista = (e) => {
+    if ((e.key === 'F3' || e.key === 'F4') && (e.defaultPrevented || hayModalAbierto())) return
     if (e.key === 'F3') { e.preventDefault(); enfocarBusqueda() }
     else if (e.key === 'F4') { e.preventDefault(); nuevoRemito() }
     else if (e.key === 'Escape' && hayModalAbierto()) {

@@ -127,4 +127,16 @@ ETIQUETA_CAUSA = {
     CausaCorreccion.SE_PERDIO: "Se perdió",
     CausaCorreccion.SE_RECHAZO: "Se rechazó",
     CausaCorreccion.VOLVIO: "Volvió",
-}
+}# [S893, Carlos 26/10] QUIÉN CARGA CON LA PÉRDIDA según cómo salió la entrega. Con el transporte que eligió el comprador (FLETE_TERCERO), con retiro en mostrador o con su propia
+# guía (REMITO_EXTERNO), la entrega se cumple al dársela a él o a su transporte: lo que se pierde después es un reclamo del comprador al transporte, se factura lo que salió y el pedido
+# NO vuelve a deber. Con flete propio (nuestro vehículo o nuestra moto) la entrega se cumple al llegar: la pérdida es nuestra, se factura lo que llegó y el pedido vuelve a deber.
+# Un remito sin método (anterior a la S876) se toma como entrega por el transporte del pedido, o sea del comprador. Solo afecta a SE_PERDIO: NO_SALIO, SE_RECHAZO y VOLVIO mueven siempre.
+METODOS_RIESGO_PROPIO = (
+    MetodoEntrega.TRANSPORTE_PROPIO,
+    MetodoEntrega.MOTO_CADETERIA,
+)
+
+
+def riesgo_de_la_entrega(metodo_entrega) -> str:
+    """'PROPIO' si la pérdida en el camino es nuestra (flete propio); 'COMPRADOR' en cualquier otro caso (ver METODOS_RIESGO_PROPIO)."""
+    return "PROPIO" if (metodo_entrega or "").strip().upper() in METODOS_RIESGO_PROPIO else "COMPRADOR"

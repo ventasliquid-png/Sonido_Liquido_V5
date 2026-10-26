@@ -8,7 +8,7 @@ from fastapi import HTTPException
 from backend.remitos import schemas, models
 from backend.remitos.constants import (
     RemitoFlags, MetodoEntrega, METODOS_ENTREGA, METODOS_SIN_TRANSPORTE, MOTIVOS_NO_FACTURABLE,
-    CausaCorreccion, CAUSAS_CORRECCION, CAUSAS_QUE_CAMBIAN_LO_QUE_LLEGO, ETIQUETA_CAUSA,
+    CausaCorreccion, CAUSAS_CORRECCION, CAUSAS_QUE_CAMBIAN_LO_QUE_LLEGO, ETIQUETA_CAUSA, riesgo_de_la_entrega,
 )
 from backend.clientes.models import Cliente, Domicilio
 from backend.productos.models import Producto
@@ -1582,7 +1582,7 @@ class RemitosService:
         DIFERENCIA_RECEPCION a partir de esto en el próximo guardado."""
         vigentes = [c for c in db.query(models.RemitoItem).filter(models.RemitoItem.corrige_item_id == item.id).all()
                     if c.remito is not None and c.remito.estado != "ANULADO" and c.causa in CAUSAS_QUE_CAMBIAN_LO_QUE_LLEGO]
-        item.cantidad_recibida = (float(item.cantidad_remitida or 0) - sum(-(c.cantidad_remitida or 0.0) for c in vigentes)) if vigentes else None
+        item.cantidad_recibida = (float(item.cantidad_remitida or 0) - sum(-(c.cantidad_declarada or 0.0) for c in vigentes)) if vigentes else None
         db.add(item)
 
     @staticmethod
@@ -1615,7 +1615,7 @@ class RemitosService:
         if (item.cantidad_remitida or 0) <= 0:
             raise HTTPException(status_code=409, detail="RENGLON_SIN_SALIDA: este renglón no tiene cantidad que corregir.")
         ya = sum(
-            -(c.cantidad_remitida or 0.0)
+            -(c.cantidad_declarada or 0.0)
             for c in db.query(models.RemitoItem).filter(models.RemitoItem.corrige_item_id == item.id).all()
             if c.remito is not None and c.remito.estado != "ANULADO")
         hoy = float(item.cantidad_remitida) - ya
@@ -1627,7 +1627,7 @@ class RemitosService:
         diferencia = hoy - real
         pedido = remito.pedido
         producto = item.pedido_item.producto.nombre if item.pedido_item and item.pedido_item.producto else f"renglón #{item.pedido_item_id}"
-        pedido_item_id, numero_origen, remito_id = item.pedido_item_id, remito.numero_legal, remito.id
+        pedido_item_id, numero_origen, remito_id, remito_metodo = item.pedido_item_id, remito.numero_legal, remito.id, remito.metodo_entrega
 
         corr = RemitosService.armar_remito(db, schemas.ArmarRemitoPayload(
             pedido_id=pedido.id, metodo_entrega=MetodoEntrega.MOSTRADOR,
@@ -1637,6 +1637,12 @@ class RemitosService:
         item_corr = sorted(corr.items, key=lambda x: x.id)[-1]
         item_corr.corrige_item_id = item.id
         item_corr.causa = causa
+        # [S893, Carlos 26/10] Con el transporte que eligió el comprador (o mostrador, o su guía) lo que se PIERDE en el camino es del comprador: la entrega ya se cumplió, se factura lo
+        # que salió y el pedido no vuelve a deber. El renglón queda igual, con cantidad_remitida en 0 y la cantidad corregida en cantidad_declarada (un registro que no mueve nada).
+        mueve = not (causa == CausaCorreccion.SE_PERDIO and riesgo_de_la_entrega(remito_metodo) == "COMPRADOR")
+        if not mueve:
+            item_corr.cantidad_remitida = 0.0
+            RemitosService._recalcular_bits_entrega(db, pedido)
         db.flush()
         if causa in CAUSAS_QUE_CAMBIAN_LO_QUE_LLEGO:
             RemitosService.recalcular_recibida_por_correcciones(db, item)
@@ -1644,12 +1650,14 @@ class RemitosService:
         adicional = (nota or "").strip()
         db.add(models.RemitoNota(
             remito_id=remito_id, remito_item_id=item.id, autor_id=autor_id,
-            texto=(f"[CORRECCIÓN] {etiqueta}: de {hoy:g} que quedaban de {producto} quedan {real:g} (-{diferencia:g}). El pedido vuelve a deber {diferencia:g}." + (f" {adicional}" if adicional else ""))))
+            texto=(f"[CORRECCIÓN] {etiqueta}: de {hoy:g} que quedaban de {producto} quedan {real:g} (-{diferencia:g}). "
+                   + (f"El pedido vuelve a deber {diferencia:g}." if mueve else "La pérdida es del comprador (la entrega salió con su transporte): el pedido sigue entregado y se factura lo que salió.")
+                   + (f" {adicional}" if adicional else ""))))
         db.add(models.RemitoNota(
             remito_id=corr.id, remito_item_id=item_corr.id, autor_id=autor_id,
             texto=(f"[CORRECCIÓN] {etiqueta}: corrige el renglón de {producto} del remito {numero_origen} (-{diferencia:g})." + (f" {adicional}" if adicional else ""))))
         reabierto = False
-        if (pedido.estado or "").upper() == "CUMPLIDO" or ((pedido.flags_estado or 0) & int(PedidoFlags.ES_CUMPLIDO)):
+        if mueve and ((pedido.estado or "").upper() == "CUMPLIDO" or ((pedido.flags_estado or 0) & int(PedidoFlags.ES_CUMPLIDO))):
             pedido.estado = "PENDIENTE"
             pedido.flags_estado = ((pedido.flags_estado or 0) & ~int(STATE_MASK)) | int(PedidoFlags.ES_FIRME)
             pedido.nota = (pedido.nota or "") + ("\n[SISTEMA] Reabierto el " + datetime.now().strftime("%Y-%m-%d %H:%M") + ": " + etiqueta.lower() + f" {diferencia:g} de {producto} (remito {numero_origen}); el pedido vuelve a deber lo que no se entregó.")
@@ -1659,7 +1667,7 @@ class RemitosService:
         db.refresh(item_corr)
         pi = db.query(PedidoItem).filter(PedidoItem.id == pedido_item_id).first()
         return {"correccion_id": str(corr.id), "correccion_item_id": item_corr.id, "remito_item_id": remito_item_id, "causa": causa,
-                "quedo": real, "diferencia": diferencia, "pedido_reabierto": reabierto,
+                "quedo": real, "diferencia": diferencia, "pedido_reabierto": reabierto, "mueve_pedido": mueve,
                 "pendiente_del_renglon": (pi.cantidad - pi.cantidad_entregada) if pi else None}
 
     @staticmethod

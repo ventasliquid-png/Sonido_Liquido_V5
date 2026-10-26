@@ -3,7 +3,10 @@ el renglón del pedido; si no, el sistema cree que el pedido se cumplió y la re
 (1) migrate_069 (corrige_item_id y causa en remitos_items, idempotente, sin tocar datos); (2) las guardas (causa, remito con número y no anulado, 0 <= quedó < lo de hoy, no se corrige
 una corrección); (3) el efecto: un renglón negativo atado al de origen, el pedido vuelve a deber la diferencia y, si estaba CUMPLIDO, se reabre; lo impreso y lo que salió del remito de
 origen no cambian; «llegó» y DIFERENCIA_RECEPCION según la causa; notas con autor; (4) la ficha lo muestra; (5) una corrección no se imprime, no se anula por la vía común y se deshace
-con motivo; (6) «Nuevo remito» (F4) elige un pedido: GET /remitos/pedidos-por-remitar. Sobre una COPIA de P con migrate_066, 068 y 069."""
+con motivo; (6) «Nuevo remito» (F4) elige un pedido: GET /remitos/pedidos-por-remitar.
+(7) [Carlos 26/10] QUIÉN CARGA CON LA PÉRDIDA: con el transporte que eligió el comprador (FLETE_TERCERO), mostrador o su guía (y los remitos sin método) lo que se PIERDE es del comprador: se anota,
+se factura lo que salió y el pedido no vuelve a deber (renglón de corrección con cantidad_remitida en 0); con flete propio (TRANSPORTE_PROPIO, MOTO_CADETERIA) mueve el pedido; no salió todo, se rechazó
+y volvió mueven siempre. Sobre una COPIA de P con migrate_066, 068 y 069."""
 import sys, os, shutil, sqlite3, glob, subprocess
 from _esquema_p import asegurar_esquema, imagenes_aparte
 RAIZ = r"C:\dev\Sonido_Liquido_V5"
@@ -72,6 +75,8 @@ check("por una palabra del cliente (sin acentos ni mayúsculas) lo trae", f0["pe
 check("un texto que no existe no trae nada", cli.get("/remitos/pedidos-por-remitar", params={"q": "zzzqqq"}).json()["total"] == 0)
 
 # ---- (2) guardas
+q("update remitos set metodo_entrega='TRANSPORTE_PROPIO' where numero_legal='0015-00003030'")   # en P es mostrador: acá sale con flete propio, para que la pérdida sea NUESTRA
+q("update remitos set metodo_entrega='MOTO_CADETERIA' where numero_legal='0015-00003033'")        # ídem: moto propia
 R30, I30 = rid("0015-00003030"), q("select id from remitos_items where remito_id=?", rid("0015-00003030"))[0][0]   # 0015-3030: ENTREGADO, pedido 136 CUMPLIDO, 876
 PI30 = q("select pedido_item_id from remitos_items where id=?", I30)[0][0]
 r = corregir(R30, I30, 800, "SE_ROMPIO")
@@ -127,6 +132,8 @@ check("el pedido vuelve a figurar entre los que tienen algo por remitir (F4 lo o
 # ---- (4) la ficha
 fo = cli.get("/remitos/ficha/0015-00003030").json()
 it = fo["items"][0]
+check("la ficha dice quién carga con el riesgo de esa entrega: flete propio -> PROPIO",
+      cli.get("/remitos/ficha/0015-00003030").json()["remito"]["riesgo_entrega"] == "PROPIO" and cli.get("/remitos/ficha/0015-00003031").json()["remito"]["riesgo_entrega"] == "COMPRADOR")
 check("la ficha del remito de origen: salió 876, corregido 76, quedó 800, llegó 800, con su corrección (causa y cantidad) y el pedido PENDIENTE",
       it["salio"] == 876 and it["impreso"] == 876 and it["corregido"] == 76 and it["quedo"] == 800 and it["llego"] == 800 and len(it["correcciones"]) == 1
       and it["correcciones"][0]["causa"] == "SE_PERDIO" and it["correcciones"][0]["cantidad"] == 76 and fo["pedido"]["estado"] == "PENDIENTE"
@@ -189,6 +196,46 @@ check(f"0015-3033 (144) con 100 «no salió todo» [{r.status_code}]: llegó 100
 r = corregir(R33, I33, 0, "SE_PERDIO")
 PI33 = q("select pedido_item_id from remitos_items where id=?", I33)[0][0]
 check("se puede dejar el renglón en CERO (se perdió todo lo que quedaba): llegó 0 y el pedido lo vuelve a deber entero", r.status_code == 200 and q("select cantidad_recibida from remitos_items where id=?", I33)[0][0] == 0 and entregada(PI33) == 0)
+
+
+# ---- (7) QUIÉN CARGA CON LA PÉRDIDA
+# 0015-3028: remito SIN método (anterior a la S876), pedido 132 CUMPLIDO, 5 unidades -> se toma como entrega por el transporte del comprador
+R28 = rid("0015-00003028"); I28 = q("select id from remitos_items where remito_id=?", R28)[0][0]; PI28 = q("select pedido_item_id from remitos_items where id=?", I28)[0][0]
+check("antes: el pedido 132 figura CUMPLIDO, el remito 3028 no tiene método y la ficha lo da como riesgo del COMPRADOR",
+      q("select estado from pedidos where id=132")[0][0] == "CUMPLIDO" and q("select metodo_entrega from remitos where id=?", R28)[0][0] is None and entregada(PI28) == 5
+      and cli.get("/remitos/ficha/0015-00003028").json()["remito"]["riesgo_entrega"] == "COMPRADOR")
+r = corregir(R28, I28, 3, "SE_PERDIO", "el expreso avisó que se mojó")
+j = r.json() if r.status_code == 200 else {}
+check(f"se perdieron 2 en el camino con el transporte del comprador [{r.status_code}]: se anota, NO mueve el pedido ni lo reabre y se factura lo que salió",
+      r.status_code == 200 and j.get("mueve_pedido") is False and j.get("pedido_reabierto") is False and j.get("diferencia") == 2 and q("select estado from pedidos where id=132")[0][0] == "CUMPLIDO" and entregada(PI28) == 5)
+fila = q("select cantidad_declarada, cantidad_remitida, causa, corrige_item_id from remitos_items where corrige_item_id=?", I28)
+check(f"queda el registro: renglón de corrección con cantidad_declarada -2 y cantidad_remitida 0 (no mueve nada), causa SE_PERDIO: {fila}", len(fila) == 1 and fila[0] == (-2.0, 0.0, "SE_PERDIO", I28))
+check("«llegó» es 3, el remito marca DIFERENCIA_RECEPCION y la nota dice que la pérdida es del comprador y que se factura lo que salió",
+      q("select cantidad_recibida from remitos_items where id=?", I28)[0][0] == 3 and q("select flags_estado from remitos where id=?", R28)[0][0] & BIT_DIFERENCIA
+      and "pérdida es del comprador" in q("select texto from remitos_notas where remito_id=? and remito_item_id=? and texto like '[CORRECCIÓN]%'", R28, I28)[0][0])
+f28 = cli.get("/remitos/ficha/0015-00003028").json()["items"][0]
+check("la ficha: salió 5, corregido 2, quedó 3, y esa corrección figura como «no mueve el pedido»", f28["salio"] == 5 and f28["corregido"] == 2 and f28["quedo"] == 3 and f28["correcciones"][0]["mueve_pedido"] is False and f28["correcciones"][0]["cantidad"] == 2)
+check("el pedido 132 no vuelve a figurar entre los que tienen algo por remitar", 132 not in [p["pedido_id"] for p in cli.get("/remitos/pedidos-por-remitar", params={"q": "#132"}).json()["pedidos"]])
+# ahora el cliente RECHAZA 1 de las 3 que llegaron: eso sí mueve el pedido, aunque haya salido con su transporte
+r = corregir(R28, I28, 2, "SE_RECHAZO")
+j = r.json() if r.status_code == 200 else {}
+check(f"el cliente rechazó 1 de las 3 [{r.status_code}]: ahora SÍ mueve el pedido (queda 4 entregado de 5), lo reabre y vuelve a deber 1",
+      r.status_code == 200 and j.get("mueve_pedido") is True and j.get("pedido_reabierto") is True and entregada(PI28) == 4 and q("select estado from pedidos where id=132")[0][0] == "PENDIENTE" and j.get("pendiente_del_renglon") == 1)
+check("«llegó» = lo que salió menos lo que no llegó por las dos causas (5 - 2 - 1 = 2)", q("select cantidad_recibida from remitos_items where id=?", I28)[0][0] == 2)
+rc_registro = q("select ri.remito_id from remitos_items ri where ri.corrige_item_id=? and ri.cantidad_remitida = 0", I28)[0][0]
+r = cli.post(f"/remitos/{rc_registro}/deshacer-correccion", json={"motivo": "me equivoqué, no se perdió"})
+check(f"se deshace el registro de la pérdida del comprador [{r.status_code}]: «llegó» se recalcula con lo que sigue vigente (5 - 1 = 4) y el pedido sigue como estaba (4 entregado)",
+      r.status_code == 200 and q("select cantidad_recibida from remitos_items where id=?", I28)[0][0] == 4 and entregada(PI28) == 4)
+# 0015-3032 con FLETE_TERCERO explícito: lo mismo que sin método
+R32 = rid("0015-00003032"); I32 = q("select id from remitos_items where remito_id=?", R32)[0][0]; PI32 = q("select pedido_item_id from remitos_items where id=?", I32)[0][0]
+q("update remitos set metodo_entrega='FLETE_TERCERO' where numero_legal='0015-00003032'")
+r = corregir(R32, I32, 6, "SE_PERDIO")
+check(f"con FLETE_TERCERO explícito, una pérdida no mueve el pedido (entregado sigue en 8) [{r.status_code}]", r.status_code == 200 and r.json()["mueve_pedido"] is False and entregada(PI32) == 8)
+r = corregir(R32, I32, 5, "NO_SALIO")
+check(f"pero «no salió todo» mueve siempre, también con el transporte del comprador [{r.status_code}]: de lo que quedaba (6) queda 5 y la diferencia (1) vuelve a deber; lo perdido antes (2) sigue siendo del comprador: entregado 7",
+      r.status_code == 200 and r.json()["mueve_pedido"] is True and r.json()["diferencia"] == 1 and entregada(PI32) == 7)
+r = corregir(R30, I30, 780, "VOLVIO")
+check(f"y «volvió» mueve siempre (con flete propio o no) [{r.status_code}]", r.status_code == 200 and r.json()["mueve_pedido"] is True)
 
 _aparte.__exit__(None, None, None)
 ok = sum(1 for _, c in checks if c)

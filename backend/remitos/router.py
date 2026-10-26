@@ -7,7 +7,7 @@ from typing import List, Optional
 from backend.core.database import get_db
 from .pdf_parser import process_pdf_ingestion
 from backend.remitos import schemas, models
-from backend.remitos.constants import CAUSAS_QUE_CAMBIAN_LO_QUE_LLEGO
+from backend.remitos.constants import CAUSAS_QUE_CAMBIAN_LO_QUE_LLEGO, riesgo_de_la_entrega
 from backend.auth.dependencies import get_current_active_user
 from backend.auth.models import Usuario
 
@@ -267,7 +267,7 @@ def ficha_remito(ref: str, db: Session = Depends(get_db)):
     for ri in sorted(r.items, key=lambda x: x.id):
         pi = ri.pedido_item
         cs = sorted(correcciones_de.get(ri.id, []), key=lambda x: x.id)
-        corregido = sum(-(c.cantidad_remitida or 0.0) for c in cs)
+        corregido = sum(-(c.cantidad_declarada or 0.0) for c in cs)   # lo corregido, haya movido o no el pedido
         entregado = float(pi.cantidad_entregada or 0) if pi else 0.0
         pedido_cant = float(pi.cantidad or 0) if pi else 0.0
         facturada = ri.cantidad_facturada
@@ -275,6 +275,7 @@ def ficha_remito(ref: str, db: Session = Depends(get_db)):
             "id": ri.id, "pedido_item_id": ri.pedido_item_id, "producto": ri.descripcion_display,
             "sku": (pi.producto.sku if pi and pi.producto and getattr(pi.producto, "sku", None) else None),
             "impreso": ri.cantidad_declarada, "salio": ri.cantidad_remitida, "llego": ri.cantidad_recibida,
+            "mueve_pedido": (abs(ri.cantidad_remitida or 0.0) > 1e-9) if ri.corrige_item_id is not None else None,
             "facturado": facturada, "acreditado": (ri.cantidad_acreditada if facturada is not None else None),
             "pedido_cantidad": pedido_cant, "entregado_pedido": entregado,
             "pendiente_remitir": max(0.0, pedido_cant - entregado),
@@ -282,7 +283,8 @@ def ficha_remito(ref: str, db: Session = Depends(get_db)):
             "motivo_no_facturable": ri.motivo_no_facturable,
             "corrige": origen_de.get(ri.id), "causa": ri.causa,
             "corregido": corregido, "quedo": float(ri.cantidad_remitida or 0) - corregido,
-            "correcciones": [{"item_id": c.id, "remito_id": str(c.remito_id), "cantidad": -(c.cantidad_remitida or 0.0), "causa": c.causa,
+            "correcciones": [{"item_id": c.id, "remito_id": str(c.remito_id), "cantidad": -(c.cantidad_declarada or 0.0), "causa": c.causa,
+                               "mueve_pedido": abs(c.cantidad_remitida or 0.0) > 1e-9,
                                "fecha": (c.remito.fecha_creacion.isoformat() if c.remito and c.remito.fecha_creacion else None)} for c in cs]})
     notas = (db.query(models.RemitoNota).filter(models.RemitoNota.remito_id == r.id).order_by(models.RemitoNota.fecha.desc(), models.RemitoNota.id.desc()).all())
     otros = [{"id": str(o.id), "numero_legal": o.numero_legal, "estado": o.estado}
@@ -295,7 +297,7 @@ def ficha_remito(ref: str, db: Session = Depends(get_db)):
                    "impreso": "IMPRESO" in g["marcas"], "fecha_creacion": f(r.fecha_creacion), "fecha_emision": f(r.fecha_emision),
                    "fecha_salida": f(r.fecha_salida), "metodo_entrega": r.metodo_entrega, "bultos": r.bultos, "valor_declarado": r.valor_declarado,
                    "oc": r.oc or (ped.oc if ped else None) or None, "aprobado_para_despacho": bool(r.aprobado_para_despacho),
-                   "es_correccion": any(x.corrige_item_id is not None for x in r.items)},
+                   "es_correccion": any(x.corrige_item_id is not None for x in r.items), "riesgo_entrega": riesgo_de_la_entrega(r.metodo_entrega)},
         "pedido": ({"id": ped.id, "estado": ped.estado, "rosa": bool(pf & int(PedidoFlags.NO_FISCAL_FORCE)), "no_comercial": bool(pf & int(PedidoFlags.ES_NO_COMERCIAL))}
                    if ped else None),
         "cliente": ({"id": str(cli.id), "razon_social": cli.razon_social, "cuit": cli.cuit} if cli else None),
@@ -371,7 +373,7 @@ def despachar_remito(remito_id: str, payload: schemas.DespacharPayload = schemas
     return remito
 
 @router.get("/{remito_id}/pdf")
-def get_remito_pdf(remito_id: str, vista_previa: bool = False, db: Session = Depends(get_db)):
+def get_remito_pdf(remito_id: str, vista_previa: bool = False, ver: bool = False, db: Session = Depends(get_db)):
     """
     Genera y sirve el PDF de un remito.
 
@@ -402,6 +404,15 @@ def get_remito_pdf(remito_id: str, vista_previa: bool = False, db: Session = Dep
         es_vista_previa = bool(vista_previa) and not remito.numero_legal
         from backend.remitos.constants import RemitoFlags
         primer_papel = not (int(remito.flags_estado or 0) & int(RemitoFlags.IMPRESO))
+
+        # [S893, Carlos 26/10] «VER EL REMITO» (`?ver=1`): leerlo en pantalla tal como saldrá o salió el físico, SIN imprimir: no toma número, no marca IMPRESO, no guarda imagen y no deja
+        # nota de reimpresión. Un remito impreso muestra su imagen guardada; uno sin papel (con o sin número) se dibuja con la marca «VISTA PREVIA - SIN VALIDEZ» (y su número, si ya lo tiene).
+        if ver:
+            if remito.numero_legal and not primer_papel:
+                imagen = os.path.join(carpeta_imagenes, f"remito_{remito.numero_legal.replace('-', '_')}.pdf")
+                if os.path.exists(imagen):
+                    return FileResponse(imagen, media_type='application/pdf', filename=os.path.basename(imagen))
+            es_vista_previa = True
 
         # [Etapa 3, PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §5] "Imprimir" es la acción que
         # numera -- no cambia el estado, el remito puede seguir en BORRADOR con número asignado,
@@ -516,7 +527,7 @@ def get_remito_pdf(remito_id: str, vista_previa: bool = False, db: Session = Dep
 
         if es_vista_previa:
             vista = os.path.join(target_dir, f"vista_previa_{str(remito.id).replace('-', '')}.pdf")
-            generar_remito_pdf(cliente_data, items, is_preview=True, output_path=vista, numero_remito=None)
+            generar_remito_pdf(cliente_data, items, is_preview=True, output_path=vista, numero_remito=(remito.numero_legal if ver else None))
             return FileResponse(vista, media_type='application/pdf', filename="vista_previa_remito.pdf")
 
         safe_num = str(remito.numero_legal or remito_id).replace("-", "_")

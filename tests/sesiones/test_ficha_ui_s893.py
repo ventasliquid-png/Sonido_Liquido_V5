@@ -1,6 +1,6 @@
 r"""S893, Carlos 26/10: el nodo Remitos y su ficha (molde DEOU de Cliente y Producto). Prueba estática sobre el código de las pantallas (no hay corredor de componentes):
 la ficha tiene ruta propia (/logistica/remitos/:ref) para que ESC y «volver atrás» la cierren; el listado la abre con un clic en la fila y con Enter en el buscador (número, OC, cliente);
-los atajos F3/F4/F10/ESC tienen SIEMPRE su botón a la vista; Remitos sale de PEDIDOS y es un grupo propio, naranja (Logística); «Registrar devolución» abre el cuadro de la Etapa 6;
+los atajos F3/F4/F10/ESC tienen SIEMPRE su botón a la vista; Remitos sale de PEDIDOS y es un grupo propio, naranja (Logística); «Registrar devolución» se fundió con la corrección «Volvió» (se elige de qué remito volvió); «Ver el remito» reemplaza al dibujo HTML;
 lo que pasó con la mercadería (no salió todo, se perdió, se rechazó, volvió) se CORRIGE por renglón con su causa y mueve el pedido: no es una nota suelta; la nota libre sigue aparte.
 [Carlos 26/10] El Remito Manual se retiró: «Nuevo remito» (F4) elige un pedido y sigue por su armado."""
 import sys, os, re, io
@@ -53,7 +53,7 @@ check("la ficha usa esas acciones (inject) y se relee cuando la versión cambia"
 # ---- la ficha
 check("la ficha lee GET /remitos/ficha/<ref> (el número o el id)", "api.get(`/remitos/ficha/${encodeURIComponent(route.params.ref)}`)" in ficha)
 check("si llegó con el id y el remito tiene número de siempre, la dirección pasa a ser el número (replace, sin releer dos veces)",
-      "router.replace({ name: 'RemitoFicha', params: { ref: num } })" in ficha and "saltearCambio" in ficha and "/^\\d{4}-\\d{8}$/.test(num)" in ficha)
+      "router.replace({ name: 'RemitoFicha', params: { ref: canon }, query: {} })" in ficha and "if (route.params.ref !== canon) saltearCambio = true" in ficha and "/^\\d{4}-\\d{8}$/.test(num)" in ficha)
 check("la tabla del PR muestra impreso, salió, llegó, facturado, acreditado y los dos pendientes; un renglón que no se factura dice «no aplica»",
       all(k in ficha for k in ("Impreso", "Salió", "Llegó", "Facturado", "Acreditado", "Pend. remitir", "Pend. facturar")) and ficha.count("no aplica") >= 3 and "it.facturado !== null" in ficha)
 check("ESC cierra la ficha (si no hay una ventana del listado abierta) y vuelve atrás si hay historia",
@@ -101,6 +101,33 @@ check("el grupo se marca activo (y se despliega) con la lista, la ficha y el rep
       "if (group === 'REMITOS') return ['RemitoList', 'RemitoFicha', 'EntregasReport'].includes(route.name)" in barra
       and re.search(r"if \(group === 'PEDIDOS'\) return \[[^\]]*\]", barra) and "'RemitoList'" not in re.search(r"if \(group === 'PEDIDOS'\) return \[[^\]]*\]", barra).group(0)
       and "'PEDIDOS', 'REMITOS', 'INFORMES'" in barra and ".active-link-orange" in barra)
+
+# ---- (se restauran los controles que un parche anterior se llevó puestos) la ficha: acciones, insignias, resumen y color
+check("las acciones de siempre están en la ficha, cada una con su condición: imprimir/reimprimir, ver el remito, sin papel, fecha, depósito, retiro, anular, deshacer, editar",
+      all(f'data-accion="{a}"' in ficha for a in ("imprimir", "ver-remito", "sin-papel", "cambiar-fecha", "en-deposito", "retiro", "anular", "deshacer-anulacion", "editar")))
+check("las insignias del genoma: estado, en depósito, impreso/sin imprimir, salida asumida/confirmada, Rosa · no se factura",
+      all(f"k: '{k}'" in ficha for k in ("estado", "en-deposito", "impreso", "sin-imprimir", "salida-confirmada", "salida-asumida", "rosa")) and "Rosa · no se factura" in ficha)
+check("la OC, el domicilio del papel, el transporte con «Pedir retiro» y la factura de referencia se ven en el resumen",
+      all(k in ficha for k in ('data-campo="oc"', "f.domicilio_entrega", 'data-vinculo="web-retiro"', 'data-campo="factura"')))
+check("la ficha es naranja (Logística): marco, cabecera, botón principal y títulos (las insignias de estado conservan su color de significado)",
+      "border-2 border-orange-500/40" in ficha and "border-orange-900/30" in ficha and "bg-orange-600" in ficha and "text-orange-300" in ficha)
+
+# ---- [S893, Carlos 26/10] «Ver el remito» reemplaza al dibujo HTML; la devolución se fundió con la corrección «Volvió»; F4 es alta del campo donde se está parado
+check("«Ver el remito» (ficha y Entregas y remitos) abre /remitos/{id}/pdf?ver=1; el dibujo HTML y su botón «Imprimir» ya no existen",
+      "const verRemito = () =>" in ficha and "/pdf?ver=1" in ficha and 'data-accion="ver-remito"' in ficha and "const verRemito = (remito)" in splitter and "/pdf?ver=1" in splitter and 'data-accion="ver-remito"' in splitter
+      and "RemitoTemplate" not in splitter and "openPrint" not in splitter and not os.path.exists("frontend/src/views/Logistica/components/RemitoTemplate.vue"))
+check("«Registrar devolución» ya no es un botón aparte de la ficha: la ficha corrige con «Volvió»",
+      'data-accion="registrar-devolucion"' not in ficha and "query: { devolucion: 1 }" not in ficha and "CAUSAS" in ficha and "k: 'VOLVIO'" in ficha)
+check("en «Entregas y remitos» «Registrar Devolución» pregunta de qué remito volvió (uno solo va directo) y abre su ficha con ?corregir=VOLVIO; el modal viejo de la Etapa 6 ya no está",
+      'data-accion="registrar-devolucion"' in splitter and 'data-modal="elegir-remito-devolucion"' in splitter and "query: { corregir: 'VOLVIO' }" in splitter and "if (c.length === 1) return irADevolver(c[0])" in splitter
+      and "showDevolucionModal" not in splitter and "devolucionSeleccion" not in splitter and "confirmDevolucion" not in splitter and "openDevolucionModal" not in splitter)
+check("la ficha abre la corrección con la causa que llega en ?corregir= y la saca de la dirección (para que no se reabra al recargar)",
+      "route.query.corregir" in ficha and "abrirCorreccion(causa)" in ficha and "router.replace({ name: 'RemitoFicha', params: { ref: canon }, query: {} })" in ficha)
+check("quién carga con la pérdida: con el transporte del comprador una PÉRDIDA no mueve el pedido (la ventana lo dice y el resumen cambia); lo demás mueve siempre",
+      "f.value.remito.riesgo_entrega === 'COMPRADOR' && correccion.causa === 'SE_PERDIO'" in ficha and 'data-campo="correccion-riesgo"' in ficha and "a cargo del comprador" in ficha
+      and "el pedido no cambia" in ficha)
+check("F4 es el alta del campo donde se está parado: la lista no actúa si el campo ya la atendió (defaultPrevented, p. ej. un selector de cliente) ni con una ventana abierta",
+      "(e.key === 'F3' || e.key === 'F4') && (e.defaultPrevented || hayModalAbierto())" in lista)
 
 ok = sum(1 for _, c in checks if c)
 print(f"\nRESULTADO: {ok}/{len(checks)} checks OK")

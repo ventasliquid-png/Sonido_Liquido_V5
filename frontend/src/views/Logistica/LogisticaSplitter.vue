@@ -113,11 +113,10 @@
                 class="bg-amber-600 hover:bg-amber-500 disabled:bg-slate-700 disabled:cursor-not-allowed disabled:text-slate-500 text-white px-4 py-2 rounded-lg shadow-lg hover:shadow-amber-500/20 transition flex items-center gap-2">
                 <i class="fas fa-print"></i> Imprimir remito
               </button>
-              <!-- [Etapa 6, PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §8] Devolución = PR de
-                   signo negativo, mismo endpoint que "Armar PR" (armarRemito) pero con cantidad
-                   negativa -- sale de lo YA ENTREGADO, no de lo pendiente, por eso es un pool
-                   distinto (itemsConEntrega, no itemsPendientes). -->
-              <button @click="openDevolucionModal" :disabled="itemsConEntrega.length === 0"
+              <!-- [S893, Carlos 26/10] La devolución se fundió con la corrección «Volvió» de la ficha del remito: se elige de QUÉ remito volvió (y qué renglón) y se corrige ahí, con su causa.
+                   Debajo sigue siendo lo de la Etapa 6 (un renglón de cantidad negativa, el pedido vuelve a deber), pero atado al remito de origen. -->
+              <button @click="abrirDevolucion" :disabled="remitosParaDevolver.length === 0" data-accion="registrar-devolucion"
+                :title="remitosParaDevolver.length === 0 ? 'No hay ningún remito con número y mercadería entregada' : 'Registrar lo que volvió: se elige de qué remito'"
                 class="bg-rose-700 hover:bg-rose-600 disabled:bg-slate-700 disabled:cursor-not-allowed disabled:text-slate-500 text-white px-4 py-2 rounded-lg shadow-lg hover:shadow-rose-500/20 transition flex items-center gap-2">
                 <i class="fas fa-rotate-left"></i> Registrar Devolución
               </button>
@@ -179,17 +178,18 @@
                           <i class="fas fa-paper-plane mr-1"></i> Despachar
                        </button>
                     </div>
-                    <!-- PDF LEGAL BUTTON -->
-                    <button @click="downloadLegalPDF(remito)" class="text-xs bg-slate-600 hover:bg-slate-500 text-white px-3 py-1 rounded transition w-full mt-1 border border-slate-500">
+                    <!-- PDF LEGAL BUTTON (una corrección no tiene papel ni número) -->
+                    <button v-if="!esCorreccion(remito)" @click="downloadLegalPDF(remito)" class="text-xs bg-slate-600 hover:bg-slate-500 text-white px-3 py-1 rounded transition w-full mt-1 border border-slate-500">
                         <i class="fas fa-file-pdf mr-1"></i> {{ impresoRemito(remito) ? 'Reimprimir' : 'Imprimir PDF' }}
                     </button>
                     <!-- [S891] Vista previa: solo sin número; no gasta el número ni queda guardada -->
-                    <button v-if="!remito.numero_legal && remito.estado !== 'ANULADO'" @click="vistaPreviaRemito(remito)" data-accion="vista-previa"
+                    <button v-if="!remito.numero_legal && remito.estado !== 'ANULADO' && !esCorreccion(remito)" @click="vistaPreviaRemito(remito)" data-accion="vista-previa"
                             class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1 rounded transition w-full border border-slate-600">
                         <i class="fas fa-eye mr-1"></i> Vista previa
                     </button>
-                    <button @click="openPrint(remito)" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1 rounded transition w-full">
-                        <i class="fas fa-print mr-1"></i> Imprimir
+                    <!-- [S893, Carlos 26/10] «Ver el remito»: el documento verdadero en pantalla, sin imprimir (reemplaza al dibujo HTML, que no seguía las reglas del papel) -->
+                    <button v-if="remito.numero_legal && !esCorreccion(remito)" @click="verRemito(remito)" data-accion="ver-remito" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1 rounded transition w-full">
+                        <i class="fas fa-eye mr-1"></i> Ver el remito
                     </button>
                 </div>
              </div>
@@ -370,54 +370,22 @@
        </div>
     </div>
 
-    <!-- MODAL REGISTRAR DEVOLUCIÓN [Etapa 6] -->
-    <div v-if="showDevolucionModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+    <!-- [S893] ¿DE QUÉ REMITO VOLVIÓ? -> la ficha de ese remito con la corrección «Volvió» abierta -->
+    <div v-if="showElegirRemito" data-modal="elegir-remito-devolucion" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50" @click.self="showElegirRemito = false">
        <div class="bg-slate-800 p-6 rounded-2xl w-full max-w-lg shadow-2xl border border-rose-900/50">
-          <h3 class="text-lg font-bold text-white mb-1"><i class="fas fa-rotate-left mr-2 text-rose-400"></i>Registrar Devolución</h3>
-          <p class="text-xs text-slate-400 mb-4">
-             Elegí los renglones que vuelven y cuánto. Descompleta lo entregado -- el renglón
-             vuelve a quedar pendiente por esa cantidad. Genera un remito nuevo (0015), nunca
-             edita uno ya emitido.
-          </p>
-
-          <div class="max-h-80 overflow-y-auto space-y-2 pr-1">
-             <div v-for="sel in devolucionSeleccion" :key="sel.pedido_item_id"
-                  class="flex items-center gap-3 bg-slate-900/50 border border-slate-700 rounded-lg p-3"
-                  :class="{'opacity-50': !sel.marcado}">
-                <input type="checkbox" v-model="sel.marcado" class="w-4 h-4 accent-rose-500">
-                <div class="flex-1 min-w-0">
-                   <p class="text-sm text-white truncate">{{ sel.producto_nombre }}</p>
-                   <p class="text-[10px] text-slate-500 uppercase">Entregado (neto): {{ sel.cantidad_entregada }}</p>
-                </div>
-                <input type="number" v-model.number="sel.cantidad" :max="sel.cantidad_entregada" min="0.01"
-                       :disabled="!sel.marcado"
-                       class="w-24 bg-slate-900 border border-slate-700 rounded p-2 text-right text-white font-mono focus:border-rose-500 outline-none disabled:opacity-40">
-             </div>
-             <div v-if="devolucionSeleccion.length === 0" class="text-center py-6 text-slate-500 text-sm">
-                No hay renglones con algo entregado en este pedido.
-             </div>
-          </div>
-
-          <div class="flex justify-end gap-3 mt-6">
-             <button @click="cancelDevolucion" class="text-slate-400 hover:text-white px-4 py-2">Cancelar</button>
-             <button @click="confirmDevolucion" :disabled="!devolucionSeleccion.some(s => s.marcado)"
-                     class="bg-rose-700 hover:bg-rose-600 disabled:bg-slate-700 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg font-bold">
-                Registrar
-             </button>
-          </div>
+          <h3 class="text-lg font-bold text-white mb-1"><i class="fas fa-rotate-left mr-2 text-rose-400"></i>¿De qué remito volvió?</h3>
+          <p class="text-xs text-slate-400 mb-4">La devolución se registra sobre el renglón del remito del que salió la mercadería. Se abre ese remito con la corrección «Volvió».</p>
+          <ul class="max-h-72 overflow-y-auto divide-y divide-slate-700 rounded-lg border border-slate-700">
+             <li v-for="r in remitosParaDevolver" :key="r.id" class="flex items-center gap-3 px-3 py-2 hover:bg-slate-700/40">
+                <span class="font-mono text-sm font-bold text-rose-300 shrink-0">{{ r.numero_legal }}</span>
+                <span class="text-xs text-slate-400 truncate flex-1">{{ resumenRemito(r) }}</span>
+                <button @click="irADevolver(r)" data-accion="devolver-de-este-remito" class="px-3 py-1 rounded-md text-xs font-bold text-white bg-rose-700 hover:bg-rose-600 whitespace-nowrap">Elegir</button>
+             </li>
+          </ul>
+          <div class="flex justify-end mt-4"><button @click="showElegirRemito = false" class="text-slate-400 hover:text-white px-4 py-2">Cancelar (ESC)</button></div>
        </div>
     </div>
 
-    <!-- REMITO PRINT MDOAL -->
-    <RemitoTemplate
-        v-if="printRemitoData" 
-        :propRemito="printRemitoData"
-        :pedido="localPedido"
-        :logisticaStore="logisticaStore"
-        :clientDomicilios="clientDomicilios"
-        :pedidoItems="localPedido.items"
-        @close="printRemitoData = null"
-    />
 
   </div>
 </template>
@@ -430,7 +398,6 @@ import { useLogisticaStore } from '@/stores/logistica';
 import { usePedidosStore } from '@/stores/pedidos'; // Assuming this exists to fetch full pedido details
 // If not, we might need to fetch manually. Assuming it exists.
 import api from '@/services/api';
-import RemitoTemplate from './components/RemitoTemplate.vue';
 import {
     METODOS_ENTREGA, MOTIVOS_NO_FACTURABLE, ETIQUETA_OFICINA,
     metodoCorto, metodoLabel, motivoLabel, motivoClase,
@@ -455,14 +422,12 @@ const armarSeleccion = ref([]); // [Etapa 4]
 const armarMetodo = ref('');
 const armarTransporteId = ref('');
 const armarDomicilioId = ref('');
-const showDevolucionModal = ref(false); // [Etapa 6]
-const devolucionSeleccion = ref([]); // [Etapa 6]
+const showElegirRemito = ref(false); // [S893] ¿de qué remito volvió?
 
 // Drag & Drop
 const dragItem = ref(null);
 const targetRemito = ref(null);
 const addItemAmount = ref(0);
-const printRemitoData = ref(null);
 
 // --- Computed ---
 const itemsPendientes = computed(() => remitosStore.itemsPendientes);
@@ -486,8 +451,6 @@ onMounted(async () => {
     await loadData(id);
     // [S887] «Hacer remito» en la ficha del pedido llega con ?armar=1: el cuadro «Imprimir remito» sale abierto (si hay algo pendiente de remitar)
     if (route.query.armar && itemsPendientes.value.length > 0) openArmarModal();
-    // [S893] «Registrar devolución» en la ficha del remito llega con ?devolucion=1: el cuadro de la devolución (Etapa 6) sale abierto
-    if (route.query.devolucion && itemsConEntrega.value.length > 0) openDevolucionModal();
 });
 
 async function loadData(id) {
@@ -584,10 +547,6 @@ const tryDespachar = async (remito) => {
       // aprobado_para_despacho es false; sin este catch el error quedaba sin mostrarse.
       alert(remitosStore.error || "No se pudo despachar el remito.");
    }
-};
-
-const openPrint = (remito) => {
-    printRemitoData.value = remito;
 };
 
 // [Etapa 4] Pantalla de armado (D3, primera pantalla)
@@ -750,42 +709,19 @@ const resolverFacturar = async (rItem) => {
     }
 };
 
-// [Etapa 6] Registrar Devolución -- mismo endpoint que "Armar PR" (armarRemito), cantidad
-// negativa en vez de un flujo aparte (PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §8).
-const openDevolucionModal = () => {
-    devolucionSeleccion.value = itemsConEntrega.value.map(item => ({
-        pedido_item_id: item.id,
-        producto_nombre: item.producto?.nombre || item.nota || 'Ítem',
-        cantidad_entregada: item.cantidad_entregada,
-        cantidad: item.cantidad_entregada,
-        marcado: false,
-    }));
-    showDevolucionModal.value = true;
+// [S893, Carlos 26/10] La devolución se fundió con la corrección «Volvió»: se elige de qué remito (con número, no anulado y que no es una corrección) y se abre su ficha con la ventana de corrección.
+const esCorreccion = (remito) => (remito.items || []).some((i) => i.corrige_item_id !== null && i.corrige_item_id !== undefined);
+const remitosParaDevolver = computed(() => (remitos.value || []).filter((r) => r.numero_legal && r.estado !== 'ANULADO' && !esCorreccion(r) && (r.items || []).some((i) => i.cantidad > 0)));
+const referenciaRemito = (r) => (r.numero_legal && /^\d{4}-\d{8}$/.test(r.numero_legal)) ? r.numero_legal : r.id;
+const resumenRemito = (r) => (r.items || []).filter((i) => i.cantidad > 0).map((i) => `${i.cantidad} x ${getProductName(i.pedido_item_id)}`).join('; ');
+const irADevolver = (r) => { showElegirRemito.value = false; router.push({ name: 'RemitoFicha', params: { ref: referenciaRemito(r) }, query: { corregir: 'VOLVIO' } }); };
+const abrirDevolucion = () => {
+    const c = remitosParaDevolver.value;
+    if (c.length === 1) return irADevolver(c[0]);
+    if (c.length > 1) showElegirRemito.value = true;
 };
-
-const cancelDevolucion = () => {
-    showDevolucionModal.value = false;
-    devolucionSeleccion.value = [];
-};
-
-const confirmDevolucion = async () => {
-    const elegidos = devolucionSeleccion.value.filter(s => s.marcado);
-    if (elegidos.length === 0) return;
-
-    try {
-        await remitosStore.armarRemito({
-            pedido_id: localPedido.value.id,
-            // Signo negativo: es lo único que distingue una devolución de un PR normal en el
-            // mismo endpoint -- ver guarda DEVOLUCION_EXCEDE_ENTREGADO en el backend.
-            items: elegidos.map(s => ({ pedido_item_id: s.pedido_item_id, cantidad: -Math.abs(s.cantidad) })),
-        });
-        showDevolucionModal.value = false;
-        devolucionSeleccion.value = [];
-        await loadData(localPedido.value.id);
-    } catch (err) {
-        alert(remitosStore.error || 'No se pudo registrar la devolución.');
-    }
-};
+// [S893] «Ver el remito»: el documento verdadero (la imagen de lo impreso, o una vista con su número si salió sin papel), sin imprimir ni dejar nota.
+const verRemito = (remito) => { if (remito?.id) window.open(`/remitos/${remito.id}/pdf?ver=1`, '_blank'); };
 
 // Drag & Drop Logic
 const onDragStart = (evt, item) => {
@@ -846,10 +782,6 @@ const downloadLegalPDF = async (remito) => {
         console.error("Error downloading PDF", e);
         alert("Error generando PDF Legal: " + (e.response?.data?.detail || e.message));
     }
-};
-
-const printRemito = (remitoData) => {
-    printRemitoData.value = remitoData;
 };
 
 </script>

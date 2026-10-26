@@ -30,9 +30,11 @@
             <i :class="r.impreso ? 'fas fa-copy' : 'fas fa-print'" class="mr-1"></i>
             {{ r.impreso ? 'Reimprimir' : (conNumero ? 'Imprimir' : 'Imprimir (toma el número)') }}
           </button>
-          <button v-if="f && acc && !conNumero && !anulado && !esCorreccion" @click="acc.vistaPrevia(remitoLista)" data-accion="vista-previa"
-                  class="px-3 py-1.5 rounded-lg text-xs font-bold text-orange-200 border border-orange-500/30 hover:bg-orange-500/10 transition-colors" title="Vista previa: no gasta el número">
-            <i class="fas fa-eye mr-1"></i> Vista previa
+          <!-- [S893, Carlos 26/10] «Ver el remito»: el documento verdadero en pantalla, sin imprimir (no toma número, no queda impreso, no deja nota). Reemplaza al dibujo HTML. -->
+          <button v-if="f && !esCorreccion" @click="verRemito" data-accion="ver-remito"
+                  class="px-3 py-1.5 rounded-lg text-xs font-bold text-orange-200 border border-orange-500/30 hover:bg-orange-500/10 transition-colors"
+                  title="Ver el remito tal como sale, sin imprimirlo (no gasta el número)">
+            <i class="fas fa-eye mr-1"></i> Ver el remito
           </button>
           <button @click="cerrar" data-accion="cerrar" class="px-3 py-1.5 rounded-lg text-xs text-gray-300 hover:text-white hover:bg-white/10 transition-colors" title="Cerrar (ESC)">
             <i class="fas fa-times mr-1"></i> Cerrar (ESC)
@@ -77,7 +79,7 @@
             <i class="fas fa-rotate-left mr-2"></i>Este remito es una <b>corrección</b> de otro: baja lo que quedó de un renglón (no tiene papel ni número).
             <template v-for="it in f.items" :key="'c' + it.id"><template v-if="it.corrige">
               <a href="#" @click.prevent="abrirOtro({ id: it.corrige.remito_id, numero_legal: it.corrige.numero_legal })" data-vinculo="remito-corregido" class="ml-1 font-mono underline">{{ it.corrige.numero_legal || 'ver el remito' }}</a>
-              <span class="ml-1 text-amber-300/80">({{ etiquetaCausa(it.causa) }})</span>
+              <span class="ml-1 text-amber-300/80">({{ etiquetaCausa(it.causa) }}<template v-if="it.mueve_pedido === false"> · a cargo del comprador: no mueve el pedido</template>)</span>
             </template></template>
           </div>
 
@@ -102,6 +104,7 @@
                       <span v-if="it.motivo_no_facturable" class="ml-2 text-[10px] text-amber-300/80" :title="'No facturable: ' + it.motivo_no_facturable">{{ it.motivo_no_facturable }}</span>
                       <div v-for="c in it.correcciones" :key="c.item_id" data-correccion class="mt-0.5 text-[10px] text-amber-300/90">
                         <i class="fas fa-rotate-left mr-1"></i>−{{ cant(c.cantidad) }} {{ etiquetaCausa(c.causa) }} <span class="text-gray-500">({{ fechaCorta(c.fecha) }})</span>
+                        <span v-if="!c.mueve_pedido" class="text-gray-400" title="La entrega salió con el transporte del comprador: la pérdida es suya, el pedido sigue entregado y se factura lo que salió">· a cargo del comprador</span>
                       </div></td>
                     <td class="text-right px-2 font-mono text-gray-400">{{ cant(it.pedido_cantidad) }}</td>
                     <td class="text-right px-2 font-mono">{{ cant(it.impreso) }}</td>
@@ -180,7 +183,7 @@
                   <button v-if="conNumero && !anulado" @click="acc.abrirAnulacion(remitoLista, 'anular')" data-accion="anular" class="btn-ficha text-red-300 border-red-500/30 hover:bg-red-500/10"><i class="fas fa-ban mr-2"></i>Anular</button>
                   <button v-if="anulado && !esCorreccion" @click="acc.abrirAnulacion(remitoLista, 'deshacer')" data-accion="deshacer-anulacion" class="btn-ficha text-amber-300 border-amber-500/30 hover:bg-amber-500/10"><i class="fas fa-rotate-left mr-2"></i>Deshacer la anulación</button>
                 </template>
-                <button v-if="f.pedido && conNumero && !anulado && !esCorreccion" @click="irAlPedido('devolucion')" data-accion="registrar-devolucion" class="btn-ficha" title="Abre «Registrar Devolución» en la pantalla de entregas del pedido"><i class="fas fa-rotate-left mr-2"></i>Registrar devolución</button>
+                <!-- [S893] «Registrar devolución» se fundió con la corrección «Volvió» (botones «Corregir» y «Corregir lo que pasó»): se corrige el renglón del remito del que volvió. -->
                 <button v-if="f.pedido" @click="irAlPedido('entregas')" data-accion="entregas-del-pedido" class="btn-ficha"><i class="fas fa-truck-loading mr-2"></i>Entregas y remitos del pedido</button>
                 <p v-if="!acc" class="text-xs text-gray-500">Las acciones se habilitan desde el listado de Remitos.</p>
               </div>
@@ -214,6 +217,9 @@
             <span class="px-3 py-1 rounded-md text-xs font-bold border border-white/10 text-gray-300 peer-checked:border-amber-400 peer-checked:text-amber-200 peer-checked:bg-amber-500/10 block" :title="c.ayuda">{{ c.t }}</span>
           </label>
         </div>
+        <p v-if="noMueve" data-campo="correccion-riesgo" class="mb-3 rounded-lg border border-amber-500/30 bg-amber-900/10 px-3 py-2 text-xs text-amber-200">
+          <i class="fas fa-truck mr-1"></i> Esta entrega salió con el transporte del comprador (o con su guía, o la retiró él): <b>lo que se pierde en el camino es suyo</b>. Se anota, el pedido sigue entregado y se factura lo que salió.
+        </p>
         <label class="etq">¿Cuánto quedó realmente?</label>
         <div class="flex items-center gap-3 mb-1">
           <input v-model.number="correccion.real" type="number" min="0" step="any" data-campo="correccion-cantidad" class="w-32 bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white font-mono focus:border-amber-400 focus:outline-none" />
@@ -279,6 +285,8 @@ const correccionValida = computed(() => {
   const v = Number(correccion.real)
   return !!(it && correccion.causa && correccion.real !== null && correccion.real !== '' && Number.isFinite(v) && v >= 0 && v < it.quedo - 0.0005)
 })
+// [S893, Carlos 26/10] Quién carga con la pérdida: si la entrega salió con el transporte del comprador, una PÉRDIDA es del comprador y no mueve el pedido; lo demás mueve siempre.
+const noMueve = computed(() => !!(f.value && f.value.remito.riesgo_entrega === 'COMPRADOR' && correccion.causa === 'SE_PERDIO'))
 const resumenCorreccion = computed(() => {
   const it = renglonElegido.value
   if (!it) return ''
@@ -286,7 +294,7 @@ const resumenCorreccion = computed(() => {
   if (correccion.real === null || correccion.real === '' || !Number.isFinite(v)) return `Hoy quedan ${cant(it.quedo)}.`
   if (v < 0) return 'No puede ser negativo.'
   if (v >= it.quedo - 0.0005) return `Tiene que ser menos que lo que queda hoy (${cant(it.quedo)}).`
-  return `Se descuentan ${cant(it.quedo - v)}: el pedido vuelve a deber ${cant(it.quedo - v)}.`
+  return noMueve.value ? `Se anota que se pierden ${cant(it.quedo - v)}: el pedido no cambia.` : `Se descuentan ${cant(it.quedo - v)}: el pedido vuelve a deber ${cant(it.quedo - v)}.`
 })
 // lo que esperan las funciones del listado (anular, fecha, depósito, retiro, imprimir)
 const remitoLista = computed(() => (f.value ? {
@@ -331,7 +339,12 @@ const cargar = async () => {
     f.value = data
     const num = data.remito.numero_legal
     // la dirección legible: con número se ve «/remitos/0015-00003031», no el UUID (solo si el número es el de siempre: 4 + 8 dígitos)
-    if (num && /^\d{4}-\d{8}$/.test(num) && route.params.ref !== num) { saltearCambio = true; router.replace({ name: 'RemitoFicha', params: { ref: num } }) }
+    const canon = (num && /^\d{4}-\d{8}$/.test(num)) ? num : route.params.ref
+    // [S893] ?corregir=VOLVIO (viene de «Registrar devolución» de Entregas y remitos): abre la corrección con esa causa y se saca de la dirección para que no se reabra al recargar
+    const causa = route.query.corregir ? String(route.query.corregir).toUpperCase() : null
+    if (route.params.ref !== canon) saltearCambio = true
+    if (route.params.ref !== canon || causa) router.replace({ name: 'RemitoFicha', params: { ref: canon }, query: {} })
+    if (causa && CAUSAS.some((c) => c.k === causa) && puedeCorregir.value) abrirCorreccion(causa)
   } catch (e) {
     f.value = null
     error.value = (e.response && e.response.data && e.response.data.detail) || e.message
@@ -347,7 +360,6 @@ const cerrar = () => {
 const irAlPedido = (donde) => {
   if (!f.value || !f.value.pedido) return
   if (donde === 'entregas') router.push({ name: 'PedidoLogistica', params: { id: f.value.pedido.id } })
-  else if (donde === 'devolucion') router.push({ name: 'PedidoLogistica', params: { id: f.value.pedido.id }, query: { devolucion: 1 } })
   else router.push({ name: 'PedidoEditar', params: { id: f.value.pedido.id } })
 }
 const abrirOtro = (o) => router.push({ name: 'RemitoFicha', params: { ref: (o.numero_legal && /^\d{4}-\d{8}$/.test(o.numero_legal)) ? o.numero_legal : o.id } })
@@ -359,6 +371,8 @@ const abrirCorreccion = (causa = null, itemId = null) => {
   Object.assign(correccion, { visible: true, itemId: it.id, causa: causa || correccion.causa || 'SE_PERDIO', real: null, nota: '', guardando: false, error: '' })
 }
 const cerrarCorreccion = () => { correccion.visible = false }
+// [S893] «Ver el remito»: lo mismo que saldría, sin imprimir (GET /remitos/{id}/pdf?ver=1)
+const verRemito = () => { if (f.value) window.open(`/remitos/${f.value.remito.id}/pdf?ver=1`, '_blank') }
 const guardarCorreccion = async () => {
   if (!correccionValida.value || correccion.guardando || !f.value) return
   correccion.guardando = true
@@ -367,7 +381,9 @@ const guardarCorreccion = async () => {
     const { data } = await api.post(`/remitos/${f.value.remito.id}/correccion`, {
       remito_item_id: correccion.itemId, cantidad_real: Number(correccion.real), causa: correccion.causa, nota: (correccion.nota || '').trim() || null })
     correccion.visible = false
-    notification.add(`Corrección guardada: el pedido vuelve a deber ${cant(data.diferencia)}${data.pedido_reabierto ? ' y se reabrió (estaba cumplido)' : ''}.`, 'success')
+    notification.add(data.mueve_pedido === false
+      ? `Pérdida anotada (${cant(data.diferencia)}): es del comprador, el pedido sigue entregado y se factura lo que salió.`
+      : `Corrección guardada: el pedido vuelve a deber ${cant(data.diferencia)}${data.pedido_reabierto ? ' y se reabrió (estaba cumplido)' : ''}.`, 'success')
     if (acc && acc.refresh) await acc.refresh()   // el listado se vuelve a leer y la ficha se relee sola (versión)
     else await cargar()
   } catch (e) {
