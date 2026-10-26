@@ -1,4 +1,5 @@
 from typing import List
+import re
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from backend.core.database import get_db
@@ -66,14 +67,23 @@ def import_cliente_from_cantera(cliente_id: str, db: Session = Depends(get_db)):
             )
             domicilios_in.append(new_dom)
 
+        # [S893, Tomy 26/10: «Ceretti 2098 existe y no lo pude poner en un pedido»] Cantera guarda «00000000000» (o nada) cuando el cliente viejo no tenía CUIT: es un MARCADOR de «sin
+        # CUIT», no un CUIT. Ese número es exclusivo del Mostrador/Genérico (Nike 806) y create_cliente lo rechaza, así que los 82 clientes de Cantera sin CUIT (de 135) no se podían importar
+        # nunca: el servidor contestaba 500 y la pantalla un genérico «Error al importar». Se importan SIN CUIT (queda vacío): el alta ya sabe qué hacer con un cliente sin CUIT (Rosa).
+        cuit = (full_data.get("cuit") or "").strip()
+        if not cuit or re.fullmatch(r"0+", cuit):
+            cuit = None
         cliente_in = ClienteCreate(
             razon_social=full_data.get("razon_social"),
-            cuit=full_data.get("cuit"),
+            cuit=cuit,
             activo=full_data.get("activo", 1),
             domicilios=domicilios_in
         )
         new_client = ClienteService.create_cliente(db, cliente_in)
         return {"status": "success", "imported_id": str(new_client.id)}
+    except HTTPException:
+        # [S893] Los frenos del alta (duplicado por razón social o CUIT, CUIT reservado) llegan tal cual, con su mensaje (400): antes se convertían en un 500 «400: ...» y la pantalla no lo decía.
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

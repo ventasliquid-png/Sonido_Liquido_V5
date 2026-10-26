@@ -1287,7 +1287,9 @@ const importFromCantera = async (canteraClient) => {
         }
     } catch (e) {
         console.error("Error importing from cantera", e)
-        notificationStore.add('Error al importar cliente desde Cantera', 'error')
+        // [S893] El motivo que da el servidor (duplicado, CUIT reservado...) se muestra: antes salía siempre el mismo «Error al importar» y no se sabía por qué
+        const motivo = e?.response?.data?.detail
+        notificationStore.add(motivo ? `No se pudo importar desde Cantera: ${motivo}` : 'Error al importar cliente desde Cantera', 'error')
     } finally {
         isSearching.value = false
         canteraResults.value = []
