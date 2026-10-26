@@ -11,7 +11,9 @@
       <div class="flex-1 relative overflow-hidden">
         <router-view v-slot="{ Component }">
             <transition name="fade" mode="out-in">
-            <component :is="Component" :key="route.path" />
+            <!-- [S893] meta.claveVista: una pantalla con ventana propia en la dirección (la ficha del remito, /remitos/:ref) conserva su lista debajo:
+                 sin esto, cada cambio de dirección vuelve a montar la lista (pierde el filtro y recarga). El resto de las pantallas sigue con la dirección como clave. -->
+            <component :is="Component" :key="route.meta.claveVista || route.path" />
             </transition>
         </router-view>
       </div>

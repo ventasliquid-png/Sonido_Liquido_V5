@@ -1,4 +1,4 @@
-r"""S887, pedido de Carlos (15/10): el pedido es el punto de partida; ahí tiene que verse si ya tiene remito y cuál es (ficha, Tablero de Pedidos, pantalla de entregas, Remito Manual), poder reimprimirlo sin hacer otro,
+r"""S887, pedido de Carlos (15/10): el pedido es el punto de partida; ahí tiene que verse si ya tiene remito y cuál es (ficha, Tablero de Pedidos, pantalla de entregas; el Remito Manual se retiró en la S893), poder reimprimirlo sin hacer otro,
 y el botón «Imprimir remito» solo aparece si queda algo por remitar. Prueba estática del código de las pantallas (el comportamiento se verificó en el navegador sobre una copia de P)."""
 import sys, os, re, io
 sys.path.insert(0, r"C:\dev\Sonido_Liquido_V5\scripts"); os.chdir(r"C:\dev\Sonido_Liquido_V5")
@@ -9,7 +9,6 @@ comp = leer("frontend/src/composables/useRemitosDelPedido.js")
 canvas = leer("frontend/src/views/Ventas/PedidoCanvas.vue")
 lista = leer("frontend/src/views/Pedidos/PedidoList.vue")
 split = leer("frontend/src/views/Logistica/LogisticaSplitter.vue")
-manual = leer("frontend/src/views/Logistica/ManualRemitoView.vue")
 def plantilla(s): return re.sub(r"<!--[\s\S]*?-->", "", s[s.index("<template>"):s.index("</template>")]) if "</template>" in s else ""
 
 # ---- composable compartido
@@ -38,11 +37,10 @@ check("el Tablero no suma una columna (a 1440 px con el inspector abierto le sac
 check("la pantalla de entregas dice «Este pedido ya está remitido completo» cuando no queda nada por remitar y hay remitos vigentes",
       'data-estado-remito="completo"' in split and "itemsPendientes.length === 0 && remitos.some(r => r.estado !== 'ANULADO')" in split and "Este pedido ya está remitido completo" in split)
 check("el botón «Imprimir remito» apagado explica por qué", ":title=\"itemsPendientes.length === 0 ? 'No queda nada por remitar: el pedido ya está remitido completo'" in split)
-check("el Remito Manual, al elegir un pedido que ya tiene remito, avisa cuál es antes de armar otro",
-      'data-aviso="pedido-con-remito"' in manual and "Este pedido ya tiene remito:" in manual and re.search(r"watch\(\(\) => form\.pedido_id, async \(id\) => \{ remitosDelPedido\.value = id \? await traerRemitosDelPedido\(id\) : \[\];", manual))
+# [S893] El Remito Manual se retiró: el aviso de «este pedido ya tiene remito» vive en la ficha del pedido, el Tablero y la pantalla de entregas (el armado desde el pedido).
 
 # ---- sin «PR» a la vista en lo nuevo
-nuevo = " ".join(re.findall(r"(?:Remito de este pedido|Este pedido[^<{]*|Reimprimir|Queda pendiente[^<]*)", plantilla(canvas) + plantilla(split) + plantilla(manual)))
+nuevo = " ".join(re.findall(r"(?:Remito de este pedido|Este pedido[^<{]*|Reimprimir|Queda pendiente[^<]*)", plantilla(canvas) + plantilla(split)))
 check("los textos nuevos hablan de «remito» (ninguno dice «PR»)", not re.search(r"\bPR\b", nuevo) and not re.search(r"\bPR\b", comp))
 
 falla = [d for d, ok in checks if not ok]

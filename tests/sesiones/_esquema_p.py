@@ -10,7 +10,7 @@ import shutil
 import sqlite3
 from contextlib import contextmanager
 
-COLUMNAS_NUEVAS = [("pedidos_items", "kit_grupo", "INTEGER"), ("empresas_transporte", "web_retiro", "VARCHAR(255)"), ("remitos", "fecha_emision", "DATETIME")]    # (tabla, columna, tipo): lo que agregan las migraciones posteriores a las copias mas viejas
+COLUMNAS_NUEVAS = [("pedidos_items", "kit_grupo", "INTEGER"), ("empresas_transporte", "web_retiro", "VARCHAR(255)"), ("remitos", "fecha_emision", "DATETIME"), ("remitos", "oc", "VARCHAR"), ("remitos_items", "corrige_item_id", "INTEGER"), ("remitos_items", "causa", "VARCHAR")]    # (tabla, columna, tipo): lo que agregan las migraciones posteriores a las copias mas viejas
 
 
 def asegurar_esquema(db_path):

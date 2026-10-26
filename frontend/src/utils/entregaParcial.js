@@ -1,6 +1,6 @@
 // Derivación compartida del estado de entrega de un renglón de Pedido.
-// Usado por ManualRemitoView.vue, PedidoList.vue y PedidoCanvas.vue — una sola
-// fuente de verdad para que las tres pantallas no terminen discrepando.
+// Usado por PedidoList.vue y PedidoCanvas.vue (y, hasta la S893, por el Remito Manual) — una sola
+// fuente de verdad para que las pantallas no terminen discrepando.
 // Ver INFORMES_HISTORICOS/2026-08-14_S854_OF.md (diagnóstico) y Card #99.
 
 export function saldoRenglon(item) {

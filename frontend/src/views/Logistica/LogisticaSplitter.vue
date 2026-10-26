@@ -104,13 +104,11 @@
         <!-- ACTION BAR -->
         <div class="flex justify-between items-end">
            <h2 class="text-xl font-semibold text-blue-400">Viajes Activos (Remitos)</h2>
-           <!-- [S868] Un remito nuevo se emite en Remito Manual (con renglones y número 0015). El modal que
-                estaba acá creaba un remito vacío contra POST /remitos/, que no existe (y renglón cero es imposible). -->
+           <!-- [S893, Carlos 26/10] El Remito Manual se retiró: un remito nuevo se arma SIEMPRE desde el pedido, con «Imprimir remito». -->
            <div class="flex gap-2">
               <!-- [Etapa 4, PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §6] Pantalla de armado
                    (D3, primera pantalla): elige renglones del pedido por pedido_item_id, nunca
-                   texto libre -- a diferencia de "Nuevo Remito" (0015 manual, sigue vivo para
-                   casos que no matcheen contra el catálogo). -->
+                   texto libre. -->
               <button @click="openArmarModal" :disabled="itemsPendientes.length === 0" :title="itemsPendientes.length === 0 ? 'No queda nada por remitar: el pedido ya está remitido completo' : 'Imprimir el remito de lo que queda por remitar'"
                 class="bg-amber-600 hover:bg-amber-500 disabled:bg-slate-700 disabled:cursor-not-allowed disabled:text-slate-500 text-white px-4 py-2 rounded-lg shadow-lg hover:shadow-amber-500/20 transition flex items-center gap-2">
                 <i class="fas fa-print"></i> Imprimir remito
@@ -123,17 +121,13 @@
                 class="bg-rose-700 hover:bg-rose-600 disabled:bg-slate-700 disabled:cursor-not-allowed disabled:text-slate-500 text-white px-4 py-2 rounded-lg shadow-lg hover:shadow-rose-500/20 transition flex items-center gap-2">
                 <i class="fas fa-rotate-left"></i> Registrar Devolución
               </button>
-              <button @click="$router.push({ name: 'ManualRemito', query: { cliente_id: idCliente, pedido_id: localPedido.id } })"
-                class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg hover:shadow-blue-500/20 transition flex items-center gap-2">
-                <i class="fas fa-plus"></i> Nuevo Remito (manual)
-              </button>
            </div>
         </div>
 
         <!-- REMITOS LIST -->
         <div v-if="remitos.length === 0" class="text-center py-20 bg-slate-800/50 rounded-xl border border-dashed border-slate-700">
            <p class="text-slate-500">No hay remitos creados para este pedido.</p>
-           <p class="text-sm text-slate-600">Cree uno nuevo para comenzar la distribución.</p>
+           <p class="text-sm text-slate-600">Con «Imprimir remito» se arma el primero para comenzar la distribución.</p>
         </div>
 
         <div v-for="remito in remitos" :key="remito.id" 
@@ -492,6 +486,8 @@ onMounted(async () => {
     await loadData(id);
     // [S887] «Hacer remito» en la ficha del pedido llega con ?armar=1: el cuadro «Imprimir remito» sale abierto (si hay algo pendiente de remitar)
     if (route.query.armar && itemsPendientes.value.length > 0) openArmarModal();
+    // [S893] «Registrar devolución» en la ficha del remito llega con ?devolucion=1: el cuadro de la devolución (Etapa 6) sale abierto
+    if (route.query.devolucion && itemsConEntrega.value.length > 0) openDevolucionModal();
 });
 
 async function loadData(id) {

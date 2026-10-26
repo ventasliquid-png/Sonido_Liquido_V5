@@ -72,17 +72,31 @@
                 <i class="fas fa-file-invoice-dollar w-4 text-indigo-400"></i> 
                 <span>Facturación (AFIP)</span>
             </a>
-            <a href="#" @click.prevent="navigate('RemitoList')" class="nav-item-sub" :class="{ 'active-link-emerald': isActive('RemitoList') }">
+        </div>
+      </div>
+
+      <!-- REMITOS Group [S893, Carlos 26/10: Remitos sale de Pedidos y queda al mismo nivel; naranja = Logística] -->
+      <div class="space-y-1" data-grupo="remitos">
+        <button
+            @click="toggleGroup('REMITOS')"
+            class="w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-all duration-200"
+            :class="isGroupActive('REMITOS') || expandedGroups.includes('REMITOS') ? 'bg-orange-900/20 border-orange-500/30' : 'bg-transparent border-transparent hover:bg-white/5'"
+        >
+             <span class="flex items-center gap-3 text-orange-400 font-bold tracking-wide text-sm">
+                <i class="fas fa-dolly w-5 text-center" :class="isGroupActive('REMITOS') ? 'text-orange-400' : 'text-orange-500/50'"></i>
+                REMITOS
+            </span>
+            <i class="fas fa-chevron-right text-xs transition-transform duration-200" :class="expandedGroups.includes('REMITOS') ? 'rotate-90 text-orange-400' : 'text-white/20'"></i>
+        </button>
+
+        <div v-show="expandedGroups.includes('REMITOS')" class="pl-4 space-y-1">
+            <a href="#" @click.prevent="navigate('RemitoList')" class="nav-item-sub" :class="{ 'active-link-orange': isActive('RemitoList') || isActive('RemitoFicha') }">
                 <i class="fas fa-truck-loading w-4"></i>
                 <span>Remitos</span>
             </a>
-            <a href="#" @click.prevent="navigate('EntregasReport')" class="nav-item-sub" :class="{ 'active-link-emerald': isActive('EntregasReport') }">
+            <a href="#" @click.prevent="navigate('EntregasReport')" class="nav-item-sub" :class="{ 'active-link-orange': isActive('EntregasReport') }">
                 <i class="fas fa-clipboard-list w-4"></i>
                 <span>Reporte de Entregas</span>
-            </a>
-            <a href="#" @click.prevent="navigate('ManualRemito')" class="nav-item-sub" :class="{ 'active-link-emerald': isActive('ManualRemito') }">
-                <i class="fas fa-edit w-4"></i> 
-                <span>Remito Manual</span>
             </a>
         </div>
       </div>
@@ -341,7 +355,8 @@ const isGroupActive = (group) => {
     if (group === 'CLIENTES') return ['HaweHome', 'Segmentos', 'Vendedores', 'HaweClientCanvas'].includes(route.name)
     if (group === 'PRODUCTOS') return ['Productos', 'Rubros', 'ListasPrecios'].includes(route.name)
     if (group === 'MAESTROS') return ['Contactos', 'Transportes', 'CanteraExplorer', 'MasterTools', 'AddressHub'].includes(route.name)
-    if (group === 'PEDIDOS') return ['PedidoList', 'TacticalLoader', 'IngestaFactura', 'RemitoList', 'ManualRemito', 'FacturacionDashboard', 'EntregasReport'].includes(route.name)
+    if (group === 'PEDIDOS') return ['PedidoList', 'TacticalLoader', 'IngestaFactura', 'FacturacionDashboard'].includes(route.name)
+    if (group === 'REMITOS') return ['RemitoList', 'RemitoFicha', 'EntregasReport'].includes(route.name)   // [S893] nodo propio, naranja (Logística)
     if (group === 'INTEL') return ['data-cleaner'].includes(route.name)
     if (group === 'INFORMES_REMITOS') return isGroupActive('INFORMES')
     if (group === 'INFORMES') return ['InformeRemitos', 'InformePedidosPendiente', 'InformePedidosSinRemito', 'InformeRenglonesNoFacturables', 'InformePedidosOc', 'InformeCumplimientoOc', 'InformeNotasPedidos', 'InformeBuscarNotas', 'InformeAbcClientes', 'InformeAbcProductos'].includes(route.name)
@@ -358,7 +373,7 @@ const toggleGroup = (group) => {
 }
 
 const autoExpand = () => {
-    ['CLIENTES', 'PRODUCTOS', 'MAESTROS', 'PEDIDOS', 'INFORMES', 'INFORMES_REMITOS'].forEach(group => {
+    ['CLIENTES', 'PRODUCTOS', 'MAESTROS', 'PEDIDOS', 'REMITOS', 'INFORMES', 'INFORMES_REMITOS'].forEach(group => {
         if (isGroupActive(group) && !expandedGroups.value.includes(group)) {
             expandedGroups.value.push(group)
         }
@@ -404,6 +419,9 @@ const handleDepositosClick = () => {
 }
 .active-link-indigo {
     @apply text-indigo-200 bg-indigo-900/10 border-indigo-400 font-bold;
+}
+.active-link-orange {
+    @apply text-orange-200 bg-orange-900/10 border-orange-400 font-bold;
 }
 .active-link-sky {
     @apply text-sky-200 bg-sky-900/10 border-sky-400 font-bold;

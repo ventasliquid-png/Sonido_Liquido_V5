@@ -27,6 +27,9 @@ class RemitoItemResponse(RemitoItemBase):
     cantidad_recibida: Optional[float] = None
     # [S876] Por qué este renglón salió sin ser venta firme (NULL = facturable normal).
     motivo_no_facturable: Optional[str] = None
+    # [S893] Si este renglón es una CORRECCIÓN: el renglón de remito que corrige y la causa (NULL = renglón común).
+    corrige_item_id: Optional[int] = None
+    causa: Optional[str] = None
     # Nested info for the UI (Populated from models.py properties)
     descripcion_display: Optional[str] = "Ítem"
 
@@ -40,6 +43,15 @@ class RemitoNotaCreate(BaseModel):
     (Depends(get_current_active_user), mismo patrón que update_pedido_item/toggle_no_comercial)."""
     remito_item_id: Optional[int] = None
     texto: str
+
+class RemitoCorreccion(BaseModel):
+    """[S893, Carlos 26/10] Lo que quedó de un renglón de remito es menos de lo que figuraba: `cantidad_real` es cuánto QUEDÓ (no cuánto se pierde) y `causa` el porqué
+    (NO_SALIO / SE_PERDIO / SE_RECHAZO / VOLVIO). Ver RemitosService.corregir_renglon."""
+    remito_item_id: int
+    cantidad_real: float
+    causa: str
+    nota: Optional[str] = None
+
 
 class RemitoFechaUpdate(BaseModel):
     """[S890, Carlos 20-21/10] Cambiar la fecha de un remito ya numerado (por ejemplo, si el papel se perdió o hay que
@@ -90,6 +102,7 @@ class RemitoBase(BaseModel):
     vto_cae: Optional[datetime] = None
     bultos: Optional[int] = None
     valor_declarado: Optional[float] = None
+    oc: Optional[str] = None   # [S893] la orden de compra, copiada del pedido al crear el remito
     razon_social: Optional[str] = None
 
 class RemitoCreate(RemitoBase):
@@ -197,18 +210,9 @@ class IngestionPayload(BaseModel):
     pedido_id_vinculado: Optional[int] = None # ID del pedido a vincular
     modo_cuarentena: Optional[bool] = False
 
-# --- MANUAL REMITO (V15.1.4) ---
-class ManualRemitoItem(BaseModel):
-    descripcion: str
-    cantidad: float
-    codigo_visual: Optional[str] = None
-    # [Card #179, S888] Con pedido_id, el renglón del pedido al que corresponde este renglón del remito. Es la única forma de distinguir dos renglones
-    # del MISMO producto (el kit del pedido, Card #177, los usa). Sin él (clientes viejos) el servidor sigue emparejando por nombre o código visual.
-    pedido_item_id: Optional[int] = None
-
 class ArmarRemitoItemPayload(BaseModel):
-    """[Etapa 4] Elegido de la lista del pedido -- nunca texto libre, a diferencia del 0015
-    manual (ManualRemitoItem). pedido_item_id es la única forma de identificar el renglón."""
+    """[Etapa 4] Elegido de la lista del pedido -- nunca texto libre.
+    pedido_item_id es la única forma de identificar el renglón."""
     pedido_item_id: int
     cantidad: float
     # [S876] CONSIGNACION / MUESTRA_SIN_CARGO / GARANTIA_REEMPLAZO, o ausente = facturable normal.
@@ -239,14 +243,3 @@ class ResolverNoFacturablePayload(BaseModel):
     mercadería, NO pasa por acá: es un PR de cantidad negativa, el mecanismo de la Etapa 6."""
     accion: str = "FACTURAR"
 
-class ManualRemitoPayload(BaseModel):
-    pedido_id: Optional[int] = None # ID de pedido existente (Nuevo)
-    cliente_id: Optional[str] = None # UUID
-    cliente_nuevo: Optional[IngestionCliente] = None # Reuse ingestion structure
-    domicilio_entrega_id: Optional[str] = None # UUID
-    transporte_id: Optional[str] = None # UUID
-    items: List[ManualRemitoItem]
-    observaciones: Optional[str] = ""
-    valor_declarado: Optional[float] = None
-    bultos: Optional[int] = None
-    aprobado_para_despacho: bool = True

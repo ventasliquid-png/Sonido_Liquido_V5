@@ -1,6 +1,6 @@
 r"""S887, pedido de Carlos (15/10): el sistema tiene que decir, en el pedido, si ya tiene remito y cuál es, y el freno del duplicado dice cuál es en vez de mandar a buscarlo en un listado.
 (1) GET /remitos/resumen_por_pedido: los remitos vigentes (sin anulados) de cada pedido, para el Tablero de Pedidos.
-(2) Un remito (armar o manual) de un pedido ya remitido se frena con CANTIDAD_EXCEDE_PEDIDO y el aviso nombra el remito que ya existe (número, estado, fecha); si el pedido no tiene remitos, el aviso no aparece.
+(2) Un remito (armar; el Remito Manual se retiró en la S893) de un pedido ya remitido se frena con CANTIDAD_EXCEDE_PEDIDO y el aviso nombra el remito que ya existe (número, estado, fecha); si el pedido no tiene remitos, el aviso no aparece.
 Sobre una COPIA de la base de P del 15/10 16:01 (el pedido 128 de Wullich tiene el remito 0015-00003027; el 48 no tiene ninguno)."""
 import sys, os, shutil, sqlite3
 from _esquema_p import copiar_p   # [S888] copia la base de P y le asegura la columna pedidos_items.kit_grupo (migrate_063)
@@ -51,11 +51,6 @@ det = (r.json() or {}).get("detail", "") if r.headers.get("content-type", "").st
 check(f"armar un remito de un pedido ya remitido (128) se frena [{r.status_code}] con CANTIDAD_EXCEDE_PEDIDO", r.status_code == 409 and det.startswith("CANTIDAD_EXCEDE_PEDIDO"))
 check(f"el aviso nombra el remito que ya existe y dónde reimprimirlo: {det[-215:]!r}", "El Pedido #128 ya tiene remito: 0015-00003027 (borrador, del 15/10/2026)" in det and "reimprimilo desde ahí" in det and "«Entregas y remitos»" in det)
 check("el frenado no dejó ningún remito nuevo", q("select count(*) from remitos")[0][0] == antes)
-r = c.post("/remitos/manual", json={"pedido_id": 128, "items": [{"descripcion": "SURGIZIME E2 BOTELLA X 1 LT", "cantidad": 360}]})
-det = (r.json() or {}).get("detail", "") if r.headers.get("content-type", "").startswith("application/json") else r.text
-check(f"el remito manual de un pedido ya remitido también se frena [{r.status_code}] y nombra el remito existente",
-      r.status_code == 409 and det.startswith("CANTIDAD_EXCEDE_PEDIDO") and "ya tiene remito: 0015-00003027" in det)
-check("tampoco el manual dejó un remito nuevo", q("select count(*) from remitos")[0][0] == antes)
 r = c.post("/remitos/armar", json={"pedido_id": 48, "metodo_entrega": "MOSTRADOR", "items": [{"pedido_item_id": 90, "cantidad": 9999}]})
 det = (r.json() or {}).get("detail", "") if r.headers.get("content-type", "").startswith("application/json") else r.text
 check(f"un pedido SIN remitos (el 48) que se pasa de lo pedido se frena igual, pero sin el aviso de remito existente [{r.status_code}]",

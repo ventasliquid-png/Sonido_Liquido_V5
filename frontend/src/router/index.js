@@ -133,14 +133,20 @@ const routes = [
                 component: () => import('../views/Logistica/LogisticaSplitter.vue')
             },
             {
+                // [S893] Nodo Remitos: la lista y, encima, la ficha del remito con ruta propia (/logistica/remitos/0015-00003031 o /logistica/remitos/<id>)
                 path: 'logistica/remitos',
-                name: 'RemitoList',
-                component: () => import('../views/Logistica/RemitoListView.vue')
+                component: () => import('../views/Logistica/RemitoListView.vue'),
+                meta: { claveVista: 'remitos' },   // HaweLayout: la lista no se vuelve a montar cuando se abre o se cierra la ficha
+                children: [
+                    { path: '', name: 'RemitoList', component: { render: () => null } },
+                    { path: ':ref', name: 'RemitoFicha', component: () => import('../views/Logistica/RemitoFicha.vue') }
+                ]
             },
             {
+                // [S893, Carlos 26/10] El Remito Manual se retiró (tag remito-manual-original): un remito se arma siempre desde un pedido.
+                // La dirección vieja (favoritos) lleva al libro de Remitos.
                 path: 'logistica/remito-manual',
-                name: 'ManualRemito',
-                component: () => import('../views/Logistica/ManualRemitoView.vue')
+                redirect: { name: 'RemitoList' }
             },
             {
                 path: 'logistica/entregas',

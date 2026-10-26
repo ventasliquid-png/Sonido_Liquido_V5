@@ -102,3 +102,29 @@ MOTIVOS_NO_FACTURABLE = (
 # Riesgo "Consignación Eterna" (mercadería a prueba que se olvida sin resolver): pedido de Nike,
 # alerta a los 30 días de antigüedad para todo renglón con motivo abierto -- Informes.
 DIAS_ALERTA_NO_FACTURABLE = 30
+
+# [S893, Carlos 26/10] Por qué lo que quedó de un renglón es menos de lo que figuraba en el remito. Con una de estas causas el servidor arma una CORRECCIÓN
+# (un renglón de cantidad negativa, el mecanismo de la devolución de la Etapa 6, atado al renglón de origen): el pedido vuelve a deber la diferencia y, si estaba
+# CUMPLIDO, se reabre. La causa queda guardada para Stock: VOLVIO suma al stock; NO_SALIO, SE_PERDIO y SE_RECHAZO no.
+class CausaCorreccion:
+    NO_SALIO   = "NO_SALIO"     # el remito dice más de lo que realmente salió
+    SE_PERDIO  = "SE_PERDIO"    # salió y se perdió en el camino
+    SE_RECHAZO = "SE_RECHAZO"   # llegó y el cliente no lo aceptó
+    VOLVIO     = "VOLVIO"       # llegó y después volvió (devolución del cliente)
+
+CAUSAS_CORRECCION = (
+    CausaCorreccion.NO_SALIO,
+    CausaCorreccion.SE_PERDIO,
+    CausaCorreccion.SE_RECHAZO,
+    CausaCorreccion.VOLVIO,
+)
+
+# Con estas causas lo que QUEDÓ es lo que llegó (cantidad_recibida del renglón de origen = lo que quedó). Con VOLVIO llegó todo y después volvió una parte.
+CAUSAS_QUE_CAMBIAN_LO_QUE_LLEGO = (CausaCorreccion.NO_SALIO, CausaCorreccion.SE_PERDIO, CausaCorreccion.SE_RECHAZO)
+
+ETIQUETA_CAUSA = {
+    CausaCorreccion.NO_SALIO: "No salió todo",
+    CausaCorreccion.SE_PERDIO: "Se perdió",
+    CausaCorreccion.SE_RECHAZO: "Se rechazó",
+    CausaCorreccion.VOLVIO: "Volvió",
+}

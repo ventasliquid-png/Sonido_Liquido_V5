@@ -7,6 +7,7 @@ from typing import List, Optional
 from backend.core.database import get_db
 from .pdf_parser import process_pdf_ingestion
 from backend.remitos import schemas, models
+from backend.remitos.constants import CAUSAS_QUE_CAMBIAN_LO_QUE_LLEGO
 from backend.auth.dependencies import get_current_active_user
 from backend.auth.models import Usuario
 
@@ -79,6 +80,233 @@ def resumen_por_pedido(db: Session = Depends(get_db)):
             "fecha_creacion": r.fecha_creacion.isoformat() if r.fecha_creacion else None,
         })
     return salida
+
+def _norm(s) -> str:
+    """Texto sin acentos ni mayúsculas, para buscar («lacteos» = «Lácteos»)."""
+    import unicodedata
+    return "".join(c for c in unicodedata.normalize("NFD", str(s or "")) if unicodedata.category(c) != "Mn").lower().strip()
+
+
+def _partes_numero(numero):
+    """(punto de venta, número) de un número de remito. El número es el ÚLTIMO grupo de dígitos, aunque el formato esté mal
+    (en P hay un «0016-00001-00002514»)."""
+    import re
+    g = re.findall(r"\d+", numero or "")
+    if len(g) < 2:
+        return (None, g[0] if g else None)
+    return (g[0], g[-1])
+
+
+def _es_uuid(texto: str) -> bool:
+    import re
+    return bool(re.fullmatch(r"[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12}", (texto or "").strip()))
+
+
+def _remitos_con_cliente(db):
+    from sqlalchemy.orm import joinedload
+    from backend.pedidos.models import Pedido
+    return db.query(models.Remito).options(joinedload(models.Remito.pedido).joinedload(Pedido.cliente)).all()
+
+
+@router.get("/buscar")
+def buscar_remitos(q: str = "", limite: int = 50, incluir_anulados: bool = True, db: Session = Depends(get_db)):
+    """[S893, Carlos 26/10: «F3 busca por el tipeo de OC, cliente o número de remito»] Búsqueda del lado del servidor, para el F3 del
+    nodo Remitos y para «buscar en históricos». Reconoce lo que se tipea:
+    - «3031» o «0015-3031» o «0015-00003031»: el número (exacto primero; «303» trae también el 3030 y el 3031);
+    - «#137»: el pedido; un número suelto también trae su pedido y las OC que lo contienen;
+    - texto: el cliente (sin acentos ni mayúsculas) y la OC (la del remito o, si no la tiene, la del pedido).
+    Devuelve los resultados ordenados (número exacto, número parcial, pedido, OC, cliente) con por qué coinciden, y `exacto` si hay un
+    único remito con ese número (para abrir su ficha directo con Enter). NOTA: va ANTES de GET /{remito_id} (mismo largo de path)."""
+    import re
+    t = (q or "").strip()
+    if not t:
+        return {"q": "", "total": 0, "exacto": None, "resultados": []}
+    qn = _norm(t)
+    solo_num = re.fullmatch(r"#?\s*(\d+)", t)
+    con_guion = re.fullmatch(r"(\d{1,4})\s*-\s*(\d{1,8})", t)
+    es_pedido = t.startswith("#")
+    palabras = [w for w in qn.split() if w]
+    resultados = []
+    for r in _remitos_con_cliente(db):
+        if not incluir_anulados and r.estado == "ANULADO":
+            continue
+        pv, nro = _partes_numero(r.numero_legal)
+        motivos, rank = [], 9
+        if con_guion:
+            if pv is not None and nro is not None and int(pv) == int(con_guion.group(1)) and int(nro) == int(con_guion.group(2)):
+                motivos.append("número"); rank = 0
+        elif solo_num:
+            n = str(int(solo_num.group(1)))
+            if es_pedido:
+                if str(r.pedido_id) == n:
+                    motivos.append("pedido"); rank = 2
+            else:
+                if nro is not None and str(int(nro)) == n:
+                    motivos.append("número"); rank = 0
+                elif nro is not None and n in str(int(nro)):
+                    motivos.append("número (parcial)"); rank = 1
+                if str(r.pedido_id) == n:
+                    motivos.append("pedido"); rank = min(rank, 2)
+        oc = (r.oc or (r.pedido.oc if r.pedido else "") or "")
+        if qn and not es_pedido and qn in _norm(oc):
+            motivos.append("OC"); rank = min(rank, 3)
+        razon = r.pedido.cliente.razon_social if r.pedido and r.pedido.cliente else ""
+        if palabras and not con_guion and not solo_num and all(w in _norm(razon) for w in palabras):
+            motivos.append("cliente"); rank = min(rank, 4)
+        if not motivos:
+            continue
+        fecha = r.fecha_emision or r.fecha_salida or r.fecha_creacion
+        resultados.append((rank, fecha.isoformat() if fecha else "", {
+            "id": str(r.id), "numero_legal": r.numero_legal, "estado": r.estado, "flags_estado": r.flags_estado,
+            "razon_social": razon or "Desconocido", "pedido_id": r.pedido_id, "oc": oc or None,
+            "fecha": fecha.isoformat() if fecha else None, "factura_vinculada": r.factura_vinculada, "coincide": motivos}))
+    resultados.sort(key=lambda x: x[1], reverse=True)   # dentro de cada grado, lo más nuevo primero
+    resultados.sort(key=lambda x: x[0])                 # (el orden es estable: primero el grado de coincidencia, después la fecha)
+    lista = [x[2] for x in resultados]
+    exactos = [x[2] for x in resultados if x[0] == 0]
+    return {"q": t, "total": len(lista), "exacto": (exactos[0]["id"] if len(exactos) == 1 else None), "resultados": lista[:max(1, limite)]}
+
+
+@router.get("/pedidos-por-remitar")
+def pedidos_por_remitar(q: str = "", limite: int = 30, db: Session = Depends(get_db)):
+    """[S893, Carlos 26/10: el Remito Manual se retira; «Nuevo remito» (F4) del nodo elige el PEDIDO y sigue por su armado] Los pedidos abiertos
+    (PENDIENTE o RESERVADO) a los que todavía les falta remitar algo, para elegir uno por su número («#137» o «137»), su OC o su cliente (sin acentos).
+    Sin texto, los más nuevos. Cada fila: pedido, cliente, OC, fecha, cuántos renglones faltan y un resumen. Es la bandeja «pedidos por remitir» del
+    marco. NOTA: va ANTES de GET /{remito_id}."""
+    import re
+    from sqlalchemy.orm import joinedload
+    from backend.pedidos.models import Pedido, PedidoItem
+    qn = _norm((q or "").replace("#", " "))
+    palabras = [w for w in qn.split() if w]
+    solo_num = re.fullmatch(r"\d+", qn.strip()) if qn else None
+    pedidos = (db.query(Pedido)
+               .options(joinedload(Pedido.cliente), joinedload(Pedido.items).joinedload(PedidoItem.producto))
+               .filter(Pedido.estado.in_(("PENDIENTE", "RESERVADO"))).order_by(Pedido.id.desc()).all())
+    filas = []
+    for p in pedidos:
+        razon = p.cliente.razon_social if p.cliente else ""
+        if palabras:
+            coincide = (solo_num and str(p.id) == str(int(qn))) or (solo_num and qn in _norm(p.oc)) \
+                or (not solo_num and (all(w in _norm(razon) for w in palabras) or qn in _norm(p.oc)))
+            if not coincide:
+                continue
+        faltan = [(i, i.cantidad - i.cantidad_entregada) for i in p.items if i.cantidad - i.cantidad_entregada > 0.001]
+        if not faltan:
+            continue
+        resumen = "; ".join(f"{f:g} x {i.producto.nombre if i.producto else (i.nota or 'Ítem')}" for i, f in faltan[:3])
+        if len(faltan) > 3:
+            resumen += f" (+{len(faltan) - 3} más)"
+        filas.append({"pedido_id": p.id, "estado": p.estado, "cliente": razon or "Desconocido", "oc": p.oc or None,
+                      "fecha": p.fecha.isoformat() if p.fecha else None, "renglones_pendientes": len(faltan), "resumen": resumen})
+        if len(filas) >= max(1, limite):
+            break
+    return {"q": (q or "").strip(), "total": len(filas), "pedidos": filas}
+
+
+def _resolver_remito(db, ref: str):
+    """Un remito por su UUID o por su número («3031», «0015-3031», «0015-00003031»). 404 si no hay; 409 `NUMERO_AMBIGUO` con los
+    candidatos si el número solo existe en más de una serie."""
+    from sqlalchemy.orm import joinedload
+    from backend.pedidos.models import Pedido, PedidoItem
+    import re
+    ref = (ref or "").strip()
+    base = db.query(models.Remito).options(
+        joinedload(models.Remito.pedido).joinedload(Pedido.cliente),
+        joinedload(models.Remito.items).joinedload(models.RemitoItem.pedido_item).joinedload(PedidoItem.producto))
+    if _es_uuid(ref):
+        r = base.filter(models.Remito.id == ref).first()
+        if r:
+            return r
+        raise HTTPException(status_code=404, detail="Remito no encontrado")
+    m = re.fullmatch(r"(?:(\d{1,4})\s*-\s*)?(\d{1,8})", ref)
+    if not m:
+        raise HTTPException(status_code=404, detail=f"Remito no encontrado: «{ref}» no es un número de remito.")
+    pv, n = m.group(1), str(int(m.group(2)))
+    cands = []
+    for r in base.filter(models.Remito.numero_legal.isnot(None)).all():
+        rpv, rn = _partes_numero(r.numero_legal)
+        if rn is not None and str(int(rn)) == n and (pv is None or (rpv is not None and int(rpv) == int(pv))):
+            cands.append(r)
+    if len(cands) == 1:
+        return cands[0]
+    if not cands:
+        raise HTTPException(status_code=404, detail=f"Remito no encontrado: no hay ninguno con el número {ref}.")
+    raise HTTPException(status_code=409, detail="NUMERO_AMBIGUO: el número " + ref + " existe en más de una serie: "
+                        + ", ".join(sorted(c.numero_legal for c in cands)) + ". Escribilo con el punto de venta.")
+
+
+@router.get("/ficha/{ref}")
+def ficha_remito(ref: str, db: Session = Depends(get_db)):
+    """[S893, Carlos 26/10: la ficha del nodo Remitos, con el molde de Cliente y Producto] Todo lo de un remito en una sola respuesta:
+    cabecera, genoma, pedido y cliente, domicilio y transporte, factura de referencia, la TABLA DEL PR renglón por renglón (impreso,
+    salió, llegó, facturado, acreditado, pendientes), la historia (las notas) y los otros remitos del pedido. `ref` es el UUID o el
+    número del remito. Solo lectura: las acciones usan los endpoints de siempre."""
+    from backend.remitos.genoma import describir
+    from backend.remitos.service import RemitosService
+    from backend.pedidos.constants import PedidoFlags
+    r = _resolver_remito(db, ref)
+    ped = r.pedido
+    cli = ped.cliente if ped else None
+    g = describir(r.flags_estado)
+    pf = int(ped.flags_estado or 0) if ped else 0
+    fac = r._factura_de_referencia()
+    items = []
+    # [S893] Correcciones (renglones negativos atados a un renglón de origen): las de los renglones de ESTE remito, y a qué renglón corrige cada renglón de corrección de este remito
+    ids_items = [x.id for x in r.items]
+    correcciones_de = {}
+    if ids_items:
+        for c in db.query(models.RemitoItem).filter(models.RemitoItem.corrige_item_id.in_(ids_items)).all():
+            if c.remito is not None and c.remito.estado != "ANULADO":
+                correcciones_de.setdefault(c.corrige_item_id, []).append(c)
+    origen_de = {}
+    for x in r.items:
+        if x.corrige_item_id is not None:
+            o = db.query(models.RemitoItem).filter(models.RemitoItem.id == x.corrige_item_id).first()
+            if o is not None and o.remito is not None:
+                origen_de[x.id] = {"remito_id": str(o.remito_id), "numero_legal": o.remito.numero_legal, "remito_item_id": o.id}
+    for ri in sorted(r.items, key=lambda x: x.id):
+        pi = ri.pedido_item
+        cs = sorted(correcciones_de.get(ri.id, []), key=lambda x: x.id)
+        corregido = sum(-(c.cantidad_remitida or 0.0) for c in cs)
+        entregado = float(pi.cantidad_entregada or 0) if pi else 0.0
+        pedido_cant = float(pi.cantidad or 0) if pi else 0.0
+        facturada = ri.cantidad_facturada
+        items.append({
+            "id": ri.id, "pedido_item_id": ri.pedido_item_id, "producto": ri.descripcion_display,
+            "sku": (pi.producto.sku if pi and pi.producto and getattr(pi.producto, "sku", None) else None),
+            "impreso": ri.cantidad_declarada, "salio": ri.cantidad_remitida, "llego": ri.cantidad_recibida,
+            "facturado": facturada, "acreditado": (ri.cantidad_acreditada if facturada is not None else None),
+            "pedido_cantidad": pedido_cant, "entregado_pedido": entregado,
+            "pendiente_remitir": max(0.0, pedido_cant - entregado),
+            "pendiente_facturar": (None if facturada is None else max(0.0, float(ri.cantidad_remitida or 0) - float(facturada))),
+            "motivo_no_facturable": ri.motivo_no_facturable,
+            "corrige": origen_de.get(ri.id), "causa": ri.causa,
+            "corregido": corregido, "quedo": float(ri.cantidad_remitida or 0) - corregido,
+            "correcciones": [{"item_id": c.id, "remito_id": str(c.remito_id), "cantidad": -(c.cantidad_remitida or 0.0), "causa": c.causa,
+                               "fecha": (c.remito.fecha_creacion.isoformat() if c.remito and c.remito.fecha_creacion else None)} for c in cs]})
+    notas = (db.query(models.RemitoNota).filter(models.RemitoNota.remito_id == r.id).order_by(models.RemitoNota.fecha.desc(), models.RemitoNota.id.desc()).all())
+    otros = [{"id": str(o.id), "numero_legal": o.numero_legal, "estado": o.estado}
+             for o in db.query(models.Remito).filter(models.Remito.pedido_id == r.pedido_id, models.Remito.id != r.id)
+             .order_by(models.Remito.fecha_creacion.asc()).all()]
+    tr = r.transporte
+    f = lambda d: d.isoformat() if d else None
+    return {
+        "remito": {"id": str(r.id), "numero_legal": r.numero_legal, "estado": r.estado, "flags_estado": r.flags_estado, "genoma": g,
+                   "impreso": "IMPRESO" in g["marcas"], "fecha_creacion": f(r.fecha_creacion), "fecha_emision": f(r.fecha_emision),
+                   "fecha_salida": f(r.fecha_salida), "metodo_entrega": r.metodo_entrega, "bultos": r.bultos, "valor_declarado": r.valor_declarado,
+                   "oc": r.oc or (ped.oc if ped else None) or None, "aprobado_para_despacho": bool(r.aprobado_para_despacho),
+                   "es_correccion": any(x.corrige_item_id is not None for x in r.items)},
+        "pedido": ({"id": ped.id, "estado": ped.estado, "rosa": bool(pf & int(PedidoFlags.NO_FISCAL_FORCE)), "no_comercial": bool(pf & int(PedidoFlags.ES_NO_COMERCIAL))}
+                   if ped else None),
+        "cliente": ({"id": str(cli.id), "razon_social": cli.razon_social, "cuit": cli.cuit} if cli else None),
+        "domicilio_entrega": RemitosService.domicilio_para_el_papel(db, r),
+        "transporte": ({"id": str(tr.id), "nombre": tr.nombre, "web_retiro": getattr(tr, "web_retiro", None), "web_tracking": getattr(tr, "web_tracking", None)} if tr else None),
+        "factura": ({"numero": fac.numero_completo, "cae": fac.cae or None} if fac else None),
+        "items": items,
+        "notas": [{"id": n.id, "fecha": f(n.fecha), "autor": n.autor_username, "texto": n.texto, "remito_item_id": n.remito_item_id} for n in notas],
+        "otros_remitos_del_pedido": otros,
+    }
+
 
 @router.get("/{remito_id}", response_model=schemas.RemitoResponse)
 def get_remito(remito_id: str, db: Session = Depends(get_db)):
@@ -165,6 +393,9 @@ def get_remito_pdf(remito_id: str, vista_previa: bool = False, db: Session = Dep
         remito = db.query(models.Remito).filter(models.Remito.id == remito_id).first()
         if not remito:
             raise HTTPException(status_code=404, detail="Remito no encontrado")
+        # [S893] Un remito de corrección (lo que se perdió, no salió, se rechazó o volvió) es un movimiento interno: no tiene papel y no toma número 0015.
+        if any(i.corrige_item_id is not None for i in remito.items):
+            raise HTTPException(status_code=409, detail="CORRECCION_NO_SE_IMPRIME: es una corrección de otro remito (un movimiento interno): no tiene papel ni toma número.")
 
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         carpeta_imagenes = os.path.join(base_dir, "DOCUMENTOS_GENERADOS_RAR", "Remitos emitidos")
@@ -268,7 +499,7 @@ def get_remito_pdf(remito_id: str, vista_previa: bool = False, db: Session = Dep
             "transportista": RemitosService.transportista_para_el_papel(db, remito),
             "condicion_iva": "RESPONSABLE INSCRIPTO", # Default for now
             "referencia": referencia_str,
-            "oc": remito.pedido.oc or "",   # [S882, sugerencia de Tomy] va al casillero "ORDEN DE COMPRA N°:" del talonario
+            "oc": remito.oc or remito.pedido.oc or "",   # [S882, sugerencia de Tomy] va al casillero "ORDEN DE COMPRA N°:" del talonario. [S893] la del remito
             "factura_vinculada": factura_vinculada_str,
             "factura_vinculada_cae": remito.factura_vinculada_cae,
             "cae": cae_val,
@@ -425,28 +656,6 @@ async def ingest_invoice_pdf(file: UploadFile = File(...), db: Session = Depends
                 
     return result
 
-@router.post("/manual", response_model=schemas.RemitoResponse)
-def create_manual_remito(payload: schemas.ManualRemitoPayload, db: Session = Depends(get_db)):
-    """
-    Crea un Remito de forma manual (sin PDF).
-    Serie 0015-
-    """
-    try:
-        from backend.remitos.service import RemitosService
-        remito = RemitosService.create_manual(db, payload)
-        return remito
-    except ValueError as ve:
-        raise HTTPException(status_code=400, detail=str(ve))
-    except HTTPException:
-        # [S887] Los frenos del servicio (CANTIDAD_EXCEDE_PEDIDO, RENGLON_AJENO_AL_PEDIDO: 409) llegan tal cual, con su aviso.
-        # Antes el «except Exception» de abajo los convertía en un 500 «Error interno: 409: ...» y el operador veía un error del sistema.
-        raise
-    except Exception as e:
-        print(f"Error creating Manual Remito: {e}")
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
-
 @router.post("/armar", response_model=schemas.RemitoResponse)
 def armar_remito(payload: schemas.ArmarRemitoPayload, db: Session = Depends(get_db)):
     """[Etapa 4, PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §6] Arma un PR desde un pedido
@@ -501,6 +710,29 @@ def crear_nota(
     db.commit()
     db.refresh(nota)
     return nota
+
+@router.post("/{remito_id}/correccion")
+def corregir_renglon(
+    remito_id: str,
+    payload: schemas.RemitoCorreccion,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_active_user)
+):
+    """[S893, Carlos 26/10] Corrige lo que quedó de un renglón del remito (no salió todo, se perdió, se rechazó, volvió): mueve el renglón del pedido (vuelve a deber la
+    diferencia, y si estaba CUMPLIDO se reabre), deja una nota con autor en el remito y guarda la causa para Stock. Ver RemitosService.corregir_renglon."""
+    from backend.remitos.service import RemitosService
+    remito = db.query(models.Remito).filter(models.Remito.id == remito_id).first()
+    if not remito:
+        raise HTTPException(status_code=404, detail="Remito no encontrado")
+    if not any(i.id == payload.remito_item_id for i in remito.items):
+        raise HTTPException(status_code=409, detail=f"RENGLON_AJENO_AL_REMITO: el renglón #{payload.remito_item_id} no pertenece al Remito {remito_id}.")
+    try:
+        return RemitosService.corregir_renglon(db, payload.remito_item_id, payload.cantidad_real, payload.causa, payload.nota, current_user.id)
+    except HTTPException:
+        raise
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+
 
 @router.patch("/{remito_id}/fecha", response_model=schemas.RemitoResponse)
 def cambiar_fecha(
@@ -600,6 +832,8 @@ def anular_remito(remito_id: str, payload: schemas.RemitoMotivo, db: Session = D
     if not remito:
         raise HTTPException(status_code=404, detail="Remito no encontrado")
     if not remito.numero_legal:
+        if any(i.corrige_item_id is not None for i in remito.items):
+            raise HTTPException(status_code=409, detail="ES_UNA_CORRECCION: un remito de corrección no se anula: se deshace con «Deshacer la corrección».")
         raise HTTPException(status_code=409, detail="REMITO_SIN_NUMERO: un remito sin número no se anula, se descarta (tacho).")
     if remito.estado == "ANULADO":
         raise HTTPException(status_code=409, detail="REMITO_YA_ANULADO: el remito ya está anulado.")
@@ -623,6 +857,45 @@ def anular_remito(remito_id: str, payload: schemas.RemitoMotivo, db: Session = D
     return remito
 
 
+@router.post("/{remito_id}/deshacer-correccion", response_model=schemas.RemitoResponse)
+def deshacer_correccion(remito_id: str, payload: schemas.RemitoMotivo, db: Session = Depends(get_db),
+                        current_user: Usuario = Depends(get_current_active_user)):
+    """[S893, Carlos 26/10] Una corrección mal cargada (se escribió 300 y eran 350) se deshace con motivo: el remito de corrección queda ANULADO (no tiene número ni papel, así que no
+    pasa por «anular»), el renglón del pedido vuelve a lo que tenía, `cantidad_recibida` del renglón de origen se recalcula con las correcciones que sigan vigentes y queda una nota
+    [SISTEMA] en los dos remitos. Una corrección deshecha no se revive: se hace otra."""
+    remito = db.query(models.Remito).filter(models.Remito.id == remito_id).first()
+    if not remito:
+        raise HTTPException(status_code=404, detail="Remito no encontrado")
+    renglones = [i for i in remito.items if i.corrige_item_id is not None]
+    if not renglones:
+        raise HTTPException(status_code=409, detail="NO_ES_CORRECCION: este remito no es una corrección de otro.")
+    if remito.estado == "ANULADO":
+        raise HTTPException(status_code=409, detail="REMITO_YA_ANULADO: la corrección ya está deshecha.")
+    motivo = (payload.motivo or "").strip()
+    if not motivo:
+        raise HTTPException(status_code=422, detail="MOTIVO_OBLIGATORIO: decí por qué se deshace la corrección.")
+    from backend.remitos.service import RemitosService
+    cambiaron = []
+    remito.estado = "ANULADO"
+    db.add(models.RemitoNota(remito_id=remito.id, autor_id=current_user.id, texto=f"[SISTEMA] Corrección deshecha. Motivo: {motivo}"))
+    for c in renglones:
+        origen = db.query(models.RemitoItem).filter(models.RemitoItem.id == c.corrige_item_id).first()
+        if origen is None:
+            continue
+        db.add(models.RemitoNota(remito_id=origen.remito_id, remito_item_id=origen.id, autor_id=current_user.id,
+                                 texto=f"[SISTEMA] Corrección deshecha ({c.causa}: {-(c.cantidad_remitida or 0):g}): el renglón vuelve a lo que tenía. Motivo: {motivo}"))
+        if c.causa in CAUSAS_QUE_CAMBIAN_LO_QUE_LLEGO:
+            cambiaron.append(origen)
+    db.flush()
+    for origen in cambiaron:
+        RemitosService.recalcular_recibida_por_correcciones(db, origen)
+    if remito.pedido:
+        RemitosService._recalcular_bits_entrega(db, remito.pedido)
+    db.commit()
+    db.refresh(remito)
+    return remito
+
+
 @router.post("/{remito_id}/deshacer-anulacion", response_model=schemas.RemitoResponse)
 def deshacer_anulacion(remito_id: str, payload: schemas.RemitoMotivo, db: Session = Depends(get_db),
                        current_user: Usuario = Depends(get_current_active_user)):
@@ -636,6 +909,8 @@ def deshacer_anulacion(remito_id: str, payload: schemas.RemitoMotivo, db: Sessio
         raise HTTPException(status_code=404, detail="Remito no encontrado")
     if remito.estado != "ANULADO":
         raise HTTPException(status_code=409, detail="REMITO_NO_ANULADO: el remito no está anulado.")
+    if any(i.corrige_item_id is not None for i in remito.items):
+        raise HTTPException(status_code=409, detail="CORRECCION_DESHECHA: una corrección deshecha no se revive; si hace falta, se hace otra.")
     motivo = (payload.motivo or "").strip()
     if not motivo:
         raise HTTPException(status_code=422, detail="MOTIVO_OBLIGATORIO: decí por qué se deshace la anulación.")

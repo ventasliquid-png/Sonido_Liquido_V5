@@ -1056,7 +1056,7 @@ onMounted(async () => {
         await clientesStore.fetchClientes();
     }
 
-    // 2.1 Pre-seleccionar cliente si viene desde ManualRemitoView
+    // 2.1 Pre-seleccionar cliente (preselectedClienteId; antes lo mandaba el Remito Manual, retirado en la S893)
     if (props.preselectedClienteId && !clienteSeleccionado.value && !route.params.id) {
         const client = clientesStore.clientes.find(c => c.id === props.preselectedClienteId);
         if (client) await selectCliente(client, false);

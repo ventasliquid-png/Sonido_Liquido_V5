@@ -45,7 +45,7 @@ export const useRemitosStore = defineStore('remitos', () => {
     }
 
     // [S868] Sin createRemito: llamaba a POST /remitos/, que no existe. Los remitos se crean en
-    // /remitos/manual (Remito Manual), por la ingesta o por el puente desde la factura.
+    // armar desde el pedido (/remitos/armar), por la ingesta o por el puente desde la factura. El Remito Manual se retiró (S893).
 
     async function despacharRemito(remitoId, bultos = null) {
         loading.value = true;
@@ -67,7 +67,7 @@ export const useRemitosStore = defineStore('remitos', () => {
     }
 
     // [Etapa 4] Arma un PR nuevo desde el pedido actual -- pantalla de armado (D3, primera
-    // pantalla). A diferencia de create_manual, los renglones se eligen por pedido_item_id.
+    // pantalla). Los renglones se eligen por pedido_item_id.
     async function armarRemito(payload) {
         loading.value = true;
         try {

@@ -8,10 +8,12 @@ from fastapi import HTTPException
 from backend.remitos import schemas, models
 from backend.remitos.constants import (
     RemitoFlags, MetodoEntrega, METODOS_ENTREGA, METODOS_SIN_TRANSPORTE, MOTIVOS_NO_FACTURABLE,
+    CausaCorreccion, CAUSAS_CORRECCION, CAUSAS_QUE_CAMBIAN_LO_QUE_LLEGO, ETIQUETA_CAUSA,
 )
 from backend.clientes.models import Cliente, Domicilio
 from backend.productos.models import Producto
 from backend.pedidos.models import Pedido, PedidoItem
+from backend.pedidos.constants import PedidoFlags, STATE_MASK
 from backend.logistica.models import EmpresaTransporte
 from backend.maestros.models import CondicionIva
 from backend.contactos.models import Vinculo, VinculoGeografico
@@ -194,7 +196,7 @@ class RemitosService:
         None = no aplica (rosa o no comercial), 0.0 = aplica y pendiente. Se fija al nacer el
         renglón y no se vuelve a leer el color del pedido después -- mismo criterio de color
         congelado que la guarda de impresión. Lee el flag del PR y, además, el bit del pedido en
-        este momento, porque create_manual no congela CIRCUITO_ROSA en el remito."""
+        este momento, porque el Remito Manual (retirado en la S893) no congelaba CIRCUITO_ROSA en el remito."""
         from backend.pedidos.constants import PedidoFlags
         flags_pedido = (pedido.flags_estado or 0) if pedido else 0
         es_rosa = bool((remito.flags_estado or 0) & int(RemitoFlags.CIRCUITO_ROSA)) or bool(
@@ -272,17 +274,6 @@ class RemitosService:
         PRIMERO QUE TODAVÍA NO USÓ otra línea (el mismo criterio de _emparejar_renglones_factura); si ya se usaron todos, vuelve al primero (lo de siempre: la
         guarda de cantidades juzga la suma). El llamador agrega el id a `usados`. None = el pedido no tiene ese producto."""
         candidatos = [pi for pi in items_pedido if str(pi.producto_id) == str(producto_id)]
-        if not candidatos:
-            return None
-        return next((pi for pi in candidatos if pi.id not in usados), candidatos[0])
-
-    @staticmethod
-    def _renglon_del_item_manual(items_pedido, item, usados):
-        """[Card #179, S888] Renglón del pedido al que corresponde un renglón del remito manual. Si trae pedido_item_id manda ese (None = no es de este pedido);
-        si no, por nombre de producto o código visual y, con renglones repetidos del mismo producto, el primero que todavía no se usó en este remito."""
-        if item.pedido_item_id is not None:
-            return next((pi for pi in items_pedido if pi.id == item.pedido_item_id), None)
-        candidatos = [pi for pi in items_pedido if pi.producto.nombre == item.descripcion or (item.codigo_visual and pi.producto.codigo_visual == item.codigo_visual)]
         if not candidatos:
             return None
         return next((pi for pi in candidatos if pi.id not in usados), candidatos[0])
@@ -963,7 +954,7 @@ class RemitosService:
         `commit=False` [Etapa 7c]: deja el PR solo flusheado, para que el que llama lo cierre en
         la misma transacción (pedido retroactivo + PR + factura, todo o nada).
 
-        [PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §6] A diferencia de create_manual
+        [PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §6] A diferencia del Remito Manual (retirado en la S893)
         (texto libre, matchea o rechaza), acá los renglones se ELIGEN de la lista del pedido por
         pedido_item_id -- no hay nada que matchear ni ningún PedidoItem que se pueda crear.
 
@@ -1060,6 +1051,9 @@ class RemitosService:
         db.flush()
 
         pedido_items_por_id = {pi.id: pi for pi in pedido.items}
+        # [S893] Lo que ya tomó cada renglón DENTRO de este mismo remito: las guardas de abajo leen cantidad_entregada, que todavía no ve las líneas de este armado (el RemitoItem
+        # se crea con pedido_item_id a mano), así que dos líneas del mismo renglón (5 + 5 contra 8) pasaban las dos. El Remito Manual lo acumulaba; con su retiro, todo remito sale por acá.
+        tomado_aqui, devuelto_aqui = {}, {}
         for item_payload in payload.items:
             pedido_item = pedido_items_por_id.get(item_payload.pedido_item_id)
             if not pedido_item:
@@ -1095,7 +1089,7 @@ class RemitosService:
                 # signo negativo, no una entidad aparte. El único candado es que no se puede
                 # devolver más de lo que efectivamente salió (neto, ya descontando devoluciones
                 # previas) -- "cantidad_entregada" ya es esa resta.
-                entregado = pedido_item.cantidad_entregada
+                entregado = pedido_item.cantidad_entregada - devuelto_aqui.get(pedido_item.id, 0.0)
                 if abs(item_payload.cantidad) > entregado + 0.001:
                     db.rollback()
                     raise HTTPException(
@@ -1106,6 +1100,7 @@ class RemitosService:
                             f"solo tiene {entregado} entregado (neto) en ese renglón."
                         )
                     )
+                devuelto_aqui[pedido_item.id] = devuelto_aqui.get(pedido_item.id, 0.0) + abs(item_payload.cantidad)
                 db.add(models.RemitoItem(
                     remito_id=remito.id,
                     pedido_item_id=pedido_item.id,
@@ -1122,17 +1117,19 @@ class RemitosService:
             # remite ahora) -- así un PR parcial sigue diciendo cuánto quedaba debiéndose en el
             # momento en que se armó, no se sobreescribe con lo que efectivamente salió.
             pendiente = pedido_item.cantidad - pedido_item.cantidad_entregada
-            if item_payload.cantidad > pendiente + 0.001:
+            ya_tomado = tomado_aqui.get(pedido_item.id, 0.0)
+            if item_payload.cantidad > pendiente - ya_tomado + 0.001:
                 db.rollback()
                 raise HTTPException(
                     status_code=409,
                     detail=(
                         f"CANTIDAD_EXCEDE_PEDIDO: '{pedido_item.producto.nombre if pedido_item.producto else pedido_item.id}' "
                         f"trae {item_payload.cantidad}, pero el Pedido #{pedido.id} solo tiene "
-                        f"{pendiente} pendiente. Actualice el Pedido antes de continuar."
+                        f"{pendiente - ya_tomado} pendiente. Actualice el Pedido antes de continuar."
                         + RemitosService.aviso_remitos_del_pedido(db, pedido.id)
                     )
                 )
+            tomado_aqui[pedido_item.id] = ya_tomado + item_payload.cantidad
             db.add(models.RemitoItem(
                 remito_id=remito.id,
                 pedido_item_id=pedido_item.id,
@@ -1261,235 +1258,6 @@ class RemitosService:
         return remito
 
     @staticmethod
-    def create_manual(db: Session, payload: schemas.ManualRemitoPayload):
-        """
-        Creates a Manual Remito (Rosa/Blanco) from Frontend data.
-        Standardized to Serie 0015- (Manual, sin CAE)
-        """
-        # [Bloque 2, doctrina "Remitos Chequeables"] Renglón cero imposible --
-        # ver AUDITORIA_REMITOS_CHEQUEABLES_S865.md §2.1. Antes de este chequeo,
-        # items: [] pasaba de largo y creaba un remito 0015 (y su Pedido fantasma
-        # si tampoco había pedido_id) totalmente vacío, HTTP 200. Probado en vivo.
-        if not payload.items:
-            raise ValueError("RENGLON_CERO: El remito debe tener al menos un ítem.")
-
-        nuevo_pedido = None
-        cliente = None
-        
-        # 0. RESOLVE PEDIDO EXISTENTE
-        if payload.pedido_id:
-             from backend.pedidos.models import Pedido
-             nuevo_pedido = db.query(Pedido).filter(Pedido.id == payload.pedido_id).first()
-             if not nuevo_pedido:
-                  raise ValueError(f"No se encontró el pedido {payload.pedido_id}")
-             cliente = nuevo_pedido.cliente
-             print(f"Manual Remito: Usando pedido existente #{nuevo_pedido.id}")
-
-        # 1. RESOLVE CLIENT (Si no hay pedido existente)
-        if not nuevo_pedido:
-             if payload.cliente_id:
-                  cliente = db.query(Cliente).get(payload.cliente_id)
-             
-             if not cliente and payload.cliente_nuevo:
-                  from backend.clientes.constants import ClientFlags
-                  has_cuit = payload.cliente_nuevo.cuit and payload.cliente_nuevo.cuit != "00000000000"
-                  rosa_flags = ClientFlags.EXISTENCE | ClientFlags.V14_STRUCT
-                  if has_cuit:
-                       rosa_flags |= ClientFlags.GOLD_ARCA
-                  
-                  iva_id = RemitosService._resolve_iva_condition(db, payload.cliente_nuevo.condicion_iva)
-                  
-                  cliente = Cliente(
-                      razon_social=payload.cliente_nuevo.razon_social or "CLIENTE MANUAL NUEVO",
-                      cuit=payload.cliente_nuevo.cuit or "00000000000",
-                      activo=True,
-                      flags_estado=rosa_flags | ClientFlags.PENDIENTE_REVISION,
-                      estado_arca='PENDIENTE_AUDITORIA',
-                      condicion_iva_id=iva_id,
-                      fecha_alta=datetime.now()
-                  )
-                  db.add(cliente)
-                  db.flush()
-                  
-                  domicilio_def = Domicilio(
-                      cliente_id=cliente.id,
-                      calle=payload.cliente_nuevo.domicilio or "Dirección Manual",
-                      localidad="---",
-                      provincia_id="X", 
-                      es_fiscal=True,
-                      activo=True
-                  )
-                  db.add(domicilio_def)
-                  db.flush()
-
-             if not cliente:
-                  raise ValueError(f"No se encontró/creó cliente.")
-
-        # [Etapa 3, PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §5] El número se asigna al
-        # imprimir, no al crear -- INFORME_IMPLEMENTACION_PR_S869.md §1.3: "con eso el '0017
-        # impreso' es imposible por construcción, no por convención". Antes se numeraba acá,
-        # eager, en la creación -- eso hacía que el remito naciera ya "impreso" sin haber pasado
-        # por get_remito_pdf, y volvía inalcanzable la guarda de despachar-sin-imprimir. Ahora
-        # queda None hasta que se imprima (mismo lock de _siguiente_numero_0015, en ese momento).
-        numero_legal = None
-
-        # 3. CREATE GHOST PEDIDO (Solo si no existe)
-        if not nuevo_pedido:
-             from backend.pedidos.models import Pedido
-             nuevo_pedido = Pedido(
-                 cliente_id=cliente.id,
-                 fecha=datetime.now(),
-                 nota=payload.observaciones or "Generación Manual de Remito",
-                 estado="PENDIENTE",
-                 origen="MANUAL",
-                 domicilio_entrega_id=payload.domicilio_entrega_id,
-                 transporte_id=payload.transporte_id
-             )
-             db.add(nuevo_pedido)
-             db.flush()
-
-        # 4. RESOLVE ITEMS
-        from backend.productos.models import Producto
-        pedido_items_mapped = []
-        is_partial = False
-        
-        if payload.pedido_id:
-             # Asociar a items de pedido existente
-             original_items = db.query(PedidoItem).filter(PedidoItem.pedido_id == nuevo_pedido.id).order_by(PedidoItem.id).all()
-             # [Card #179, S888] pedido_item_id manda si viene; sin él, por nombre o código visual y, con renglones repetidos del mismo producto, el primero
-             # que este remito todavía no usó. `asignado` acumula lo que ya tomó cada renglón para que la guarda de cantidades juzgue la suma.
-             asignado = {}
-             for item in payload.items:
-                  target_pi = RemitosService._renglon_del_item_manual(original_items, item, asignado)
-                  
-                  if target_pi:
-                       # [Card #125, misma guarda que create_from_ingestion -- DISENO_CIRCUITO_PR_S869.md
-                       # §9.5 / INFORME_IMPLEMENTACION_PR_S869.md §8.2] Antes solo la ingesta comparaba
-                       # contra el pendiente; el 0015 manual aceptaba cualquier cantidad.
-                       pendiente = target_pi.cantidad - target_pi.cantidad_entregada - asignado.get(target_pi.id, 0.0)
-                       if item.cantidad > pendiente + 0.001:  # tolerancia de redondeo flotante
-                            db.rollback()
-                            raise HTTPException(
-                                status_code=409,
-                                detail=(
-                                    f"CANTIDAD_EXCEDE_PEDIDO: '{item.descripcion}' trae {item.cantidad}, "
-                                    f"pero el Pedido #{nuevo_pedido.id} solo tiene {pendiente} pendiente. "
-                                    f"Actualice el Pedido antes de continuar."
-                                    + RemitosService.aviso_remitos_del_pedido(db, nuevo_pedido.id)
-                                )
-                            )
-                       asignado[target_pi.id] = asignado.get(target_pi.id, 0.0) + item.cantidad
-                       if asignado[target_pi.id] < target_pi.cantidad:
-                            is_partial = True
-                       pedido_items_mapped.append({"pi_id": target_pi.id, "cantidad": item.cantidad})
-                  else:
-                       # [Card #125, decisión de Carlos 20/09 -- DISENO_CIRCUITO_PR_S869.md §9.5]
-                       # El 0015 manual solo puede crear ítems nuevos en un pedido creado desde cero
-                       # (rama "Ghost Pedido" más abajo). Con pedido_id existente, un renglón que no
-                       # matchea se rechaza -- antes se agregaba en silencio al pedido ajeno.
-                       db.rollback()
-                       raise HTTPException(
-                           status_code=409,
-                           detail=(
-                               f"RENGLON_AJENO_AL_PEDIDO: '{item.descripcion}' no está cargado en "
-                               f"el Pedido #{nuevo_pedido.id}. Actualice el Pedido antes de continuar."
-                           )
-                       )
-
-             # Revisar si quedaron items fuera (envío parcial)
-             enviados_ids = [pi["pi_id"] for pi in pedido_items_mapped]
-             missing = [pi for pi in original_items if pi.id not in enviados_ids]
-             if missing:
-                  is_partial = True
-
-             if is_partial:
-                  nota_existente = nuevo_pedido.nota or ""
-                  msg = f"\n[SISTEMA] Remito Parcial {numero_legal} generado el {datetime.now().strftime('%d/%m/%Y %H:%M')}."
-                  if msg not in nota_existente:
-                       nuevo_pedido.nota = nota_existente + msg
-                  db.add(nuevo_pedido)
-        else:
-             # Ghost Pedido logic
-             for item in payload.items:
-                  producto = db.query(Producto).filter(Producto.nombre == item.descripcion).first()
-                  if not producto and item.codigo_visual:
-                       producto = db.query(Producto).filter(Producto.codigo_visual == item.codigo_visual).first()
-                   
-                  if not producto:
-                       producto = db.query(Producto).filter(Producto.nombre.ilike("%VARIOS%")).first()
-                       if not producto:
-                            last_vs = db.query(Producto).filter(Producto.codigo_visual.like('VS%')).order_by(Producto.id.desc()).first()
-                            nv = 1
-                            if last_vs: nv = int(last_vs.codigo_visual.replace("VS", "")) + 1
-                            producto = Producto(
-                                nombre=item.descripcion.upper(),
-                                codigo_visual=f"VS{str(nv).zfill(4)}",
-                                sku=85000 + nv,
-                                rubro_id=1,
-                                activo=True
-                            )
-                            db.add(producto)
-                            db.flush()
-
-                  new_p_item = PedidoItem(
-                      pedido_id=nuevo_pedido.id,
-                      producto_id=producto.id,
-                      cantidad=item.cantidad,
-                      precio_unitario=0.0,
-                      nota="Ítem Manual"
-                  )
-                  db.add(new_p_item)
-                  db.flush()
-                  pedido_items_mapped.append({"pi_id": new_p_item.id, "cantidad": item.cantidad})
-
-        # 5. CREATE REMITO
-        resolved_domicilio_id = payload.domicilio_entrega_id
-        if not resolved_domicilio_id:
-             first_dom = db.query(Domicilio).filter(Domicilio.cliente_id == cliente.id).first()
-             resolved_domicilio_id = first_dom.id if first_dom else None
-        
-        resolved_transporte_id = payload.transporte_id
-        if not resolved_transporte_id:
-             from backend.logistica.models import EmpresaTransporte
-             first_trans = db.query(EmpresaTransporte).first()
-             resolved_transporte_id = first_trans.id if first_trans else None
-
-        if not resolved_domicilio_id or not resolved_transporte_id:
-             raise ValueError("No se pudo determinar un domicilio de entrega o un transporte válido para el remito.")
-
-        remito = models.Remito(
-            pedido_id=nuevo_pedido.id,
-            domicilio_entrega_id=resolved_domicilio_id,
-            transporte_id=resolved_transporte_id,
-            estado="BORRADOR",
-            aprobado_para_despacho=payload.aprobado_para_despacho,
-            numero_legal=numero_legal,
-            bultos=payload.bultos,
-            valor_declarado=payload.valor_declarado
-        )
-        db.add(remito)
-        db.flush()
-
-        # 6. CREATE REMITO ITEMS
-        print(f"[REMITO-TRACE] Procesando {len(pedido_items_mapped)} items para Remito {remito.id} (Pedido {nuevo_pedido.id})")
-        facturada_inicial = RemitosService._facturada_al_nacer(remito, nuevo_pedido)
-        for p_item in pedido_items_mapped:
-            r_item = models.RemitoItem(
-                remito_id=remito.id,
-                pedido_item_id=p_item["pi_id"],
-                cantidad_declarada=p_item["cantidad"],
-                cantidad_remitida=p_item["cantidad"],
-                cantidad_facturada=facturada_inicial,
-            )
-            db.add(r_item)
-
-        # 7. EVALUAR HAS_PARTIAL_DELIVERY (Bit 20) + FULL_DELIVERED (Bit 21)
-        RemitosService._recalcular_bits_entrega(db, nuevo_pedido)
-
-        db.commit()
-        db.refresh(remito)
-        return remito
-    @staticmethod
     def update_remito(db: Session, remito_id: str, payload: schemas.RemitoUpdate):
         """
         Actualiza un remito con soberanía total (V15.2).
@@ -1550,7 +1318,7 @@ class RemitosService:
 
             # B. Actualizar o Crear ítems
             # [Card #125, guarda pendiente desde la auditoría S868, cerrada hoy -- mismo patrón
-            # que create_manual/create_from_ingestion desde la Etapa 0] Ni la rama de edición ni
+            # que el Remito Manual (retirado en la S893) y create_from_ingestion desde la Etapa 0] Ni la rama de edición ni
             # la de alta tenían guarda contra el pendiente del pedido.
             from backend.productos.models import Producto
             for p_item_data in payload.items:
@@ -1583,7 +1351,7 @@ class RemitosService:
                     # (doctrina de la Etapa 0: el remito solo puede crear ítems nuevos en un
                     # pedido creado desde cero, y acá el pedido ya existe). Matchea contra los
                     # renglones que el pedido ya tiene, por pedido_item_id si vino, si no por
-                    # nombre de producto (mismo matcher que create_manual).
+                    # nombre de producto (el mismo matcher que tenía el Remito Manual, retirado en la S893).
                     pedido_items = remito.pedido.items
                     target_pi = None
                     if p_item_data.pedido_item_id:
@@ -1806,6 +1574,93 @@ class RemitosService:
         db.commit()
         db.refresh(remito_item)
         return remito_item
+
+    @staticmethod
+    def recalcular_recibida_por_correcciones(db: Session, item) -> None:
+        """[S893] `cantidad_recibida` de un renglón de remito = lo que salió menos las correcciones VIGENTES cuya causa cambia lo que llegó (NO_SALIO, SE_PERDIO, SE_RECHAZO;
+        VOLVIO no: llegó todo y después volvió una parte). Sin ninguna de esas correcciones vigentes queda NULL (= llegó lo que salió). El genoma prende o apaga
+        DIFERENCIA_RECEPCION a partir de esto en el próximo guardado."""
+        vigentes = [c for c in db.query(models.RemitoItem).filter(models.RemitoItem.corrige_item_id == item.id).all()
+                    if c.remito is not None and c.remito.estado != "ANULADO" and c.causa in CAUSAS_QUE_CAMBIAN_LO_QUE_LLEGO]
+        item.cantidad_recibida = (float(item.cantidad_remitida or 0) - sum(-(c.cantidad_remitida or 0.0) for c in vigentes)) if vigentes else None
+        db.add(item)
+
+    @staticmethod
+    def corregir_renglon(db: Session, remito_item_id: int, cantidad_real: float, causa: str, nota: Optional[str] = None, autor_id: Optional[int] = None) -> dict:
+        """[S893, Carlos 26/10: «no alcanza con anotarlo en las notas: eso debe disparar una conciliación con el renglón afectado en el pedido»]
+        Lo que quedó de un renglón de remito es menos de lo que figuraba (salió m y quedaron p: no salió todo, se perdió, se rechazó, volvió). Hace TODO junto:
+          1. un renglón de CORRECCIÓN (cantidad negativa, el mecanismo de la devolución de la Etapa 6, en un remito nuevo de mostrador que nace ENTREGADO y no se imprime),
+             atado al renglón de origen (`corrige_item_id`) y con su causa: el pedido vuelve a deber la diferencia (cantidad_entregada es la suma neta de los remitos) y los
+             Bits 20/21 se recalculan; lo impreso y lo que salió del remito de origen quedan intactos;
+          2. si la causa es NO_SALIO, SE_PERDIO o SE_RECHAZO, `cantidad_recibida` del renglón de origen = lo que quedó (con VOLVIO llegó todo y después volvió una parte): el
+             genoma prende DIFERENCIA_RECEPCION en el remito;
+          3. una nota con fecha y autor en el remito de origen y otra en el de corrección;
+          4. si el pedido estaba CUMPLIDO, se reabre (PENDIENTE) con una nota en el pedido: ya no está cumplido lo que no se entregó.
+        `cantidad_real` es cuánto QUEDÓ del renglón (no cuánto se pierde): se calcula sobre lo que el renglón tiene hoy, descontadas las correcciones anteriores. Guardas: el remito
+        tiene número y no está anulado (sin número no salió: se edita o se descarta), el renglón no es una corrección, 0 <= quedó < lo de hoy. Facturación: nada especial; la
+        cuenta de «remitido sin facturar» sigue lo que quedó, y una factura ya emitida por lo anterior aparece como «facturado sin remitir» para la nota de crédito o la reposición."""
+        causa = (causa or "").strip().upper()
+        if causa not in CAUSAS_CORRECCION:
+            raise HTTPException(status_code=409, detail=f"CAUSA_INVALIDA: '{causa}' no es una causa válida ({', '.join(CAUSAS_CORRECCION)}).")
+        item = db.query(models.RemitoItem).filter(models.RemitoItem.id == remito_item_id).first()
+        if not item:
+            raise HTTPException(status_code=404, detail="Renglón de remito no encontrado")
+        remito = item.remito
+        if remito is None or remito.estado == "ANULADO":
+            raise HTTPException(status_code=409, detail="REMITO_ANULADO: el renglón pertenece a un remito anulado.")
+        if item.corrige_item_id is not None:
+            raise HTTPException(status_code=409, detail="RENGLON_DE_CORRECCION: un renglón de corrección no se corrige; se corrige el renglón del remito original.")
+        if not remito.numero_legal:
+            raise HTTPException(status_code=409, detail="REMITO_SIN_NUMERO: un remito sin número todavía no salió; se edita o se descarta, no se corrige.")
+        if (item.cantidad_remitida or 0) <= 0:
+            raise HTTPException(status_code=409, detail="RENGLON_SIN_SALIDA: este renglón no tiene cantidad que corregir.")
+        ya = sum(
+            -(c.cantidad_remitida or 0.0)
+            for c in db.query(models.RemitoItem).filter(models.RemitoItem.corrige_item_id == item.id).all()
+            if c.remito is not None and c.remito.estado != "ANULADO")
+        hoy = float(item.cantidad_remitida) - ya
+        real = float(cantidad_real)
+        if real < 0:
+            raise HTTPException(status_code=409, detail="CANTIDAD_NEGATIVA: lo que quedó no puede ser negativo.")
+        if real > hoy - 0.001:
+            raise HTTPException(status_code=409, detail=f"SIN_DIFERENCIA: al renglón le quedan {hoy:g} y se pide dejarlo en {real:g}; una corrección solo baja la cantidad.")
+        diferencia = hoy - real
+        pedido = remito.pedido
+        producto = item.pedido_item.producto.nombre if item.pedido_item and item.pedido_item.producto else f"renglón #{item.pedido_item_id}"
+        pedido_item_id, numero_origen, remito_id = item.pedido_item_id, remito.numero_legal, remito.id
+
+        corr = RemitosService.armar_remito(db, schemas.ArmarRemitoPayload(
+            pedido_id=pedido.id, metodo_entrega=MetodoEntrega.MOSTRADOR,
+            items=[schemas.ArmarRemitoItemPayload(pedido_item_id=pedido_item_id, cantidad=-diferencia)]), commit=False)
+        # armar_remito expira la sesión (recalcular bits): se vuelve a leer el renglón de origen y se marca el de corrección
+        item = db.query(models.RemitoItem).filter(models.RemitoItem.id == remito_item_id).first()
+        item_corr = sorted(corr.items, key=lambda x: x.id)[-1]
+        item_corr.corrige_item_id = item.id
+        item_corr.causa = causa
+        db.flush()
+        if causa in CAUSAS_QUE_CAMBIAN_LO_QUE_LLEGO:
+            RemitosService.recalcular_recibida_por_correcciones(db, item)
+        etiqueta = ETIQUETA_CAUSA[causa]
+        adicional = (nota or "").strip()
+        db.add(models.RemitoNota(
+            remito_id=remito_id, remito_item_id=item.id, autor_id=autor_id,
+            texto=(f"[CORRECCIÓN] {etiqueta}: de {hoy:g} que quedaban de {producto} quedan {real:g} (-{diferencia:g}). El pedido vuelve a deber {diferencia:g}." + (f" {adicional}" if adicional else ""))))
+        db.add(models.RemitoNota(
+            remito_id=corr.id, remito_item_id=item_corr.id, autor_id=autor_id,
+            texto=(f"[CORRECCIÓN] {etiqueta}: corrige el renglón de {producto} del remito {numero_origen} (-{diferencia:g})." + (f" {adicional}" if adicional else ""))))
+        reabierto = False
+        if (pedido.estado or "").upper() == "CUMPLIDO" or ((pedido.flags_estado or 0) & int(PedidoFlags.ES_CUMPLIDO)):
+            pedido.estado = "PENDIENTE"
+            pedido.flags_estado = ((pedido.flags_estado or 0) & ~int(STATE_MASK)) | int(PedidoFlags.ES_FIRME)
+            pedido.nota = (pedido.nota or "") + ("\n[SISTEMA] Reabierto el " + datetime.now().strftime("%Y-%m-%d %H:%M") + ": " + etiqueta.lower() + f" {diferencia:g} de {producto} (remito {numero_origen}); el pedido vuelve a deber lo que no se entregó.")
+            db.add(pedido)
+            reabierto = True
+        db.commit()
+        db.refresh(item_corr)
+        pi = db.query(PedidoItem).filter(PedidoItem.id == pedido_item_id).first()
+        return {"correccion_id": str(corr.id), "correccion_item_id": item_corr.id, "remito_item_id": remito_item_id, "causa": causa,
+                "quedo": real, "diferencia": diferencia, "pedido_reabierto": reabierto,
+                "pendiente_del_renglon": (pi.cantidad - pi.cantidad_entregada) if pi else None}
 
     @staticmethod
     def get_entregas(

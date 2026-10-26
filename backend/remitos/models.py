@@ -73,6 +73,11 @@ class Remito(Base):
     bultos = Column(Integer, nullable=True)
     valor_declarado = Column(Float, nullable=True)
 
+    # [S893, migrate_068, Carlos 25/10: «la OC se copia al remito»] La orden de compra del pedido, copiada al momento de crear el
+    # remito (lo hace el evento before_flush de abajo, igual para cualquier alta). Así el remito se encuentra por OC y no depende
+    # de lo que el pedido diga después. Modificable más adelante, con motivo y nota (A1 del MARCO_REMITOS).
+    oc = Column(String, nullable=True)
+
     # Genoma 64-bit (Nike S836)
     flags_estado = Column(Integer, default=0)
 
@@ -155,6 +160,12 @@ class RemitoItem(Base):
     # Es del renglón y no del remito ni del pedido: un mismo envío puede llevar cuatro renglones de
     # venta firme y uno en consignación. Mientras esté abierto, cantidad_facturada queda en NULL.
     motivo_no_facturable = Column(String, nullable=True)
+
+    # [S893, migrate_069] Corrección de un renglón (Carlos 26/10): si este renglón es una CORRECCIÓN (cantidad negativa que descuenta lo que se perdió, no salió, se rechazó
+    # o volvió), `corrige_item_id` es el renglón de remito que corrige y `causa` el porqué (CausaCorreccion). NULL = renglón común. Sin FK a propósito: la migración
+    # agrega columnas planas y la relación se resuelve por consulta.
+    corrige_item_id = Column(Integer, nullable=True, index=True)
+    causa = Column(String, nullable=True)
 
     # Relaciones
     remito = relationship("Remito", back_populates="items")
@@ -272,8 +283,16 @@ def _genoma_de_remitos(session, flush_context, instances):
         return
     from backend.remitos import genoma
     from backend.remitos.constants import RemitoFlags
+    nuevos = set(session.new)
     with session.no_autoflush:
         for r in tocados:
+            if r in nuevos and not (r.oc or "").strip():   # [S893] la OC del pedido, copiada al crear el remito
+                ped = r.pedido
+                if ped is None and r.pedido_id:
+                    from backend.pedidos.models import Pedido as _Pedido
+                    ped = session.get(_Pedido, r.pedido_id)
+                if ped is not None and (ped.oc or "").strip():
+                    r.oc = ped.oc.strip()
             if r.numero_legal and _sa_inspect(r).attrs.numero_legal.history.has_changes():
                 if r.fecha_emision is None:
                     r.fecha_emision = datetime.now()

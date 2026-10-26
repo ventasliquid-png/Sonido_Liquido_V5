@@ -50,18 +50,18 @@ orden = [cab.index(f"toggleSort('{k}')") for k in ("numero", "pedido", "fecha", 
 check("la cabecera tiene la columna «Pedido» ordenable, entre Número y Fecha", orden == sorted(orden) and ">\n                    Pedido\n" in cab)
 fila = lista[lista.index("v-for=\"remito in sortedRemitos\""):lista.index("<!-- Empty State -->")]
 # [S890] la columna Fecha muestra la fecha del remito (fechaRemito: la de cuando tomó número), ya no fecha_creacion
-pos = [fila.index(s) for s in ("remito.numero_legal || 'BORRADOR'", "#{{ remito.pedido_id }}", "formatDate(fechaRemito(remito))", "remito.razon_social || 'Desconocido'")]
+pos = [fila.index(s) for s in ("remito.numero_legal || (esCorreccion(remito) ? 'CORRECCIÓN' : 'BORRADOR')", "#{{ remito.pedido_id }}", "formatDate(fechaRemito(remito))", "remito.razon_social || 'Desconocido'")]
 check("cada fila muestra el Nº de pedido en su columna, en el mismo orden que la cabecera (Número, Pedido, Fecha, Cliente)", pos == sorted(pos))
 check("el Nº de pedido ya no va como subtítulo bajo el cliente", "Pedido #{{ remito.pedido_id }}" not in fila)
 check("cada fila tiene un ícono de impresora que no abre el editor (@click.stop) y se apaga en los ANULADOS",
-      re.search(r'@click\.stop="imprimirRemito\(remito\)"\s*:disabled="remito\.estado === \'ANULADO\'"[\s\S]{0,900}fa-print', fila))
+      re.search(r'@click\.stop="imprimirRemito\(remito\)"\s*:disabled="remito\.estado === \'ANULADO\'(?: \|\| esCorreccion\(remito\))?"[\s\S]{0,900}fa-print', fila))
 anch = lambda s: re.findall(r'^ {16}<div class="(w-\d+)[ "]', s, re.M)
 check(f"las anchuras de las columnas de la cabecera y de las filas coinciden {anch(cab)}", anch(cab) == anch(fila) and len(anch(cab)) == 7)
 check("imprimir un remito sin número pide confirmación (el PDF lo numera con el próximo 0015) y refresca el listado después (S891: también un numerado sin IMPRESO)",
       "if (sinNumero && !confirm(" in lista and "if (!impreso(remito)) setTimeout(refresh, 1500);" in lista and "próximo número del talonario 0015" in lista)
 check("el PDF que se abre es el mismo que usa el editor: /remitos/<id>/pdf", "const pdfUrl = `/remitos/${remito.id}/pdf`;" in lista and "printRemito(remito);" in lista)
 check("el buscador también encuentra por Nº de pedido (exacto, con o sin #) y el orden por Pedido es numérico",
-      "String(r.pedido_id ?? '') === query.replace(/^#/, '').trim()" in lista and "Number(a.pedido_id) || 0" in lista and "Buscar por número, pedido o cliente..." in lista)
+      "String(r.pedido_id ?? '') === query.replace(/^#/, '').trim()" in lista and "Number(a.pedido_id) || 0" in lista and "Buscar por número, OC, cliente o pedido (F3)..." in lista)   # S893: el placeholder suma la OC y el atajo
 check("el botón «Ver pedido» se mantiene", 'title="Ver Pedido"' in lista)
 
 falla = [d for d, ok in checks if not ok]

@@ -302,7 +302,7 @@
                     <button
                         @click="emitirRemito"
                         class="px-4 py-3 bg-indigo-900/30 hover:bg-indigo-900/50 text-indigo-400 border border-indigo-500/20 rounded-lg font-bold transition-all text-xs uppercase"
-                        title="Emitir Remito para este pedido"
+                        title="Hacer el remito de este pedido (abre «Entregas y remitos» con el cuadro «Imprimir remito»)"
                     >
                         <i class="fas fa-clipboard-list mr-1"></i> Remito
                     </button>
@@ -802,13 +802,13 @@ const editInGrid = () => {
     })
 }
 
+// [S893] El Remito Manual se retiró: el remito se arma desde el pedido (renglones elegidos del pedido, vista previa, número al imprimir).
+// Lleva a «Entregas y remitos» del pedido con el cuadro «Imprimir remito» abierto.
 const emitirRemito = () => {
     router.push({
-        name: 'ManualRemito',
-        query: {
-            cliente_id: props.modelValue.cliente_id,
-            pedido_id: props.modelValue.id
-        }
+        name: 'PedidoLogistica',
+        params: { id: props.modelValue.id },
+        query: { armar: 1 }
     })
 }
 
