@@ -4,12 +4,13 @@ volvían «Ceretti SRL» y el CUIT 11111111119, como si no se hubiera guardado n
 estaba en pantalla ('merge'); las demás (domicilio simple, bifurcación, «usar el domicilio que ya existía», sincronía, baja y reactivación, vínculos) recargaban entero. Ahora todas conservan lo no guardado
 (incluido lo que deja la validación de ARCA) y, si hay datos del cliente sin guardar, el aviso lo dice con nombre propio. Estática sobre ClientCanvas.vue; el comportamiento se verificó además en el banco
 (copia de P con el código de D): razón social y CUIT tocados sin guardar + guardar el domicilio → siguen en pantalla y sale el aviso; sin nada pendiente, no avisa."""
-import re, io
+import sys, os, re, io
 RAIZ = r"C:\dev\Sonido_Liquido_V5"
+sys.path.insert(0, RAIZ); os.chdir(RAIZ)   # el corredor de B cambia esta línea: el código sale de la carpeta de trabajo
 checks = []
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
 
-cc = io.open(RAIZ + r"\frontend\src\views\Hawe\ClientCanvas.vue", encoding="utf-8").read()
+cc = io.open("frontend/src/views/Hawe/ClientCanvas.vue", encoding="utf-8").read()
 
 # ---- la causa: ninguna recarga del cliente después de grabar un domicilio o un vínculo es «entera»
 enteras = re.findall(r"loadCliente\(form\.value\.id\)", cc)
