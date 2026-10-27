@@ -780,7 +780,13 @@ def cambiar_fecha(
     # que quedó en depósito (bit 37) sigue sin salida: la pone «Retiró el transporte» (S892)
     from backend.remitos.constants import RemitoFlags
     en_deposito = bool(int(remito.flags_estado or 0) & int(RemitoFlags.EN_DEPOSITO))
-    if not en_deposito and (remito.fecha_salida is None or (anterior and remito.fecha_salida.date() == anterior.date())):
+    mueve_salida = not en_deposito and (remito.fecha_salida is None or (anterior and remito.fecha_salida.date() == anterior.date()))
+    # [S894, CA H16 (b); Carlos 27/10] El límite hacia adelante: hasta hoy y, si hay una salida registrada aparte, hasta esa salida
+    # (/retiro ya no deja una salida anterior a la emisión; sin esto, mover la emisión hacia adelante la dejaba después de la salida).
+    if not mueve_salida and remito.fecha_salida and nueva.date() > remito.fecha_salida.date():
+        raise HTTPException(status_code=422, detail=(f"FECHA_POSTERIOR_A_LA_SALIDA: la salida del remito está registrada el "
+                                                     f"{remito.fecha_salida.strftime('%d/%m/%Y')}; la fecha del remito no puede ser posterior."))
+    if mueve_salida:
         remito.fecha_salida = nueva_emision
     remito.fecha_emision = nueva_emision
     texto = (f"[SISTEMA] Fecha del remito cambiada del {anterior.strftime('%d/%m/%Y') if anterior else 's/f'} "
@@ -1035,6 +1041,10 @@ def queda_en_deposito(remito_id: str, db: Session = Depends(get_db), current_use
         raise HTTPException(status_code=409, detail=f"REMITO_{remito.estado}: un remito {remito.estado.lower().replace('_', ' ')} no queda en depósito.")
     if int(remito.flags_estado or 0) & int(RemitoFlags.EN_DEPOSITO):
         raise HTTPException(status_code=409, detail="YA_EN_DEPOSITO: el remito ya figura en depósito.")
+    # [S894, CA H16 (a)] Una salida CONFIRMADA (bit 47, irreversible: «Salió sin papel») ya no puede volver al depósito: el remito quedaría
+    # «en depósito» y «salió» a la vez, sin fecha de salida.
+    if int(remito.flags_estado or 0) & int(RemitoFlags.SALIDA_CONFIRMADA):
+        raise HTTPException(status_code=409, detail="SALIDA_CONFIRMADA: ya se confirmó que este remito salió; no puede quedar en depósito.")
     asumida = remito.fecha_salida
     remito.fecha_salida = None
     remito.flags_estado = int(remito.flags_estado or 0) | int(RemitoFlags.EN_DEPOSITO)
@@ -1089,27 +1099,9 @@ def listar_notas(remito_id: str, db: Session = Depends(get_db)):
         .all()
     )
 
-@router.patch("/items/{remito_item_id}/recibido", response_model=schemas.RemitoItemResponse)
-def actualizar_cantidad_recibida(
-    remito_item_id: int,
-    payload: schemas.CantidadRecibidaUpdate,
-    db: Session = Depends(get_db)
-):
-    """[Etapa 5, dictamen Nike "Homologación de Techo y Reasignación en Puerta"] Ver docstring de
-    RemitosService.set_cantidad_recibida para la regla completa (techo agregado por PedidoItem,
-    no comparación renglón a renglón)."""
-    try:
-        from backend.remitos.service import RemitosService
-        return RemitosService.set_cantidad_recibida(db, remito_item_id, payload.cantidad_recibida)
-    except HTTPException:
-        raise
-    except ValueError as ve:
-        raise HTTPException(status_code=400, detail=str(ve))
-    except Exception as e:
-        print(f"Error actualizando cantidad_recibida: {e}")
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+# [S894, Carlos 27/10; CA, discrepancia 5] PATCH /items/{remito_item_id}/recibido RETIRADO (tag `recibido-original`): era un segundo
+# camino para cambiar «llegó», sin piso (aceptaba negativos) y sin causa, contra los principios 1 y 11 del marco. Ninguna pantalla lo
+# usaba. «Llegó» lo bajan solo las correcciones con causa (POST /remitos/{id}/correccion, RemitosService.corregir_renglon).
 
 @router.post("/items/{remito_item_id}/resolver-no-facturable", response_model=schemas.RemitoItemResponse)
 def resolver_no_facturable(

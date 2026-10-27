@@ -23,7 +23,7 @@ class RemitoItemResponse(RemitoItemBase):
     remito_id: UUID
     pedido_item_id: int
     cantidad: float
-    # [Etapa 5] Expuesto para la validación de techo agregado -- ver RemitosService.set_cantidad_recibida.
+    # [Etapa 5] Lo que llegó. [S894] Lo mueven solo las correcciones con causa (RemitosService.recalcular_recibida_por_correcciones).
     cantidad_recibida: Optional[float] = None
     # [S876] Por qué este renglón salió sin ser venta firme (NULL = facturable normal).
     motivo_no_facturable: Optional[str] = None
@@ -80,10 +80,6 @@ class RemitoNotaResponse(BaseModel):
 
     class Config:
         from_attributes = True
-
-# --- CANTIDAD RECIBIDA (Etapa 5) ---
-class CantidadRecibidaUpdate(BaseModel):
-    cantidad_recibida: float
 
 # --- HEADER ---
 class RemitoBase(BaseModel):

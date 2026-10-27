@@ -9,6 +9,7 @@ el servidor (en cada guardado, por el evento before_flush de abajo) y la migraci
 Reglas (CONSULTA_NIKE_genoma_remito_2026-10-22.md, DISENO_REMITOS_S889.md):
 - CLASE: la numeración dice el color. Número «RI-» = INTERNO (Rosa); otro número (0015, 0016) = EGRESO, o EGRESO_AVIOS si el pedido
   es no comercial. Sin número, por el pedido: no comercial = EGRESO_AVIOS; Rosa = INTERNO (tomará número RI); si no, EGRESO.
+  [S894, H15] Una vez numerado, la clase y el bit 46 quedan fijos en el guardado de todos los días (ver sincronizar).
 - ESTADO: ANULADO (y la cicatriz FUE_ANULADO) si el estado es ANULADO; PERDIDO si es PERDIDO; si no, EMITIDO cuando tiene número.
   Sin número = indeterminado (ningún bit de estado).
 - LOGÍSTICA (solo EMITIDO, ni anulado ni perdido): ENTREGADO -> RECIBIDO; EN_CAMINO -> RETIRADO; marcado EN_DEPOSITO y todavía sin
@@ -99,13 +100,24 @@ def diferencia_recepcion(items) -> bool:
 
 
 def sincronizar(remito) -> None:
-    """Recalcula el genoma de un Remito del ORM (lo llama el evento before_flush; también sirve suelto)."""
+    """Recalcula el genoma de un Remito del ORM (lo llama el evento before_flush; también sirve suelto).
+
+    [S894, hallazgo H15 de CA; Carlos 27/10] La clase y CIRCULACION_ROSA (bit 46) los fija el NÚMERO: un remito que ya estaba numerado
+    (tiene un bit de estado) conserva la clase y el 46 con los que salió, aunque el pedido cambie después de color o de comercial (Carlos:
+    «siempre es posible que un cliente pase a Rosa, incluso cuando haya firmado un 0015 y tenga una factura», y al revés). Sin el freno,
+    un ida y vuelta Blanco -> Rosa -> Blanco dejaba prendido el 46 en un remito que nunca fue Rosa. La congelación va acá y no en
+    calcular_flags porque las migraciones (066, 067) reconstruyen el genoma desde los hechos de hoy y tienen que poder recalcularlo."""
     pedido = getattr(remito, "pedido", None)
     pf = getattr(pedido, "flags_estado", 0) if pedido is not None else 0
     items = [(ri.cantidad_remitida, ri.cantidad_recibida) for ri in (getattr(remito, "items", None) or [])]
-    remito.flags_estado = calcular_flags(remito.flags_estado, remito.numero_legal, remito.estado, pf,
-                                         getattr(remito, "fecha_emision", None), remito.fecha_salida,
-                                         diferencia_recepcion(items))
+    previos = int(remito.flags_estado or 0)
+    nuevos = calcular_flags(previos, remito.numero_legal, remito.estado, pf,
+                            getattr(remito, "fecha_emision", None), remito.fecha_salida,
+                            diferencia_recepcion(items))
+    fijos = MASCARA_CLASE | int(F.CIRCULACION_ROSA)
+    if (remito.numero_legal or "").strip() and previos & MASCARA_ESTADO and previos & MASCARA_CLASE:
+        nuevos = (nuevos & ~fijos) | (previos & fijos)
+    remito.flags_estado = nuevos
 
 
 def describir(flags) -> dict:

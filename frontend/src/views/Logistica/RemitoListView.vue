@@ -198,7 +198,7 @@
                         <i class="fas fa-file-circle-xmark"></i>
                     </button>
                     <!-- [S892] Queda en depósito / Retiró el transporte (caso Rizobacter: impreso y todavía en el depósito) -->
-                    <button v-if="remito.numero_legal && remito.estado === 'BORRADOR' && !enDeposito(remito)" @click.stop="marcarEnDeposito(remito)" data-accion="en-deposito"
+                    <button v-if="remito.numero_legal && remito.estado === 'BORRADOR' && !enDeposito(remito) && !tieneBit(remito.flags_estado, 47)" @click.stop="marcarEnDeposito(remito)" data-accion="en-deposito"
                         class="p-2 text-amber-300/60 hover:text-amber-200 transition-colors" title="Queda en depósito (todavía no lo retiró el transporte)">
                         <i class="fas fa-warehouse"></i>
                     </button>

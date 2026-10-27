@@ -181,7 +181,7 @@
                   <button v-if="!conNumero && !anulado && !esCorreccion" @click="acc.openEditModal(remitoLista)" data-accion="editar" class="btn-ficha"><i class="fas fa-pen mr-2"></i>Editar el remito</button>
                   <button v-if="!conNumero && !anulado && !esCorreccion" @click="acc.abrirAccionFecha(remitoLista, 'sin-papel')" data-accion="sin-papel" class="btn-ficha"><i class="fas fa-file-circle-xmark mr-2"></i>Salió sin papel</button>
                   <button v-if="conNumero && !anulado" @click="acc.abrirCambioFecha(remitoLista)" data-accion="cambiar-fecha" class="btn-ficha"><i class="fas fa-calendar-day mr-2"></i>Cambiar la fecha</button>
-                  <button v-if="conNumero && estado === 'BORRADOR' && !enDeposito" @click="acc.marcarEnDeposito(remitoLista)" data-accion="en-deposito" class="btn-ficha"><i class="fas fa-warehouse mr-2"></i>Queda en depósito</button>
+                  <button v-if="conNumero && estado === 'BORRADOR' && !enDeposito && !salidaConfirmada" @click="acc.marcarEnDeposito(remitoLista)" data-accion="en-deposito" class="btn-ficha"><i class="fas fa-warehouse mr-2"></i>Queda en depósito</button>
                   <button v-if="enDeposito" @click="acc.abrirAccionFecha(remitoLista, 'retiro')" data-accion="retiro" class="btn-ficha"><i class="fas fa-truck-ramp-box mr-2"></i>Retiró el transporte</button>
                   <button v-if="conNumero && !anulado" @click="acc.abrirAnulacion(remitoLista, 'anular')" data-accion="anular" class="btn-ficha text-red-300 border-red-500/30 hover:bg-red-500/10"><i class="fas fa-ban mr-2"></i>Anular</button>
                   <button v-if="anulado && !esCorreccion" @click="acc.abrirAnulacion(remitoLista, 'deshacer')" data-accion="deshacer-anulacion" class="btn-ficha text-amber-300 border-amber-500/30 hover:bg-amber-500/10"><i class="fas fa-rotate-left mr-2"></i>Deshacer la anulación</button>
@@ -278,6 +278,8 @@ const conNumero = computed(() => !!(f.value && f.value.remito.numero_legal))
 const estado = computed(() => (f.value ? f.value.remito.estado : ''))
 const anulado = computed(() => estado.value === 'ANULADO')
 const enDeposito = computed(() => !!(f.value && f.value.remito.genoma.logistica === 'EN_DEPOSITO'))
+// [S894, CA H16 (a)] con la salida confirmada (bit 47) ya no se ofrece «Queda en depósito»
+const salidaConfirmada = computed(() => !!(f.value && f.value.remito.genoma.marcas.includes('SALIDA_CONFIRMADA')))
 const esCorreccion = computed(() => !!(f.value && f.value.remito.es_correccion))
 // Se corrige lo que salió: un remito con número, no anulado y que no es él mismo una corrección
 const puedeCorregir = computed(() => !!(f.value && f.value.remito.numero_legal && !anulado.value && !esCorreccion.value))

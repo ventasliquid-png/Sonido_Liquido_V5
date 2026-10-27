@@ -103,7 +103,8 @@
         
         <!-- ACTION BAR -->
         <div class="flex justify-between items-end">
-           <h2 class="text-xl font-semibold text-blue-400">Viajes Activos (Remitos)</h2>
+           <!-- [S894, CA discrepancia 7; principio 9] la pantalla se llama igual que el botón que lleva a ella -->
+           <h2 class="text-xl font-semibold text-blue-400">Entregas y remitos</h2>
            <!-- [S893, Carlos 26/10] El Remito Manual se retiró: un remito nuevo se arma SIEMPRE desde el pedido, con «Imprimir remito». -->
            <div class="flex gap-2">
               <!-- [Etapa 4, PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §6] Pantalla de armado

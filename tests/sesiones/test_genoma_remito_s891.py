@@ -123,11 +123,11 @@ fila = q("select fecha_salida, flags_estado from remitos where id=?", rid.replac
 g = D(fila[1])
 check(f"emitido ayer, en depósito, retirado hoy (despachar): RETIRADO + SALIDA_DIFERIDA, salida hoy [{r.status_code}] {g}",
       r.status_code == 200 and fila[0].startswith(hoy) and g["logistica"] == "RETIRADO" and "SALIDA_DIFERIDA" in g["marcas"])
-# recibido distinto -> DIFERENCIA_RECEPCION
+# recibido distinto -> DIFERENCIA_RECEPCION. [S894] PATCH /items/{id}/recibido se retiró: «llegó» lo baja una corrección con causa
 ri = q("select id, cantidad_remitida from remitos_items where remito_id=?", rid.replace("-", ""))[0]
-r = cli.patch(f"/remitos/items/{ri[0]}/recibido", json={"cantidad_recibida": max(ri[1] - 1, 0)})
+r = cli.post(f"/remitos/{rid}/correccion", json={"remito_item_id": ri[0], "cantidad_real": max(ri[1] - 1, 0), "causa": "SE_RECHAZO"})
 g = D(q("select flags_estado from remitos where id=?", rid.replace("-", ""))[0][0])
-check(f"recibido distinto de lo remitido: DIFERENCIA_RECEPCION (irreversible) [{r.status_code}] {g}", r.status_code == 200 and "DIFERENCIA_RECEPCION" in g["marcas"])
+check(f"recibido distinto de lo remitido (corrección «se rechazó»): DIFERENCIA_RECEPCION (irreversible) [{r.status_code}] {g}", r.status_code == 200 and "DIFERENCIA_RECEPCION" in g["marcas"])
 # cambio de fecha de emisión: mueve la emisión; la salida registrada aparte (hoy) no se toca
 r = cli.patch(f"/remitos/{rid}/fecha", json={"fecha": (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d"), "motivo": "prueba"})
 fila = q("select fecha_emision, fecha_salida from remitos where id=?", rid.replace("-", ""))[0]

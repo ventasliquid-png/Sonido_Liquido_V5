@@ -63,8 +63,9 @@ def mensaje_baja_de_cantidad(item, nueva_cantidad: float) -> Optional[str]:
         return None
     remitida = item.cantidad_remitida
     if nueva_cantidad < remitida - EPS:
-        return (f"No se puede bajar la cantidad a {nueva_cantidad}: "
-                f"ya se entregaron {remitida} unidades de este renglón.")
+        # [S894, Carlos 27/10] el freno dice la salida, como el de lo facturado
+        return (f"No se puede bajar la cantidad a {_g(nueva_cantidad)}: ya se entregaron {_g(remitida)} unidades de este renglón. "
+                f"Para bajarla, anulá el remito si la mercadería no salió, o cargá una corrección en la ficha del remito.")
     facturada = item.cantidad_facturada_neta
     if nueva_cantidad < facturada - EPS:
         return (f"CANTIDAD_BAJO_FACTURADO: no se puede bajar la cantidad a {_g(nueva_cantidad)}: ya se facturaron "

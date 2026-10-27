@@ -108,6 +108,11 @@ cli.get(f"/remitos/{rr2}/pdf")
 check("reimprimirlo no repite la aclaración", notas(rr2).count(NOTA_ROSA) == 1)
 
 # ---- (2) queda en depósito / retiró el transporte
+# [S894, CA H16 (a)] «Salió sin papel» confirma la salida (bit 47): ese remito ya no puede quedar en depósito. El caso Rizobacter es el
+# remito IMPRESO que espera al transporte (salida asumida, sin el 47): el resto de esta parte usa uno impreso.
+r = cli.post(f"/remitos/{rb}/en-deposito")
+check(f"«salió sin papel» (salida confirmada) y después «queda en depósito»: 409 SALIDA_CONFIRMADA [{r.status_code}]", r.status_code == 409 and "SALIDA_CONFIRMADA" in r.text)
+rb = armar(*blancos[3]); cli.get(f"/remitos/{rb}/pdf")
 r = cli.post(f"/remitos/{rb}/en-deposito")
 num_b, fe_b, fs_b, _, _ = fila(rb)
 check(f"queda en depósito [{r.status_code}]: logística EN_DEPOSITO, se borra la salida asumida, nota [SISTEMA]",

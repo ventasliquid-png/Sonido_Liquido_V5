@@ -106,16 +106,15 @@ def create_pedido_tactico(
         if not cliente:
             raise HTTPException(status_code=404, detail="Cliente no encontrado")
 
-        # [POKA-YOKE V5.9] Validación de Bit 6 (OC Requerida)
-        # Si el cliente tiene Bit 6 (64) y no hay OC, se requiere override o 'S/N'
+        # [POKA-YOKE V5.9] Bit 6 del cliente (OC obligatoria).
+        # [S894, Carlos 25/10 (marco A1); CA, discrepancia 4] Con el bit 6 y la OC en blanco «no hace falta más que un mensajito warning»:
+        # el pedido se guarda igual, con un aviso (X-Aviso-OC) y una nota [SISTEMA]. Antes era un 400 que trababa el alta o forzaba un
+        # «S/N» que no es una OC. El bit 49 (REQUIERE_ATENCION) no se prende: Nike lo dejó para que lo prenda y lo apague una persona.
+        aviso_oc = None
         if cliente.flags_estado & 64:
             is_sn = (pedido_data.oc or "").strip().upper() == "S/N"
-            if not pedido_data.oc and not pedido_data.oc_override and not is_sn:
-                raise HTTPException(
-                    status_code=400, 
-                    detail="ORDEN DE COMPRA REQUERIDA: El cliente tiene activada la protección de OC obligatoria. "
-                           "Ingrese el número, escriba 'S/N' o active el deslizador de omisión."
-                )
+            if not (pedido_data.oc or "").strip() and not pedido_data.oc_override and not is_sn:
+                aviso_oc = "Este cliente exige orden de compra y el pedido se guardó sin OC. Cargala en el pedido cuando llegue."
         # Si el usuario mandó un ID manual (simulado en nota o algo), aqui usamos el autoincrement de la BD
         # El "Nro Pedido" manual del frontend por ahora se guarda en la NOTA del header si el usuario lo pone ahi, 
         # o podríamos forzar el ID si la BD lo permitiera (pero es serial).
@@ -177,6 +176,9 @@ def create_pedido_tactico(
         )
         if pedido_data.duplicate_confirmed:
             nuevo_pedido.flags_estado = (nuevo_pedido.flags_estado or 0) | PF.PEDIDO_DUPLICATE_CONFIRMED.value
+        if aviso_oc:
+            nuevo_pedido.nota = (nuevo_pedido.nota or "") + (f"\n[SISTEMA] Guardado sin OC: el cliente exige orden de compra (bit 6). "
+                                                              f"{datetime.now().strftime('%d/%m/%Y %H:%M')}")
         db.add(nuevo_pedido)
         db.flush() # Para tener ID
 
@@ -312,6 +314,9 @@ def create_pedido_tactico(
             # Headers HTTP son ASCII-only — el mensaje tiene acentos, se manda url-encoded.
             from urllib.parse import quote
             response.headers["X-Aviso-Circuito"] = quote(aviso_circuito)
+        if aviso_oc and response is not None:
+            from urllib.parse import quote
+            response.headers["X-Aviso-OC"] = quote(aviso_oc)
 
         return nuevo_pedido
 
@@ -1093,7 +1098,8 @@ def update_pedido_item(
         if update_data["cantidad"] < entregado:
             raise HTTPException(
                 status_code=400,
-                detail=f"No se puede bajar la cantidad a {update_data['cantidad']}: ya se entregaron {entregado} unidades de este renglón."
+                detail=(f"No se puede bajar la cantidad a {update_data['cantidad']:g}: ya se entregaron {entregado:g} unidades de este renglón. "   # [S894] dice la salida
+                        f"Para bajarla, anulá el remito si la mercadería no salió, o cargá una corrección en la ficha del remito.")
             )
         # [Card #154] Tampoco por debajo de lo facturado (neto de NC): para eso hace falta una NC.
         msg_facturado = mensaje_baja_de_cantidad(item, update_data["cantidad"])

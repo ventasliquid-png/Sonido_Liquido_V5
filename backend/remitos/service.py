@@ -1508,72 +1508,8 @@ class RemitosService:
         print(f"Logística Asíncrona: Remito {remito.numero_legal} generado y vinculado a Factura #{factura.id}")
         return remito
 
-    @staticmethod
-    def set_cantidad_recibida(db: Session, remito_item_id: int, cantidad_recibida: float):
-        """[Etapa 5, dictamen Nike "Homologación de Techo y Reasignación en Puerta" --
-        INFORME_IMPLEMENTACION_PR_S869_ANEXO_OC_S870.md §5] A nivel de renglón puntual,
-        `cantidad_recibida` SÍ puede superar a `cantidad_remitida` de ESE remito -- es el caso
-        legítimo de reasignación en la puerta (caso Lácteos/Gelato: remitido 2/4 en dos remitos,
-        recibido 4/2 invertido). El candado real es agregado: la suma de `cantidad_recibida` de
-        TODOS los remitos que entregan el mismo `PedidoItem` no puede superar la `cantidad`
-        autorizada de ese renglón del pedido.
-
-        [Trampa encontrada probando el propio caso Lácteos/Gelato] Los OTROS renglones que
-        todavía no se reconciliaron (`cantidad_recibida IS NULL`) cuentan como **0** acá, NO como
-        su `cantidad_remitida` (a diferencia de `PedidoItem.cantidad_recibida_total`, pensada para
-        reporte/"foto final", no para este gatekeeper). Si se usara ese fallback acá, reasignar en
-        dos pasos (guardar renglón A, después renglón B) rechazaría el paso 1 con el "techo"
-        fantasma del renglón B todavía sin tocar -- exactamente el rechazo que este dictamen existe
-        para evitar. Cuentan como 0 hasta que alguien los reconcilie explícitamente.
-        """
-        remito_item = db.query(models.RemitoItem).filter(models.RemitoItem.id == remito_item_id).first()
-        if not remito_item:
-            raise HTTPException(status_code=404, detail="Renglón de remito no encontrado")
-
-        pedido_item = remito_item.pedido_item
-        total_otros = sum(
-            ri.cantidad_recibida for ri in pedido_item.remitos_items
-            if ri.id != remito_item.id and ri.remito and ri.remito.estado != "ANULADO"
-            and ri.cantidad_recibida is not None
-        )
-        total_con_nueva = total_otros + cantidad_recibida
-
-        if total_con_nueva > pedido_item.cantidad + 0.001:
-            descripcion = pedido_item.producto.nombre if pedido_item.producto else f"renglón #{pedido_item.id}"
-            raise HTTPException(
-                status_code=409,
-                detail=(
-                    f"CANTIDAD_RECIBIDA_EXCEDE_PEDIDO: '{descripcion}' acumularía {total_con_nueva} "
-                    f"recibido entre todos sus remitos, pero el Pedido #{pedido_item.pedido_id} solo "
-                    f"autoriza {pedido_item.cantidad}. Si el excedente es real, ampliá el pedido "
-                    f"(motivo_relacion_oc='AMPLIACION') o abrí un pedido nuevo con OC propia."
-                )
-            )
-
-        # [S875, traspaso AG punto D / DISENO_MODULO_INFORMES_S875_2026-09-26.md §1.2] Nota
-        # forense automática cuando lo recibido difiere de lo remitido en ESTE remito (el caso
-        # de reasignación en puerta, no el default "llegó lo que salió"). Sin autor -- decisión
-        # de Carlos, punto C diferido: lo que reconstruye el hecho es el papel (número de
-        # remito), no quién lo tipeó. Se dispara solo si el valor efectivamente cambia, para no
-        # repetir la misma nota en un re-guardado idempotente.
-        valor_anterior = remito_item.cantidad_recibida
-        cambia = valor_anterior is None or abs(valor_anterior - cantidad_recibida) > 0.001
-        difiere_de_remitido = abs(cantidad_recibida - remito_item.cantidad_remitida) > 0.001
-        if cambia and difiere_de_remitido:
-            numero = remito_item.remito.numero_legal or "sin número aún"
-            ts = datetime.now().strftime("%Y-%m-%d %H:%M")
-            nota_forense = (
-                f"\n[SISTEMA] Ajustado el {ts}, respaldado en Remito Nº {numero} "
-                f"(cantidad original remitida: {remito_item.cantidad_remitida})."
-            )
-            pedido = pedido_item.pedido
-            pedido.nota = (pedido.nota or "") + nota_forense
-            db.add(pedido)
-
-        remito_item.cantidad_recibida = cantidad_recibida
-        db.commit()
-        db.refresh(remito_item)
-        return remito_item
+    # [S894, Carlos 27/10; CA, discrepancia 5] set_cantidad_recibida (Etapa 5, «Homologación de Techo y Reasignación en Puerta») se retiró
+    # con su endpoint PATCH /items/{id}/recibido (tag `recibido-original`): «llegó» lo bajan solo las correcciones con causa.
 
     @staticmethod
     def recalcular_recibida_por_correcciones(db: Session, item) -> None:

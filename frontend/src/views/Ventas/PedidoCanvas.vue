@@ -94,7 +94,8 @@
                         <span><span class="text-gray-500">OC:</span> <span class="text-white">{{ nroOC || '—' }}</span></span>
                         <span><span class="text-gray-500">Entrega est.:</span> <span class="text-white">{{ fechaCorta(fechaEntrega) }}</span></span>
                         <span v-if="clienteSeleccionado && !clientValidation.valid" class="font-bold uppercase text-amber-500"><i class="fas fa-exclamation-triangle"></i> Faltan: {{ clientValidation.missing.join(', ') }}</span>
-                        <span v-if="!isOCValid" class="font-bold uppercase text-cyan-400"><i class="fas fa-exclamation-triangle"></i> OC requerida</span>
+                        <!-- [S894, Carlos 25/10] Bit 6 sin OC: solo un aviso; el pedido se guarda igual -->
+                        <span v-if="!isOCValid" data-aviso="falta-oc" class="font-bold uppercase text-cyan-400" title="El cliente exige orden de compra. El pedido se puede guardar igual; cargala cuando llegue."><i class="fas fa-exclamation-triangle"></i> Falta la OC</span>
                         <span class="ml-auto text-gray-500 hover:text-white"><i class="fas fa-pen"></i> Editar cabecera</span>
                     </div>
                     <div class="flex flex-wrap items-baseline gap-x-5 gap-y-1 text-gray-400">
@@ -838,7 +839,7 @@
                               <span class="font-outfit text-3xl font-bold text-white tracking-tight">$ {{ totalFinal.toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</span>
                                                  <div class="flex gap-2">
                               <button @click="savePedido(false)" 
-                                      :disabled="isSaving || items.length === 0 || !clienteSeleccionado || !isOCValid || isClosedOrder"
+                                      :disabled="isSaving || items.length === 0 || !clienteSeleccionado || isClosedOrder"
                                       :class="['disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-all flex items-center justify-center gap-2 uppercase tracking-wider text-sm', isCircuitoNegro ? 'bg-pink-500 hover:bg-pink-400 hover:shadow-pink-500/20' : 'bg-emerald-500 hover:bg-emerald-400 hover:shadow-emerald-500/20']">
                                 <i v-if="isSaving" class="fas fa-spinner fa-spin"></i>
                                 <i v-else class="fas fa-save"></i>
@@ -847,7 +848,7 @@
 
                               <button v-if="pedidosStore.ingestaData"
                                       @click="savePedido(true)"
-                                      :disabled="isSaving || items.length === 0 || !clienteSeleccionado || !isOCValid || isClosedOrder"
+                                      :disabled="isSaving || items.length === 0 || !clienteSeleccionado || isClosedOrder"
                                       class="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:shadow-blue-500/20 transition-all flex items-center justify-center gap-2 uppercase tracking-wider text-xs"
                                       title="Guarda el pedido y abre el remito para imprimir">
                                 <i v-if="isSaving" class="fas fa-spinner fa-spin"></i>
@@ -2764,6 +2765,11 @@ const savePedido = async (andPrint = false) => {
             const avisoCircuito = res.headers?.['x-aviso-circuito'];
             if (avisoCircuito) {
                 notificationStore.add(decodeURIComponent(avisoCircuito), 'warning');
+            }
+            // [S894] Bit 6 sin OC: el servidor guarda y avisa (ya no frena)
+            const avisoOC = res.headers?.['x-aviso-oc'];
+            if (avisoOC) {
+                notificationStore.add(decodeURIComponent(avisoOC), 'warning', 8000);
             }
 
             pedidosStore.setAutoPrint(false);
