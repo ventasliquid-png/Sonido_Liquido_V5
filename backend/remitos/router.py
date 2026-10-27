@@ -10,6 +10,7 @@ from backend.remitos import schemas, models
 from backend.remitos.constants import CAUSAS_QUE_CAMBIAN_LO_QUE_LLEGO, riesgo_de_la_entrega
 from backend.auth.dependencies import get_current_active_user
 from backend.auth.models import Usuario
+from backend.informes.notas import fragmentos_clasificados, CATEGORIA_HUMANA
 
 router = APIRouter(
     prefix="/remitos",
@@ -518,7 +519,9 @@ def get_remito_pdf(remito_id: str, vista_previa: bool = False, ver: bool = False
             "vto_cae": vto_cae_val.strftime("%d/%m/%Y") if vto_cae_val else None,
             "bultos": getattr(remito, 'bultos', 1),
             "valor_declarado": getattr(remito, 'valor_declarado', 0.0),
-            "observaciones": remito.pedido.nota or ""
+            # [S894, Card #181, Nike Sello de Oro 27/10] Las líneas [SISTEMA] son trazas internas: el papel imprime solo las notas humanas,
+            # separadas con la misma función que usa Informes; la nota del pedido las conserva enteras.
+            "observaciones": "\n".join(f["texto"] for f in fragmentos_clasificados(remito.pedido.nota) if f["categoria"] == CATEGORIA_HUMANA[0])
         }
         
         from .remito_engine import generar_remito_pdf
@@ -552,7 +555,7 @@ def get_remito_pdf(remito_id: str, vista_previa: bool = False, ver: bool = False
             if not primer_papel:
                 db.add(models.RemitoNota(remito_id=remito.id, texto=(
                     f"[SISTEMA] Reimpresión del remito ({datetime.now().strftime('%d/%m/%Y %H:%M')}): no había imagen guardada (remito impreso "
-                    "antes de guardar imágenes, o con la fecha cambiada); se regeneró con los datos de hoy y desde ahora esta es su imagen.")))
+                    "antes de guardar imágenes, con la fecha cambiada o con la OC incorporada después); se regeneró con los datos de hoy y desde ahora esta es su imagen.")))
         # [S891, Nike: bit 44 IMPRESO] El remito se imprimió (se generó su PDF) al menos una vez: la marca no se apaga nunca.
         # Un 0015 sin esta marca es una salida sin papel (se fue solo con la factura).
         if not (int(remito.flags_estado or 0) & int(RemitoFlags.IMPRESO)):
@@ -792,13 +795,9 @@ def cambiar_fecha(
     texto = (f"[SISTEMA] Fecha del remito cambiada del {anterior.strftime('%d/%m/%Y') if anterior else 's/f'} "
              f"al {nueva.strftime('%d/%m/%Y')}. Motivo: {motivo}")
     # [S891] el papel cambia de fecha: la imagen guardada se archiva (no se borra) y el próximo papel sale con la fecha nueva
-    import os
-    carpeta = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "DOCUMENTOS_GENERADOS_RAR", "Remitos emitidos")
-    imagen = os.path.join(carpeta, f"remito_{remito.numero_legal.replace('-', '_')}.pdf")
-    if os.path.exists(imagen):
-        archivada = f"remito_{remito.numero_legal.replace('-', '_')}__hasta_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-        os.makedirs(os.path.join(carpeta, "Reemplazadas"), exist_ok=True)
-        os.replace(imagen, os.path.join(carpeta, "Reemplazadas", archivada))
+    from backend.remitos.service import RemitosService
+    archivada = RemitosService.archivar_imagen(remito.numero_legal)
+    if archivada:
         texto += ("" if texto.endswith(".") else ".") + f" La imagen del papel anterior quedó archivada (Reemplazadas/{archivada}); el próximo papel sale con la fecha nueva."
     db.add(models.RemitoNota(remito_id=remito.id, texto=texto, autor_id=current_user.id))
     db.commit()

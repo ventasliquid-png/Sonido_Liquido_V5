@@ -38,6 +38,42 @@ class RemitosService:
                 f"si es el que querés mandar, reimprimilo desde ahí en vez de hacer otro.")
 
     @staticmethod
+    def archivar_imagen(numero_legal: str) -> Optional[str]:
+        """[S891] La imagen guardada del papel de un remito numerado se archiva (no se borra) en «Remitos emitidos/Reemplazadas»: el próximo
+        papel se genera de nuevo y pasa a ser la imagen. Devuelve el nombre archivado, o None si el remito no tenía imagen."""
+        import os
+        carpeta = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "DOCUMENTOS_GENERADOS_RAR", "Remitos emitidos")
+        imagen = os.path.join(carpeta, f"remito_{numero_legal.replace('-', '_')}.pdf")
+        if not os.path.exists(imagen):
+            return None
+        archivada = f"remito_{numero_legal.replace('-', '_')}__hasta_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        os.makedirs(os.path.join(carpeta, "Reemplazadas"), exist_ok=True)
+        os.replace(imagen, os.path.join(carpeta, "Reemplazadas", archivada))
+        return archivada
+
+    @staticmethod
+    def incorporar_oc_del_pedido(db: Session, pedido: Pedido, autor_id=None) -> list:
+        """[S894, Carlos 27/10; Nike Sello de Oro 27/10] La OC que llega tarde («se agrega a mano al entregar y después se incorpora al pedido»)
+        pasa a los remitos vigentes del pedido que no tienen OC propia: lo que importa es la auditoría («qué entregué de qué OC»), no la
+        reimpresión. Un remito con OC propia no se toca (salió con esa); «S/N» no es una OC. Si el remito tiene la imagen de su papel, se archiva
+        como al cambiar la fecha: el próximo papel sale con la OC. Cada remito tocado lleva una nota [SISTEMA]. No hace commit."""
+        oc = (pedido.oc or "").strip()
+        if not oc or oc.upper() == "S/N":
+            return []
+        tocados = []
+        for r in db.query(models.Remito).filter(models.Remito.pedido_id == pedido.id, models.Remito.estado != "ANULADO").all():
+            if (r.oc or "").strip():
+                continue
+            r.oc = oc
+            texto = f"[SISTEMA] OC incorporada desde el pedido #{pedido.id}: «{oc}»."
+            archivada = RemitosService.archivar_imagen(r.numero_legal) if r.numero_legal else None
+            if archivada:
+                texto += f" La imagen del papel anterior quedó archivada (Reemplazadas/{archivada}); el próximo papel sale con la OC."
+            db.add(models.RemitoNota(remito_id=r.id, texto=texto, autor_id=autor_id))
+            tocados.append(r)
+        return tocados
+
+    @staticmethod
     def _texto_domicilio(dom: Domicilio) -> str:
         """[S890] Texto de un domicilio para el papel. Si tiene una dirección de entrega propia (el juego
         calle_entrega/localidad_entrega, «V7.2: separada de la fiscal») y es OTRA calle, se imprime esa; si no,

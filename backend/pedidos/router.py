@@ -732,6 +732,7 @@ def update_pedido(
     
     update_data = pedido_update.dict(exclude_unset=True)
     cierre_confirmado = update_data.pop("cierre_confirmado", False)  # flag de confirmación, no es columna de Pedido
+    oc_anterior = (pedido.oc or "").strip()
 
     # [GY-FIX] Recalculate Total if Status, Type, Discounts or ITEMS change
     status_changed = False
@@ -920,6 +921,11 @@ def update_pedido(
                 nota_forense = f"\n[SISTEMA] Cierre confirmado con discrepancia. {detalle}. {ts}"
                 pedido.nota = (pedido.nota or "") + nota_forense
                 pedido.flags_estado |= PF.CIERRE_CON_AJUSTE.value
+
+    # [S894, Carlos 27/10] La OC que llega después pasa a los remitos del pedido que no tienen OC propia (la auditoría: qué se entregó de qué OC).
+    if "oc" in update_data and (update_data["oc"] or "").strip() != oc_anterior:
+        from backend.remitos.service import RemitosService
+        RemitosService.incorporar_oc_del_pedido(db, pedido)
 
     if pedido_update.from_ingesta:
         pedido.flags_estado |= PF.ORIGEN_FACTURA.value
@@ -1534,6 +1540,37 @@ def flete_a_cargo(
         pedido.flags_estado = (pedido.flags_estado or 0) & ~PF.FLETE_A_CARGO_NUESTRO.value
     ts = datetime.now().strftime("%Y-%m-%d %H:%M")
     pedido.nota = (pedido.nota or "") + f"\n[SISTEMA] Flete a cargo {'NUESTRO' if req.nuestro else 'del CLIENTE'} (bit 48). {ts} {current_user.username}"
+    db.commit()
+    db.refresh(pedido)
+    return pedido
+
+
+@router.patch("/{pedido_id}/oc-y-nota", response_model=schemas.PedidoResponse)
+def actualizar_oc_y_nota(
+    pedido_id: int,
+    req: schemas.OcYNotaUpdate,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_active_user)
+):
+    """[S894, Carlos 27/10; Nike Sello de Oro 27/10] La OC y la nota son datos administrativos: se editan en cualquier estado, también con el
+    pedido CUMPLIDO o ANULADO (los renglones, precios y descuentos de un pedido cerrado siguen trabados: para tocarlos se cambia el estado).
+    No toca bits (Nike), no recalcula el total ni el stock y no vuelve a copiar los renglones a la factura borrador (lo que sí hace PATCH /pedidos/{id}).
+    Si la OC cambia con el pedido cerrado, deja una nota [SISTEMA] con la anterior y la nueva."""
+    pedido = db.query(models.Pedido).filter(models.Pedido.id == pedido_id).first()
+    if not pedido:
+        raise HTTPException(status_code=404, detail="Pedido no encontrado")
+    if req.nota is not None:
+        pedido.nota = req.nota
+    if req.oc is not None:
+        anterior, nueva = (pedido.oc or "").strip(), req.oc.strip()
+        pedido.oc = nueva
+        if nueva != anterior and (pedido.flags_estado or 0) & (PF.ES_CUMPLIDO.value | PF.ES_ANULADO.value):
+            ts = datetime.now().strftime("%d/%m/%Y %H:%M")
+            pedido.nota = (pedido.nota or "") + (f"\n[SISTEMA] OC cambiada con el pedido {pedido.estado}: «{nueva or 'vacía'}» "
+                                                 f"(antes: «{anterior or 'vacía'}»). {ts} {current_user.username}")
+        if nueva != anterior:
+            from backend.remitos.service import RemitosService
+            RemitosService.incorporar_oc_del_pedido(db, pedido, current_user.id)   # la OC tardía pasa a los remitos sin OC (auditoría)
     db.commit()
     db.refresh(pedido)
     return pedido

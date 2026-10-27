@@ -88,6 +88,12 @@ class FleteACargoRequest(BaseModel):
     """[S893, Nike 26/10: bit 48] nuestro=True prende FLETE_A_CARGO_NUESTRO (el flete es nuestro); False lo apaga (flete del cliente, el normal)."""
     nuestro: bool
 
+class OcYNotaUpdate(BaseModel):
+    """[S894, Carlos 27/10; Nike Sello de Oro 27/10] La OC y la nota se editan en cualquier estado del pedido, cerrado incluido. Ausente = no se toca."""
+    model_config = ConfigDict(extra="forbid")
+    oc: Optional[str] = None
+    nota: Optional[str] = None
+
 class PedidoUpdate(BaseModel):
     # [Fallar ruidoso, no en silencio] Un campo que el frontend manda y este
     # schema no declara debe ser un 422 explícito, no un 200 que lo ignora.

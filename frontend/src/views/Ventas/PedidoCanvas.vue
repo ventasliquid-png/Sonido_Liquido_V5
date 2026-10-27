@@ -51,9 +51,9 @@
                 <div class="flex items-center gap-2">
                     <i class="fas fa-exclamation-triangle text-sm animate-pulse" 
                        :class="estadoPedido === 'ANULADO' ? 'text-red-500' : 'text-amber-500'"></i>
-                    <span>Este pedido está {{ estadoPedido }} y no puede editarse</span>
+                    <span data-aviso="pedido-cerrado">Este pedido está {{ estadoPedido }}: solo se pueden cambiar la OC y las notas</span>
                 </div>
-                <span class="text-[10px] opacity-70 font-mono tracking-normal normal-case">MODO LECTURA</span>
+                <span class="text-[10px] opacity-70 font-mono tracking-normal normal-case">El resto, en modo lectura</span>
             </div>
 
             <!-- [S887] ¿Ya tiene remito? El pedido es el punto de partida: se ve el remito que existe, se reimprime sin hacer otro, y se avisa si queda algo por remitar -->
@@ -838,12 +838,12 @@
                               <span class="text-sm text-gray-500 font-bold">ARS</span>
                               <span class="font-outfit text-3xl font-bold text-white tracking-tight">$ {{ totalFinal.toLocaleString('es-AR', {minimumFractionDigits: 2}) }}</span>
                                                  <div class="flex gap-2">
-                              <button @click="savePedido(false)" 
-                                      :disabled="isSaving || items.length === 0 || !clienteSeleccionado || isClosedOrder"
+                              <button @click="savePedido(false)"
+                                      :disabled="isSaving || items.length === 0 || !clienteSeleccionado"
                                       :class="['disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-all flex items-center justify-center gap-2 uppercase tracking-wider text-sm', isCircuitoNegro ? 'bg-pink-500 hover:bg-pink-400 hover:shadow-pink-500/20' : 'bg-emerald-500 hover:bg-emerald-400 hover:shadow-emerald-500/20']">
                                 <i v-if="isSaving" class="fas fa-spinner fa-spin"></i>
                                 <i v-else class="fas fa-save"></i>
-                                {{ isSaving ? 'Guardando...' : 'Guardar Pedido' }}
+                                {{ isSaving ? 'Guardando...' : (isClosedOrder ? 'Guardar OC y notas' : 'Guardar Pedido') }}
                               </button>
 
                               <button v-if="pedidosStore.ingestaData"
@@ -2477,7 +2477,7 @@ const handleGlobalKeys = (e) => {
         if (showClientModal.value) return;
         e.preventDefault();
         // Prevent double trigger if already saving or conditions not met (and not closed)
-        if (!isSaving.value && items.value.length > 0 && clienteSeleccionado.value && !isClosedOrder.value) {
+        if (!isSaving.value && items.value.length > 0 && clienteSeleccionado.value) {   // [S894] cerrado: savePedido guarda solo la OC y las notas
             savePedido();
         }
     }
@@ -2684,8 +2684,23 @@ const confirmEditCantidad = async (index) => {
 };
 
 const savePedido = async (andPrint = false) => {
+    // [S894, Carlos 27/10; Nike] Pedido CUMPLIDO o ANULADO: se guardan solo la OC y las notas; renglones, precios y descuentos siguen trabados.
     if (isClosedOrder.value) {
-        return notificationStore.add('No se puede guardar un pedido CUMPLIDO o ANULADO.', 'error');
+        if (!route.params.id || isSaving.value) return;
+        isSaving.value = true;
+        try {
+            const res = await api.patch(`/pedidos/${route.params.id}/oc-y-nota`, { oc: nroOC.value.trim(), nota: notas.value || '' });
+            nroOC.value = res.data.oc || '';
+            notas.value = res.data.nota || '';
+            baselineJSON.value = instantanea();
+            avisarPedidoActualizado(route.params.id);
+            notificationStore.add('OC y notas guardadas.', 'success');
+        } catch (e) {
+            notificationStore.add('Error al guardar la OC y las notas: ' + (e.response?.data?.detail || e.message), 'error');
+        } finally {
+            isSaving.value = false;
+        }
+        return;
     }
     if (!clienteSeleccionado.value) return notificationStore.add('Seleccione un cliente.', 'error');
     if (items.value.length === 0) return notificationStore.add('Agregue al menos un producto.', 'error');
