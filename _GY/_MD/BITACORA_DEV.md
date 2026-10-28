@@ -1,4 +1,8 @@
-﻿## SESION 893 (OF) — 2026-10-26 [NS (CC)]: remitos — nodo con su ficha, Remito Manual retirado, corrección por renglón con causa y bits 48/49 (en D); y dos arreglos de producción, Cantera y ficha del cliente (en P) — NOMINAL — D:6334ae1a B:35f9f2e (= prod/main) P:35f9f2e
+﻿## SESION 894 (OF) — 2026-10-27/28 [NS (CC, Opus 5.5)]: todo D a producción, #164 cerrada, confirmación de diferencias de precio, Consumidor Final = Blanco y la identidad Rosa en los bits — NOMINAL — D:c48976c6 B:6bcbcd3 (= prod/main) P:6bcbcd3
+
+- Diez commits de código en D y seis pushes a P (paquete grande `d08e78b` incluido); migraciones 063, 066-073 aplicadas en P; Nike: dos consultas con Sello de Oro y una rectificación; Cards #195 a #201. 75 pruebas, 1.696 comprobaciones. Informe: `INFORMES_HISTORICOS/2026-10-28_S894_OF.md`.
+
+## SESION 893 (OF) — 2026-10-26 [NS (CC)]: remitos — nodo con su ficha, Remito Manual retirado, corrección por renglón con causa y bits 48/49 (en D); y dos arreglos de producción, Cantera y ficha del cliente (en P) — NOMINAL — D:6334ae1a B:35f9f2e (= prod/main) P:35f9f2e
 
 - **Hito:** el nodo Remitos se construyó con Carlos a partir de `MARCO_REMITOS.md` (CA), y la jornada terminó con dos pushes a producción por errores que Tomy y Carlos encontraron en P.
   - `3bb64326` (D): nodo y ficha del remito (`RemitoFicha.vue`, `GET /remitos/buscar` y `/ficha/{ref}`, `migrate_068`), Remito Manual retirado (tag `remito-manual-original`), corrección por renglón con causa (`POST /remitos/{id}/correccion`, `migrate_069`) y el agujero de `armar` cerrado (5+5 contra 8).

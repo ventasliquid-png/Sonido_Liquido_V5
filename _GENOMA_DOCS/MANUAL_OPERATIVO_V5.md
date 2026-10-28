@@ -1379,3 +1379,12 @@ Sin cambios funcionales visibles: la sesión trabajó el Board y los protocolos,
 - **Lo que no salió, se perdió, se rechazó o volvió se corrige por renglón** (ficha del remito → «Corregir lo que pasó»): queda el motivo, el pedido vuelve a deber la diferencia y se reabre si estaba cumplido. «Registrar devolución» es lo mismo que «Volvió». La corrección se deshace con motivo.
 - **Flete a cargo.** El pedido tiene la casilla **«Flete a cargo: nuestro / del cliente»** (por defecto del cliente): si el transporte lo eligió el comprador y se pierde, solo se anota y se factura lo que salió; si el flete es nuestro, la pérdida es nuestra y el pedido vuelve a deber. Se cambia hasta que el pedido tenga remitos vigentes.
 - **«Origen: Despacha / Retira»** ya no está en la ficha del cliente: lo que cuenta es el método de entrega.
+
+## Sesión 894 (27-28/10) — Lo que cambia para quien opera
+
+- **Todo lo de Remitos de las sesiones 888 a 893 ya está en producción:** menú «Remitos» con la ficha de cada remito, «Nuevo remito» desde el menú lateral, sin «Remito Manual», corrección por renglón con causa, «Salió sin papel», «Queda en depósito», «Retiró el transporte» y búsqueda sin acentos.
+- **Pedido cumplido o anulado:** se pueden cambiar la OC y las notas («Guardar OC y notas»). Si la OC cambia, sus remitos la toman con una nota («OC agregada» u «OC corregida»).
+- **Ingesta y Conciliar contra PR:** si el precio de la factura no coincide con el del pedido, se muestra la diferencia y la factura entra solo con «Confirmo las diferencias» (motivo opcional). El pedido no se cambia.
+- **Pedido:** la dirección de entrega muestra la calle de entrega cuando es distinta de la fiscal (como sale en el papel). El cartel «Bloqueo financiero / Liberar despacho» ya no aparece: está apagado hasta que exista el sistema de crédito.
+- **Clientes:** un Consumidor Final se ve Blanco (no Rosa). La lista de clientes filtra por color: Todos, Blancos, Rosa, A revisar.
+

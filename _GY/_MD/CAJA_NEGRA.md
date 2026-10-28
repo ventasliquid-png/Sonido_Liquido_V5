@@ -1,4 +1,19 @@
-﻿Sesion actual: 893
+﻿Sesion actual: 894
+
+# CAJA NEGRA: OMEGA Lite - todo D a produccion (paquete grande y cinco subidas mas), #164 cerrada, confirmacion de diferencias de precio, Consumidor Final = Blanco y la identidad Rosa en los bits (Nike) - S894
+
+Sesion 894 OF, 27-28/10, NS (CC, Opus 5.5) con Carlos. Hash D: ultimo de codigo c48976c6 | Hash B: 6bcbcd3 = prod/main (seis pushes el 28/10: 35f9f2e..1fef339..d08e78b..c9c94a0..30e0d26..8fd0a4b..6bcbcd3) | P real: 6bcbcd3 (leido en P: git y .build_hash, build 16:51). Migraciones en P el 28/10: 070, 063, 066-069, 071, 072, 073. Ultima copia de P: PRODUCCION_P_al_20261028_1651.db.
+- 27/10 en D: discrepancias de CA (a450b085); OC y notas editables con el pedido cerrado y la OC agregada/corregida en sus remitos con nota e imagen archivada (e414ec3d, eca1944e); el papel del remito sin lineas [SISTEMA] (#181).
+- #164 CERRADA: IVA con bonificacion desde el neto de ARCA; migrate_070 corrigio 2616, 2617 y 2620 (fce74698 / 1fef339); verificada en P.
+- #144: el lector lee % Bonif; la Ingesta y Conciliar contra PR piden confirmacion consciente de diferencias de precio (motivo opcional, nota con usuario) (5b701e93).
+- Paquete grande a P (d08e78b): 21 commits de producto del 13/10 al 28/10 y restos de Atenea fuera; 72 pruebas contra B iguales a D. Afuera a proposito: Conexion_Blindada.py de D (simulador con CAE falso, #199), requirements.txt de D, archivos de entorno.
+- Primer dia del paquete: direccion de entrega en pantalla como el papel; Nuevo remito en el menu; compuerta Liberar despacho apagada (97fea88d, 8898f46b).
+- Consumidor Final = Blanco (Carlos); Nike: identidad Rosa solo en bits, Rosa sin CUIT, 11111111111 error de la S875, comodin de CF solo en el comprobante. migrate_071 (9 informales a Rosa), 072 (borra DAI y M&M Insumos), 073 (medalla vieja fuera, borra HONNEY) (47f64c23, 2f86f1fe).
+- Filtro por color en la lista de clientes (c48976c6). Cards nuevas #195-#201 (#200: flags fantasmas y 172 referencias rotas a domicilios_legacy).
+- Errores propios: SALIO DE MAS dicho como decidido; horas estimadas en la bitacora; comentario de la #164 duplicado; prioridades del Board a ojo; un clic tomado como confirmacion (lo encontro el banco).
+- Pendiente: S895 charla del Remito Interno (DISENO_REMITO_INTERNO_RI_S894.md; Carlos: nace en la salida del PR); #197; entrada de stock (CA E1-E4); INBOX 113; pedido #94 de Centro Pet.
+
+Sesion actual: 893
 
 # CAJA NEGRA: OMEGA Completo - remitos: nodo con su ficha, Remito Manual retirado, correccion por renglon con causa y bits 48 y 49 de Nike (en D); dos arreglos de produccion: importar de Cantera y la ficha del cliente (en P) - S893
 
