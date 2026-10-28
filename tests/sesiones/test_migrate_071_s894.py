@@ -70,6 +70,29 @@ check(f"072 guarda: si DAI tuviera un pedido, no se borra y avisa [{rc}]", rc ==
       and q(C, "select count(*) from clientes where id='64bffd58570446019580b1e68b573210'")[0][0] == 1)
 os.remove(C)
 
+# ---------- migrate_073: el CF que conservaba la medalla Rosa vieja la pierde, y se borra «HONNEY» (sin nada; Carlos) ----------
+def migrar073(db):
+    env = dict(os.environ, DATABASE_URL="sqlite:///" + db, PYTHONIOENCODING="utf-8")
+    r = subprocess.run([sys.executable, os.path.join(RAIZ, "scripts", "migrate_073_cf_sin_medalla_y_honney.py")], capture_output=True, text=True, encoding="utf-8", env=env)
+    return r.returncode, r.stdout
+D = copia("test_073_d.db"); migrar(D); migrar072(D)
+rosas_antes = q(D, "select id, flags_estado from clientes where (flags_estado & 15) in (9, 11) or cuit='11111111111' order by id")
+rc, out = migrar073(D)
+check(f"073: M&M Odontológicos (CF, queda Blanco) pierde la medalla vieja y es el único CF que la tenía [{rc}]",
+      rc == 0 and "CF sin medalla Rosa: 1" in out and q(D, "select flags_estado from clientes where razon_social='M&M ODONTOLÓGICOS LA PLATA'")[0][0] == 13)
+check("073: borra HONNEY (sin CUIT, sin marcas, sin referencias) y no toca HONEYMAX S A (tiene pedidos y facturas)",
+      "HONNEY: borrado" in out and q(D, "select count(*) from clientes where razon_social='HONNEY'")[0][0] == 0
+      and q(D, "select count(*) from clientes where razon_social='HONEYMAX S A'")[0][0] == 1)
+check("073: los Rosa de verdad no cambian", q(D, "select id, flags_estado from clientes where (flags_estado & 15) in (9, 11) or cuit='11111111111' order by id") == rosas_antes)
+rc2, out2 = migrar073(D); check(f"073: segunda corrida, se saltea [{rc2}]", rc2 == 0 and "SKIP" in out2)
+os.remove(D)
+E = copia("test_073_e.db")
+x_con = sqlite3.connect(E); x_con.execute("update pedidos set cliente_id='13b34c02b38749e291113500d22591ef' where id=(select min(id) from pedidos)"); x_con.commit(); x_con.close()
+rc, out = migrar073(E)
+check(f"073 guarda: si HONNEY tuviera un pedido, no se borra y avisa [{rc}]", rc == 0 and "AVISO -- HONNEY" in out
+      and q(E, "select count(*) from clientes where razon_social='HONNEY'")[0][0] == 1)
+os.remove(E)
+
 # la regla de clientes (S894) no se los vuelve a cambiar
 G = copia("test_071_g.db"); migrar(G)
 from backend.main import app   # carga los modelos
