@@ -66,12 +66,18 @@ def _fecha(valor: Optional[str]) -> Optional[date]:
 def desglose_importes(enc: dict, items_pdf: List[dict]):
     """Neto, IVA 21 / 10,5, exento, percepciones y total de un comprobante de ARCA. Neto y total los
     manda ARCA; el IVA sale de los renglones por alícuota, y lo que sobre hasta el total se registra
-    como percepciones. Compartido por la conciliación de facturas (7b) y de NC/ND (7d)."""
-    iva_21 = sum((it.get("subtotal") or 0) * 0.21 for it in items_pdf if abs((it.get("alicuota_iva") or 0) - 21) < EPS)
-    iva_105 = sum((it.get("subtotal") or 0) * 0.105 for it in items_pdf if abs((it.get("alicuota_iva") or 0) - 10.5) < EPS)
+    como percepciones. Compartido por la conciliación de facturas (7b), la de NC/ND (7d) y el modo espejo.
+    [S894, Card #164] Los renglones que lee el parser vienen SIN la bonificación (cantidad × precio): si ARCA manda el neto y los
+    renglones gravados no suman ese neto, la base de cada alícuota se lleva al neto de ARCA en proporción. Antes, con una
+    bonificación del 5 % (Wullich, 2616), el IVA salía sobre lo no bonificado y las percepciones quedaban negativas."""
+    base_21 = sum((it.get("subtotal") or 0) for it in items_pdf if abs((it.get("alicuota_iva") or 0) - 21) < EPS)
+    base_105 = sum((it.get("subtotal") or 0) for it in items_pdf if abs((it.get("alicuota_iva") or 0) - 10.5) < EPS)
     exento = sum((it.get("subtotal") or 0) for it in items_pdf if abs(it.get("alicuota_iva") or 0) < EPS)
-    neto = enc["total_neto"] if enc["total_neto"] is not None else sum(
-        (it.get("subtotal") or 0) for it in items_pdf if abs(it.get("alicuota_iva") or 0) >= EPS)
+    gravado = sum((it.get("subtotal") or 0) for it in items_pdf if abs(it.get("alicuota_iva") or 0) >= EPS)
+    neto = enc["total_neto"] if enc["total_neto"] is not None else gravado
+    if enc["total_neto"] is not None and gravado > EPS and abs(gravado - neto) >= 0.5:
+        base_21, base_105 = base_21 * neto / gravado, base_105 * neto / gravado
+    iva_21, iva_105 = base_21 * 0.21, base_105 * 0.105
     total = enc["total_final"] if enc["total_final"] is not None else neto + iva_21 + iva_105 + exento
     percepciones = round(total - neto - iva_21 - iva_105 - exento, 2)
     if abs(percepciones) < 0.5:

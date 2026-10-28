@@ -90,6 +90,9 @@ def leer_pdf(nombre, contenido):
               "precio": num(i.get("precio_unitario")) or 0.0, "subtotal": num(i.get("subtotal")) or 0.0,
               "alicuota": num(i.get("alicuota_iva")) if i.get("alicuota_iva") is not None else 21.0} for i in d.get("items") or []]
     neto, total = num(f.get("total_neto")), num(f.get("total_final"))
+    # [S894, Card #164] el IVA 21 % del pie del PDF, tal como lo imprime ARCA (el parser no lo devuelve)
+    m_iva = re.search(r"IVA 21%:\s*\$?\s*([\d\.,]+)", texto if isinstance(texto, str) else "")
+    iva_21 = parse_importe(m_iva.group(1)) if m_iva else None
     suma = round(sum(i["subtotal"] for i in items), 2)
     avisos = []
     if f.get("audit_status") and f["audit_status"] != "VERIFICADO_OK":
@@ -101,7 +104,7 @@ def leer_pdf(nombre, contenido):
     return {
         "tipo": f.get("tipo_comprobante") or "", "pv": pv, "numero": nro, "fecha": f.get("fecha_emision") or "",
         "cae": str(f["cae"]), "vto": f.get("vto_cae") or "", "cuit": re.sub(r"\D", "", str((d.get("cliente") or {}).get("cuit") or "")),
-        "receptor": (d.get("cliente") or {}).get("razon_social") or "", "neto": neto, "total": total, "items": items,
+        "receptor": (d.get("cliente") or {}).get("razon_social") or "", "neto": neto, "iva_21": iva_21, "total": total, "items": items,
         "confianza": "OK" if not avisos else "REVISAR", "avisos": avisos,
     }, ""
 
@@ -199,6 +202,8 @@ def auditar_factura(pdf, v5):
         dif.append(("CRITICA", "total", f"ARCA: {pdf['total']:.2f} | V5: {v5['total'] if v5['total'] is None else format(v5['total'], '.2f')}"))
     if pdf["neto"] is not None and (v5["neto"] is None or abs(pdf["neto"] - v5["neto"]) > TOL):
         dif.append(("MEDIA", "neto", f"ARCA: {pdf['neto']:.2f} | V5: {v5['neto'] if v5['neto'] is None else format(v5['neto'], '.2f')}"))
+    if pdf.get("iva_21") is not None and (v5["iva"] is None or abs(pdf["iva_21"] - v5["iva"]) > TOL):
+        dif.append(("MEDIA", "IVA 21 %", f"ARCA: {pdf['iva_21']:.2f} | V5: {v5['iva'] if v5['iva'] is None else format(v5['iva'], '.2f')}"))
     if pdf["cuit"] and v5["cuit"] and pdf["cuit"] != v5["cuit"]:
         dif.append(("CRITICA", "cliente", f"CUIT ARCA {pdf['cuit']} ({pdf['receptor']}) | V5 {v5['cuit']} ({v5['receptor']})"))
     dif += comparar_items(pdf["items"], v5["items"])
