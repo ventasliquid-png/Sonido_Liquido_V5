@@ -68,6 +68,11 @@
               <button @click="filterStatus = 'inactive'" class="px-3 py-1 text-[10px] font-bold rounded uppercase transition-all" :class="filterStatus === 'inactive' ? 'bg-red-600 text-white shadow' : 'text-white/30 hover:text-white'">Inactivos</button>
           </div>
 
+          <!-- 4-bis. [S894, Carlos 28/10] Filtro por color, con el mismo criterio que pinta cada fila (getClientColorMode) -->
+          <div class="flex bg-black/20 rounded-lg p-1 border border-white/10 shrink-0" data-filtro="color">
+              <button v-for="o in OPCIONES_COLOR" :key="o.v" @click="filterColor = o.v" class="px-3 py-1 text-[10px] font-bold rounded uppercase transition-all" :class="filterColor === o.v ? o.activo : 'text-white/30 hover:text-white'">{{ o.t }}</button>
+          </div>
+
           <!-- 5. Sort Button -->
            <button 
                 @click="showSortMenu = !showSortMenu" 
@@ -420,6 +425,16 @@ const segmentos = ref([])
 const selectedId = ref(null)
 const selectedCliente = ref(null)
 const filterStatus = ref(localStorage.getItem('hawe_filter_pref') || 'active') // Persisted
+// [S894, Carlos 28/10] «No puedo pedir "Listar solo los blancos"»: filtro por el color de la fila. Blancos = validados y CUIT compartido
+// (celeste, también Blanco); Rosa; A revisar = amarillos. Recordado como el filtro de estado.
+const OPCIONES_COLOR = [
+    { v: 'all', t: 'Todos', activo: 'bg-indigo-600 text-white shadow' },
+    { v: 'blanco', t: 'Blancos', activo: 'bg-slate-200 text-slate-900 shadow' },
+    { v: 'rosa', t: 'Rosa', activo: 'bg-fuchsia-600 text-white shadow' },
+    { v: 'amarillo', t: 'A revisar', activo: 'bg-yellow-500 text-black shadow' },
+]
+const COLORES_DEL_FILTRO = { blanco: ['VALIDADO', 'BLUE'], rosa: ['PINK'], amarillo: ['YELLOW'] }
+const filterColor = ref(localStorage.getItem('hawe_filter_color') || 'all')
 const sortBy = ref(localStorage.getItem('hawe_sort_pref') || 'usage')
 const viewMode = ref(localStorage.getItem('hawe_view_mode_pref') || 'grid')
 const selectedSegmento = ref(localStorage.getItem('hawe_segmento_pref') ? Number(localStorage.getItem('hawe_segmento_pref')) : null)
@@ -525,6 +540,7 @@ watch(selectedSegmento, (newVal) => {
     localStorage.setItem('hawe_segmento_pref', newVal || '')
 })
 
+watch(filterColor, (v) => localStorage.setItem('hawe_filter_color', v))
 watch(filterStatus, (newVal) => {
     localStorage.setItem('hawe_filter_pref', newVal)
     selectedIds.value = [] // Clear selection on tab switch
@@ -773,6 +789,7 @@ const filteredClientes = computed(() => {
         if (filterStatus.value === 'active' && !cliente.activo) return false
         if (filterStatus.value === 'inactive' && cliente.activo) return false
         if (selectedSegmento.value && cliente.segmento_id !== selectedSegmento.value) return false
+        if (filterColor.value !== 'all' && !(COLORES_DEL_FILTRO[filterColor.value] || []).includes(getClientColorMode(cliente))) return false
         if (searchQuery.value) {
             const query = normalizeText(searchQuery.value)
             return normalizeText(cliente.razon_social).includes(query) || (cliente.cuit || '').includes(query)

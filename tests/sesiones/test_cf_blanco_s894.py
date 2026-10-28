@@ -56,6 +56,9 @@ for nombre, src, ret in (("la ficha del cliente", ficha, "'pink'"), ("la lista d
     check(f"{nombre}: un CF no se pinta Rosa (ni por condición, ni por CUIT de CF, ni por medalla vieja); el 11111111111 sí",
           "const esCfBlanco = (isConsumidorFinal || ['00000000000', '11111111119'].includes(cuit)) && cuit !== '11111111111';" in src
           and "((flags & 524288) && !esCfBlanco)" in src and "cuit === '11111111111'" in src and "isGeneric || isConsumidorFinal ||" not in src)
+check("la lista de clientes filtra por color con el mismo criterio que pinta la fila (Carlos 28/10: «no puedo pedir listar solo los blancos»): Blancos = validados y CUIT compartido, Rosa, A revisar",
+      'data-filtro="color"' in lista and "COLORES_DEL_FILTRO = { blanco: ['VALIDADO', 'BLUE'], rosa: ['PINK'], amarillo: ['YELLOW'] }" in lista
+      and "!(COLORES_DEL_FILTRO[filterColor.value] || []).includes(getClientColorMode(cliente))" in lista and "localStorage.getItem('hawe_filter_color')" in lista)
 falla = [d for d, ok in checks if not ok]
 print(f"\nRESULTADO: {len(checks) - len(falla)}/{len(checks)} checks OK"); [print("FALLO:", d) for d in falla]
 sys.exit(1 if falla else 0)
