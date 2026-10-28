@@ -348,7 +348,9 @@ def despachar_remito(remito_id: str, payload: schemas.DespacharPayload = schemas
     # [DISENO_CIRCUITO_PR_S869.md §9.3 / §2.4] El modelo documenta aprobado_para_despacho
     # como "GATEKEEPER FINANCIERO": si es False, Depósito no puede pasar a EN_CAMINO. Antes
     # este endpoint no lo consultaba -- la compuerta estaba escrita pero no enchufada.
-    if not remito.aprobado_para_despacho:
+    # [S894, Carlos 28/10] Mientras la compuerta esté apagada («Seguí» a todo), no frena.
+    from backend.pedidos import constants as pedidos_constants
+    if pedidos_constants.COMPUERTA_DESPACHO_ACTIVA and not remito.aprobado_para_despacho:
         raise HTTPException(
             status_code=409,
             detail="DESPACHO_NO_APROBADO: el remito no está aprobado para despacho."

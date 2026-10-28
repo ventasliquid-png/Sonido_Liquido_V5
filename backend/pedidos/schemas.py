@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from typing import List, Optional, Union
 from datetime import datetime
 from uuid import UUID
+from backend.pedidos import constants as pedidos_constants   # [S894] COMPUERTA_DESPACHO_ACTIVA, leída en el momento
 
 class PedidoItemCreate(BaseModel):
     # id: presente = actualizar ese renglón existente (preserva vínculo con RemitoItem).
@@ -204,6 +205,8 @@ class PedidoResponse(BaseModel):
     origen: str
     fecha_compromiso: Optional[datetime] = None
     liberado_despacho: bool = False
+    # [S894] si la compuerta financiera del despacho está prendida (pedidos/constants.py); la pantalla muestra el cartel solo entonces
+    compuerta_despacho: bool = Field(default_factory=lambda: pedidos_constants.COMPUERTA_DESPACHO_ACTIVA)
     oc: Optional[str] = None
     descuento_global_porcentaje: float = 0.0
     descuento_global_importe: float = 0.0

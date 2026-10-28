@@ -384,6 +384,7 @@ class ClienteService:
         [V15.1] ESCUDO DOBLE (Paz Binaria)
         Asigna medallas de éxito (Bit 19/20) según los pilares alcanzados.
         NO es destructivo: Un Bit 20 no quita un Bit 19 preexistente.
+        [S894, Carlos 28/10] Salvo la medalla Rosa (Bit 19): la pierde todo el que no es Rosa (un Consumidor Final es Blanco).
         """
         # Pilares Básicos
         has_iva = db_cliente.condicion_iva_id is not None
@@ -400,6 +401,9 @@ class ClienteService:
         if db_cliente.condicion_iva and db_cliente.condicion_iva.nombre:
             if "CONSUMIDOR FINAL" in db_cliente.condicion_iva.nombre.upper():
                 is_cf = True
+        # [S894, Carlos 28/10] Consumidor Final = Blanco (Factura B, IVA depositado): por condición de IVA o por los CUIT de CF
+        # (00000000000 mostrador, 11111111119 CF genérico). El CUIT reservado 11111111111 sigue siendo Rosa siempre (Regla 1-bis).
+        es_cf_blanco = (is_cf or db_cliente.cuit in ('00000000000', '11111111119')) and db_cliente.cuit != '11111111111'
 
         # --- [REGLA 1 — Nike 806] CONSUMIDOR FINAL FORZADO GOLD ---
         # CUIT 00000000000 nace Blanco Virgen (15) — nunca infiere Rosa
@@ -427,22 +431,28 @@ class ClienteService:
             # tiene >=10 caracteres y pasaba como CUIT real -- nunca prendía OPERATOR_OK. is_generic
             # ya se calculaba arriba para POWER_PINK; faltaba cruzarla acá.
             has_real_cuit = bool(db_cliente.cuit and len(db_cliente.cuit.strip()) >= 10 and not is_generic)
-            if has_segmento and not has_real_cuit:
+            # [S894, Carlos 28/10] Consumidor Final es Blanco: nunca se infiere Rosa por ser CF ni por su CUIT genérico de CF.
+            if has_segmento and not has_real_cuit and not es_cf_blanco:
                 db_cliente.flags_estado |= ClientFlags.OPERATOR_OK
             # Si consigue CUIT real pero aún sin Gold, no quitamos el sello Rosa
             # (la transición Rosa→Blanco requiere acción explícita del operador)
 
         # --- REGLA 1: POWER_PINK (Bit 19) ---
-        # Requisito: Nivel 9/11 + (Lista, Segmento) O CF/Genérico
+        # Requisito: Nivel 9/11 + (Lista, Segmento), o el CUIT reservado Rosa (11111111111).
         # Nota: Los domicilios son opcionales para informales (Retiro por Local)
-        if is_rosa:
-            if (has_lista and has_segmento) or is_generic or is_cf:
+        # [S894, Carlos 28/10] «Es un error que un cliente Consumidor Final se trate como Rosa. Esa clasificación es legal y obliga a tratar
+        # al comprador como B y depositar el IVA; es tan blanco a los efectos contables como un Responsable Inscripto». Antes: «CF/Genéricos
+        # siempre tienen soberanía base (Rosa)», y la medalla nunca se apagaba (Genesis Bag S.A., cargada como CF, seguía Rosa). Ahora un CF
+        # (por condición de IVA o por los CUIT de CF 00000000000 y 11111111119) no la lleva, y la pierde cualquiera que deje de ser Rosa.
+        if db_cliente.cuit == '11111111111':
+            db_cliente.flags_estado |= 524288 # Medalla Rosa: el CUIT reservado es Rosa siempre (Regla 1-bis)
+        elif is_rosa and not es_cf_blanco:
+            if has_lista and has_segmento:
                 db_cliente.flags_estado |= 524288 # Medalla Rosa
             else:
                 db_cliente.flags_estado &= ~524288 # Pierde medalla si falta lista/segmento
-        elif is_generic or is_cf:
-            # CF/Genéricos siempre tienen soberanía base (Rosa)
-            db_cliente.flags_estado |= 524288
+        else:
+            db_cliente.flags_estado &= ~524288 # CF, formal o cualquiera que no sea Rosa: sin medalla
 
         # --- REGLA 2: PENDIENTE_REVISION (Bit 20) ---
         # No es una medalla — es una alerta. Se prende si falta segmento o lista

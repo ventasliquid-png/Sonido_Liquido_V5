@@ -90,3 +90,9 @@ STATE_MASK = (
     PedidoFlags.ES_CUMPLIDO    |
     PedidoFlags.ES_ANULADO
 )
+
+# [S894, Carlos 28/10] Compuerta financiera del despacho (S876, «Liberar despacho»; el remito nace con aprobado_para_despacho = pedido.liberado_despacho
+# y «Despachar» frena si no está aprobado). Carlos: «es algo a prender cuando el sistema de crédito y la contabilidad esté armada; ahora es
+# ponerle "Seguí" a todo». Apagada: el remito nace aprobado, «Despachar» no la mira y las pantallas no muestran el cartel. Se lee en el momento
+# (pedidos_constants.COMPUERTA_DESPACHO_ACTIVA), así que prenderla es cambiar esta línea.
+COMPUERTA_DESPACHO_ACTIVA = False

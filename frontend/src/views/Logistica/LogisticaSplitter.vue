@@ -29,7 +29,8 @@
     </div>
     
     <!-- [GATEKEEPER] SECURITY BANNER -->
-    <div v-if="localPedido && !localPedido.liberado_despacho" class="bg-amber-500/10 border-l-4 border-amber-500 p-4 mb-6 text-amber-500 flex justify-between items-center">
+    <!-- [S894, Carlos 28/10] la compuerta financiera se muestra solo si está prendida (pedidos/constants.py COMPUERTA_DESPACHO_ACTIVA): hoy, «Seguí» -->
+    <div v-if="localPedido && localPedido.compuerta_despacho && !localPedido.liberado_despacho" class="bg-amber-500/10 border-l-4 border-amber-500 p-4 mb-6 text-amber-500 flex justify-between items-center">
       <div>
           <p class="font-bold uppercase tracking-wider text-xs"><i class="fas fa-lock"></i> Bloqueo Financiero Activo</p>
           <p class="text-sm">Este pedido no tiene la marca "Aprobado para Despacho". Los remitos nacerán bloqueados por defecto.</p>
@@ -39,7 +40,7 @@
           <i class="fas fa-unlock"></i> {{ liberando ? 'Liberando…' : 'Liberar despacho' }}
       </button>
     </div>
-    <div v-else-if="localPedido" class="mb-6 text-emerald-400 text-xs uppercase tracking-wider font-bold" data-estado="despacho-liberado">
+    <div v-else-if="localPedido && localPedido.compuerta_despacho" class="mb-6 text-emerald-400 text-xs uppercase tracking-wider font-bold" data-estado="despacho-liberado">
       <i class="fas fa-unlock"></i> Despacho liberado
     </div>
 
@@ -145,7 +146,7 @@
                    <h3 class="font-bold text-lg text-white">
                       Remito #{{ remito.numero_legal || 'BORRADOR' }}
                       <!-- [S876] Estos dos avisos son de un remito todavía BORRADOR: uno de mostrador nace ENTREGADO. -->
-                      <span v-if="remito.estado === 'BORRADOR' && !remito.aprobado_para_despacho" class="ml-2 text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded border border-red-500/30">
+                      <span v-if="remito.estado === 'BORRADOR' && !remito.aprobado_para_despacho && localPedido?.compuerta_despacho" class="ml-2 text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded border border-red-500/30">
                          <i class="fas fa-lock"></i> Bloqueado
                       </span>
                       <span v-else-if="remito.estado === 'BORRADOR' && !remito.numero_legal" class="ml-2 text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded border border-amber-500/30">
@@ -174,7 +175,7 @@
                    </span>
                 </div>
                 <div class="flex flex-col items-end gap-1">
-                    <div v-if="remito.estado === 'BORRADOR' && remito.aprobado_para_despacho && remito.numero_legal">
+                    <div v-if="remito.estado === 'BORRADOR' && (remito.aprobado_para_despacho || !localPedido?.compuerta_despacho) && remito.numero_legal">
                        <button @click="tryDespachar(remito)" class="text-xs bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded transition w-full">
                           <i class="fas fa-paper-plane mr-1"></i> Despachar
                        </button>

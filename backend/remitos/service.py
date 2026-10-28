@@ -14,6 +14,7 @@ from backend.clientes.models import Cliente, Domicilio
 from backend.productos.models import Producto
 from backend.pedidos.models import Pedido, PedidoItem
 from backend.pedidos.constants import PedidoFlags, STATE_MASK
+from backend.pedidos import constants as pedidos_constants   # [S894] COMPUERTA_DESPACHO_ACTIVA, leída en el momento
 from backend.logistica.models import EmpresaTransporte
 from backend.maestros.models import CondicionIva
 from backend.contactos.models import Vinculo, VinculoGeografico
@@ -1114,7 +1115,7 @@ class RemitosService:
             fecha_salida=datetime.now() if es_mostrador else None,
             # [Modelo, "GATEKEEPER FINANCIERO"] "Hereda del Pedido o se setea manual" -- el campo
             # equivalente en Pedido es liberado_despacho.
-            aprobado_para_despacho=pedido.liberado_despacho,
+            aprobado_para_despacho=pedido.liberado_despacho or not pedidos_constants.COMPUERTA_DESPACHO_ACTIVA,   # [S894] apagada: nace aprobado
             # [Etapa 3] numero_legal queda None -- se asigna al imprimir, no al armar.
             numero_legal=None,
             flags_estado=flags_remito,

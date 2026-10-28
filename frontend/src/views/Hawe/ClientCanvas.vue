@@ -2423,8 +2423,12 @@ const clientColorMode = computed(() => {
     const isConsumidorFinal = form.value.condicion_iva_id && 
             condicionesIva.value?.find(i => i.id === form.value.condicion_iva_id)?.nombre?.toUpperCase().includes('CONSUMIDOR FINAL');
 
+    // [S894, Carlos 28/10] Consumidor Final es Blanco (Factura B, IVA depositado), tan blanco como un Responsable Inscripto: no se pinta Rosa
+    // por ser CF, por su CUIT de CF (00000000000, 11111111119) ni por una medalla Rosa vieja. Rosa es el CUIT reservado 11111111111 o las marcas de Rosa.
+    const esCfBlanco = (isConsumidorFinal || ['00000000000', '11111111119'].includes(cuit)) && cuit !== '11111111111';
     // 1. [V15.1] POWER PINK (Bit 19 - 524288) o Reglas Difusas (Informales)
-    if ((flags & 524288) || (flags & 15) === 9 || (flags & 15) === 11 || !cuit || cuit.length < 5 || isGeneric || isConsumidorFinal || !form.value.condicion_iva_id) {
+    if (((flags & 524288) && !esCfBlanco) || (flags & 15) === 9 || (flags & 15) === 11 || cuit === '11111111111'
+        || (!esCfBlanco && (!cuit || cuit.length < 5 || isGeneric || !form.value.condicion_iva_id))) {
         return 'pink'; 
     }
     

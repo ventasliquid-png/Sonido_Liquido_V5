@@ -8,6 +8,10 @@ from backend.auth.dependencies import get_current_active_user
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
+from backend.pedidos import constants as pedidos_constants
+# [S894, Carlos 28/10] la compuerta quedó APAGADA («Seguí» a todo) hasta que exista el sistema de crédito: esta prueba la prende para
+# probar cómo funciona cuando se encienda, y al final comprueba el comportamiento apagado.
+pedidos_constants.COMPUERTA_DESPACHO_ACTIVA = True
 checks = []
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
 TMP = r"C:\dev\Sonido_Liquido_V5\scratch\test_liberar_despacho_tmp.db"
@@ -84,6 +88,14 @@ check("el PR en borrador del pedido 'otro' ahora sí quedó aprobado (era suyo)"
 r = c.post("/pedidos/99999999/liberar-despacho")
 check(f"pedido inexistente: 404 [{r.status_code}]", r.status_code == 404)
 check("GET /pedidos/{id} informa liberado_despacho (lo que lee la pantalla de logística)", c.get(f"/pedidos/{pid}").json().get("liberado_despacho") is True)
+
+# [S894] apagada (lo de hoy): un remito no aprobado se despacha igual, el armado nace aprobado y la pantalla no muestra el cartel
+pedidos_constants.COMPUERTA_DESPACHO_ACTIVA = False
+r_off = remito(6, "BORRADOR", pedido=otro)
+r = c.post(f"/remitos/{r_off}/despachar")
+check(f"compuerta apagada: despachar un remito no aprobado ya no da DESPACHO_NO_APROBADO [{r.status_code}: {str(r.json().get('detail'))[:40]}]",
+      "DESPACHO_NO_APROBADO" not in str(r.json().get("detail")))
+check("compuerta apagada: GET /pedidos/{id} informa compuerta_despacho = false (la pantalla no muestra el cartel)", c.get(f"/pedidos/{otro}").json().get("compuerta_despacho") is False)
 
 del c; gc.collect(); eng.dispose()
 try: os.remove(TMP)
