@@ -1,4 +1,4 @@
-﻿## SESION 894 (OF) — 2026-10-27/28 [NS (CC, Opus 5.5)]: todo D a producción, #164 cerrada, confirmación de diferencias de precio, Consumidor Final = Blanco y la identidad Rosa en los bits — NOMINAL — D:c48976c6 B:6bcbcd3 (= prod/main) P:6bcbcd3
+﻿## SESION 894 (OF) — 2026-10-27/28 [NS (CC, Opus 5.5)]: todo D a producción, #164 cerrada, confirmación de diferencias de precio, Consumidor Final = Blanco y la identidad Rosa en los bits — NOMINAL — D:9b8f3053 B:6bcbcd3 (= prod/main) P:6bcbcd3
 
 - Diez commits de código en D y seis pushes a P (paquete grande `d08e78b` incluido); migraciones 063, 066-073 aplicadas en P; Nike: dos consultas con Sello de Oro y una rectificación; Cards #195 a #201. 75 pruebas, 1.696 comprobaciones. Informe: `INFORMES_HISTORICOS/2026-10-28_S894_OF.md`.
 
