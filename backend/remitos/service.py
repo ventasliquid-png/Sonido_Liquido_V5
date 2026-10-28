@@ -46,26 +46,34 @@ class RemitosService:
         imagen = os.path.join(carpeta, f"remito_{numero_legal.replace('-', '_')}.pdf")
         if not os.path.exists(imagen):
             return None
-        archivada = f"remito_{numero_legal.replace('-', '_')}__hasta_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        base = f"remito_{numero_legal.replace('-', '_')}__hasta_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         os.makedirs(os.path.join(carpeta, "Reemplazadas"), exist_ok=True)
+        archivada, n = f"{base}.pdf", 1
+        while os.path.exists(os.path.join(carpeta, "Reemplazadas", archivada)):   # dos cambios en el mismo segundo no se pisan
+            n += 1
+            archivada = f"{base}_{n}.pdf"
         os.replace(imagen, os.path.join(carpeta, "Reemplazadas", archivada))
         return archivada
 
     @staticmethod
     def incorporar_oc_del_pedido(db: Session, pedido: Pedido, autor_id=None) -> list:
-        """[S894, Carlos 27/10; Nike Sello de Oro 27/10] La OC que llega tarde («se agrega a mano al entregar y después se incorpora al pedido»)
-        pasa a los remitos vigentes del pedido que no tienen OC propia: lo que importa es la auditoría («qué entregué de qué OC»), no la
-        reimpresión. Un remito con OC propia no se toca (salió con esa); «S/N» no es una OC. Si el remito tiene la imagen de su papel, se archiva
-        como al cambiar la fecha: el próximo papel sale con la OC. Cada remito tocado lleva una nota [SISTEMA]. No hace commit."""
+        """[S894, Carlos 27/10; Nike Sello de Oro 27/10] La OC del pedido pasa a sus remitos vigentes: lo que importa es la auditoría («qué
+        entregué de qué OC»), no la reimpresión. Vale igual si el remito no tenía OC («se agrega a mano al entregar y después se incorpora al
+        pedido») o si salió con otra: un número viejo que se corrigió a mano en lo del cliente no justifica anular el remito y hacer firmar
+        otro («si cambia, el tratamiento es el mismo que si estaba en blanco»). Queda dicho en una nota [SISTEMA] del remito: «OC agregada» o
+        «OC corregida: cambió X por Y». Una OC vacía o «S/N» no se pasa (no borra la que el remito tiene). Si el remito tiene la imagen de su
+        papel, se archiva como al cambiar la fecha: el próximo papel sale con la OC. No hace commit."""
         oc = (pedido.oc or "").strip()
         if not oc or oc.upper() == "S/N":
             return []
         tocados = []
         for r in db.query(models.Remito).filter(models.Remito.pedido_id == pedido.id, models.Remito.estado != "ANULADO").all():
-            if (r.oc or "").strip():
+            previa = (r.oc or "").strip()
+            if previa == oc:
                 continue
             r.oc = oc
-            texto = f"[SISTEMA] OC incorporada desde el pedido #{pedido.id}: «{oc}»."
+            texto = (f"[SISTEMA] OC corregida desde el pedido #{pedido.id}: cambió «{previa}» por «{oc}»." if previa
+                     else f"[SISTEMA] OC agregada desde el pedido #{pedido.id}: «{oc}».")
             archivada = RemitosService.archivar_imagen(r.numero_legal) if r.numero_legal else None
             if archivada:
                 texto += f" La imagen del papel anterior quedó archivada (Reemplazadas/{archivada}); el próximo papel sale con la OC."

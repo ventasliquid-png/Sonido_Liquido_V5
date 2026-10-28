@@ -5,9 +5,11 @@ con el Sello de Oro de Nike del 27/10 (CONSULTA_NIKE_oc_pedido_cerrado_2026-10-2
 - El papel del remito omite las líneas [SISTEMA] de la nota del pedido (son trazas internas; Card #181, «el mínimo posible»: filtrar con la función de
   backend/informes/notas.py sin mover dónde se guardan); la nota del pedido las conserva.
 - La pantalla del pedido cerrado guarda solo la OC y las notas.
-- La OC que llega tarde pasa a los remitos vigentes del pedido que no tienen OC propia, por los dos caminos (/oc-y-nota y el guardado de siempre),
-  con nota [SISTEMA] en cada remito; si el remito tenía la imagen de su papel, se archiva y el próximo papel sale con la OC (Carlos 27/10: «lo
-  importante no es la reimpresión sino la auditoría: qué entregué de qué OC»). Un remito con OC propia no se toca; «S/N» no es una OC.
+- La OC que cambia en el pedido pasa a sus remitos vigentes, por los dos caminos (/oc-y-nota y el guardado de siempre), con nota [SISTEMA] en
+  cada remito: «OC agregada» si no tenía, «OC corregida: cambió X por Y» si salió con otra (Carlos 27/10: «lo importante no es la reimpresión
+  sino la auditoría: qué entregué de qué OC»; «si cambia, el tratamiento es el mismo que si estaba en blanco»: un número viejo corregido a mano
+  en lo del cliente no se arregla anulando el remito). Si el remito tenía la imagen de su papel, se archiva y el próximo papel sale con la OC.
+  Una OC vacía o «S/N» no se pasa (no borra la del remito).
 Sobre una COPIA de P con migrate_066, 067, 068 y 069 (las del despliegue)."""
 import sys, os, shutil, sqlite3, glob, subprocess, io
 from _esquema_p import asegurar_esquema, imagenes_aparte
@@ -140,20 +142,25 @@ import uuid; rz = str(uuid.UUID(str(rz))); imagen = os.path.join(IMAGENES, f"rem
 r = cli.get(f"/remitos/{rz}/pdf")
 check(f"su papel queda guardado como imagen ({nz}) [{r.status_code}] y sale sin OC", r.status_code == 200 and os.path.exists(imagen) and not visto.get("oc"))
 r = cli.patch(f"/pedidos/{pz}/oc-y-nota", json={"oc": "OC-AUDIT-1"})
-nota_r = [t for t in ns(rz) if "[SISTEMA] OC incorporada desde el pedido" in t]
+nota_r = [t for t in ns(rz) if "[SISTEMA] OC agregada desde el pedido" in t]
 check(f"cargar la OC en el pedido cerrado #{pz} [{r.status_code}] la pasa al remito sin OC, con una nota [SISTEMA]: «{nota_r[0] if nota_r else ''}»",
-      r.status_code == 200 and q("select oc from remitos where id=?", rz.replace("-", ""))[0][0] == "OC-AUDIT-1" and len(nota_r) == 1 and f"#{pz}" in nota_r[0])
+      r.status_code == 200 and q("select oc from remitos where id=?", rz.replace("-", ""))[0][0] == "OC-AUDIT-1" and len(nota_r) == 1 and f"#{pz}: «OC-AUDIT-1»" in nota_r[0])
 archivadas = [n for n in os.listdir(os.path.join(IMAGENES, "Reemplazadas"))] if os.path.isdir(os.path.join(IMAGENES, "Reemplazadas")) else []
 check(f"y la imagen del papel sin OC se archiva, no se borra ({archivadas})", not os.path.exists(imagen) and any(n.startswith(f"remito_{nz.replace('-', '_')}__hasta_") for n in archivadas)
       and "Reemplazadas/" in nota_r[0])
 visto.clear(); r = cli.get(f"/remitos/{rz}/pdf")
 check(f"el próximo papel sale con la OC [{r.status_code}, OC {visto.get('oc')!r}] y pasa a ser la imagen", r.status_code == 200 and visto.get("oc") == "OC-AUDIT-1" and os.path.exists(imagen))
 r = cli.patch(f"/pedidos/{pz}/oc-y-nota", json={"oc": "OC-AUDIT-2"})
-check(f"si después la OC del pedido cambia otra vez, el remito conserva la que ya tiene (salió con esa) [{r.status_code}]",
-      r.status_code == 200 and q("select oc from remitos where id=?", rz.replace("-", ""))[0][0] == "OC-AUDIT-1" and len([t for t in ns(rz) if "[SISTEMA] OC incorporada desde el pedido" in t]) == 1)
-check(f"los remitos del pedido #{pc} que ya tenían OC propia no se tocaron al cambiarla en el pedido ({[o for _, o in propia0]})",
-      len(propia0) > 0 and all(q("select oc from remitos where id=?", i)[0][0] == o for i, o in propia0)
-      and not any("[SISTEMA] OC incorporada desde el pedido" in t for i, _ in propia0 for t in ns(str(i))))
+corr = [t for t in ns(rz) if "[SISTEMA] OC corregida desde el pedido" in t]
+viejas = [n for n in os.listdir(os.path.join(IMAGENES, "Reemplazadas")) if n.startswith(f"remito_{nz.replace('-', '_')}__hasta_")]
+check(f"si después la OC del pedido se corrige, el remito también (salió con otra: se trata igual que en blanco) [{r.status_code}]: «{corr[0] if corr else ''}»",
+      r.status_code == 200 and q("select oc from remitos where id=?", rz.replace("-", ""))[0][0] == "OC-AUDIT-2" and len(corr) == 1
+      and "cambió «OC-AUDIT-1» por «OC-AUDIT-2»" in corr[0] and len(viejas) == 2 and not os.path.exists(imagen))
+r = cli.patch(f"/pedidos/{pz}/oc-y-nota", json={"oc": ""})
+check(f"vaciar la OC del pedido no borra la del remito [{r.status_code}]", r.status_code == 200 and q("select oc from remitos where id=?", rz.replace("-", ""))[0][0] == "OC-AUDIT-2")
+check(f"los remitos del pedido #{pc} que salieron con la OC vieja ({[o for _, o in propia0]}) quedan con la corregida y su nota «cambió X por Y»",
+      len(propia0) > 0 and all(q("select oc from remitos where id=?", i)[0][0] == "OC-S894-77" for i, _ in propia0)
+      and all(sum(f"cambió «{o}» por «OC-S894-77»" in t for t in ns(str(i))) == 1 for i, o in propia0))
 # pedido abierto, por el guardado de siempre (PATCH /pedidos/{id})
 ab2 = pend[0]
 q("update pedidos set oc='' where id=?", ab2); q("update remitos set oc=NULL where pedido_id=?", ab2)

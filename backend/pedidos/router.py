@@ -922,7 +922,7 @@ def update_pedido(
                 pedido.nota = (pedido.nota or "") + nota_forense
                 pedido.flags_estado |= PF.CIERRE_CON_AJUSTE.value
 
-    # [S894, Carlos 27/10] La OC que llega después pasa a los remitos del pedido que no tienen OC propia (la auditoría: qué se entregó de qué OC).
+    # [S894, Carlos 27/10] La OC que cambia pasa a los remitos del pedido, agregada o corregida, con nota en cada remito (la auditoría: qué se entregó de qué OC).
     if "oc" in update_data and (update_data["oc"] or "").strip() != oc_anterior:
         from backend.remitos.service import RemitosService
         RemitosService.incorporar_oc_del_pedido(db, pedido)
@@ -1570,7 +1570,7 @@ def actualizar_oc_y_nota(
                                                  f"(antes: «{anterior or 'vacía'}»). {ts} {current_user.username}")
         if nueva != anterior:
             from backend.remitos.service import RemitosService
-            RemitosService.incorporar_oc_del_pedido(db, pedido, current_user.id)   # la OC tardía pasa a los remitos sin OC (auditoría)
+            RemitosService.incorporar_oc_del_pedido(db, pedido, current_user.id)   # la OC pasa a los remitos, agregada o corregida (auditoría)
     db.commit()
     db.refresh(pedido)
     return pedido

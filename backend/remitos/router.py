@@ -555,7 +555,7 @@ def get_remito_pdf(remito_id: str, vista_previa: bool = False, ver: bool = False
             if not primer_papel:
                 db.add(models.RemitoNota(remito_id=remito.id, texto=(
                     f"[SISTEMA] Reimpresión del remito ({datetime.now().strftime('%d/%m/%Y %H:%M')}): no había imagen guardada (remito impreso "
-                    "antes de guardar imágenes, con la fecha cambiada o con la OC incorporada después); se regeneró con los datos de hoy y desde ahora esta es su imagen.")))
+                    "antes de guardar imágenes, con la fecha cambiada o con la OC agregada o corregida después); se regeneró con los datos de hoy y desde ahora esta es su imagen.")))
         # [S891, Nike: bit 44 IMPRESO] El remito se imprimió (se generó su PDF) al menos una vez: la marca no se apaga nunca.
         # Un 0015 sin esta marca es una salida sin papel (se fue solo con la factura).
         if not (int(remito.flags_estado or 0) & int(RemitoFlags.IMPRESO)):
