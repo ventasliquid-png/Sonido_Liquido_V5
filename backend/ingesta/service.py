@@ -56,6 +56,15 @@ class IngestaService:
                 p_data = json.loads(p_data)
             except: pass
 
+        # [S894, Card #144] Un PDF subido antes de la S894 se leyó sin la bonificación de cada renglón: se vuelven a leer sus renglones
+        # (solo la vista; el raw queda como está), para que la comparación de precios con el pedido no vea diferencias que no existen.
+        if isinstance(p_data, dict) and raw.pdf_bytes and any("bonificacion" not in it for it in (p_data.get("items") or [])):
+            try:
+                text, words_data = ConserjeV2.extract_text(raw.pdf_bytes)
+                p_data = {**p_data, "items": ConserjeV2.parse_afip_pdf(text, words_data).get("items") or p_data.get("items")}
+            except Exception:
+                pass
+
         audit_log = ConserjeV2.audit_ingestion(p_data, db)
         
         return {
@@ -66,7 +75,7 @@ class IngestaService:
         }
 
     @staticmethod
-    def approve(db: Session, raw_id: uuid.UUID, edited_data: dict) -> dict:
+    def approve(db: Session, raw_id: uuid.UUID, edited_data: dict, usuario=None) -> dict:
         """
         Aprueba la ingesta y crea el registro de FacturaProcesada + Remito + Factura Mirror.
         """
@@ -97,6 +106,19 @@ class IngestaService:
                 detail="NOTA_NO_SE_INGESTA: Este comprobante es una nota de crédito o de débito y no se ingresa como factura. "
                        "Use \"Conciliar contra PR\" para aplicarla sobre la factura que corrige.")
 
+        # [S894, Card #144; Carlos 28/10] El precio de la factura contra el del pedido al que se ata: con una diferencia, la factura entra solo si el
+        # operador la confirma («que sea consciente»). Antes de tocar el raw, para que el 409 no lo deje en ERROR.
+        from backend.remitos.service import RemitosService
+        from backend.remitos.schemas import IngestionPayload
+        from backend.ingesta.precios import exigir_confirmacion
+        try:
+            diferencias_precio = RemitosService.diferencias_de_precio_ingesta(db, IngestionPayload(**edited_data))
+        except HTTPException:
+            raise
+        except Exception:
+            diferencias_precio = []   # un payload inválido falla igual más abajo, con su error
+        exigir_confirmacion(diferencias_precio, bool(edited_data.get("confirmar_diferencias_precio")))
+
         # Checkpoint visible: el raw entra en vuelo
         raw.audit_status = "PROCESANDO"
         db.add(raw)
@@ -116,6 +138,23 @@ class IngestaService:
             remito = RemitosService.create_from_ingestion(db, payload)
             remito_id = str(remito.id) if remito else None
 
+            # [S894, Card #144] La diferencia de precio confirmada queda dicha en la factura y en el pedido (el pedido no se cambia)
+            audit_log = dict(edited_data.get("audit_log") or {})
+            if diferencias_precio:
+                from backend.ingesta.precios import nota_confirmacion
+                from backend.facturacion.models import Factura, FacturaRemito
+                from backend.pedidos.models import Pedido
+                nota = nota_confirmacion(diferencias_precio, f"la factura {payload.factura.numero}", usuario, payload.motivo_diferencias_precio)
+                vinculo = db.query(FacturaRemito).filter(FacturaRemito.remito_id == remito.id).first() if remito else None
+                factura = db.query(Factura).filter(Factura.id == vinculo.factura_id).first() if vinculo else None
+                if factura is not None:
+                    factura.notas_auditoria = (factura.notas_auditoria + " | " + nota) if factura.notas_auditoria else nota
+                pedido = db.query(Pedido).filter(Pedido.id == payload.pedido_id_vinculado).first()
+                if pedido is not None:
+                    pedido.nota = ((pedido.nota or "") + "\n" + nota).strip()
+                audit_log["diferencias_precio"] = {"diferencias": diferencias_precio, "confirmado_por": getattr(usuario, "username", None),
+                                                   "motivo": (payload.motivo_diferencias_precio or "").strip() or None}
+
             # 2. Crear FacturaProcesada (Persistencia de Auditoría)
             p_cliente_id = edited_data.get("cliente", {}).get("id")
             p_pedido_id = edited_data.get("pedido_id_vinculado")
@@ -129,7 +168,7 @@ class IngestaService:
                 cae=edited_data.get("factura", {}).get("cae"),
                 vto_cae=edited_data.get("factura", {}).get("vto_cae"),
                 parsed_data_final=edited_data,
-                audit_log=edited_data.get("audit_log", {}),
+                audit_log=audit_log,
                 estado="CUARENTENA" if is_cuarentena else "APROBADA",
                 processed_at=datetime.now(timezone.utc)
             )

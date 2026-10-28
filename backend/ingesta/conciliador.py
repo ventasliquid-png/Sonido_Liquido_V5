@@ -25,11 +25,11 @@ from datetime import datetime, date, timezone
 from typing import Dict, List, Optional
 
 from fastapi import HTTPException
+from backend.ingesta.precios import diferencia_de_precio, factor_descuento_general, exigir_confirmacion, nota_confirmacion
 from sqlalchemy.orm import Session, joinedload
 
 EPS = 0.001
-TOLERANCIA_PRECIO_ABS = 1.0      # $1 o 0,5 %, lo que sea mayor
-TOLERANCIA_PRECIO_REL = 0.005
+# [S894] La tolerancia de precio ($1 o 0,5 %, lo que sea mayor) vive en backend/ingesta/precios.py, compartida con la Ingesta.
 
 
 def _norm_cuit(cuit: Optional[str]) -> str:
@@ -397,14 +397,14 @@ class ConciliadorService:
                 diferencias.append({"clase": "PARCIAL", "item_pdf": i, "remito_item_id": ri.id,
                                     "detalle": (f"'{info['producto']}': factura {cant} de {info['pendiente_facturar']} "
                                                 f"pendientes -- quedan {round(info['pendiente_facturar'] - cant, 4)} por facturar.")})
-            precio_pdf = it.get("precio_unitario") or 0
-            precio_ped = info["precio_pedido"]
-            if precio_ped:
-                tol = max(TOLERANCIA_PRECIO_ABS, precio_ped * TOLERANCIA_PRECIO_REL)
-                if abs(precio_pdf - precio_ped) > tol:
-                    diferencias.append({"clase": "B", "item_pdf": i, "remito_item_id": ri.id,
-                                        "detalle": (f"'{info['producto']}': precio en la factura {precio_pdf} "
-                                                    f"y en el pedido {round(precio_ped, 2)}.")})
+            # [S894, Card #144; Carlos 28/10] Precio efectivo de los dos lados: la bonificación de la factura, el descuento del renglón y el general
+            # del pedido. Antes se comparaba el precio de lista de la factura con el del pedido ya descontado (avisaba al revés). Una diferencia de
+            # precio pide la confirmación del operador al registrar (ingesta/precios.py).
+            pi = ri.pedido_item
+            d_precio = diferencia_de_precio(pi, it, factor_descuento_general(pi.pedido), info["producto"]) if pi is not None else None
+            if d_precio:
+                diferencias.append({"clase": "B", "tipo": "PRECIO", "item_pdf": i, "remito_item_id": ri.id,
+                                    "detalle": d_precio["detalle"], "precio": d_precio})
 
         # Clase A -- lo que manda ARCA y se toma tal cual (informativo)
         diferencias.append({"clase": "A", "detalle": (
@@ -439,7 +439,8 @@ class ConciliadorService:
 
     @staticmethod
     def confirmar(db: Session, raw_id, remito_ids: List[str], emparejamiento: List[dict], usuario,
-                  contra_natura: bool = False) -> dict:
+                  contra_natura: bool = False, confirmar_diferencias_precio: bool = False,
+                  motivo_diferencias_precio: Optional[str] = None) -> dict:
         """`contra_natura` [Etapa 7c]: el PR se acaba de reconstruir desde el mismo PDF (factura
         emitida en ARCA sin PR previo). Se concilia igual, pero queda marcado en la factura y en la
         auditoría de la ingesta -- "el circuito excepcional se permite, marcado y contable"."""
@@ -450,6 +451,9 @@ class ConciliadorService:
         ev = ConciliadorService.evaluar(db, raw_id, remito_ids, emparejamiento)
         if ev["bloqueos"]:
             raise HTTPException(status_code=409, detail="; ".join(ev["bloqueos"]))
+        # [S894, Card #144; Carlos 28/10] Con una diferencia de precio contra el pedido, la factura entra solo si el operador la confirma.
+        diferencias_precio = [d["precio"] for d in ev["diferencias"] if d.get("tipo") == "PRECIO"]
+        exigir_confirmacion(diferencias_precio, confirmar_diferencias_precio)
 
         enc, remitos, por_id = ev["factura"], ev["_remitos"], ev["_por_id"]
         items_pdf = enc["items"]
@@ -525,6 +529,12 @@ class ConciliadorService:
                 texto=f"[SISTEMA] Conciliación con {referencia}: diferencia clase B -- {d['detalle']} Pendiente de NC/ND.",
             ))
 
+        if diferencias_precio:
+            nota = nota_confirmacion(diferencias_precio, referencia, usuario, motivo_diferencias_precio)
+            factura.notas_auditoria = f"{factura.notas_auditoria} | {nota}"
+            for pedido in {r.pedido for r in remitos if r.pedido is not None}:
+                pedido.nota = ((pedido.nota or "") + "\n" + nota).strip()
+
         raw = ConciliadorService._raw(db, raw_id)
         audit = [{k: v for k, v in d.items()} for d in ev["diferencias"]]
         db.add(FacturasProcesadas(
@@ -536,7 +546,9 @@ class ConciliadorService:
             vto_cae=enc["vto_cae"],
             parsed_data_final=json.loads(json.dumps({**ev["_parsed"], "emparejamiento": ev["emparejamiento"],
                                                      "remito_ids": ev["remito_ids"]}, default=str)),
-            audit_log={"diferencias": audit, "usuario": getattr(usuario, "username", None)},
+            audit_log={"diferencias": audit, "usuario": getattr(usuario, "username", None),
+                       **({"diferencias_precio": {"confirmado_por": getattr(usuario, "username", None),
+                                                  "motivo": (motivo_diferencias_precio or "").strip() or None}} if diferencias_precio else {})},
             estado="CONTRA_NATURA" if contra_natura else "CONCILIADA",
             processed_at=datetime.now(timezone.utc),
         ))

@@ -107,9 +107,10 @@ fi = q("select fi.pedido_item_id, fi.cantidad from facturas_items fi join factur
 check(f"y las líneas de la factura espejo quedan enlazadas a los mismos renglones: {sorted(fi)}", sorted(fi) == sorted([(A82, 100.0), (B82, 40.0)]))
 
 # ---- (3b) la guarda de la ingesta acumula: dos líneas de 5 del mismo producto contra un renglón único de 8 (pedido 131 ya remitido: se usa el 126, de 8 del 179)
-a126 = q("select id, producto_id, cantidad from pedidos_items where pedido_id=126 order by id")[0]
+a126 = q("select id, producto_id, cantidad, subtotal / cantidad from pedidos_items where pedido_id=126 order by id")[0]
 cl126 = q("select cliente_id from pedidos where id=126")[0][0]; cuit126 = q("select cuit from clientes where id=?", cl126)[0][0]
-l5 = [{"descripcion": nombre(a126[1]), "cantidad": 5.0, "precio_unitario": 100.0, "producto_id": a126[1]}] * 2
+# [S894] el precio del renglón del pedido: con otro precio, la confirmación de diferencias de precio (Card #144) frena antes que la guarda de cantidades
+l5 = [{"descripcion": nombre(a126[1]), "cantidad": 5.0, "precio_unitario": a126[3], "producto_id": a126[1]}] * 2
 p = payload("00001-00003902", "86416772099902", l5, 126); p["cliente"] = {"id": cl126, "cuit": cuit126, "razon_social": "X"}
 nf, nr = q("select count(*) from facturas")[0][0], q("select count(*) from remitos")[0][0]
 r = c.post(f"/ingesta/raw/{raw([], '00001-00003902', '86416772099902')}/approve", json=p)

@@ -171,7 +171,8 @@ def parse_invoice_data(text: str, words_data: list = None) -> dict:
         "cantidad":    (235, 280),
         "u_medida":    (280, 330),
         "precio_unit": (330, 385), # Narrower to avoid Bonif (390+)
-        "subtotal":    (410, 485),
+        "bonif":       (385, 410), # [S894, Card #144] «% Bonif» del renglón
+        "subtotal":    (410, 485), # [S894, Card #144] el «Subtotal» que imprime ARCA, ya bonificado
         "alicuota":    (485, 525),
         "total_item":  (525, 600)
     }
@@ -288,7 +289,7 @@ def parse_invoice_data(text: str, words_data: list = None) -> dict:
                 continue
 
             # Clasificar por zonas
-            row_data = {"descripcion": "", "cantidad": None, "u_medida": None, "precio": None, "iva": 21.0}
+            row_data = {"descripcion": "", "cantidad": None, "u_medida": None, "precio": None, "bonif": None, "subtotal": None, "iva": 21.0}
             has_data_anchor = False
 
             for w in row_words:
@@ -307,6 +308,12 @@ def parse_invoice_data(text: str, words_data: list = None) -> dict:
                 elif ZONAS["precio_unit"][0] <= x < ZONAS["precio_unit"][1]:
                     if re.match(r'^\d+[\d\.,]*$', txt) and row_data["precio"] is None:
                          row_data["precio"] = _parse_ar_float(txt)
+                elif ZONAS["bonif"][0] <= x < ZONAS["bonif"][1]:
+                    if re.match(r'^\d+[\d\.,]*$', txt) and row_data["bonif"] is None:
+                         row_data["bonif"] = _parse_ar_float(txt)
+                elif ZONAS["subtotal"][0] <= x < ZONAS["subtotal"][1]:
+                    if re.match(r'^\d+[\d\.,]*$', txt) and row_data["subtotal"] is None:
+                         row_data["subtotal"] = _parse_ar_float(txt)
                 elif ZONAS["alicuota"][0] <= x < ZONAS["alicuota"][1]:
                     if "%" in txt:
                         try: row_data["iva"] = float(txt.replace("%", "").replace(",", "."))
@@ -315,12 +322,17 @@ def parse_invoice_data(text: str, words_data: list = None) -> dict:
             row_data["descripcion"] = row_data["descripcion"].strip()
 
             if has_data_anchor and row_data["cantidad"] is not None:
+                # [S894, Card #144] precio_unitario es el de lista, como lo imprime ARCA; la bonificación va aparte y el subtotal es el
+                # que imprime ARCA (ya bonificado). Si no se leyó, se calcula con la bonificación. Antes: cantidad x precio, sin bonificar.
+                bonif = row_data["bonif"] or 0.0
+                calculado = round(row_data["cantidad"] * (row_data["precio"] or 0.0) * (1 - bonif / 100.0), 2)
                 current_item = {
                     "descripcion": row_data["descripcion"],
                     "cantidad": row_data["cantidad"],
                     "precio_unitario": row_data["precio"] or 0.0,
+                    "bonificacion": bonif,
                     "alicuota_iva": row_data["iva"],
-                    "subtotal": round(row_data["cantidad"] * (row_data["precio"] or 0.0), 2)
+                    "subtotal": row_data["subtotal"] if row_data["subtotal"] is not None else calculado
                 }
                 items_v55.append(current_item)
             elif current_item and row_data["descripcion"] and not any(n in row_data["descripcion"].upper() for n in ["SUBTOTAL", "TOTAL", "CAE", "NETO", "FACTURA", "PAG.", "IMPORTE"]):

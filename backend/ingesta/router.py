@@ -10,6 +10,8 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from backend.core.database import get_db
 from backend.ingesta.service import IngestaService
+from backend.auth.dependencies import get_current_active_user
+from backend.auth import models as auth_models
 
 router = APIRouter(prefix="/ingesta", tags=["ingesta"])
 
@@ -132,9 +134,11 @@ def get_preview(raw_id: uuid.UUID, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/raw/{raw_id}/approve")
-def approve_ingesta(raw_id: uuid.UUID, edited_data: Dict[str, Any], db: Session = Depends(get_db)):
+def approve_ingesta(raw_id: uuid.UUID, edited_data: Dict[str, Any], db: Session = Depends(get_db),
+                    current_user: auth_models.Usuario = Depends(get_current_active_user)):
+    # [S894, Card #144; Carlos 28/10] Con sesión: si el precio de la factura difiere del pedido, la nota dice quién lo confirmó.
     try:
-        procesada = IngestaService.approve(db, raw_id, edited_data)
+        procesada = IngestaService.approve(db, raw_id, edited_data, current_user)
         return {
             "id": procesada["id"],
             "estado": procesada["estado"],
@@ -188,6 +192,9 @@ from backend.ingesta.conciliador import ConciliadorService
 class ConciliacionPayload(BaseModel):
     remito_ids: List[str]
     emparejamiento: Optional[List[Dict[str, Any]]] = None
+    # [S894, Card #144; Carlos 28/10] confirmación consciente de una diferencia de precio contra el pedido (motivo opcional)
+    confirmar_diferencias_precio: bool = False
+    motivo_diferencias_precio: Optional[str] = None
 
 
 def _sin_privados(ev: dict) -> dict:
@@ -216,7 +223,9 @@ def conciliacion_confirmar(
 ):
     if payload.emparejamiento is None:
         raise HTTPException(status_code=400, detail="EMPAREJAMIENTO_REQUERIDO: confirmá el emparejamiento que evaluaste.")
-    return ConciliadorService.confirmar(db, raw_id, payload.remito_ids, payload.emparejamiento, current_user)
+    return ConciliadorService.confirmar(db, raw_id, payload.remito_ids, payload.emparejamiento, current_user,
+                                        confirmar_diferencias_precio=payload.confirmar_diferencias_precio,
+                                        motivo_diferencias_precio=payload.motivo_diferencias_precio)
 
 
 # --- [Etapa 7d] Notas de crédito / débito: no cierran un PR, ajustan facturas. `candidatos` (arriba) es el

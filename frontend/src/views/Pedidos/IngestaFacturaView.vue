@@ -107,8 +107,8 @@
                                         <span class="leading-tight" :title="item.producto?.nombre">{{ item.producto?.nombre || '—' }}</span>
                                     </td>
                                     <td class="py-1.5 px-2 text-right font-mono text-slate-300">{{ item.cantidad }}</td>
-                                    <td class="py-1.5 px-2 text-right font-mono text-slate-400">{{ formatCurrencyDetail(item.precio_unitario) }}</td>
-                                    <td class="py-1.5 pr-3 text-right font-mono text-emerald-400">{{ formatCurrencyDetail(item.cantidad * item.precio_unitario) }}</td>
+                                    <td class="py-1.5 px-2 text-right font-mono text-slate-400">{{ formatCurrencyDetail(item.precio_unitario) }}<span v-if="item.descuento_porcentaje" class="text-slate-500"> −{{ item.descuento_porcentaje }} %</span></td>
+                                    <td class="py-1.5 pr-3 text-right font-mono text-emerald-400">{{ formatCurrencyDetail(item.subtotal ?? item.cantidad * item.precio_unitario) }}</td>
                                 </tr>
                                 <tr v-if="!selectedPedidoDetail.items?.length">
                                     <td colspan="5" class="py-4 text-center text-slate-500 italic text-xs">Sin ítems</td>
@@ -414,6 +414,7 @@
                                             class="w-full bg-transparent border-none text-sm text-slate-300 group-hover:text-white focus:outline-none focus:ring-1 focus:ring-blue-500/50 rounded px-1 transition-all"
                                             placeholder="Descripción del ítem..."
                                         />
+                                        <span v-if="item.bonificacion" class="ml-1 text-[10px] font-mono text-amber-400/80">bonif. {{ item.bonificacion }} %</span>
                                     </td>
                                     <td class="py-2 text-right">
                                         <input 
@@ -650,6 +651,16 @@
         @cancel="onAsistenteEntregaCancelado"
     />
 
+    <!-- [S894, Card #144] El precio de la factura no coincide con el del pedido: el operador confirma a conciencia (motivo opcional) -->
+    <ConfirmarDiferenciasPrecio
+        v-if="diferenciasPrecio"
+        :diferencias="diferenciasPrecio.diferencias"
+        :mensaje="diferenciasPrecio.mensaje"
+        :enviando="loading"
+        @confirmar="onConfirmarDiferenciasPrecio"
+        @cancelar="diferenciasPrecio = null"
+    />
+
     <!-- IDENTITY DISCREPANCY MODAL -->
     <Teleport to="body">
         <div v-if="showIdentityModal" class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
@@ -751,6 +762,7 @@ import ClientCanvas from '../Hawe/ClientCanvas.vue';
 import SmartSelect from '@/components/ui/SmartSelect.vue';
 import IngestaItemModal from '@/views/Ventas/components/IngestaItemModal.vue';
 import AsistenteEntregaParcial from './components/AsistenteEntregaParcial.vue';
+import ConfirmarDiferenciasPrecio from './components/ConfirmarDiferenciasPrecio.vue';   // [S894, Card #144]
 import api from '@/services/api';
 
 const router = useRouter();
@@ -800,6 +812,13 @@ const addressAmbiguity = ref(false);
 const manualAddressChange = ref(false);
 
 const duplicadoData = ref(null);
+
+// [S894, Card #144] 409 DIFERENCIA_DE_PRECIO: { mensaje, diferencias } mientras el operador decide
+const diferenciasPrecio = ref(null);
+const onConfirmarDiferenciasPrecio = async (motivo) => {
+    diferenciasPrecio.value = null;
+    await confirmIngesta({ motivo });
+};
 
 // 409 Modal State
 const show409Modal = ref(false);
@@ -1401,7 +1420,10 @@ const onItemResolutionModalCancel = () => {
     error.value = 'Ingesta cancelada: quedaron ítems sin resolver contra el catálogo de Productos.';
 };
 
-const confirmIngesta = async () => {
+// confirmacionPrecios: { motivo } cuando el operador ya confirmó las diferencias de precio contra el pedido [S894, Card #144]
+const confirmIngesta = async (confirmacionPrecios = null) => {
+    // solo cuenta la confirmación del modal ({ motivo }): un evento de clic pasado por error no confirma nada
+    if (!(confirmacionPrecios && typeof confirmacionPrecios === 'object' && 'motivo' in confirmacionPrecios)) confirmacionPrecios = null;
     if (!parsedData.value) return;
 
     // Guard: número de comprobante requerido antes de aprobar
@@ -1441,6 +1463,7 @@ const confirmIngesta = async () => {
                 // viaja separada -- "cantidad" sigue siendo lo que dice la factura (fiscal).
                 cantidad_remitir: item.cantidad_remitir != null ? parseFloat(item.cantidad_remitir) : undefined,
                 precio_unitario: parseFloat(item.precio_unitario || item.precio || 0.0),
+                bonificacion: item.bonificacion != null ? parseFloat(item.bonificacion) : 0,   // [S894, Card #144]
                 codigo: item.codigo || item.sku || null,
                 producto_id: item.producto_id || null
             })),
@@ -1456,7 +1479,8 @@ const confirmIngesta = async () => {
             // (enviarVinculacionExistente, c4d5429).
             modo_ingesta: selectedPedidoId.value && selectedPedidoId.value !== 'NEW' ? 'VINCULAR_PARCIAL' : null,
             pedido_id_vinculado: selectedPedidoId.value && selectedPedidoId.value !== 'NEW' ? Number(selectedPedidoId.value) : null,
-            modo_cuarentena: false
+            modo_cuarentena: false,
+            ...(confirmacionPrecios ? { confirmar_diferencias_precio: true, motivo_diferencias_precio: confirmacionPrecios.motivo || null } : {})
         };
 
         if (selectedAddressId.value && selectedAddressId.value !== 'ADD_NEW') {
@@ -1495,6 +1519,11 @@ const confirmIngesta = async () => {
         // Handle 409 Conflict: Factura sin pedido vinculado OR Duplicada
         if (e.response?.status === 409) {
             loading.value = false;
+            // [S894, Card #144] Diferencia de precio con el pedido: no se registró nada; el operador revisa y confirma
+            if (e.response.data?.detail?.codigo === 'DIFERENCIA_DE_PRECIO') {
+                diferenciasPrecio.value = e.response.data.detail;
+                return;
+            }
             const detail = e.response.data.detail || '';
             
             if (detail.includes('FACTURA_DUPLICADA')) {
@@ -1625,6 +1654,7 @@ const retryInCuarentena = async () => {
                 descripcion: item.descripcion,
                 cantidad: parseFloat(item.cantidad),
                 precio_unitario: parseFloat(item.precio_unitario || item.precio || 0.0),
+                bonificacion: item.bonificacion != null ? parseFloat(item.bonificacion) : 0,   // [S894, Card #144]
                 codigo: item.codigo || item.sku || null,
                 producto_id: item.producto_id || null
             })),

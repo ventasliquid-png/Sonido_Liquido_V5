@@ -313,6 +313,33 @@ class RemitosService:
         return resultado
 
     @staticmethod
+    def _subtotal_de_linea(it) -> float:
+        """[S894, Card #144] Subtotal de un renglón de la factura: el que imprime ARCA (ya bonificado) o, si no vino, cantidad x precio con la bonificación."""
+        if it.subtotal:
+            return it.subtotal
+        return it.cantidad * (it.precio_unitario or 0.0) * (1 - (getattr(it, "bonificacion", None) or 0.0) / 100.0)
+
+    @staticmethod
+    def diferencias_de_precio_ingesta(db: Session, payload) -> list:
+        """[S894, Card #144; Carlos 28/10] Diferencias de precio entre los renglones de la factura y los del pedido al que se ata (backend/ingesta/precios.py),
+        emparejados como al registrarla (_emparejar_renglones_factura). Solo con un pedido que ya existía (VINCULAR_*): en cuarentena el pedido nace de la
+        factura y no hay con qué comparar."""
+        from backend.ingesta.precios import diferencia_de_precio, factor_descuento_general
+        if getattr(payload, "modo_cuarentena", False) or not payload.pedido_id_vinculado or not str(payload.modo_ingesta or "").startswith("VINCULAR"):
+            return []
+        pedido = db.query(Pedido).filter(Pedido.id == payload.pedido_id_vinculado).first()
+        if pedido is None:
+            return []
+        factor = factor_descuento_general(pedido)
+        por_id = {pi.id: pi for pi in pedido.items}
+        diferencias = []
+        for pid, it in RemitosService._emparejar_renglones_factura(db, payload, pedido.id).items():
+            d = diferencia_de_precio(por_id.get(pid), it, factor)
+            if d:
+                diferencias.append(d)
+        return diferencias
+
+    @staticmethod
     def _renglon_de_la_linea(items_pedido, producto_id, usados):
         """[Card #179, S888] Renglón del pedido que corresponde a una línea de la factura, por producto. Con dos renglones del mismo producto, cada línea toma el
         PRIMERO QUE TODAVÍA NO USÓ otra línea (el mismo criterio de _emparejar_renglones_factura); si ya se usaron todos, vuelve al primero (lo de siempre: la
@@ -681,6 +708,10 @@ class RemitosService:
                         producto_id=producto.id,
                         cantidad=it.cantidad,
                         precio_unitario=it.precio_unitario or 0.0,
+                        # [S894, Card #144] la bonificación de la factura pasa al pedido como descuento del renglón
+                        descuento_porcentaje=getattr(it, "bonificacion", None) or 0.0,
+                        descuento_importe=round(it.cantidad * (it.precio_unitario or 0.0) - RemitosService._subtotal_de_linea(it), 2),
+                        subtotal=round(RemitosService._subtotal_de_linea(it), 2),
                         nota="Ítem de Ingesta en Cuarentena"
                     )
                     db.add(new_p_item)
@@ -904,7 +935,7 @@ class RemitosService:
             total_e = payload.valor_declarado or 0.0
             if payload.factura.total_final is not None:
                 from backend.ingesta.conciliador import desglose_importes
-                _items_pdf = [{"subtotal": (it.subtotal or (it.cantidad * (it.precio_unitario or 0.0))), "alicuota_iva": getattr(it, "alicuota_iva", 21.0)}
+                _items_pdf = [{"subtotal": RemitosService._subtotal_de_linea(it), "alicuota_iva": getattr(it, "alicuota_iva", 21.0)}
                               for it in payload.items]
                 neto_e, iva21_e, iva105_e, exento_e, percep_e, total_e = desglose_importes(
                     {"total_neto": payload.factura.total_neto, "total_final": payload.factura.total_final}, _items_pdf)
@@ -945,7 +976,7 @@ class RemitosService:
             db.flush()
             pedido_item_de = {id(it): pid for pid, it in emparejados.items()}
             for it in payload.items:
-                sub = it.subtotal or (it.cantidad * (it.precio_unitario or 0.0))
+                sub = RemitosService._subtotal_de_linea(it)   # [S894, Card #144] precio de lista y subtotal bonificado, como en el PDF
                 # [S882, Card #164] Sin pedido_item_id la factura no cuenta como facturado de ningun renglon (backend/pedidos/cantidades.py).
                 pid = pedido_item_de.get(id(it))
                 r_item_mirror = (db.query(models.RemitoItem).filter(models.RemitoItem.remito_id == remito.id, models.RemitoItem.pedido_item_id == pid).first()

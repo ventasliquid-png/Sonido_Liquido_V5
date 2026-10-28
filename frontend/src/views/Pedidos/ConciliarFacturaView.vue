@@ -208,11 +208,12 @@
             </li>
           </ul>
           <p v-if="hayClaseB" class="text-[11px] text-amber-400/80">
-            Las diferencias clase B no frenan: la factura se registra igual, queda una nota [SISTEMA] en el PR y el desfase
+            <template v-if="diferenciasPrecioEv.length">Las diferencias de precio con el pedido piden tu confirmación al registrar. </template>
+            Las demás diferencias clase B no frenan: la factura se registra igual, queda una nota [SISTEMA] en el PR y el desfase
             se ve en la resta (facturado ≠ remitido) hasta que llegue la nota de crédito o débito.
           </p>
 
-          <button @click="confirmar" :disabled="!!ev.bloqueos.length || confirmando"
+          <button @click="confirmar()" :disabled="!!ev.bloqueos.length || confirmando"
             class="px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white text-sm font-bold">
             <i class="fas" :class="confirmando ? 'fa-spinner fa-spin' : 'fa-check'"></i> Confirmar conciliación
           </button>
@@ -309,6 +310,16 @@
         </section>
       </template>
     </main>
+
+    <!-- [S894, Card #144] El precio de la factura no coincide con el del pedido: el operador confirma a conciencia (motivo opcional) -->
+    <ConfirmarDiferenciasPrecio
+      v-if="diferenciasPrecio"
+      :diferencias="diferenciasPrecio.diferencias"
+      :mensaje="diferenciasPrecio.mensaje"
+      :enviando="confirmando"
+      @confirmar="(motivo) => { diferenciasPrecio = null; confirmar({ motivo }) }"
+      @cancelar="diferenciasPrecio = null"
+    />
   </div>
 </template>
 
@@ -317,6 +328,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '@/services/api'
 import { useNotificationStore } from '@/stores/notification'
+import ConfirmarDiferenciasPrecio from './components/ConfirmarDiferenciasPrecio.vue'   // [S894, Card #144]
 
 const route = useRoute()
 const notification = useNotificationStore()
@@ -348,6 +360,9 @@ const renglonesElegibles = computed(() =>
 const bloqueosVisibles = computed(() =>
   (esAjuste.value ? (ajEv.value ? ajEv.value.bloqueos : cand.value?.bloqueos) : (ev.value ? ev.value.bloqueos : cand.value?.bloqueos)) || [])
 const hayClaseB = computed(() => ev.value?.diferencias.some(d => d.clase === 'B'))
+// [S894, Card #144] diferencias de precio con el pedido (precio efectivo de los dos lados): piden la confirmación del operador
+const diferenciasPrecioEv = computed(() => (ev.value?.diferencias || []).filter(d => d.tipo === 'PRECIO').map(d => d.precio))
+const diferenciasPrecio = ref(null)
 
 const moneda = (v) => (v == null ? '—' : Number(v).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' }))
 const ESTILOS = {
@@ -405,18 +420,33 @@ const cambiarPar = (i, valor) => {
   evaluar(nuevo.map(({ item_pdf, remito_item_id }) => ({ item_pdf, remito_item_id })))
 }
 
-const confirmar = async () => {
+// confirmacionPrecios: { motivo } cuando el operador ya confirmó las diferencias de precio [S894, Card #144]
+const confirmar = async (confirmacionPrecios = null) => {
+  // solo cuenta la confirmación del modal ({ motivo }): un evento de clic pasado por error no confirma nada
+  if (!(confirmacionPrecios && typeof confirmacionPrecios === 'object' && 'motivo' in confirmacionPrecios)) confirmacionPrecios = null
+  if (diferenciasPrecioEv.value.length && !confirmacionPrecios) {
+    diferenciasPrecio.value = {
+      mensaje: 'Revisalo y confirmá para registrar la factura así; el pedido no se cambia.',
+      diferencias: diferenciasPrecioEv.value,
+    }
+    return
+  }
   confirmando.value = true
   try {
     const body = {
       remito_ids: [...seleccion.value],
       emparejamiento: emparejamiento.value.map(({ item_pdf, remito_item_id }) => ({ item_pdf, remito_item_id })),
+      ...(confirmacionPrecios ? { confirmar_diferencias_precio: true, motivo_diferencias_precio: confirmacionPrecios.motivo || null } : {}),
     }
     resultado.value = (await api.post(`/ingesta/raw/${rawId}/conciliacion/confirmar`, body)).data
     notification.add(`Factura ${resultado.value.numero} conciliada`, 'success')
     ev.value = null
     await cargar()
   } catch (e) {
+    if (e.response?.status === 409 && e.response.data?.detail?.codigo === 'DIFERENCIA_DE_PRECIO') {
+      diferenciasPrecio.value = e.response.data.detail
+      return
+    }
     error(e, 'No se pudo conciliar')
   } finally {
     confirmando.value = false

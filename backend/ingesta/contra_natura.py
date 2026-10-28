@@ -151,6 +151,7 @@ class ContraNaturaService:
                 "descripcion": it.get("descripcion"),
                 "cantidad": it.get("cantidad"),
                 "precio_unitario": it.get("precio_unitario"),
+                "bonificacion": it.get("bonificacion") or 0.0,   # [S894, Card #144]
                 "subtotal": it.get("subtotal"),
                 "producto_id": prod.id if prod else None,
                 "producto": prod.nombre if prod else None,
@@ -251,9 +252,12 @@ class ContraNaturaService:
             for r in ev["renglones"]:
                 cant = r["cantidad"] or 0.0
                 precio = r["precio_unitario"] or 0.0
-                subtotal = r["subtotal"] if r["subtotal"] is not None else round(cant * precio, 2)
+                bonif = r.get("bonificacion") or 0.0
+                subtotal = r["subtotal"] if r["subtotal"] is not None else round(cant * precio * (1 - bonif / 100.0), 2)
+                # [S894, Card #144] la bonificación de la factura pasa al pedido como descuento del renglón
                 pi = PedidoItem(pedido_id=pedido.id, producto_id=r["producto_id"], cantidad=cant,
-                                precio_unitario=precio, subtotal=subtotal, nota="")
+                                precio_unitario=precio, descuento_porcentaje=bonif, descuento_importe=round(cant * precio - subtotal, 2),
+                                subtotal=subtotal, nota="")
                 db.add(pi)
                 items_pedido.append(pi)
                 neto += subtotal

@@ -187,8 +187,9 @@ class IngestionItem(BaseModel):
     # facturado (ej. factura por 120, entrega de 40 por semana). None = comportamiento
     # previo, se remite lo mismo que dice la factura.
     cantidad_remitir: Optional[float] = None
-    precio_unitario: Optional[float] = None
-    subtotal: Optional[float] = None
+    precio_unitario: Optional[float] = None   # el de lista, como lo imprime ARCA
+    bonificacion: Optional[float] = None      # [S894, Card #144] «% Bonif» del renglón
+    subtotal: Optional[float] = None          # el que imprime ARCA, ya bonificado
     alicuota_iva: Optional[float] = 21.0
     producto_id: Optional[Union[str, int]] = None
 
@@ -205,6 +206,10 @@ class IngestionPayload(BaseModel):
     modo_ingesta: Optional[str] = None # "VINCULAR_EXISTENTE" | "VINCULAR_CUMPLIDO"
     pedido_id_vinculado: Optional[int] = None # ID del pedido a vincular
     modo_cuarentena: Optional[bool] = False
+    # [S894, Card #144; Carlos 28/10] Con una diferencia de precio contra el pedido, la factura entra solo si el operador la confirma
+    # (backend/ingesta/precios.py); el motivo es opcional.
+    confirmar_diferencias_precio: bool = False
+    motivo_diferencias_precio: Optional[str] = None
 
 class ArmarRemitoItemPayload(BaseModel):
     """[Etapa 4] Elegido de la lista del pedido -- nunca texto libre.
