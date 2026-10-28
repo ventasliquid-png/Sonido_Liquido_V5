@@ -34,7 +34,7 @@
                         :class="modelValue.domicilio_entrega_id === dom.id ? 'bg-emerald-600/20 border-emerald-500' : 'bg-black/20 border-white/5 hover:border-emerald-500/30'"
                     >
                         <div class="flex justify-between items-start">
-                            <span class="text-[10px] font-bold text-white truncate w-full">{{ dom.calle }} {{ dom.numero }}</span>
+                            <span class="text-[10px] font-bold text-white truncate w-full">{{ textoEntrega(dom) }}</span>
                             <span v-if="dom.es_entrega" class="text-[8px] bg-emerald-500/20 text-emerald-300 px-1 rounded ml-1 shrink-0">ENTREGA</span>
                             <span v-else-if="dom.es_fiscal" class="text-[8px] bg-purple-500/20 text-purple-300 px-1 rounded ml-1 shrink-0">FISCAL</span>
                         </div>
@@ -158,6 +158,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import SmartSelect from '@/components/ui/SmartSelect.vue';
+import { textoEntrega } from '@/utils/domicilio'; // [S894] el lado de entrega del domicilio, como el papel
 import { useLogisticaStore } from '@/stores/logistica';
 import { usePedidosStore } from '@/stores/pedidos';
 import { useNotificationStore } from '@/stores/notification';

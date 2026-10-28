@@ -281,7 +281,7 @@
                             >
                                 <option :value="null">Definir entrega...</option>
                                 <option v-for="dom in clientAddresses" :key="dom.id" :value="dom.id">
-                                    {{ dom.calle }} {{ dom.numero }} ({{ dom.localidad }})
+                                    {{ textoEntrega(dom) }}
                                 </option>
                             </select>
                              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -965,6 +965,7 @@ import { avisarPedidoActualizado } from '@/utils/canalPedidos'; // [S876] avisa 
 import EstadoEditable from '@/components/informes/EstadoEditable.vue'; // [S876] estado editable en el encabezado de la ficha
 import SelectorInline from '@/components/informes/SelectorInline.vue'; // [S883, Card #171] el mismo cartel, para elegir el tipo al crear
 import { estadoClase, estadoTexto } from '@/utils/estadosPedido';
+import { textoEntrega } from '@/utils/domicilio'; // [S894] el domicilio de entrega con su lado de entrega, como el papel
 import { claseEstadoRemito, traerRemitosDelPedido, imprimirRemitoExistente } from '@/composables/useRemitosDelPedido'; // [S887] ¿ya tiene remito?
 import { shallowRef } from 'vue'; // Optimization
 
@@ -1387,7 +1388,7 @@ const resumenCabecera = computed(() => {
     const transporte = availableTransportes.value.find(t => t.id === selectedTransporteId.value);
     const vinculo = (id) => vinculosCliente.value.find(v => v.id === id)?.nombre_completo;
     return {
-        domicilio: dom ? `${dom.calle || ''} ${dom.numero || ''}${dom.localidad ? ` (${dom.localidad})` : ''}` : 'Entrega sin definir',
+        domicilio: dom ? textoEntrega(dom) : 'Entrega sin definir',
         transporte: transporte?.nombre || 'Sin transporte',
         comprador: vinculo(selectedCompradorId.value) || 'Sin especificar',
         contacto: vinculo(selectedContactoEntregaId.value) || 'Sin especificar',

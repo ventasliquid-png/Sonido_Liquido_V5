@@ -90,6 +90,11 @@
         </button>
 
         <div v-show="expandedGroups.includes('REMITOS')" class="pl-4 space-y-1">
+            <!-- [S894, Carlos 28/10] «Nuevo» en el menú, como «Nuevo Pedido»: abre el listado con el «¿de qué pedido?» ya abierto -->
+            <a href="#" @click.prevent="router.push({ name: 'RemitoList', query: { nuevo: Date.now() } })" class="nav-item-sub" data-accion="menu-nuevo-remito">
+                <i class="fas fa-plus w-4"></i>
+                <span>Nuevo remito</span>
+            </a>
             <a href="#" @click.prevent="navigate('RemitoList')" class="nav-item-sub" :class="{ 'active-link-orange': isActive('RemitoList') || isActive('RemitoFicha') }">
                 <i class="fas fa-truck-loading w-4"></i>
                 <span>Remitos</span>

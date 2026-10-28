@@ -416,6 +416,7 @@ import { useLogisticaStore } from '@/stores/logistica';
 import { usePedidosStore } from '@/stores/pedidos'; // Assuming this exists to fetch full pedido details
 // If not, we might need to fetch manually. Assuming it exists.
 import api from '@/services/api';
+import { textoEntrega } from '@/utils/domicilio'; // [S894] el lado de entrega del domicilio, como el papel
 import {
     METODOS_ENTREGA, MOTIVOS_NO_FACTURABLE, ETIQUETA_OFICINA,
     metodoCorto, metodoLabel, motivoLabel, motivoClase,
@@ -510,8 +511,8 @@ const getAddressLabel = (id) => {
    // con el campo viejo la pantalla mostraba "undefined (Localidad)".
    const dom = clientDomicilios.value.find(d => d.id === id);
    if (!dom) return 'Dirección Desconocida';
-   const calle = dom.resumen || [dom.calle, dom.numero].filter(Boolean).join(' ') || 'Sin calle';
-   return dom.localidad ? `${calle} (${dom.localidad})` : calle;
+   // [S894] con el lado de entrega cuando es otra calle (Genesis Bag: Pilar, no Gutenberg), como el papel del remito
+   return textoEntrega(dom) || dom.resumen || 'Sin calle';
 };
 
 const getTransportLabel = (id) => {

@@ -530,7 +530,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed, reactive, provide, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, computed, reactive, provide, nextTick, watch } from 'vue'
 import { normalizarBusqueda } from '@/utils/texto'
 import { useRouter, useRoute } from 'vue-router'
 import { useRemitosStore } from '@/stores/remitos'
@@ -1009,8 +1009,17 @@ provide('remitosAcciones', {
     openEditModal: (r) => openEditModal(filaDe(r)),
 })
 
+// [S894, Carlos 28/10] «Nuevo remito» del menú lateral llega con ?nuevo=: abre el «¿de qué pedido?» y limpia la marca (un F5 no lo reabre)
+const abrirNuevoDesdeMenu = async () => {
+    if (!route.query.nuevo) return
+    await router.replace({ name: 'RemitoList' })
+    nuevoRemito()
+}
+watch(() => route.query.nuevo, abrirNuevoDesdeMenu)
+
 onMounted(async () => {
     window.addEventListener('keydown', onKeyLista)
+    abrirNuevoDesdeMenu()
     refresh()
     if (maestrosStore.transportes.length === 0) maestrosStore.fetchTransportes()
     if (clientesStore.clientes.length === 0) await clientesStore.fetchClientes()
