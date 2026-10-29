@@ -111,7 +111,8 @@ class PDFRemito(FPDF):
         if self.remito_numero:
             self.set_xy(145, 25) 
             self.set_font('Arial', 'B', 16)
-            es_ri = str(self.remito_numero).startswith("RI-")
+            from backend.remitos.constants import es_numero_ri
+            es_ri = es_numero_ri(self.remito_numero)
             # [S895, Carlos 29/10; Nike 28/10: «el color solo no alcanza»] El remito interno (serie RI, Rosa) sale con el número en rosa y la leyenda obligatoria
             # (se pierde el color en una fotocopia o un escaneo, la leyenda no). El papel completo del RI (con el pedido discreto) es la etapa 2.
             self.set_text_color(*((214, 51, 132) if es_ri else (COLOR_R, COLOR_G, COLOR_B)))

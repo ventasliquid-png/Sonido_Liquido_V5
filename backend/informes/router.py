@@ -105,7 +105,7 @@ def _num_remito(numero_legal) -> tuple:
         return (-1, -1)
     partes = str(numero_legal).split("-")
     try:
-        # [S895] la serie RI (remito interno, «RI-000001») no es numérica: va con serie 0, el número manda
+        # [S895] la serie RI (remito interno, «RI01-00000001») no es numérica: va con serie 0, el número manda
         return (int(partes[-1]), int(partes[0]) if len(partes) > 1 and partes[0].isdigit() else 0)
     except ValueError:
         return (-1, -1)

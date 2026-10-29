@@ -24,7 +24,7 @@ Reglas (CONSULTA_NIKE_genoma_remito_2026-10-22.md, DISENO_REMITOS_S889.md):
 from datetime import datetime
 from typing import Optional
 
-from backend.remitos.constants import RemitoFlags as F, MASCARA_CLASE, MASCARA_ESTADO, MASCARA_LOGISTICA
+from backend.remitos.constants import RemitoFlags as F, MASCARA_CLASE, MASCARA_ESTADO, MASCARA_LOGISTICA, es_numero_ri
 
 PEDIDO_ES_NO_COMERCIAL = 1 << 11   # PedidoFlags.ES_NO_COMERCIAL
 PEDIDO_NO_FISCAL_FORCE = 1 << 12   # PedidoFlags.NO_FISCAL_FORCE (Rosa)
@@ -55,7 +55,7 @@ def calcular_flags(flags_actuales, numero_legal, estado, pedido_flags, fecha_emi
     no_comercial = bool(pf & PEDIDO_ES_NO_COMERCIAL)
     rosa = bool(pf & PEDIDO_NO_FISCAL_FORCE)
 
-    if num.startswith("RI-"):
+    if es_numero_ri(num):
         f |= int(F.INTERNO)
     elif num:
         f |= int(F.EGRESO_AVIOS if no_comercial else F.EGRESO)
@@ -80,7 +80,7 @@ def calcular_flags(flags_actuales, numero_legal, estado, pedido_flags, fecha_emi
         else:
             f |= int(F.RETIRADO)
 
-    if num and not num.startswith("RI-") and rosa:
+    if num and not es_numero_ri(num) and rosa:
         f |= int(F.CIRCULACION_ROSA)
     if num and est in ("EN_CAMINO", "ENTREGADO"):
         f |= int(F.SALIDA_CONFIRMADA)

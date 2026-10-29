@@ -8,7 +8,7 @@ from fastapi import HTTPException
 from backend.remitos import schemas, models
 from backend.remitos.constants import (
     RemitoFlags, MetodoEntrega, METODOS_ENTREGA, METODOS_SIN_TRANSPORTE, MOTIVOS_NO_FACTURABLE,
-    CausaCorreccion, CAUSAS_CORRECCION, CAUSAS_QUE_CAMBIAN_LO_QUE_LLEGO, ETIQUETA_CAUSA, riesgo_de_la_entrega,
+    CausaCorreccion, CAUSAS_CORRECCION, CAUSAS_QUE_CAMBIAN_LO_QUE_LLEGO, ETIQUETA_CAUSA, riesgo_de_la_entrega, TALONARIO_RI,
 )
 from backend.clientes.models import Cliente, Domicilio
 from backend.productos.models import Producto
@@ -198,16 +198,16 @@ class RemitosService:
 
     @staticmethod
     def _siguiente_numero_ri(db: Session) -> str:
-        """[S895, Carlos 29/10] Próximo número de la serie RI (remito interno del Rosa): RI-000001, RI-000002... Mismo lock de escritura y misma
-        tolerancia a números mal formados que el 0015 (el que llama hace commit en la misma sesión)."""
+        """[S895, Carlos 29/10] Próximo número del talonario RI (remito interno del Rosa, circuito no formal): RI01-00000001, RI01-00000002... Mismo lock de
+        escritura y misma tolerancia a números mal formados que el 0015 (el que llama hace commit en la misma sesión)."""
         db.execute(text("UPDATE remitos SET numero_legal = numero_legal WHERE 0"))
         numeros = []
-        for (numero,) in db.query(models.Remito.numero_legal).filter(models.Remito.numero_legal.like("RI-%")):
+        for (numero,) in db.query(models.Remito.numero_legal).filter(models.Remito.numero_legal.like(f"{TALONARIO_RI}-%")):
             try:
                 numeros.append(int(numero.split("-")[-1]))
             except ValueError:
                 print(f"[NUMERACION RI] Ignorado número mal formado: {numero!r}")
-        return f"RI-{max(numeros + [0]) + 1:06d}"
+        return f"{TALONARIO_RI}-{max(numeros + [0]) + 1:08d}"
 
     MARCA_RI_CUMPLIDO = "[SISTEMA] RI generado al marcar Cumplido"
 
@@ -254,7 +254,7 @@ class RemitosService:
         """[S895] El pedido Rosa sale de Cumplido o se anula: los RI que generó el Cumplido se anulan con nota (el formato de la anulación manual, para poder
         deshacerla), para que lo «entregado» no quede de más. Solo los generados por el Cumplido; un 0015 o un RI hecho a mano no se tocan. No hace commit."""
         anulados = []
-        for r in db.query(models.Remito).filter(models.Remito.pedido_id == pedido.id, models.Remito.numero_legal.like("RI-%"), models.Remito.estado != "ANULADO").all():
+        for r in db.query(models.Remito).filter(models.Remito.pedido_id == pedido.id, models.Remito.numero_legal.like("RI%"), models.Remito.estado != "ANULADO").all():
             if not db.query(models.RemitoNota).filter(models.RemitoNota.remito_id == r.id, models.RemitoNota.texto.like(RemitosService.MARCA_RI_CUMPLIDO + "%")).first():
                 continue
             anterior = r.estado

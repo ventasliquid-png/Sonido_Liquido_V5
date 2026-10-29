@@ -144,3 +144,17 @@ def riesgo_de_la_entrega(metodo_entrega, pedido_flags=0) -> str:
     if int(pedido_flags or 0) & (1 << 48):   # PedidoFlags.FLETE_A_CARGO_NUESTRO (no se importa para no cruzar módulos en el arranque)
         return "PROPIO"
     return "PROPIO" if (metodo_entrega or "").strip().upper() in METODOS_RIESGO_PROPIO else "COMPRADOR"
+
+
+# [S895, Carlos 29/10] Talonarios. El 0015 es el talonario fiscal de hoy; el RI (remito interno, circuito no formal) es OTRO talonario: «RI01» + 8 dígitos, como
+# «0015-00003034» (punto de venta + número). Con dos dígitos hay 99 talonarios de RI (un depósito de salida más, otro talonario «RI02»); las letras lo distinguen de un
+# punto de venta fiscal a simple vista y en una fotocopia. El genoma lee la clase del prefijo; «RI-» (sin talonario) se sigue entendiendo por compatibilidad.
+import re as _re
+TALONARIO_RI = "RI01"
+_RE_NUMERO_RI = _re.compile(r"^RI(\d{2})?-")
+
+
+def es_numero_ri(numero) -> bool:
+    """True si el número es de la serie RI (remito interno): «RI01-00000001», o el viejo «RI-00000001»."""
+    return bool(numero) and bool(_RE_NUMERO_RI.match(str(numero)))
+
