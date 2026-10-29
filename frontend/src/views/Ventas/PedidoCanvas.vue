@@ -916,6 +916,7 @@ import _ from 'lodash';
 import canteraService from '@/services/canteraService';
 import pedidosService from '@/services/pedidos';
 import { useNotificationStore } from '@/stores/notification';
+import { preguntarConservarTotal } from '@/utils/conservarTotal';
 import { estadoRenglon, saldoRenglon, resumenEntregaPedido, ESTADO_CUMPLIDO, ESTADO_PARCIAL, ESTADO_SIN_ENTREGAS } from '@/utils/entregaParcial';
 
 import { useRoute } from 'vue-router'; // Add useRoute
@@ -1438,8 +1439,10 @@ watch(isCircuitoNegro, async (val) => {
     const pid = route.params.id;
     if (pid) {
         let res;
+        // [S895] Si el pedido tiene plata y no hay cambios sin guardar (se recargan los renglones), se ofrece conservar el total al cambiar de circuito.
+        const conservar = !hayCambiosSinGuardar() && Number(totalFinal.value) > 0 && preguntarConservarTotal(val, totalFinal.value);
         try {
-            res = await api.patch(`/pedidos/${pid}/circuito-bipolar`, { is_interno: val });
+            res = await api.patch(`/pedidos/${pid}/circuito-bipolar`, { is_interno: val, conservar_total: conservar });
         } catch (e) {
             const msg = e?.response?.data?.detail || 'Error al cambiar el circuito';
             notificationStore.add(msg, 'error');
@@ -1456,6 +1459,9 @@ watch(isCircuitoNegro, async (val) => {
         const estadoReal = (flagsServidor & (1n << 12n)) !== 0n;
         if (estadoReal !== val) {
             await revertirInterruptor(isCircuitoNegro, estadoReal);
+        } else if (conservar) {
+            await loadPedido(pid); // los precios cambiaron en el servidor: se vuelven a leer los renglones
+            notificationStore.add('Circuito cambiado conservando el total: precios ajustados', 'success');
         }
         return;
     }

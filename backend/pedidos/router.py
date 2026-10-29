@@ -1413,8 +1413,13 @@ def cotizar_precio(req: CotizacionRequest, db: Session = Depends(get_db)):
 
 # --- GENOMA BIPOLAR ---
 
+IVA_FACTOR = 1.21   # el mismo 1,21 con que se calcula el total del pedido Blanco
+
 class BipolarRequest(BaseModel):
     is_interno: bool
+    # [S895, Carlos 29/10; caso Castro #145] Conservar el total del pedido al cambiar de circuito: los precios son netos y el Blanco suma el IVA, el Rosa no. Blanco -> Rosa
+    # los multiplica por 1,21 (el Rosa lleva el IVA incluido) y Rosa -> Blanco los divide por 1,21 (se discrimina), de modo que lo cobrado no cambie.
+    conservar_total: bool = False
 
 @router.patch("/{pedido_id}/circuito-bipolar", response_model=schemas.PedidoResponse)
 def toggle_circuito_bipolar(pedido_id: int, req: BipolarRequest, db: Session = Depends(get_db), response: Response = None):
@@ -1451,12 +1456,29 @@ def toggle_circuito_bipolar(pedido_id: int, req: BipolarRequest, db: Session = D
             response.headers["X-Aviso-Circuito"] = quote(aviso)
 
     current_flags = pedido.flags_estado or 0
+    era_rosa = bool(current_flags & PF.NO_FISCAL_FORCE.value)
+    total_antes = pedido.total or 0.0
+    # Solo se tocan los precios si el circuito cambia de verdad (un Rosa de ley que pide Blanco sigue Rosa: nada que convertir).
+    convertir = bool(req.conservar_total) and era_rosa != bool(is_interno_efectivo)
+    if convertir:
+        from backend.facturacion.models import Factura
+        if db.query(Factura.id).filter(Factura.pedido_id == pedido.id).first():
+            raise HTTPException(status_code=409, detail="PEDIDO_FACTURADO: el pedido ya tiene factura y sus precios son la evidencia de lo facturado: no se convierten. "
+                                                        "Cambiá el circuito sin conservar el total, o corregí el pedido por su camino.")
     if is_interno_efectivo:
         current_flags |= PF.NO_FISCAL_FORCE.value
     else:
         current_flags &= ~PF.NO_FISCAL_FORCE.value
 
     pedido.flags_estado = current_flags
+
+    if convertir:
+        factor = IVA_FACTOR if is_interno_efectivo else 1 / IVA_FACTOR
+        for it in pedido.items:
+            it.precio_unitario = round((it.precio_unitario or 0.0) * factor, 2)
+            it.descuento_importe = round((it.descuento_importe or 0.0) * factor, 2)
+            it.subtotal = (it.cantidad or 0.0) * it.precio_unitario - it.descuento_importe
+        pedido.descuento_global_importe = round((pedido.descuento_global_importe or 0.0) * factor, 2)
 
     # Recalcular total según nuevo circuito — Bit 12 ya actualizado antes de llamar _aplica_iva
     apply_iva = _aplica_iva(pedido, pedido.cliente)
@@ -1465,6 +1487,11 @@ def toggle_circuito_bipolar(pedido_id: int, req: BipolarRequest, db: Session = D
     ).scalar() or 0.0
     raw_neto = items_neto - (pedido.descuento_global_importe or 0)
     pedido.total = round(raw_neto * 1.21, 2) if apply_iva else round(raw_neto, 2)
+
+    if convertir:
+        ts = datetime.now().strftime("%d/%m/%Y %H:%M")
+        sentido = "Blanco a Rosa (precios x 1,21, IVA incluido)" if is_interno_efectivo else "Rosa a Blanco (precios / 1,21, IVA discriminado)"
+        pedido.nota = ((pedido.nota or "") + f"\n[SISTEMA] Circuito pasado de {sentido} conservando el total: antes {total_antes:,.2f}, ahora {pedido.total:,.2f}. {ts}").strip()
 
     db.commit()
     db.refresh(pedido)

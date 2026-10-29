@@ -88,6 +88,18 @@
                   </div>
               </div>
 
+              <!-- [S895, Carlos 29/10] Nombre de fantasía: como lo conoce el operador (ej. «Odontostore» para Matías Castro); el buscador de clientes y el del pedido ya lo encuentran. -->
+              <div class="relative group">
+                  <span class="absolute -top-3 left-1 text-[9px] font-bold text-cyan-900/50 uppercase tracking-widest transition-colors group-hover:text-cyan-500/50">Nombre de fantasía</span>
+                  <input
+                      v-model="form.nombre_fantasia"
+                      data-campo="nombre-fantasia"
+                      type="text"
+                      class="bg-black/40 border border-white/20 rounded-md px-3 py-1.5 text-sm font-semibold text-white/80 w-56 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition-all placeholder-white/20"
+                      placeholder="Opcional..."
+                  />
+              </div>
+
               <!-- AGENDA BADGE (V14) -->
               <div class="relative">
                   <button 

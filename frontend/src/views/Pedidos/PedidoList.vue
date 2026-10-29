@@ -396,6 +396,8 @@ import { usePedidosStore } from '@/stores/pedidos'
 import { useNotificationStore } from '@/stores/notification'
 import PedidoInspector from './PedidoInspector.vue'
 import api from '@/services/api'
+import { preguntarConservarTotal } from '@/utils/conservarTotal'
+import { resolverCierreConDiscrepancia } from '@/composables/usePedidoEstado'
 import { estadoClase, estadoTexto, ESTADOS_PEDIDO_EDITABLES } from '@/utils/estadosPedido'
 
 const router = useRouter()
@@ -627,7 +629,8 @@ const handleToggleBipolar = async (pedido) => {
     const isInterno = !(pedido.flags_estado & 4096)
     try {
         notificationStore.add(`Cambiando circuito a ${isInterno ? 'INTERNO' : 'OFICIAL'}...`, 'info')
-        const { data } = await api.patch(`/pedidos/${pedido.id}/circuito-bipolar`, { is_interno: isInterno })
+        const conservar = Number(pedido.total) > 0 && preguntarConservarTotal(isInterno, pedido.total)
+        const { data } = await api.patch(`/pedidos/${pedido.id}/circuito-bipolar`, { is_interno: isInterno, conservar_total: conservar })
         
         // Update store
         const idx = store.pedidos.findIndex(p => p.id === pedido.id)
@@ -660,10 +663,11 @@ const handleStatusChange = async (pedido, newStatus) => {
         const detail = e.response?.data?.detail || ''
         if (e.response?.status === 409 && detail.startsWith('CIERRE_CON_DISCREPANCIA')) {
             const mensaje = detail.replace('CIERRE_CON_DISCREPANCIA: ', '')
-            if (confirm(`⚠️ ${mensaje}`)) {
+            const accion = await resolverCierreConDiscrepancia(pedido.id, mensaje)
+            if (accion !== 'cancelar') {
                 try {
-                    await store.updatePedido(pedido.id, { estado: newStatus, cierre_confirmado: true })
-                    notificationStore.add(`Pedido #${pedido.id} actualizado a ${newStatus} (con nota de discrepancia)`, 'success')
+                    await store.updatePedido(pedido.id, accion === 'cerrar' ? { estado: newStatus, cierre_confirmado: true } : { estado: newStatus })
+                    notificationStore.add(`Pedido #${pedido.id} actualizado a ${newStatus}` + (accion === 'cerrar' ? ' (con nota de discrepancia)' : ''), 'success')
                     const updated = store.pedidos.find(p => p.id === pedido.id)
                     if (updated && selectedPedido.value && selectedPedido.value.id === pedido.id) {
                         selectedPedido.value = updated

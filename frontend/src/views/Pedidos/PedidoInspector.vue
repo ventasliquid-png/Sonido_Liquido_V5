@@ -437,6 +437,7 @@ import canteraService from '@/services/canteraService'
 import ContextMenu from '@/components/common/ContextMenu.vue'
 import LogisticaPanel from './components/LogisticaPanel.vue'
 import html2canvas from 'html2canvas'
+import { resolverCierreConDiscrepancia } from '@/composables/usePedidoEstado'
 
 const router = useRouter()
 
@@ -610,12 +611,13 @@ const handleStatusChange = async (newStatus) => {
         const detail = e.response?.data?.detail || ''
         if (e.response?.status === 409 && detail.startsWith('CIERRE_CON_DISCREPANCIA')) {
             const mensaje = detail.replace('CIERRE_CON_DISCREPANCIA: ', '')
-            if (confirm(`⚠️ ${mensaje}`)) {
+            const accion = await resolverCierreConDiscrepancia(props.modelValue.id, mensaje)
+            if (accion !== 'cancelar') {
                 try {
-                    await store.updatePedido(props.modelValue.id, { estado: newStatus, cierre_confirmado: true })
+                    await store.updatePedido(props.modelValue.id, accion === 'cerrar' ? { estado: newStatus, cierre_confirmado: true } : { estado: newStatus })
                     props.modelValue.estado = newStatus
                     emit('update-status', props.modelValue, newStatus)
-                    notification.add(`Estado: ${newStatus} (con nota de discrepancia)`, 'success')
+                    notification.add(`Estado: ${newStatus}` + (accion === 'cerrar' ? ' (con nota de discrepancia)' : ''), 'success')
                 } catch (e2) {
                     notification.add('Error al cambiar estado', 'error')
                 }

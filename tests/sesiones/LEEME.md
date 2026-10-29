@@ -1,4 +1,4 @@
-# Pruebas de las sesiones S876 a S894 (77 pruebas, 1.725 comprobaciones)
+# Pruebas de las sesiones S876 a S894 (79 pruebas, 1.768 comprobaciones)
 
 Versionadas en la S888 por la auditoría de CA (H1 y H2 del 15/10): hasta entonces vivían en la carpeta temporal de una sesión de Claude Code y se perdían con ella.
 Son **scripts independientes** (no pytest): cada uno imprime `[OK]`/`[FAIL]` por comprobación y termina con `RESULTADO: n/m checks OK` y código de salida 0 o 1.

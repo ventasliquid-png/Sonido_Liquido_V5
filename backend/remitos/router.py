@@ -999,7 +999,6 @@ def salida_sin_papel(remito_id: str, payload: schemas.RemitoFechaMotivo = schema
     que es la de la asignación de número»); si hace falta otra, se cambia después con el lápiz, con motivo y con nota.
     Cualquier color: un pedido Rosa también puede salir con un 0015 (si lo despacha un transporte hace falta un remito), y queda dicho en
     el remito que no se factura. «En depósito» y «Retiró el transporte» son modificaciones especiales que hace el operador."""
-    from backend.remitos.service import RemitosService
     remito = db.query(models.Remito).filter(models.Remito.id == remito_id).first()
     if not remito:
         raise HTTPException(status_code=404, detail="Remito no encontrado")
@@ -1009,19 +1008,64 @@ def salida_sin_papel(remito_id: str, payload: schemas.RemitoFechaMotivo = schema
         raise HTTPException(status_code=409, detail="REMITO_ANULADO: un remito anulado no sale.")
     if sum((ri.cantidad_remitida or 0) for ri in remito.items) <= EPS_CANTIDAD:
         raise HTTPException(status_code=409, detail="REMITO_VACIO: el remito no tiene cantidades.")
+    _dar_salida_sin_papel(db, remito, current_user.id, payload.motivo)
+    db.commit()
+    db.refresh(remito)
+    return remito
+
+
+def _dar_salida_sin_papel(db: Session, remito, autor_id, motivo) -> None:
+    """Toma el número 0015 sin papel y deja la salida confirmada, con su nota y los bits de entrega del pedido al día. No hace commit: lo cierra el que llama."""
+    from backend.remitos.service import RemitosService
     from backend.remitos.constants import RemitoFlags
     remito.fecha_emision = datetime.now()   # el evento del modelo pone la salida asumida en esta fecha
     remito.numero_legal = RemitosService._siguiente_numero_0015(db)
     # el operador declara que salió: salida CONFIRMADA (Nike, bit 47); la fecha sigue siendo la asumida de la emisión
     remito.flags_estado = int(remito.flags_estado or 0) | int(RemitoFlags.SALIDA_CONFIRMADA)
-    motivo = (payload.motivo or "").strip()
-    db.add(models.RemitoNota(remito_id=remito.id, autor_id=current_user.id,
+    motivo = (motivo or "").strip()
+    db.add(models.RemitoNota(remito_id=remito.id, autor_id=autor_id,
                              texto=(f"[SISTEMA] Salió sin papel el {remito.fecha_emision.strftime('%d/%m/%Y')}: tomó el número "
                                     f"{remito.numero_legal} sin imprimirse." + (f" Motivo: {motivo}" if motivo else ""))))
-    _aclarar_si_rosa(db, remito, current_user.id)
+    _aclarar_si_rosa(db, remito, autor_id)
     db.flush()
     if remito.pedido:
         RemitosService._recalcular_bits_entrega(db, remito.pedido)
+
+
+@router.post("/pedido/{pedido_id}/salida-sin-papel", response_model=schemas.RemitoResponse)
+def salida_sin_papel_del_pedido(pedido_id: int, payload: schemas.RemitoFechaMotivo = schemas.RemitoFechaMotivo(), db: Session = Depends(get_db),
+                                current_user: Usuario = Depends(get_current_active_user)):
+    """[S895, Carlos 29/10; caso Castro #145: vendido, cobrado y entregado sin factura ni remito] Desde el cartel de cierre con discrepancia: arma UN remito por lo que
+    falta remitir del pedido (pedido menos lo ya remitido) y le da la salida sin papel, en un solo paso, sin pasar por Entregas y remitos. Es el mismo remito y la
+    misma salida de «Salió sin papel» (número 0015, nota [SISTEMA], salida confirmada); lo único nuevo es que lo arma el sistema con los renglones pendientes. Sin
+    transportista en el pedido sale como retiro en planta (MOSTRADOR: sin traslado, ya entregado); con transportista, por el transporte y el domicilio del pedido.
+    Un renglón entregado de más no resta nada. No cierra el pedido: el que llama reenvía el Cumplido."""
+    from backend.pedidos.models import Pedido
+    from backend.pedidos.constants import PedidoFlags
+    from backend.remitos.constants import MetodoEntrega
+    from backend.remitos.service import RemitosService
+    pedido = db.query(Pedido).filter(Pedido.id == pedido_id).first()
+    if not pedido:
+        raise HTTPException(status_code=404, detail="Pedido no encontrado")
+    if int(pedido.flags_estado or 0) & int(PedidoFlags.ES_ANULADO):
+        raise HTTPException(status_code=409, detail="PEDIDO_ANULADO: un pedido anulado no tiene salidas.")
+    pendientes = [(pi, pi.cantidad - pi.cantidad_entregada) for pi in pedido.items if (pi.cantidad - pi.cantidad_entregada) > EPS_CANTIDAD]
+    if not pendientes:
+        raise HTTPException(status_code=409, detail="NADA_PENDIENTE: todos los renglones ya tienen entregado lo pedido (o más): no hay nada que remitir.")
+    armado = schemas.ArmarRemitoPayload(
+        pedido_id=pedido.id,
+        metodo_entrega=None if pedido.transporte_id else MetodoEntrega.MOSTRADOR,
+        items=[schemas.ArmarRemitoItemPayload(pedido_item_id=pi.id, cantidad=falta) for pi, falta in pendientes],
+    )
+    try:
+        remito = RemitosService.armar_remito(db, armado, commit=False)
+    except HTTPException:
+        raise
+    except ValueError as ve:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(ve))
+    base = f"Salida registrada desde el cierre del pedido #{pedido.id}: no existía remito de lo que salió."
+    _dar_salida_sin_papel(db, remito, current_user.id, f"{base} {(payload.motivo or '').strip()}".strip())
     db.commit()
     db.refresh(remito)
     return remito
