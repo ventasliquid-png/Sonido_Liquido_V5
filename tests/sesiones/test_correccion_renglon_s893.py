@@ -14,7 +14,9 @@ sys.path.insert(0, RAIZ); os.chdir(RAIZ)
 
 checks = []
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
-ORIG = sorted(glob.glob(r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_*.db"))[-1]
+# [S895] Fijada a la copia de P del 28/10 12:52, ANTERIOR al despliegue del paquete (Tomy relanzó a las 13:03): esta prueba corre migraciones sobre la copia de P
+# y con una copia más nueva ya vienen aplicadas (SKIP). Mismo criterio que las de la S890 (auditoría de CA, 28/10).
+ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261028_1252.db"
 TMP = os.path.join(RAIZ, "scratch", "test_correccion_renglon_s893"); os.makedirs(TMP, exist_ok=True)
 T = os.path.join(TMP, "P.db"); shutil.copyfile(ORIG, T)
 PY = os.path.join(RAIZ, "backend", "venv", "Scripts", "python.exe")

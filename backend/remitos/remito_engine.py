@@ -111,8 +111,16 @@ class PDFRemito(FPDF):
         if self.remito_numero:
             self.set_xy(145, 25) 
             self.set_font('Arial', 'B', 16)
-            self.set_text_color(COLOR_R, COLOR_G, COLOR_B)
+            es_ri = str(self.remito_numero).startswith("RI-")
+            # [S895, Carlos 29/10; Nike 28/10: «el color solo no alcanza»] El remito interno (serie RI, Rosa) sale con el número en rosa y la leyenda obligatoria
+            # (se pierde el color en una fotocopia o un escaneo, la leyenda no). El papel completo del RI (con el pedido discreto) es la etapa 2.
+            self.set_text_color(*((214, 51, 132) if es_ri else (COLOR_R, COLOR_G, COLOR_B)))
             self.cell(50, 10, str(self.remito_numero).replace("—", "-"), 0, 0, 'C')
+            if es_ri:
+                self.set_xy(128, 35)
+                self.set_font('Arial', 'B', 7)
+                self.cell(75, 4, "REMITO INTERNO - NO VÁLIDO COMO FACTURA", 0, 0, 'C')
+                self.set_text_color(COLOR_R, COLOR_G, COLOR_B)
 
             # [V5] Pseudo-Remito Logic (Factura Vinculada)
             if self.factura_vinculada:

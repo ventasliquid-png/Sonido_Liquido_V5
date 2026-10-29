@@ -21,7 +21,7 @@ from backend.pedidos.cantidades import mensaje_baja_de_cantidad, mensaje_baja_de
 from backend.pedidos.descuentos import descuento_normalizado, importe_conservando_unitario
 from backend.pedidos import kits as kits_mod
 from backend.clientes.constants import ClientFlags
-from backend.auth.dependencies import get_current_active_user
+from backend.auth.dependencies import get_current_active_user, get_current_user_optional
 from backend.auth.models import Usuario
 
 router = APIRouter(
@@ -711,7 +711,8 @@ def get_ultima_venta(
 def update_pedido(
     pedido_id: int, 
     pedido_update: schemas.PedidoUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user_optional)   # [S895] no exige sesión (Card #196): solo identifica a quien guarda, para el rastro
 ):
     """
     Actualiza parcialmente un pedido (ej: cambiar estado).
@@ -763,6 +764,15 @@ def update_pedido(
         # entrega) -- sin necesidad de editar cantidad. El backend detecta la
         # discrepancia y exige confirmacion explicita en vez de cerrar en
         # silencio; si se confirma, documenta la diferencia en pedido.nota.
+        # [S895, Carlos 29/10] Un pedido ROSA que pasa a Cumplido genera en silencio su RI por lo que faltaba remitir (así lo entregado coincide y el cartel de abajo no
+        # sale); si sale de Cumplido o se anula, el RI que generó el Cumplido se anula con nota. Un Blanco sigue con el cartel.
+        if status_changed:
+            from backend.remitos.service import RemitosService
+            if val_upper == "CUMPLIDO":
+                RemitosService.generar_ri_por_cumplido(db, pedido, current_user)
+            elif (current_state_bit & PF.ES_CUMPLIDO.value) or val_upper == "ANULADO":
+                RemitosService.anular_ri_de_cumplido(
+                    db, pedido, "el pedido salió de Cumplido" if val_upper != "ANULADO" else "se anuló el pedido", current_user)
         cierre_discrepancias = []
         if status_changed and val_upper == "CUMPLIDO":
             cierre_discrepancias = [
@@ -925,7 +935,7 @@ def update_pedido(
     # [S894, Carlos 27/10] La OC que cambia pasa a los remitos del pedido, agregada o corregida, con nota en cada remito (la auditoría: qué se entregó de qué OC).
     if "oc" in update_data and (update_data["oc"] or "").strip() != oc_anterior:
         from backend.remitos.service import RemitosService
-        RemitosService.incorporar_oc_del_pedido(db, pedido)
+        RemitosService.incorporar_oc_del_pedido(db, pedido, getattr(current_user, "id", None))   # [S895] con autor (Card #195)
 
     if pedido_update.from_ingesta:
         pedido.flags_estado |= PF.ORIGEN_FACTURA.value

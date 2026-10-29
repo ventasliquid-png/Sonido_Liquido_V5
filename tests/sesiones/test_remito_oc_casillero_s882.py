@@ -64,7 +64,9 @@ p = generar("OC N° 123 — ñandú", "acentos")
 check(f"caracteres fuera de latin-1 (raya larga) no rompen el PDF y se imprimen {[t[1] for t in palabras_en_casillero(p, 0)]}", "123" in [t[1] for t in palabras_en_casillero(p, 0)])
 
 # ---- endpoint: GET /remitos/{id}/pdf sobre una copia de P ----
-ORIG = sorted(glob.glob(r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_*.db"))[-1]
+# [S895] Fijada a la copia de P del 28/10 12:52, ANTERIOR al despliegue del paquete (Tomy relanzó a las 13:03): esta prueba corre migraciones sobre la copia de P
+# y con una copia más nueva ya vienen aplicadas (SKIP). Mismo criterio que las de la S890 (auditoría de CA, 28/10).
+ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261028_1252.db"
 T = os.path.join(RAIZ, "scratch", "test_oc_tmp.db"); copiar_p(ORIG, T)
 eng = create_engine(f"sqlite:///{T}"); S = sessionmaker(bind=eng)
 def ov():

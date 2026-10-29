@@ -86,3 +86,21 @@ def get_current_active_user(
 
 print("--- [Atenea V10.E]: Auth/Dependencies (Seguridad JWT) definidas. ---")
 
+
+# [S895, Carlos 29/10] Usuario OPCIONAL: no exige sesión (no cambia quién puede llamar a un endpoint; ver Card #196), solo identifica a quien guarda cuando el
+# token viene, para dejar rastro (p. ej. «RI generado al marcar Cumplido, por tal usuario»). Sin token o con token inválido: None.
+oauth2_scheme_opcional = OAuth2PasswordBearer(tokenUrl="/auth/token", auto_error=False)
+
+
+def get_current_user_optional(
+    token: Optional[str] = Depends(oauth2_scheme_opcional),
+    db: Session = Depends(get_db),
+) -> Optional[models.Usuario]:
+    if not token:
+        return None
+    try:
+        username = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM]).get("sub")
+    except JWTError:
+        return None
+    return service.get_usuario_by_username(db, username=username) if username else None
+

@@ -197,6 +197,76 @@ class RemitosService:
         return f"0015-{max(numeros + [3009]) + 1:08d}"
 
     @staticmethod
+    def _siguiente_numero_ri(db: Session) -> str:
+        """[S895, Carlos 29/10] Próximo número de la serie RI (remito interno del Rosa): RI-000001, RI-000002... Mismo lock de escritura y misma
+        tolerancia a números mal formados que el 0015 (el que llama hace commit en la misma sesión)."""
+        db.execute(text("UPDATE remitos SET numero_legal = numero_legal WHERE 0"))
+        numeros = []
+        for (numero,) in db.query(models.Remito.numero_legal).filter(models.Remito.numero_legal.like("RI-%")):
+            try:
+                numeros.append(int(numero.split("-")[-1]))
+            except ValueError:
+                print(f"[NUMERACION RI] Ignorado número mal formado: {numero!r}")
+        return f"RI-{max(numeros + [0]) + 1:06d}"
+
+    MARCA_RI_CUMPLIDO = "[SISTEMA] RI generado al marcar Cumplido"
+
+    @staticmethod
+    def generar_ri_por_cumplido(db: Session, pedido, usuario=None) -> Optional["models.Remito"]:
+        """[S895, Carlos 29/10, «parar la pelota antes del RI»] Un Rosa no necesita un remito interno como documento (sin pago no hay entrega; el respaldo, si hace
+        falta, es un 0015 no facturable), pero sí un registro de que salió. Al poner «Cumplido» a un pedido ROSA el sistema genera en silencio (sin ventana, con
+        rastro) un RI con número por LO QUE FALTA REMITIR (total menos lo ya remitido, correcciones incluidas). Si ya está todo remitido no crea otro. Solo Rosa y
+        comercial: un Blanco sigue con el cartel de cierre con discrepancia y su 0015 (no se numera en fiscal en silencio). Nace ENTREGADO (como el de mostrador),
+        clase INTERNO (el genoma lo lee del prefijo «RI-»), sin papel. No hace commit: lo cierra el que llama, en la misma transacción del cambio de estado."""
+        flags_p = int(pedido.flags_estado or 0)
+        if not (flags_p & int(PedidoFlags.NO_FISCAL_FORCE)) or (flags_p & int(PedidoFlags.ES_NO_COMERCIAL)):
+            return None
+        pendientes = [(pi, pi.cantidad - pi.cantidad_entregada) for pi in pedido.items if (pi.cantidad - pi.cantidad_entregada) > 0.001]
+        if not pendientes:
+            return None
+        domicilio_id = pedido.domicilio_entrega_id
+        if not domicilio_id:
+            from backend.clientes.constants import DOMICILIO_ROSETI_ID
+            ClienteService.ensure_domicilio_oficina(db)
+            domicilio_id = DOMICILIO_ROSETI_ID
+        ahora = datetime.now()
+        remito = models.Remito(
+            pedido_id=pedido.id, domicilio_entrega_id=domicilio_id, transporte_id=None, metodo_entrega=None,
+            estado="ENTREGADO", fecha_emision=ahora, fecha_salida=ahora, aprobado_para_despacho=True,
+            numero_legal=RemitosService._siguiente_numero_ri(db), flags_estado=int(RemitoFlags.CIRCUITO_ROSA), bultos=1,
+        )
+        db.add(remito)
+        db.flush()
+        for pi, falta in pendientes:
+            db.add(models.RemitoItem(
+                remito_id=remito.id, pedido_item_id=pi.id, cantidad_declarada=falta, cantidad_remitida=falta,
+                cantidad_facturada=RemitosService._facturada_al_nacer_renglon(remito, pedido, pi, falta),
+            ))
+        quien = getattr(usuario, "username", None) or "usuario no identificado"
+        texto = f"{RemitosService.MARCA_RI_CUMPLIDO} el pedido #{pedido.id}: {remito.numero_legal} por lo que faltaba remitir. {quien}, {ahora.strftime('%d/%m/%Y %H:%M')}."
+        db.add(models.RemitoNota(remito_id=remito.id, autor_id=getattr(usuario, "id", None), texto=texto))
+        pedido.nota = ((pedido.nota or "") + "\n" + texto).strip()
+        RemitosService._recalcular_bits_entrega(db, pedido)
+        return remito
+
+    @staticmethod
+    def anular_ri_de_cumplido(db: Session, pedido, motivo: str, usuario=None) -> list:
+        """[S895] El pedido Rosa sale de Cumplido o se anula: los RI que generó el Cumplido se anulan con nota (el formato de la anulación manual, para poder
+        deshacerla), para que lo «entregado» no quede de más. Solo los generados por el Cumplido; un 0015 o un RI hecho a mano no se tocan. No hace commit."""
+        anulados = []
+        for r in db.query(models.Remito).filter(models.Remito.pedido_id == pedido.id, models.Remito.numero_legal.like("RI-%"), models.Remito.estado != "ANULADO").all():
+            if not db.query(models.RemitoNota).filter(models.RemitoNota.remito_id == r.id, models.RemitoNota.texto.like(RemitosService.MARCA_RI_CUMPLIDO + "%")).first():
+                continue
+            anterior = r.estado
+            r.estado = "ANULADO"
+            db.add(models.RemitoNota(remito_id=r.id, autor_id=getattr(usuario, "id", None),
+                                     texto=f"[SISTEMA] Remito anulado (estado anterior: {anterior}). Motivo: {motivo}"))
+            anulados.append(r)
+        if anulados:
+            RemitosService._recalcular_bits_entrega(db, pedido)
+        return anulados
+
+    @staticmethod
     def _siguiente_numero_17(db: Session) -> str:
         """Próximo número del talonario 17 (rosa y no comercial, Circuito 17).
 
