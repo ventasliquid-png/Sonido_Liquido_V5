@@ -1388,3 +1388,9 @@ Sin cambios funcionales visibles: la sesión trabajó el Board y los protocolos,
 - **Pedido:** la dirección de entrega muestra la calle de entrega cuando es distinta de la fiscal (como sale en el papel). El cartel «Bloqueo financiero / Liberar despacho» ya no aparece: está apagado hasta que exista el sistema de crédito.
 - **Clientes:** un Consumidor Final se ve Blanco (no Rosa). La lista de clientes filtra por color: Todos, Blancos, Rosa, A revisar.
 
+## Sesión 895 (29/10) — Lo que cambia para quien opera
+
+- **Cumplido en un pedido Rosa:** ya no sale el cartel. El sistema registra en silencio un remito interno por lo que faltaba (RI01-00000001, RI01-00000002…), con una nota que dice quién y cuándo. Si el pedido vuelve de Cumplido o se anula, ese remito interno se anula solo. Un pedido Blanco sigue con el cartel.
+- **Cartel de Cumplido en un Blanco sin remito (ficha, Tablero e informes):** ahora pregunta primero si la mercadería ya salió y falta el remito. «Aceptar» crea un remito por lo que falta, con «Salió sin papel» (retiro en planta si el pedido no tiene transporte), y cierra el pedido. «Cancelar» ofrece cerrar igual con la discrepancia, como antes.
+- **Cambiar un pedido de Blanco a Rosa o de Rosa a Blanco:** pregunta si se quiere conservar el total. «Aceptar» ajusta los precios de los renglones (×1,21 al pasar a Rosa, ÷1,21 al volver a Blanco) para que lo cobrado no cambie. Si el pedido ya tiene factura, no se ajusta.
+- **Ficha del cliente:** nuevo casillero «Nombre de fantasía» (junto a la razón social), por ejemplo «Odontostore». El buscador de clientes del pedido lo encuentra.

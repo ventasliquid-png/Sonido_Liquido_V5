@@ -1,4 +1,17 @@
-﻿Sesion actual: 894
+﻿Sesion actual: 895
+
+# CAJA NEGRA: OMEGA Lite - Remito Interno: etapa 1 y talonario RI01, boton "Salio sin papel" en el cartel de cierre, conversion de circuito conservando el total y nombre de fantasia en la ficha (caso Castro #145) - S895
+
+Sesion 895 OF, 29/10, NS (CC, Sonnet 5.5) con Carlos. Hash D: cierre en el Estado de la bitacora (ultimo de codigo b9233b16) | Hash B: 70e7ccd = prod/main (tres pushes el 29/10: 6bcbcd3..f44ac7c..8765c1a..70e7ccd) | P real: 8765c1a (leido en P; migrate_074 aplicada 21:21; 70e7ccd entra cuando Tomy relance Soberana). Ultima copia de P: PRODUCCION_P_al_20261029_1821.db (integridad ok; 132 pedidos hasta el #148, 69 remitos, 147 facturas).
+- RI etapa 1 (87cfda59 / f44ac7c): Cumplido de un pedido Rosa genera en silencio su RI por lo que faltaba remitir, con nota [SISTEMA]; un Blanco sigue con el cartel; si el pedido sale de Cumplido o se anula, el RI se anula; get_current_user_optional (cierra la #195).
+- Talonario RI01 (c44eeb19 / 8765c1a): RI01-00000001 (hasta RI99), clase por prefijo "RI"; migrate_074 renumero los dos RI de prueba de Tomy. Nike (Sello de Oro): talonario por prefijo, renumeracion autorizada, "falta pago" = bit 45 COBRADO apagado por defecto y bit 44 ES_ENTREGADO como hito fisico (#203). NS verifico contra el codigo: Nike invento columnas punto_venta/numero_comprobante en remitos (son de facturas).
+- Caso Castro #145 (Blanco, vendido, cobrado y entregado sin factura ni remito; el cartel lo detecto): boton "Salio sin papel" en el cartel de cierre (POST /remitos/pedido/{id}/salida-sin-papel), conversion de circuito conservando el total (conservar_total: precios y descuentos en pesos x1,21 a Rosa y /1,21 a Blanco; 409 si el pedido tiene factura) y casillero Nombre de fantasia en la ficha de cliente (b9233b16 / 70e7ccd).
+- Carlos aclaro que el color lo manda el PEDIDO, no la ficha (Jofre es un Rosa "enfundado de blanco": fuera de AMBA el CUIT va en la guia): nada que revertir en el #148.
+- Hallazgos: facturas 2621-2624 en Descargas de Tomy sin ingerir (la ultima ingerida es la 2620 del 19/10). Board: #195 CERRADA; comentarios en #144, #196, #202, #203; nuevas #204, #205, #206.
+- Errores propios: horas estimadas en la bitacora (corregidas con datetime.now()); salto de linea de heredoc de Python escrito como salto real (tres veces); un test dejo un PDF en la carpeta real de D; casi propuse revertir el #148 a Blanco leyendo solo la ficha; un mensaje de Carlos sobre el #145 lo lei como pedido de ayuda para evitar facturar (era un analisis de diseno).
+- Pendiente: S896 verificar en P el paquete, ingerir 2621-2624, decidir RI etapa 2 y "falta pago"; #204; entrada de stock (CA E1-E4); dos 0016 mal formados; #197; INBOX 116.
+
+Sesion actual: 894
 
 # CAJA NEGRA: OMEGA Lite - todo D a produccion (paquete grande y cinco subidas mas), #164 cerrada, confirmacion de diferencias de precio, Consumidor Final = Blanco y la identidad Rosa en los bits (Nike) - S894
 

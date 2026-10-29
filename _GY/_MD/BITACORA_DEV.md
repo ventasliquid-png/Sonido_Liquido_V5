@@ -1,4 +1,8 @@
-﻿## SESION 894 (OF) — 2026-10-27/28 [NS (CC, Opus 5.5)]: todo D a producción, #164 cerrada, confirmación de diferencias de precio, Consumidor Final = Blanco y la identidad Rosa en los bits — NOMINAL — D:9b8f3053 B:6bcbcd3 (= prod/main) P:6bcbcd3
+﻿## SESION 895 (OF) — 2026-10-29 [NS (CC, Sonnet 5.5)]: Remito Interno (etapa 1 y talonario RI01), botón «Salió sin papel» en el cartel de cierre, conversión de circuito conservando el total y nombre de fantasía en la ficha — NOMINAL — D:b9233b16 (cierre en la bitácora) B:70e7ccd (= prod/main) P:8765c1a
+
+- Tres commits de código en D y tres pushes a P (`f44ac7c`, `8765c1a`, `70e7ccd`); migración 074 aplicada en P; Nike: una consulta con Sello de Oro (cobro y talonario); Cards #195 cerrada, #204 a #206 nuevas. 79 pruebas, 1.768 comprobaciones. Informe: `INFORMES_HISTORICOS/2026-10-29_S895_OF.md`.
+
+## SESION 894 (OF) — 2026-10-27/28 [NS (CC, Opus 5.5)]: todo D a producción, #164 cerrada, confirmación de diferencias de precio, Consumidor Final = Blanco y la identidad Rosa en los bits — NOMINAL — D:9b8f3053 B:6bcbcd3 (= prod/main) P:6bcbcd3
 
 - Diez commits de código en D y seis pushes a P (paquete grande `d08e78b` incluido); migraciones 063, 066-073 aplicadas en P; Nike: dos consultas con Sello de Oro y una rectificación; Cards #195 a #201. 75 pruebas, 1.696 comprobaciones. Informe: `INFORMES_HISTORICOS/2026-10-28_S894_OF.md`.
 
