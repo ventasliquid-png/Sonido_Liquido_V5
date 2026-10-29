@@ -1,4 +1,4 @@
-﻿## SESION 895 (OF) — 2026-10-29 [NS (CC, Sonnet 5.5)]: Remito Interno (etapa 1 y talonario RI01), botón «Salió sin papel» en el cartel de cierre, conversión de circuito conservando el total y nombre de fantasía en la ficha — NOMINAL — D:b9233b16 (cierre en la bitácora) B:70e7ccd (= prod/main) P:8765c1a
+﻿## SESION 895 (OF) — 2026-10-29 [NS (CC, Sonnet 5.5)]: Remito Interno (etapa 1 y talonario RI01), botón «Salió sin papel» en el cartel de cierre, conversión de circuito conservando el total y nombre de fantasía en la ficha — NOMINAL — D:da51660b (último de código b9233b16) B:70e7ccd (= prod/main) P:8765c1a
 
 - Tres commits de código en D y tres pushes a P (`f44ac7c`, `8765c1a`, `70e7ccd`); migración 074 aplicada en P; Nike: una consulta con Sello de Oro (cobro y talonario); Cards #195 cerrada, #204 a #206 nuevas. 79 pruebas, 1.768 comprobaciones. Informe: `INFORMES_HISTORICOS/2026-10-29_S895_OF.md`.
 
