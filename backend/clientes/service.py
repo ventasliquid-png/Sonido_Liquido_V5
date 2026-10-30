@@ -141,8 +141,8 @@ class ClienteService:
 
             # [GENOMA V14.8+] Auditoría de soberanía al momento de creación.
             # Infiere OPERATOR_OK (Rosa) y POWER_PINK antes del commit final.
-            # Orden correcto: CF fallback → audit → sync activo → Roseti.
-            ClienteService._apply_cf_cuit_fallback(db_cliente)
+            # Orden correcto: audit → sync activo → Roseti.
+            # [S896, Carlos 30/10] Ya no se completa un CUIT comodín a un Consumidor Final sin CUIT: lo que el operador deja en blanco queda en blanco.
             ClienteService._audit_sovereignty(db_cliente)
             db_cliente.activo = bool(db_cliente.flags_estado & ClientFlags.IS_ACTIVE)
 
@@ -324,8 +324,7 @@ class ClienteService:
                 )
                 db.add(new_dom)
 
-        # [GENOMA V14.8+ / CF FALLBACK] Asignar CUIT genérico si CF sin CUIT real
-        ClienteService._apply_cf_cuit_fallback(db_cliente)
+        # [S896, Carlos 30/10] Se retiró el «CF FALLBACK» que escribía 00000000000 / 11111111119 en un Consumidor Final sin CUIT.
         # [GY-DOCTRINA-V14] ESCUDO DOBLE (Audit Optimized)
         ClienteService._audit_sovereignty(db_cliente)
 
@@ -469,32 +468,6 @@ class ClienteService:
             db_cliente.flags_estado |= ClientFlags.DISCRIMINA_IVA
         else:
             db_cliente.flags_estado &= ~ClientFlags.DISCRIMINA_IVA
-
-    @staticmethod
-    def _apply_cf_cuit_fallback(db_cliente: "Cliente") -> None:
-        """
-        [GENOMA V14.8+ / CF FALLBACK] Si el cliente tiene condición IVA
-        'Consumidor Final' y no tiene CUIT real, asigna un CUIT genérico.
-        Llamar ANTES de _audit_sovereignty para que el audit vea el CUIT correcto.
-
-        [Corrección S858]: '00000000000' es exclusivo del Mostrador/Genérico real
-        (REGLA 1 -- Nike 806 lo fuerza a GOLD_ARCA sin validación real). Un cliente
-        con razón social propia (un Rosa con nombre, no una venta anónima) usa en
-        cambio el bucket genérico de contingencia AFIP '11111111119' -- comparte
-        exclusión de duplicados con los demás genéricos, pero no usurpa el CUIT
-        reservado del Mostrador ni se marca como validado por ARCA sin haberlo sido.
-        """
-        if db_cliente.cuit and db_cliente.cuit.strip():
-            return  # Ya tiene CUIT — no tocar
-        is_cf = (
-            db_cliente.condicion_iva is not None
-            and db_cliente.condicion_iva.nombre is not None
-            and "CONSUMIDOR FINAL" in db_cliente.condicion_iva.nombre.upper()
-        )
-        if is_cf:
-            razon_social = (db_cliente.razon_social or '').strip().upper()
-            es_venta_anonima = not razon_social or razon_social in ('MOSTRADOR', 'GENERICO', 'GENÉRICO', 'CONSUMIDOR FINAL')
-            db_cliente.cuit = '00000000000' if es_venta_anonima else '11111111119'
 
     @staticmethod
     def _propagar_multi_cuit(db: Session, db_cliente: "Cliente") -> None:

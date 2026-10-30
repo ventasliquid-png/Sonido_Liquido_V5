@@ -1012,21 +1012,9 @@ const form = ref({
     codigo_interno: ''
 })
 
-// [GY-UX] Consumidor Final Automation
-watch(() => form.value.condicion_iva_id, (newId) => {
-    if (!newId) return
-    const cf = condicionesIva.value.find(i => i.nombre.toLowerCase().includes('consumidor final'))
-    if (cf && newId === cf.id) {
-        if (!form.value.cuit) {
-            // [Corrección S858] '00000000000' es exclusivo del Mostrador/Genérico real
-            // (REGLA 1 — Nike 806 lo fuerza a GOLD_ARCA sin validación real). Un Rosa con
-            // nombre propio no es una venta anónima de mostrador -- usa el bucket genérico
-            // de contingencia AFIP en vez de usurpar el CUIT del Mostrador.
-            const esVentaAnonima = !form.value.razon_social || ['MOSTRADOR', 'GENERICO', 'GENÉRICO', 'CONSUMIDOR FINAL'].includes(form.value.razon_social.trim().toUpperCase())
-            form.value.cuit = esVentaAnonima ? '00000000000' : '11111111119'
-        }
-    }
-})
+// [S896, Carlos 30/10] Antes, al elegir la condición de IVA «Consumidor Final» con el CUIT vacío, esta ficha escribía sola el CUIT comodín
+// (00000000000 o 11111111119). Eso hacía nacer Blanco al cliente y, con el comodín puesto, ya no se podía volver a Rosa. El CUIT que el operador
+// deja en blanco queda en blanco (Nike S894: el CUIT comodín de CF no se guarda en la ficha). El servidor tampoco lo completa.
 
 watch(() => form.value.cuit, (newCuit) => {
     if (newCuit === '00000000000') {

@@ -932,6 +932,14 @@ def update_pedido(
                 pedido.nota = (pedido.nota or "") + nota_forense
                 pedido.flags_estado |= PF.CIERRE_CON_AJUSTE.value
 
+            # [S896, Carlos 30/10; opción A del bit 46] Reabrir un pedido que se cerró con ajuste NO apaga la marca (es la cicatriz que dictaminó Nike en la S863);
+            # deja escrito que el cierre anterior queda como historia, así quien lea la nota sabe que las líneas de «cierre con discrepancia» son de antes.
+            if (current_state_bit & PF.ES_CUMPLIDO.value) and val_upper != "CUMPLIDO" and (pedido.flags_estado & PF.CIERRE_CON_AJUSTE.value):
+                ts = datetime.now().strftime("%Y-%m-%d %H:%M")
+                pedido.nota = (pedido.nota or "") + (
+                    f"\n[SISTEMA] El pedido salió de Cumplido ({val_upper.title()}). El cierre anterior con ajuste queda como historia: "
+                    f"la marca de ajuste (Bit 46) no se apaga. {ts}")
+
     # [S894, Carlos 27/10] La OC que cambia pasa a los remitos del pedido, agregada o corregida, con nota en cada remito (la auditoría: qué se entregó de qué OC).
     if "oc" in update_data and (update_data["oc"] or "").strip() != oc_anterior:
         from backend.remitos.service import RemitosService
