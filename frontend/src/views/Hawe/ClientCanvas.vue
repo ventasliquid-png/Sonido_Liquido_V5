@@ -1704,6 +1704,22 @@ const saveCliente = async () => {
         return;
     }
 
+    // [S896, Carlos 30/10] Alta sin CUIT: el sistema no decide por el operador. Sin CUIT y sin la condición «Consumidor Final» elegida a propósito, pregunta si el
+    // cliente es Rosa. «Sí» = se da de alta sin CUIT (Rosa); «No» = vuelve a la ficha para cargar el CUIT o elegir Consumidor Final (Blanco, Factura B).
+    const eligioConsumidorFinal = !!form.value.condicion_iva_id &&
+        !!condicionesIva.value?.find(i => i.id === form.value.condicion_iva_id)?.nombre?.toUpperCase().includes('CONSUMIDOR FINAL');
+    if (isNew.value && !(form.value.cuit || '').trim() && !eligioConsumidorFinal) {
+        const esRosa = confirm(
+            'Este cliente no tiene CUIT.\n\n¿Es un cliente Rosa (informal, sin factura)?\n\n' +
+            'ACEPTAR = es Rosa: se da de alta sin CUIT.\n' +
+            'CANCELAR = no es Rosa: vuelva a la ficha y cargue el CUIT, o elija Consumidor Final como condición de IVA.'
+        )
+        if (!esRosa) {
+            notificationStore.add('Cargue el CUIT del cliente o elija «Consumidor Final» como condición de IVA.', 'warning', 6000)
+            return
+        }
+    }
+
     // [GY-UX] Duplicate Prevention for Shared CUITs (Blue Mode Safety)
     if (isSharedCuit.value) {
         try {

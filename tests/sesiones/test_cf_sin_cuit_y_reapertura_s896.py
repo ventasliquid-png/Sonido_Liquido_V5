@@ -2,6 +2,7 @@ r"""S896, Carlos 30/10. Dos arreglos chicos.
 (1) «El sistema, al ponerle Consumidor Final el operador, le asigna 11111111119 y eso hace que el cliente nazca Blanco y ya no se puede volver a Rosa. El sistema
 fuerza el CUIT y no debe hacerlo si el operador lo deja en blanco.» El respaldo del servidor (_apply_cf_cuit_fallback) y el reloj de la ficha (ClientCanvas.vue)
 escribían el CUIT comodín en un Consumidor Final sin CUIT. Se retiraron: lo que queda en blanco queda en blanco (Nike S894: el CUIT comodín de CF no se guarda en la ficha).
+(1-bis) Alta sin CUIT: cartel «¿Es un cliente Rosa?» (Carlos 30/10).
 (2) Opción A del bit 46 (CIERRE_CON_AJUSTE): reabrir un pedido cerrado con ajuste NO apaga la marca (cicatriz de Nike, S863), pero deja una nota [SISTEMA] que lo dice.
 Sobre una COPIA de la base de P del 29/10 18:21."""
 import sys, os, sqlite3
@@ -62,6 +63,11 @@ check("el servidor ya no tiene el respaldo que escribía el CUIT comodín", "_ap
 check("la ficha ya no escribe el CUIT al elegir Consumidor Final (el reloj de condicion_iva_id retiró la asignación)",
       "form.value.cuit = esVentaAnonima" not in canvas and "[S896, Carlos 30/10] Antes, al elegir la condición de IVA" in canvas)
 check("pero sigue valiendo lo que el operador escribe a mano: el 00000000000 tipeado fija CF y segmento", "if (newCuit === '00000000000') {" in canvas)
+
+check("alta sin CUIT: la ficha pregunta si el cliente es Rosa (solo en un alta, sin CUIT y sin Consumidor Final elegido a propósito); Cancelar vuelve a la ficha sin guardar",
+      "if (isNew.value && !(form.value.cuit || '').trim() && !eligioConsumidorFinal) {" in canvas and "¿Es un cliente Rosa (informal, sin factura)?" in canvas
+      and "ACEPTAR = es Rosa: se da de alta sin CUIT." in canvas and "if (!esRosa) {" in canvas
+      and canvas.index("const eligioConsumidorFinal") < canvas.index("store.checkCuit(form.value.cuit, form.value.id)"))
 
 # ---------- (2) reabrir un pedido cerrado con ajuste ----------
 cand = q("select id, flags_estado from pedidos where (flags_estado & ?) != 0 and (flags_estado & ?) != 0 order by id limit 1", B46, 1 << 34)
