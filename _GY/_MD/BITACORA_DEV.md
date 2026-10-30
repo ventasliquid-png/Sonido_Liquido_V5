@@ -1,4 +1,8 @@
-﻿## SESION 895 (OF) — 2026-10-29 [NS (CC, Sonnet 5.5)]: Remito Interno (etapa 1 y talonario RI01), botón «Salió sin papel» en el cartel de cierre, conversión de circuito conservando el total y nombre de fantasía en la ficha — NOMINAL — D:da51660b (último de código b9233b16) B:70e7ccd (= prod/main) P:8765c1a
+﻿## SESION 896 (OF) — 2026-10-30 [NS (CC, Sonnet 5.5)]: el CUIT en blanco queda en blanco, alta sin CUIT pregunta si es Rosa, nota al reabrir un Cumplido con ajuste, ensayo de la ingesta 2621–2624 y copias fijas para las pruebas — NOMINAL — D:HASHCIERRE (último de código e9c5dea9) B:f2f9f15 (= prod/main) P:70e7ccd
+
+- Dos commits de código en D (`63d45a93`, `e9c5dea9`) y un push a P (`f2f9f15`); sin migraciones. Las copias de P que citan las pruebas pasan a `BACKUPS_DB/PRODUCCION_P/FIJAS_DE_PRUEBAS/` (1ca7d3b4). 80 pruebas, 1.780 comprobaciones. Informe: `INFORMES_HISTORICOS/2026-10-30_S896_OF.md`; situación para CA: `INFORME_DE_SITUACION_2026-10-30_PARA_CA.md`.
+
+## SESION 895 (OF) — 2026-10-29 [NS (CC, Sonnet 5.5)]: Remito Interno (etapa 1 y talonario RI01), botón «Salió sin papel» en el cartel de cierre, conversión de circuito conservando el total y nombre de fantasía en la ficha — NOMINAL — D:da51660b (último de código b9233b16) B:70e7ccd (= prod/main) P:8765c1a
 
 - Tres commits de código en D y tres pushes a P (`f44ac7c`, `8765c1a`, `70e7ccd`); migración 074 aplicada en P; Nike: una consulta con Sello de Oro (cobro y talonario); Cards #195 cerrada, #204 a #206 nuevas. 79 pruebas, 1.768 comprobaciones. Informe: `INFORMES_HISTORICOS/2026-10-29_S895_OF.md`.
 

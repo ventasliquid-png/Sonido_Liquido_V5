@@ -1,4 +1,18 @@
-﻿Sesion actual: 895
+﻿Sesion actual: 896
+
+# CAJA NEGRA: OMEGA Lite - el CUIT en blanco queda en blanco, el alta sin CUIT pregunta si es Rosa, nota al reabrir un Cumplido con ajuste (bit 46 intacto), ensayo de la ingesta 2621-2624 y poda de copias de P con copias fijas para las pruebas - S896
+
+Sesion 896 OF, 30/10, NS (CC, Sonnet 5.5) con Carlos. Hash D: HASHCIERRE (ultimo de codigo e9c5dea9; pruebas 1ca7d3b4) | Hash B: f2f9f15 = prod/main (un push el 30/10 12:24: 70e7ccd..f2f9f15, "pushea 1974") | P real: 70e7ccd (leido en P por red; f2f9f15 entra cuando Tomy relance Soberana, sin migraciones). Ultima copia de P: PRODUCCION_P_al_20261030_1219.db (integridad ok; 134 pedidos hasta el #150, 69 remitos, 147 facturas).
+- Bit 46 (opcion A de Carlos): la marca CIERRE_CON_AJUSTE no se apaga al reabrir un Cumplido (cicatriz de Nike, S863); queda una linea [SISTEMA] en la nota (63d45a93).
+- El CUIT en blanco queda en blanco: se retiraron _apply_cf_cuit_fallback (servidor) y el reloj de condicion_iva_id en ClientCanvas.vue, que escribian 11111111119/00000000000 en un Consumidor Final sin CUIT y lo hacian nacer Blanco sin vuelta a Rosa. Alta sin CUIT (y sin Consumidor Final elegido a proposito): cartel "Es un cliente Rosa?" (e9c5dea9). test_cf_sin_cuit_y_reapertura_s896 (12). Porte a B y push a produccion f2f9f15.
+- #148 Jofre cerrado por Carlos: salio completo y cobro 158.000 (el RI01-00000001 por 4 y 8 es coherente); H19 de CA resuelto; H20 (cartel de cierre corto de un Rosa) abierto: Carlos "aun no se".
+- Ingesta de las facturas 2621-2624 (#205): ENSAYO en seco sobre una copia de P (sin escribir en P): las 4 leen con confianza 100; 2621, 2623 y 2624 concilian clase A; la 2622 (Amazing Tattoo, pedido #123, que no salio) necesita primero su remito con un metodo de salida (en seco anduvo Moto/cadeteria; sin metodo da 400). La "BOBINA 300" de ARCA es el typo de Tomy en el alta del producto (es 360): el comprobante no se toca. Queda para el lunes.
+- Copias de P: la serie paso de 36 a 7 (primera, una del medio y las 5 ultimas) por pedido de Carlos. Hallazgo: 15 de las copias borrables las citan las pruebas, varias fijas a proposito (estado de P antes de cada migracion); repuntarlas rompia 24 de las 80 pruebas. Quedan en BACKUPS_DB/PRODUCCION_P/FIJAS_DE_PRUEBAS/ y las 58 pruebas con ruta apuntan ahi (1ca7d3b4).
+- Informe de situacion para CA (fin de semana): INFORME_DE_SITUACION_2026-10-30_PARA_CA.md. Board: comentarios en #205, #201, #203.
+- Errores propios: horas estimadas en la bitacora (corregidas a "<=12:24"); el repunte de las pruebas a copias nuevas rompio 24 antes de verlo (revertido).
+- Pendiente: S897 (lunes 02/11) ingerir 2621-2624 (decidir como sale el #123), verificar en P el paquete, H20, "falta pago" (#203), #204, RI etapa 2; inspector con los botones heredados (#201); INBOX 118.
+
+Sesion actual: 895
 
 # CAJA NEGRA: OMEGA Lite - Remito Interno: etapa 1 y talonario RI01, boton "Salio sin papel" en el cartel de cierre, conversion de circuito conservando el total y nombre de fantasia en la ficha (caso Castro #145) - S895
 

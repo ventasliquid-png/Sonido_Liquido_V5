@@ -1394,3 +1394,9 @@ Sin cambios funcionales visibles: la sesión trabajó el Board y los protocolos,
 - **Cartel de Cumplido en un Blanco sin remito (ficha, Tablero e informes):** ahora pregunta primero si la mercadería ya salió y falta el remito. «Aceptar» crea un remito por lo que falta, con «Salió sin papel» (retiro en planta si el pedido no tiene transporte), y cierra el pedido. «Cancelar» ofrece cerrar igual con la discrepancia, como antes.
 - **Cambiar un pedido de Blanco a Rosa o de Rosa a Blanco:** pregunta si se quiere conservar el total. «Aceptar» ajusta los precios de los renglones (×1,21 al pasar a Rosa, ÷1,21 al volver a Blanco) para que lo cobrado no cambie. Si el pedido ya tiene factura, no se ajusta.
 - **Ficha del cliente:** nuevo casillero «Nombre de fantasía» (junto a la razón social), por ejemplo «Odontostore». El buscador de clientes del pedido lo encuentra.
+
+## Sesión 896 (30/10) — Lo que cambia para quien opera
+
+- **Alta de un cliente sin CUIT:** si se deja el CUIT vacío (y no se eligió «Consumidor Final» como condición de IVA), al guardar pregunta «¿Es un cliente Rosa (informal, sin factura)?». «Aceptar» da de alta el cliente sin CUIT; «Cancelar» vuelve a la ficha para cargar el CUIT o elegir Consumidor Final.
+- **Consumidor Final:** el sistema ya no le escribe un CUIT inventado a la ficha. Si el CUIT queda en blanco, queda en blanco, y el cliente puede volver a ser Rosa. (El color de cada venta lo sigue decidiendo el pedido.)
+- **Reabrir un pedido que se había cerrado con diferencia:** la marca de ajuste no se apaga (queda como historia) y la nota del pedido lo dice: «El pedido salió de Cumplido… El cierre anterior con ajuste queda como historia».
