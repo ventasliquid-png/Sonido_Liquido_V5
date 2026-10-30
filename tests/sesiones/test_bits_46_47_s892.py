@@ -38,7 +38,7 @@ check("una Rosa de avíos (no comercial) con 0015 también lleva el 46",
       "CIRCULACION_ROSA" in m(0, "0015-00000001", "BORRADOR", ROSA | NO_COM))
 
 # ---- (3) la migración sobre una copia de P
-ORIG = sorted(glob.glob(r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_*.db"))[-1]
+ORIG = sorted(glob.glob(r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\FIJAS_DE_PRUEBAS\PRODUCCION_P_al_*.db"))[-1]
 TMP = os.path.join(RAIZ, "scratch", "test_bits_46_47_s892"); os.makedirs(TMP, exist_ok=True)
 T = os.path.join(TMP, "P.db"); shutil.copyfile(ORIG, T)
 PY = os.path.join(RAIZ, "backend", "venv", "Scripts", "python.exe")

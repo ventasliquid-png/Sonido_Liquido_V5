@@ -14,7 +14,7 @@ from fastapi.testclient import TestClient
 checks = []
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
 TMP = os.path.join(RAIZ, "scratch", "test_espejo_cae_tmp.db")
-copiar_p(r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261008_1224.db", TMP)   # estado ANTES de las migraciones 051-058 (la copia mas nueva ya las tiene)
+copiar_p(r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\FIJAS_DE_PRUEBAS\PRODUCCION_P_al_20261008_1224.db", TMP)   # estado ANTES de las migraciones 051-058 (la copia mas nueva ya las tiene)
 eng = create_engine(f"sqlite:///{TMP}"); S = sessionmaker(bind=eng)
 def ov():
     db = S()

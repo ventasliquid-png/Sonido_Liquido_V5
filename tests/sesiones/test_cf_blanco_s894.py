@@ -15,7 +15,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 checks = []
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
-ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261028_1252.db"
+ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\FIJAS_DE_PRUEBAS\PRODUCCION_P_al_20261028_1252.db"
 T = os.path.join(RAIZ, "scratch", "test_cf_blanco_tmp.db"); copiar_p(ORIG, T)
 eng = create_engine(f"sqlite:///{T}"); s = sessionmaker(bind=eng)()
 B4, B19 = 16, 524288

@@ -10,7 +10,7 @@ checks = []
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
 TMP = tempfile.mkdtemp(prefix="espejo_mensual_")
 DB = os.path.join(TMP, "copia_P.db")
-copiar_p(r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261014_1712.db", DB)
+copiar_p(r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\FIJAS_DE_PRUEBAS\PRODUCCION_P_al_20261014_1712.db", DB)
 m = importlib.import_module("exportar_pedidos_excel")
 NO_FISCAL, ANULADO = 4096, 1 << 35
 con = sqlite3.connect(DB)

@@ -10,7 +10,7 @@ from backend.pedidos.cantidades import facturado_por_renglon
 checks = []
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
 SCR = r"C:\Users\Carlos\AppData\Local\Temp\claude\E--Backup-PreWin11\78f9e817-31bc-4751-a881-e0b91a3d502c\scratchpad"
-ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261008_1224.db"
+ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\FIJAS_DE_PRUEBAS\PRODUCCION_P_al_20261008_1224.db"
 def copia(n, con052=True):
     p = os.path.join(RAIZ, "scratch", n); copiar_p(ORIG, p)
     if con052: correr(p, "migrate_052_facturas_con_cae_a_autorizada.py")

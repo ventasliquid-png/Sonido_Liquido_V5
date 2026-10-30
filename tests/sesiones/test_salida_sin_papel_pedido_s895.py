@@ -16,7 +16,7 @@ from fastapi.testclient import TestClient
 checks = []
 _aparte = imagenes_aparte(r"C:\dev\Sonido_Liquido_V5"); _aparte.__enter__()
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
-ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261028_1651.db"
+ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\FIJAS_DE_PRUEBAS\PRODUCCION_P_al_20261028_1651.db"
 T = os.path.join(RAIZ, "scratch", "test_salida_sin_papel_pedido_tmp.db"); copiar_p(ORIG, T)
 eng = create_engine(f"sqlite:///{T}"); S = sessionmaker(bind=eng)
 def ov():

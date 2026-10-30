@@ -25,7 +25,7 @@ checks = []
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
 OFICINA = UUID(DOMICILIO_ROSETI_ID).hex
 
-ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261021_1206.db"   # [S891] fija: la prueba parte de P ANTES de la 064/065 (el 3031 de mostrador, sin webs de retiro); desde el 21/10 noche P ya las tiene
+ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\FIJAS_DE_PRUEBAS\PRODUCCION_P_al_20261021_1206.db"   # [S891] fija: la prueba parte de P ANTES de la 064/065 (el 3031 de mostrador, sin webs de retiro); desde el 21/10 noche P ya las tiene
 T = os.path.join(RAIZ, "scratch", "test_direccion_remito_tmp.db"); copiar_p(ORIG, T)
 eng = create_engine(f"sqlite:///{T}"); S = sessionmaker(bind=eng)
 def ov():

@@ -19,7 +19,7 @@ sys.path.insert(0, RAIZ); os.chdir(RAIZ)
 checks = []
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
 
-ORIG = sorted(glob.glob(r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_*.db"))[-1]
+ORIG = sorted(glob.glob(r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\FIJAS_DE_PRUEBAS\PRODUCCION_P_al_*.db"))[-1]
 TMP = os.path.join(RAIZ, "scratch", "test_oc_pedido_cerrado_s894"); os.makedirs(TMP, exist_ok=True)
 T = os.path.join(TMP, "P.db"); shutil.copyfile(ORIG, T)
 PY = os.path.join(RAIZ, "backend", "venv", "Scripts", "python.exe")

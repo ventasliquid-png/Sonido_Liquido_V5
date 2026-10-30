@@ -7,7 +7,7 @@ RAIZ = r"C:\dev\Sonido_Liquido_V5"
 sys.path.insert(0, RAIZ); os.chdir(RAIZ)
 checks = []
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
-ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261028_1313.db"
+ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\FIJAS_DE_PRUEBAS\PRODUCCION_P_al_20261028_1313.db"
 NUEVE = ("ASTRID MANICURA DEVOTO", "Adri Nails Adriana Vaquero", "DAI SALOMÉ", "DELICIA ALDERETES", "Federico Acuario",
          "LILIA MORALES", "LUCIANA FLORENTÍN", "MIRTA ROSSINI", "VLAJEC INSUMOS TATTOO")
 def copia(n):

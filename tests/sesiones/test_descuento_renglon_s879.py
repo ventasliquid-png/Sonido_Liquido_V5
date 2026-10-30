@@ -28,7 +28,7 @@ check("sin descuento previo o sin cantidad previa no inventa nada", importe_cons
 
 # ---------- API sobre la copia de P ----------
 TMP = os.path.join(RAIZ, "scratch", "test_descuento_tmp.db")
-copiar_p(sorted(glob.glob(r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_*.db"))[-1], TMP)
+copiar_p(sorted(glob.glob(r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\FIJAS_DE_PRUEBAS\PRODUCCION_P_al_*.db"))[-1], TMP)
 eng = create_engine(f"sqlite:///{TMP}"); S = sessionmaker(bind=eng)
 def ov():
     db = S()

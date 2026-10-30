@@ -13,7 +13,7 @@ from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
 checks = []
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
-ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261008_1224.db"
+ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\FIJAS_DE_PRUEBAS\PRODUCCION_P_al_20261008_1224.db"
 T = os.path.join(RAIZ, "scratch", "test_cumpl_tmp.db"); copiar_p(ORIG, T)
 for m in ("051_remitos_0016_al_pedido_de_su_factura", "052_facturas_con_cae_a_autorizada", "053_poblet_oc3476_facturas_2566_2576", "054_poblet_oc3502", "055_facturas_aceptadas_y_nc_cassara", "056_centropet_58_duplicado"):
     f = glob.glob(os.path.join(RAIZ, "scripts", f"migrate_{m[:3]}_*.py"))

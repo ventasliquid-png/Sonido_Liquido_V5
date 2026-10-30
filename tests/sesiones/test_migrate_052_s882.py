@@ -7,7 +7,7 @@ sys.path.insert(0, RAIZ); os.chdir(RAIZ)
 from backend.main import app   # carga todos los modelos (los mappers se resuelven entre si)
 checks = []
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
-ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261008_1224.db"   # estado ANTES de la 052 (la copia mas nueva ya la tendra)
+ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\FIJAS_DE_PRUEBAS\PRODUCCION_P_al_20261008_1224.db"   # estado ANTES de la 052 (la copia mas nueva ya la tendra)
 def copia(n):
     p = os.path.join(RAIZ, "scratch", n); copiar_p(ORIG, p); return p
 def migrar(db):

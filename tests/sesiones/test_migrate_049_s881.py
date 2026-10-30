@@ -5,7 +5,7 @@ RAIZ = r"C:\dev\Sonido_Liquido_V5"
 sys.path.insert(0, RAIZ); os.chdir(RAIZ)
 checks = []
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
-ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261006_1600.db"   # estado ANTES de la 048/049 (la copia mas nueva de P ya las tiene)
+ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\FIJAS_DE_PRUEBAS\PRODUCCION_P_al_20261006_1600.db"   # estado ANTES de la 048/049 (la copia mas nueva de P ya las tiene)
 def copia(nombre):
     p = os.path.join(RAIZ, "scratch", nombre); copiar_p(ORIG, p); return p
 def migrar(db):

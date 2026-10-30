@@ -6,7 +6,7 @@ sys.path.insert(0, RAIZ); os.chdir(RAIZ)
 checks = []
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
 SCR = r"C:\Users\Carlos\AppData\Local\Temp\claude\E--Backup-PreWin11\78f9e817-31bc-4751-a881-e0b91a3d502c\scratchpad"
-ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261008_0929.db"   # estado ANTES de la 050 (con 048 y 049); la copia mas nueva ya tiene la 050
+ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\FIJAS_DE_PRUEBAS\PRODUCCION_P_al_20261008_0929.db"   # estado ANTES de la 050 (con 048 y 049); la copia mas nueva ya tiene la 050
 def copia(n):
     p = os.path.join(RAIZ, "scratch", n); copiar_p(ORIG, p); return p
 def migrar(db):

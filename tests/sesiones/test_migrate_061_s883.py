@@ -5,7 +5,7 @@ RAIZ = r"C:\dev\Sonido_Liquido_V5"
 sys.path.insert(0, RAIZ); os.chdir(RAIZ)
 checks = []
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
-ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261009_1551.db"
+ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\FIJAS_DE_PRUEBAS\PRODUCCION_P_al_20261009_1551.db"
 CP, CP_Q, CP_S = "069bd7c5be294d88a1df92c856239a7f", "dcc423810a45424e8a29202e85b97349", "e1a12cf398264bf7aeb1c5a7ed3f7458"
 IN, IN_Q, IN_S = "65ae103173c04371bdf7f4cd5567598e", "0358b5a6d2ec461caec2c3978930499a", "3d561b71aa15479e914dddfd8fe950d8"
 def copia(n):

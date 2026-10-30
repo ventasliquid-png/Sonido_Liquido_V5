@@ -47,7 +47,7 @@ r = rem(int(F.EGRESO | F.EMITIDO), "0015-00009999", "ANULADO", NC); genoma.sincr
 check("anulado: la clase queda y el estado pasa a ANULADO", D(r.flags_estado)["clase"] == "EGRESO" and D(r.flags_estado)["estado"] == "ANULADO")
 
 # ---- la copia de P, con las migraciones del despliegue
-ORIG = sorted(glob.glob(r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_*.db"))[-1]
+ORIG = sorted(glob.glob(r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\FIJAS_DE_PRUEBAS\PRODUCCION_P_al_*.db"))[-1]
 TMP = os.path.join(RAIZ, "scratch", "test_discrepancias_ca_s894"); os.makedirs(TMP, exist_ok=True)
 T = os.path.join(TMP, "P.db"); shutil.copyfile(ORIG, T)
 PY = os.path.join(RAIZ, "backend", "venv", "Scripts", "python.exe")

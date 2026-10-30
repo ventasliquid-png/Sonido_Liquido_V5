@@ -11,7 +11,7 @@ from backend.pedidos.cantidades import facturado_por_renglon
 from backend.informes.router import _filas_cumplimiento_oc
 checks = []
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
-ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261008_1621.db"   # estado ANTES de la 059 (la copia mas nueva ya la tiene)
+ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\FIJAS_DE_PRUEBAS\PRODUCCION_P_al_20261008_1621.db"   # estado ANTES de la 059 (la copia mas nueva ya la tiene)
 def copia(n):
     p = os.path.join(RAIZ, "scratch", n); copiar_p(ORIG, p); return p
 def migrar(db):

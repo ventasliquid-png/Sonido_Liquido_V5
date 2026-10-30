@@ -8,7 +8,7 @@ M064 = os.path.join(RAIZ, "scripts", "migrate_064_empresas_transporte_web_retiro
 M065 = os.path.join(RAIZ, "scripts", "migrate_065_remito_3031_petroplastic.py")
 checks = []
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
-ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261021_1206.db"   # [S891] fija: la prueba parte de P ANTES de la 064/065 (el 3031 de mostrador, sin webs de retiro); desde el 21/10 noche P ya las tiene
+ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\FIJAS_DE_PRUEBAS\PRODUCCION_P_al_20261021_1206.db"   # [S891] fija: la prueba parte de P ANTES de la 064/065 (el 3031 de mostrador, sin webs de retiro); desde el 21/10 noche P ya las tiene
 TMP = os.path.join(RAIZ, "scratch", "test_migrate_064_065"); os.makedirs(TMP, exist_ok=True)
 def copia(nombre):
     p = os.path.join(TMP, nombre); shutil.copyfile(ORIG, p); return p

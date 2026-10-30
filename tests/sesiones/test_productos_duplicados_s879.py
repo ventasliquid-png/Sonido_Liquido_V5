@@ -41,7 +41,7 @@ check("productos distintos no se sugieren: Cofia Descartable vs Cubrezapatos par
 check("identico -> 1.0", S("Barbijo Cónico", "barbijo conico") == 1.0)
 
 # ---------- migracion 048 sobre una copia de la base de P ----------
-ult = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261006_1600.db"   # estado ANTES de la 048 (la copia mas nueva de P ya la tiene)
+ult = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\FIJAS_DE_PRUEBAS\PRODUCCION_P_al_20261006_1600.db"   # estado ANTES de la 048 (la copia mas nueva de P ya la tiene)
 TMP = os.path.join(RAIZ, "scratch", "test_prod_dup_tmp.db")
 copiar_p(ult, TMP)
 con = sqlite3.connect(TMP)

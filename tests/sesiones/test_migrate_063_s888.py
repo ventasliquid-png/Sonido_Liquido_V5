@@ -6,7 +6,7 @@ RAIZ = r"C:\dev\Sonido_Liquido_V5"
 sys.path.insert(0, RAIZ); os.chdir(RAIZ)
 checks = []
 def check(d, c): checks.append((d, bool(c))); print(("[OK]  " if c else "[FAIL]"), d)
-ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\PRODUCCION_P_al_20261016_1524.db"
+ORIG = r"Q:\Mi unidad\V5_Silo_Claude\BACKUPS_DB\PRODUCCION_P\FIJAS_DE_PRUEBAS\PRODUCCION_P_al_20261016_1524.db"
 SCRIPT = os.path.join(RAIZ, "scripts", "migrate_063_pedidos_items_kit_grupo.py")
 os.makedirs(os.path.join(RAIZ, "scratch"), exist_ok=True)
 def copia(n):
