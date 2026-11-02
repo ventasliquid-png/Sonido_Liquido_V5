@@ -396,7 +396,6 @@ import { usePedidosStore } from '@/stores/pedidos'
 import { useNotificationStore } from '@/stores/notification'
 import PedidoInspector from './PedidoInspector.vue'
 import api from '@/services/api'
-import { preguntarConservarTotal } from '@/utils/conservarTotal'
 import { resolverCierreConDiscrepancia } from '@/composables/usePedidoEstado'
 import { estadoClase, estadoTexto, ESTADOS_PEDIDO_EDITABLES } from '@/utils/estadosPedido'
 
@@ -629,8 +628,8 @@ const handleToggleBipolar = async (pedido) => {
     const isInterno = !(pedido.flags_estado & 4096)
     try {
         notificationStore.add(`Cambiando circuito a ${isInterno ? 'INTERNO' : 'OFICIAL'}...`, 'info')
-        const conservar = Number(pedido.total) > 0 && preguntarConservarTotal(isInterno, pedido.total)
-        const { data } = await api.patch(`/pedidos/${pedido.id}/circuito-bipolar`, { is_interno: isInterno, conservar_total: conservar })
+        // [S897, Carlos 02/11] Cambiar el circuito NO toca los renglones: solo cambia el total (Blanco = neto x 1,21, Rosa = neto).
+        const { data } = await api.patch(`/pedidos/${pedido.id}/circuito-bipolar`, { is_interno: isInterno })
         
         // Update store
         const idx = store.pedidos.findIndex(p => p.id === pedido.id)

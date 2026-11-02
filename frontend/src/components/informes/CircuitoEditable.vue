@@ -20,7 +20,6 @@
 import { ref } from 'vue'
 import SelectorInline from '@/components/informes/SelectorInline.vue'
 import api from '@/services/api'
-import { preguntarConservarTotal } from '@/utils/conservarTotal'
 import { useNotificationStore } from '@/stores/notification'
 import { claseCircuito } from '@/utils/estadosPedido'
 import { avisarPedidoActualizado } from '@/utils/canalPedidos'
@@ -42,10 +41,10 @@ const elegir = async (nuevo) => {
   const aRosa = nuevo === 'Rosa'
   if (!confirm(`Pasar el pedido #${props.pedidoId} al circuito ${nuevo.toUpperCase()} (${aRosa ? 'interno' : 'oficial'}).\n\n` +
                `Se recalcula el total del pedido con las reglas del nuevo circuito. ¿Confirmás el cambio?`)) return
-  const conservar = preguntarConservarTotal(aRosa, null)
   guardando.value = true
   try {
-    const res = await api.patch(`/pedidos/${props.pedidoId}/circuito-bipolar`, { is_interno: aRosa, conservar_total: conservar })
+    // [S897, Carlos 02/11] Cambiar el circuito NO toca los renglones: solo cambia el total (Blanco = neto x 1,21, Rosa = neto). Se quitó la pregunta «¿Conservar el total?» de la S895.
+    const res = await api.patch(`/pedidos/${props.pedidoId}/circuito-bipolar`, { is_interno: aRosa })
     // Un cliente Rosa no puede pasar a Blanco: el servidor lo deja en Rosa y avisa por qué (cabecera X-Aviso-Circuito).
     const aviso = res.headers?.['x-aviso-circuito']
     if (aviso) notification.add(decodeURIComponent(aviso), 'warning')
