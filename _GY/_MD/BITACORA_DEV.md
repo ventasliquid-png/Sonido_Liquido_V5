@@ -1,4 +1,8 @@
-﻿## SESION 896 (OF) — 2026-10-30 [NS (CC, Sonnet 5.5)]: el CUIT en blanco queda en blanco, alta sin CUIT pregunta si es Rosa, nota al reabrir un Cumplido con ajuste, ensayo de la ingesta 2621–2624 y copias fijas para las pruebas — NOMINAL — D:1ec619bf (último de código e9c5dea9) B:f2f9f15 (= prod/main) P:70e7ccd
+﻿## SESION 897 (OF) — 2026-11-02 [NS (CC, Sonnet 5.5)]: reservorio de facturas de ARCA y conciliación de octubre, la ficha infiere la condición de IVA desde el CUIT, el pedido deja operar a un Consumidor Final o a un Rosa con solo el segmento, el circuito no toca los renglones y prueba preliminar de cobranzas — NOMINAL — D:HASH_CIERRE (último de código be48987f) B:b6ded63 (= prod/main) P:b44e190
+
+- Dos commits de código en D (`e0158447`, `be48987f`) y dos pushes a P (`b44e190`, `b6ded63`); sin migraciones; etiqueta `conversion-circuito-original` (se quita la conversión «conservando el total» de la S895, Card #209). 82 pruebas, 1.820 comprobaciones. Informe: `INFORMES_HISTORICOS/2026-11-02_S897_OF.md`.
+
+## SESION 896 (OF) — 2026-10-30 [NS (CC, Sonnet 5.5)]: el CUIT en blanco queda en blanco, alta sin CUIT pregunta si es Rosa, nota al reabrir un Cumplido con ajuste, ensayo de la ingesta 2621–2624 y copias fijas para las pruebas — NOMINAL — D:1ec619bf (último de código e9c5dea9) B:f2f9f15 (= prod/main) P:70e7ccd
 
 - Dos commits de código en D (`63d45a93`, `e9c5dea9`) y un push a P (`f2f9f15`); sin migraciones. Las copias de P que citan las pruebas pasan a `BACKUPS_DB/PRODUCCION_P/FIJAS_DE_PRUEBAS/` (1ca7d3b4). 80 pruebas, 1.780 comprobaciones. Informe: `INFORMES_HISTORICOS/2026-10-30_S896_OF.md`; situación para CA: `INFORME_DE_SITUACION_2026-10-30_PARA_CA.md`.
 

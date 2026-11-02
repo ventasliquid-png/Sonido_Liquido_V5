@@ -1392,7 +1392,7 @@ Sin cambios funcionales visibles: la sesión trabajó el Board y los protocolos,
 
 - **Cumplido en un pedido Rosa:** ya no sale el cartel. El sistema registra en silencio un remito interno por lo que faltaba (RI01-00000001, RI01-00000002…), con una nota que dice quién y cuándo. Si el pedido vuelve de Cumplido o se anula, ese remito interno se anula solo. Un pedido Blanco sigue con el cartel.
 - **Cartel de Cumplido en un Blanco sin remito (ficha, Tablero e informes):** ahora pregunta primero si la mercadería ya salió y falta el remito. «Aceptar» crea un remito por lo que falta, con «Salió sin papel» (retiro en planta si el pedido no tiene transporte), y cierra el pedido. «Cancelar» ofrece cerrar igual con la discrepancia, como antes.
-- **Cambiar un pedido de Blanco a Rosa o de Rosa a Blanco:** pregunta si se quiere conservar el total. «Aceptar» ajusta los precios de los renglones (×1,21 al pasar a Rosa, ÷1,21 al volver a Blanco) para que lo cobrado no cambie. Si el pedido ya tiene factura, no se ajusta.
+- **Cambiar un pedido de Blanco a Rosa o de Rosa a Blanco:** pregunta si se quiere conservar el total. «Aceptar» ajusta los precios de los renglones (×1,21 al pasar a Rosa, ÷1,21 al volver a Blanco) para que lo cobrado no cambie. Si el pedido ya tiene factura, no se ajusta. **(Quitado el 02/11: ver la Sesión 897. Ya no pregunta ni toca los precios.)**
 - **Ficha del cliente:** nuevo casillero «Nombre de fantasía» (junto a la razón social), por ejemplo «Odontostore». El buscador de clientes del pedido lo encuentra.
 
 ## Sesión 896 (30/10) — Lo que cambia para quien opera
@@ -1400,3 +1400,9 @@ Sin cambios funcionales visibles: la sesión trabajó el Board y los protocolos,
 - **Alta de un cliente sin CUIT:** si se deja el CUIT vacío (y no se eligió «Consumidor Final» como condición de IVA), al guardar pregunta «¿Es un cliente Rosa (informal, sin factura)?». «Aceptar» da de alta el cliente sin CUIT; «Cancelar» vuelve a la ficha para cargar el CUIT o elegir Consumidor Final.
 - **Consumidor Final:** el sistema ya no le escribe un CUIT inventado a la ficha. Si el CUIT queda en blanco, queda en blanco, y el cliente puede volver a ser Rosa. (El color de cada venta lo sigue decidiendo el pedido.)
 - **Reabrir un pedido que se había cerrado con diferencia:** la marca de ajuste no se apaga (queda como historia) y la nota del pedido lo dice: «El pedido salió de Cumplido… El cierre anterior con ajuste queda como historia».
+
+## Sesión 897 (02/11) — Lo que cambia para quien opera
+
+- **Cambiar un pedido de Blanco a Rosa o de Rosa a Blanco:** ya no pregunta «¿Conservar el total?» y **nunca toca los precios ni los descuentos de los renglones**. Solo cambia el total: en Blanco es el neto más el 21%; en Rosa es solo el neto. Se puede alternar las veces que haga falta sin que nada cambie de lugar. Si hay que cobrar o facturar otro importe, se corrige el precio del renglón a mano.
+- **Alta de un cliente (la ficha):** la condición de IVA depende del CUIT. Con el CUIT vacío, la condición queda en gris y vacía, y el cliente es Rosa («Sin CUIT: cliente Rosa»). Para un Consumidor Final se escribe 11111111119 (o se aprieta «Consumidor Final: usar 11111111119») y la condición se pone sola. Con un CUIT real completo, el sistema consulta a ARCA solo y completa la condición; si ARCA no contesta, avisa y la condición se elige a mano. La ficha nueva ya no arranca en «Consumidor Final».
+- **Pedido de un Consumidor Final o de un Rosa:** se puede armar con solo el segmento; ya no pide domicilio ni CUIT.

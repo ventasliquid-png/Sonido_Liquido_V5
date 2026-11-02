@@ -1,4 +1,18 @@
-﻿Sesion actual: 896
+﻿Sesion actual: 897
+
+# CAJA NEGRA: OMEGA Lite - reservorio de facturas de ARCA y conciliacion de octubre, la ficha infiere la condicion de IVA desde el CUIT, el pedido de Consumidor Final o Rosa con solo el segmento, el circuito no toca los renglones y prueba preliminar de cobranzas - S897
+
+Sesion 897 OF, 02/11, NS (CC, Sonnet 5.5) con Carlos. Hash D: HASH_CIERRE (ultimo de codigo be48987f) | Hash B: b6ded63 = prod/main (dos pushes el 02/11: f2f9f15..b44e190 y b44e190..b6ded63, "pushea 1974") | P real: b44e190 (leido en P por red; b6ded63 entra cuando Tomy relance Soberana, sin migraciones). Ultima copia de P: PRODUCCION_P_al_20261102_1640.db (integridad ok; 136 pedidos hasta el #152, 69 remitos, 147 facturas).
+- Reservorio de facturas de ARCA (Card #207): traer_facturas_arca.py (713 comprobantes en FACTURAS_PDF/ARCA, indice, cruce con P, saltos de numeracion, DIARIO.md), integrado a ALFA (paso 8) y a OMEGA v3.6 (FASE 1B.4).
+- Caso Rivas (alta de un Consumidor Final desde el pedido, "Faltan: Domicilio, CUIT"): utils/clientePedido.js (Consumidor Final o Rosa se operan con solo el segmento) y, idea de Carlos, el CUIT decide la condicion de IVA en el alta (utils/cuitFicha.js: vacio = campo gris y Rosa; 11111111119 = Consumidor Final; CUIT real = la lupa de ARCA corre sola). La ficha nueva ya no nace con "Consumidor Final" escondido (un id sin guiones que el desplegable no mostraba). D e0158447, B b44e190.
+- Precio fantasma del #151 de Centro Pet (9.586,78 = 11.600 / 1,21): lo hizo la conversion de circuito "conservando el total" de la S895 (reproducido sobre una copia de P). Carlos: el interruptor Rosa/Blanco no toca nunca los renglones, solo el total (Blanco = neto x 1,21; Rosa = neto). Se quito la conversion y la pregunta; el total sale de los renglones en memoria (la sesion de produccion es autoflush=False). Etiqueta conversion-circuito-original; Card #209. D be48987f, B b6ded63. Prueba nueva test_circuito_no_toca_renglones_s897 (falla 14 de 23 contra el codigo viejo).
+- Conciliacion de octubre con el CSV de ARCA (15 facturas A y la NC 74): 10 de 15 estaban en V5; faltan 2612 y 2621 a 2626 y la NC 74. La NC 74 anula la 2586 ("Error de facturacion, duplicada"), no la 2614 (leido del PDF). El #98 esta enlazado en V5 a la 2600 ($ 1.535.490) siendo de $ 2.243.340. La 2626 de Centro Pet tiene un typo de Tomy en ARCA (bidon 5 litros por botella 1 litro; importes bien): el cliente fue avisado, queda asi.
+- Prueba PRELIMINAR de cobranzas (extracto del banco + e-cheques endosados): 15 cobranzas de octubre por $ 13.836.101,06, 11 apareadas exactas; Wullich confirmado (2616 = e-cheque 3.100.000 + deposito 1.700.312); 8 de 15 facturas con cobro visible; 5 pedidos cobrados siguen PENDIENTE (#121, #122, #123, #131, #145).
+- Errores propios: dije que la NC 74 anulaba la 2614 (deducido por el importe, sin leer el PDF) y que la 2626 estaba emitida de mas (el que estaba mal era el pedido); corregidos en el informe, el Board y la bitacora. Los comentarios del Board de las 17:40 y 18:00 llevan una hora aproximada.
+- 82 pruebas, 1.820 comprobaciones, iguales en D y contra B. INBOX: 121 entradas pasadas a LEIDOS (decision de Carlos). Board: comentarios en #190, #198, #201, #203, #205, #207; nuevas #208 y #209.
+- Pendiente: S898 (martes 03/11) verificar en P el circuito y la ficha, cargar en la Ingesta 2612 y 2621 a 2626 y la NC 74, mirar el #98 y la 2600, decidir si las cobranzas pasan a herramienta; #145 de Castro; H20, "falta pago" (#203), #204, RI etapa 2, inspector (#201).
+
+Sesion actual: 896
 
 # CAJA NEGRA: OMEGA Lite - el CUIT en blanco queda en blanco, el alta sin CUIT pregunta si es Rosa, nota al reabrir un Cumplido con ajuste (bit 46 intacto), ensayo de la ingesta 2621-2624 y poda de copias de P con copias fijas para las pruebas - S896
 
