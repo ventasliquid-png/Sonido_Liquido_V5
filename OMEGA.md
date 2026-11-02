@@ -3,7 +3,7 @@
 
 > Protocolo exclusivo para entorno D (desarrollo).
 > Para P ver: C:\dev\v5-ls-Tom\OMEGA.md
-> **Versión:** 3.5 — 2026-09-28
+> **Versión:** 3.6 — 2026-11-02
 > **Dictamen:** Nike Arq 5.5 — Redacción: Carlos + Claude Sonnet 4.6
 
 ---
@@ -120,6 +120,26 @@ Solo lectura sobre P: copia por red el `.db` y el `-wal`, verifica que no hayan 
 
 ---
 
+## FASE 1B.4 — DOWNLOADS: FACTURAS DE ARCA (S897, pedido de Carlos: «un Omega que pregunte ¿Hay que revisar Downloads? Así armamos el diario»)
+
+**Preguntar a Carlos, siempre:** «¿Hay que revisar Downloads?». Es la rutina diaria de las facturas: lo que ARCA emitió y se bajó a las Descargas tiene que llegar al reservorio y cruzarse con V5 el mismo día, no una semana después (las facturas 2621 a 2624 estuvieron una semana sin ingerir).
+
+Si dice que sí (o si en la jornada se emitieron facturas):
+```cmd
+python "Q:\Mi unidad\V5_Silo_Claude\traer_facturas_arca.py" --p
+```
+Solo lectura sobre las Descargas de P (por red) y de esta PC, y sobre la base de P (instantánea local, la misma forma segura de la FASE 1B.3). Copia los PDF nuevos de ARCA (CUIT propio, sin `_etq`, sin repetidos) a `FACTURAS_PDF/ARCA/`, reescribe `indice.csv` y agrega una entrada a `FACTURAS_PDF/ARCA/DIARIO.md`. Informa tres cosas:
+1. **Nuevos** en el reservorio.
+2. **Sin cargar en V5** (de la vida de V5): es la lista para ingerir en la pantalla de Ingesta de P. OMEGA no ingiere nada (NS no escribe en P): lo que falte va a `SESION_NEXT.md`.
+3. **Saltos de numeración** nuevos: una factura emitida sin PDF en ninguna Descarga. Avisar a Carlos: se baja de ARCA con su clave. Los ya conocidos están en `FACTURAS_PDF/ARCA/saltos_conocidos.json` (se agregan ahí cuando Carlos los resuelve o los da por vistos).
+
+Registrar en la bitácora una fila con lo que informó el script (nuevos, sin cargar, saltos). `pendientes.py cierre` avisa (⚠ REVISAR) si el diario no tiene entrada de hoy.
+- **Carlos dice que no:** fila en la bitácora «Downloads no revisado (decisión de Carlos)».
+- **P no accesible** (típico desde CA): el script lo avisa, actualiza el reservorio con lo que ve y salta el cruce; fila ⚠.
+- **Cierre de mes** (último día hábil del mes o primero del siguiente): preguntar además «¿Bajaste el CSV de ARCA (Mis Comprobantes Emitidos)?». Con el CSV: `python scripts/auditoria_facturas.py --db <copia de P> --arca-csv <CSV> --desde <día 1 del mes>` y el informe al Silo (`Conciliaciones-e-investigaciones/`). Sin el CSV: anotar que el control mensual quedó pendiente (Card #198).
+
+---
+
 ## FASE 1C — ESPEJO EXCEL V2 (Snapshot de Pedidos)
 
 Durante el cierre, el script OMEGA generará automáticamente un Excel Espejo de solo lectura ejecutando:
@@ -151,6 +171,7 @@ Solo lectura. Coteja:
   (`git log <hash>..HEAD`, **nunca** `git log -N`) tienen su fila en la bitácora.
 - El hash **real** de P, leído en P.
 - Entradas del INBOX sin archivar.
+- Downloads (FASE 1B.4): que `FACTURAS_PDF/ARCA/DIARIO.md` tenga una entrada de hoy.
 - Board: cards mencionadas hoy sin actualizar, cards creadas hoy parecidas a una abierta, y cards
   abiertas mencionadas en commits (¿resueltas y no cerradas?).
 
@@ -426,3 +447,4 @@ commits desde el OMEGA anterior sin `-N`, hash real de P, INBOX, Board). SESION_
 se reescribe de memoria. `ultimo_hash_B_en_P` leído en P, `ultimo_barrido_board`. PIN solo si fue
 dado. Paso 6D: push a prod = despliegue. Cubre la parte de registro de la Card #114; la validación
 contra doctrina sigue abierta.*
+*Versión 3.6 — S897-OF (2026-11-02), pedido de Carlos («un Omega que pregunte ¿Hay que revisar Downloads? Así armamos el diario»): FASE 1B.4 — Downloads: facturas de ARCA, con `traer_facturas_arca.py --p` (reservorio `FACTURAS_PDF/ARCA/`, cruce con V5, saltos de numeración y `DIARIO.md`) y, a fin de mes, el CSV de «Mis Comprobantes Emitidos» (Card #198 y #207). `pendientes.py cierre` avisa si el diario no tiene entrada de hoy.*

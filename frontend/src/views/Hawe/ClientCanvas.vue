@@ -208,10 +208,15 @@
                       <!-- Condición IVA -->
                       <div class="col-span-12 lg:col-span-4">
                           <label class="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-1">Condición IVA</label>
-                          <select v-model="form.condicion_iva_id" class="w-full bg-white/5 border rounded px-2 py-1 text-xs text-white focus:outline-none appearance-none [&>option]:bg-slate-900" :class="errors.condicion_iva_id ? 'border-red-500' : 'border-white/10'">
+                          <select v-model="form.condicion_iva_id" :disabled="ivaDerivado" data-test="select-condicion-iva" class="w-full bg-white/5 border rounded px-2 py-1 text-xs text-white focus:outline-none appearance-none [&>option]:bg-slate-900 disabled:opacity-40 disabled:cursor-not-allowed" :class="errors.condicion_iva_id ? 'border-red-500' : 'border-white/10'">
                               <option :value="null">IVA...</option>
                               <option v-for="iva in condicionesIva" :key="iva.id" :value="iva.id">{{ iva.nombre }}</option>
                           </select>
+                          <!-- [S897] En un alta, el CUIT decide la condición: aviso de qué se infirió -->
+                          <p v-if="ivaNota" data-test="nota-condicion-iva" class="mt-1 text-[10px] leading-tight text-white/40">
+                              {{ ivaNota.texto }}
+                              <button v-if="ivaNota.accion" type="button" @click="usarCuitConsumidorFinal" data-test="usar-cuit-cf" class="ml-1 text-cyan-400 hover:text-cyan-300 underline">{{ ivaNota.accion }}</button>
+                          </p>
                       </div>
 
                       <!-- Lista de Precios -->
@@ -544,6 +549,7 @@ import { useLogisticaStore } from '../../stores/logistica'
 import { useAuditSemaphore } from '../../composables/useAuditSemaphore'
 import debounce from 'lodash/debounce'
 import { useFormHistory } from '../../composables/useFormHistory'
+import { CUIT_CF_GENERICO, claseDeCuit, ivaLoDecideElCuit, debeConsultarArca, soloDigitos } from '../../utils/cuitFicha'
 
 // [V5.6 GOLD] Async Shield
 const abortController = new AbortController();
@@ -567,7 +573,7 @@ const emit = defineEmits(['close', 'save'])
 const GENERIC_CUITS = ['00000000000', '11111111119', '11111111111'];
 const commonCuitNames = {
     '00000000000': 'CONSUMIDOR FINAL',
-    '11111111119': 'RESPONSABLE INSCRIPTO GENÉRICO',
+    '11111111119': 'CONSUMIDOR FINAL', // [S897] antes decía «RESPONSABLE INSCRIPTO GENÉRICO»: el 11111111119 es el Consumidor Final genérico (service.py)
     '11111111111': 'CLIENTE EVENTUAL'
 };
 
@@ -711,12 +717,15 @@ const consultarWeb = async () => {
     }
 }
 
-const consultarAfip = async () => {
+// [S897] opts.auto: la consulta la disparó el sistema al completar el CUIT de un alta (no el operador con Enter o la lupa): los errores salen como aviso, sin el alert que bloquea.
+// OJO: Enter y el clic de la lupa le pasan el evento como primer argumento; solo opts.auto === true cuenta.
+const consultarAfip = async (opts) => {
+    const auto = opts?.auto === true
     if (!form.value.cuit || form.value.cuit.length < 11) {
-        notificationStore.add('Ingrese un CUIT válido (11 dígitos)', 'warning')
+        if (!auto) notificationStore.add('Ingrese un CUIT válido (11 dígitos)', 'warning')
         return
     }
-    
+
     // Reset Sync Flag
 
     // Bypass for Generic CUITs
@@ -725,10 +734,14 @@ const consultarAfip = async () => {
         if (!form.value.razon_social) {
             form.value.razon_social = commonCuitNames[form.value.cuit] || 'CONSUMIDOR FINAL'
         }
-        form.value.condicion_iva_id = condicionesIva.value?.find(c => c.nombre?.toUpperCase().includes('FINAL'))?.id || 5
+        // [S897] Solo los CUIT de Consumidor Final ponen la condición; el 11111111111 es Rosa y no lleva condición (antes le ponía Consumidor Final a los tres).
+        if (claseDeCuit(form.value.cuit) === 'cf') {
+            const cf = ivaConsumidorFinal()
+            if (cf) form.value.condicion_iva_id = cf.id
+        }
         return
     }
-    
+
     loadingAfip.value = true
     notificationStore.add('Consultando ARCA/AFIP... Por favor espere.', 'info')
     try {
@@ -767,13 +780,17 @@ const consultarAfip = async () => {
         }
 
 
-        const response = await clientesService.checkAfip(form.value.cuit)
+        const cuitConsultado = form.value.cuit
+        const response = await clientesService.checkAfip(cuitConsultado)
         const res = response.data // Unwrap payload
-        
+        // [S897] La consulta sola tarda: si mientras tanto el operador siguió tipeando otro CUIT, la respuesta es de un número que ya no está en la ficha.
+        if (auto && soloDigitos(form.value.cuit) !== soloDigitos(cuitConsultado)) return
+
         if (res.error) {
             notificationStore.add(`Error AFIP: ${res.error}`, 'error')
-            alert(`❌ ERROR ARCA/AFIP:\n\n${res.error}\n\nVerifique el CUIT ingresado.`);
-            form.value.estado_arca = 'INVALIDO'; 
+            if (!auto) alert(`❌ ERROR ARCA/AFIP:\n\n${res.error}\n\nVerifique el CUIT ingresado.`);
+            else notificationStore.add('ARCA no devolvió datos de ese CUIT: elija la condición de IVA a mano o verifique el número.', 'warning', 8000)
+            form.value.estado_arca = 'INVALIDO';
             return
         }
         
@@ -820,10 +837,11 @@ const consultarAfip = async () => {
             form.value.condicion_iva_id = ivaTarget.id
         } else {
              // Default Fallbacks
-             if (arcaIva.includes('MONOTRIBUTO')) form.value.condicion_iva_id = 6
-             else if (arcaIva.includes('INSCRIPTO')) form.value.condicion_iva_id = 1
+             // [S897] Antes asignaba los ids numéricos 6, 1 y 5: los ids reales son códigos largos, así que la condición quedaba rota. Ahora se busca por nombre.
+             if (arcaIva.includes('MONOTRIBUTO')) form.value.condicion_iva_id = ivaPorNombre('MONOTRIBUTO')?.id ?? form.value.condicion_iva_id
+             else if (arcaIva.includes('INSCRIPTO')) form.value.condicion_iva_id = ivaPorNombre('RESPONSABLE INSCRIPTO')?.id ?? form.value.condicion_iva_id
              else if (arcaIva.includes('INFERIDO')) {
-                 form.value.condicion_iva_id = 1 // Assume RI based on activity
+                 form.value.condicion_iva_id = ivaPorNombre('RESPONSABLE INSCRIPTO')?.id ?? form.value.condicion_iva_id // Assume RI based on activity
                  notificationStore.add('Condición IVA inferida por actividad comercial. Verifique.', 'info')
              } else if (arcaIva.includes('REVISAR') || arcaIva.includes('NOT_FOUND')) {
                  // ONLY wipe if already empty, to avoid overwriting valid data from Cantera
@@ -832,9 +850,10 @@ const consultarAfip = async () => {
                     notificationStore.add('AFIP no retornó IVA. Seleccione manualmente.', 'warning')
                  }
              } else {
-                 form.value.condicion_iva_id = 5 // Consumidor Final
+                 form.value.condicion_iva_id = ivaConsumidorFinal()?.id ?? form.value.condicion_iva_id // Consumidor Final
              }
         }
+        ivaDelSistema.value = { cuit: soloDigitos(form.value.cuit), ivaId: form.value.condicion_iva_id } // [S897] para el cartel «Según ARCA»
         
         // 3. Update Domicilio Fiscal (Smart Parser)
         // 3. Update Domicilio Fiscal (Smart Parser)
@@ -982,7 +1001,8 @@ const consultarAfip = async () => {
         }
         
         notificationStore.add(msg, 'error')
-        alert(`❌ ERROR ARCA/AFIP:\n\n${msg}\n\nVerifique el CUIT ingresado (¿Dígito Verificador?).`);
+        if (!auto) alert(`❌ ERROR ARCA/AFIP:\n\n${msg}\n\nVerifique el CUIT ingresado (¿Dígito Verificador?).`);
+        else notificationStore.add('No se pudo consultar a ARCA: elija la condición de IVA a mano.', 'warning', 8000)
         form.value.estado_arca = 'INVALIDO';
     } finally {
         loadingAfip.value = false
@@ -1570,7 +1590,9 @@ const resetForm = () => {
     form.value = {
         id: null, razon_social: '', nombre_fantasia: '', cuit: '',
         // [GY-FIX] Safe Defaults for tommy-v5-ls environment
-        condicion_iva_id: 'f9cb56f12b2c47169b0f7bed74196d4c', // Consumidor Final
+        // [S897, Carlos 02/11] Sin condición de IVA de fábrica: nacía «Consumidor Final» con el CUIT vacío (alta de Rivas desde el pedido) y esa combinación no es Rosa ni formal.
+        // La condición la decide el CUIT (inferirIvaDesdeCuit).
+        condicion_iva_id: null,
         lista_precios_id: null, // null = Lista Automática
         vendedor_id: null, 
         segmento_id: 'e5589396817940868bdb97d4ee94297b', // General
@@ -1712,10 +1734,10 @@ const saveCliente = async () => {
         const esRosa = confirm(
             'Este cliente no tiene CUIT.\n\n¿Es un cliente Rosa (informal, sin factura)?\n\n' +
             'ACEPTAR = es Rosa: se da de alta sin CUIT.\n' +
-            'CANCELAR = no es Rosa: vuelva a la ficha y cargue el CUIT, o elija Consumidor Final como condición de IVA.'
+            `CANCELAR = no es Rosa: vuelva a la ficha y cargue el CUIT (para un Consumidor Final, ${CUIT_CF_GENERICO}).`
         )
         if (!esRosa) {
-            notificationStore.add('Cargue el CUIT del cliente o elija «Consumidor Final» como condición de IVA.', 'warning', 6000)
+            notificationStore.add(`Cargue el CUIT del cliente (para un Consumidor Final, ${CUIT_CF_GENERICO}).`, 'warning', 6000)
             return
         }
     }
@@ -1956,7 +1978,66 @@ const openEntregaEditor = () => {
 // --- Specific Logic & UI Handlers ---
 const handleCuitInput = (e) => {
     form.value.cuit = e.target.value.replace(/[^0-9]/g, '')
+    inferirIvaDesdeCuit()
 }
+
+// --- [S897, Carlos 02/11] En un alta, el CUIT decide la condición de IVA (reglas en src/utils/cuitFicha.js) ---
+// Vacío = Rosa (sin condición, campo gris); 11111111119 = Consumidor Final (campo gris); CUIT real = la lupa de ARCA sola al completar el número.
+// Solo en altas (isNew): una ficha existente no se toca, para no trabar fichas viejas. La consulta sola la dispara quien TIPEA el CUIT, no el
+// alta que llega con el CUIT ya cargado (Ingesta): ahí sigue mandando el operador con Enter o la lupa.
+const ivaPorNombre = (fragmento) => condicionesIva.value?.find(c => c.nombre?.toUpperCase().includes(fragmento))
+const ivaConsumidorFinal = () => ivaPorNombre('CONSUMIDOR FINAL')
+const ultimoCuitConsultadoSolo = ref('') // un intento por número: si ARCA no contesta, no se insiste
+const ivaDelSistema = ref({ cuit: '', ivaId: null }) // la condición que puso el sistema (comodín o lupa) y para qué CUIT: si el CUIT cambia, esa condición ya no vale
+
+const ivaDerivado = computed(() => isNew.value && ivaLoDecideElCuit(form.value.cuit))
+const ivaNota = computed(() => {
+    if (!isNew.value) return null
+    const clase = claseDeCuit(form.value.cuit)
+    if (clase === 'vacio') return { texto: 'Sin CUIT: cliente Rosa.', accion: `Consumidor Final: usar ${CUIT_CF_GENERICO}` }
+    if (clase === 'cf') return { texto: 'CUIT genérico: Consumidor Final (Factura B).' }
+    if (clase === 'rosa') return { texto: 'CUIT reservado: cliente Rosa.' }
+    if (clase === 'real' && ivaDelSistema.value.cuit === soloDigitos(form.value.cuit) && ivaDelSistema.value.ivaId && ivaDelSistema.value.ivaId === form.value.condicion_iva_id) {
+        const iva = condicionesIva.value?.find(c => c.id === form.value.condicion_iva_id)
+        if (iva) return { texto: `Según ARCA: ${iva.nombre}.` }
+    }
+    return null
+})
+
+const inferirIvaDesdeCuit = ({ consultar = true } = {}) => {
+    if (!isNew.value) return
+    const cuit = form.value.cuit
+    const clase = claseDeCuit(cuit)
+    if (clase === 'vacio' || clase === 'rosa' || clase === 'generico') {
+        form.value.condicion_iva_id = null
+    } else if (clase === 'cf') {
+        const cf = ivaConsumidorFinal()
+        if (cf) {
+            form.value.condicion_iva_id = cf.id
+            ivaDelSistema.value = { cuit: soloDigitos(cuit), ivaId: cf.id }
+        }
+    } else {
+        // CUIT incompleto o real: la condición que puso el sistema para OTRO número (el comodín, o ARCA) ya no vale. La que eligió el operador a mano no se toca.
+        const s = ivaDelSistema.value
+        if (s.ivaId && form.value.condicion_iva_id === s.ivaId && s.cuit !== soloDigitos(cuit)) {
+            form.value.condicion_iva_id = null
+            ivaDelSistema.value = { cuit: '', ivaId: null }
+            ultimoCuitConsultadoSolo.value = '' // si vuelve al número de antes, ARCA se consulta de nuevo
+        }
+        if (consultar && !loadingAfip.value && debeConsultarArca(cuit, ultimoCuitConsultadoSolo.value)) {
+            ultimoCuitConsultadoSolo.value = soloDigitos(cuit)
+            consultarAfip({ auto: true })
+        }
+    }
+}
+
+const usarCuitConsumidorFinal = () => {
+    form.value.cuit = CUIT_CF_GENERICO
+    inferirIvaDesdeCuit()
+}
+
+// Una ficha que pasa a ser alta (clonar, formalizar) también queda coherente con su CUIT, sin consultar a ARCA.
+watch(isNew, (esAlta) => { if (esAlta) inferirIvaDesdeCuit({ consultar: false }) })
 
 // [GY-UX] CUIT Warning System (CASO UBA)
 const isSharedCuit = ref(false)

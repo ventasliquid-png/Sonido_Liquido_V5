@@ -967,6 +967,7 @@ import EstadoEditable from '@/components/informes/EstadoEditable.vue'; // [S876]
 import SelectorInline from '@/components/informes/SelectorInline.vue'; // [S883, Card #171] el mismo cartel, para elegir el tipo al crear
 import { estadoClase, estadoTexto } from '@/utils/estadosPedido';
 import { textoEntrega } from '@/utils/domicilio'; // [S894] el domicilio de entrega con su lado de entrega, como el papel
+import { validarClienteParaPedido } from '@/utils/clientePedido'; // [S897] qué le falta a un cliente para armar un pedido (Rosa y Consumidor Final: solo el segmento)
 import { claseEstadoRemito, traerRemitosDelPedido, imprimirRemitoExistente } from '@/composables/useRemitosDelPedido'; // [S887] ¿ya tiene remito?
 import { shallowRef } from 'vue'; // Optimization
 
@@ -1082,7 +1083,11 @@ onMounted(async () => {
     if (maestrosStore.transportes.length === 0) {
         await maestrosStore.fetchTransportes();
     }
-    
+    // [S897] La validación del cliente necesita el nombre de su condición de IVA (Consumidor Final se opera solo con el segmento).
+    if (maestrosStore.condicionesIva.length === 0) {
+        await maestrosStore.fetchCondicionesIva();
+    }
+
     // [S876] Mientras no se haya tocado nada, lo que la ficha complete sola (transporte sugerido, etc.) actualiza la foto de "lo cargado":
     // no cuenta como cambio del operador. Se crea acá (y no al declarar) porque la función se evalúa al crearse el watch.
     watch(() => (route.params.id && !isHydratingPedido.value ? instantanea() : null), (nueva) => {
@@ -1708,28 +1713,13 @@ const OPERATOR_OK = 16;  // Bit 4 — sello Rosa, informal operativo
 const NO_FISCAL_FORCE = 4096;  // Bit 12 — pedido sin factura AFIP
 const ES_NO_COMERCIAL = 2048;  // Bit 11 — muestras/uso interno
 
+// [S897, Carlos 02/11] La regla vive en utils/clientePedido.js (probada en Node): Gold = válido; Rosa o Consumidor Final = solo el segmento; el resto, todo.
+// Antes un Consumidor Final sin CUIT (alta desde el pedido de una cliente que retira en el depósito de Vía Cargo) quedaba «Faltan: Domicilio, CUIT» y el pedido no se guardaba.
 const clientValidation = computed(() => {
-    if (!clienteSeleccionado.value) return { valid: true, missing: [] };
     const c = clienteSeleccionado.value;
-    const flags = c.flags_estado || 0;
-    const missing = [];
-
-    if (flags & GOLD_ARCA) {
-        // Gold/Blanco: siempre válido para operar
-        return { valid: true, missing: [] };
-    }
-    if (flags & OPERATOR_OK) {
-        // Rosa: solo segmento obligatorio
-        if (!c.segmento_id && !c.segmento?.id) missing.push('Segmento');
-    } else {
-        // Amarillo/sin clasificar: exigir todo
-        if (!c.condicion_iva_id || c.condicion_iva_id === 'null') missing.push('Condición IVA');
-        if (!c.segmento_id) missing.push('Segmento');
-        if (!c.domicilios || c.domicilios.length === 0) missing.push('Domicilio');
-        if (!c.cuit || c.cuit.length < 5) missing.push('CUIT');
-    }
-
-    return { valid: missing.length === 0, missing };
+    if (!c) return { valid: true, missing: [] };
+    const iva = (maestrosStore.condicionesIva || []).find(i => String(i.id) === String(c.condicion_iva_id));
+    return validarClienteParaPedido(c, iva?.nombre || c.condicion_iva?.nombre);
 });
 const busquedaCliente = ref('');
 const showClienteResults = ref(false);
