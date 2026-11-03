@@ -37,12 +37,13 @@
           </div>
         </section>
 
-        <ul v-if="bloqueosVisibles.length" class="space-y-1">
+        <!-- [S898, Carlos 03/11] Ya conciliada, queda solo el cartel verde: el bloqueo (FACTURA_DUPLICADA) y el aviso (SIN_PR_PENDIENTE) los genera la propia factura recién registrada al releer los candidatos -->
+        <ul v-if="!resultado && bloqueosVisibles.length" class="space-y-1">
           <li v-for="(b, i) in bloqueosVisibles" :key="'b' + i" class="text-xs bg-red-900/30 border border-red-600/40 text-red-300 rounded-lg px-3 py-2">
             <i class="fas fa-ban mr-1"></i>{{ b }}
           </li>
         </ul>
-        <ul v-if="cand.avisos.length" class="space-y-1">
+        <ul v-if="!resultado && cand.avisos.length" class="space-y-1">
           <li v-for="(a, i) in cand.avisos" :key="'a' + i" class="text-xs bg-amber-900/20 border border-amber-600/30 text-amber-300 rounded-lg px-3 py-2">
             <i class="fas fa-circle-exclamation mr-1"></i>{{ a }}
           </li>
@@ -154,6 +155,11 @@
                 <span v-if="p.pedido_oc" class="text-slate-400">OC {{ p.pedido_oc }}</span>
                 <span class="text-slate-500">{{ p.estado }}</span>
                 <span class="text-slate-500">{{ (p.fecha_creacion || '').slice(0, 10) }}</span>
+                <!-- [S898, Carlos 03/11] total del pedido para el control rápido contra el total de la factura; si es el mismo importe, lo marca -->
+                <span v-if="p.pedido_total != null" class="text-slate-300" data-total-pedido>
+                  Total del pedido <b class="text-white font-mono">{{ moneda(p.pedido_total) }}</b>
+                  <span v-if="mismoImporte(p.pedido_total, cand.factura.total_final)" class="ml-1 text-emerald-400"><i class="fas fa-equals"></i> igual a la factura</span>
+                </span>
               </div>
               <div class="mt-1 text-slate-400">
                 <span v-for="r in p.renglones" :key="r.remito_item_id" class="inline-block mr-3">
@@ -365,6 +371,8 @@ const diferenciasPrecioEv = computed(() => (ev.value?.diferencias || []).filter(
 const diferenciasPrecio = ref(null)
 
 const moneda = (v) => (v == null ? '—' : Number(v).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' }))
+// [S898] mismo importe a los centavos (el total del pedido y el de la factura vienen con redondeos distintos)
+const mismoImporte = (a, b) => a != null && b != null && Math.abs(Number(a) - Number(b)) < 0.005
 const ESTILOS = {
   INFO: 'bg-slate-800/60 border-slate-600/40 text-slate-300',
   A: 'bg-sky-900/20 border-sky-600/30 text-sky-200',

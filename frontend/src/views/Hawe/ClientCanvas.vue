@@ -24,14 +24,18 @@
                       ref="cuitInput"
                       v-model="form.cuit" 
                       type="text" 
-                      class="bg-transparent border-none text-sm font-mono focus:outline-none w-[100px] placeholder-white/10"
+                      class="bg-transparent border-none text-sm font-mono focus:outline-none w-[100px]"
                       :class="{
                         'text-fuchsia-200': clientColorMode === 'pink',
                         'text-cyan-200': clientColorMode === 'blue',
                         'text-emerald-100': clientColorMode === 'green',
-                        'text-yellow-100': clientColorMode === 'yellow'
+                        'text-yellow-100': clientColorMode === 'yellow',
+                        'placeholder-white/10': !mascaraCuit,
+                        'placeholder-cyan-300/70': !!mascaraCuit
                       }"
-                      placeholder="Sin Guiones"
+                      :placeholder="mascaraCuit || 'Sin Guiones'"
+                      :title="mascaraCuit ? 'Máscara de Consumidor Final: la ficha guarda el CUIT vacío' : null"
+                      data-test="input-cuit"
                       maxlength="13"
                       @keydown.enter="consultarAfip"
                       @input="handleCuitInput"
@@ -215,7 +219,7 @@
                           <!-- [S897] En un alta, el CUIT decide la condición: aviso de qué se infirió -->
                           <p v-if="ivaNota" data-test="nota-condicion-iva" class="mt-1 text-[10px] leading-tight text-white/40">
                               {{ ivaNota.texto }}
-                              <button v-if="ivaNota.accion" type="button" @click="usarCuitConsumidorFinal" data-test="usar-cuit-cf" class="ml-1 text-cyan-400 hover:text-cyan-300 underline">{{ ivaNota.accion }}</button>
+                              <button v-if="ivaNota.accion" type="button" @click="alternarConsumidorFinal" data-test="usar-cuit-cf" class="ml-1 text-cyan-400 hover:text-cyan-300 underline">{{ ivaNota.accion }}</button>
                           </p>
                       </div>
 
@@ -721,6 +725,10 @@ const consultarWeb = async () => {
 // OJO: Enter y el clic de la lupa le pasan el evento como primer argumento; solo opts.auto === true cuenta.
 const consultarAfip = async (opts) => {
     const auto = opts?.auto === true
+    if (mascaraCuit.value && !auto) { // [S898, H21] un Consumidor Final no tiene CUIT que consultar: el 11111111119 es solo la máscara
+        notificationStore.add('Consumidor Final: no hay CUIT para consultar en ARCA.', 'info')
+        return
+    }
     if (!form.value.cuit || form.value.cuit.length < 11) {
         if (!auto) notificationStore.add('Ingrese un CUIT válido (11 dígitos)', 'warning')
         return
@@ -1977,7 +1985,14 @@ const openEntregaEditor = () => {
 
 // --- Specific Logic & UI Handlers ---
 const handleCuitInput = (e) => {
-    form.value.cuit = e.target.value.replace(/[^0-9]/g, '')
+    const digitos = e.target.value.replace(/[^0-9]/g, '')
+    // [S898, Carlos 03/11, H21] El 11111111119 tipeado es un atajo: elige Consumidor Final y el CUIT queda VACÍO (el comodín es solo una máscara de la pantalla, regla de Nike del 28/10)
+    if (digitos === CUIT_CF_GENERICO) {
+        e.target.value = ''
+        ponerConsumidorFinal()
+        return
+    }
+    form.value.cuit = digitos
     inferirIvaDesdeCuit()
 }
 
@@ -1990,11 +2005,32 @@ const ivaConsumidorFinal = () => ivaPorNombre('CONSUMIDOR FINAL')
 const ultimoCuitConsultadoSolo = ref('') // un intento por número: si ARCA no contesta, no se insiste
 const ivaDelSistema = ref({ cuit: '', ivaId: null }) // la condición que puso el sistema (comodín o lupa) y para qué CUIT: si el CUIT cambia, esa condición ya no vale
 
+// [S898, Carlos 03/11, H21] El 11111111119 es una MÁSCARA de la pantalla, no un dato: la ficha de un Consumidor Final guarda el CUIT VACÍO y la condición «Consumidor Final» (regla de
+// Nike del 28/10: el comodín vive solo en el comprobante). Tipearlo, o apretar el botón, solo elige Consumidor Final; con Consumidor Final y el CUIT vacío el campo muestra el comodín atenuado.
+const esConsumidorFinal = computed(() => { const cf = ivaConsumidorFinal(); return !!cf && form.value.condicion_iva_id === cf.id })
+const mascaraCuit = computed(() => (esConsumidorFinal.value && !soloDigitos(form.value.cuit)) ? CUIT_CF_GENERICO : '')
+const ponerConsumidorFinal = () => {
+    const cf = ivaConsumidorFinal()
+    if (!cf) return
+    form.value.cuit = ''
+    form.value.condicion_iva_id = cf.id
+    ivaDelSistema.value = { cuit: '', ivaId: cf.id }
+    ultimoCuitConsultadoSolo.value = ''
+}
+const quitarConsumidorFinal = () => {
+    ivaDelSistema.value = { cuit: '', ivaId: null }
+    form.value.condicion_iva_id = null
+}
+const alternarConsumidorFinal = () => (mascaraCuit.value ? quitarConsumidorFinal() : ponerConsumidorFinal())
+
 const ivaDerivado = computed(() => isNew.value && ivaLoDecideElCuit(form.value.cuit))
 const ivaNota = computed(() => {
     if (!isNew.value) return null
     const clase = claseDeCuit(form.value.cuit)
-    if (clase === 'vacio') return { texto: 'Sin CUIT: cliente Rosa.', accion: `Consumidor Final: usar ${CUIT_CF_GENERICO}` }
+    if (clase === 'vacio') {
+        if (mascaraCuit.value) return { texto: `Consumidor Final (Factura B): la ficha guarda el CUIT vacío; ${CUIT_CF_GENERICO} es solo la máscara.`, accion: 'Volver a cliente Rosa (sin CUIT)' }
+        return { texto: 'Sin CUIT: cliente Rosa.', accion: `Consumidor Final (${CUIT_CF_GENERICO})` }
+    }
     if (clase === 'cf') return { texto: 'CUIT genérico: Consumidor Final (Factura B).' }
     if (clase === 'rosa') return { texto: 'CUIT reservado: cliente Rosa.' }
     if (clase === 'real' && ivaDelSistema.value.cuit === soloDigitos(form.value.cuit) && ivaDelSistema.value.ivaId && ivaDelSistema.value.ivaId === form.value.condicion_iva_id) {
@@ -2008,13 +2044,20 @@ const inferirIvaDesdeCuit = ({ consultar = true } = {}) => {
     if (!isNew.value) return
     const cuit = form.value.cuit
     const clase = claseDeCuit(cuit)
-    if (clase === 'vacio' || clase === 'rosa' || clase === 'generico') {
+    if (clase === 'vacio') {
+        // [S898, H21] un Consumidor Final con el CUIT vacío conserva su condición (es la máscara); si no, CUIT vacío = sin condición (Rosa)
+        if (!esConsumidorFinal.value) form.value.condicion_iva_id = null
+    } else if (clase === 'rosa' || clase === 'generico') {
         form.value.condicion_iva_id = null
-    } else if (clase === 'cf') {
-        const cf = ivaConsumidorFinal()
-        if (cf) {
-            form.value.condicion_iva_id = cf.id
-            ivaDelSistema.value = { cuit: soloDigitos(cuit), ivaId: cf.id }
+    } else if (clase === 'cf') { // 00000000000 (el mostrador) lleva su CUIT; el 11111111119 tipeado lo convierte handleCuitInput en la máscara
+        if (soloDigitos(cuit) === CUIT_CF_GENERICO) {
+            ponerConsumidorFinal() // llega con el comodín ya cargado (clonar, Ingesta): queda como máscara, la ficha no lo guarda
+        } else {
+            const cf = ivaConsumidorFinal()
+            if (cf) {
+                form.value.condicion_iva_id = cf.id
+                ivaDelSistema.value = { cuit: soloDigitos(cuit), ivaId: cf.id }
+            }
         }
     } else {
         // CUIT incompleto o real: la condición que puso el sistema para OTRO número (el comodín, o ARCA) ya no vale. La que eligió el operador a mano no se toca.
@@ -2029,11 +2072,6 @@ const inferirIvaDesdeCuit = ({ consultar = true } = {}) => {
             consultarAfip({ auto: true })
         }
     }
-}
-
-const usarCuitConsumidorFinal = () => {
-    form.value.cuit = CUIT_CF_GENERICO
-    inferirIvaDesdeCuit()
 }
 
 // Una ficha que pasa a ser alta (clonar, formalizar) también queda coherente con su CUIT, sin consultar a ARCA.

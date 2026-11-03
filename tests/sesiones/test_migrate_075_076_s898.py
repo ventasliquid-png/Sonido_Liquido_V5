@@ -103,9 +103,9 @@ import auto_migrar
 disp = dict(auto_migrar.migraciones_disponibles())
 aplicadas = {row[0] for row in q(ORIG, "select id from _migraciones_aplicadas")}
 pend07x = sorted(m for m in disp if m >= "070" and m not in aplicadas)
-check("auto_migrar (el arranque de P) descubre la 075 y la 076, y sobre la base de P de hoy son las unicas migraciones nuevas de la serie 07x",
-      pend07x == ["075_renglones_facturas_bonificadas", "076_pedido_94_bonificacion"] and disp["075_renglones_facturas_bonificadas"].endswith("migrate_075_renglones_facturas_bonificadas.py"))
-check("y la 075 va antes que la 076 en el orden en que las corre", [m for m in sorted(disp, key=lambda m: os.path.basename(disp[m])) if m >= "075"] == ["075_renglones_facturas_bonificadas", "076_pedido_94_bonificacion"])
+check("auto_migrar (el arranque de P) descubre la 075, la 076 y la 077 (H21), y sobre la base de P del 02/11 son las unicas migraciones nuevas de la serie 07x",
+      pend07x == ["075_renglones_facturas_bonificadas", "076_pedido_94_bonificacion", "077_cf_sin_cuit_comodin"] and disp["075_renglones_facturas_bonificadas"].endswith("migrate_075_renglones_facturas_bonificadas.py"))
+check("y la 075 va antes que la 076 en el orden en que las corre", [m for m in sorted(disp, key=lambda m: os.path.basename(disp[m])) if m >= "075"] == ["075_renglones_facturas_bonificadas", "076_pedido_94_bonificacion", "077_cf_sin_cuit_comodin"])
 for n in os.listdir(os.path.join(RAIZ, "scratch")):
     if n.startswith(("t075_", "t076_")):
         try: os.remove(os.path.join(RAIZ, "scratch", n))

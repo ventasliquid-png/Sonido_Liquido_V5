@@ -262,6 +262,8 @@ class ConciliadorService:
                     "fecha_creacion": r.fecha_creacion.isoformat() if r.fecha_creacion else None,
                     "pedido_id": r.pedido_id,
                     "pedido_oc": r.pedido.oc if r.pedido else None,
+                    # [S898, Carlos 03/11] el total del pedido, para el control rápido contra el total de la factura que se concilia
+                    "pedido_total": float(r.pedido.total) if (r.pedido and r.pedido.total is not None) else None,
                     "cliente": r.pedido.cliente.razon_social if (r.pedido and r.pedido.cliente) else None,
                     "renglones": [ConciliadorService._describir_renglon(ri) for ri in pendientes],
                 })

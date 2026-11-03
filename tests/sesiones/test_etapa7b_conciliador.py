@@ -84,6 +84,9 @@ check("Candidatos: aparece el PR recien armado, con 5 renglones pendientes",
       any(p["remito_id"] == pr["id"] and len(p["renglones"]) == 5 for p in c["prs"]))
 check("Candidatos: el remito legacy de Genesis (pedido 48, facturada NULL) NO aparece",
       all(p["pedido_id"] == 24 for p in c["prs"]))
+# [S898, Carlos 03/11] cada alternativa trae el total del pedido, para compararlo de un vistazo con el total de la factura
+total_24 = sql("SELECT total FROM pedidos WHERE id = ?", (24,))[0][0]
+check(f"Candidatos: cada PR trae el total de su pedido ({total_24})", c["prs"] and all(p.get("pedido_total") == float(total_24) for p in c["prs"]))
 
 ev = client.post(f"/ingesta/raw/{rid}/conciliacion/evaluar", json={"remito_ids": [pr["id"]]}).json()
 emp = {e["item_pdf"]: (e["remito_item_id"], e.get("como")) for e in ev["emparejamiento"]}

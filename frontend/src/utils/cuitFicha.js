@@ -4,6 +4,8 @@
 // esa combinación no es ni Rosa ni formal y el pedido no la dejaba guardar. Los datos de P ya decían la regla: todos los clientes sin CUIT son sin condición de IVA.
 //   - CUIT vacío              -> sin condición de IVA (campo gris): el cliente es Rosa si tiene segmento.
 //   - 11111111119 / 00000000000 -> Consumidor Final (campo gris): Blanco, Factura B.
+//     [S898, H21] El 11111111119 es solo una MÁSCARA de la pantalla: tipearlo (o el botón) elige Consumidor Final y la ficha guarda el CUIT VACÍO (el comodín vive solo en el comprobante, regla de
+//     Nike del 28/10); con Consumidor Final y el CUIT vacío el campo lo muestra atenuado. El 00000000000 es el CUIT del Mostrador y sí se guarda.
 //   - 11111111111             -> CUIT reservado Rosa (campo gris, sin condición).
 //   - CUIT real               -> la condición la trae ARCA (la lupa); el campo queda habilitado por si ARCA no contesta.
 

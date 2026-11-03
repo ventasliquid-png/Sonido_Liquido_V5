@@ -12,11 +12,11 @@ import { useNotificationStore } from '@/stores/notification'
 // cierre_confirmado) o 'cancelar'.
 export async function resolverCierreConDiscrepancia(pedidoId, mensaje) {
   const notification = useNotificationStore()
-  if (confirm(`⚠️ ${mensaje}
+  if (confirm(`${redactarCartelCierre(mensaje)}
 
 ¿La mercadería ya salió y falta el remito?
-ACEPTAR = registrar «Salió sin papel» por lo que falta y cerrar.
-CANCELAR = ver otras opciones.`)) {
+ACEPTAR = sí, ya salió: se registra la salida de lo que falta con un remito sin imprimir (toma número) y se cierra el pedido.
+CANCELAR = no, o no sé: te ofrece cerrar igual, sin remito, dejando la discrepancia anotada.`)) {
     try {
       const { data } = await api.post(`/remitos/pedido/${pedidoId}/salida-sin-papel`, {})
       notification.add(`Salida registrada sin papel: remito ${data?.numero_legal || ''}`, 'success')
@@ -26,7 +26,19 @@ CANCELAR = ver otras opciones.`)) {
       return 'cancelar'
     }
   }
-  return confirm('¿Cerrar igual, con la discrepancia? Queda anotada en el pedido.') ? 'cerrar' : 'cancelar'
+  return confirm('¿Cerrar sin registrar ninguna salida? El pedido se da por cumplido sin remito de egreso y la discrepancia queda anotada en el pedido.') ? 'cerrar' : 'cancelar'
+}
+
+// [S898, Carlos 03/11; caso Medi Cient #153: «estás dando por entregado algo que está en cero»] El 409 del servidor llega como una frase corrida («... entregado 0 ... Confirme el
+// cierre para continuar») que suena a cerrar algo en cero y deja la pregunta importante para el final. Se rearma acá como lista de renglones, sin tocar el texto del servidor
+// (las pruebas lo miran). Si el mensaje no tiene la forma esperada se muestra tal cual, como antes.
+export function redactarCartelCierre(mensaje) {
+  const texto = String(mensaje ?? '').trim()
+  const m = /^este pedido tiene renglones donde lo entregado no coincide con lo pedido: ([\s\S]+)\. Confirme el cierre para continuar\.$/.exec(texto)
+  const cantidad = (n) => n.replace(/\.0+$/, '')
+  const renglones = m ? m[1].split('; ').map((r) => /^([\s\S]+): pedido (-?[\d.]+), entregado (-?[\d.]+)$/.exec(r)) : []
+  if (!m || !renglones.length || renglones.some((r) => !r)) return `⚠️ ${texto}`
+  return `⚠️ Vas a cerrar el pedido, pero lo entregado no coincide con lo pedido:\n${renglones.map((r) => `· ${r[1]}: pedido ${cantidad(r[2])}, entregado ${cantidad(r[3])}`).join('\n')}`
 }
 
 export function usePedidoEstado() {

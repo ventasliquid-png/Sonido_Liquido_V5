@@ -2,7 +2,7 @@ r"""S895, Carlos 29/10 (caso Castro #145: vendido, cobrado y entregado sin factu
 falta remitir: POST /remitos/pedido/{id}/salida-sin-papel arma UN remito por lo pendiente (pedido menos lo ya remitido) y le da la salida sin papel (número 0015, nota [SISTEMA],
 salida confirmada) en un paso; después el Cumplido pasa sin cartel. Sin transportista en el pedido sale como retiro en planta; con transportista, por el del pedido. Sobre una COPIA
 de la base de P del 28/10 16:51 (#145 de Castro y #148 de Jofre: Blanco, Pendiente, sin remitos)."""
-import sys, os, sqlite3
+import sys, os, sqlite3, json, subprocess
 from _esquema_p import copiar_p, imagenes_aparte
 RAIZ = r"C:\dev\Sonido_Liquido_V5"
 sys.path.insert(0, RAIZ); os.chdir(RAIZ)
@@ -127,6 +127,21 @@ check("la ficha del pedido y el Tablero importan y usan la misma resolución, y 
       all("import { resolverCierreConDiscrepancia }" in s and "await resolverCierreConDiscrepancia(" in s and "confirm(`⚠️ ${mensaje}`)" not in s for s in (insp, lista)))
 check("tras registrar la salida se reenvía el estado SIN cierre_confirmado; solo «cerrar igual» lo manda",
       all("accion === 'cerrar' ?" in s for s in (comp, insp, lista)))
+# [S898, Carlos 03/11; caso Medi Cient #153] El cartel se redacta con la lista de renglones, dice qué hace cada botón y el segundo cartel aclara que no registra ninguna salida
+check("el cartel dice qué hace cada botón («remito sin imprimir» al Aceptar; «sin remito de egreso» al cerrar igual) y se redacta con redactarCartelCierre",
+      "export function redactarCartelCierre" in comp and "redactarCartelCierre(mensaje)" in comp and "con un remito sin imprimir (toma número)" in comp
+      and "sin remito de egreso" in comp and "ACEPTAR = registrar «Salió sin papel» por lo que falta y cerrar." not in comp)
+_i, _j = comp.index("export function redactarCartelCierre"), comp.index("export function usePedidoEstado")
+_js = ("const f = new Function(process.argv[1].replace('export function redactarCartelCierre', 'return function redactarCartelCierre'))();"
+       "const m = 'este pedido tiene renglones donde lo entregado no coincide con lo pedido: Surgizime O3 bidón 5 litros: pedido 2.0, entregado 0; SURGIZIME O3 BOTELLA X 1 LT: pedido 6.0, entregado 0. Confirme el cierre para continuar.';"
+       "console.log(JSON.stringify([f(m), f('texto raro')]))")
+try:
+    _out = subprocess.run(["node", "-e", _js, comp[_i:_j]], capture_output=True, text=True, encoding="utf-8", timeout=60).stdout.strip()
+    _lista, _raro = json.loads(_out)
+    check("con el mensaje real del servidor el cartel lista los renglones sin «.0» («pedido 2, entregado 0»), sin «Confirme el cierre para continuar»; un texto raro se muestra tal cual",
+          "· Surgizime O3 bidón 5 litros: pedido 2, entregado 0\n· SURGIZIME O3 BOTELLA X 1 LT: pedido 6, entregado 0" in _lista and "Confirme el cierre" not in _lista and _raro == "⚠️ texto raro")
+except (OSError, ValueError, subprocess.SubprocessError):
+    check("con el mensaje real del servidor el cartel lista los renglones (NO SE PUDO CORRER: falta node)", False)
 
 falla = [d for d, ok in checks if not ok]
 print(f"\nRESULTADO: {len(checks) - len(falla)}/{len(checks)} checks OK"); [print("FALLO:", d) for d in falla]

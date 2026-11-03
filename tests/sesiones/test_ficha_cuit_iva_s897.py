@@ -44,7 +44,7 @@ check("el campo «Condición IVA» se pone gris cuando el CUIT de un alta lo dec
 check("la ficha nueva ya no nace con «Consumidor Final» puesto de fábrica", "condicion_iva_id: 'f9cb56f12b2c47169b0f7bed74196d4c'" not in fi
       and re.search(r"const resetForm = \(\) => \{.*?condicion_iva_id: null,", fi, re.S) is not None)
 check("al tipear el CUIT, la ficha infiere la condición (handleCuitInput) y lo hace solo en altas",
-      re.search(r"const handleCuitInput = \(e\) => \{[^}]*inferirIvaDesdeCuit\(\)", fi) is not None and "const inferirIvaDesdeCuit = ({ consultar = true } = {}) => {\n    if (!isNew.value) return" in fi)
+      re.search(r"const handleCuitInput = \(e\) => \{.*?inferirIvaDesdeCuit\(\)", fi, re.S) is not None and "const inferirIvaDesdeCuit = ({ consultar = true } = {}) => {\n    if (!isNew.value) return" in fi)
 check("la consulta sola a ARCA sale de un solo lugar, el que tipea (no de un watch ni de la carga de la ficha)", fi.count("consultarAfip({ auto: true })") == 1
       and not re.search(r"watch\(\(\) => form\.value\.cuit[^)]*\)[^\n]*\n[^\n]*consultarAfip\(\{ auto", fi))
 check("el botón «Consumidor Final: usar 11111111119» y la nota de qué se infirió están en la ficha", 'data-test="usar-cuit-cf"' in fi and 'data-test="nota-condicion-iva"' in fi and "Según ARCA:" in fi)
@@ -61,6 +61,15 @@ check("las condiciones de reserva de ARCA (monotributo, inferido, desconocido) y
       re.search(r"condicion_iva_id\s*=\s*\d+\b", fi) is None and "ivaPorNombre('MONOTRIBUTO')" in fi and "ivaPorNombre('RESPONSABLE INSCRIPTO')" in fi)
 check("el cartel del alta sin CUIT («¿Es un cliente Rosa?») ya no manda a elegir la condición, que está gris: manda al 11111111119",
       "o elija Consumidor Final como condición de IVA" not in fi and "para un Consumidor Final, ${CUIT_CF_GENERICO}" in fi)
+
+# [S898, Carlos 03/11, H21: «solo máscara»] El 11111111119 ya no se guarda en la ficha: tipearlo o apretar el botón elige Consumidor Final y el CUIT queda vacío; el campo lo muestra atenuado.
+check("H21: tipear el 11111111119 vacía el campo y elige Consumidor Final (no se guarda el comodín); el botón alterna entre Consumidor Final y Rosa; un comodín que llega cargado (clonar, Ingesta) queda como máscara",
+      "if (digitos === CUIT_CF_GENERICO) {\n        e.target.value = ''\n        ponerConsumidorFinal()" in fi and "const alternarConsumidorFinal = () => (mascaraCuit.value ? quitarConsumidorFinal() : ponerConsumidorFinal())" in fi
+      and "if (soloDigitos(cuit) === CUIT_CF_GENERICO) {\n            ponerConsumidorFinal()" in fi and "@click=\"alternarConsumidorFinal\" data-test=\"usar-cuit-cf\"" in fi and "usarCuitConsumidorFinal" not in fi
+      and re.search(r"const ponerConsumidorFinal = \(\) => \{.*?form\.value\.cuit = ''.*?form\.value\.condicion_iva_id = cf\.id", fi, re.S) is not None)
+check("H21: con Consumidor Final y el CUIT vacío el campo muestra el comodín atenuado (máscara), la lupa no consulta a ARCA y un CUIT vacío con Consumidor Final no se pisa a «sin condición»",
+      "const mascaraCuit = computed(() => (esConsumidorFinal.value && !soloDigitos(form.value.cuit)) ? CUIT_CF_GENERICO : '')" in fi and ":placeholder=\"mascaraCuit || 'Sin Guiones'\"" in fi
+      and "if (mascaraCuit.value && !auto) {" in fi and "if (!esConsumidorFinal.value) form.value.condicion_iva_id = null" in fi)
 
 # ---------- (3) el pedido con el Consumidor Final del 11111111119 ----------
 P = node("import { validarClienteParaPedido as v } from '" + URL("utils", "clientePedido.js") + "'; "
@@ -103,8 +112,12 @@ def alta(nombre, **extra):
 st, f = alta("PRUEBA S897 SIN CUIT NI CONDICION")
 check(f"alta sin CUIT y sin condición de IVA (lo que arma la ficha con el campo gris) [{st}]: sale Rosa (bit 4) y sin CUIT", st in (200, 201) and f and not f[0] and not f[2] and int(f[1]) & 16)
 st, f = alta("PRUEBA S897 CF 11111111119", cuit="11111111119", condicion_iva_id=CF)
-check(f"alta con 11111111119 y Consumidor Final (lo que arma la ficha al tipear el comodín) [{st}]: sale Blanco, sin sello Rosa (bit 4) ni medalla Rosa (bit 19)",
+check(f"alta con el 11111111119 guardado y Consumidor Final (una ficha VIEJA, antes de H21) [{st}]: sigue siendo Blanco, sin sello Rosa (bit 4) ni medalla Rosa (bit 19)",
       st in (200, 201) and f and f[0] == "11111111119" and f[2] == CF and int(f[1]) & 16 == 0 and int(f[1]) & 524288 == 0)
+
+st, f = alta("PRUEBA S898 CF SIN CUIT", condicion_iva_id=CF)
+check(f"alta con Consumidor Final y el CUIT VACÍO (lo que arma la ficha con la máscara, H21) [{st}]: sale Blanco, sin CUIT guardado, sin sello Rosa (bit 4) ni medalla Rosa (bit 19)",
+      st in (200, 201) and f and not f[0] and f[2] == CF and int(f[1]) & 16 == 0 and int(f[1]) & 524288 == 0)
 
 falla = [d for d, ok in checks if not ok]
 print(f"\nRESULTADO: {len(checks) - len(falla)}/{len(checks)} checks OK"); [print("FALLO:", d) for d in falla]

@@ -235,9 +235,13 @@
                 <div v-else class="flex-1 flex flex-col min-h-0">
                     <!-- [Etapa 7b] Camino nuevo: la factura cierra un PR que ya existe. El flujo de abajo
                          (crea pedido/remito/espejo) sigue vivo hasta que este funcione en la operación real. -->
-                    <div v-if="currentRawId" class="shrink-0 flex items-center justify-between gap-3 px-4 py-2 bg-emerald-900/20 border-b border-emerald-700/40">
-                        <span class="text-[11px] text-emerald-300/80">
-                            <i class="fas fa-scale-balanced mr-1"></i>¿El PR ya está armado? Conciliá esta factura contra él en vez de crear un remito nuevo.
+                    <!-- [S898, Carlos 03/11] Si el cliente ya tiene un remito armado sin facturar, la franja lo dice y se pone ámbar: el camino de abajo solo lista pedidos PENDIENTES y no ofrece los que ya están CUMPLIDOS -->
+                    <div v-if="currentRawId" class="shrink-0 flex items-center justify-between gap-3 px-4 py-2 border-b"
+                         :class="prArmados.length ? 'bg-amber-900/30 border-amber-500/50' : 'bg-emerald-900/20 border-emerald-700/40'">
+                        <span class="text-[11px]" :class="prArmados.length ? 'text-amber-200 font-bold' : 'text-emerald-300/80'">
+                            <i class="fas fa-scale-balanced mr-1"></i>
+                            <template v-if="prArmados.length">Este cliente tiene {{ prArmados.length === 1 ? 'un remito armado' : prArmados.length + ' remitos armados' }} sin facturar ({{ prArmadosTexto }}). Esta factura se concilia contra {{ prArmados.length === 1 ? 'ese remito' : 'uno de ellos' }}: apretá «Conciliar contra PR». Seguir por el camino de abajo crearía un remito nuevo.</template>
+                            <template v-else>¿El PR ya está armado? Conciliá esta factura contra él en vez de crear un remito nuevo.</template>
                         </span>
                         <button @click="router.push({ name: 'ConciliarFactura', params: { rawId: currentRawId } })"
                             class="shrink-0 px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-[11px] font-bold uppercase tracking-wide">
@@ -455,6 +459,9 @@
                             <label class="text-[10px] uppercase text-blue-400 font-black block tracking-widest">
                                 Vincular Pedido Existente
                             </label>
+                            <p v-if="prArmados.length" class="text-[11px] text-amber-300">
+                                Ojo: este cliente ya tiene {{ prArmados.length === 1 ? 'un remito armado' : prArmados.length + ' remitos armados' }} sin facturar. Si esta factura es de {{ prArmados.length === 1 ? 'ese remito' : 'uno de ellos' }}, usá «Conciliar contra PR» (arriba) y no este camino.
+                            </p>
                             <select 
                                 v-model="selectedPedidoId"
                                 class="w-full bg-slate-900 border border-blue-900/30 rounded-lg px-3 py-2 text-xs text-white focus:border-blue-500 outline-none transition-all"
@@ -467,9 +474,10 @@
                             </select>
                         </div>
                         <div v-else class="bg-blue-500/5 border border-blue-500/10 rounded-xl p-3 flex items-center justify-between">
-                            <span class="text-xs text-blue-300 font-medium flex items-center gap-2">
-                                <i class="fas fa-info-circle text-blue-400"></i>
-                                Sin pedidos pendientes para este cliente — se creará uno nuevo
+                            <span class="text-xs font-medium flex items-center gap-2" :class="prArmados.length ? 'text-amber-300' : 'text-blue-300'">
+                                <i class="fas fa-info-circle" :class="prArmados.length ? 'text-amber-400' : 'text-blue-400'"></i>
+                                <template v-if="prArmados.length">Sin pedidos pendientes, pero hay {{ prArmados.length === 1 ? 'un remito armado' : prArmados.length + ' remitos armados' }} sin facturar: usá «Conciliar contra PR» (arriba), no este camino</template>
+                                <template v-else>Sin pedidos pendientes para este cliente — se creará uno nuevo</template>
                             </span>
                         </div>
                     </div>
@@ -780,6 +788,20 @@ const showPreview = ref(false);
 const selectedPedidoId = ref(null);
 const pendingPedidos = ref([]);
 
+// [S898, Carlos 03/11; caso de la 2625, #144] Remitos del cliente ya armados y sin facturar que ofrece la conciliación (los mismos de «Conciliar contra PR»). El camino de esta pantalla solo
+// lista pedidos PENDIENTES: un pedido que ya se dio por cumplido no aparece y la pantalla decía «se creará uno nuevo». Es solo un aviso: no bloquea nada ni cambia el flujo.
+const prArmados = ref([]);
+const prArmadosTexto = computed(() => prArmados.value.map(p => `${p.numero_legal} del pedido #${p.pedido_id}`).join(', '));
+const cargarPrArmados = async (rawId) => {
+    prArmados.value = [];
+    try {
+        const { data } = await api.get(`/ingesta/raw/${rawId}/conciliacion/candidatos`);
+        if (!(data.bloqueos || []).length) prArmados.value = data.prs || [];
+    } catch (e) {
+        // sin el aviso la pantalla queda como siempre
+    }
+};
+
 // [S864-OF] Homogeneización de matcheo: cuando el texto de la factura no matchea
 // automático contra el Pedido, se ofrece el mismo buscador de catálogo que ya
 // existe en PedidoCanvas (IngestaItemModal), en vez de bloquear sin salida (Card #125).
@@ -946,6 +968,7 @@ const processFile = async (file) => {
         
         parsedData.value = previewData.parsed_data;
         auditLog.value = previewData.audit_log;
+        await cargarPrArmados(rawId);
 
         // [V5.6 FIX] Sincronizar resolución del Conserje con el modelo de vista
         if (auditLog.value?.client_resolution) {
@@ -995,6 +1018,7 @@ const reset = () => {
     clientAddresses.value = [];
     error.value = '';
     duplicadoData.value = null;
+    prArmados.value = [];
 
     if (fileInput.value) fileInput.value.value = '';
     selectedPedidoId.value = null;
@@ -1711,6 +1735,7 @@ onMounted(async () => {
         pendingPedidos.value = ctx.pendingPedidos || [];
         currentRawId.value = ctx.rawId || null;
         pedidosStore.clear409Context();
+        if (ctx.rawId) await cargarPrArmados(ctx.rawId);
 
         if (ctx.parsedData?.cliente?.id) {
             await loadClientDetails(ctx.parsedData.cliente.id);

@@ -1406,3 +1406,11 @@ Sin cambios funcionales visibles: la sesión trabajó el Board y los protocolos,
 - **Cambiar un pedido de Blanco a Rosa o de Rosa a Blanco:** ya no pregunta «¿Conservar el total?» y **nunca toca los precios ni los descuentos de los renglones**. Solo cambia el total: en Blanco es el neto más el 21%; en Rosa es solo el neto. Se puede alternar las veces que haga falta sin que nada cambie de lugar. Si hay que cobrar o facturar otro importe, se corrige el precio del renglón a mano.
 - **Alta de un cliente (la ficha):** la condición de IVA depende del CUIT. Con el CUIT vacío, la condición queda en gris y vacía, y el cliente es Rosa («Sin CUIT: cliente Rosa»). Para un Consumidor Final se escribe 11111111119 (o se aprieta «Consumidor Final: usar 11111111119») y la condición se pone sola. Con un CUIT real completo, el sistema consulta a ARCA solo y completa la condición; si ARCA no contesta, avisa y la condición se elige a mano. La ficha nueva ya no arranca en «Consumidor Final».
 - **Pedido de un Consumidor Final o de un Rosa:** se puede armar con solo el segmento; ya no pide domicilio ni CUIT.
+
+## Sesión 898 (03/11) — Lo que cambia para quien opera
+
+(Está en D; entra a producción cuando se porte.)
+- **Cartel del Cumplido con discrepancia:** ahora lista los renglones («pedido 2, entregado 0»), pregunta si la mercadería ya salió y dice qué hace cada botón. «Aceptar» registra la salida de lo que falta con un remito sin imprimir (toma número) y cierra; «Cancelar» ofrece cerrar igual, sin remito, dejando la discrepancia anotada («¿Cerrar sin registrar ninguna salida?»).
+- **Ingesta de facturas:** si el cliente ya tiene un remito armado sin facturar, la franja de «Conciliar contra PR» se pone ámbar y lo dice; el camino de abajo («Vincular Pedido Existente») solo lista pedidos Pendientes, y un pedido Cumplido no impide conciliar. Tras conciliar queda solo el cartel verde.
+- **Conciliar contra PR:** cada alternativa muestra el «Total del pedido» y marca «igual a la factura» si coincide a los centavos.
+- **Ficha del cliente (alta):** el 11111111119 es solo una máscara: al tipearlo o apretar el botón de la nota se elige Consumidor Final y la ficha guarda el CUIT vacío; el campo muestra el comodín atenuado. Un dígito sobre la máscara borra la condición.
