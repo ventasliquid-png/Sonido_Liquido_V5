@@ -1,6 +1,6 @@
-﻿## SESION 898 (OF) — 2026-11-03 [NS (CC, Sonnet 5.5)]: Card #144 cerrada, facturas de octubre en la Ingesta, #98 / 2586 / NC 74, H21 (el comodín es solo una máscara) y cuatro arreglos de pantalla — NOMINAL — D:@@HASH_D@@ B:f71ca6c (= prod/main) P:f71ca6c
+﻿## SESION 898 (OF) — 2026-11-03 [NS (CC, Sonnet 5.5)]: Card #144 cerrada, facturas de octubre en la Ingesta, #98 / 2586 / NC 74, H21 (el comodín es solo una máscara) y cuatro arreglos de pantalla — NOMINAL — D:f60a9ad8 B:f71ca6c (= prod/main) P:f71ca6c
 
-- Un commit de código en D (`@@HASH_D@@`: el paquete de pantallas y `migrate_077`, sin porte a B) y un push a P el 03/11 por las migraciones 075 y 076 (`f71ca6c`, D `6c2202f2`). 85 pruebas, 1.865 comprobaciones. Informe: `INFORMES_HISTORICOS/2026-11-03_S898_OF.md`.
+- Un commit de código en D (`f60a9ad8`: el paquete de pantallas y `migrate_077`, sin porte a B) y un push a P el 03/11 por las migraciones 075 y 076 (`f71ca6c`, D `6c2202f2`). 85 pruebas, 1.865 comprobaciones. Informe: `INFORMES_HISTORICOS/2026-11-03_S898_OF.md`.
 
 ## SESION 897 (OF) — 2026-11-02 [NS (CC, Sonnet 5.5)]: reservorio de facturas de ARCA y conciliación de octubre, la ficha infiere la condición de IVA desde el CUIT, el pedido deja operar a un Consumidor Final o a un Rosa con solo el segmento, el circuito no toca los renglones y prueba preliminar de cobranzas — NOMINAL — D:b5bea1cf (último de código be48987f) B:b6ded63 (= prod/main) P:b44e190
 
