@@ -64,6 +64,11 @@
                 <i class="fas fa-list w-4"></i> 
                 <span>Tablero Pedidos</span>
             </a>
+            <!-- [S899, Carlos 04/11: «sacar Ingesta de Pedido no es necesario… caminos paralelos suman, no restan»] la Ingesta vuelve a su lugar en Pedidos; también sigue en el grupo Facturas -->
+            <a href="#" @click.prevent="navigate('IngestaFactura')" class="nav-item-sub" :class="{ 'active-link-emerald': isActive('IngestaFactura') }" data-accion="menu-ingesta-pedidos">
+                <i class="fas fa-file-import w-4"></i>
+                <span>Ingesta Facturas Propias</span>
+            </a>
             <a href="#" @click.prevent="navigate('FacturacionDashboard')" class="nav-item-sub" :class="{ 'active-link-indigo': isActive('FacturacionDashboard') }">
                 <i class="fas fa-file-invoice-dollar w-4 text-indigo-400"></i> 
                 <span>Facturación (AFIP)</span>
@@ -382,7 +387,7 @@ const isGroupActive = (group) => {
     if (group === 'CLIENTES') return ['HaweHome', 'Segmentos', 'Vendedores', 'HaweClientCanvas'].includes(route.name)
     if (group === 'PRODUCTOS') return ['Productos', 'Rubros', 'ListasPrecios'].includes(route.name)
     if (group === 'MAESTROS') return ['Contactos', 'Transportes', 'CanteraExplorer', 'MasterTools', 'AddressHub'].includes(route.name)
-    if (group === 'PEDIDOS') return ['PedidoList', 'TacticalLoader', 'FacturacionDashboard'].includes(route.name)
+    if (group === 'PEDIDOS') return ['PedidoList', 'TacticalLoader', 'IngestaFactura', 'FacturacionDashboard'].includes(route.name)
     if (group === 'FACTURAS') return ['FacturasPanel', 'IngestaFactura', 'ConciliarFactura'].includes(route.name)   // [S899, Card #212] nodo propio, violeta
     if (group === 'REMITOS') return ['RemitoList', 'RemitoFicha', 'EntregasReport'].includes(route.name)   // [S893] nodo propio, naranja (Logística)
     if (group === 'INTEL') return ['data-cleaner'].includes(route.name)

@@ -149,8 +149,9 @@ check("el menú tiene el grupo FACTURAS a la izquierda, al nivel de Pedidos, Rem
       and "navigate('FacturasPanel')" in side and "FACTURAS\n            </span>" in side.replace("\r\n", "\n"))
 bloque_fact = side[side.index('data-grupo="facturas"'):side.index("<!-- PRODUCTOS Group -->")]
 bloque_ped = side[side.index("<!-- PEDIDOS Group -->"):side.index("<!-- REMITOS Group")]
-check("«Ingesta Facturas Propias» pasó de Pedidos al grupo Facturas (no queda duplicada) y la conciliación mantiene iluminado el grupo",
-      "navigate('IngestaFactura')" in bloque_fact and "navigate('IngestaFactura')" not in bloque_ped
+check("«Ingesta Facturas Propias» sigue en su lugar de siempre (Pedidos) Y también en el grupo Facturas: dos puertas a la misma pantalla (Carlos 04/11: «caminos paralelos suman, no restan»); la conciliación mantiene iluminado el grupo Facturas",
+      "navigate('IngestaFactura')" in bloque_fact and "navigate('IngestaFactura')" in bloque_ped
+      and "if (group === 'PEDIDOS') return ['PedidoList', 'TacticalLoader', 'IngestaFactura', 'FacturacionDashboard'].includes(route.name)" in side
       and "if (group === 'FACTURAS') return ['FacturasPanel', 'IngestaFactura', 'ConciliarFactura'].includes(route.name)" in side and "'INFORMES_REMITOS', 'FACTURAS']" in side)
 check("la ruta /facturas (FacturasPanel) carga la pantalla nueva", "path: 'facturas'" in rut and "name: 'FacturasPanel'" in rut and "views/Facturas/FacturasView.vue" in rut)
 check("la pantalla tiene los TRES botones (Cargadas, Subidas sin terminar, Faltan) con su cuenta, y el buscador por número o cliente",
