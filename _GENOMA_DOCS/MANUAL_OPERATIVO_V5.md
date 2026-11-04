@@ -1414,3 +1414,13 @@ Sin cambios funcionales visibles: la sesión trabajó el Board y los protocolos,
 - **Ingesta de facturas:** si el cliente ya tiene un remito armado sin facturar, la franja de «Conciliar contra PR» se pone ámbar y lo dice; el camino de abajo («Vincular Pedido Existente») solo lista pedidos Pendientes, y un pedido Cumplido no impide conciliar. Tras conciliar queda solo el cartel verde.
 - **Conciliar contra PR:** cada alternativa muestra el «Total del pedido» y marca «igual a la factura» si coincide a los centavos.
 - **Ficha del cliente (alta):** el 11111111119 es solo una máscara: al tipearlo o apretar el botón de la nota se elige Consumidor Final y la ficha guarda el CUIT vacío; el campo muestra el comodín atenuado. Un dígito sobre la máscara borra la condición.
+
+## Sesión 899 (04/11) — Lo que cambia para quien opera
+
+(En producción desde el 04/11; Tomy lo recibe al relanzar Soberana y apretar Ctrl+Shift+R.)
+- **Menú «Facturas»** (violeta, a la izquierda, entre Remitos y Productos): «Facturas» y «Ingesta Facturas Propias» (la Ingesta de siempre sigue también en Pedidos: son dos puertas a la misma pantalla).
+- **Pantalla Facturas:** un buscador (número con o sin ceros, o parte del cliente, sin importar acentos) y **tres botones** con su cuenta: **Cargadas** (la factura, su pedido, su remito y «Ver PDF»), **Subidas sin terminar** (se subió el PDF pero la factura no quedó registrada; una línea por número aunque se haya subido varias veces) y **Faltan** (números de ARCA que no están en V5 ni se subieron, aunque hay posteriores; se cuentan desde la 2600). Lo anterior es histórico y no se muestra.
+- **Subir facturas:** botón «Subir facturas (PDF)» o arrastrar varios PDF sobre la pantalla. Solo se guardan y se leen: **no se crea ningún pedido ni remito**. Un panel dice por archivo si se subió, si ya estaba subida (×N) o si ya está cargada (con su pedido). Lo subido queda en «Subidas sin terminar».
+- **«Seguir»** lleva a «Conciliar contra PR» (también para notas de crédito y para una factura sin pedido). Al terminar hay «Volver a Facturas» y «Seguir con la siguiente» (la de número más bajo, con cuántas quedan). En la conciliación, la factura está a la vista: renglones de ARCA, «Ver PDF» en la misma pantalla y el precio del pedido al lado de cada renglón.
+- **«No se carga»** (en Faltan): para una factura que no corresponde cargar; pide el motivo, queda anotado con quién lo decidió y se puede deshacer. Hoy: la 2586 y la NC 74.
+- **Para crear pedido y remito con la factura** sigue la Ingesta de siempre (menú Pedidos o Facturas); una rama directa desde Facturas está anotada (Card #213).

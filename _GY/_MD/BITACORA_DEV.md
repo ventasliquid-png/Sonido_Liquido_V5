@@ -1,4 +1,8 @@
-﻿## SESION 898 (OF) — 2026-11-03 [NS (CC, Sonnet 5.5)]: Card #144 cerrada, facturas de octubre en la Ingesta, #98 / 2586 / NC 74, H21 (el comodín es solo una máscara) y cuatro arreglos de pantalla — NOMINAL — D:f60a9ad8 B:f71ca6c (= prod/main) P:f71ca6c
+﻿## SESION 899 (OF) — 2026-11-04 [NS (CC, Sonnet 5.5)]: pantalla «Facturas» (Card #212: menú propio, cargadas / subidas sin terminar / faltan, subir PDF, volver y seguir con la siguiente), `migrate_078`, paquete de la S898 a producción y subsistemas de entrada (#210, #211, #213) — NOMINAL — D:@@HC1@@ B:e578fa4 (= prod/main) P:ac3315b
+
+- Cuatro commits de código en D (`ed919577` Caja Negra, `f8bad60f` pantalla Facturas + `migrate_078`, `02aa7c6b` subir PDF y seguir con la siguiente, `efc40cd5` la Ingesta de vuelta en Pedidos) y tres pushes a producción el 04/11 (`7a49a18` paquete de la S898 con `migrate_077`; `ac3315b`; `e578fa4`). 88 pruebas, 1.927 comprobaciones. Informe: `INFORMES_HISTORICOS/2026-11-04_S899_OF.md`.
+
+## SESION 898 (OF) — 2026-11-03 [NS (CC, Sonnet 5.5)]: Card #144 cerrada, facturas de octubre en la Ingesta, #98 / 2586 / NC 74, H21 (el comodín es solo una máscara) y cuatro arreglos de pantalla — NOMINAL — D:f60a9ad8 B:f71ca6c (= prod/main) P:f71ca6c
 
 - Un commit de código en D (`f60a9ad8`: el paquete de pantallas y `migrate_077`, sin porte a B) y un push a P el 03/11 por las migraciones 075 y 076 (`f71ca6c`, D `6c2202f2`). 85 pruebas, 1.865 comprobaciones. Informe: `INFORMES_HISTORICOS/2026-11-03_S898_OF.md`.
 

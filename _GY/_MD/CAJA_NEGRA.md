@@ -1,4 +1,17 @@
-﻿Sesion actual: 898
+﻿Sesion actual: 899
+
+# CAJA NEGRA: OMEGA Lite - pantalla Facturas (Card #212: menu propio, cargadas / subidas sin terminar / faltan, subir PDF, volver y seguir con la siguiente), migrate_078, paquete de la S898 a produccion y subsistemas de entrada (Cards #210, #211 y #213) - S899
+
+Sesion 899 OF, 04/11, NS (CC, Sonnet 5.5) con Carlos. Hash D: @@HC1@@ (commit del OMEGA; commits de codigo ed919577, f8bad60f, 02aa7c6b y efc40cd5) | Hash B: e578fa4 = prod/main (tres pushes el 04/11 con "pushea 1974": 7a49a18, ac3315b y e578fa4) | P real: ac3315b (leido en P por red; e578fa4 entra al relanzar Soberana). Ultima copia de P: PRODUCCION_P_al_20261104_1737.db. 88 pruebas, 1.927 comprobaciones, en verde en D y contra el codigo de B.
+- Paquete de la S898 a produccion (7a49a18): H21 (la ficha del Consumidor Final guarda el CUIT vacio; migrate_077 aplicada en P), cartel del Cumplido, aviso del camino viejo de la Ingesta, cartel verde sin ruido y total del pedido en la conciliacion. Correccion de la Caja Negra (H23 de CA, ed919577).
+- Card #212, pantalla Facturas (ac3315b y e578fa4): menu propio FACTURAS a la izquierda; tres botones (Cargadas / Subidas sin terminar / Faltan) con buscador; huecos de la numeracion de ARCA desde la 2600 (decision de Carlos); tabla facturas_no_se_cargan (migrate_078: la 2586 y la NC 74); GET /ingesta/facturas/panorama y POST/DELETE /ingesta/facturas/no-se-carga; subir PDF desde la pantalla (boton o arrastrando, solo POST /ingesta/raw: no crea pedido ni remito), volver a Facturas y seguir con la siguiente; el visor de la factura (renglones y PDF) dentro de Conciliar.
+- Estado leido en P: la 2612 y la 2622 subidas sin conciliar, la 2603 y la 2626 sin subir; Tomy las concilia desde Facturas.
+- Decisiones de Carlos: huecos desde la 2600; caminos paralelos suman (la Ingesta vieja NO se retira ni se esconde y vuelve a figurar en Pedidos; tambien esta en Facturas); contestar cotizaciones sigue siendo humano hasta que el parametrice precios y politicas; Gy desarrolla los watchers y NS audita y arquitecta; primero el subsistema Contactos.
+- Anotado: Card #213 (rama de Facturas a la Ingesta clasica para crear pedido y remito con la factura ya subida y volver a Facturas; Carlos: "arranca la 213 manana"), #210 (integracion de los watchers de WhatsApp y Cotizaciones con V5, Contactos primero), #211 (etiquetas de bultos; el DNI sale del CUIT de la persona). Documento para Gy: C:\dev\WhatsAppLeadsWatcher\INTEGRACION_V5_ENTRADAS_Y_CONTACTOS.md.
+- Leccion: las horas de la bitacora se toman del reloj (date), nunca estimadas; y un dato "que V5 no tiene" se verifica en P antes de afirmarlo (el DNI del rotulo sale del CUIT).
+- Pendiente: S900 (jueves 05/11): arrancar la Card #213; Tomy o Carlos concilian la 2612 y la 2622 desde Facturas (2622 contra el remito 3038, no el 3039 del #79), deciden la 2603 y esperan la 2626 (sale el #151); #137, notas de #144 y #151, borradores; cobranzas, #145, H20, #203, #204, RI etapa 2, inspector de clientes (#201), INBOX y barrido del Board.
+
+Sesion actual: 898
 
 # CAJA NEGRA: OMEGA Lite - cierre de la Card #144, facturas de octubre en la Ingesta, #98 / 2586 / NC 74, H21 (el comodin es solo una mascara) y cuatro arreglos de pantalla - S898
 
