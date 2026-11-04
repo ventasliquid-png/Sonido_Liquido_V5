@@ -117,11 +117,11 @@
         </button>
 
         <div v-show="expandedGroups.includes('FACTURAS')" class="pl-4 space-y-1">
-            <a href="#" @click.prevent="navigate('FacturasPanel')" class="nav-item-sub" :class="{ 'active-link-violet': isActive('FacturasPanel') }" data-accion="menu-facturas">
+            <a href="#" @click.prevent="navigate('FacturasPanel')" class="nav-item-sub" :class="{ 'active-link-violet': isActive('FacturasPanel') || (isActive('ConciliarFactura') && route.query.volver === 'facturas') }" data-accion="menu-facturas">
                 <i class="fas fa-list-check w-4"></i>
                 <span>Facturas</span>
             </a>
-            <a href="#" @click.prevent="navigate('IngestaFactura')" class="nav-item-sub" :class="{ 'active-link-violet': isActive('IngestaFactura') || isActive('ConciliarFactura') }">
+            <a href="#" @click.prevent="navigate('IngestaFactura')" class="nav-item-sub" :class="{ 'active-link-violet': isActive('IngestaFactura') || (isActive('ConciliarFactura') && route.query.volver !== 'facturas') }">
                 <i class="fas fa-file-import w-4"></i>
                 <span>Ingesta Facturas Propias</span>
             </a>

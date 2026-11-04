@@ -13,8 +13,9 @@
           <h1 class="font-outfit text-xl font-semibold text-white"><i class="fas fa-scale-balanced mr-2 text-emerald-400"></i>{{ esAjuste ? 'Conciliar nota de crédito / débito' : 'Conciliar factura contra PR' }}</h1>
           <p class="text-xs text-emerald-400/50 font-medium uppercase tracking-wider">{{ esAjuste ? 'La nota ajusta una o varias facturas ya registradas — no cierra ningún PR' : 'La factura cierra un PR que ya existe — no crea pedido ni remito' }}</p>
         </div>
-        <button @click="$router.push({ name: 'IngestaFactura' })" class="text-xs text-slate-400 hover:text-white">
-          <i class="fas fa-arrow-left mr-1"></i> Volver a Ingesta
+        <!-- [S899, Carlos 04/11: «que todo se maneje desde una misma pantalla»] si se llegó desde «Facturas», se vuelve a Facturas -->
+        <button @click="$router.push({ name: vieneDeFacturas ? 'FacturasPanel' : 'IngestaFactura' })" class="text-xs text-slate-400 hover:text-white" data-test="volver">
+          <i class="fas fa-arrow-left mr-1"></i> {{ vieneDeFacturas ? 'Volver a Facturas' : 'Volver a Ingesta' }}
         </button>
       </header>
 
@@ -272,6 +273,16 @@
             Registrada {{ resultado.tipo_comprobante }} {{ resultado.numero }} y vinculada a {{ resultado.remito_ids.length }} PR.
             <span v-if="resultado.pedido_id"> Pedido retroactivo #{{ resultado.pedido_id }} (contra natura).</span>
           </template>
+          <!-- [S899] desde «Facturas»: volver, o seguir con la próxima subida sin terminar (la más baja primero) -->
+          <div v-if="vieneDeFacturas" class="mt-3 flex flex-wrap items-center gap-2" data-test="despues-de-conciliar">
+            <button type="button" data-test="volver-a-facturas" @click="$router.push({ name: 'FacturasPanel' })"
+              class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold"><i class="fas fa-list-check mr-1"></i>Volver a Facturas</button>
+            <button v-if="siguiente" type="button" data-test="seguir-con-la-siguiente"
+              @click="$router.push({ name: 'ConciliarFactura', params: { rawId: siguiente.raw_id }, query: { volver: 'facturas' } })"
+              class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-900 text-xs font-black"><i class="fas fa-forward mr-1"></i>Seguir con la siguiente: {{ siguiente.tipo_texto }} {{ siguiente.numero_legal }}
+              <span class="font-normal">({{ pendientesRestantes }} pendiente{{ pendientesRestantes === 1 ? '' : 's' }})</span></button>
+            <span v-else-if="siguienteListo" class="text-xs text-emerald-300/80">No queda ninguna subida sin terminar. 👍</span>
+          </div>
         </section>
 
         <!-- [Etapa 7c] CONTRA NATURA: factura emitida en ARCA sin PR previo -->
@@ -365,7 +376,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '@/services/api'
 import { useNotificationStore } from '@/stores/notification'
@@ -377,6 +388,12 @@ const rawId = route.params.rawId
 // [S899] el PDF original de la factura (se guarda en la ingesta; GET /ingesta/raw/{id}/pdf) se ve en la misma pantalla
 const pdfAbierto = ref(false)
 const pdfSrc = `/ingesta/raw/${rawId}/pdf`
+
+// [S899, Carlos 04/11] se llega desde la pantalla «Facturas» con ?volver=facturas: al terminar se vuelve ahí y se ofrece la próxima subida sin terminar
+const vieneDeFacturas = route.query.volver === 'facturas'
+const siguiente = ref(null)
+const pendientesRestantes = ref(0)
+const siguienteListo = ref(false)
 
 const loading = ref(true)
 const cand = ref(null)
@@ -615,4 +632,20 @@ const marcarDesmadre = async () => {
 }
 
 onMounted(cargar)
+
+// [S899] con la factura ya registrada, se busca la próxima subida sin terminar (por número, la más baja primero); si falla, solo queda «Volver a Facturas»
+watch(resultado, async (r) => {
+  if (!r || !vieneDeFacturas) return
+  try {
+    const { data } = await api.get('/ingesta/facturas/panorama')
+    const otras = (data.sin_terminar || []).filter(s => s.raw_id !== rawId && s.numero != null)
+      .sort((a, b) => a.numero - b.numero)
+    siguiente.value = otras[0] || null
+    pendientesRestantes.value = otras.length
+  } catch (e) {
+    siguiente.value = null
+  } finally {
+    siguienteListo.value = true
+  }
+})
 </script>

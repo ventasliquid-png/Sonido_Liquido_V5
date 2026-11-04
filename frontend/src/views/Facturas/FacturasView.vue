@@ -5,7 +5,18 @@
 // ------------------------------------------
 
 <template>
-  <div class="flex h-full w-full bg-[#0f172a] text-gray-200 overflow-hidden font-sans rounded-2xl border-2 border-violet-500/40 p-6" data-test="pantalla-facturas">
+  <div class="relative flex h-full w-full bg-[#0f172a] text-gray-200 overflow-hidden font-sans rounded-2xl border-2 border-violet-500/40 p-6" data-test="pantalla-facturas"
+       @dragover.prevent="arrastrando = true"
+       @dragleave.prevent="(e) => { if (!e.currentTarget.contains(e.relatedTarget)) arrastrando = false }"
+       @drop.prevent="alSoltar">
+    <!-- [S899, Carlos 04/11: «que todo se maneje desde una misma pantalla»] soltar los PDF acá los sube; solo se guardan y se leen: NO crean pedido ni remito -->
+    <div v-if="arrastrando" class="absolute inset-0 z-50 bg-violet-900/80 backdrop-blur-sm border-4 border-dashed border-violet-300 rounded-2xl flex items-center justify-center pointer-events-none" data-test="zona-soltar">
+      <div class="text-center">
+        <i class="fas fa-cloud-arrow-up text-6xl text-violet-200 mb-3"></i>
+        <h2 class="text-2xl font-black text-white tracking-widest">SOLTÁ LAS FACTURAS (PDF) ACÁ</h2>
+        <p class="text-violet-200 mt-1 text-sm">Quedan en «Subidas sin terminar»; no se crea ningún pedido ni remito</p>
+      </div>
+    </div>
     <main class="flex flex-1 flex-col min-w-0 gap-4 overflow-y-auto pr-1">
 
       <header class="shrink-0 flex flex-wrap gap-4 items-center justify-between border-b border-violet-900/30 pb-4">
@@ -17,9 +28,10 @@
           <button type="button" @click="cargar" data-test="recargar" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold">
             <i class="fas fa-rotate mr-1" :class="{ 'fa-spin': cargando }"></i>Actualizar
           </button>
-          <button type="button" @click="$router.push({ name: 'IngestaFactura' })" data-test="subir-factura"
-            class="px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold">
-            <i class="fas fa-file-import mr-1"></i>Subir una factura
+          <input ref="inputArchivos" type="file" accept="application/pdf,.pdf" multiple class="hidden" data-test="input-archivos" @change="alElegir" />
+          <button type="button" @click="elegirArchivos" :disabled="subiendo" data-test="subir-factura"
+            class="px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs font-bold">
+            <i class="fas" :class="subiendo ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-up'"></i> {{ subiendo ? 'Subiendo...' : 'Subir facturas (PDF)' }}
           </button>
         </div>
       </header>
@@ -35,6 +47,22 @@
         </div>
         <button v-if="filtro" type="button" @click="filtro = ''" class="text-xs text-slate-400 hover:text-white">Borrar</button>
       </div>
+
+      <!-- Resultado de lo que se acaba de subir -->
+      <section v-if="resultadosSubida.length" class="shrink-0 rounded-xl border border-violet-500/40 bg-violet-900/20 p-3 text-xs space-y-1" data-test="resultado-subida">
+        <div class="flex items-center justify-between">
+          <h2 class="text-[10px] uppercase font-bold tracking-wider text-violet-300">Lo que se subió recién</h2>
+          <button type="button" @click="resultadosSubida = []" class="text-[10px] text-slate-400 hover:text-white underline">Cerrar</button>
+        </div>
+        <ul class="space-y-1">
+          <li v-for="(r, i) in resultadosSubida" :key="'rs' + i" class="flex flex-wrap items-center gap-2" data-test="fila-subida">
+            <span class="font-bold" :class="r.estado === 'ok' ? 'text-emerald-300' : (r.estado === 'error' ? 'text-red-300' : 'text-amber-300')">
+              {{ r.estado === 'ok' ? '✔' : (r.estado === 'error' ? '✖' : '⚠') }}</span>
+            <span class="font-mono text-white">{{ r.titulo }}</span>
+            <span class="text-slate-300">{{ r.texto }}</span>
+          </li>
+        </ul>
+      </section>
 
       <!-- Los tres botones -->
       <div class="shrink-0 grid grid-cols-1 sm:grid-cols-3 gap-3" role="tablist">
@@ -131,7 +159,7 @@
                   <span v-if="s.veces > 1" class="ml-1 px-1.5 py-0.5 rounded-full bg-slate-700 text-slate-300 text-[10px]" :title="'Se subió ' + s.veces + ' veces'">×{{ s.veces }}</span></td>
                 <td class="py-1.5 px-2"><span class="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-200 text-[10px] font-bold" :title="s.warning || ''">{{ s.estado_texto }}</span></td>
                 <td class="py-1.5 pl-2 text-right whitespace-nowrap">
-                  <button type="button" @click="$router.push({ name: 'ConciliarFactura', params: { rawId: s.raw_id } })" data-test="seguir"
+                  <button type="button" @click="$router.push({ name: 'ConciliarFactura', params: { rawId: s.raw_id }, query: { volver: 'facturas' } })" data-test="seguir"
                     class="px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-400 text-slate-900 text-[11px] font-black uppercase mr-1"><i class="fas fa-scale-balanced mr-1"></i>Seguir</button>
                   <a :href="pdfUrl(s.raw_id)" target="_blank" rel="noopener" data-test="pdf-sin-terminar"
                     class="px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-bold uppercase"><i class="fas fa-file-pdf mr-1"></i>Ver PDF</a>
@@ -144,7 +172,7 @@
 
         <!-- FALTAN -->
         <section v-if="tab === 'faltan'" data-test="lista-faltan" class="bg-slate-800/40 border border-red-500/30 rounded-xl p-4 text-xs space-y-2 overflow-x-auto">
-          <p class="text-slate-400">Números de ARCA que <b class="text-red-300">no están en V5 ni se subieron</b>, aunque hay otros posteriores (la numeración es correlativa, así que el hueco delata la que falta). Si la factura existe, subila; si no se carga a propósito, marcala con su motivo.</p>
+          <p class="text-slate-400">Números de ARCA que <b class="text-red-300">no están en V5 ni se subieron</b>, aunque hay otros posteriores (la numeración es correlativa, así que el hueco delata la que falta). Si la factura existe, subí su PDF (acá mismo, o arrastrándolo sobre la pantalla); si no se carga a propósito, marcala con su motivo.</p>
           <p v-if="!faltanVistas.length" class="py-6 text-center text-slate-500" data-test="vacio-faltan">{{ filtro ? 'Ningún faltante coincide con la búsqueda.' : 'No falta ningún número. 👍' }}</p>
           <table v-else class="w-full">
             <thead>
@@ -164,8 +192,8 @@
                     <span v-if="h.siguiente">la {{ h.siguiente.numero }} ({{ fecha(h.siguiente.fecha) }})</span><span v-else>—</span>
                   </td>
                   <td class="py-1.5 pl-2 text-right whitespace-nowrap">
-                    <button type="button" @click="$router.push({ name: 'IngestaFactura' })"
-                      class="px-2.5 py-1 rounded bg-violet-600 hover:bg-violet-500 text-white text-[11px] font-bold mr-1"><i class="fas fa-file-import mr-1"></i>Subirla</button>
+                    <button type="button" @click="elegirArchivos" data-test="subirla"
+                      class="px-2.5 py-1 rounded bg-violet-600 hover:bg-violet-500 text-white text-[11px] font-bold mr-1"><i class="fas fa-cloud-arrow-up mr-1"></i>Subir el PDF</button>
                     <button type="button" @click="abrirMarca(h)" data-test="no-se-carga"
                       class="px-2.5 py-1 rounded bg-slate-700 hover:bg-slate-600 text-white text-[11px] font-bold">No se carga</button>
                   </td>
@@ -212,6 +240,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import api from '@/services/api'
 import { useNotificationStore } from '@/stores/notification'
+import ingestaService from '@/services/ingesta'
 import { normalizarBusqueda } from '@/utils/texto'   // [S892] búsqueda sin acentos ni mayúsculas: «pineyro» encuentra «Piñeyro»
 
 const notification = useNotificationStore()
@@ -223,6 +252,11 @@ const filtro = ref('')
 const marcando = ref(null)    // el faltante al que se le está escribiendo el motivo
 const motivo = ref('')
 const guardando = ref(false)
+// [S899, Carlos 04/11] subir los PDF desde esta pantalla: solo se guardan y se leen (POST /ingesta/raw); NO se crea pedido ni remito: quedan en «Subidas sin terminar»
+const inputArchivos = ref(null)
+const subiendo = ref(false)
+const arrastrando = ref(false)
+const resultadosSubida = ref([])
 
 const moneda = (v) => (v == null ? '—' : Number(v).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' }))
 const fecha = (s) => (s ? `${s.slice(8, 10)}/${s.slice(5, 7)}/${s.slice(0, 4)}` : '—')
@@ -296,6 +330,57 @@ const deshacerMarca = async (m) => {
     await cargar()
   } catch (e) {
     notification.add(e?.response?.data?.detail || 'No se pudo deshacer.', 'error')
+  }
+}
+
+const elegirArchivos = () => { if (!subiendo.value && inputArchivos.value) inputArchivos.value.click() }
+const alElegir = async (e) => {
+  const archivos = Array.from(e.target.files || [])
+  e.target.value = ''
+  await subirArchivos(archivos)
+}
+const alSoltar = async (e) => {
+  arrastrando.value = false
+  await subirArchivos(Array.from(e.dataTransfer?.files || []))
+}
+const esPdf = (f) => /\.pdf$/i.test(f.name || '') || f.type === 'application/pdf'
+
+const subirArchivos = async (archivos) => {
+  if (!archivos.length || subiendo.value) return
+  subiendo.value = true
+  const filas = []
+  try {
+    for (const f of archivos) {
+      if (!esPdf(f)) { filas.push({ estado: 'error', titulo: f.name, texto: 'No es un PDF: se ignora.' }); continue }
+      try {
+        const fd = new FormData()
+        fd.append('file', f)
+        const { data } = await ingestaService.uploadRaw(fd)
+        const d = data.duplicado || {}
+        if (d.encontrado) {
+          filas.push({ estado: 'ya_cargada', titulo: f.name, rawId: data.id,
+            texto: `Ya está cargada en V5${d.pedido_id ? ' (pedido #' + d.pedido_id + ')' : ''}: no hace falta conciliarla.` })
+        } else {
+          filas.push({ estado: 'ok', titulo: f.name, rawId: data.id, texto: 'Subida.' })
+        }
+      } catch (err) {
+        filas.push({ estado: 'error', titulo: f.name, texto: 'No se pudo subir: ' + (err?.response?.data?.detail || err.message || 'error desconocido') })
+      }
+    }
+    await cargar()
+    // con el listado ya actualizado, se completa cada fila con su número y si ya estaba subida
+    for (const r of filas) {
+      if (r.estado !== 'ok') continue
+      const s = (datos.value?.sin_terminar || []).find((x) => x.raw_id === r.rawId)
+      if (!s) { r.texto = 'Subida, pero no se pudo ubicar su número: revisá «Subidas sin terminar».'; continue }
+      r.titulo = `${s.tipo_texto} ${s.numero_legal}`
+      r.estado = s.veces > 1 ? 'ya_subida' : 'ok'
+      r.texto = s.veces > 1 ? `Ya estaba subida (×${s.veces}): queda una sola línea, apretá «Seguir».` : 'Subida: falta conciliarla, apretá «Seguir».'
+    }
+    resultadosSubida.value = filas
+    if (filas.some((r) => r.estado === 'ok' || r.estado === 'ya_subida')) { filtro.value = ''; tab.value = 'sin_terminar' }
+  } finally {
+    subiendo.value = false
   }
 }
 
