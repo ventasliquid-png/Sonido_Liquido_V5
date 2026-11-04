@@ -3,9 +3,30 @@
 # ------------------------------------------
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, ForeignKey, Integer, DateTime, JSON, LargeBinary, BigInteger
+from sqlalchemy import Column, String, ForeignKey, Integer, DateTime, JSON, LargeBinary, BigInteger, UniqueConstraint
 from sqlalchemy.orm import relationship
 from backend.core.database import Base, GUID
+
+
+class FacturaNoSeCarga(Base):
+    """
+    [S899, Card #212; Carlos 04/11] Un número de comprobante de ARCA que se decidió NO cargar en V5 a propósito
+    (p. ej. la factura 2586 y la NC 74: representan una OC que nunca se completó). La pantalla «Facturas» arma la lista
+    de «Faltan» con los huecos de la numeración; lo que está acá no cuenta como hueco y se muestra aparte, con su motivo.
+    """
+    __tablename__ = "facturas_no_se_cargan"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tipo_comprobante = Column(String, nullable=False)       # FACTURA_A, NOTA_CREDITO_A, ...
+    punto_venta = Column(Integer, nullable=False)
+    numero_comprobante = Column(Integer, nullable=False)
+    motivo = Column(String, nullable=False)
+    decidido_por = Column(String, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        UniqueConstraint("tipo_comprobante", "punto_venta", "numero_comprobante", name="uq_factura_no_se_carga"),
+    )
 
 class FacturasRaw(Base):
     """

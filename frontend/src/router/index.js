@@ -73,6 +73,11 @@ const routes = [
                 component: () => import('../views/Pedidos/PedidoList.vue')
             },
             {
+                path: 'facturas',
+                name: 'FacturasPanel',   // [S899, Card #212] menú propio «Facturas»: cargadas / subidas sin terminar / faltan
+                component: () => import('../views/Facturas/FacturasView.vue')
+            },
+            {
                 path: 'pedidos/ingesta',
                 name: 'IngestaFactura',
                 component: () => import('../views/Pedidos/IngestaFacturaView.vue')

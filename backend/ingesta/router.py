@@ -180,6 +180,47 @@ def get_raw_pdf(raw_id: uuid.UUID, db: Session = Depends(get_db)):
         headers={"Content-Disposition": "inline"}
     )
 
+# --- [S899, Card #212; Carlos 04/11] Pantalla «Facturas»: qué está cargado, qué se subió sin terminar y qué falta (huecos de la numeración de ARCA). ---
+
+from backend.ingesta import facturas_panorama as _fp
+
+
+class NoSeCargaPayload(BaseModel):
+    tipo_comprobante: str
+    punto_venta: int
+    numero_comprobante: int
+    motivo: str
+
+
+@router.get("/facturas/panorama")
+def facturas_panorama(db: Session = Depends(get_db)):
+    """Solo lectura. Cada número de comprobante sale en UNA lista: cargadas / sin_terminar / faltan (o marcado «no se carga»)."""
+    return _fp.panorama(db)
+
+
+@router.post("/facturas/no-se-carga")
+def facturas_marcar_no_se_carga(payload: NoSeCargaPayload, db: Session = Depends(get_db),
+                                current_user: auth_models.Usuario = Depends(get_current_active_user)):
+    """Deja anotado que un número de comprobante no se carga a propósito (con el motivo y quién lo decidió): deja de contar como hueco."""
+    try:
+        m = _fp.marcar_no_se_carga(db, payload.tipo_comprobante, payload.punto_venta, payload.numero_comprobante,
+                                   payload.motivo, getattr(current_user, "username", None))
+    except _fp.MarcaError as e:
+        raise HTTPException(status_code=e.status, detail=e.detail)
+    return {"id": m.id, "numero_legal": _fp.numero_legal(m.punto_venta, m.numero_comprobante), "tipo": m.tipo_comprobante, "motivo": m.motivo}
+
+
+@router.delete("/facturas/no-se-carga/{marca_id}")
+def facturas_desmarcar_no_se_carga(marca_id: int, db: Session = Depends(get_db),
+                                   current_user: auth_models.Usuario = Depends(get_current_active_user)):
+    """Deshace la marca: el número vuelve a contar como hueco si sigue sin estar en V5."""
+    try:
+        _fp.desmarcar_no_se_carga(db, marca_id)
+    except _fp.MarcaError as e:
+        raise HTTPException(status_code=e.status, detail=e.detail)
+    return {"ok": True}
+
+
 # --- [Etapa 7b] Conciliación factura <-> PR. Camino nuevo; /approve (creador) sigue vivo hasta
 # que este funcione en la operación real (PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §9). ---
 

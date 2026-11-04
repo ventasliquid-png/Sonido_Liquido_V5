@@ -64,10 +64,6 @@
                 <i class="fas fa-list w-4"></i> 
                 <span>Tablero Pedidos</span>
             </a>
-            <a href="#" @click.prevent="navigate('IngestaFactura')" class="nav-item-sub" :class="{ 'active-link-emerald': isActive('IngestaFactura') }">
-                <i class="fas fa-file-import w-4"></i> 
-                <span>Ingesta Facturas Propias</span>
-            </a>
             <a href="#" @click.prevent="navigate('FacturacionDashboard')" class="nav-item-sub" :class="{ 'active-link-indigo': isActive('FacturacionDashboard') }">
                 <i class="fas fa-file-invoice-dollar w-4 text-indigo-400"></i> 
                 <span>Facturación (AFIP)</span>
@@ -102,6 +98,32 @@
             <a href="#" @click.prevent="navigate('EntregasReport')" class="nav-item-sub" :class="{ 'active-link-orange': isActive('EntregasReport') }">
                 <i class="fas fa-clipboard-list w-4"></i>
                 <span>Reporte de Entregas</span>
+            </a>
+        </div>
+      </div>
+
+      <!-- FACTURAS Group [S899, Card #212; Carlos 04/11: «un Menú "Facturas" a la izquierda a nivel Remito o Pedido o Productos»]: el listado con sus tres botones (cargadas / subidas sin terminar / faltan) y la ingesta -->
+      <div class="space-y-1" data-grupo="facturas">
+        <button
+            @click="toggleGroup('FACTURAS')"
+            class="w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-all duration-200"
+            :class="isGroupActive('FACTURAS') || expandedGroups.includes('FACTURAS') ? 'bg-violet-900/20 border-violet-500/30' : 'bg-transparent border-transparent hover:bg-white/5'"
+        >
+             <span class="flex items-center gap-3 text-violet-400 font-bold tracking-wide text-sm">
+                <i class="fas fa-file-invoice-dollar w-5 text-center" :class="isGroupActive('FACTURAS') ? 'text-violet-400' : 'text-violet-500/50'"></i>
+                FACTURAS
+            </span>
+            <i class="fas fa-chevron-right text-xs transition-transform duration-200" :class="expandedGroups.includes('FACTURAS') ? 'rotate-90 text-violet-400' : 'text-white/20'"></i>
+        </button>
+
+        <div v-show="expandedGroups.includes('FACTURAS')" class="pl-4 space-y-1">
+            <a href="#" @click.prevent="navigate('FacturasPanel')" class="nav-item-sub" :class="{ 'active-link-violet': isActive('FacturasPanel') }" data-accion="menu-facturas">
+                <i class="fas fa-list-check w-4"></i>
+                <span>Facturas</span>
+            </a>
+            <a href="#" @click.prevent="navigate('IngestaFactura')" class="nav-item-sub" :class="{ 'active-link-violet': isActive('IngestaFactura') || isActive('ConciliarFactura') }">
+                <i class="fas fa-file-import w-4"></i>
+                <span>Ingesta Facturas Propias</span>
             </a>
         </div>
       </div>
@@ -360,7 +382,8 @@ const isGroupActive = (group) => {
     if (group === 'CLIENTES') return ['HaweHome', 'Segmentos', 'Vendedores', 'HaweClientCanvas'].includes(route.name)
     if (group === 'PRODUCTOS') return ['Productos', 'Rubros', 'ListasPrecios'].includes(route.name)
     if (group === 'MAESTROS') return ['Contactos', 'Transportes', 'CanteraExplorer', 'MasterTools', 'AddressHub'].includes(route.name)
-    if (group === 'PEDIDOS') return ['PedidoList', 'TacticalLoader', 'IngestaFactura', 'FacturacionDashboard'].includes(route.name)
+    if (group === 'PEDIDOS') return ['PedidoList', 'TacticalLoader', 'FacturacionDashboard'].includes(route.name)
+    if (group === 'FACTURAS') return ['FacturasPanel', 'IngestaFactura', 'ConciliarFactura'].includes(route.name)   // [S899, Card #212] nodo propio, violeta
     if (group === 'REMITOS') return ['RemitoList', 'RemitoFicha', 'EntregasReport'].includes(route.name)   // [S893] nodo propio, naranja (Logística)
     if (group === 'INTEL') return ['data-cleaner'].includes(route.name)
     if (group === 'INFORMES_REMITOS') return isGroupActive('INFORMES')
@@ -378,7 +401,7 @@ const toggleGroup = (group) => {
 }
 
 const autoExpand = () => {
-    ['CLIENTES', 'PRODUCTOS', 'MAESTROS', 'PEDIDOS', 'REMITOS', 'INFORMES', 'INFORMES_REMITOS'].forEach(group => {
+    ['CLIENTES', 'PRODUCTOS', 'MAESTROS', 'PEDIDOS', 'REMITOS', 'INFORMES', 'INFORMES_REMITOS', 'FACTURAS'].forEach(group => {
         if (isGroupActive(group) && !expandedGroups.value.includes(group)) {
             expandedGroups.value.push(group)
         }
@@ -427,6 +450,9 @@ const handleDepositosClick = () => {
 }
 .active-link-orange {
     @apply text-orange-200 bg-orange-900/10 border-orange-400 font-bold;
+}
+.active-link-violet {
+    @apply text-violet-200 bg-violet-900/10 border-violet-400 font-bold;
 }
 .active-link-sky {
     @apply text-sky-200 bg-sky-900/10 border-sky-400 font-bold;

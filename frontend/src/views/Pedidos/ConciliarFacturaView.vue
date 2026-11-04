@@ -37,6 +37,40 @@
           </div>
         </section>
 
+        <!-- [S899, Carlos 04/11: «no tenemos un sistema que nos muestre las facturas ingeridas; debemos abrir el PDF en otra pestaña e ir conciliando contra el pedido»]
+             La factura a la vista: sus renglones (lo que lee el sistema del PDF de ARCA) y el PDF original en la misma pantalla, para compararla contra el pedido de cada alternativa sin cambiar de pestaña. -->
+        <section v-if="!resultado && !esAjuste && (cand.factura.items || []).length" class="bg-slate-800/40 border border-slate-700 rounded-xl p-4 text-xs space-y-2" data-test="renglones-factura">
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="text-sm font-bold text-white">Renglones de la factura (ARCA)</h2>
+            <button type="button" @click="pdfAbierto = !pdfAbierto" data-test="ver-pdf"
+              class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-[11px] font-bold uppercase tracking-wide">
+              <i class="fas fa-file-pdf mr-1"></i>{{ pdfAbierto ? 'Ocultar PDF' : 'Ver PDF' }}
+            </button>
+          </div>
+          <table class="w-full">
+            <thead>
+              <tr class="text-[10px] uppercase text-slate-500 border-b border-slate-700">
+                <th class="text-left py-1 pr-2">Descripción</th>
+                <th class="text-right py-1 px-2">Cant.</th>
+                <th class="text-right py-1 px-2">Precio unit.</th>
+                <th class="text-right py-1 pl-2">Subtotal neto</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(it, i) in cand.factura.items" :key="'fi' + i" class="border-b border-slate-800">
+                <td class="py-1.5 pr-2 text-slate-200">{{ it.descripcion }}<span v-if="it.bonificacion" class="ml-2 text-amber-400">(bonif. {{ it.bonificacion }} %)</span></td>
+                <td class="py-1.5 px-2 text-right font-mono">{{ it.cantidad }}</td>
+                <td class="py-1.5 px-2 text-right font-mono">{{ moneda(it.precio_unitario) }}</td>
+                <td class="py-1.5 pl-2 text-right font-mono">{{ moneda(it.subtotal) }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div v-if="pdfAbierto" class="space-y-1" data-test="visor-pdf">
+            <iframe :src="pdfSrc" class="w-full h-[70vh] rounded-lg border border-slate-700 bg-white" title="PDF de la factura"></iframe>
+            <a :href="pdfSrc" target="_blank" rel="noopener" class="text-[10px] text-cyan-400 hover:text-cyan-300 underline">abrir el PDF en otra pestaña</a>
+          </div>
+        </section>
+
         <!-- [S898, Carlos 03/11] Ya conciliada, queda solo el cartel verde: el bloqueo (FACTURA_DUPLICADA) y el aviso (SIN_PR_PENDIENTE) los genera la propia factura recién registrada al releer los candidatos -->
         <ul v-if="!resultado && bloqueosVisibles.length" class="space-y-1">
           <li v-for="(b, i) in bloqueosVisibles" :key="'b' + i" class="text-xs bg-red-900/30 border border-red-600/40 text-red-300 rounded-lg px-3 py-2">
@@ -164,6 +198,7 @@
               <div class="mt-1 text-slate-400">
                 <span v-for="r in p.renglones" :key="r.remito_item_id" class="inline-block mr-3">
                   {{ r.producto }} <b class="text-slate-200">{{ r.pendiente_facturar }}</b>
+                  <span v-if="r.precio_pedido != null" class="text-slate-500"> a {{ moneda(r.precio_pedido) }}</span>
                 </span>
               </div>
             </div>
@@ -339,6 +374,9 @@ import ConfirmarDiferenciasPrecio from './components/ConfirmarDiferenciasPrecio.
 const route = useRoute()
 const notification = useNotificationStore()
 const rawId = route.params.rawId
+// [S899] el PDF original de la factura (se guarda en la ingesta; GET /ingesta/raw/{id}/pdf) se ve en la misma pantalla
+const pdfAbierto = ref(false)
+const pdfSrc = `/ingesta/raw/${rawId}/pdf`
 
 const loading = ref(true)
 const cand = ref(null)
