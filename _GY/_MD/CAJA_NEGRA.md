@@ -1,4 +1,17 @@
-﻿Sesion actual: 899
+﻿Sesion actual: 900
+
+# CAJA NEGRA: OMEGA Lite - cuatro despliegues y el bit 50 del genoma de pedidos (Cards #213, #214 etapa 1 y #215, migrate_079), destilado S895-S900 a Nike y Espejo de MT sin ventana de DOS
+
+Sesion 900 OF, 05/11, NS (CC, Sonnet 5.5) con Carlos. Hash D: @@HASH_D@@ (commit del OMEGA; commits de codigo 755d2755, 3be84f45, 558ae3ad y dc7f9d79) | Hash B: e41455e = prod/main (cuatro pushes el 05/11, los cuatro con "pushea 1974") | P real: 2f49eed (leido en P por red; e41455e y migrate_079 entran al relanzar Soberana) | 92 pruebas, 2.010 comprobaciones, en verde en D y contra B
+- Card #213 (c2dfd5f1): boton en "Subidas sin terminar" que abre la Ingesta clasica con la factura ya subida (?rawId=...&volver=facturas, analizarRaw) y vuelve a Facturas; el "volver" sobrevive al desvio por PedidoCanvas.
+- Card #214 etapa 1 (3b95af1): al conciliar, GET /ingesta/facturas/{id}/proximos-pasos (solo lectura) propone fechar el remito como la factura y pasar a Cumplido el pedido completo; el operador contesta. Hallazgo: el PR de contra natura nace sin numero ni fecha (la fecha al emitir queda como etapa 2).
+- Card #215 (2f49eed): a raiz del #98, consulta a Nike (Sello de Oro): bit 50 PedidoFlags.FUE_REABIERTO al salir de Cumplido hacia cualquier estado (Anulado -> Pendiente no) y nota [SISTEMA] "Cambio de estado: A -> B por usuario a las HH:MM DD/MM/AAAA" en toda transicion (backend/pedidos/transiciones.py; cuatro puertas); marca "reabierto" en listado y ficha. migrate_079 (e41455e) reconstruye la reapertura del #98.
+- Nike: destilado S895-S900 subido al cuaderno (90 fuentes) y confirmado por ella. Espejo de MT: la ventana de DOS era la tarea V5_Espejo_MT lanzando un .bat; espejo_mt.py con git sin ventana y FIX_ESPEJO_MT_INVISIBLE aplicado por Tomy (16:30; la tarea ahora llama a pythonw).
+- Cards: #212 CERRADA por Carlos; #216 anotada (valor declarado y bultos al imprimir; el hueco es la Ingesta clasica, que abre el PDF sin la ventana de la S890; solo hacia adelante); #213, #214 y #215 abiertas hasta verlas andar en P. INBOX: 43 entradas archivadas.
+- Leccion: el heredoc de bash se come las barras invertidas (escribir un archivo con la herramienta Write); la bateria de D y la del clon no se corren a la vez (comparten temporales); las horas de la bitacora salen del reloj.
+- Pendiente: S901: leer P (esperado e41455e), verificar el #98 "reabierto" y el Espejo sin ventana; #155 a Cumplido y remito 3041 en P (Tomy o Carlos); Card #216 si Carlos dice "construila"; etapa 2 de #214; apendice corto a Nike.
+
+Sesion actual: 899
 
 # CAJA NEGRA: OMEGA Lite - pantalla Facturas (Card #212: menu propio, cargadas / subidas sin terminar / faltan, subir PDF, volver y seguir con la siguiente), migrate_078, paquete de la S898 a produccion y subsistemas de entrada (Cards #210, #211 y #213) - S899
 

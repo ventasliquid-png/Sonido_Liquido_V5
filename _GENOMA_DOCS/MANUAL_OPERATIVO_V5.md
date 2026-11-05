@@ -1424,3 +1424,12 @@ Sin cambios funcionales visibles: la sesión trabajó el Board y los protocolos,
 - **«Seguir»** lleva a «Conciliar contra PR» (también para notas de crédito y para una factura sin pedido). Al terminar hay «Volver a Facturas» y «Seguir con la siguiente» (la de número más bajo, con cuántas quedan). En la conciliación, la factura está a la vista: renglones de ARCA, «Ver PDF» en la misma pantalla y el precio del pedido al lado de cada renglón.
 - **«No se carga»** (en Faltan): para una factura que no corresponde cargar; pide el motivo, queda anotado con quién lo decidió y se puede deshacer. Hoy: la 2586 y la NC 74.
 - **Para crear pedido y remito con la factura** sigue la Ingesta de siempre (menú Pedidos o Facturas); una rama directa desde Facturas está anotada (Card #213).
+
+
+## Sesión 900 (05/11) — Lo que cambia para quien opera
+
+- **Facturas → «Crear pedido y remito»:** en «Subidas sin terminar», cada factura tiene ese botón: abre la Ingesta de siempre con la factura ya subida (sin volver a subirla) y, al terminar, vuelve a Facturas.
+- **Al conciliar una factura aparece «Para dejarlo prolijo»** debajo del cartel verde. (1) Si el remito es de más de un día después de la factura, pregunta «¿Fechamos el remito como la factura?»: «Sí, poner <fecha>», «otra fecha» (nunca una futura) o «Dejar»; queda anotado con el motivo. (2) Si el pedido quedó completo (remitido y facturado), pregunta «¿Pasarlo a Cumplido?»; si la salida del remito está solo asumida, lo avisa y destaca «Ahora no». Nada se cambia sin contestar.
+- **Pedidos reabiertos:** un pedido que estuvo Cumplido y se reabre queda marcado «↺ reabierto» para siempre (en el listado y en la ficha), y cada cambio de estado deja en la nota «[SISTEMA] Cambio de estado: … por <usuario> a las …». No hay que hacer nada: lo escribe el sistema. El #98 recibe su marca cuando se relance Soberana.
+- **Espejo (Tomy, PC de MT):** la ventana de DOS que aparecía cada 30 minutos y tapaba lo que se estaba tipeando ya no debe aparecer; si vuelve a aparecer, avisar.
+- **Anotado, todavía no hecho (Card #216):** al imprimir un remito por primera vez sin valor declarado y con 1 bulto, el sistema va a preguntar si se quieren cargar. Mientras tanto, el remito que sale de la Ingesta de facturas se crea y se imprime en el mismo paso y no pide valor declarado ni bultos (salen en 0 y 1).

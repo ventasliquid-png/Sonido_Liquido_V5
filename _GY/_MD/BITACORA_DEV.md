@@ -1,4 +1,8 @@
-﻿## SESION 899 (OF) — 2026-11-04 [NS (CC, Sonnet 5.5)]: pantalla «Facturas» (Card #212: menú propio, cargadas / subidas sin terminar / faltan, subir PDF, volver y seguir con la siguiente), `migrate_078`, paquete de la S898 a producción y subsistemas de entrada (#210, #211, #213) — NOMINAL — D:3a7edde4 B:e578fa4 (= prod/main) P:ac3315b
+﻿## SESION 900 (OF) — 2026-11-05 [NS (CC, Sonnet 5.5)]: Facturas → Ingesta clásica (#213), propuestas al conciliar (#214), bit 50 FUE_REABIERTO y nota de cambio de estado (#215), `migrate_079`, destilado S895–S900 a Nike y Espejo de MT sin ventana — NOMINAL — D:@@HASH_D@@ B:e41455e (= prod/main) P:2f49eed
+
+- Cuatro commits de código en D (`755d2755`, `3be84f45`, `558ae3ad`, `dc7f9d79`) y cuatro pushes a producción el 05/11 (`c2dfd5f1`, `3b95af1`, `2f49eed`, `e41455e`; `migrate_079` reconstruye la reapertura del #98). 92 pruebas, 2.010 comprobaciones. Informe: `INFORMES_HISTORICOS/2026-11-05_S900_OF.md`.
+
+## SESION 899 (OF) — 2026-11-04 [NS (CC, Sonnet 5.5)]: pantalla «Facturas» (Card #212: menú propio, cargadas / subidas sin terminar / faltan, subir PDF, volver y seguir con la siguiente), `migrate_078`, paquete de la S898 a producción y subsistemas de entrada (#210, #211, #213) — NOMINAL — D:3a7edde4 B:e578fa4 (= prod/main) P:ac3315b
 
 - Cuatro commits de código en D (`ed919577` Caja Negra, `f8bad60f` pantalla Facturas + `migrate_078`, `02aa7c6b` subir PDF y seguir con la siguiente, `efc40cd5` la Ingesta de vuelta en Pedidos) y tres pushes a producción el 04/11 (`7a49a18` paquete de la S898 con `migrate_077`; `ac3315b`; `e578fa4`). 88 pruebas, 1.927 comprobaciones. Informe: `INFORMES_HISTORICOS/2026-11-04_S899_OF.md`.
 
