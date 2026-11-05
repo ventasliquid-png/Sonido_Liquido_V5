@@ -34,6 +34,9 @@
                     Conversión Inteligente: PDF AFIP <i class="fas fa-arrow-right mx-1"></i> Remito V5
                 </p>
             </div>
+            <button v-if="volverAFacturas" type="button" @click="router.push({ name: 'FacturasPanel' })" data-test="volver-a-facturas-ingesta" class="text-xs text-slate-400 hover:text-white">
+                <i class="fas fa-arrow-left mr-1"></i> Volver a Facturas
+            </button>
         </header>
         <div class="grid grid-cols-12 gap-6 flex-1 min-h-0 overflow-hidden">
             
@@ -759,7 +762,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import remitosService from '@/services/remitos';
 import ingestaService from '@/services/ingesta';
 import { useNotificationStore } from '@/stores/notification';
@@ -774,6 +777,7 @@ import ConfirmarDiferenciasPrecio from './components/ConfirmarDiferenciasPrecio.
 import api from '@/services/api';
 
 const router = useRouter();
+const route = useRoute();   // [S899, Card #213] ?rawId=...&volver=facturas
 const notification = useNotificationStore();
 const maestrosStore = useMaestrosStore();
 const clientesStore = useClientesStore();
@@ -936,6 +940,65 @@ const handleDrop = async (e) => {
     if (file) await processFile(file);
 };
 
+// [S899, Card #213] El analisis de una factura YA subida (preview del Conserje, cliente, domicilios, pedidos pendientes) lo comparten la subida de un PDF (`processFile`)
+// y la apertura desde la pantalla Facturas (`cargarRawExistente`): la factura no se vuelve a subir.
+const analizarRaw = async (rawId) => {
+    // [V2] Get Preview & Audit
+    const previewRes = await ingestaService.getPreview(rawId);
+    const previewData = previewRes.data;
+    
+    parsedData.value = previewData.parsed_data;
+    auditLog.value = previewData.audit_log;
+    await cargarPrArmados(rawId);
+
+    // [V5.6 FIX] Sincronizar resolución del Conserje con el modelo de vista
+    if (auditLog.value?.client_resolution) {
+        parsedData.value.cliente.db_status = auditLog.value.client_resolution.db_status;
+        parsedData.value.cliente.flags_estado = auditLog.value.client_resolution.flags_estado;
+        parsedData.value.cliente.id = auditLog.value.client_resolution.id;
+        
+        if (auditLog.value.client_resolution.razon_social) {
+            parsedData.value.cliente.razon_social = auditLog.value.client_resolution.razon_social;
+        }
+    }
+    
+    notification.add('Factura analizada por Conserje V2', 'success');
+    
+    // Auto-load client details and scoring
+    if (auditLog.value?.client_resolution?.id) {
+        await loadClientDetails(auditLog.value.client_resolution.id);
+        // Overwrite suggested addresses with Conserje scoring
+        if (auditLog.value.domicilios_scoring?.length > 0) {
+            clientAddresses.value = clientAddresses.value.map(d => {
+                const audit = auditLog.value.domicilios_scoring.find(as => as.id === d.id);
+                return audit ? { ...d, is_suggested: audit.is_suggested, score: audit.score } : d;
+            });
+            autoSelectAddress();
+        }
+    } else {
+        // [GY-FIX] Caso Fantasma: El cliente no existe en DB. Forzamos 'NEW' para habilitar el botón "Proceder"
+        // y que el orquestador abra el ABM.
+        selectedPedidoId.value = 'NEW';
+        pendingPedidos.value = [];
+    }
+};
+
+const cargarRawExistente = async (rawId) => {
+    loading.value = true;
+    error.value = null;
+    try {
+        currentRawId.value = rawId;
+        await analizarRaw(rawId);
+    } catch (e) {
+        console.error(e);
+        const detalle = e.response?.data?.detail || e.message;
+        error.value = 'No se pudo abrir la factura subida: ' + detalle;
+        notification.add('No se pudo abrir la factura subida: ' + detalle, 'error');
+    } finally {
+        loading.value = false;
+    }
+};
+
 const processFile = async (file) => {
     if (file.type !== 'application/pdf') {
         notification.add('Solo se admiten archivos PDF', 'error');
@@ -962,45 +1025,7 @@ const processFile = async (file) => {
             return;
         }
 
-        // [V2] Get Preview & Audit
-        const previewRes = await ingestaService.getPreview(rawId);
-        const previewData = previewRes.data;
-        
-        parsedData.value = previewData.parsed_data;
-        auditLog.value = previewData.audit_log;
-        await cargarPrArmados(rawId);
-
-        // [V5.6 FIX] Sincronizar resolución del Conserje con el modelo de vista
-        if (auditLog.value?.client_resolution) {
-            parsedData.value.cliente.db_status = auditLog.value.client_resolution.db_status;
-            parsedData.value.cliente.flags_estado = auditLog.value.client_resolution.flags_estado;
-            parsedData.value.cliente.id = auditLog.value.client_resolution.id;
-            
-            if (auditLog.value.client_resolution.razon_social) {
-                parsedData.value.cliente.razon_social = auditLog.value.client_resolution.razon_social;
-            }
-        }
-        
-        notification.add('Factura analizada por Conserje V2', 'success');
-        
-        // Auto-load client details and scoring
-        if (auditLog.value?.client_resolution?.id) {
-            await loadClientDetails(auditLog.value.client_resolution.id);
-            // Overwrite suggested addresses with Conserje scoring
-            if (auditLog.value.domicilios_scoring?.length > 0) {
-                clientAddresses.value = clientAddresses.value.map(d => {
-                    const audit = auditLog.value.domicilios_scoring.find(as => as.id === d.id);
-                    return audit ? { ...d, is_suggested: audit.is_suggested, score: audit.score } : d;
-                });
-                autoSelectAddress();
-            }
-        } else {
-            // [GY-FIX] Caso Fantasma: El cliente no existe en DB. Forzamos 'NEW' para habilitar el botón "Proceder"
-            // y que el orquestador abra el ABM.
-            selectedPedidoId.value = 'NEW';
-            pendingPedidos.value = [];
-        }
-
+        await analizarRaw(rawId);
     } catch (e) {
         console.error(e);
         error.value = e.message;
@@ -1008,6 +1033,18 @@ const processFile = async (file) => {
         notification.add('Error en Ingesta V2: ' + e.message, 'error');
     } finally {
         loading.value = false;
+    }
+};
+
+// [S899, Card #213, Carlos 04/11: «es solo invocar el sistema viejo que ya está ok, procesa y vuelve a Facturas»] si se llegó desde Facturas, al terminar (aprobar o dejar en
+// cuarentena) se vuelve a Facturas; la marca viaja en el store para sobrevivir al desvío por el PedidoCanvas (crear el pedido).
+const volverAFacturas = ref(false);
+const terminarYVolver = () => {
+    reset();
+    if (volverAFacturas.value) {
+        volverAFacturas.value = false;
+        usePedidosStore().ingestaVolverA = null;
+        router.push({ name: 'FacturasPanel' });
     }
 };
 
@@ -1526,7 +1563,7 @@ const confirmIngesta = async (confirmacionPrecios = null) => {
                 window.open(pdfUrl, '_blank');
             }
             
-            reset();
+            terminarYVolver();
         }
 
     } catch (e) {
@@ -1702,7 +1739,7 @@ const retryInCuarentena = async () => {
                 const pdfUrl = `/remitos/${remitoId}/pdf`;
                 window.open(pdfUrl, '_blank');
             }
-            reset();
+            terminarYVolver();
         }
     } catch (e) {
         console.error(e);
@@ -1719,6 +1756,7 @@ onBeforeRouteLeave((to, from, next) => {
     if (to.name !== 'PedidoCanvas' && to.name !== 'PedidoEditar') {
         const pedidosStore = usePedidosStore();
         pedidosStore.clearIngestaData();
+        pedidosStore.ingestaVolverA = null;   // [S899, Card #213]
     }
     next();
 });
@@ -1729,6 +1767,9 @@ onMounted(async () => {
     }
 
     const pedidosStore = usePedidosStore();
+    // [S899, Card #213] viene de Facturas (?volver=facturas) o vuelve de un desvío por el PedidoCanvas que había empezado en Facturas
+    volverAFacturas.value = route.query.volver === 'facturas' || (!!pedidosStore.pending409Context && pedidosStore.ingestaVolverA === 'facturas');
+    pedidosStore.ingestaVolverA = volverAFacturas.value ? 'facturas' : null;
     if (pedidosStore.pending409Context) {
         const ctx = pedidosStore.pending409Context;
         parsedData.value = ctx.parsedData;
@@ -1740,6 +1781,9 @@ onMounted(async () => {
         if (ctx.parsedData?.cliente?.id) {
             await loadClientDetails(ctx.parsedData.cliente.id);
         }
+    } else if (route.query.rawId) {
+        // [S899, Card #213] abierta desde Facturas con una factura ya subida: no se pide el PDF de nuevo
+        await cargarRawExistente(String(route.query.rawId));
     }
 });
 </script>

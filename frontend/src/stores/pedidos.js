@@ -11,6 +11,7 @@ export const usePedidosStore = defineStore('pedidos', {
         pedidos: [], // List for Dashboard
         ingestaData: null, // Temporary data from factura ingesta
         pending409Context: null, // Preserved 409 modal state for back-navigation from PedidoCanvas
+        ingestaVolverA: null, // [S899, Card #213] 'facturas' si la Ingesta se abrió desde la pantalla Facturas: sobrevive al desvío por el PedidoCanvas
         autoPrintNext: false // Flag to trigger automatic printing in PedidoCanvas
     }),
 

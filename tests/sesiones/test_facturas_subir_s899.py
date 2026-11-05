@@ -80,7 +80,8 @@ SRC = os.path.join(RAIZ, "frontend", "src", "views")
 leer = lambda *pth: open(os.path.join(SRC, *pth), encoding="utf-8").read().replace("\r\n", "\n")
 fac, con = leer("Facturas", "FacturasView.vue"), leer("Pedidos", "ConciliarFacturaView.vue")
 check("el botón del encabezado sube PDF desde la pantalla: input oculto que acepta PDF y varios archivos; ya no manda a la Ingesta vieja",
-      'type="file" accept="application/pdf,.pdf" multiple class="hidden" data-test="input-archivos"' in fac and 'data-test="subir-factura"' in fac and "name: 'IngestaFactura'" not in fac)
+      'type="file" accept="application/pdf,.pdf" multiple class="hidden" data-test="input-archivos"' in fac and 'data-test="subir-factura"' in fac
+      and fac.count("name: 'IngestaFactura'") == 1 and 0 < fac.index("name: 'IngestaFactura'") - fac.index('data-test="ingesta-clasica"') < 300)   # [S900, Card #213] la única ruta a la Ingesta es la rama «Crear pedido y remito»; ni subir ni «Subir el PDF» mandan allá
 check("se pueden arrastrar los PDF sobre la pantalla (zona de soltar con el aviso de que no se crea pedido ni remito)",
       '@drop.prevent="alSoltar"' in fac and '@dragover.prevent="arrastrando = true"' in fac and 'data-test="zona-soltar"' in fac and "no se crea ningún pedido ni remito" in fac)
 check("sube de a uno, en orden (for…of con await), solo por uploadRaw (POST /ingesta/raw): nunca /approve ni /preview, que son el camino viejo que crea pedido y remito",

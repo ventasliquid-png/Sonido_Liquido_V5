@@ -16,7 +16,8 @@ ing, con = leer("views", "Pedidos", "IngestaFacturaView.vue"), leer("views", "Pe
 check("la Ingesta pide los remitos del cliente al mismo endpoint de «Conciliar contra PR» y solo avisa si no hay bloqueos",
       "const cargarPrArmados = async (rawId)" in ing and "/conciliacion/candidatos" in ing and "if (!(data.bloqueos || []).length) prArmados.value = data.prs || [];" in ing)
 check("se carga al subir el PDF (después del análisis), al volver del contexto 409 y se limpia en reset()",
-      "auditLog.value = previewData.audit_log;\n        await cargarPrArmados(rawId);" in ing and "if (ctx.rawId) await cargarPrArmados(ctx.rawId);" in ing and "duplicadoData.value = null;\n    prArmados.value = [];" in ing)
+      "auditLog.value = previewData.audit_log;\n    await cargarPrArmados(rawId);" in ing and "await analizarRaw(rawId);" in ing[ing.index("const processFile"):ing.index("const processFile") + 1500]   # [S900, Card #213] el análisis pasó a analizarRaw(rawId): mismo código, un nivel menos de sangría, llamado desde processFile
+      and "if (ctx.rawId) await cargarPrArmados(ctx.rawId);" in ing and "duplicadoData.value = null;\n    prArmados.value = [];" in ing)
 check("si falla la consulta la pantalla queda como siempre (el error se traga, solo es un aviso)",
       re.search(r"cargarPrArmados = async \(rawId\) => \{.*?catch \(e\) \{\s*// sin el aviso la pantalla queda como siempre", ing, re.S) is not None)
 check("la franja de «Conciliar contra PR» se pone ámbar y dice cuántos remitos tiene el cliente (con número y pedido); sin remitos conserva el texto de siempre",

@@ -137,7 +137,7 @@
 
         <!-- SUBIDAS SIN TERMINAR -->
         <section v-if="tab === 'sin_terminar'" data-test="lista-sin-terminar" class="bg-slate-800/40 border border-amber-500/30 rounded-xl p-4 text-xs space-y-2 overflow-x-auto">
-          <p class="text-slate-400">Se subió el PDF pero <b class="text-amber-300">la factura no quedó registrada en V5</b>. Apretá <b class="text-slate-300">Seguir</b> para conciliarla contra su remito. Si el mismo PDF se subió varias veces cuenta una sola vez.</p>
+          <p class="text-slate-400">Se subió el PDF pero <b class="text-amber-300">la factura no quedó registrada en V5</b>. Apretá <b class="text-slate-300">Seguir</b> para conciliarla contra su remito, o <b class="text-slate-300">Crear pedido y remito</b> si hay que armar también el pedido (abre la Ingesta de siempre con esta factura). Si el mismo PDF se subió varias veces cuenta una sola vez.</p>
           <p v-if="!sinTerminarVistas.length" class="py-6 text-center text-slate-500" data-test="vacio-sin-terminar">{{ filtro ? 'Ninguna subida sin terminar coincide con la búsqueda.' : 'No hay ninguna factura subida a medias. 👍' }}</p>
           <table v-else class="w-full">
             <thead>
@@ -161,6 +161,10 @@
                 <td class="py-1.5 pl-2 text-right whitespace-nowrap">
                   <button type="button" @click="$router.push({ name: 'ConciliarFactura', params: { rawId: s.raw_id }, query: { volver: 'facturas' } })" data-test="seguir"
                     class="px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-400 text-slate-900 text-[11px] font-black uppercase mr-1"><i class="fas fa-scale-balanced mr-1"></i>Seguir</button>
+                  <button v-if="puedeIngestaClasica(s)" type="button" data-test="ingesta-clasica"
+                    @click="$router.push({ name: 'IngestaFactura', query: { rawId: s.raw_id, volver: 'facturas' } })"
+                    title="Abre la Ingesta de siempre con esta factura (ya subida) para armar el pedido y el remito; al terminar vuelve acá"
+                    class="px-2.5 py-1 rounded bg-sky-700 hover:bg-sky-600 text-white text-[11px] font-bold uppercase mr-1"><i class="fas fa-dolly mr-1"></i>Crear pedido y remito</button>
                   <a :href="pdfUrl(s.raw_id)" target="_blank" rel="noopener" data-test="pdf-sin-terminar"
                     class="px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-bold uppercase"><i class="fas fa-file-pdf mr-1"></i>Ver PDF</a>
                 </td>
@@ -333,6 +337,8 @@ const deshacerMarca = async (m) => {
   }
 }
 
+// [S899, Card #213] la rama a la Ingesta clásica sirve para facturas (no para notas de crédito o débito, que se concilian) con número legible
+const puedeIngestaClasica = (s) => !!s.tipo && s.tipo.startsWith('FACTURA') && s.numero != null
 const elegirArchivos = () => { if (!subiendo.value && inputArchivos.value) inputArchivos.value.click() }
 const alElegir = async (e) => {
   const archivos = Array.from(e.target.files || [])
