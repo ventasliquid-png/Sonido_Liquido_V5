@@ -428,8 +428,11 @@ def anular_y_reingestar(raw_id: uuid.UUID, payload: AnularPayload, db: Session =
         pedido_asoc = db.query(Pedido).filter(Pedido.id == factura_vieja.pedido_id).first()
         if pedido_asoc:
             if pedido_asoc.flags_estado & PedidoFlags.ORIGEN_FACTURA:
+                from backend.pedidos.transiciones import registrar_cambio_de_estado   # [S900, Card #215]
+                flags_previos = pedido_asoc.flags_estado
                 pedido_asoc.estado = "ANULADO"
                 pedido_asoc.flags_estado = (pedido_asoc.flags_estado & ~STATE_MASK) | PedidoFlags.ES_ANULADO
+                registrar_cambio_de_estado(pedido_asoc, flags_previos, "el sistema (anular y reingestar)")   # nota con quién y cuándo; si estaba Cumplido, la cicatriz del bit 50
                 db.add(pedido_asoc)
                 
     # 4. Eliminar remito en BORRADOR

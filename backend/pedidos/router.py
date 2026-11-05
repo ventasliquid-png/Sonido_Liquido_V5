@@ -17,6 +17,7 @@ from backend.pedidos import models, schemas
 from backend.clientes.models import Cliente
 from backend.productos.models import Producto
 from backend.pedidos.constants import PedidoFlags as PF, STATE_MASK
+from backend.pedidos.transiciones import registrar_cambio_de_estado   # [S900, Card #215] toda transición de estado deja su nota; salir de Cumplido prende el bit 50
 from backend.pedidos.cantidades import mensaje_baja_de_cantidad, mensaje_baja_de_renglon
 from backend.pedidos.descuentos import descuento_normalizado, importe_conservando_unitario
 from backend.pedidos import kits as kits_mod
@@ -293,8 +294,10 @@ def create_pedido_tactico(
                     db.add(ing)
 
                 # 6. Ejecutar la condena (Anular el viejo)
+                flags_previos = pedido_viejo.flags_estado   # [S900, Card #215]
                 pedido_viejo.estado = "ANULADO"
                 pedido_viejo.flags_estado = ((pedido_viejo.flags_estado or 0) & ~STATE_MASK.value) | PF.ES_ANULADO.value
+                registrar_cambio_de_estado(pedido_viejo, flags_previos, "el sistema (migración por discrepancia en Ingesta)")
                 nota_migracion = f"\n[SISTEMA] Migrado a pedido #{nuevo_pedido.id} por discrepancia en Ingesta. Logística transferida."
                 pedido_viejo.nota = (pedido_viejo.nota or "") + nota_migracion
                 db.add(pedido_viejo)
@@ -924,6 +927,9 @@ def update_pedido(
                 new_state_flag = PF.ES_FIRME.value
                 
             pedido.flags_estado = (pedido.flags_estado & ~STATE_MASK.value) | new_state_flag
+            # [S900, Card #215; Nike 05/11] Todo cambio de estado deja su nota [SISTEMA] con quién y cuándo, y salir de CUMPLIDO hacia cualquier estado prende la cicatriz FUE_REABIERTO
+            # (bit 50), también con el pedido cerrado limpio (antes solo dejaba rastro el que ya tenía el bit 46). Va ANTES de la nota del cierre con discrepancia.
+            registrar_cambio_de_estado(pedido, current_state_bit, getattr(current_user, "username", None))
 
             if val_upper == "CUMPLIDO" and cierre_discrepancias:
                 ts = datetime.now().strftime("%Y-%m-%d %H:%M")

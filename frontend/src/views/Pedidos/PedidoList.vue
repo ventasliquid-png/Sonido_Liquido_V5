@@ -250,6 +250,9 @@
                           <i class="fas fa-file-lines text-[8px]" :class="{ 'text-emerald-400': remitosDe(pedido)[0].estado === 'ENTREGADO', 'text-blue-400': remitosDe(pedido)[0].estado === 'EN_CAMINO', 'text-slate-400': remitosDe(pedido)[0].estado === 'BORRADOR' }"></i>{{ remitosDe(pedido)[0].numero_legal || 'sin numerar' }}<span v-if="remitosDe(pedido).length > 1" class="text-emerald-200/50"> +{{ remitosDe(pedido).length - 1 }}</span>
                       </button>
                       <span v-else-if="pedido.estado === 'PENDIENTE'" class="text-[9px] font-bold uppercase tracking-wider text-amber-400/80">sin remito</span>
+                      <!-- [S900, Card #215; Nike bit 50 FUE_REABIERTO] Marca permanente: este pedido estuvo Cumplido y se reabrió. Quién y cuándo, en su nota. -->
+                      <span v-if="fueReabierto(pedido)" data-test="reabierto" class="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-fuchsia-300/90"
+                            title="Este pedido estuvo Cumplido y se reabrió (marca permanente). Quién y cuándo, en su nota."><i class="fas fa-rotate-left text-[8px]"></i>reabierto</span>
                   </div>
 
                   <div class="w-10 flex justify-end">
@@ -757,6 +760,10 @@ const getInitials = (name) => {
 const tieneEntregasParciales = (pedido) => {
     if (!pedido || !pedido.items) return false;
     return pedido.items.some(i => i.cantidad_entregada > 0 && i.cantidad_entregada < i.cantidad);
+};
+// [S900, Card #215; Nike bit 50 FUE_REABIERTO] Cicatriz: el pedido estuvo Cumplido y salió de ahí alguna vez. El operador de JS no llega al bit 50 con `&`: va con BigInt.
+const fueReabierto = (pedido) => {
+    try { return (BigInt(Math.trunc(Number(pedido?.flags_estado) || 0)) & (1n << 50n)) !== 0n } catch (e) { return false }
 };
 
 const toggleSort = (key) => {

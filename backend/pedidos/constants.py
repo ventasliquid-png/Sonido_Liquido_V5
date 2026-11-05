@@ -82,6 +82,11 @@ class PedidoFlags(IntFlag):
     # explica el motivo (al apagar: «[SISTEMA] Atención resuelta por X»); reversible; sin cicatriz «tuvo atención» (Nike: la nota ya lo certifica). Hoy solo está reservado el número:
     # su pantalla y su endpoint los define Carlos con CA.
     REQUIERE_ATENCION     = 1 << 49
+    # Bit 50 — FUE_REABIERTO (1125899906842624). Ratificado por Nike (Sello de Oro) el 05/11/2026 (Card #215; consulta: CONSULTA_NIKE_reapertura_cumplido_2026-11-05.md): cicatriz de que
+    # el pedido SALIÓ de CUMPLIDO hacia cualquier estado (Pendiente, Presupuesto o Anulado) al menos una vez. Se prende en el instante de reabrir (no al re-cerrar), una sola vez y para
+    # siempre: no se apaga. Anulado → Pendiente NO lo prende. Lo escribe el SERVIDOR (backend/pedidos/transiciones.py) junto con la nota [SISTEMA] «Cambio de estado: …» y ninguna
+    # pantalla lo toca. Existe porque pedido.nota es un texto libre que el operador guarda entero y puede borrar las líneas [SISTEMA]; el bit no se borra desde esa pantalla.
+    FUE_REABIERTO         = 1 << 50
 
 # Máscara de estados excluyentes
 STATE_MASK = (

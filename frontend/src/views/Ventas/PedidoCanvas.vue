@@ -16,6 +16,9 @@
                         <i class="fas fa-file-invoice"></i> {{ route.params.id ? `FICHA DEL PEDIDO #${route.params.id}` : 'NUEVO PEDIDO' }}
                         <!-- [S876] El estado también se cambia desde la ficha (antes solo se podía desde el listado y los informes). -->
                         <EstadoEditable v-if="route.params.id" :pedido-id="route.params.id" :estado="estadoPedido" :texto="estadoPedido" @cambiado="alCambiarEstado" />
+                        <!-- [S900, Card #215; Nike bit 50 FUE_REABIERTO] Marca permanente: el pedido estuvo Cumplido y se reabrió. Quién y cuándo, en la nota. -->
+                        <span v-if="fueReabierto" data-test="reabierto" class="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-fuchsia-300/90"
+                              title="Este pedido estuvo Cumplido y se reabrió (marca permanente). Quién y cuándo, en la nota."><i class="fas fa-rotate-left text-[9px]"></i>reabierto</span>
                         <!-- [S883, Card #171] Al CREAR: elegir si es un pedido (PENDIENTE) o un presupuesto. Antes siempre nacía PENDIENTE y había que cambiarlo después desde la ficha o el listado. -->
                         <SelectorInline v-if="eligeTipoAlta" :opciones="OPCIONES_ALTA" :valor="estadoPedido" :texto="estadoPedido" :clase-badge="estadoClase(estadoPedido)"
                             etiqueta="Tipo de alta"
@@ -1244,6 +1247,10 @@ const getLocalDate = () => {
 const nroPedido = ref('---');
 const estadoPedido = ref('PENDIENTE');
 const flagsEstadoPedido = ref(0);
+// [S900, Card #215; Nike bit 50 FUE_REABIERTO] Cicatriz: estuvo Cumplido y salió de ahí alguna vez (con BigInt: el `&` de JS no llega al bit 50).
+const fueReabierto = computed(() => {
+    try { return (BigInt(Math.trunc(Number(flagsEstadoPedido.value) || 0)) & (1n << 50n)) !== 0n } catch (e) { return false }
+});
 
 const isClosedOrder = computed(() => ['CUMPLIDO', 'ANULADO'].includes(estadoPedido.value));
 

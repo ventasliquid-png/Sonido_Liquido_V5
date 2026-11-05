@@ -14,6 +14,7 @@ from backend.clientes.models import Cliente, Domicilio
 from backend.productos.models import Producto
 from backend.pedidos.models import Pedido, PedidoItem
 from backend.pedidos.constants import PedidoFlags, STATE_MASK
+from backend.pedidos.transiciones import registrar_cambio_de_estado   # [S900, Card #215]
 from backend.pedidos import constants as pedidos_constants   # [S894] COMPUERTA_DESPACHO_ACTIVA, leída en el momento
 from backend.logistica.models import EmpresaTransporte
 from backend.maestros.models import CondicionIva
@@ -1740,8 +1741,12 @@ class RemitosService:
             texto=(f"[CORRECCIÓN] {etiqueta}: corrige el renglón de {producto} del remito {numero_origen} (-{diferencia:g})." + (f" {adicional}" if adicional else ""))))
         reabierto = False
         if mueve and ((pedido.estado or "").upper() == "CUMPLIDO" or ((pedido.flags_estado or 0) & int(PedidoFlags.ES_CUMPLIDO))):
+            flags_previos = pedido.flags_estado   # [S900, Card #215] esta es otra puerta de reapertura: también deja la nota con quién y cuándo y prende el bit 50
             pedido.estado = "PENDIENTE"
             pedido.flags_estado = ((pedido.flags_estado or 0) & ~int(STATE_MASK)) | int(PedidoFlags.ES_FIRME)
+            from backend.auth.models import Usuario
+            autor = db.query(Usuario).filter(Usuario.id == autor_id).first() if autor_id else None
+            registrar_cambio_de_estado(pedido, flags_previos, getattr(autor, "username", None))
             pedido.nota = (pedido.nota or "") + ("\n[SISTEMA] Reabierto el " + datetime.now().strftime("%Y-%m-%d %H:%M") + ": " + etiqueta.lower() + f" {diferencia:g} de {producto} (remito {numero_origen}); el pedido vuelve a deber lo que no se entregó.")
             db.add(pedido)
             reabierto = True
