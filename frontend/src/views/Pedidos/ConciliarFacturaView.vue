@@ -273,6 +273,39 @@
             Registrada {{ resultado.tipo_comprobante }} {{ resultado.numero }} y vinculada a {{ resultado.remito_ids.length }} PR.
             <span v-if="resultado.pedido_id"> Pedido retroactivo #{{ resultado.pedido_id }} (contra natura).</span>
           </template>
+          <!-- [S900, Card #214; Carlos 05/11: «¿Pasamos a Cumplido?» y «fecha rto = fecha FAC, que el operador la cambie»] Dos propuestas al conciliar: nada es automático.
+               (1) un remito más de un día POSTERIOR a la factura (cargado después) se ofrece fechar como la factura; (2) un pedido que quedó completo (remitido y facturado) se ofrece pasar a Cumplido. -->
+          <div v-if="remitosAFechar.length || pedidosACumplir.length || hechos.length" class="mt-4 space-y-3 border-t border-emerald-500/30 pt-3 text-xs" data-test="proximos-pasos">
+            <h3 class="text-[10px] uppercase font-bold tracking-wider text-emerald-300/80">Para dejarlo prolijo</h3>
+            <p v-for="(h, i) in hechos" :key="'h' + i" class="text-emerald-300" data-test="hecho">✔ {{ h }}</p>
+            <div v-for="r in remitosAFechar" :key="'f' + r.remito_id" class="rounded-lg border border-amber-500/40 bg-amber-900/20 p-3 space-y-2 text-amber-100" data-test="cartel-fecha">
+              <p>El remito <b>{{ r.numero_legal }}</b> es del <b>{{ fechaCorta(r.fecha) }}</b> y la factura es del <b>{{ fechaCorta(proximos.factura.fecha) }}</b> ({{ r.dias_despues_de_la_factura }} días antes). ¿Fechamos el remito como la factura?</p>
+              <div class="flex flex-wrap items-center gap-2">
+                <button type="button" :disabled="procesando" data-test="fechar-como-factura"
+                  @click="fecharRemito(r, proximos.factura.fecha, 'Igualada a la fecha de la factura ' + proximos.factura.numero + ' al conciliar')"
+                  class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-900 font-black">Sí, poner {{ fechaCorta(proximos.factura.fecha) }}</button>
+                <span class="text-amber-200/70">o</span>
+                <input type="date" v-model="otraFecha[r.remito_id]" :max="hoyIso" data-test="otra-fecha" class="bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white" />
+                <button type="button" :disabled="procesando || !otraFecha[r.remito_id]" data-test="poner-otra-fecha"
+                  @click="fecharRemito(r, otraFecha[r.remito_id], 'Fecha ajustada al conciliar la factura ' + proximos.factura.numero)"
+                  class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-bold disabled:opacity-40">Poner esta fecha</button>
+                <button type="button" data-test="dejar-fecha" @click="descartar('r' + r.remito_id)"
+                  class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300">Dejar {{ fechaCorta(r.fecha) }}</button>
+              </div>
+            </div>
+            <div v-for="p in pedidosACumplir" :key="'c' + p.pedido_id" class="rounded-lg border border-emerald-500/40 bg-emerald-900/20 p-3 space-y-2 text-emerald-100" data-test="cartel-cumplido">
+              <p>Pedido <b>#{{ p.pedido_id }}</b>: {{ p.remitida }} de {{ p.pedida }} remitidos y facturados ({{ p.remitos.join(', ') }}). ¿Pasarlo a Cumplido?</p>
+              <p v-if="p.salida_asumida" class="text-amber-300" data-test="salida-asumida">La salida de su remito está <b>asumida</b>, no confirmada: pasalo a Cumplido solo si ya salió.</p>
+              <div class="flex flex-wrap items-center gap-2">
+                <button type="button" :disabled="procesando" data-test="pasar-a-cumplido" @click="pasarACumplido(p)"
+                  :class="p.salida_asumida ? 'bg-slate-700 hover:bg-slate-600 text-white font-bold' : 'bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black'"
+                  class="px-3 py-1.5 rounded-lg disabled:opacity-50">Sí, pasar a Cumplido</button>
+                <button type="button" data-test="ahora-no" @click="descartar('p' + p.pedido_id)"
+                  :class="p.salida_asumida ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'"
+                  class="px-3 py-1.5 rounded-lg">Ahora no</button>
+              </div>
+            </div>
+          </div>
           <!-- [S899] desde «Facturas»: volver, o seguir con la próxima subida sin terminar (la más baja primero) -->
           <div v-if="vieneDeFacturas" class="mt-3 flex flex-wrap items-center gap-2" data-test="despues-de-conciliar">
             <button type="button" data-test="volver-a-facturas" @click="$router.push({ name: 'FacturasPanel' })"
@@ -381,6 +414,7 @@ import { useRoute } from 'vue-router'
 import api from '@/services/api'
 import { useNotificationStore } from '@/stores/notification'
 import ConfirmarDiferenciasPrecio from './components/ConfirmarDiferenciasPrecio.vue'   // [S894, Card #144]
+import { usePedidoEstado } from '@/composables/usePedidoEstado'   // [S900, Card #214] el cambio de estado de siempre, con sus guardas
 
 const route = useRoute()
 const notification = useNotificationStore()
@@ -632,6 +666,51 @@ const marcarDesmadre = async () => {
 }
 
 onMounted(cargar)
+
+// [S900, Card #214] Propuestas al conciliar (solo lectura en el servidor: GET /ingesta/facturas/{id}/proximos-pasos). Nada se cambia sin que el operador conteste.
+const { cambiarEstado } = usePedidoEstado()
+const proximos = ref(null)
+const descartados = ref(new Set())
+const hechos = ref([])
+const otraFecha = ref({})
+const procesando = ref(false)
+const hoyIso = new Date().toLocaleDateString('en-CA')   // AAAA-MM-DD, hora local
+const fechaCorta = (s) => (s ? `${s.slice(8, 10)}/${s.slice(5, 7)}/${s.slice(0, 4)}` : '—')
+const remitosAFechar = computed(() => (proximos.value?.remitos_a_fechar || []).filter(r => !descartados.value.has('r' + r.remito_id)))
+const pedidosACumplir = computed(() => (proximos.value?.pedidos_a_cumplir || []).filter(p => !descartados.value.has('p' + p.pedido_id)))
+const descartar = (clave) => { descartados.value = new Set([...descartados.value, clave]) }
+const cargarProximosPasos = async (facturaId) => {
+  try {
+    proximos.value = (await api.get(`/ingesta/facturas/${facturaId}/proximos-pasos`)).data
+  } catch (e) {
+    proximos.value = null   // sin las propuestas el cartel verde queda como siempre
+  }
+}
+watch(resultado, (r) => { if (r && !r.facturas_ajustadas && r.factura_id) cargarProximosPasos(r.factura_id) })
+const fecharRemito = async (r, fecha, motivo) => {
+  procesando.value = true
+  try {
+    await api.patch(`/remitos/${r.remito_id}/fecha`, { fecha, motivo })
+    hechos.value.push(`Remito ${r.numero_legal} fechado ${fechaCorta(fecha)}.`)
+    notification.add(`Remito ${r.numero_legal} fechado ${fechaCorta(fecha)}`, 'success')
+    await cargarProximosPasos(proximos.value.factura.factura_id)
+  } catch (e) {
+    notification.add('No se pudo cambiar la fecha: ' + (e.response?.data?.detail || e.message), 'error')
+  } finally {
+    procesando.value = false
+  }
+}
+const pasarACumplido = async (p) => {
+  procesando.value = true
+  try {
+    if (await cambiarEstado(p.pedido_id, 'CUMPLIDO')) {
+      hechos.value.push(`Pedido #${p.pedido_id} pasado a Cumplido.`)
+      await cargarProximosPasos(proximos.value.factura.factura_id)
+    }
+  } finally {
+    procesando.value = false
+  }
+}
 
 // [S899] con la factura ya registrada, se busca la próxima subida sin terminar (por número, la más baja primero); si falla, solo queda «Volver a Facturas»
 watch(resultado, async (r) => {

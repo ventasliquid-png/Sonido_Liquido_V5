@@ -221,6 +221,18 @@ def facturas_desmarcar_no_se_carga(marca_id: int, db: Session = Depends(get_db),
     return {"ok": True}
 
 
+@router.get("/facturas/{factura_id}/proximos-pasos")
+def facturas_proximos_pasos(factura_id: uuid.UUID, db: Session = Depends(get_db)):
+    """[S900, Card #214] Solo lectura. Qué queda por hacer después de conciliar esta factura: remitos que conviene fechar como ella (los que son más de un día
+    posteriores) y pedidos que quedaron completos (remitidos y facturados) y se pueden pasar a Cumplido. Son propuestas: nada se cambia acá."""
+    from backend.facturacion.models import Factura
+    from backend.ingesta import proximos_pasos as _pp
+    f = db.query(Factura).filter(Factura.id == factura_id).first()
+    if not f:
+        raise HTTPException(status_code=404, detail="FACTURA_NO_ENCONTRADA")
+    return _pp.proximos_pasos(db, f)
+
+
 # --- [Etapa 7b] Conciliación factura <-> PR. Camino nuevo; /approve (creador) sigue vivo hasta
 # que este funcione en la operación real (PLAN_IMPLEMENTACION_CIRCUITO_PR_2026-09-23.md §9). ---
 
