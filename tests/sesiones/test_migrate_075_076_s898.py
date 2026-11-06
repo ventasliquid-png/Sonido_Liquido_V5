@@ -103,9 +103,9 @@ import auto_migrar
 disp = dict(auto_migrar.migraciones_disponibles())
 aplicadas = {row[0] for row in q(ORIG, "select id from _migraciones_aplicadas")}
 pend07x = sorted(m for m in disp if m >= "070" and m not in aplicadas)
-check("auto_migrar (el arranque de P) descubre la 075, la 076, la 077 (H21), la 078 (Card #212, S899) y la 079 (#98, Card #215, S900), y sobre la base de P del 02/11 son las unicas migraciones nuevas de la serie 07x",
-      pend07x == ["075_renglones_facturas_bonificadas", "076_pedido_94_bonificacion", "077_cf_sin_cuit_comodin", "078_facturas_no_se_cargan", "079_pedido_98_reapertura_reconstruida"] and disp["075_renglones_facturas_bonificadas"].endswith("migrate_075_renglones_facturas_bonificadas.py"))
-check("y la 075 va antes que la 076 en el orden en que las corre", [m for m in sorted(disp, key=lambda m: os.path.basename(disp[m])) if m >= "075"] == ["075_renglones_facturas_bonificadas", "076_pedido_94_bonificacion", "077_cf_sin_cuit_comodin", "078_facturas_no_se_cargan", "079_pedido_98_reapertura_reconstruida"])
+check("auto_migrar (el arranque de P) descubre la 075, la 076, la 077 (H21), la 078 (Card #212, S899) la 079 (#98, Card #215, S900) y la 080 (fechas de los pedidos nacidos de factura, S901), y sobre la base de P del 02/11 son las unicas migraciones nuevas de la serie 07x",
+      pend07x == ["075_renglones_facturas_bonificadas", "076_pedido_94_bonificacion", "077_cf_sin_cuit_comodin", "078_facturas_no_se_cargan", "079_pedido_98_reapertura_reconstruida", "080_fechas_pedidos_nacidos_de_factura"] and disp["075_renglones_facturas_bonificadas"].endswith("migrate_075_renglones_facturas_bonificadas.py"))
+check("y la 075 va antes que la 076 en el orden en que las corre", [m for m in sorted(disp, key=lambda m: os.path.basename(disp[m])) if m >= "075"] == ["075_renglones_facturas_bonificadas", "076_pedido_94_bonificacion", "077_cf_sin_cuit_comodin", "078_facturas_no_se_cargan", "079_pedido_98_reapertura_reconstruida", "080_fechas_pedidos_nacidos_de_factura"])
 for n in os.listdir(os.path.join(RAIZ, "scratch")):
     if n.startswith(("t075_", "t076_")):
         try: os.remove(os.path.join(RAIZ, "scratch", n))

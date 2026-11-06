@@ -94,9 +94,9 @@ import auto_migrar
 disp = dict(auto_migrar.migraciones_disponibles())
 aplicadas = {row[0] for row in q(ORIG, "select id from _migraciones_aplicadas")}
 pend = sorted(m for m in disp if m >= "070" and m not in aplicadas)
-check("auto_migrar (el arranque de P) descubre la 079 y, sobre la base de P del 05/11 10:21, es la única migración pendiente de la serie 07x",
-      pend == ["079_pedido_98_reapertura_reconstruida"] and disp["079_pedido_98_reapertura_reconstruida"].endswith(SCRIPT))
-check("y va después de la 078 en el orden en que las corre", [m for m in sorted(disp, key=lambda m: os.path.basename(disp[m])) if m >= "078"] == ["078_facturas_no_se_cargan", "079_pedido_98_reapertura_reconstruida"])
+check("auto_migrar (el arranque de P) descubre la 079 y, sobre la base de P del 05/11 10:21, es la primera de las dos migraciones pendientes de la serie 07x/08x (la otra es la 080)",
+      pend == ["079_pedido_98_reapertura_reconstruida", "080_fechas_pedidos_nacidos_de_factura"] and disp["079_pedido_98_reapertura_reconstruida"].endswith(SCRIPT))
+check("y va después de la 078 en el orden en que las corre", [m for m in sorted(disp, key=lambda m: os.path.basename(disp[m])) if m >= "078"] == ["078_facturas_no_se_cargan", "079_pedido_98_reapertura_reconstruida", "080_fechas_pedidos_nacidos_de_factura"])
 
 for n in os.listdir(os.path.join(RAIZ, "scratch")):
     if n.startswith("t079_"):
