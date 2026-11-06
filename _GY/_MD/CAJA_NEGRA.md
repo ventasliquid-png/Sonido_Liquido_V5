@@ -1,4 +1,15 @@
-﻿Sesion actual: 901
+﻿Sesion actual: 902
+
+# CAJA NEGRA: OMEGA Lite - arranque de NS2 (relevo de NS), pendientes de P (66, no 82), Downloads y copia de P; sin cambios de codigo - S902
+
+Sesion 902 OF, 06/11, NS2 (CC, Sonnet 5.5) con Carlos. Hash D: HASH_OMEGA (commit del OMEGA; sin commits de codigo) | Hash B: ff357de = prod/main (sin pushes) | P real: e41455e (leido en P; todavia no tomo ff357de, falta que Tomy relance Soberana). Estado: NOMINAL (canario 13, WAL checkpoint OK).
+- Relevo: NS2 arranca desde TRASPASO_NS_2026-11-06.md con ALFA; la fila 886 abierta de la bitacora es de otra conversacion y no se toco.
+- Pendientes de P: son 66 (estado PENDIENTE, 28 con algun remito vigente), no 82 (conteo de NS por el bit 33, sumaba 20 FACTURADO). Planilla regenerada: Conciliaciones-e-investigaciones/PENDIENTES_P_para_puntear_2026-11-06.xlsx. Decision de Carlos: se corrigen caso por caso por pantalla en P en el momento de estudiarlos; sin script ni migracion batch.
+- Downloads (06/11 17:06): 0 comprobantes nuevos, 45 sin cargar (todas anteriores a la 2600, Card #165), 0 saltos nuevos. Diario corregido y traer_facturas_arca.py ajustado para no decir "de los ultimos 30 dias" cuando no hay ninguna.
+- WhatsApp (P15): decidido por Carlos, diagnostico en solo lectura; no se carga nada en V5 hasta que exista Contactos.
+- Reglas de trabajo nuevas de Carlos: corroborar y citar fuente antes de afirmar (FULL_DELIVERED es el bit 21, constants.py:28; HAS_PARTIAL_INVOICE es el 22); informes en lenguaje del operador, apendice para auditores y linea de certeza (TRASPASO S3).
+- Copias de P: PRODUCCION_P_al_20261106_1704.db y _1720.db en BACKUPS_DB/PRODUCCION_P (integridad ok; 144 pedidos, 81 remitos, 157 facturas).
+- Pendiente: S903 (lunes): ALFA; leer INBOX (hallazgos de CA del fin de semana); leer P (Tomy relanzo? migrate_080?); correcciones de los 66 pedidos en P con Carlos; diagnostico de WhatsApp; resto de la #217 (F2, pregunta de la NC, consignacion, Q6+#216, puerta del PDF anticipado).
 
 # CAJA NEGRA: OMEGA Lite - flujo documental de Pedido, Remito y Factura (Card #217: mapa, dictamen de Nike y F1), H26 y H27, migrate_080 y relevo de NS a NS2
 
@@ -10,7 +21,7 @@ Sesion 901 OF, 06/11, NS (CC, Sonnet 5.5) con Carlos. Hash D: 0d15391c (commit d
 - Chequeo de las entregas del 06/11 (#159 Luisa con RI01-00000004, #147 Honeymax, #158 Soubeiran): coherentes. Observaciones: el remito 3045 salio con valor 0 y 1 bulto (Card #216); el 3036 lleva fecha 03/11 y salio el 06/11.
 - Relevo: la conversacion de NS (desde el 23/09) se releva por NS2; traspaso en TRASPASO_NS_2026-11-06.md. NS2 es el nombre de la sesion nueva.
 - Leccion: las copias nuevas de P para pruebas van en una subcarpeta de FIJAS_DE_PRUEBAS (desde_S901): 5 pruebas viejas toman por glob la mas nueva; un script que reescribe archivos tiene que releer el estado antes de dar nada por supuesto.
-- Pendiente: S902 (NS2): OMEGA ya hecho; leer P (esperado ff357de si Tomy relanzo) y verificar la migrate_080; los 82 pendientes de P (regenerar la planilla de CA, puntear, migracion con PIN); analisis WhatsApp contra V5 en solo lectura; resto de la #217 (F2, pregunta de la NC, fecha de consignacion, Q6 con la #216, puerta del PDF anticipado); apendice a Nike.
+- Pendiente: S902 (NS2): OMEGA ya hecho; leer P (esperado ff357de si Tomy relanzo) y verificar la migrate_080; los pendientes de P (ERRATUM 06/11: eran 66, no 82; planilla regenerada y se corrigen caso por caso por pantalla en P); analisis WhatsApp contra V5 en solo lectura; resto de la #217 (F2, pregunta de la NC, fecha de consignacion, Q6 con la #216, puerta del PDF anticipado); apendice a Nike.
 
 Sesion actual: 900
 

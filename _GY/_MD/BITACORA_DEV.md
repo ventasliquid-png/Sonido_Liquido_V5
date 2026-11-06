@@ -1,4 +1,8 @@
-﻿## SESION 901 (OF) — 2026-11-06 [NS (CC, Sonnet 5.5)]: flujo documental de Pedido, Remito y Factura (Card #217: mapa, dictamen de Nike, F1), H26 y H27, `migrate_080` y relevo de NS a NS2 — NOMINAL — D:0d15391c B:ff357de (= prod/main) P:e41455e
+﻿## SESION 902 (OF) — 2026-11-06 [NS2 (CC, Sonnet 5.5)]: relevo de NS, pendientes de P (66, no 82) y planilla del 06/11, Downloads, copia de P y reglas de trabajo nuevas; sin cambios de código — NOMINAL — D:HASH_OMEGA B:ff357de (= prod/main) P:e41455e
+
+- Sin commits de código ni despliegues. Informe: `INFORMES_HISTORICOS/2026-11-06_S902_OF.md`.
+
+## SESION 901 (OF) — 2026-11-06 [NS (CC, Sonnet 5.5)]: flujo documental de Pedido, Remito y Factura (Card #217: mapa, dictamen de Nike, F1), H26 y H27, `migrate_080` y relevo de NS a NS2 — NOMINAL — D:0d15391c B:ff357de (= prod/main) P:e41455e
 
 - Cuatro commits de código en D (`b60ced74` [H26 y cartel de la #214], `5febb2d0` [H27], `be60ffd4` [F1: anular el remito de un Cumplido lo reabre], `31eaace3` [`migrate_080`]) y dos pushes a producción el 06/11 (`43ad49a`, `ff357de`). 96 pruebas, 2.078 comprobaciones. Informe: `INFORMES_HISTORICOS/2026-11-06_S901_OF.md`.
 

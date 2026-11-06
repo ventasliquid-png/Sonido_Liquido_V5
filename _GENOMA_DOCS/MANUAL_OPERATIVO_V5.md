@@ -1441,3 +1441,5 @@ Sin cambios funcionales visibles: la sesión trabajó el Board y los protocolos,
 - **El pedido que se arma desde una factura lleva la fecha de la factura**, no la del día en que se la cargó (la venta de septiembre ya no figura en noviembre). Se corrigieron los pedidos #153 (factura del 06/10) y #155 (factura del 16/09); sus remitos conservan la fecha en que se emitieron.
 - **Al conciliar, el cartel de la fecha del remito** deja «Dejar <fecha del remito>» como lo principal; «Poner la de la factura» y «otra fecha» son alternativas. A veces se factura antes, a pedido del comprador, y el remito se hace cuando da el OK: la fecha de la factura es una propuesta, no una regla.
 - **Clonar un pedido** ya no copia las líneas de sistema de la nota ni la OC del original: queda «Clonado de Pedido #N.» más lo que escribió una persona.
+
+S902 — sin cambios.
