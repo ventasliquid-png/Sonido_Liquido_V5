@@ -864,15 +864,21 @@ def anular_remito(remito_id: str, payload: schemas.RemitoMotivo, db: Session = D
         raise HTTPException(status_code=409, detail=(f"REMITO_FACTURADO: el remito está amparado por {'; '.join(vigente)}; primero va la "
                                                      "nota de crédito por lo que falta y después se anula."))
     anterior = remito.estado
+    from backend.pedidos.constants import PedidoFlags
+    estaba_completo = bool(remito.pedido and ((remito.pedido.flags_estado or 0) & int(PedidoFlags.FULL_DELIVERED)))   # [S901] para saber si esta anulación le saca la entrega completa
     remito.estado = "ANULADO"
     db.add(models.RemitoNota(remito_id=remito.id, autor_id=current_user.id,
                              texto=f"[SISTEMA] Remito anulado (estado anterior: {anterior}). Motivo: {motivo}"))
     db.flush()
     from backend.remitos.service import RemitosService
+    reabierto = False
     if remito.pedido:
         RemitosService._recalcular_bits_entrega(db, remito.pedido)
+        # [S901, Card #217 F1; Nike 06/11 Q3] si el pedido estaba Cumplido y este remito era el que respaldaba la entrega, el pedido se reabre (Pendiente, bit 50, nota)
+        reabierto = RemitosService.reabrir_si_dejo_de_estar_cumplido(db, remito.pedido, remito, motivo, estaba_completo, current_user)
     db.commit()
     db.refresh(remito)
+    remito.pedido_reabierto = reabierto   # atributo suelto (no es columna): lo lee el esquema de la respuesta
     return remito
 
 

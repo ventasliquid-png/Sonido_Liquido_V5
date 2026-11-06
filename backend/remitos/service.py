@@ -268,6 +268,39 @@ class RemitosService:
         return anulados
 
     @staticmethod
+    def reabrir_si_dejo_de_estar_cumplido(db: Session, pedido, remito, motivo: str, estaba_entregado_completo: bool, usuario=None) -> bool:
+        """[S901, Card #217 F1; Nike, Sello de Oro 06/11/2026, Q3] Se anuló el remito de un pedido CUMPLIDO: si era el que respaldaba la entrega, el pedido deja de estar cumplido DE HECHO y
+        el servidor lo reabre (PENDIENTE), aunque la orden haya venido del remito y no del pedido. Antes quedaba Cumplido con nada entregado y sin rastro (hallazgo F1 del mapa del flujo
+        documental). Reabre cuando, ya anulado el remito (y recalculados los bits 20/21 del pedido): (a) no queda ningún remito emitido y vigente, o (b) el pedido estaba entregado
+        completo (bit 21) y ya no lo está. Un Cumplido cerrado a propósito con entrega parcial, al que se le anula uno de varios remitos y todavía le queda alguno vigente, NO se reabre.
+        Deja las mismas huellas que cualquier salida de Cumplido: la línea «Cambio de estado», el bit 50 (FUE_REABIERTO) y una línea que dice por qué; y, como el cambio de estado
+        a mano, anula los RI que el Cumplido había generado (S895). `remito` es el ya anulado. No hace commit. Devuelve True si reabrió."""
+        if pedido is None:
+            return False
+        if not ((pedido.estado or "").upper() == "CUMPLIDO" or ((pedido.flags_estado or 0) & int(PedidoFlags.ES_CUMPLIDO))):
+            return False
+        if not any((i.cantidad_remitida or 0) > 0 for i in remito.items):
+            return False   # un remito sin ningún renglón con salida (un papel viejo vacío, una devolución) no respaldaba la entrega: anularlo no reabre nada
+        db.flush()
+        quedan = db.query(models.Remito).filter(models.Remito.pedido_id == pedido.id, models.Remito.numero_legal.isnot(None),
+                                                models.Remito.numero_legal != "", models.Remito.estado != "ANULADO").count()
+        sigue_completo = bool((pedido.flags_estado or 0) & int(PedidoFlags.FULL_DELIVERED))
+        if quedan and not (estaba_entregado_completo and not sigue_completo):
+            return False
+        flags_previos = pedido.flags_estado
+        pedido.estado = "PENDIENTE"
+        pedido.flags_estado = ((pedido.flags_estado or 0) & ~int(STATE_MASK)) | int(PedidoFlags.ES_FIRME)
+        registrar_cambio_de_estado(pedido, flags_previos, getattr(usuario, "username", None))
+        numero = remito.numero_legal or "sin número"
+        anulados_ri = RemitosService.anular_ri_de_cumplido(db, pedido, f"se anuló el remito {numero} y el pedido volvió a Pendiente", usuario)
+        extra = (" También se anuló" + ("n" if len(anulados_ri) > 1 else "") + " el RI " + ", ".join(r.numero_legal for r in anulados_ri) + " que había generado el Cumplido.") if anulados_ri else ""
+        pedido.nota = (pedido.nota or "") + ("\n[SISTEMA] Reabierto el " + datetime.now().strftime("%Y-%m-%d %H:%M")
+                                              + f": se anuló el remito {numero} (motivo: {motivo}), que respaldaba la entrega; el pedido vuelve a deber lo que no quedó entregado." + extra)
+        db.add(pedido)
+        db.flush()
+        return True
+
+    @staticmethod
     def _siguiente_numero_17(db: Session) -> str:
         """Próximo número del talonario 17 (rosa y no comercial, Circuito 17).
 

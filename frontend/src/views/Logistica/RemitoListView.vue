@@ -487,7 +487,7 @@
       <div v-if="anulacion.visible" data-modal="anulacion" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[110] p-4" @click.self="cerrarAnulacion">
         <div class="bg-[#0b1220] border border-red-500/40 rounded-2xl w-full max-w-md p-6 shadow-2xl">
           <h3 class="text-white font-bold text-lg mb-1">{{ anulacion.modo === 'anular' ? 'Anular el remito' : (anulacion.modo === 'deshacer-correccion' ? 'Deshacer la corrección' : 'Deshacer la anulación') }}</h3>
-          <p class="text-xs text-orange-300/70 mb-4" v-if="anulacion.modo === 'anular'">{{ anulacion.remito?.numero_legal }} · {{ anulacion.remito?.razon_social }}. El número queda usado (no se vuelve a dar) y las cantidades vuelven a quedar pendientes en el pedido. Si ya se facturó, primero va la nota de crédito.</p>
+          <p class="text-xs text-orange-300/70 mb-4" v-if="anulacion.modo === 'anular'">{{ anulacion.remito?.numero_legal }} · {{ anulacion.remito?.razon_social }}. El número queda usado (no se vuelve a dar) y las cantidades vuelven a quedar pendientes en el pedido. Si el pedido estaba Cumplido y este remito era lo que respaldaba la entrega, el pedido vuelve a Pendiente (queda anotado). Si ya se facturó, primero va la nota de crédito.</p>
           <p class="text-xs text-orange-300/70 mb-4" v-else-if="anulacion.modo === 'deshacer-correccion'">Corrección del pedido #{{ anulacion.remito?.pedido_id }} · {{ anulacion.remito?.razon_social }}. El renglón vuelve a lo que tenía antes de la corrección y el pedido deja de deber esa diferencia. No se puede volver a activar: si hace falta, se hace otra.</p>
           <p class="text-xs text-orange-300/70 mb-4" v-else>{{ anulacion.remito?.numero_legal }} · {{ anulacion.remito?.razon_social }}. Vuelve al estado que tenía. No se puede si otro remito ya cubrió esas cantidades.</p>
           <label class="block text-[10px] uppercase tracking-widest text-orange-400 font-bold mb-1">Motivo</label>
@@ -745,8 +745,10 @@ const confirmarAnulacion = async () => {
     anulacion.guardando = true
     const ruta = anulacion.modo === 'anular' ? 'anular' : (anulacion.modo === 'deshacer-correccion' ? 'deshacer-correccion' : 'deshacer-anulacion')
     try {
-        await api.post(`/remitos/${anulacion.remito.id}/${ruta}`, { motivo: anulacion.motivo.trim() })
-        notification.add(anulacion.modo === 'anular' ? `Remito ${anulacion.remito.numero_legal} anulado.` : (anulacion.modo === 'deshacer-correccion' ? 'Corrección deshecha: el renglón vuelve a lo que tenía.' : `Anulación del ${anulacion.remito.numero_legal} deshecha.`), 'success')
+        const respuesta = await api.post(`/remitos/${anulacion.remito.id}/${ruta}`, { motivo: anulacion.motivo.trim() })
+        // [S901, Card #217 F1] si el remito anulado era el que respaldaba la entrega de un pedido Cumplido, el servidor lo reabrió: se lo decimos al operador
+        const reabrio = anulacion.modo === 'anular' && respuesta?.data?.pedido_reabierto
+        notification.add(anulacion.modo === 'anular' ? `Remito ${anulacion.remito.numero_legal} anulado.` + (reabrio ? ` El pedido #${anulacion.remito.pedido_id} estaba Cumplido y volvió a Pendiente.` : '') : (anulacion.modo === 'deshacer-correccion' ? 'Corrección deshecha: el renglón vuelve a lo que tenía.' : `Anulación del ${anulacion.remito.numero_legal} deshecha.`), 'success')
         cerrarAnulacion()
         refresh()
     } catch (e) {

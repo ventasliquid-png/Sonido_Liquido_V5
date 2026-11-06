@@ -152,7 +152,9 @@ class RemitoResponse(RemitoBase):
     cliente_id: Optional[UUID] = None
     factura_vinculada: Optional[str] = None  # [S868] referencia a la factura, desde el vínculo (no hay CAE del remito)
     factura_vinculada_cae: Optional[str] = None  # [S868] CAE de esa factura, leído de la factura
-    
+    # [S901, Card #217 F1] Solo lo llena «anular»: True si al anular este remito el pedido (que estaba Cumplido) volvió a Pendiente. No es una columna: la pantalla lo usa para avisar.
+    pedido_reabierto: bool = False
+
     class Config:
         from_attributes = True
 
