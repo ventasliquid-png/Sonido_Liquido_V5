@@ -1019,6 +1019,10 @@ onMounted(async () => {
         // 1.5 Check for Ingesta Data (from factura ingestion flow)
         if (pedidosStore.ingestaData) {
             const ingesta = pedidosStore.ingestaData;
+            // [S901, H27 de CA; Carlos 06/11] El pedido que nace de una factura lleva la FECHA DE LA FACTURA (la 2603 del 16/09 quedó del 05/11 y la venta de septiembre figuraba en noviembre);
+            // el casillero de la fecha sigue editable. Solo en un pedido NUEVO y con una fecha ISO que no sea futura.
+            const fechaFactura = String(ingesta.factura?.fecha_emision || '').slice(0, 10);
+            if (!route.params.id && /^\d{4}-\d{2}-\d{2}$/.test(fechaFactura) && fechaFactura <= getLocalDate()) fechaPedido.value = fechaFactura;
             console.log('[PedidoCanvas] Ingesta data recibida:', {
                 cliente: ingesta.cliente,
                 itemsCount: ingesta.items?.length,

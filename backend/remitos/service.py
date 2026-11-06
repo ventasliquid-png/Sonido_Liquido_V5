@@ -422,6 +422,17 @@ class RemitosService:
         return next((pi for pi in candidatos if pi.id not in usados), candidatos[0])
 
     @staticmethod
+    def _fecha_del_pedido_de_la_factura(payload) -> datetime:
+        """[S901, H27 de CA; Carlos 06/11] Un pedido que nace de una factura lleva la FECHA DE LA FACTURA (a las 00:00, como lo hace contra natura): la venta de septiembre cargada en noviembre
+        sigue figurando en septiembre en el Espejo y en los informes, y el aviso de «pedido duplicado» no compara contra la fecha de la carga. Sin fecha legible (o a futuro), la de hoy."""
+        texto = str(getattr(getattr(payload, "factura", None), "fecha_emision", None) or "").strip()[:10]
+        try:
+            dia = datetime.strptime(texto, "%Y-%m-%d")
+        except ValueError:
+            return datetime.now()
+        return dia if dia.date() <= datetime.now().date() else datetime.now()
+
+    @staticmethod
     def create_from_ingestion(db: Session, payload: schemas.IngestionPayload):
         """
         Creates a Pedido and Remito from PDF Ingestion Data.
@@ -743,7 +754,7 @@ class RemitosService:
                 from backend.pedidos.models import Pedido as PedidoModel
                 nuevo_pedido = PedidoModel(
                     cliente_id=cliente.id,
-                    fecha=datetime.now(),
+                    fecha=RemitosService._fecha_del_pedido_de_la_factura(payload),   # [S901, H27 de CA] la fecha de la FACTURA, no la de hoy (contra natura ya lo hacía)
                     nota=f"Ingesta en Cuarentena Factura: {original_invoice}" if original_invoice else "Ingesta en Cuarentena",
                     estado="PENDIENTE",
                     origen="INGESTA_PDF",
