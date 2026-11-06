@@ -1433,3 +1433,11 @@ Sin cambios funcionales visibles: la sesión trabajó el Board y los protocolos,
 - **Pedidos reabiertos:** un pedido que estuvo Cumplido y se reabre queda marcado «↺ reabierto» para siempre (en el listado y en la ficha), y cada cambio de estado deja en la nota «[SISTEMA] Cambio de estado: … por <usuario> a las …». No hay que hacer nada: lo escribe el sistema. El #98 recibe su marca cuando se relance Soberana.
 - **Espejo (Tomy, PC de MT):** la ventana de DOS que aparecía cada 30 minutos y tapaba lo que se estaba tipeando ya no debe aparecer; si vuelve a aparecer, avisar.
 - **Anotado, todavía no hecho (Card #216):** al imprimir un remito por primera vez sin valor declarado y con 1 bulto, el sistema va a preguntar si se quieren cargar. Mientras tanto, el remito que sale de la Ingesta de facturas se crea y se imprime en el mismo paso y no pide valor declarado ni bultos (salen en 0 y 1).
+
+
+## Sesión 901 (06/11) — Lo que cambia para quien opera
+
+- **Anular un remito que respaldaba la entrega de un pedido Cumplido reabre el pedido.** Si era el último remito vigente (o el pedido deja de estar entregado completo), el pedido vuelve a «Pendiente», queda la marca «↺ reabierto» y en la nota las líneas «Cambio de estado…» y «Reabierto…» con el remito y el motivo. Si el Cumplido había generado un RI (pedidos Rosa), también se anula. La lista de remitos lo avisa al anular. Un remito amparado por una factura sigue sin poder anularse: primero va la nota de crédito. Deshacer la anulación NO vuelve a cerrar el pedido: pasarlo a Cumplido es decisión del operador.
+- **El pedido que se arma desde una factura lleva la fecha de la factura**, no la del día en que se la cargó (la venta de septiembre ya no figura en noviembre). Se corrigieron los pedidos #153 (factura del 06/10) y #155 (factura del 16/09); sus remitos conservan la fecha en que se emitieron.
+- **Al conciliar, el cartel de la fecha del remito** deja «Dejar <fecha del remito>» como lo principal; «Poner la de la factura» y «otra fecha» son alternativas. A veces se factura antes, a pedido del comprador, y el remito se hace cuando da el OK: la fecha de la factura es una propuesta, no una regla.
+- **Clonar un pedido** ya no copia las líneas de sistema de la nota ni la OC del original: queda «Clonado de Pedido #N.» más lo que escribió una persona.

@@ -1,4 +1,18 @@
-﻿Sesion actual: 900
+﻿Sesion actual: 901
+
+# CAJA NEGRA: OMEGA Lite - flujo documental de Pedido, Remito y Factura (Card #217: mapa, dictamen de Nike y F1), H26 y H27, migrate_080 y relevo de NS a NS2
+
+Sesion 901 OF, 06/11, NS (CC, Sonnet 5.5) con Carlos. Hash D: @@HASH_D@@ (commit del OMEGA; commits de codigo b60ced74, 5febb2d0, be60ffd4 y 31eaace3) | Hash B: ff357de = prod/main (dos pushes el 06/11, los dos con "pusheá 1974": 43ad49a y ff357de) | P real: e41455e (leido en P por red; ff357de y migrate_080 entran al relanzar Soberana) | 96 pruebas, 2.078 comprobaciones, en verde en D y contra B | PIN 1974
+- Mapa del flujo documental (FLUJO_DOCUMENTAL_PEDIDO_REMITO_FACTURA_S901.md): 9 caminos de entrada, 8 hallazgos, auditado por Nike (Sello de Oro) y CA; Card #217 con el trabajo derivado. Replica NS-Nike con acuerdo total: la NC total no prende el bit 41 (reservado), anular un pedido con comprobantes vigentes pide confirmacion informada y nota (no un 409 duro), la conciliacion de la NC pregunta si la mercaderia vuelve o queda en el cliente.
+- H26 (b60ced74, prod 43ad49a): el clon de un pedido no hereda las lineas [SISTEMA] ni la OC (backend/pedidos/notas.py); el cartel de fecha de la #214 deja "Dejar" como lo principal (la fecha de la factura es una propuesta, no una regla).
+- H27 (5febb2d0): el pedido que nace de una factura toma la fecha de la factura (RemitosService._fecha_del_pedido_de_la_factura y PedidoCanvas). migrate_080 (31eaace3) corrige con nota los pedidos #153 (factura 06/10) y #155 (factura 16/09); los remitos conservan su fecha.
+- F1 de la #217 (be60ffd4): anular el remito que respaldaba la entrega de un pedido Cumplido lo reabre (RemitosService.reabrir_si_dejo_de_estar_cumplido desde POST /remitos/{id}/anular): Pendiente, bit 50, lineas "Cambio de estado" y "Reabierto", anula el RI del Cumplido; la lista de remitos avisa. Desplegado en produccion a las 16:31 (ff357de).
+- Chequeo de las entregas del 06/11 (#159 Luisa con RI01-00000004, #147 Honeymax, #158 Soubeiran): coherentes. Observaciones: el remito 3045 salio con valor 0 y 1 bulto (Card #216); el 3036 lleva fecha 03/11 y salio el 06/11.
+- Relevo: la conversacion de NS (desde el 23/09) se releva por NS2; traspaso en TRASPASO_NS_2026-11-06.md. NS2 es el nombre de la sesion nueva.
+- Leccion: las copias nuevas de P para pruebas van en una subcarpeta de FIJAS_DE_PRUEBAS (desde_S901): 5 pruebas viejas toman por glob la mas nueva; un script que reescribe archivos tiene que releer el estado antes de dar nada por supuesto.
+- Pendiente: S902 (NS2): OMEGA ya hecho; leer P (esperado ff357de si Tomy relanzo) y verificar la migrate_080; los 82 pendientes de P (regenerar la planilla de CA, puntear, migracion con PIN); analisis WhatsApp contra V5 en solo lectura; resto de la #217 (F2, pregunta de la NC, fecha de consignacion, Q6 con la #216, puerta del PDF anticipado); apendice a Nike.
+
+Sesion actual: 900
 
 # CAJA NEGRA: OMEGA Lite - cuatro despliegues y el bit 50 del genoma de pedidos (Cards #213, #214 etapa 1 y #215, migrate_079), destilado S895-S900 a Nike y Espejo de MT sin ventana de DOS
 

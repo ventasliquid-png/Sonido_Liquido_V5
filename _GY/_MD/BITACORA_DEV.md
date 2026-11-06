@@ -1,4 +1,8 @@
-﻿## SESION 900 (OF) — 2026-11-05 [NS (CC, Sonnet 5.5)]: Facturas → Ingesta clásica (#213), propuestas al conciliar (#214), bit 50 FUE_REABIERTO y nota de cambio de estado (#215), `migrate_079`, destilado S895–S900 a Nike y Espejo de MT sin ventana — NOMINAL — D:71249c56 B:e41455e (= prod/main) P:2f49eed
+﻿## SESION 901 (OF) — 2026-11-06 [NS (CC, Sonnet 5.5)]: flujo documental de Pedido, Remito y Factura (Card #217: mapa, dictamen de Nike, F1), H26 y H27, `migrate_080` y relevo de NS a NS2 — NOMINAL — D:@@HASH_D@@ B:ff357de (= prod/main) P:e41455e
+
+- Cuatro commits de código en D (`b60ced74` [H26 y cartel de la #214], `5febb2d0` [H27], `be60ffd4` [F1: anular el remito de un Cumplido lo reabre], `31eaace3` [`migrate_080`]) y dos pushes a producción el 06/11 (`43ad49a`, `ff357de`). 96 pruebas, 2.078 comprobaciones. Informe: `INFORMES_HISTORICOS/2026-11-06_S901_OF.md`.
+
+## SESION 900 (OF) — 2026-11-05 [NS (CC, Sonnet 5.5)]: Facturas → Ingesta clásica (#213), propuestas al conciliar (#214), bit 50 FUE_REABIERTO y nota de cambio de estado (#215), `migrate_079`, destilado S895–S900 a Nike y Espejo de MT sin ventana — NOMINAL — D:71249c56 B:e41455e (= prod/main) P:2f49eed
 
 - Cuatro commits de código en D (`755d2755`, `3be84f45`, `558ae3ad`, `dc7f9d79`) y cuatro pushes a producción el 05/11 (`c2dfd5f1`, `3b95af1`, `2f49eed`, `e41455e`; `migrate_079` reconstruye la reapertura del #98). 92 pruebas, 2.010 comprobaciones. Informe: `INFORMES_HISTORICOS/2026-11-05_S900_OF.md`.
 
