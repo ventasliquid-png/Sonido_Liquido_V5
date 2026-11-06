@@ -106,8 +106,10 @@ SRC = os.path.join(RAIZ, "frontend", "src", "views", "Pedidos")
 con = open(os.path.join(SRC, "ConciliarFacturaView.vue"), encoding="utf-8").read().replace("\r\n", "\n")
 check("el resultado de conciliar tiene el bloque «Para dejarlo prolijo» con las dos propuestas (cartel de fecha y cartel de Cumplido), solo si hay algo que proponer o ya se hizo algo",
       'data-test="proximos-pasos"' in con and 'data-test="cartel-fecha"' in con and 'data-test="cartel-cumplido"' in con and 'v-if="remitosAFechar.length || pedidosACumplir.length || hechos.length"' in con and "Para dejarlo prolijo" in con)
-check("cartel de fecha: «Sí, poner <fecha de la factura>» (por defecto), «otra fecha» (no más allá de hoy) y «Dejar <fecha del remito>»; usa PATCH /remitos/{id}/fecha con motivo automático",
+check("cartel de fecha (ajustado en la S901, Carlos 06/11): lo principal es «Dejar <fecha del remito>» porque la fecha de la factura es una PROPUESTA, no una regla (a veces se factura antes, a pedido del comprador, y el remito se hace con el OK); alternativas «Poner la de la factura» y «otra fecha» (no más allá de hoy); usa PATCH /remitos/{id}/fecha con motivo automático",
       'data-test="fechar-como-factura"' in con and 'data-test="otra-fecha"' in con and ':max="hoyIso"' in con and 'data-test="dejar-fecha"' in con
+      and con.index('data-test="dejar-fecha"') < con.index('data-test="fechar-como-factura"') and "Poner la de la factura (" in con and "A veces se factura antes, a pedido del comprador" in con
+      and "¿Qué fecha lleva?" in con and "¿Fechamos el remito como la factura?" not in con
       and "api.patch(`/remitos/${r.remito_id}/fecha`, { fecha, motivo })" in con and "'Igualada a la fecha de la factura ' + proximos.factura.numero + ' al conciliar'" in con)
 check("cartel de Cumplido: «Sí, pasar a Cumplido» por el cambio de estado de siempre (usePedidoEstado, con sus guardas) y «Ahora no»; si la salida está solo asumida lo dice y el botón destacado pasa a ser «Ahora no»",
       'data-test="pasar-a-cumplido"' in con and "await cambiarEstado(p.pedido_id, 'CUMPLIDO')" in con and 'data-test="ahora-no"' in con and 'data-test="salida-asumida"' in con

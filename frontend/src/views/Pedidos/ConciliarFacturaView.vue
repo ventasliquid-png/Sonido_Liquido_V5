@@ -279,18 +279,20 @@
             <h3 class="text-[10px] uppercase font-bold tracking-wider text-emerald-300/80">Para dejarlo prolijo</h3>
             <p v-for="(h, i) in hechos" :key="'h' + i" class="text-emerald-300" data-test="hecho">✔ {{ h }}</p>
             <div v-for="r in remitosAFechar" :key="'f' + r.remito_id" class="rounded-lg border border-amber-500/40 bg-amber-900/20 p-3 space-y-2 text-amber-100" data-test="cartel-fecha">
-              <p>El remito <b>{{ r.numero_legal }}</b> es del <b>{{ fechaCorta(r.fecha) }}</b> y la factura es del <b>{{ fechaCorta(proximos.factura.fecha) }}</b> ({{ r.dias_despues_de_la_factura }} días antes). ¿Fechamos el remito como la factura?</p>
+              <!-- [S901, Carlos 06/11] La fecha de la factura es una PROPUESTA, no una regla: a veces el comprador pide la factura antes (para asegurar el pago) y el remito se hace cuando da el OK;
+                   entonces la fecha del remito está bien. Por eso lo principal es «Dejar» y la fecha de la factura es una alternativa; nada espera a esta respuesta. -->
+              <p>El remito <b>{{ r.numero_legal }}</b> es del <b>{{ fechaCorta(r.fecha) }}</b> y la factura es del <b>{{ fechaCorta(proximos.factura.fecha) }}</b> (la factura es {{ r.dias_despues_de_la_factura }} días anterior al remito). A veces se factura antes, a pedido del comprador, y el remito se hace cuando da el OK: en ese caso la fecha del remito está bien. ¿Qué fecha lleva?</p>
               <div class="flex flex-wrap items-center gap-2">
+                <button type="button" data-test="dejar-fecha" @click="descartar('r' + r.remito_id)"
+                  class="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black">Dejar {{ fechaCorta(r.fecha) }}</button>
                 <button type="button" :disabled="procesando" data-test="fechar-como-factura"
                   @click="fecharRemito(r, proximos.factura.fecha, 'Igualada a la fecha de la factura ' + proximos.factura.numero + ' al conciliar')"
-                  class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-900 font-black">Sí, poner {{ fechaCorta(proximos.factura.fecha) }}</button>
+                  class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-bold disabled:opacity-50">Poner la de la factura ({{ fechaCorta(proximos.factura.fecha) }})</button>
                 <span class="text-amber-200/70">o</span>
                 <input type="date" v-model="otraFecha[r.remito_id]" :max="hoyIso" data-test="otra-fecha" class="bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white" />
                 <button type="button" :disabled="procesando || !otraFecha[r.remito_id]" data-test="poner-otra-fecha"
                   @click="fecharRemito(r, otraFecha[r.remito_id], 'Fecha ajustada al conciliar la factura ' + proximos.factura.numero)"
                   class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-bold disabled:opacity-40">Poner esta fecha</button>
-                <button type="button" data-test="dejar-fecha" @click="descartar('r' + r.remito_id)"
-                  class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300">Dejar {{ fechaCorta(r.fecha) }}</button>
               </div>
             </div>
             <div v-for="p in pedidosACumplir" :key="'c' + p.pedido_id" class="rounded-lg border border-emerald-500/40 bg-emerald-900/20 p-3 space-y-2 text-emerald-100" data-test="cartel-cumplido">

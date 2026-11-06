@@ -18,6 +18,7 @@ from backend.clientes.models import Cliente
 from backend.productos.models import Producto
 from backend.pedidos.constants import PedidoFlags as PF, STATE_MASK
 from backend.pedidos.transiciones import registrar_cambio_de_estado   # [S900, Card #215] toda transición de estado deja su nota; salir de Cumplido prende el bit 50
+from backend.pedidos.notas import nota_para_clon   # [S901, H26] la nota de un clon no hereda las líneas [SISTEMA]
 from backend.pedidos.cantidades import mensaje_baja_de_cantidad, mensaje_baja_de_renglon
 from backend.pedidos.descuentos import descuento_normalizado, importe_conservando_unitario
 from backend.pedidos import kits as kits_mod
@@ -1291,8 +1292,9 @@ def clone_pedido(pedido_id: int, db: Session = Depends(get_db)):
     new_pedido = models.Pedido(
         cliente_id=original.cliente_id,
         fecha=datetime.now(),
-        nota=f"Clonado de Pedido #{original.id}. {original.nota or ''}",
-        oc=original.oc,
+        # [S901, H26 de CA; Carlos 06/11] El clon es un pedido NUEVO: no hereda las líneas [SISTEMA] del original (su historia es de otro pedido) ni su OC (cada pedido trae la suya).
+        nota=nota_para_clon(original.nota, original.id),
+        oc=None,
         estado="PRESUPUESTO",
         tipo_facturacion=original.tipo_facturacion or "X",
         origen=original.origen or "DIRECTO",
