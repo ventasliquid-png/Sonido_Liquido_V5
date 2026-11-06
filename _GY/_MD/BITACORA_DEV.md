@@ -1,4 +1,4 @@
-﻿## SESION 902 (OF) — 2026-11-06 [NS2 (CC, Sonnet 5.5)]: relevo de NS, pendientes de P (66, no 82) y planilla del 06/11, Downloads, copia de P y reglas de trabajo nuevas; sin cambios de código — NOMINAL — D:HASH_OMEGA B:ff357de (= prod/main) P:e41455e
+﻿## SESION 902 (OF) — 2026-11-06 [NS2 (CC, Sonnet 5.5)]: relevo de NS, pendientes de P (66, no 82) y planilla del 06/11, Downloads, copia de P y reglas de trabajo nuevas; sin cambios de código — NOMINAL — D:e0c67448 B:ff357de (= prod/main) P:e41455e
 
 - Sin commits de código ni despliegues. Informe: `INFORMES_HISTORICOS/2026-11-06_S902_OF.md`.
 

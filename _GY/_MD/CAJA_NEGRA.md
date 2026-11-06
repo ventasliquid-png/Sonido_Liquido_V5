@@ -2,7 +2,7 @@
 
 # CAJA NEGRA: OMEGA Lite - arranque de NS2 (relevo de NS), pendientes de P (66, no 82), Downloads y copia de P; sin cambios de codigo - S902
 
-Sesion 902 OF, 06/11, NS2 (CC, Sonnet 5.5) con Carlos. Hash D: HASH_OMEGA (commit del OMEGA; sin commits de codigo) | Hash B: ff357de = prod/main (sin pushes) | P real: e41455e (leido en P; todavia no tomo ff357de, falta que Tomy relance Soberana). Estado: NOMINAL (canario 13, WAL checkpoint OK).
+Sesion 902 OF, 06/11, NS2 (CC, Sonnet 5.5) con Carlos. Hash D: e0c67448 (commit del OMEGA; sin commits de codigo) | Hash B: ff357de = prod/main (sin pushes) | P real: e41455e (leido en P; todavia no tomo ff357de, falta que Tomy relance Soberana). Estado: NOMINAL (canario 13, WAL checkpoint OK).
 - Relevo: NS2 arranca desde TRASPASO_NS_2026-11-06.md con ALFA; la fila 886 abierta de la bitacora es de otra conversacion y no se toco.
 - Pendientes de P: son 66 (estado PENDIENTE, 28 con algun remito vigente), no 82 (conteo de NS por el bit 33, sumaba 20 FACTURADO). Planilla regenerada: Conciliaciones-e-investigaciones/PENDIENTES_P_para_puntear_2026-11-06.xlsx. Decision de Carlos: se corrigen caso por caso por pantalla en P en el momento de estudiarlos; sin script ni migracion batch.
 - Downloads (06/11 17:06): 0 comprobantes nuevos, 45 sin cargar (todas anteriores a la 2600, Card #165), 0 saltos nuevos. Diario corregido y traer_facturas_arca.py ajustado para no decir "de los ultimos 30 dias" cuando no hay ninguna.
